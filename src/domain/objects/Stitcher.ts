@@ -23,11 +23,27 @@ export type GStitcher<
  */
 export interface StitcherCompute<TStitcher extends GStitcher> {
   form: 'COMPUTE';
+
+  /**
+   * .what = the procedure which will compute the stitch upon invocation
+   */
   invoke: (
     input: { threads: TStitcher['threads'] },
     context: TStitcher['procedure']['context'],
-  ) => TStitcher['output'] | Promise<TStitcher['output']>;
+  ) => Promise<Stitch<TStitcher['output']>> | Stitch<TStitcher['output']>;
+
+  /**
+   * .what = which thread will receive the stitch
+   * .note =
+   *   - many threads may be leveraged within a stitch
+   *   - however, only one thread actually receives the stitch (goes through the fabric)
+   *   - the rest are simply looped into the stitch; read, but not written
+   */
+  stitchee: keyof TStitcher['threads'];
 }
+export class StitcherCompute<TStitcher extends GStitcher>
+  extends DomainLiteral<StitcherCompute<TStitcher>>
+  implements StitcherCompute<TStitcher> {}
 
 /**
  * .what = a tactic via which to stitch, via imagination
@@ -44,6 +60,15 @@ export interface StitcherImagine<TStitcher extends GStitcher> {
    * .what = a human readable description of the tactic, to summarize
    */
   readme: string | null;
+
+  /**
+   * .what = which thread will receive the stitch
+   * .note =
+   *   - many threads may be leveraged within a stitch
+   *   - however, only one thread actually receives the stitch (goes through the fabric)
+   *   - the rest are simply looped into the stitch; read, but not written
+   */
+  stitchee: keyof TStitcher['threads'];
 
   /**
    * .what = a mech which takes a thread and encodes it into a prompt

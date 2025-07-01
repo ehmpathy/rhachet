@@ -46,6 +46,7 @@
     "prepare:husky": "npx husky install && chmod ug+x .husky/*"
   },
   "dependencies": {
+    "@ehmpathy/uni-time": "1.7.4",
     "as-procedure": "1.1.3",
     "domain-glossaries": "1.0.0",
     "domain-objects": "0.24.3",

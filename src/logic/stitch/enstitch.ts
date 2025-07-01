@@ -2,29 +2,70 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 
 import { Stitch } from '../../domain/objects/Stitch';
 import { GStitcher, Stitcher } from '../../domain/objects/Stitcher';
+import { Thread } from '../../domain/objects/Thread';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
-export const enstitch = <TStitcher extends GStitcher>(
+export const enstitch = async <TStitcher extends GStitcher>(
   input: {
     stitcher: Stitcher<TStitcher>;
     threads: TStitcher['threads'];
   },
   context: TStitcher['procedure']['context'],
-): Promise<Stitch<TStitcher['output']>> => {
-  // if the stitcher is of type "compute", then execute the computation; // todo: add observability on duration
-  if (input.stitcher.form === 'COMPUTE')
-    return input.stitcher.invoke({ threads: input.threads }, context);
+): Promise<{
+  /**
+   * the output stitch
+   */
+  stitch: Stitch<TStitcher['output']>;
 
-  // if the stitcher is of type "imagine", then execute the imagination // todo: add observability
-  if (input.stitcher.form === 'IMAGINE')
-    return invokeImagineStitcher(
-      { stitcher: input.stitcher, threads: input.threads },
-      context,
+  /**
+   * the mutated threads
+   */
+  threads: TStitcher['threads'];
+}> => {
+  // enstitch the output
+  const stitch: Stitch<TStitcher['output']> = await (() => {
+    // if the stitcher is of type "compute", then execute the computation; // todo: add observability on duration
+    if (input.stitcher.form === 'COMPUTE')
+      return input.stitcher.invoke({ threads: input.threads }, context);
+
+    // if the stitcher is of type "imagine", then execute the imagination // todo: add observability
+    if (input.stitcher.form === 'IMAGINE')
+      return invokeImagineStitcher(
+        { stitcher: input.stitcher, threads: input.threads },
+        context,
+      );
+
+    // otherwise, unsupported and unexpected; should have been compiletime prevented
+    throw new UnexpectedCodePathError(
+      'why did we get an unsupported stitcher.form?',
+      { stitcher: input.stitcher },
     );
+  })();
 
-  // otherwise, unsupported and unexpected; should have been compiletime prevented
-  throw new UnexpectedCodePathError(
-    'why did we get an unsupported stitcher.form?',
-    { stitcher: input.stitcher },
-  );
+  // mutate the input thread to attach the new stitch
+  const stitcheeKey = input.stitcher.stitchee;
+  const stitcheeBefore =
+    input.threads[stitcheeKey] ??
+    UnexpectedCodePathError.throw('could not find stitchee from input.threads');
+
+  // todo: deep clone from dobjs
+  // const stitcheeAfter = stitcheeBefore.clone(
+  //   // !: deep clone to ensure no shared state between threads; unblocks safe reuse and parallelism
+  //   {
+  //     stitches: [...stitcheeBefore.stitches, stitch], // append it
+  //   },
+  // );
+  const stitcheeAfter = new Thread({
+    ...stitcheeBefore,
+    stitches: [...stitcheeBefore.stitches, stitch], // append it
+  });
+
+  // return the updates
+  return {
+    stitch,
+    threads: {
+      ...input.threads,
+      [stitcheeKey]: stitcheeAfter,
+    },
+  };
 };

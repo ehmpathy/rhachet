@@ -19,6 +19,7 @@ describe('invokeImagineStitcher', () => {
       slug: 'fillout-stub',
       readme:
         'intent(fills out a stub of code); note(good example for impact of context)',
+      stitchee: 'author',
       enprompt: ({ threads }) =>
         [
           'fillout the code of the given stubout',
@@ -56,13 +57,20 @@ export const sdkOpenMeteo = {
       });
 
       then('it should be able to stitch', async () => {
-        const stitch = await enstitch(
+        const { stitch, threads } = await enstitch(
           { stitcher, threads: { author: thread } },
           context,
         );
         console.log(stitch.input);
         console.log(stitch.output);
+
+        // stitch should look right
         expect(stitch.output).toContain('sdkOpenMeteo');
+
+        // stitchee should be updated, too
+        expect(threads.author.stitches.length).toEqual(
+          thread.stitches.length + 1,
+        );
       });
     });
 
@@ -180,14 +188,21 @@ daily_units	Object	For each selected daily weather variable, the unit will be li
         stitches: [{ output: stubout, input: null }],
       });
       then('it should leverage the knowledge of the context', async () => {
-        const stitch = await enstitch(
+        const { stitch, threads } = await enstitch(
           { stitcher, threads: { author: thread } },
           context,
         );
         console.log(stitch.input);
         console.log(stitch.output);
+
+        // stitch should look right
         expect(stitch.output).toContain('sdkOpenMeteo');
         expect(stitch.output).toContain('temperature_2m');
+
+        // stitchee should be updated, too
+        expect(threads.author.stitches.length).toEqual(
+          thread.stitches.length + 1,
+        );
       });
     });
   });

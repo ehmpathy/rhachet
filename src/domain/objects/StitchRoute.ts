@@ -1,13 +1,17 @@
+import { DomainLiteral } from 'domain-objects';
+
 import { GStitcher, Stitcher } from './Stitcher';
-import { Threads } from './Threads';
 
 /**
  * .what = a route of stitchers to enstich in sequence; a composed tactic
+ * .note = a StitchRoute is really just a composite Stitcher
+ *   - e.g., see the generic parameter input
  */
 export interface StitchRoute<
-  TThreads extends Threads<any, any>,
-  TProcedureContext,
-  TOutput,
+  /**
+   * .note = a StitchRoute is really just a composite Stitcher
+   */
+  TStitcher extends GStitcher,
 > {
   /**
    * .what = a human readable unique key, within the registered namespace
@@ -26,27 +30,26 @@ export interface StitchRoute<
   description: string | null;
 
   /**
-   * .what = declares the input's required for the route
-   */
-  input: {
-    threads: TThreads;
-  };
-
-  /**
-   * .what = declares the output expected from the route
-   * .todo
-   *   - will we ever have cases where we want to expose multiple output stitches?
-   *   - will we ever have cases where we want to expose the threads?
-   */
-  output: {
-    stitch: TOutput;
-  };
-
-  /**
    * .what = the route of stitchers to execute in sequence
    */
-  route: [
-    ...Stitcher<GStitcher<TThreads, TProcedureContext, any>>[],
-    Stitcher<GStitcher<TThreads, TProcedureContext, TOutput>>, // last stitcher must return the final output of the contract
+  sequence: [
+    ...Stitcher<
+      GStitcher<
+        TStitcher['threads'],
+        TStitcher['procedure']['context'],
+        any // typecheck the chain of stichers? right now, non-last does not have any requirements
+      >
+    >[],
+
+    Stitcher<
+      GStitcher<
+        TStitcher['threads'],
+        TStitcher['procedure']['context'],
+        TStitcher['output'] // last stitcher must return the final output of the contract
+      >
+    >,
   ];
 }
+export class StitchRoute<TStitcher extends GStitcher>
+  extends DomainLiteral<StitchRoute<TStitcher>>
+  implements StitchRoute<TStitcher> {}
