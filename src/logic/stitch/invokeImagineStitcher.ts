@@ -1,0 +1,35 @@
+import { Stitch } from '../../domain/objects/Stitch';
+import { StitcherImagine } from '../../domain/objects/Stitcher';
+import { Thread } from '../../domain/objects/Thread';
+
+/**
+ * .what = invokes the imagine stitcher by invocation of stitcher mechanisms
+ */
+export const invokeImagineStitcher = async <
+  TThreadContext,
+  TProcedureContext,
+  TOutput,
+>(
+  input: {
+    stitcher: StitcherImagine<TThreadContext, TProcedureContext, TOutput>;
+    thread: Thread<TThreadContext>;
+  },
+  context: TProcedureContext,
+): Stitch<TOutput> => {
+  const { stitcher, thread } = input;
+
+  // enprompt the thread
+  const prompt = stitcher.enprompt({ thread });
+
+  // invoke the imagination
+  const imagination = await stitcher.imagine(prompt, context);
+
+  // deprompt back into a stitch
+  const stitch = stitcher.deprompt({
+    thread,
+    prompt:  imagination,
+  });
+
+  // expose the stitch
+  return stitch;
+};
