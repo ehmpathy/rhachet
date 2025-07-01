@@ -1,32 +1,27 @@
 import { Stitch } from '../../domain/objects/Stitch';
-import { StitcherImagine } from '../../domain/objects/Stitcher';
-import { Thread } from '../../domain/objects/Thread';
+import { GStitcher, StitcherImagine } from '../../domain/objects/Stitcher';
 
 /**
  * .what = invokes the imagine stitcher by invocation of stitcher mechanisms
  */
-export const invokeImagineStitcher = async <
-  TThreadContext,
-  TProcedureContext,
-  TOutput,
->(
+export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
   input: {
-    stitcher: StitcherImagine<TThreadContext, TProcedureContext, TOutput>;
-    thread: Thread<TThreadContext>;
+    stitcher: StitcherImagine<TStitcher>;
+    threads: TStitcher['threads'];
   },
-  context: TProcedureContext,
-): Promise<Stitch<TOutput>> => {
-  const { stitcher, thread } = input;
+  context: TStitcher['procedure']['context'],
+): Promise<Stitch<TStitcher['output']>> => {
+  const { stitcher, threads } = input;
 
   // enprompt the thread
-  const prompt = stitcher.enprompt({ thread });
+  const prompt = stitcher.enprompt({ threads });
 
   // invoke the imagination
   const imagined = await stitcher.imagine(prompt, context);
 
   // deprompt back into a stitch
   const stitch = stitcher.deprompt({
-    thread,
+    threads,
     promptIn: prompt,
     promptOut: imagined,
   });

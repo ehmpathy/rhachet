@@ -1,26 +1,24 @@
-import { asProcedure } from 'as-procedure';
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { VisualogicContext } from 'visualogic';
 
-import { Stitcher } from '../../domain/objects/Stitcher';
-import { Thread } from '../../domain/objects/Thread';
+import { Stitch } from '../../domain/objects/Stitch';
+import { GStitcher, Stitcher } from '../../domain/objects/Stitcher';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
-export const enstitch = <TThreadContext, TProcedureContext>(
+export const enstitch = <TStitcher extends GStitcher>(
   input: {
-    stitcher: Stitcher<TThreadContext, TProcedureContext>;
-    thread: Thread<TThreadContext>;
+    stitcher: Stitcher<TStitcher>;
+    threads: TStitcher['threads'];
   },
-  context: TProcedureContext,
-) => {
+  context: TStitcher['procedure']['context'],
+): Promise<Stitch<TStitcher['output']>> => {
   // if the stitcher is of type "compute", then execute the computation; // todo: add observability on duration
   if (input.stitcher.form === 'COMPUTE')
-    return input.stitcher.invoke({ thread: input.thread }, context);
+    return input.stitcher.invoke({ threads: input.threads }, context);
 
   // if the stitcher is of type "imagine", then execute the imagination // todo: add observability
   if (input.stitcher.form === 'IMAGINE')
     return invokeImagineStitcher(
-      { stitcher: input.stitcher, thread: input.thread },
+      { stitcher: input.stitcher, threads: input.threads },
       context,
     );
 
