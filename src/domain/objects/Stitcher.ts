@@ -1,13 +1,13 @@
 import { DomainLiteral } from 'domain-objects';
 
 import { Stitch } from './Stitch';
-import { Threads, ThreadRole } from './Threads';
+import { Threads } from './Threads';
 
 /**
  * .what = the common generics of a stitcher
  */
 export type GStitcher<
-  TThreadIndex extends Threads<ThreadRole, any> = Threads<ThreadRole, any>,
+  TThreadIndex extends Threads<any> = Threads<any>,
   TProcedureContext = any,
   TOutput = any,
 > = {

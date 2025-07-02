@@ -37,7 +37,9 @@ export const enweaveOneRoute = async <TStitcher extends GStitcher>(
     outputNow = stitch;
 
     // expose for observability
-    console.log(JSON.stringify(stitch, null, 2));
+    // console.log(JSON.stringify(stitch, null, 2));
+    console.log('input', stitch.input);
+    console.log('output', stitch.output);
     // todo: emit event to ObserverContext, that the stitch was completed; todo: do this within stitcher? both? e.g., enweave.checkpoint vs enstitch.checkpoint
   }
 

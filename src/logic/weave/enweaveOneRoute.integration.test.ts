@@ -8,6 +8,10 @@ import { getError, UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
+import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
+import { stitcherCodeDiffImagine } from '../../__test_assets__/stitchers/stitcherCodeDiffImagine';
+import { getExampleThreadCodeArtist } from '../../__test_assets__/threads/codeArtist';
+import { exampleThreadDirector } from '../../__test_assets__/threads/director';
 import { Stitch } from '../../domain/objects/Stitch';
 import { GStitcher, StitcherCompute } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
@@ -17,10 +21,10 @@ import { genStitchRoute } from './route/genStitchRoute';
 
 describe('enweaveOneRoute', () => {
   given(
-    'a route with compute stitchers (fast and no api keys required)',
+    'a route with compute stitchers (fast and no api keys required); same threads required for each stitcher',
     () => {
       const stitcherGetTime = new StitcherCompute<
-        GStitcher<Threads<'main'>, Empty, UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
       >({
         form: 'COMPUTE',
         stitchee: 'main',
@@ -28,7 +32,7 @@ describe('enweaveOneRoute', () => {
           new Stitch({ input: null, output: asUniDateTime(new Date()) }),
       });
       const stitcherAddHours = new StitcherCompute<
-        GStitcher<Threads<'main'>, Empty, UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
       >({
         form: 'COMPUTE',
         stitchee: 'main',
@@ -114,4 +118,100 @@ describe('enweaveOneRoute', () => {
       });
     },
   );
+
+  given('a route with imagine stitchers (closer to real world usecase)', () => {
+    type OutputFileWrite = { path: string; content: string };
+
+    const stitcherCodeFileRead = new StitcherCompute<
+      GStitcher<Threads<{ artist: Empty }>, Empty, string>
+    >({
+      form: 'COMPUTE',
+      stitchee: 'artist',
+      invoke: () => {
+        // e.g., execute tooluse:file:read
+        return new Stitch({
+          input: null,
+          output: `
+/**
+ * .what = calls the open-meteo weather api
+ * .how =
+ *   - uses procedural pattern
+ *   - fails fast
+ */
+export const sdkOpenMeteo = {
+  getWeather: (input: {...}, context: VisualogicContext & AuthContextOpenMeteo) => {
+    ...
+  }
+}
+          `.trim(),
+        });
+      },
+    });
+
+    const stitcherCodeFileWrite = new StitcherCompute<
+      GStitcher<Threads<{ artist: Empty }>, Empty, OutputFileWrite>
+    >({
+      form: 'COMPUTE',
+      stitchee: 'artist',
+      invoke: ({ threads }) => {
+        // e.g., execute tooluse:file:write
+        return new Stitch({
+          input: null,
+          output: {
+            path: '@src/...', // mock that we did so
+            content:
+              threads.artist.stitches.slice(-1)[0]?.output ??
+              UnexpectedCodePathError.throw(
+                'expected artist to have had a stitch by now',
+              ),
+          },
+        });
+      },
+    });
+
+    const route = genStitchRoute({
+      slug: 'code:propose',
+      name: 'propose a code change; imagine + file:write it',
+      description: null,
+      sequence: [
+        stitcherCodeFileRead,
+        stitcherCodeDiffImagine,
+        stitcherCodeFileWrite,
+      ],
+    });
+
+    when('given the threads required', () => {
+      let threads: Threads<{
+        artist: { tools: string[]; facts: string[] };
+        director: Empty;
+      }>;
+
+      beforeAll(async () => {
+        threads = {
+          artist: await getExampleThreadCodeArtist(),
+          director: exampleThreadDirector,
+        };
+      });
+
+      then(
+        'it should successfully execute the stitches as a weave',
+        async () => {
+          const context = { log: console, ...getContextOpenAI() };
+
+          const output = await enweaveOneRoute(
+            {
+              route,
+              threads,
+            },
+            context,
+          );
+          console.log(output);
+
+          // verify that it used conflict markers and wrote the full output
+          expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
+          expect(output.stitch.output.content).toContain('>>>>>>> MODIFIED');
+        },
+      );
+    });
+  });
 });

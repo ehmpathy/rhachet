@@ -1,23 +1,15 @@
 import { StitchRoute } from '../../../domain/objects/StitchRoute';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-
-type First<T extends any[]> = T extends [infer F, ...any[]] ? F : never;
-type Last<T extends any[]> = T extends [...any[], infer L] ? L : never;
+import { GStitcherInferred } from './GStitcherInferred.generic';
 
 /**
- * .what = a mech to infer a GStitcher from a StitchRoute.Sequence
+ * .what = generates a thoroughly typesafe stitch route
+ * .why =
+ *   - ensures typescript considers the input stitcher sequence to infer a composite stitcher for the stitch route declaration
+ *   - results in a composite superset type of threads and context, plus accurate output type, on the output
  */
-type GStitcherInferred<TSequence extends Stitcher<GStitcher<any, any, any>>[]> =
-  GStitcher<
-    First<TSequence> extends Stitcher<infer G> ? G['threads'] : never,
-    First<TSequence> extends Stitcher<infer G>
-      ? G['procedure']['context']
-      : never,
-    Last<TSequence> extends Stitcher<infer G> ? G['output'] : never
-  >;
-
 export const genStitchRoute = <
-  TSequence extends [
+  TSequence extends readonly [
     Stitcher<GStitcher<any, any, any>>,
     ...Stitcher<GStitcher<any, any, any>>[],
   ],

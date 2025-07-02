@@ -1,3 +1,5 @@
+import { Empty } from 'type-fns';
+
 import { Thread } from './Thread';
 
 /**
@@ -11,7 +13,9 @@ export type ThreadRole = string;
  *   - a core goal of rhachet is to make it easy to leverage roles in thought branches
  *   - given that each thread of thought is heavily contextualized based on its "role", .role is a core primitive of a thought thread, in reality
  */
-type ThreadContextRole<TThreadRole extends ThreadRole> = { role: TThreadRole };
+export type ThreadContextRole<TThreadRole extends ThreadRole> = {
+  role: TThreadRole;
+};
 
 /**
  * .what = a declaration of the available threads and their contexts
@@ -20,14 +24,11 @@ type ThreadContextRole<TThreadRole extends ThreadRole> = { role: TThreadRole };
  *   - enables lookup of a thread by .role
  */
 export type Threads<
-  TRoles extends string,
-  /**
-   * .what = enables declaration of further context per thread.role
-   */
-  TContextIndex extends Partial<Record<TRoles, object>> = Record<never, never>,
+  TContextDict extends Record<string, object> = Record<never, never>,
 > = {
-  [K in TRoles]: Thread<
-    ThreadContextRole<K> &
-      (K extends keyof TContextIndex ? TContextIndex[K] : unknown)
+  [K in keyof TContextDict & string]: Thread<
+    TContextDict[K] extends Empty // exclude "empty" additional contexts
+      ? ThreadContextRole<K>
+      : ThreadContextRole<K> & TContextDict[K]
   >;
 };

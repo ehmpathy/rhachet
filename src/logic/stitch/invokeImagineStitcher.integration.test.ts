@@ -13,7 +13,7 @@ describe('invokeImagineStitcher', () => {
     const context = { log: console, ...getContextOpenAI() };
 
     const stitcher = new StitcherImagine<
-      GStitcher<Threads<'author', { author: { factset: string[] } }>>
+      GStitcher<Threads<{ author: { factset: string[] } }>>
     >({
       form: 'IMAGINE',
       slug: 'fillout-stub',
