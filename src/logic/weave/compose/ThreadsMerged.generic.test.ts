@@ -495,6 +495,7 @@ describe('ThreadsMerged', () => {
 
   given('an array instead of a tuple input of threads', () => {
     then('it should fail fast and block the usage', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type Merged = ThreadsMerged<
         // @ts-expect-error: Type 'Threads<{ main: Empty; }>[]' does not satisfy the constraint 'readonly [Threads<any>, ...Threads<any>[]]'
         Threads<{

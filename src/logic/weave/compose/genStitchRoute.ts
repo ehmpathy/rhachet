@@ -9,20 +9,18 @@ import { GStitcherInferred } from './GStitcherInferred.generic';
  *   - results in a composite superset type of threads and context, plus accurate output type, on the output
  */
 export const genStitchRoute = <
-  TSequence extends readonly [
-    Stitcher<GStitcher<any, any, any>>,
-    ...Stitcher<GStitcher<any, any, any>>[],
-  ],
+  TSequence extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
 >(input: {
   slug: string;
   name: string;
   description: string | null;
   sequence: TSequence;
 }): StitchRoute<GStitcherInferred<TSequence>> => {
-  return {
+  return new StitchRoute({
+    form: 'ROUTE',
     slug: input.slug,
     name: input.name,
     description: input.description,
     sequence: input.sequence as any,
-  };
+  });
 };

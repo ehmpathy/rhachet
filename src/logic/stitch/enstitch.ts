@@ -1,13 +1,17 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, Stitcher } from '../../domain/objects/Stitcher';
+import { StitchStep } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
+/**
+ * .what = enstitche a single stitch step to produce a stitch
+ */
 export const enstitch = async <TStitcher extends GStitcher>(
   input: {
-    stitcher: Stitcher<TStitcher>;
+    stitcher: StitchStep<TStitcher>;
     threads: TStitcher['threads'];
   },
   context: TStitcher['procedure']['context'],

@@ -9,13 +9,13 @@ import { given, then } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { Stitch } from '../../../domain/objects/Stitch';
-import { GStitcher, StitcherCompute } from '../../../domain/objects/Stitcher';
+import { GStitcher, StitchStepCompute } from '../../../domain/objects/Stitcher';
 import { Thread } from '../../../domain/objects/Thread';
 import { Threads } from '../../../domain/objects/Threads';
 import { GStitcherInferred } from './GStitcherInferred.generic';
 
 describe('GStitcherInferred', () => {
-  const stitcherGetTime = new StitcherCompute<
+  const stitcherGetTime = new StitchStepCompute<
     GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
   >({
     form: 'COMPUTE',
@@ -24,7 +24,7 @@ describe('GStitcherInferred', () => {
       new Stitch({ input: null, output: asUniDateTime(new Date()) }),
   });
 
-  const stitcherAddHours = new StitcherCompute<
+  const stitcherAddHours = new StitchStepCompute<
     GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
   >({
     form: 'COMPUTE',
@@ -50,7 +50,7 @@ describe('GStitcherInferred', () => {
     then(
       'there should be a type error at usage, as we enforce readonly consts to maximize type inference, and fail fast when omitted',
       () => {
-        // @ts-expect-error: Type 'StitcherCompute<GStitcher<Threads<{ main: Empty; }>, Empty, string & OfGlossary<"uni-time.UniDateTime">>>[]' does not satisfy the constraint 'readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]]'.
+        // @ts-expect-error: Type 'StitchStepCompute<GStitcher<Threads<{ main: Empty; }>, Empty, string & OfGlossary<"uni-time.UniDateTime">>>[]' does not satisfy the constraint 'readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]]'.
         type Inferred = GStitcherInferred<typeof sequence>;
         expect(true as any as Inferred); // just to satisfy the linter of unused type
       },
@@ -122,7 +122,7 @@ describe('GStitcherInferred', () => {
   });
 
   given('a sequence of stitchers with different thread roles or output', () => {
-    const stitcherWithClock = new StitcherCompute<
+    const stitcherWithClock = new StitchStepCompute<
       GStitcher<Threads<{ clock: Empty }>, Empty, UniDateTime>
     >({
       form: 'COMPUTE',
@@ -142,7 +142,7 @@ describe('GStitcherInferred', () => {
   });
 
   given('a sequence of stitchers with varied procedure.contexts', () => {
-    const stitcherWithEmptyContext = new StitcherCompute<
+    const stitcherWithEmptyContext = new StitchStepCompute<
       GStitcher<Threads<{ one: Empty }>, Empty, UniDateTime>
     >({
       form: 'COMPUTE',
@@ -151,7 +151,7 @@ describe('GStitcherInferred', () => {
         new Stitch({ input: null, output: asUniDateTime(new Date()) }),
     });
 
-    const stitcherWithFooContext = new StitcherCompute<
+    const stitcherWithFooContext = new StitchStepCompute<
       GStitcher<Threads<{ two: Empty }>, { foo: number }, UniDateTime>
     >({
       form: 'COMPUTE',
@@ -160,7 +160,7 @@ describe('GStitcherInferred', () => {
         new Stitch({ input: null, output: asUniDateTime(new Date()) }),
     });
 
-    const stitcherWithBarContext = new StitcherCompute<
+    const stitcherWithBarContext = new StitchStepCompute<
       GStitcher<Threads<{ three: Empty }>, { bar: string }, UniDateTime>
     >({
       form: 'COMPUTE',

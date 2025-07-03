@@ -1,17 +1,19 @@
-import { DomainLiteral } from 'domain-objects';
+import { createIsOfEnum, Literalize } from 'type-fns';
 
-import { Stitch } from './Stitch';
+import { StitchFanout } from './StitchFanout';
+import { StitchRoute } from './StitchRoute';
+import { StitchStep } from './StitchStep';
 import { Threads } from './Threads';
 
 /**
  * .what = the common generics of a stitcher
  */
 export type GStitcher<
-  TThreadIndex extends Threads<any> = Threads<any>,
+  TThreads extends Threads<any> = Threads<any>,
   TProcedureContext = any,
   TOutput = any,
 > = {
-  threads: TThreadIndex;
+  threads: TThreads;
   procedure: {
     context: TProcedureContext;
   };
@@ -19,86 +21,62 @@ export type GStitcher<
 };
 
 /**
- * .what = a tactic via which to stitch, via computation
+ * .what = the canonical set of stitcher forms
  */
-export interface StitcherCompute<TStitcher extends GStitcher> {
-  form: 'COMPUTE';
+export enum StitcherForm {
+  /**
+   * .what = a stitch step executed via computation of procedural logic
+   */
+  COMPUTE = 'COMPUTE',
 
   /**
-   * .what = the procedure which will compute the stitch upon invocation
+   * .what = a stitch step executed via imagination of an llm
    */
-  invoke: (
-    input: { threads: TStitcher['threads'] },
-    context: TStitcher['procedure']['context'],
-  ) => Promise<Stitch<TStitcher['output']>> | Stitch<TStitcher['output']>;
+  IMAGINE = 'IMAGINE',
 
   /**
-   * .what = which thread will receive the stitch
-   * .note =
-   *   - many threads may be leveraged within a stitch
-   *   - however, only one thread actually receives the stitch (goes through the fabric)
-   *   - the rest are simply looped into the stitch; read, but not written
+   * .what = a stitch combo via linear sequence
    */
-  stitchee: keyof TStitcher['threads'];
+  ROUTE = 'ROUTE',
+
+  /**
+   * .what = a stitch combo via parallel fanout + fanin
+   */
+  FANOUT = 'FANOUT',
+
+  /**
+   * .what = a stitch combo via conditional stitcher selection
+   */
+  CHOICE = 'CHOICE',
+
+  /**
+   * .what = a stitch combo via repetition of stitchers
+   */
+  CYCLE = 'CYCLE',
+
+  /**
+   * .what = a stitch combo which gracefully awaits some condition to be satisfied
+   */
+  AWAIT = 'AWAIT',
 }
-export class StitcherCompute<TStitcher extends GStitcher>
-  extends DomainLiteral<StitcherCompute<TStitcher>>
-  implements StitcherCompute<TStitcher> {}
+export const isOfStitcherForm = createIsOfEnum(StitcherForm);
 
 /**
- * .what = a tactic via which to stitch, via imagination
+ * .what = a generic stitcher which can be executed
+ * .why =
+ *   - generalizes references to atomic StitchSteps or composite StitchRoutes, StitchFanouts, etc
+ *   - enables universal, recursive operations against both atomic and composite stitchers, since their contracts are the same
+ *   - guarantees `.form` is defined for all stitcher types to enable disambiguation via runtime narrowage
  */
-export interface StitcherImagine<TStitcher extends GStitcher> {
-  form: 'IMAGINE';
-
-  /**
-   * .what = a unique, readable identifier for the tactic
-   */
-  slug: string;
-
-  /**
-   * .what = a human readable description of the tactic, to summarize
-   */
-  readme: string | null;
-
-  /**
-   * .what = which thread will receive the stitch
-   * .note =
-   *   - many threads may be leveraged within a stitch
-   *   - however, only one thread actually receives the stitch (goes through the fabric)
-   *   - the rest are simply looped into the stitch; read, but not written
-   */
-  stitchee: keyof TStitcher['threads'];
-
-  /**
-   * .what = a mech which takes a thread and encodes it into a prompt
-   */
-  enprompt: (input: { threads: TStitcher['threads'] }) => string;
-
-  /**
-   * .what = a mech which invokes an llm to imagine based on prompt
-   */
-  imagine: (
-    input: string,
-    context: TStitcher['procedure']['context'],
-  ) => Promise<string>;
-
-  /**
-   * .what = a mech which takes an imagined output prompt and decodes it into an updated thread
-   */
-  deprompt: (input: {
-    threads: TStitcher['threads'];
-    promptOut: string;
-    promptIn: string;
-  }) => Stitch<TStitcher['output']>;
-}
-export class StitcherImagine<TStitcher extends GStitcher>
-  extends DomainLiteral<StitcherImagine<TStitcher>>
-  implements StitcherImagine<TStitcher> {}
+export type Stitcher<T extends GStitcher = GStitcher> =
+  | StitcherBase<StitcherForm> &
+      (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
 
 /**
- * .what = a tactic via which a stitch can be produced
+ * .what = an extensible base declaration of a stitcher
+ * .why =
+ *   - ensures all stitchers will conform to desired standards
  */
-export type Stitcher<TStitcher extends GStitcher> =
-  | StitcherCompute<TStitcher>
-  | StitcherImagine<TStitcher>;
+export interface StitcherBase<TForm extends StitcherForm> {
+  form: Literalize<TForm>;
+}

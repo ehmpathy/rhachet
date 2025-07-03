@@ -11,6 +11,7 @@
     "datetime",
     "deprompt",
     "enprompt",
+    "Fanout",
     "stitchee"
   ]
 }

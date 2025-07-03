@@ -1,6 +1,6 @@
 import { DomainLiteral } from 'domain-objects';
 
-import { GStitcher, Stitcher } from './Stitcher';
+import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
 
 /**
  * .what = a route of stitchers to enstich in sequence; a composed tactic
@@ -12,7 +12,7 @@ export interface StitchRoute<
    * .note = a StitchRoute is really just a composite Stitcher
    */
   TStitcher extends GStitcher,
-> {
+> extends StitcherBase<StitcherForm.ROUTE> {
   /**
    * .what = a human readable unique key, within the registered namespace
    */
