@@ -23,7 +23,7 @@ export const enweaveOneStitcher = withStitchTrail(
       threads: TStitcher['threads'];
     },
     context: TStitcher['context'],
-  ): Promise<StitchSetEvent<TStitcher>> => {
+  ): Promise<StitchSetEvent<TStitcher['threads'], TStitcher['output']>> => {
     switch (input.stitcher.form) {
       // support step stitchers
       case StitcherForm.COMPUTE:

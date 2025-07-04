@@ -11,6 +11,8 @@
     "datetime",
     "deprompt",
     "enprompt",
+    "enstitch",
+    "enweave",
     "Fanout",
     "stitchee"
   ]

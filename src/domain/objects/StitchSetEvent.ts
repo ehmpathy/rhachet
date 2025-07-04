@@ -3,12 +3,15 @@ import { DomainLiteral } from 'domain-objects';
 
 import { Stitch } from './Stitch';
 import { StitchTrail } from './StitchTrail';
-import { GStitcher } from './Stitcher';
+import { Threads } from './Threads';
 
 /**
  * .what = an event that describes the occurrence of a stich being set
  */
-export interface StitchSetEvent<TStitcher extends GStitcher> {
+export interface StitchSetEvent<
+  TThreads extends Threads<any, 'single'>,
+  TOutput,
+> {
   /**
    * .what = when the stitch was set
    */
@@ -22,13 +25,13 @@ export interface StitchSetEvent<TStitcher extends GStitcher> {
   /**
    * .what = the stitch which was set
    */
-  stitch: Stitch<TStitcher['output']>;
+  stitch: Stitch<TOutput>;
 
   /**
    * .what = the threads it was set with
    */
-  threads: TStitcher['threads'];
+  threads: TThreads;
 }
-export class StitchSetEvent<TStitcher extends GStitcher>
-  extends DomainLiteral<StitchSetEvent<TStitcher>>
-  implements StitchSetEvent<TStitcher> {}
+export class StitchSetEvent<TThreads extends Threads<any, 'single'>, TOutput>
+  extends DomainLiteral<StitchSetEvent<TThreads, TOutput>>
+  implements StitchSetEvent<TThreads, TOutput> {}

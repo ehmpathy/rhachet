@@ -20,15 +20,40 @@ export type ThreadContextRole<TThreadRole extends ThreadRole> = {
 /**
  * .what = a declaration of the available threads and their contexts
  * .note
- *   - ties a thread's key to its context via .role
+ *   - supports both single and multiple threads per role
  *   - enables lookup of a thread by .role
  */
 export type Threads<
   TContextDict extends Record<string, object> = Record<never, never>,
+  TMultiplicity extends 'single' | 'multiple' = 'single',
 > = {
-  [K in keyof TContextDict & string]: Thread<
-    TContextDict[K] extends Empty // exclude "empty" additional contexts
-      ? ThreadContextRole<K>
-      : ThreadContextRole<K> & TContextDict[K]
-  >;
+  [K in keyof TContextDict & string]: TMultiplicity extends 'multiple'
+    ? {
+        /**
+         * .what = the seed thread from which the peers originated
+         * .why =
+         *   - fanin operations need to know which thread to merge back into
+         */
+        seed: Thread<
+          TContextDict[K] extends Empty
+            ? ThreadContextRole<K>
+            : ThreadContextRole<K> & TContextDict[K]
+        >;
+
+        /**
+         * .what = the peer threads which multiplied from the seed
+         * .why =
+         *   - carries the thread history of the peer threads to the consumer (e.g., fanin)
+         */
+        peers: Thread<
+          TContextDict[K] extends Empty
+            ? ThreadContextRole<K>
+            : ThreadContextRole<K> & TContextDict[K]
+        >[];
+      }
+    : Thread<
+        TContextDict[K] extends Empty
+          ? ThreadContextRole<K>
+          : ThreadContextRole<K> & TContextDict[K]
+      >;
 };

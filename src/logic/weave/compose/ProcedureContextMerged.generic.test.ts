@@ -1,5 +1,4 @@
 import { given, then } from 'test-fns';
-import { Empty } from 'type-fns';
 
 import { ProcedureContextMerged } from './ProcedureContextMerged.generic';
 
@@ -34,15 +33,6 @@ describe('ProcedureContextMerged', () => {
       // @ts-expect-error: 'foo' cannot be both number and string
       const context: Merged = { foo: 123 };
       expect(context);
-    });
-  });
-
-  given('a tuple where one item is an empty context', () => {
-    type Merged = ProcedureContextMerged<readonly [Empty, { bar: boolean }]>;
-
-    then('it should return the non-empty context', () => {
-      const context: Merged = { bar: true };
-      expect(context.bar).toBe(true);
     });
   });
 

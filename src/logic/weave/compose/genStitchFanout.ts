@@ -1,5 +1,10 @@
-import { Stitcher, GStitcher } from '../../../domain/objects/Stitcher';
-import { GStitcherInferred } from './GStitcherInferred.generic';
+import {
+  StitchFanout,
+  ThreadsFromFanout,
+} from '../../../domain/objects/StitchFanout';
+import { StitchStep } from '../../../domain/objects/StitchStep';
+import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
 
 /**
  * .what = generates a stitcher that fans out to multiple parallel stitchers, then concludes with a final one
@@ -9,15 +14,24 @@ import { GStitcherInferred } from './GStitcherInferred.generic';
  */
 export const genStitchFanout = <
   TParallels extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
-  TConcluder extends Stitcher<GStitcher>,
+  TConcluder extends StitchStep<
+    GStitcher<
+      ThreadsFromFanout<GStitcherInferredFromFanout<TParallels, TConcluder>>,
+      any,
+      any
+    >
+  >,
 >(input: {
   slug: string;
+  readme: string | null;
   parallels: TParallels;
   concluder: TConcluder;
-}): Stitcher<GStitcherInferred<[...TParallels, TConcluder]>> => {
-  return {
-    form: 'ROUTE',
+}): StitchFanout<GStitcherInferredFromFanout<TParallels, TConcluder>> => {
+  return new StitchFanout({
+    form: 'FANOUT',
     slug: input.slug,
-    sequence: [...input.parallels, input.concluder] as const,
-  } as unknown as Stitcher<GStitcherInferred<[...TParallels, TConcluder]>>;
+    readme: input.readme,
+    parallels: input.parallels as any,
+    concluder: input.concluder as any,
+  });
 };

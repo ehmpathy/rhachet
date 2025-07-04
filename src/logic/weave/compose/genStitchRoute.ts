@@ -1,6 +1,6 @@
 import { StitchRoute } from '../../../domain/objects/StitchRoute';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { GStitcherInferred } from './GStitcherInferred.generic';
+import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
 
 /**
  * .what = generates a thoroughly typesafe stitch route
@@ -14,7 +14,7 @@ export const genStitchRoute = <
   slug: string;
   readme: string | null;
   sequence: TSequence;
-}): StitchRoute<GStitcherInferred<TSequence>> => {
+}): StitchRoute<GStitcherInferredFromRoute<TSequence>> => {
   return new StitchRoute({
     form: 'ROUTE',
     slug: input.slug,

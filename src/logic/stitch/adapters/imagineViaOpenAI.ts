@@ -2,6 +2,8 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import OpenAI from 'openai';
 import { ChatModel } from 'openai/resources/shared';
 
+import { GStitcher } from '../../../domain/objects/Stitcher';
+
 export interface ContextOpenAI {
   openai: {
     auth: { key: string };

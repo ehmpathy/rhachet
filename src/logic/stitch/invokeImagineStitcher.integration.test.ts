@@ -1,19 +1,30 @@
 import { given, then, when } from 'test-fns';
 
+import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
+import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
 import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
+import { StitchStepImagine } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
-import { imagineViaOpenAI } from './adapters/imagineViaOpenAI';
+import { ContextOpenAI, imagineViaOpenAI } from './adapters/imagineViaOpenAI';
 import { enstitch } from './enstitch';
 
 describe('invokeImagineStitcher', () => {
   given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
-    const context = { log: console, ...getContextOpenAI() };
+    const context = {
+      ...genContextLogTrail(),
+      ...genContextStitchTrail(),
+      ...getContextOpenAI(),
+    };
 
     const stitcher = new StitchStepImagine<
-      GStitcher<Threads<{ author: { factset: string[] } }>>
+      GStitcher<
+        Threads<{ author: { factset: string[] } }>,
+        ContextOpenAI & GStitcher['context'],
+        string
+      >
     >({
       form: 'IMAGINE',
       slug: 'fillout-stub',

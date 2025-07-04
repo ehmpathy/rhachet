@@ -10,11 +10,10 @@ import { Threads } from './Threads';
 /**
  * .what = the common generics of a stitcher
  */
-
 export type GStitcher<
-  TThreads extends Threads<any> = Threads<any>,
-  TContext extends ContextStitchTrail & ContextLogTrail = ContextStitchTrail &
-    ContextLogTrail,
+  TThreads extends Threads<any, any> = Threads<any, 'single'>,
+  TContext extends ContextLogTrail & ContextStitchTrail = ContextLogTrail &
+    ContextStitchTrail,
   TOutput = any,
 > = {
   threads: TThreads;
@@ -71,8 +70,8 @@ export const isOfStitcherForm = createIsOfEnum(StitcherForm);
  *   - guarantees `.form` is defined for all stitcher types to enable disambiguation via runtime narrowage
  */
 export type Stitcher<T extends GStitcher = GStitcher> =
-  | StitcherBase<StitcherForm> &
-      (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
+  StitcherBase<StitcherForm> &
+    (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
 
 /**
  * .what = an extensible base declaration of a stitcher
@@ -98,3 +97,9 @@ export interface StitcherBase<TForm extends StitcherForm> {
    */
   readme: string | null;
 }
+
+export type GStitcherOf<T extends Stitcher<any>> = T extends Stitcher<infer G>
+  ? G extends GStitcher<any, any, infer O>
+    ? O
+    : never
+  : never;

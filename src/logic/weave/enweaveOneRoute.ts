@@ -18,7 +18,7 @@ export const enweaveOneRoute = withStitchTrail(
       threads: TStitcher['threads'];
     },
     context: TStitcher['context'],
-  ): Promise<StitchSetEvent<TStitcher>> => {
+  ): Promise<StitchSetEvent<TStitcher['threads'], TStitcher['output']>> => {
     // track the latest state of the threads
     let threadsNow: TStitcher['threads'] = input.threads;
 

@@ -1,6 +1,9 @@
 import { DomainLiteral } from 'domain-objects';
 
+import { StitchStep } from './StitchStep';
 import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
+import { Thread } from './Thread';
+import { Threads } from './Threads';
 
 /**
  * .what = parallel composite stitcher
@@ -9,28 +12,8 @@ import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
  *   - fanin to merge via a conclusion
  * .note = a StitchFanout is a composite Stitcher, similar to StitchRoute, but runs multiple branches in parallel
  */
-export interface StitchFanout<
-  /**
-   * .note = the fanout as a whole produces a single unified output
-   */
-  TStitcher extends GStitcher,
-> extends StitcherBase<StitcherForm.FANOUT> {
-  /**
-   * .what = a human readable unique key, within the registered namespace
-   */
-  slug: string;
-
-  /**
-   * .what = a human readable name
-   * .why = used to display a clear name for the fanout group
-   */
-  name: string;
-
-  /**
-   * .what = description of the fanout purpose; used like a readme
-   */
-  description: string | null;
-
+export interface StitchFanout<TStitcher extends GStitcher>
+  extends StitcherBase<StitcherForm.FANOUT> {
   /**
    * .what = the set of stitchers to run in parallel
    */
@@ -42,12 +25,30 @@ export interface StitchFanout<
   /**
    * .what = a final stitcher that merges the parallel outputs
    * .why = synthesizes the results into one final output
+   * .note = input threads contain arrays per role, due to parallel fanout
    */
-  conclusion: Stitcher<
-    GStitcher<TStitcher['threads'], TStitcher['context'], TStitcher['output']>
+  concluder: StitchStep<
+    GStitcher<
+      ThreadsFromFanout<TStitcher>,
+      TStitcher['context'],
+      TStitcher['output']
+    >
   >;
 }
-
 export class StitchFanout<TStitcher extends GStitcher>
   extends DomainLiteral<StitchFanout<TStitcher>>
   implements StitchFanout<TStitcher> {}
+
+/**
+ * .what = transforms threads to an array-of-each-thread for fanouts
+ */
+export type ThreadsFromFanout<T extends GStitcher> = Threads<
+  {
+    [K in keyof T['threads'] & string]: T['threads'][K] extends Thread<infer C>
+      ? C extends object
+        ? C
+        : never
+      : never;
+  },
+  'multiple'
+>;

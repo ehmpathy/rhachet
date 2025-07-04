@@ -1,5 +1,6 @@
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
+import { StitchStepImagine } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 
 /**
  * .what = invokes the imagine stitcher by invocation of stitcher mechanisms
