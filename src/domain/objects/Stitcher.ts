@@ -69,9 +69,15 @@ export const isOfStitcherForm = createIsOfEnum(StitcherForm);
  *   - enables universal, recursive operations against both atomic and composite stitchers, since their contracts are the same
  *   - guarantees `.form` is defined for all stitcher types to enable disambiguation via runtime narrowage
  */
-export type Stitcher<T extends GStitcher = GStitcher> =
-  StitcherBase<StitcherForm> &
-    (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
+export type Stitcher<
+  T extends GStitcher<
+    // note: only single role.threaded stitchers are generically called stitchers
+    Threads<any, 'single'>,
+    any,
+    any
+  > = GStitcher<Threads<any, 'single'>, any, any>,
+> = StitcherBase<StitcherForm> &
+  (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
 
 /**
  * .what = an extensible base declaration of a stitcher
@@ -98,8 +104,22 @@ export interface StitcherBase<TForm extends StitcherForm> {
   readme: string | null;
 }
 
-export type GStitcherOf<T extends Stitcher<any>> = T extends Stitcher<infer G>
-  ? G extends GStitcher<any, any, infer O>
-    ? O
-    : never
+/**
+ * .what = extracts the GStitcher generic from a Stitcher
+ * .why = enables typed access to threads, context, and output shape of a Stitcher instance
+ */
+// export type GStitcherOf<T> = T extends Stitcher<infer G>
+//   ? G extends GStitcher<any, any, any>
+//     ? G
+//     : never
+//   : never;
+// export type GStitcherOf<T> = T extends Stitcher<infer G> ? G : never;
+export type GStitcherOf<T> = [T] extends [Stitcher<infer G>] ? G : never;
+
+export type GStitcherFlat<T> = T extends GStitcher<
+  infer Threads,
+  infer Context,
+  infer Output
+>
+  ? GStitcher<Threads, Context, Output>
   : never;

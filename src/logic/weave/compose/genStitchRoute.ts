@@ -1,5 +1,6 @@
 import { StitchRoute } from '../../../domain/objects/StitchRoute';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import { Threads } from '../../../domain/objects/Threads';
 import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
 
 /**
@@ -9,7 +10,11 @@ import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic
  *   - results in a composite superset type of threads and context, plus accurate output type, on the output
  */
 export const genStitchRoute = <
-  TSequence extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
+  TSequence extends readonly [
+    // note: we only need to support single threaded here
+    Stitcher<GStitcher<Threads<any, 'single'>, any, any>>,
+    ...Stitcher<GStitcher<Threads<any, 'single'>, any, any>>[],
+  ],
 >(input: {
   slug: string;
   readme: string | null;

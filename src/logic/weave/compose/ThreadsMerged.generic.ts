@@ -82,9 +82,12 @@ type MergeThreadList<T extends readonly Record<string, Thread<any>>[]> =
  *        ```
  */
 export type ThreadsMerged<
-  TList extends readonly [Threads<any>, ...Threads<any>[]], // !: enforces tuple of atleast one
-> = Threads<{
-  [K in keyof MergeThreadList<TList> & string]: ThreadContext<
-    MergeThreadList<TList>[K]
-  >;
-}>;
+  TList extends readonly [Threads<any, 'single'>, ...Threads<any, 'single'>[]], // !: enforces tuple of atleast one
+> = Threads<
+  {
+    [K in keyof MergeThreadList<TList> & string]: ThreadContext<
+      MergeThreadList<TList>[K]
+    >;
+  },
+  'single'
+>;
