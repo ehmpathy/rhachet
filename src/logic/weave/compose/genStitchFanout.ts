@@ -4,6 +4,7 @@ import {
 } from '../../../domain/objects/StitchFanout';
 import { StitchStep } from '../../../domain/objects/StitchStep';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import { Threads } from '../../../domain/objects/Threads';
 import { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
 
 /**
@@ -13,7 +14,10 @@ import { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.gener
  *   - merges results into a final output via the concluding stitcher
  */
 export const genStitchFanout = <
-  TParallels extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
+  TParallels extends readonly [
+    Stitcher<GStitcher<Threads<any, 'single'>, any, any>>,
+    ...Stitcher<GStitcher<Threads<any, 'single'>, any, any>>[],
+  ],
   TConcluder extends StitchStep<
     GStitcher<
       ThreadsFromFanout<GStitcherInferredFromFanout<TParallels, TConcluder>>,

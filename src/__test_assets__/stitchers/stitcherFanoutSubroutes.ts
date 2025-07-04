@@ -19,7 +19,11 @@ const stepAdd1 = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () => new Stitch({ input: null, output: 1 }),
+  invoke: ({ threads }) => {
+    const last = threads.main.stitches.at(-1)?.output;
+    const base = typeof last === 'number' ? last : 0;
+    return new Stitch({ input: base, output: base + 1 });
+  },
 });
 
 const stepAdd2 = new StitchStepCompute<
@@ -29,7 +33,11 @@ const stepAdd2 = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () => new Stitch({ input: null, output: 2 }),
+  invoke: ({ threads }) => {
+    const last = threads.main.stitches.at(-1)?.output;
+    const base = typeof last === 'number' ? last : 0;
+    return new Stitch({ input: base, output: base + 2 });
+  },
 });
 
 const stepAdd3 = new StitchStepCompute<
@@ -39,7 +47,11 @@ const stepAdd3 = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () => new Stitch({ input: null, output: 3 }),
+  invoke: ({ threads }) => {
+    const last = threads.main.stitches.at(-1)?.output;
+    const base = typeof last === 'number' ? last : 0;
+    return new Stitch({ input: base, output: base + 3 });
+  },
 });
 
 const route1 = genStitchRoute({
@@ -62,6 +74,7 @@ const concluderSumRoutes = new StitchStepCompute<
   readme: null,
   stitchee: 'main',
   invoke: ({ threads }) => {
+    console.log(JSON.stringify(threads, null, 2));
     const outputs = threads.main.peers.map((t) => {
       const last = t.stitches.at(-1);
       if (!last) throw new Error('Missing stitch');
@@ -81,5 +94,3 @@ export const stitcherFanoutWithRoutes = genStitchFanout({
   parallels: [asStitcher(route1), asStitcher(route2)] as const,
   concluder: concluderSumRoutes,
 });
-
-type TStitcher = GStitcherFlat<GStitcherOf<typeof stitcherFanoutWithRoutes>>;

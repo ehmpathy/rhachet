@@ -41,11 +41,8 @@ export const enweaveOneFanout = withStitchTrail(
         ) as (keyof TStitcher['threads'])[]) {
           const thread = result.threads[role]!;
 
-          if (!acc[role]) {
-            acc[role] = { seed: thread, peers: [] };
-          } else {
-            acc[role]!.peers.push(thread);
-          }
+          if (!acc[role]) acc[role] = { seed: input.threads[role]!, peers: [] };
+          acc[role]!.peers.push(thread);
         }
 
         return acc;

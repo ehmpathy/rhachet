@@ -11,24 +11,23 @@ import { Empty } from 'type-fns';
 import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
 import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
 import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
-import { genStitcherCodeFileRead } from '../../__test_assets__/stitchers/genStitcherCodeFileRead';
-import { genStitcherCodeReview } from '../../__test_assets__/stitchers/genStitcherCodeReviewImagine';
 import { stitcherCodeDiffImagine } from '../../__test_assets__/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '../../__test_assets__/threads/codeArtist';
 import { exampleThreadDirector } from '../../__test_assets__/threads/director';
 import { Stitch } from '../../domain/objects/Stitch';
-import { StitchRoute } from '../../domain/objects/StitchRoute';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
-import { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
-import { genStitchFanout } from './compose/genStitchFanout';
 import { genStitchRoute } from './compose/genStitchRoute';
 import { enweaveOneRoute } from './enweaveOneRoute';
 
 describe('enweaveOneRoute', () => {
-  const context = { ...genContextStitchTrail(), ...genContextLogTrail() };
+  const context = {
+    ...genContextStitchTrail(),
+    ...genContextLogTrail(),
+    ...getContextOpenAI(),
+  };
   given(
     'a route with compute stitchers (fast and no api keys required); same threads required for each stitcher',
     () => {
@@ -132,16 +131,6 @@ describe('enweaveOneRoute', () => {
   );
 
   type OutputFileWrite = { path: string; content: string };
-  let routeArtistCodePropose: StitchRoute<
-    GStitcher<
-      Threads<{
-        artist: { tools: string[]; facts: string[] };
-        director: Empty;
-      }>,
-      ContextOpenAI & GStitcher['context'],
-      OutputFileWrite
-    >
-  >;
   given('a route with imagine stitchers (closer to real world usecase)', () => {
     const stitcherCodeFileRead = new StitchStepCompute<
       GStitcher<Threads<{ artist: Empty }>>
@@ -208,9 +197,6 @@ export const sdkOpenMeteo = {
       ],
     });
 
-    // expose the artist code review route, for composition test example below
-    routeArtistCodePropose = route;
-
     when('given the threads required', () => {
       let threads: Threads<{
         artist: { tools: string[]; facts: string[] };
@@ -227,182 +213,9 @@ export const sdkOpenMeteo = {
       then(
         'it should successfully execute the stitches as a weave',
         async () => {
-          const context = { log: console, ...getContextOpenAI() };
-
           const output = await enweaveOneRoute(
             {
-              route,
-              threads,
-            },
-            context,
-          );
-          console.log(output);
-
-          // verify that it used conflict markers and wrote the full output
-          expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
-          expect(output.stitch.output.content).toContain('>>>>>>> MODIFIED');
-        },
-      );
-    });
-  });
-
-  let routeCriticCodeReview: StitchRoute<
-    GStitcher<
-      Threads<{
-        artist: Empty;
-        director: Empty;
-        critic: { tools: string[]; facts: string[] };
-      }>,
-      ContextOpenAI & GStitcher['context'],
-      OutputFileWrite
-    >
-  >;
-  given(
-    'a route with imagine stitchers, parallelized (closer to real world usecase)',
-    () => {
-      const stitcherCodeFileRead = genStitcherCodeFileRead<
-        'critic',
-        Threads<{ critic: Empty }>
-      >({
-        stitchee: 'critic',
-        output: {
-          path: '__path__',
-          content: `
-import { UnexpectedCodePathError } from '@ehmpathy/error-fns';
-import { UniDateTime } from '@ehmpathy/uni-time';
-import { PickOne } from 'type-fns';
-
-import { daoJobProspect } from '../../data/dao/jobProspectDao';
-import { withDatabaseContext } from '../../utils/database/withDatabaseContext';
-
-export const getProspects = withDatabaseContext(
-async (
-input: PickOne<{
-  byProvider: { providerUuid: string };
-}> & {
-  page: {
-    since?: { openedAt: UniDateTime };
-    until?: { openedAt: UniDateTime };
-    limit: number;
-  };
-},
-context,
-) => {
-// handle unique
-if (input.byProvider)
-  return daoJobProspect.findAllByProvider(
-    {
-      by: {
-        providerUuid: input.byProvider.providerUuid,
-      },
-      filter: {
-        sinceOpenedAt: input.page.since?.openedAt,
-        untilOpenedAt: input.page.until?.openedAt,
-      },
-      limit: input.page.limit,
-    },
-    context,
-  );
-
-// throw if unsupported
-throw new UnexpectedCodePathError('unsupported input option');
-},
-);
-          `.trim(),
-        },
-      });
-
-      const route = genStitchRoute({
-        slug: '[critic]<code:review>',
-        readme:
-          'review a code change; parallelize the perspectives to review from',
-        sequence: [
-          stitcherCodeFileRead,
-          genStitchFanout({
-            slug: '[critic]<code:review>.<fanout>[[review]]',
-            parallels: [
-              genStitcherCodeReview({ scope: 'technical', focus: 'blockers' }),
-              genStitcherCodeReview({ scope: 'technical', focus: 'chances' }),
-              genStitcherCodeReview({ scope: 'technical', focus: 'praises' }),
-              genStitcherCodeReview({ scope: 'functional', focus: 'blockers' }),
-              genStitcherCodeReview({ scope: 'functional', focus: 'chances' }),
-              genStitcherCodeReview({ scope: 'functional', focus: 'praises' }),
-            ],
-            concluder: stitcherCodeReviewSummary,
-          }),
-        ],
-      });
-
-      // expose the artist code review route, for composition test example below
-      routeCriticCodeReview = route;
-
-      when('given the threads required', () => {
-        let threads: Threads<{
-          artist: { tools: string[]; facts: string[] };
-          director: Empty;
-        }>;
-
-        beforeAll(async () => {
-          threads = {
-            artist: await getExampleThreadCodeArtist(),
-            director: exampleThreadDirector,
-          };
-        });
-
-        then(
-          'it should successfully execute the stitches as a weave',
-          async () => {
-            const context = { log: console, ...getContextOpenAI() };
-
-            const output = await enweaveOneRoute(
-              {
-                route,
-                threads,
-              },
-              context,
-            );
-            console.log(output);
-
-            // verify that it used conflict markers and wrote the full output
-            expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
-            expect(output.stitch.output.content).toContain('>>>>>>> MODIFIED');
-          },
-        );
-      });
-    },
-  );
-
-  given('a route with subroutes (real world composition example)', () => {
-    // define the [artist]<code.propose> subroute
-
-    // define the [critic]<code.review> subroute
-    const routeCriticCodeReview = genStitchRoute({
-      slug: '[critic]<code.review>',
-      readme: 'review a code change; declare feedback and a grade',
-      sequence: [stitcherCodeIssuesImagine],
-    });
-
-    when('given the threads required', () => {
-      let threads: Threads<{
-        artist: { tools: string[]; facts: string[] };
-        director: Empty;
-      }>;
-
-      beforeAll(async () => {
-        threads = {
-          artist: await getExampleThreadCodeArtist(),
-          director: exampleThreadDirector,
-        };
-      });
-
-      then(
-        'it should successfully execute the stitches as a weave',
-        async () => {
-          const context = { log: console, ...getContextOpenAI() };
-
-          const output = await enweaveOneRoute(
-            {
-              route,
+              stitcher: route,
               threads,
             },
             context,

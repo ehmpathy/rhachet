@@ -11,7 +11,6 @@ import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic
  */
 export const genStitchRoute = <
   TSequence extends readonly [
-    // note: we only need to support single threaded here
     Stitcher<GStitcher<Threads<any, 'single'>, any, any>>,
     ...Stitcher<GStitcher<Threads<any, 'single'>, any, any>>[],
   ],

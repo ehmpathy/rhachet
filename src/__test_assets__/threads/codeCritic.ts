@@ -4,7 +4,7 @@ import { ThreadContextRole } from '../../domain/objects/Threads';
 import { directoryTestAssets } from '../directory';
 
 // todo: use enroleThread to add role context & apply role tools
-export const getExampleThreadCodeArtist = async (): Promise<
+export const getExampleThreadCodeCritic = async (): Promise<
   Thread<ThreadContextRole<'critic'> & { tools: string[]; facts: string[] }>
 > =>
   new Thread<

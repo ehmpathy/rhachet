@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitchStepCompute } from '../../domain/objects/Stitcher';
+import { StitchStepCompute } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
 import { ContextOpenAI } from '../../logic/stitch/adapters/imagineViaOpenAI';
 
@@ -16,8 +17,12 @@ export const genStitcherCodeFileRead = <
   stitchee: TStitchee;
   output: OutputFileRead;
 }) =>
-  new StitchStepCompute<GStitcher<TThreads, ContextOpenAI, OutputFileRead>>({
+  new StitchStepCompute<
+    GStitcher<TThreads, ContextOpenAI & GStitcher['context'], OutputFileRead>
+  >({
     form: 'COMPUTE',
+    readme: null,
+    slug: 'code.file.read',
     stitchee: input.stitchee,
     invoke: () => {
       return new Stitch<OutputFileRead>({

@@ -3,7 +3,8 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { Empty } from 'type-fns';
 
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
+import { StitchStepImagine } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
 import {
   ContextOpenAI,
@@ -79,7 +80,7 @@ export const genStitcherCodeReview = (input: {
         director: Empty;
         critic: { tools: string[]; facts: string[] };
       }>,
-      ContextOpenAI,
+      ContextOpenAI & GStitcher['context'],
       string
     >
   >({
@@ -101,7 +102,7 @@ export const genStitcherCodeReview = (input: {
         threads.critic.context.facts.map((fact) => ` - ${fact}`).join('\n'),
         '',
         'here is the current state of the code',
-        threads.critic.stitches.slice(-1)[0]?.output ??
+        threads.critic.stitches.slice(-1)[0]?.output?.content ??
           UnexpectedCodePathError.throw(
             'no prior stitch detected for code sample',
           ),

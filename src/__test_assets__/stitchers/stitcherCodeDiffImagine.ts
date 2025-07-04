@@ -12,7 +12,7 @@ import {
 export const stitcherCodeDiffImagine = new StitchStepImagine<
   GStitcher<
     Threads<{ artist: { tools: string[]; facts: string[] }; director: Empty }>,
-    ContextOpenAI,
+    ContextOpenAI & GStitcher['context'],
     string
   >
 >({
