@@ -1,3 +1,5 @@
+import { GStitcher } from '../../../domain/objects/Stitcher';
+
 /**
  * .what = transforms a union into an intersection of its members
  * .why = needed to merge multiple object types into one composite type (e.g. { foo } | { bar } → { foo } & { bar })
@@ -36,7 +38,7 @@ type MergeUnion<T extends readonly any[]> = UnionToIntersection<
  * .what = semantic alias for any object type used as a procedure context
  * .why = improves readability and conveys the intent of "context-like" shape
  */
-type ProcedureContext<T extends Record<string, any>> = T;
+type ProcedureContext<T extends GStitcher['context']> = T;
 
 /**
  * .what = merges a readonly tuple of one or more procedure contexts into a single composite context

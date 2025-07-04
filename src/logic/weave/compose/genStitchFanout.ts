@@ -8,18 +8,16 @@ import { GStitcherInferred } from './GStitcherInferred.generic';
  *   - merges results into a final output via the concluding stitcher
  */
 export const genStitchFanout = <
-  TParallels extends readonly [
-    Stitcher<GStitcher<any, any, any>>,
-    ...Stitcher<GStitcher<any, any, any>>[],
-  ],
-  TConclusion extends Stitcher<GStitcher<any, any, any>>,
+  TParallels extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
+  TConcluder extends Stitcher<GStitcher>,
 >(input: {
+  slug: string;
   parallels: TParallels;
-  conclusion: TConclusion;
-}): Stitcher<GStitcherInferred<[...TParallels, TConclusion]>> => {
+  concluder: TConcluder;
+}): Stitcher<GStitcherInferred<[...TParallels, TConcluder]>> => {
   return {
-    form: 'ROUTE', // if you’re using a special form, or otherwise mark as synthetic
-    slug: `[fanout]:<${input.parallels.length}+1>`,
-    sequence: [...input.parallels, input.conclusion] as const,
-  } as unknown as Stitcher<GStitcherInferred<[...TParallels, TConclusion]>>;
+    form: 'ROUTE',
+    slug: input.slug,
+    sequence: [...input.parallels, input.concluder] as const,
+  } as unknown as Stitcher<GStitcherInferred<[...TParallels, TConcluder]>>;
 };

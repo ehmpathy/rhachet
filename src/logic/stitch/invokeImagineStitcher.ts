@@ -1,15 +1,15 @@
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitcherImagine } from '../../domain/objects/Stitcher';
+import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
 
 /**
  * .what = invokes the imagine stitcher by invocation of stitcher mechanisms
  */
 export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
   input: {
-    stitcher: StitcherImagine<TStitcher>;
+    stitcher: StitchStepImagine<TStitcher>;
     threads: TStitcher['threads'];
   },
-  context: TStitcher['procedure']['context'],
+  context: TStitcher['context'],
 ): Promise<Stitch<TStitcher['output']>> => {
   const { stitcher, threads } = input;
 

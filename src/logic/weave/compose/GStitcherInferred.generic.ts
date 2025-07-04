@@ -26,8 +26,9 @@ export type GStitcherInferred<
   }>,
   ProcedureContextMerged<{
     [K in keyof TSequence]: TSequence[K] extends Stitcher<infer G>
-      ? G['procedure']['context']
+      ? G['context']
       : never;
-  }>,
+  }> &
+    GStitcher['context'],
   Last<TSequence> extends Stitcher<infer G> ? G['output'] : never
 >;

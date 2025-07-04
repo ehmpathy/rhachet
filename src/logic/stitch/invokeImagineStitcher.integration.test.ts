@@ -2,7 +2,7 @@ import { given, then, when } from 'test-fns';
 
 import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitcherImagine } from '../../domain/objects/Stitcher';
+import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
 import { imagineViaOpenAI } from './adapters/imagineViaOpenAI';
@@ -12,7 +12,7 @@ describe('invokeImagineStitcher', () => {
   given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
     const context = { log: console, ...getContextOpenAI() };
 
-    const stitcher = new StitcherImagine<
+    const stitcher = new StitchStepImagine<
       GStitcher<Threads<{ author: { factset: string[] } }>>
     >({
       form: 'IMAGINE',

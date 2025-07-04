@@ -12,15 +12,13 @@ export const genStitchRoute = <
   TSequence extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
 >(input: {
   slug: string;
-  name: string;
-  description: string | null;
+  readme: string | null;
   sequence: TSequence;
 }): StitchRoute<GStitcherInferred<TSequence>> => {
   return new StitchRoute({
     form: 'ROUTE',
     slug: input.slug,
-    name: input.name,
-    description: input.description,
+    readme: input.readme,
     sequence: input.sequence as any,
   });
 };

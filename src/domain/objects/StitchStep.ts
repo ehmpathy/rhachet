@@ -13,7 +13,7 @@ export interface StitchStepCompute<TStitcher extends GStitcher>
    */
   invoke: (
     input: { threads: TStitcher['threads'] },
-    context: TStitcher['procedure']['context'],
+    context: TStitcher['context'],
   ) => Promise<Stitch<TStitcher['output']>> | Stitch<TStitcher['output']>;
 
   /**
@@ -32,16 +32,6 @@ export class StitchStepCompute<TStitcher extends GStitcher>
 export interface StitchStepImagine<TStitcher extends GStitcher>
   extends StitcherBase<StitcherForm.IMAGINE> {
   /**
-   * .what = a unique, readable identifier for the step
-   */
-  slug: string;
-
-  /**
-   * .what = a human readable description of the step
-   */
-  readme: string | null;
-
-  /**
    * .what = which thread will receive the stitch
    */
   stitchee: keyof TStitcher['threads'];
@@ -54,10 +44,7 @@ export interface StitchStepImagine<TStitcher extends GStitcher>
   /**
    * .what = invokes an llm to imagine based on a prompt
    */
-  imagine: (
-    input: string,
-    context: TStitcher['procedure']['context'],
-  ) => Promise<string>;
+  imagine: (input: string, context: TStitcher['context']) => Promise<string>;
 
   /**
    * .what = decodes the imagined prompt into a stitch

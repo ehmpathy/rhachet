@@ -8,6 +8,8 @@ import { getError, UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
+import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
+import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
 import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
 import { genStitcherCodeFileRead } from '../../__test_assets__/stitchers/genStitcherCodeFileRead';
 import { genStitcherCodeReview } from '../../__test_assets__/stitchers/genStitcherCodeReviewImagine';
@@ -21,24 +23,30 @@ import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
 import { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
+import { genStitchFanout } from './compose/genStitchFanout';
 import { genStitchRoute } from './compose/genStitchRoute';
 import { enweaveOneRoute } from './enweaveOneRoute';
 
 describe('enweaveOneRoute', () => {
+  const context = { ...genContextStitchTrail(), ...genContextLogTrail() };
   given(
     'a route with compute stitchers (fast and no api keys required); same threads required for each stitcher',
     () => {
       const stitcherGetTime = new StitchStepCompute<
-        GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
       >({
+        slug: 'get-time',
+        readme: null,
         form: 'COMPUTE',
         stitchee: 'main',
         invoke: () =>
           new Stitch({ input: null, output: asUniDateTime(new Date()) }),
       });
       const stitcherAddHours = new StitchStepCompute<
-        GStitcher<Threads<{ main: Empty }>, Empty, UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
       >({
+        slug: 'add-hours',
+        readme: null,
         form: 'COMPUTE',
         stitchee: 'main',
         invoke: ({ threads }) => {
@@ -59,8 +67,7 @@ describe('enweaveOneRoute', () => {
 
       const route = genStitchRoute({
         slug: 'time:get:hour+',
-        name: 'get hour from now',
-        description: null,
+        readme: null,
         sequence: [stitcherGetTime, stitcherAddHours],
       });
 
@@ -104,8 +111,8 @@ describe('enweaveOneRoute', () => {
 
         then('it should successfully enweave the full route', async () => {
           const { stitch, threads } = await enweaveOneRoute(
-            { route, threads: { main: threadMain } },
-            {},
+            { stitcher: route, threads: { main: threadMain } },
+            context,
           );
           console.log(stitch.input);
           console.log(stitch.output);
@@ -131,14 +138,16 @@ describe('enweaveOneRoute', () => {
         artist: { tools: string[]; facts: string[] };
         director: Empty;
       }>,
-      ContextOpenAI,
+      ContextOpenAI & GStitcher['context'],
       OutputFileWrite
     >
   >;
   given('a route with imagine stitchers (closer to real world usecase)', () => {
     const stitcherCodeFileRead = new StitchStepCompute<
-      GStitcher<Threads<{ artist: Empty }>, Empty, string>
+      GStitcher<Threads<{ artist: Empty }>>
     >({
+      slug: 'mock:read-stubout',
+      readme: null,
       form: 'COMPUTE',
       stitchee: 'artist',
       invoke: () => {
@@ -163,8 +172,14 @@ export const sdkOpenMeteo = {
     });
 
     const stitcherCodeFileWrite = new StitchStepCompute<
-      GStitcher<Threads<{ artist: Empty }>, Empty, OutputFileWrite>
+      GStitcher<
+        Threads<{ artist: Empty }>,
+        GStitcher['context'],
+        OutputFileWrite
+      >
     >({
+      slug: 'mock:write-fillout',
+      readme: null,
       form: 'COMPUTE',
       stitchee: 'artist',
       invoke: ({ threads }) => {
@@ -185,8 +200,7 @@ export const sdkOpenMeteo = {
 
     const route = genStitchRoute({
       slug: 'code:propose',
-      name: 'propose a code change; imagine + file:write it',
-      description: null,
+      readme: null,
       sequence: [
         stitcherCodeFileRead,
         stitcherCodeDiffImagine,
@@ -239,7 +253,7 @@ export const sdkOpenMeteo = {
         director: Empty;
         critic: { tools: string[]; facts: string[] };
       }>,
-      ContextOpenAI,
+      ContextOpenAI & GStitcher['context'],
       OutputFileWrite
     >
   >;
@@ -300,12 +314,12 @@ throw new UnexpectedCodePathError('unsupported input option');
 
       const route = genStitchRoute({
         slug: '[critic]<code:review>',
-        name: '[critic]<code:review>',
-        description:
+        readme:
           'review a code change; parallelize the perspectives to review from',
         sequence: [
           stitcherCodeFileRead,
           genStitchFanout({
+            slug: '[critic]<code:review>.<fanout>[[review]]',
             parallels: [
               genStitcherCodeReview({ scope: 'technical', focus: 'blockers' }),
               genStitcherCodeReview({ scope: 'technical', focus: 'chances' }),
@@ -364,8 +378,7 @@ throw new UnexpectedCodePathError('unsupported input option');
     // define the [critic]<code.review> subroute
     const routeCriticCodeReview = genStitchRoute({
       slug: '[critic]<code.review>',
-      name: '[critic]<code.review>',
-      description: 'review a code change; declare feedback and a grade',
+      readme: 'review a code change; declare feedback and a grade',
       sequence: [stitcherCodeIssuesImagine],
     });
 

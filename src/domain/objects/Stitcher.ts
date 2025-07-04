@@ -1,5 +1,7 @@
+import { ContextLogTrail } from 'as-procedure';
 import { createIsOfEnum, Literalize } from 'type-fns';
 
+import { ContextStitchTrail } from '../../logic/stitch/withStitchTrail';
 import { StitchFanout } from './StitchFanout';
 import { StitchRoute } from './StitchRoute';
 import { StitchStep } from './StitchStep';
@@ -8,15 +10,15 @@ import { Threads } from './Threads';
 /**
  * .what = the common generics of a stitcher
  */
+
 export type GStitcher<
   TThreads extends Threads<any> = Threads<any>,
-  TProcedureContext = any,
+  TContext extends ContextStitchTrail & ContextLogTrail = ContextStitchTrail &
+    ContextLogTrail,
   TOutput = any,
 > = {
   threads: TThreads;
-  procedure: {
-    context: TProcedureContext;
-  };
+  context: TContext;
   output: TOutput;
 };
 
@@ -78,5 +80,21 @@ export type Stitcher<T extends GStitcher = GStitcher> =
  *   - ensures all stitchers will conform to desired standards
  */
 export interface StitcherBase<TForm extends StitcherForm> {
+  /**
+   * .what = used to disambiguate and narrow which shape of stitcher it is
+   */
   form: Literalize<TForm>;
+
+  /**
+   * .what = a unique identifier for this particular stitcher
+   * .why =
+   *   - enables traces via trail markers
+   *   - enables unique key references and equality comparisons
+   */
+  slug: string;
+
+  /**
+   * .what = a human readable description of the step
+   */
+  readme: string | null;
 }

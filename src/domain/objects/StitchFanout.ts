@@ -35,12 +35,8 @@ export interface StitchFanout<
    * .what = the set of stitchers to run in parallel
    */
   parallels: [
-    Stitcher<
-      GStitcher<TStitcher['threads'], TStitcher['procedure']['context'], any>
-    >,
-    ...Stitcher<
-      GStitcher<TStitcher['threads'], TStitcher['procedure']['context'], any>
-    >[],
+    Stitcher<GStitcher<TStitcher['threads'], TStitcher['context'], any>>,
+    ...Stitcher<GStitcher<TStitcher['threads'], TStitcher['context'], any>>[],
   ];
 
   /**
@@ -48,11 +44,7 @@ export interface StitchFanout<
    * .why = synthesizes the results into one final output
    */
   conclusion: Stitcher<
-    GStitcher<
-      TStitcher['threads'],
-      TStitcher['procedure']['context'],
-      TStitcher['output']
-    >
+    GStitcher<TStitcher['threads'], TStitcher['context'], TStitcher['output']>
   >;
 }
 

@@ -3,7 +3,7 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { Empty } from 'type-fns';
 
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitcherImagine } from '../../domain/objects/Stitcher';
+import { GStitcher, StitchStepImagine } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
 import {
   ContextOpenAI,
@@ -73,7 +73,7 @@ export const genStitcherCodeReview = (input: {
   scope: 'technical' | 'functional';
   focus: 'blockers' | 'chances' | 'praises';
 }) =>
-  new StitcherImagine<
+  new StitchStepImagine<
     GStitcher<
       Threads<{
         director: Empty;

@@ -1,6 +1,8 @@
+import { asUniDateTime } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import { Stitch } from '../../domain/objects/Stitch';
+import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
 import { StitchStep } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
@@ -14,18 +16,8 @@ export const enstitch = async <TStitcher extends GStitcher>(
     stitcher: StitchStep<TStitcher>;
     threads: TStitcher['threads'];
   },
-  context: TStitcher['procedure']['context'],
-): Promise<{
-  /**
-   * the output stitch
-   */
-  stitch: Stitch<TStitcher['output']>;
-
-  /**
-   * the mutated threads
-   */
-  threads: TStitcher['threads'];
-}> => {
+  context: TStitcher['context'],
+): Promise<StitchSetEvent<TStitcher>> => {
   // enstitch the output
   const stitch: Stitch<TStitcher['output']> = await (() => {
     // if the stitcher is of type "compute", then execute the computation; // todo: add observability on duration
@@ -65,11 +57,13 @@ export const enstitch = async <TStitcher extends GStitcher>(
   });
 
   // return the updates
-  return {
+  return StitchSetEvent.build({
+    occurredAt: asUniDateTime(new Date()),
+    trail: context.stitch.trail,
     stitch,
     threads: {
       ...input.threads,
       [stitcheeKey]: stitcheeAfter,
     },
-  };
+  });
 };

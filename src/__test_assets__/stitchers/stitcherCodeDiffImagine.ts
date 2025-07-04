@@ -1,14 +1,15 @@
 import { Empty } from 'type-fns';
 
 import { Stitch } from '../../domain/objects/Stitch';
-import { GStitcher, StitcherImagine } from '../../domain/objects/Stitcher';
+import { StitchStepImagine } from '../../domain/objects/StitchStep';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
 import {
   ContextOpenAI,
   imagineViaOpenAI,
 } from '../../logic/stitch/adapters/imagineViaOpenAI';
 
-export const stitcherCodeDiffImagine = new StitcherImagine<
+export const stitcherCodeDiffImagine = new StitchStepImagine<
   GStitcher<
     Threads<{ artist: { tools: string[]; facts: string[] }; director: Empty }>,
     ContextOpenAI,
