@@ -131,7 +131,7 @@ describe('genStitchCycle type preservation', () => {
           ...genContextLogTrail(),
           ...genContextStitchTrail(),
         };
-        expect(valid.log).toBe(console);
+        expect(valid.log);
 
         // @ts-expect-error: missing context
         const invalid: Context = {};

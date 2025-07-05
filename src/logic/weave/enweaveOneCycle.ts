@@ -39,11 +39,11 @@ export const enweaveOneCycle = withStitchTrail(
       beganAt: UniDateTime;
       threads: TStitcher['threads'];
       repetitions: number;
-      output: TStitcher['output'] | null;
+      stitch: TStitcher['output'] | null;
     } = {
       beganAt: asUniDateTime(new Date()),
       repetitions: 0,
-      output: null,
+      stitch: null,
       threads: input.threads,
     };
 
@@ -93,7 +93,7 @@ export const enweaveOneCycle = withStitchTrail(
         );
 
       // update progress state
-      progress.output = repeateeStitch.output;
+      progress.stitch = repeateeStitch;
       progress.threads = afterRepeatee;
       progress.repetitions++;
 
@@ -127,7 +127,7 @@ export const enweaveOneCycle = withStitchTrail(
     return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
       stitch:
-        progress.output ??
+        progress.stitch ??
         UnexpectedCodePathError.throw(
           'atleast one output stitch expected by now',
         ),

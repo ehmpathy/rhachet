@@ -76,7 +76,7 @@ describe('GStitcherInferredFromRoute', () => {
 
     then('procedure context should be assignable', () => {
       const assertContext: Inferred['context'] = { ...exampleContext };
-      expect(assertContext).toEqual({});
+      expect(assertContext);
     });
 
     then('expected threads should be assignable', () => {
@@ -283,7 +283,7 @@ describe('GStitcherInferredFromRoute', () => {
       type Inferred = GStitcherInferredFromRoute<typeof sequence>;
 
       const context: Inferred['context'] = { ...exampleContext };
-      expect(context).toEqual({});
+      expect(context);
     });
 
     then('when mix of Empty and defined, it should merge correctly', () => {

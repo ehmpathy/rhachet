@@ -15,3 +15,5 @@ concurrency:
 jobs:
   suite:
     uses: ./.github/workflows/.test.yml
+    secrets:
+      prep-openai-key: ${{ secrets.PREP_OPENAI_KEY }}

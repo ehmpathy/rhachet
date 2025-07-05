@@ -5,8 +5,7 @@ import {
   ThreadsFromFanout,
 } from '../../domain/objects/StitchFanout';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
-import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { enstitch } from '../stitch/enstitch';
 import { withStitchTrail } from '../stitch/withStitchTrail';

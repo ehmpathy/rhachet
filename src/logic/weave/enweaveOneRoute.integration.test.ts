@@ -82,8 +82,8 @@ describe('enweaveOneRoute', () => {
             await getError(
               enweaveOneRoute(
                 // @ts-expect-error: 'author' does not exist in type 'Threads<"main">'.
-                { route, threads: { author: threadAuthor } },
-                {},
+                { stitcher: route, threads: { author: threadAuthor } },
+                context,
               ),
             );
           },
@@ -94,8 +94,8 @@ describe('enweaveOneRoute', () => {
           async () => {
             await enweaveOneRoute(
               // @ts-expect-error: Type '"author"' is not assignable to type '"main"'.
-              { route, threads: { main: threadAuthor } },
-              {},
+              { stitcher: route, threads: { main: threadAuthor } },
+              context,
             );
           },
         );

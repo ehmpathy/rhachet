@@ -18,6 +18,8 @@ on:
       aws-secret-access-key:
         required: false
         description: required credentials to authenticate with aws the aws account against which to run the tests
+      prep-openai-key:
+        required: true
 
 jobs:
   # install the dependencies
@@ -174,6 +176,8 @@ jobs:
 
       - name: test:integration
         run: THOROUGH=true npm run test:integration
+        env:
+          PREP_OPENAI_KEY: ${{ secrets.prep-openai-key }}
 
   test-acceptance-locally:
     runs-on: ubuntu-24.04

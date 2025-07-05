@@ -21,7 +21,10 @@ export interface ContextStitchTrail {
 
 export const isStitcher = withAssure(
   (input: any): input is Stitcher =>
-    'form' in input && 'slug' in input && isOfStitcherForm(input.form),
+    !!input &&
+    'form' in input &&
+    'slug' in input &&
+    isOfStitcherForm(input.form),
 );
 
 /**

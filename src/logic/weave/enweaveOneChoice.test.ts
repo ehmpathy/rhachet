@@ -77,7 +77,7 @@ describe('enweaveOneChoice', () => {
       ],
     });
 
-    when.only('evaluating whether to release', () => {
+    when('evaluating whether to release', () => {
       const threads: Threads<{ main: Empty }> = {
         main: genThread({ role: 'main' }),
       };

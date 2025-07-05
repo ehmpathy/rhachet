@@ -3,8 +3,7 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 
 import { StitchChoice } from '../../domain/objects/StitchChoice';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
-import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 
