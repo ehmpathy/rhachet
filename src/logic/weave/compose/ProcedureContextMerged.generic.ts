@@ -1,4 +1,4 @@
-import { GStitcher } from '../../../domain/objects/Stitcher';
+import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 
 /**
  * .what = transforms a union into an intersection of its members
@@ -33,3 +33,20 @@ type ProcedureContext<T extends GStitcher['context']> = T;
 export type ProcedureContextMerged<
   TList extends readonly [ProcedureContext<any>, ...ProcedureContext<any>[]],
 > = MergeUnion<TList>;
+
+/**
+ * .what = enables [...spread, plus] composition of context tuple, pre merge
+ */
+export type ProcedureContextSpread<
+  T extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
+> = T extends readonly [
+  infer A extends Stitcher<GStitcher>,
+  ...infer R extends Stitcher<GStitcher>[],
+]
+  ? [
+      A extends Stitcher<infer GA> ? GA['context'] : never,
+      ...{
+        [K in keyof R]: R[K] extends Stitcher<infer GR> ? GR['context'] : never;
+      },
+    ]
+  : never;

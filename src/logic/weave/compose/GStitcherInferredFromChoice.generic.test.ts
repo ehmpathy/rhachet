@@ -17,7 +17,7 @@ const stitcherReturn42 = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () => new Stitch({ input: null, output: 42 }),
+  invoke: () => ({ input: null, output: 42 }),
 });
 
 const stitcherReturnHello = new StitchStepCompute<
@@ -27,7 +27,7 @@ const stitcherReturnHello = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () => new Stitch({ input: null, output: 'hello' }),
+  invoke: () => ({ input: null, output: 'hello' }),
 });
 
 const stitcherChooseReturn = new StitchStepCompute<
@@ -41,8 +41,7 @@ const stitcherChooseReturn = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () =>
-    new Stitch({ input: null, output: { choice: { slug: 'return-42' } } }),
+  invoke: () => ({ input: null, output: { choice: { slug: 'return-42' } } }),
 });
 
 describe('GStitcherInferredFromChoice', () => {

@@ -110,7 +110,7 @@ describe('enweaveOneFanout', () => {
   given.only(
     'a route with imagine stitchers, parallelized (closer to real world usecase)',
     () => {
-      const stitchCodeRead = new Stitch({
+      const stitchCodeRead = {
         input: null,
         output: {
           path: '__path__',
@@ -154,7 +154,7 @@ context,
 },
           `.trim(),
         },
-      });
+      };
 
       const stitcherCodeReviewConcluder = new StitchStepCompute<
         GStitcher<
@@ -171,10 +171,10 @@ context,
           const feedbacks = threads.critic.peers.map(
             (peer) => peer.stitches.slice(-1)[0]?.output,
           );
-          return new Stitch({
+          return {
             input: feedbacks,
             output: feedbacks,
-          });
+          };
         },
       });
 
@@ -206,7 +206,7 @@ context,
                       tools: [],
                       facts: [],
                     }),
-                    stitches: [stitchCodeRead],
+                    stitches: [stitchCodeRead as Stitch<any>],
                   },
                   director: genThread({ role: 'director' as const }),
                 },

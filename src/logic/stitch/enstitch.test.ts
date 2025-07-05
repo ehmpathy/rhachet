@@ -26,7 +26,7 @@ describe('enstitch', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: 'in', output: 'out' }),
+      invoke: () => ({ input: 'in', output: 'out' }),
     });
 
     when('enstitch is called', () => {
@@ -66,11 +66,10 @@ describe('enstitch', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: ({ threads }) =>
-        new Stitch({
-          input: 'in',
-          output: { peers: threads.main.peers.length },
-        }),
+      invoke: ({ threads }) => ({
+        input: 'in',
+        output: { peers: threads.main.peers.length },
+      }),
     });
 
     when('enstitch is called with multiple thread shape', () => {

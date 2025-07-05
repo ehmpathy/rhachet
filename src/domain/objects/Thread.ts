@@ -25,6 +25,8 @@ export interface Thread<TThreadContext> {
    *   - should expect it to be optional, (e.g., only in prep environments, rarely in prod)
    *      - due to the size (lots of repeated data)
    *      - due to alt prod observability tools
+   * .todo
+   *   - decide if still needed now that stitch was improved
    */
   history?: StitchSetEvent<any, any>[];
 }

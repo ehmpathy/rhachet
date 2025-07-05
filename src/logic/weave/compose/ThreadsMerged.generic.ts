@@ -1,5 +1,6 @@
 import { Empty } from 'type-fns';
 
+import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { Thread } from '../../../domain/objects/Thread';
 import { Threads } from '../../../domain/objects/Threads';
 
@@ -91,3 +92,20 @@ export type ThreadsMerged<
   },
   'single'
 >;
+
+/**
+ * .what = enables [...spread, plus] composition of threads tuple, pre merge
+ */
+export type ThreadsSpread<
+  T extends readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]],
+> = T extends readonly [
+  infer A extends Stitcher<GStitcher>,
+  ...infer R extends Stitcher<GStitcher>[],
+]
+  ? [
+      A extends Stitcher<infer GA> ? GA['threads'] : never,
+      ...{
+        [K in keyof R]: R[K] extends Stitcher<infer GR> ? GR['threads'] : never;
+      },
+    ]
+  : never;

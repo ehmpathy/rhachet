@@ -4,7 +4,6 @@ import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
 import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
-import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
@@ -27,7 +26,7 @@ describe('enweaveOneChoice', () => {
       readme: 'Push this to prod',
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'released' }),
+      invoke: () => ({ input: null, output: 'released' }),
     });
 
     const stitcherOptionIterate = new StitchStepCompute<
@@ -37,7 +36,7 @@ describe('enweaveOneChoice', () => {
       readme: 'Keep improving before release',
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'iterated' }),
+      invoke: () => ({ input: null, output: 'iterated' }),
     });
 
     const stitcherOptionAbort = new StitchStepCompute<
@@ -47,7 +46,7 @@ describe('enweaveOneChoice', () => {
       readme: 'Stop this effort',
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'aborted' }),
+      invoke: () => ({ input: null, output: 'aborted' }),
     });
 
     const stitcherDecideNextStep = new StitchStepCompute<
@@ -61,11 +60,10 @@ describe('enweaveOneChoice', () => {
       readme: 'Choose next step based on quality',
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'stitcherOptionIterate' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'stitcherOptionIterate' } },
+      }),
     });
 
     const chooseNextStep = genStitchChoice({
@@ -115,7 +113,7 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'plumber-urgent' }),
+      invoke: () => ({ input: null, output: 'plumber-urgent' }),
     });
 
     const stitcherOptionPlumberSchedule = new StitchStepCompute<
@@ -129,7 +127,7 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'inspection-scheduled' }),
+      invoke: () => ({ input: null, output: 'inspection-scheduled' }),
     });
 
     const stitcherOptionElectricianRefer = new StitchStepCompute<
@@ -139,7 +137,7 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'refer-utility' }),
+      invoke: () => ({ input: null, output: 'refer-utility' }),
     });
 
     const stitcherOptionElectricianDispatch = new StitchStepCompute<
@@ -153,7 +151,7 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'dispatch-electrician' }),
+      invoke: () => ({ input: null, output: 'dispatch-electrician' }),
     });
 
     // Inner choice for "leaking water"
@@ -168,11 +166,10 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'inspect-later' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'inspect-later' } },
+      }),
     });
 
     const leakChoice = genStitchChoice({
@@ -194,11 +191,10 @@ describe('enweaveOneChoice', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'choice:leak' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'choice:leak' } },
+      }),
     });
 
     const rootChoice = genStitchChoice({
@@ -246,11 +242,10 @@ describe('enweaveOneChoice', () => {
           readme: null,
           form: 'COMPUTE',
           stitchee: 'main',
-          invoke: () =>
-            new Stitch({
-              input: null,
-              output: { choice: { slug: 'not-real' } },
-            }),
+          invoke: () => ({
+            input: null,
+            output: { choice: { slug: 'not-real' } },
+          }),
         });
 
         const brokenChoice = genStitchChoice({

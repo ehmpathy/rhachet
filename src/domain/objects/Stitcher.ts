@@ -3,6 +3,7 @@ import { createIsOfEnum, Literalize } from 'type-fns';
 
 import { ContextStitchTrail } from '../../logic/stitch/withStitchTrail';
 import { StitchChoice } from './StitchChoice';
+import { StitchCycle } from './StitchCycle';
 import { StitchFanout } from './StitchFanout';
 import { StitchRoute } from './StitchRoute';
 import { StitchStep } from './StitchStep';
@@ -78,7 +79,13 @@ export type Stitcher<
     any
   > = GStitcher<Threads<any, 'single'>, any, any>,
 > = StitcherBase<StitcherForm> &
-  (StitchStep<T> | StitchRoute<T> | StitchFanout<T> | StitchChoice<T>);
+  (
+    | StitchStep<T>
+    | StitchRoute<T>
+    | StitchFanout<T>
+    | StitchChoice<T>
+    | StitchCycle<T>
+  );
 
 /**
  * .what = an extensible base declaration of a stitcher
@@ -132,14 +139,17 @@ export const asStitcherDesc = <TStitcher extends StitcherBase<any>>(input: {
  * .what = extracts the GStitcher generic from a Stitcher
  * .why = enables typed access to threads, context, and output shape of a Stitcher instance
  */
+export type GStitcherOf<T> = [T] extends [Stitcher<infer G>] ? G : never; // !: only this version works out of the two below. neat!
 // export type GStitcherOf<T> = T extends Stitcher<infer G>
 //   ? G extends GStitcher<any, any, any>
 //     ? G
 //     : never
 //   : never;
 // export type GStitcherOf<T> = T extends Stitcher<infer G> ? G : never;
-export type GStitcherOf<T> = [T] extends [Stitcher<infer G>] ? G : never;
 
+/**
+ * .what = flattens a gstitcher's type declaration
+ */
 export type GStitcherFlat<T> = T extends GStitcher<
   infer Threads,
   infer Context,

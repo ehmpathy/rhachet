@@ -43,8 +43,10 @@ describe('invokeImagineStitcher', () => {
           'fillout the code of the given stubout',
         ].join('\n'),
       imagine: imagineViaOpenAI,
-      deprompt: ({ promptOut, promptIn }) =>
-        new Stitch({ output: promptOut, input: promptIn }),
+      deprompt: ({ promptOut, promptIn }) => ({
+        output: promptOut,
+        input: promptIn,
+      }),
     });
 
     const stubout = `
@@ -64,7 +66,7 @@ export const sdkOpenMeteo = {
     when('thread has blank context', () => {
       const thread = new Thread({
         context: { role: 'author' as const, factset: [] },
-        stitches: [{ output: stubout, input: null }],
+        stitches: [{ output: stubout, input: null } as Stitch<any>],
       });
 
       then('it should be able to stitch', async () => {
@@ -196,7 +198,7 @@ daily_units	Object	For each selected daily weather variable, the unit will be li
             'we want to declare an explicit output type with a simplified name pattern. for example, Weather { label: "sunny" | ..., temp: { high, low }, rain, etc }',
           ],
         },
-        stitches: [{ output: stubout, input: null }],
+        stitches: [{ output: stubout, input: null } as Stitch<any>],
       });
       then('it should leverage the knowledge of the context', async () => {
         const { stitch, threads } = await enstitch(

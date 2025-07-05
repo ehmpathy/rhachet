@@ -1,13 +1,17 @@
 import { asUniDateTime } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import { getUuid } from 'uuid-fns';
 
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
 import { StitchStep } from '../../domain/objects/StitchStep';
-import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
+import {
+  asStitchTrailDesc,
+  StitchTrailMarker,
+} from '../../domain/objects/StitchTrail';
 import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
-import { Threads, threadsOmitHistory } from '../../domain/objects/Threads';
+import { Threads } from '../../domain/objects/Threads';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
 /**
@@ -64,7 +68,10 @@ export const enstitch = async <
   StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']>
 > => {
   // enstitch the output
-  const stitch: Stitch<TStitcher['output']> = await (() => {
+  const result: Pick<
+    Stitch<TStitcher['output']>,
+    'input' | 'output'
+  > = await (() => {
     // if the stitcher is of type "compute", then execute the computation; // todo: add observability on duration
     if (input.stitcher.form === 'COMPUTE')
       return input.stitcher.invoke({ threads: input.threads }, context);
@@ -82,20 +89,25 @@ export const enstitch = async <
       { stitcher: input.stitcher },
     );
   })();
-
-  // declare that this stitch has been set into "the fabric of reality"; energy => stitch
-  const stitchSetEvent = StitchSetEvent.build<
-    StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']> // propagate the type:inference
-  >({
-    occurredAt: asUniDateTime(new Date()),
-    stitch,
-    stitcher: {
-      ...asStitcherDesc({ stitcher: input.stitcher }),
-      trail: asStitchTrailDesc({ trail: context.stitch.trail }),
+  const stitchUuid = getUuid();
+  const stitch = Stitch.build({
+    uuid: stitchUuid,
+    createdAt: asUniDateTime(new Date()),
+    stitcher: asStitcherDesc({ stitcher: input.stitcher }),
+    trail: {
+      desc: asStitchTrailDesc({
+        trail: [
+          ...context.stitch.trail,
+          StitchTrailMarker.build({
+            stitchUuid,
+            stitcherSlug: input.stitcher.slug,
+          }),
+        ],
+      }),
+      // markers: context.stitch.trail, // todo: enable via context verbosity control
     },
-    threads: threadsOmitHistory({
-      threads: input.threads,
-    }) as any as ReqThreadsSingle<TStitcher['threads']>, // ideally, stitch set events would allow multiple too, based on the usecase; for now, this is a hazard when used => thread.history is for debugging only, not control
+    input: result.input,
+    output: result.output,
   });
 
   // mutate the input thread to attach the new stitch
@@ -110,15 +122,23 @@ export const enstitch = async <
   );
   const stitcheeAfter = stitcheeBefore.clone({
     stitches: [...stitcheeBefore.stitches, stitch], // append the latest stitch
-    history: [...(stitcheeBefore.history ?? []), stitchSetEvent],
   });
 
-  // return the updates
-  return stitchSetEvent.clone({
-    // cast the threads into single thread form, to satisfy the contract.output (for safe default usage)
+  // declare that this stitch has been set into "the fabric of reality"; energy => stitch
+  const event = StitchSetEvent.build<
+    StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']> // propagate the type:inference
+  >({
+    occurredAt: asUniDateTime(new Date()),
+    stitch,
     threads: normThreadsToSingle({
       ...input.threads,
       [stitcheeKey]: stitcheeAfter,
     }),
   });
+
+  // emit the event
+  // todo: emit events via withStitchTrail
+
+  // and bubble it up
+  return event;
 };

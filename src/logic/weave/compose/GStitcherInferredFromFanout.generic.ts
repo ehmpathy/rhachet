@@ -2,7 +2,10 @@ import { ThreadsFromFanout } from '../../../domain/objects/StitchFanout';
 import { StitchStep } from '../../../domain/objects/StitchStep';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
-import { ProcedureContextMerged } from './ProcedureContextMerged.generic';
+import {
+  ProcedureContextMerged,
+  ProcedureContextSpread,
+} from './ProcedureContextMerged.generic';
 import { ThreadsMerged } from './ThreadsMerged.generic';
 
 /**
@@ -31,12 +34,12 @@ export type GStitcherInferredFromFanout<
       ? G['threads']
       : never;
   }>,
-  ProcedureContextMerged<{
-    // todo: include the TConcluder's context too
-    [K in keyof TParallels]: TParallels[K] extends Stitcher<infer G>
-      ? G['context']
-      : never;
-  }> &
+  ProcedureContextMerged<
+    [
+      TConcluder extends Stitcher<infer G> ? G['context'] : never,
+      ...ProcedureContextSpread<TParallels>,
+    ]
+  > &
     GStitcher['context'],
   TConcluder extends StitchStep<infer G> ? G['output'] : never
 >;

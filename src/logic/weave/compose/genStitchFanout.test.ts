@@ -28,7 +28,7 @@ describe('genStitchFanout type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 10 }),
+      invoke: () => ({ input: null, output: 10 }),
     });
 
     const parallelB = new StitchStepCompute<
@@ -38,7 +38,7 @@ describe('genStitchFanout type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 20 }),
+      invoke: () => ({ input: null, output: 20 }),
     });
 
     const concluder = new StitchStepCompute<
@@ -52,10 +52,10 @@ describe('genStitchFanout type preservation', () => {
         const numbers = [threads.main.seed, ...threads.main.peers].map(
           (t) => t.stitches.at(-1)?.output ?? 0,
         );
-        return new Stitch({
+        return {
           input: numbers,
           output: numbers.reduce((a, b) => a + b, 0),
-        });
+        };
       },
     });
 

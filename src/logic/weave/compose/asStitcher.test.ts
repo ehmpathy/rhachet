@@ -22,7 +22,7 @@ describe('asStitcher type normalization', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 42 }),
+      invoke: () => ({ input: null, output: 42 }),
     });
 
     const stitcher = asStitcher(step);
@@ -87,7 +87,7 @@ describe('asStitcher type normalization', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 1 }),
+      invoke: () => ({ input: null, output: 1 }),
     });
 
     const step2 = new StitchStepCompute<
@@ -97,7 +97,7 @@ describe('asStitcher type normalization', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 2 }),
+      invoke: () => ({ input: null, output: 2 }),
     });
 
     const route = genStitchRoute({

@@ -17,11 +17,10 @@ const stitcherComputeRandom = new StitchStepCompute<
   form: 'COMPUTE',
   readme: null,
   stitchee: 'main',
-  invoke: () =>
-    new Stitch({
-      input: null,
-      output: Math.floor(Math.random() * 100),
-    }),
+  invoke: () => ({
+    input: null,
+    output: Math.floor(Math.random() * 100),
+  }),
 });
 
 const stitcherAddAll = new StitchStepCompute<
@@ -40,10 +39,10 @@ const stitcherAddAll = new StitchStepCompute<
 
     const sum = numbers.reduce((a, b) => a + b, 0);
 
-    return new Stitch({
+    return {
       input: numbers,
       output: sum,
-    });
+    };
   },
 });
 

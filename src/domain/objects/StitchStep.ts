@@ -16,7 +16,9 @@ export interface StitchStepCompute<
   invoke: (
     input: { threads: TStitcher['threads'] },
     context: TStitcher['context'],
-  ) => Promise<Stitch<TStitcher['output']>> | Stitch<TStitcher['output']>;
+  ) =>
+    | Promise<Pick<Stitch<TStitcher['output']>, 'input' | 'output'>>
+    | Pick<Stitch<TStitcher['output']>, 'input' | 'output'>;
 
   /**
    * .what = which thread will receive the stitch
@@ -58,7 +60,7 @@ export interface StitchStepImagine<
     threads: TStitcher['threads'];
     promptOut: string;
     promptIn: string;
-  }) => Stitch<TStitcher['output']>;
+  }) => Pick<Stitch<TStitcher['output']>, 'input' | 'output'>;
 }
 
 export class StitchStepImagine<

@@ -32,8 +32,7 @@ describe('GStitcherInferredFromRoute', () => {
     readme: null,
     slug: 'get-time',
     stitchee: 'main',
-    invoke: () =>
-      new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+    invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
   });
 
   const stitcherAddHours = new StitchStepCompute<
@@ -49,12 +48,12 @@ describe('GStitcherInferredFromRoute', () => {
         UnexpectedCodePathError.throw('no stitches found on main thread yet.', {
           threads,
         });
-      return new Stitch({
+      return {
         input: lastStitch.output,
         output: addDuration(isUniDateTime.assure(lastStitch.output), {
           hours: 1,
         }),
-      });
+      };
     },
   });
 
@@ -143,8 +142,7 @@ describe('GStitcherInferredFromRoute', () => {
       readme: null,
       slug: 'with-clock',
       stitchee: 'clock',
-      invoke: () =>
-        new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
     });
 
     const sequence = [stitcherGetTime, stitcherWithClock] as const;
@@ -219,8 +217,7 @@ describe('GStitcherInferredFromRoute', () => {
       readme: null,
       slug: 'slug',
       stitchee: 'one',
-      invoke: () =>
-        new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
     });
 
     const stitcherWithFooContext = new StitchStepCompute<
@@ -234,8 +231,7 @@ describe('GStitcherInferredFromRoute', () => {
       readme: null,
       slug: 'slug',
       stitchee: 'two',
-      invoke: () =>
-        new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
     });
 
     then(
@@ -264,8 +260,7 @@ describe('GStitcherInferredFromRoute', () => {
       readme: null,
       slug: 'slug',
       stitchee: 'three',
-      invoke: () =>
-        new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
     });
     then('when multiple contexts are defined, it should merge them', () => {
       const sequence = [

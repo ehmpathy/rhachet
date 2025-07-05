@@ -8,6 +8,7 @@ import { Threads } from '../../../domain/objects/Threads';
  * .why =
  *   - enables composition of stitchers
  *   - without this, they're not composable, due to typescript(generic invariance on classes cause)
+ *   - infers the type deeply
  */
 
 export const asStitcher = <T extends Stitcher<GStitcher<any, any, any>>>(

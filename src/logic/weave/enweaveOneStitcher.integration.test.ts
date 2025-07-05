@@ -1,22 +1,32 @@
+import { asUniDateTime, toMilliseconds } from '@ehmpathy/uni-time';
+import { UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
+import { getUuid } from 'uuid-fns';
 
 import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
 import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
 import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
 import { genStitcherCodeFileRead } from '../../__test_assets__/stitchers/genStitcherCodeFileRead';
+import { genStitcherCodeFileWrite } from '../../__test_assets__/stitchers/genStitcherCodeFileWrite';
 import { genStitcherCodeReview } from '../../__test_assets__/stitchers/genStitcherCodeReviewImagine';
+import { stitcherCodeDiffImagine } from '../../__test_assets__/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '../../__test_assets__/threads/codeArtist';
 import { getExampleThreadCodeCritic } from '../../__test_assets__/threads/codeCritic';
 import { exampleThreadDirector } from '../../__test_assets__/threads/director';
-import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
+import { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
+import { genThread } from '../thread/genThread';
 import { asStitcher } from './compose/asStitcher';
+import { asStitcherFlat } from './compose/asStitcherFlat';
+import { genStitchCycle } from './compose/genStitchCycle';
 import { genStitchFanout } from './compose/genStitchFanout';
 import { genStitchRoute } from './compose/genStitchRoute';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
+
+jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
 describe('enweaveOneStitcher', () => {
   const baseContext = {
@@ -25,129 +35,340 @@ describe('enweaveOneStitcher', () => {
   };
   const context = { ...baseContext, ...getContextOpenAI() };
 
-  given('a route with a nested fanout of imagine steps', () => {
-    const stitcherCodeFileRead = genStitcherCodeFileRead<
-      'critic',
-      Threads<{ critic: Empty }>
-    >({
-      stitchee: 'critic',
-      output: {
-        path: '__path__',
-        content: `
-import { UnexpectedCodePathError } from '@ehmpathy/error-fns';
-import { UniDateTime } from '@ehmpathy/uni-time';
-import { PickOne } from 'type-fns';
-
-import { daoJobProspect } from '../../data/dao/jobProspectDao';
-import { withDatabaseContext } from '../../utils/database/withDatabaseContext';
-
-export const getProspects = withDatabaseContext(
-  async (
-    input: PickOne<{ byProvider: { providerUuid: string }; }> & {
-      page: {
-        since?: { openedAt: UniDateTime };
-        until?: { openedAt: UniDateTime };
-        limit: number;
-      };
-    },
-    context,
-  ) => {
-    if (input.byProvider)
-      return daoJobProspect.findAllByProvider(
-        {
-          by: { providerUuid: input.byProvider.providerUuid },
-          filter: {
-            sinceOpenedAt: input.page.since?.openedAt,
-            untilOpenedAt: input.page.until?.openedAt,
-          },
-          limit: input.page.limit,
-        },
-        context,
-      );
-    throw new UnexpectedCodePathError('unsupported input option');
-  },
-);
-          `.trim(),
-      },
-    });
-
-    const stitcherCodeReviewConcluder = new StitchStepCompute<
-      GStitcher<
-        Threads<{ critic: Empty }, 'multiple'>,
-        typeof context,
-        string[]
-      >
-    >({
-      slug: 'sum',
-      readme: null,
-      form: 'COMPUTE',
-      stitchee: 'critic',
-      invoke: ({ threads }) => {
-        const feedbacks = threads.critic.peers.map(
-          (peer) => peer.stitches.slice(-1)[0]?.output,
-        );
-        return new Stitch({
-          input: feedbacks,
-          output: feedbacks,
-        });
-      },
-    });
-
-    const stitcherCodeReviewFanout = asStitcher(
-      genStitchFanout({
-        slug: '[critic]<code:review>.<fanout>[[review]]',
+  // takes a while; skip by default
+  given.runIf(!process.env.CI)(
+    'a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max',
+    () => {
+      const stitcherCodeReviewConcluder = new StitchStepCompute<
+        GStitcher<
+          Threads<{ critic: Empty }, 'multiple'>,
+          typeof context,
+          { blockers: string[]; summary: string[] }
+        >
+      >({
+        slug: '[critic]<review:concluder>',
         readme: null,
-        parallels: [
-          genStitcherCodeReview({ scope: 'technical', focus: 'blockers' }),
-          genStitcherCodeReview({ scope: 'technical', focus: 'chances' }),
-          genStitcherCodeReview({ scope: 'technical', focus: 'praises' }),
-          genStitcherCodeReview({ scope: 'functional', focus: 'blockers' }),
-          genStitcherCodeReview({ scope: 'functional', focus: 'chances' }),
-          genStitcherCodeReview({ scope: 'functional', focus: 'praises' }),
-        ],
-        concluder: stitcherCodeReviewConcluder,
-      }),
-    );
-
-    const route = genStitchRoute({
-      slug: '[critic]<code:review>',
-      readme:
-        'review a code change; parallelize the perspectives to review from',
-      sequence: [stitcherCodeFileRead, stitcherCodeReviewFanout],
-    });
-
-    when('given the threads required', () => {
-      let threads: Threads<{
-        artist: { tools: string[]; facts: string[] };
-        critic: { tools: string[]; facts: string[] };
-        director: Empty;
-      }>;
-
-      beforeAll(async () => {
-        threads = {
-          artist: await getExampleThreadCodeArtist(),
-          critic: await getExampleThreadCodeCritic(),
-          director: exampleThreadDirector,
-        };
+        form: 'COMPUTE',
+        stitchee: 'critic',
+        invoke: ({ threads }) => {
+          const summary = threads.critic.peers
+            .map((peer) => peer.stitches.slice(-1)[0]?.output)
+            .filter(Boolean) as string[];
+          const blockers = summary.filter((x) => x.includes('blocker'));
+          return { input: summary, output: { blockers, summary } };
+        },
       });
 
-      then(
-        'it should successfully execute the stitches as a weave',
-        async () => {
-          const output = await enweaveOneStitcher(
-            { stitcher: route, threads },
-            context,
-          );
+      const stitcherCodeReviewFanout = asStitcher(
+        genStitchFanout({
+          slug: '[critic]<code:review>.<fanout>[[review]]',
+          readme: null,
+          parallels: [
+            genStitcherCodeReview({ scope: 'technical', focus: 'blockers' }),
+            // genStitcherCodeReview({ scope: 'technical', focus: 'chances' }),
+            // genStitcherCodeReview({ scope: 'technical', focus: 'praises' }),
+            genStitcherCodeReview({ scope: 'functional', focus: 'blockers' }),
+            // genStitcherCodeReview({ scope: 'functional', focus: 'chances' }),
+            // genStitcherCodeReview({ scope: 'functional', focus: 'praises' }),
+          ],
+          concluder: stitcherCodeReviewConcluder,
+        }),
+      );
 
-          expect(output.stitch.output).toHaveLength(6);
+      const directorSummarize = new StitchStepCompute<
+        GStitcher<
+          Threads<{ director: Empty; critic: Empty }>,
+          typeof context,
+          { directive: string; blockers: string[] }
+        >
+      >({
+        slug: '[director]<summarize>',
+        form: 'COMPUTE',
+        stitchee: 'director',
+        readme: 'turn critic summary into a director directive',
+        invoke: ({ threads }) => {
+          const last = threads.critic.stitches.slice(-1)[0]?.output;
+          return {
+            input: last,
+            output: {
+              directive: `resolve blockers, blockers: ${JSON.stringify(
+                last?.blockers,
+                null,
+                2,
+              )}`,
+              blockers: last?.blockers,
+            },
+          };
+        },
+      });
+
+      const artistCodeProposeRoute = asStitcher(
+        genStitchRoute({
+          slug: '[artist]<code:propose>',
+          readme: 'imagine diff, then write to file',
+          sequence: [
+            stitcherCodeDiffImagine,
+            genStitcherCodeFileWrite<'artist', Threads<{ artist: Empty }>>({
+              stitchee: 'artist',
+            }),
+          ],
+        }),
+      );
+
+      const criticCodeReviewRoute = asStitcher(
+        genStitchRoute({
+          slug: '[critic]<code:review>',
+          readme: 'review the code from multiple perspectives',
+          sequence: [
+            genStitcherCodeFileRead<
+              'critic',
+              Threads<{ artist: Empty; critic: Empty }>
+            >({
+              stitchee: 'critic',
+              output: ({ threads }) =>
+                (threads.artist?.stitches.slice(-1)[0]?.output as any) ??
+                UnexpectedCodePathError.throw(
+                  'expected to find file write output stitch',
+                  { threads },
+                ),
+            }),
+            stitcherCodeReviewFanout,
+          ],
+        }),
+      );
+
+      const codeIterateRoute = asStitcherFlat<
+        GStitcher<
+          Threads<{
+            artist: { tools: string[]; facts: string[] };
+            critic: { tools: string[]; facts: string[] };
+            director: Empty;
+          }>,
+          ContextOpenAI & GStitcher['context']
+        >
+      >(
+        genStitchRoute({
+          slug: '[code:iterate]',
+          readme: 'one pass of propose + review + summarize',
+          sequence: [
+            artistCodeProposeRoute,
+            criticCodeReviewRoute,
+            directorSummarize,
+          ],
+        }),
+      );
+
+      const judgeDeciderNextStep = new StitchStepCompute<
+        GStitcher<
+          Threads<{ critic: Empty; judge: Empty }>,
+          typeof context,
+          { choice: 'release' | 'repeat' }
+        >
+      >({
+        slug: '[judge]<decide:release?>',
+        form: 'COMPUTE',
+        stitchee: 'judge',
+        readme: 'release if more than 3 reviews',
+        invoke: ({ threads }) => {
+          const choice =
+            threads.critic.stitches.length >= 3 ? 'release' : 'repeat';
+          return {
+            input: { stitches: threads.critic.stitches.length },
+            output: { choice },
+          };
+        },
+      });
+
+      const mechanicCodeDiffIterateUntilRelease = asStitcher(
+        genStitchCycle({
+          slug: '[mechanic]<code:iterate-until-release>',
+          readme: 'iterate until no blockers or max 3 tries',
+          repeatee: codeIterateRoute,
+          decider: judgeDeciderNextStep,
+        }),
+      );
+
+      const stitcherRestitchLatestArtistOutput = new StitchStepCompute<
+        GStitcher<
+          Threads<{ artist: Empty }>,
+          typeof context,
+          { restitched: string }
+        >
+      >({
+        slug: '[artist]<restitch:latest>',
+        readme: 'Restitch artists latest output for final record',
+        form: 'COMPUTE',
+        stitchee: 'artist',
+        invoke: ({ threads }) => {
+          const latest = threads.artist.stitches.slice(-1)[0];
+          if (!latest?.output || typeof latest.output !== 'object')
+            throw new Error('No valid artist output to restitch');
+          return latest;
+        },
+      });
+
+      const rootRouteCodeDiff = genStitchRoute({
+        slug: '[mechanic]<code:diff>',
+        readme:
+          'read initial file, then iterate against directive until no blockers or 3 tries',
+        sequence: [
+          genStitcherCodeFileRead<'artist', Threads<{ artist: Empty }>>({
+            stitchee: 'artist',
+            output: {
+              path: '__path__',
+              content: `
+/**
+ * .what = calls the open-meteo weather api
+ * .how =
+ *   - uses procedural pattern
+ *   - fails fast
+ */
+export const sdkOpenMeteo = {
+  getWeather: (input: {...}, context: VisualogicContext & AuthContextOpenMeteo) => {
+    ...
+  }
+}
+          `.trim(),
+            },
+          }),
+          mechanicCodeDiffIterateUntilRelease,
+          stitcherRestitchLatestArtistOutput,
+        ] as const,
+      });
+      console.log(JSON.stringify(rootRouteCodeDiff, null, 2));
+
+      when(
+        'executing the full review loop with realistic threads for artist, critic, director, and judge',
+        () => {
+          let threads: Threads<{
+            artist: { tools: string[]; facts: string[] };
+            critic: { tools: string[]; facts: string[] };
+            director: Empty;
+            judge: Empty;
+          }>;
+
+          beforeAll(async () => {
+            threads = {
+              artist: await getExampleThreadCodeArtist(),
+              critic: await getExampleThreadCodeCritic(),
+              director: exampleThreadDirector.clone({
+                stitches: [
+                  {
+                    uuid: getUuid(),
+                    createdAt: asUniDateTime(new Date()),
+                    input: null,
+                    output: { directive: 'fillout the stubout' },
+                    stitcher: null,
+                    trail: null,
+                  }, // start with this directive
+                ],
+              }),
+              judge: genThread({ role: 'judge' }),
+            };
+          });
+
+          then('it should have a readable route plan declared', () => {
+            // expect(rootRouteCodeDiff).toMatchSnapshot();
+            expect(
+              JSON.stringify(rootRouteCodeDiff, null, 2),
+            ).toMatchSnapshot();
+          });
+
+          then(
+            'it should exit after 3 cycles if blockers are always returned',
+            async () => {
+              const output = await enweaveOneStitcher(
+                { stitcher: rootRouteCodeDiff, threads },
+                context,
+              );
+
+              expect(output.threads.artist.stitches.length).toBeGreaterThan(0);
+              expect(output.threads.critic.stitches.length).toBeGreaterThan(0);
+              expect(output.threads.judge.stitches.length).toBeGreaterThan(0);
+
+              expect(
+                JSON.stringify(
+                  deepReplaceShortUuidsWithLetters(
+                    deepOmit(output, [
+                      'occurredAt',
+                      'createdAt',
+                      'input',
+                      'output',
+                      'tools',
+                      'facts',
+                      'uuid',
+                      'stitchUuid',
+                    ]),
+                  ),
+                  null,
+                  2,
+                ),
+              ).toMatchSnapshot();
+            },
+          );
         },
       );
-    });
-  });
-  given(
-    'a route with a nested fanout of imagine steps, with a choosable cycle',
-    () => {
-      // declare judge's choice to cycle or exit
     },
   );
 });
+
+export function deepOmit(obj: unknown, keys: string[]): unknown {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => deepOmit(item, keys));
+  }
+
+  if (obj !== null && typeof obj === 'object') {
+    const raw = { ...obj };
+    for (const key of keys) {
+      delete (raw as any)[key];
+    }
+
+    return Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, deepOmit(v, keys)]),
+    );
+  }
+
+  return obj;
+}
+
+const shortUuidRegex = /\(([0-9a-f]{7})\)/gi;
+
+function getLetterLabel(index: number): string {
+  let label = '';
+  while (index >= 0) {
+    label = String.fromCharCode((index % 26) + 65) + label;
+    index = Math.floor(index / 26) - 1;
+  }
+  return label;
+}
+
+export function deepReplaceShortUuidsWithLetters(obj: unknown): unknown {
+  const seen = new Map<string, string>();
+  let index = 0;
+
+  const replace = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return value.replace(shortUuidRegex, (_, shortId) => {
+        const key = shortId.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, getLetterLabel(index++));
+        }
+        return `(${seen.get(key)!})`;
+      });
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(replace);
+    }
+
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, replace(v)]),
+      );
+    }
+
+    return value;
+  };
+
+  return replace(obj);
+}

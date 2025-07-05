@@ -7,7 +7,6 @@ import { Thread } from './Thread';
 import { Threads } from './Threads';
 
 type ArtistContext = { name: string };
-type ProcedureContext = { stitch: { trail: string[] }; log: any };
 
 /**
  * example thread builder
@@ -84,7 +83,9 @@ describe('GStitcher', () => {
     it('should allow Stitcher<GStitcher> with Threads<..., "single">', () => {
       type ValidThreadSingle = Threads<{ artist: ArtistContext }, 'single'>;
 
-      type S = Stitcher<GStitcher<ValidThreadSingle, ProcedureContext, string>>;
+      type S = Stitcher<
+        GStitcher<ValidThreadSingle, GStitcher['context'], string>
+      >;
       const assert: S | null = null;
       expect(assert).toBeNull();
     });
@@ -94,7 +95,7 @@ describe('GStitcher', () => {
       type ValidThreadMultiple = Threads<{ artist: ArtistContext }, 'multiple'>;
 
       type S = StitchStep<
-        GStitcher<ValidThreadMultiple, ProcedureContext, string>
+        GStitcher<ValidThreadMultiple, GStitcher['context'], string>
       >;
       const assert: S | null = null;
       expect(assert).toBeNull();
@@ -107,7 +108,7 @@ describe('GStitcher', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type S = Stitcher<
         // @ts-expect-error - invalid thread shape
-        GStitcher<InvalidThreadSingle, ProcedureContext, string>
+        GStitcher<InvalidThreadSingle, GStitcher['context'], string>
       >;
       expect(true).toBe(true);
     });
@@ -119,7 +120,7 @@ describe('GStitcher', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type S = Stitcher<
         // @ts-expect-error - invalid thread[] shape
-        GStitcher<InvalidThreadMultiple, ProcedureContext, string>
+        GStitcher<InvalidThreadMultiple, GStitcher['context'], string>
       >;
       expect(true).toBe(true);
     });

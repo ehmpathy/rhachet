@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { Stitch } from '../../domain/objects/Stitch';
+import { isAFunction } from 'type-fns';
+
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
@@ -15,19 +16,22 @@ export const genStitcherCodeFileRead = <
   TThreads extends Threads = Threads,
 >(input: {
   stitchee: TStitchee;
-  output: OutputFileRead;
+  output: OutputFileRead | ((input: { threads: TThreads }) => OutputFileRead);
 }) =>
   new StitchStepCompute<
     GStitcher<TThreads, ContextOpenAI & GStitcher['context'], OutputFileRead>
   >({
     form: 'COMPUTE',
     readme: null,
-    slug: 'code.file.read',
+    slug: '[any]<code:file.read>',
     stitchee: input.stitchee,
-    invoke: () => {
-      return new Stitch<OutputFileRead>({
-        input: { path: input.output.path },
-        output: input.output,
-      });
+    invoke: ({ threads }) => {
+      const output = isAFunction(input.output)
+        ? input.output({ threads })
+        : input.output;
+      return {
+        input: { path: output.path },
+        output,
+      };
     },
   });

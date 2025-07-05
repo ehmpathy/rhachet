@@ -2,8 +2,6 @@ import { UniDateTime } from '@ehmpathy/uni-time';
 import { DomainLiteral } from 'domain-objects';
 
 import { Stitch } from './Stitch';
-import { StitchTrailDesc } from './StitchTrail';
-import { StitcherDesc } from './Stitcher';
 import { Threads } from './Threads';
 
 /**
@@ -22,14 +20,6 @@ export interface StitchSetEvent<
    * .what = the stitch which was set
    */
   stitch: Stitch<TOutput>;
-
-  /**
-   * .what = the stitcher that set it
-   * .note =
-   *   - we bolton the trail that lead to that stitcher being used; seems like the most intuitive way to read the trail
-   *   - otherwise, the trail on the event makes it seem like that's the round trip, which is actually within thread.history (since each thread goes on its own journey and then gets merged)
-   */
-  stitcher: StitcherDesc<any> & { trail: StitchTrailDesc };
 
   /**
    * .what = the threads it was set with

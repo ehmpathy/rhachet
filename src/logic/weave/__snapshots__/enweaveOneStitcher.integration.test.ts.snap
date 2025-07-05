@@ -1,0 +1,301 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`enweaveOneStitcher given: a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max when: executing the full review loop with realistic threads for artist, critic, director, and judge then: it should exit after 3 cycles if blockers are always returned 1`] = `
+"{
+  "stitch": {
+    "stitcher": {
+      "form": "COMPUTE",
+      "slug": "[artist]<restitch:latest>",
+      "readme": "Restitch artists latest output for final record"
+    },
+    "trail": {
+      "desc": "@[mechanic]<code:diff>(A) > @[artist]<restitch:latest>(B)"
+    }
+  },
+  "threads": {
+    "artist": {
+      "context": {
+        "role": "artist"
+      },
+      "stitches": [
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[any]<code:file.read>",
+            "readme": null
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[any]<code:file.read>(C)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "IMAGINE",
+            "slug": "[artist]<code:diff>",
+            "readme": "intent(imagines a codediff)"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](E) > @[artist]<code:propose>(F) > @[artist]<code:diff>(G)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[any]<code:file.write>",
+            "readme": "mock file writer that copies the output string into file output"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](E) > @[artist]<code:propose>(F) > @[any]<code:file.write>(H)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "IMAGINE",
+            "slug": "[artist]<code:diff>",
+            "readme": "intent(imagines a codediff)"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](I) > @[artist]<code:propose>(J) > @[artist]<code:diff>(K)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[any]<code:file.write>",
+            "readme": "mock file writer that copies the output string into file output"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](I) > @[artist]<code:propose>(J) > @[any]<code:file.write>(L)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[artist]<restitch:latest>",
+            "readme": "Restitch artists latest output for final record"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[artist]<restitch:latest>(B)"
+          }
+        }
+      ]
+    },
+    "critic": {
+      "context": {
+        "role": "critic"
+      },
+      "stitches": [
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[any]<code:file.read>",
+            "readme": null
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](E) > @[critic]<code:review>(M) > @[any]<code:file.read>(N)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[critic]<review:concluder>",
+            "readme": null
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](E) > @[critic]<code:review>(M) > @[critic]<code:review>.<fanout>[[review]](O) > @[critic]<review:concluder>(P)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[any]<code:file.read>",
+            "readme": null
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](I) > @[critic]<code:review>(Q) > @[any]<code:file.read>(R)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[critic]<review:concluder>",
+            "readme": null
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](I) > @[critic]<code:review>(Q) > @[critic]<code:review>.<fanout>[[review]](S) > @[critic]<review:concluder>(T)"
+          }
+        }
+      ]
+    },
+    "director": {
+      "context": {
+        "role": "director"
+      },
+      "stitches": [
+        {
+          "stitcher": null,
+          "trail": null
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[director]<summarize>",
+            "readme": "turn critic summary into a director directive"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](E) > @[director]<summarize>(U)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[director]<summarize>",
+            "readme": "turn critic summary into a director directive"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[code:iterate](I) > @[director]<summarize>(V)"
+          }
+        }
+      ]
+    },
+    "judge": {
+      "context": {
+        "role": "judge"
+      },
+      "stitches": [
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[judge]<decide:release?>",
+            "readme": "release if more than 3 reviews"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[judge]<decide:release?>(W)"
+          }
+        },
+        {
+          "stitcher": {
+            "form": "COMPUTE",
+            "slug": "[judge]<decide:release?>",
+            "readme": "release if more than 3 reviews"
+          },
+          "trail": {
+            "desc": "@[mechanic]<code:diff>(A) > @[mechanic]<code:iterate-until-release>(D) > @[judge]<decide:release?>(X)"
+          }
+        }
+      ]
+    }
+  }
+}"
+`;
+
+exports[`enweaveOneStitcher given: a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max when: executing the full review loop with realistic threads for artist, critic, director, and judge then: it should have a readable route plan declared 1`] = `
+"{
+  "form": "ROUTE",
+  "slug": "[mechanic]<code:diff>",
+  "readme": "read initial file, then iterate against directive until no blockers or 3 tries",
+  "sequence": [
+    {
+      "form": "COMPUTE",
+      "readme": null,
+      "slug": "[any]<code:file.read>",
+      "stitchee": "artist"
+    },
+    {
+      "form": "CYCLE",
+      "slug": "[mechanic]<code:iterate-until-release>",
+      "readme": "iterate until no blockers or max 3 tries",
+      "repeatee": {
+        "form": "ROUTE",
+        "slug": "[code:iterate]",
+        "readme": "one pass of propose + review + summarize",
+        "sequence": [
+          {
+            "form": "ROUTE",
+            "slug": "[artist]<code:propose>",
+            "readme": "imagine diff, then write to file",
+            "sequence": [
+              {
+                "form": "IMAGINE",
+                "slug": "[artist]<code:diff>",
+                "stitchee": "artist",
+                "readme": "intent(imagines a codediff)"
+              },
+              {
+                "form": "COMPUTE",
+                "slug": "[any]<code:file.write>",
+                "readme": "mock file writer that copies the output string into file output",
+                "stitchee": "artist"
+              }
+            ]
+          },
+          {
+            "form": "ROUTE",
+            "slug": "[critic]<code:review>",
+            "readme": "review the code from multiple perspectives",
+            "sequence": [
+              {
+                "form": "COMPUTE",
+                "readme": null,
+                "slug": "[any]<code:file.read>",
+                "stitchee": "critic"
+              },
+              {
+                "form": "FANOUT",
+                "slug": "[critic]<code:review>.<fanout>[[review]]",
+                "readme": null,
+                "parallels": [
+                  {
+                    "form": "IMAGINE",
+                    "slug": "[critic]:<code:review:technical:blockers>",
+                    "stitchee": "critic",
+                    "readme": "intent(imagines constructive feedback over the latest state of code, focused on technical blockers)"
+                  },
+                  {
+                    "form": "IMAGINE",
+                    "slug": "[critic]:<code:review:functional:blockers>",
+                    "stitchee": "critic",
+                    "readme": "intent(imagines constructive feedback over the latest state of code, focused on functional blockers)"
+                  }
+                ],
+                "concluder": {
+                  "slug": "[critic]<review:concluder>",
+                  "readme": null,
+                  "form": "COMPUTE",
+                  "stitchee": "critic"
+                }
+              }
+            ]
+          },
+          {
+            "slug": "[director]<summarize>",
+            "form": "COMPUTE",
+            "stitchee": "director",
+            "readme": "turn critic summary into a director directive"
+          }
+        ]
+      },
+      "decider": {
+        "slug": "[judge]<decide:release?>",
+        "form": "COMPUTE",
+        "stitchee": "judge",
+        "readme": "release if more than 3 reviews"
+      },
+      "halter": {
+        "threshold": {
+          "repetitions": 100,
+          "duration": {
+            "hours": 1
+          }
+        }
+      }
+    },
+    {
+      "slug": "[artist]<restitch:latest>",
+      "readme": "Restitch artists latest output for final record",
+      "form": "COMPUTE",
+      "stitchee": "artist"
+    }
+  ]
+}"
+`;

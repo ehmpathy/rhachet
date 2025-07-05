@@ -66,10 +66,6 @@ export const enweaveOneFanout = withStitchTrail(
     return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
       stitch: finalStitch,
-      stitcher: {
-        ...asStitcherDesc({ stitcher: input.stitcher }),
-        trail: asStitchTrailDesc({ trail: context.stitch.trail }),
-      },
       threads: finalThreads,
     });
   },

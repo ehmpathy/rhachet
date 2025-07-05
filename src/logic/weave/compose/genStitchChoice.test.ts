@@ -24,7 +24,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 1 }),
+      invoke: () => ({ input: null, output: 1 }),
     });
 
     const stepB = new StitchStepCompute<
@@ -34,7 +34,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'value' }),
+      invoke: () => ({ input: null, output: 'value' }),
     });
 
     const decider = new StitchStepCompute<
@@ -48,11 +48,10 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'number-return' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'number-return' } },
+      }),
     });
 
     const choice = genStitchChoice({
@@ -167,7 +166,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'plumber-urgent' }),
+      invoke: () => ({ input: null, output: 'plumber-urgent' }),
     });
 
     const scheduleInspection = new StitchStepCompute<
@@ -181,7 +180,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'inspection-scheduled' }),
+      invoke: () => ({ input: null, output: 'inspection-scheduled' }),
     });
 
     const referToUtility = new StitchStepCompute<
@@ -191,7 +190,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'refer-utility' }),
+      invoke: () => ({ input: null, output: 'refer-utility' }),
     });
 
     const dispatchElectrician = new StitchStepCompute<
@@ -205,7 +204,7 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 'dispatch-electrician' }),
+      invoke: () => ({ input: null, output: 'dispatch-electrician' }),
     });
 
     // Inner choice: LEAK path
@@ -220,11 +219,10 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'plumber-urgent' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'plumber-urgent' } },
+      }),
     });
 
     const leakChoice = genStitchChoice({
@@ -246,11 +244,10 @@ describe('genStitchChoice type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () =>
-        new Stitch({
-          input: null,
-          output: { choice: { slug: 'choice:leak' } },
-        }),
+      invoke: () => ({
+        input: null,
+        output: { choice: { slug: 'choice:leak' } },
+      }),
     });
 
     const rootChoice = genStitchChoice({

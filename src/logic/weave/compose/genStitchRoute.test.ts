@@ -23,7 +23,7 @@ describe('genStitchRoute type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 1 }),
+      invoke: () => ({ input: null, output: 1 }),
     });
     const check1: typeof step1 extends Stitcher<GStitcher> ? true : false =
       true;
@@ -36,7 +36,7 @@ describe('genStitchRoute type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 2 }),
+      invoke: () => ({ input: null, output: 2 }),
     });
     const check2: typeof step2 extends Stitcher<GStitcher> ? true : false =
       true;
@@ -161,7 +161,7 @@ describe('genStitchRoute type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 1 }),
+      invoke: () => ({ input: null, output: 1 }),
     });
 
     const step2 = new StitchStepCompute<
@@ -171,7 +171,7 @@ describe('genStitchRoute type preservation', () => {
       readme: null,
       form: 'COMPUTE',
       stitchee: 'main',
-      invoke: () => new Stitch({ input: null, output: 2 }),
+      invoke: () => ({ input: null, output: 2 }),
     });
 
     const innerRoute = genStitchRoute({

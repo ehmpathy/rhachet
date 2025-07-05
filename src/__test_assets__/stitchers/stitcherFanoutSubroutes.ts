@@ -1,12 +1,7 @@
 import { Empty } from 'type-fns';
 
-import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import {
-  GStitcher,
-  GStitcherFlat,
-  GStitcherOf,
-} from '../../domain/objects/Stitcher';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
 import { asStitcher } from '../../logic/weave/compose/asStitcher';
 import { genStitchFanout } from '../../logic/weave/compose/genStitchFanout';
@@ -22,7 +17,7 @@ const stepAdd1 = new StitchStepCompute<
   invoke: ({ threads }) => {
     const last = threads.main.stitches.at(-1)?.output;
     const base = typeof last === 'number' ? last : 0;
-    return new Stitch({ input: base, output: base + 1 });
+    return { input: base, output: base + 1 };
   },
 });
 
@@ -36,7 +31,7 @@ const stepAdd2 = new StitchStepCompute<
   invoke: ({ threads }) => {
     const last = threads.main.stitches.at(-1)?.output;
     const base = typeof last === 'number' ? last : 0;
-    return new Stitch({ input: base, output: base + 2 });
+    return { input: base, output: base + 2 };
   },
 });
 
@@ -50,7 +45,7 @@ const stepAdd3 = new StitchStepCompute<
   invoke: ({ threads }) => {
     const last = threads.main.stitches.at(-1)?.output;
     const base = typeof last === 'number' ? last : 0;
-    return new Stitch({ input: base, output: base + 3 });
+    return { input: base, output: base + 3 };
   },
 });
 
@@ -81,10 +76,10 @@ const concluderSumRoutes = new StitchStepCompute<
       return last.output as number;
     });
 
-    return new Stitch({
+    return {
       input: outputs,
       output: outputs.reduce((a, b) => a + b, 0),
-    });
+    };
   },
 });
 

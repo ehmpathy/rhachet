@@ -38,8 +38,7 @@ describe('enweaveOneRoute', () => {
         readme: null,
         form: 'COMPUTE',
         stitchee: 'main',
-        invoke: () =>
-          new Stitch({ input: null, output: asUniDateTime(new Date()) }),
+        invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
       });
       const stitcherAddHours = new StitchStepCompute<
         GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
@@ -55,12 +54,12 @@ describe('enweaveOneRoute', () => {
               'no stitches found on main thread yet.',
               { threads },
             );
-          return new Stitch({
+          return {
             input: lastStitch.output,
             output: addDuration(isUniDateTime.assure(lastStitch.output), {
               hours: 1,
             }),
-          });
+          };
         },
       });
 
@@ -141,7 +140,7 @@ describe('enweaveOneRoute', () => {
       stitchee: 'artist',
       invoke: () => {
         // e.g., execute tooluse:file:read
-        return new Stitch({
+        return {
           input: null,
           output: `
 /**
@@ -156,7 +155,7 @@ export const sdkOpenMeteo = {
   }
 }
           `.trim(),
-        });
+        };
       },
     });
 
@@ -173,7 +172,7 @@ export const sdkOpenMeteo = {
       stitchee: 'artist',
       invoke: ({ threads }) => {
         // e.g., execute tooluse:file:write
-        return new Stitch({
+        return {
           input: null,
           output: {
             path: '@src/...', // mock that we did so
@@ -183,7 +182,7 @@ export const sdkOpenMeteo = {
                 'expected artist to have had a stitch by now',
               ),
           },
-        });
+        };
       },
     });
 

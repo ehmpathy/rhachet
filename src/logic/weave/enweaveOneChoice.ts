@@ -65,10 +65,6 @@ export const enweaveOneChoice = withStitchTrail(
     return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
       stitch: resultStitch,
-      stitcher: {
-        ...asStitcherDesc({ stitcher: input.stitcher }),
-        trail: asStitchTrailDesc({ trail: context.stitch.trail }),
-      },
       threads: threadsAfterChoice,
     });
   },

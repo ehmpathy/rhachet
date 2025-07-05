@@ -105,6 +105,7 @@ export const genStitcherCodeReview = (input: {
         threads.critic.stitches.slice(-1)[0]?.output?.content ??
           UnexpectedCodePathError.throw(
             'no prior stitch detected for code sample',
+            { threads },
           ),
         '',
         ...(input.scope === 'functional'
@@ -114,10 +115,12 @@ export const genStitcherCodeReview = (input: {
             ]
           : []),
         '',
-        'return a json object with shape { feedback: { importance: HIGH | MEDIUM | LOW, description: string, example: CodeBlockString }[] }',
+        `return a json object with shape { feedback: { scope: '${input.scope}', focus: '${input.focus}', importance: HIGH | MEDIUM | LOW, description: string, example: CodeBlockString }[] }`,
       ].join('\n');
     },
     imagine: imagineViaOpenAI,
-    deprompt: ({ promptOut, promptIn }) =>
-      new Stitch({ output: promptOut, input: promptIn }),
+    deprompt: ({ promptOut, promptIn }) => ({
+      output: promptOut,
+      input: promptIn,
+    }),
   });

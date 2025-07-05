@@ -11,7 +11,7 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
     threads: TStitcher['threads'];
   },
   context: TStitcher['context'],
-): Promise<Stitch<TStitcher['output']>> => {
+): Promise<Pick<Stitch<TStitcher['output']>, 'input' | 'output'>> => {
   const { stitcher, threads } = input;
 
   // enprompt the thread

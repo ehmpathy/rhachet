@@ -2,8 +2,7 @@ import { asUniDateTime } from '@ehmpathy/uni-time';
 
 import { StitchRoute } from '../../domain/objects/StitchRoute';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
-import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
+import { GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 
@@ -43,10 +42,6 @@ export const enweaveOneRoute = withStitchTrail(
     return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
       stitch: outputNow,
-      stitcher: {
-        ...asStitcherDesc({ stitcher: input.stitcher }),
-        trail: asStitchTrailDesc({ trail: context.stitch.trail }),
-      },
       threads: threadsNow,
     });
   },
