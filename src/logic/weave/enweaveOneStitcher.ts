@@ -8,6 +8,7 @@ import {
 } from '../../domain/objects/Stitcher';
 import { enstitch } from '../stitch/enstitch';
 import { withStitchTrail } from '../stitch/withStitchTrail';
+import { enweaveOneChoice } from './enweaveOneChoice';
 import { enweaveOneFanout } from './enweaveOneFanout';
 import { enweaveOneRoute } from './enweaveOneRoute';
 
@@ -33,21 +34,28 @@ export const enweaveOneStitcher = withStitchTrail(
           context,
         );
 
-      // support route stitcher
+      // support composite stitchers
       case StitcherForm.ROUTE:
         return enweaveOneRoute(
           { stitcher: input.stitcher, threads: input.threads },
           context,
         );
-
       case StitcherForm.FANOUT:
         return enweaveOneFanout(
           { stitcher: input.stitcher, threads: input.threads },
           context,
         );
-      // case StitcherForm.CHOICE:
+      case StitcherForm.CHOICE:
+        return enweaveOneChoice(
+          { stitcher: input.stitcher, threads: input.threads },
+          context,
+        );
+
+      // fail fast for todos
       // case StitcherForm.CYCLE:
       // case StitcherForm.AWAIT:
+
+      // fail fast for typos
       default:
         UnexpectedCodePathError.throw(
           'unsupported stitcher form in enweaveOneStitcher',

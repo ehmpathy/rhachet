@@ -4,9 +4,10 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
 import { StitchStep } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
+import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
+import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
-import { Threads } from '../../domain/objects/Threads';
+import { Threads, threadsOmitHistory } from '../../domain/objects/Threads';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
 /**
@@ -82,6 +83,21 @@ export const enstitch = async <
     );
   })();
 
+  // declare that this stitch has been set into "the fabric of reality"; energy => stitch
+  const stitchSetEvent = StitchSetEvent.build<
+    StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']> // propagate the type:inference
+  >({
+    occurredAt: asUniDateTime(new Date()),
+    stitch,
+    stitcher: {
+      ...asStitcherDesc({ stitcher: input.stitcher }),
+      trail: asStitchTrailDesc({ trail: context.stitch.trail }),
+    },
+    threads: threadsOmitHistory({
+      threads: input.threads,
+    }) as any as ReqThreadsSingle<TStitcher['threads']>, // ideally, stitch set events would allow multiple too, based on the usecase; for now, this is a hazard when used => thread.history is for debugging only, not control
+  });
+
   // mutate the input thread to attach the new stitch
   const stitcheeKey = input.stitcher.stitchee;
   const stitcheeBefore = Thread.build(
@@ -94,16 +110,12 @@ export const enstitch = async <
   );
   const stitcheeAfter = stitcheeBefore.clone({
     stitches: [...stitcheeBefore.stitches, stitch], // append the latest stitch
+    history: [...(stitcheeBefore.history ?? []), stitchSetEvent],
   });
 
   // return the updates
-  return StitchSetEvent.build<
-    StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']>,
-    StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']>
-  >({
-    occurredAt: asUniDateTime(new Date()),
-    trail: context.stitch.trail,
-    stitch,
+  return stitchSetEvent.clone({
+    // cast the threads into single thread form, to satisfy the contract.output (for safe default usage)
     threads: normThreadsToSingle({
       ...input.threads,
       [stitcheeKey]: stitcheeAfter,

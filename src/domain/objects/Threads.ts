@@ -1,6 +1,6 @@
 import { Empty } from 'type-fns';
 
-import { Thread } from './Thread';
+import { Thread, threadOmitHistory, ThreadOmitHistory } from './Thread';
 
 /**
  * .what = a slug that uniquely identifies a role a thread can have
@@ -56,4 +56,46 @@ export type Threads<
           ? ThreadContextRole<K>
           : ThreadContextRole<K> & TContextDict[K]
       >;
+};
+
+/**
+ * .what = assures that .history is undefined from threads
+ */
+type ThreadsOmitHistory<TThreads extends Threads<any, any>> = {
+  [K in keyof TThreads]: TThreads[K] extends {
+    seed: infer TSeed extends Thread<any>;
+    peers: Array<infer TPeer extends Thread<any>>;
+  }
+    ? {
+        seed: ThreadOmitHistory<TSeed>;
+        peers: ThreadOmitHistory<TPeer>[];
+      }
+    : TThreads[K] extends Thread<any>
+    ? ThreadOmitHistory<TThreads[K]>
+    : never;
+};
+
+/**
+ * .what = assures that .history is undefined from threads
+ */
+export const threadsOmitHistory = <TThreads extends Threads<any, any>>(input: {
+  threads: TThreads;
+}): ThreadsOmitHistory<TThreads> => {
+  const result = Object.fromEntries(
+    Object.entries(input.threads).map(([role, value]) => {
+      if ('seed' in value && 'peers' in value) {
+        return [
+          role,
+          {
+            seed: threadOmitHistory(value.seed),
+            peers: value.peers.map(threadOmitHistory),
+          },
+        ];
+      } else {
+        return [role, threadOmitHistory(value as Thread<any>)];
+      }
+    }),
+  );
+
+  return result as ThreadsOmitHistory<TThreads>;
 };

@@ -5,7 +5,8 @@ import {
   ThreadsFromFanout,
 } from '../../domain/objects/StitchFanout';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
+import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
+import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { enstitch } from '../stitch/enstitch';
 import { withStitchTrail } from '../stitch/withStitchTrail';
@@ -61,11 +62,15 @@ export const enweaveOneFanout = withStitchTrail(
       context,
     );
 
-    return {
+    // declare the result
+    return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
-      trail: context.stitch.trail,
       stitch: finalStitch,
+      stitcher: {
+        ...asStitcherDesc({ stitcher: input.stitcher }),
+        trail: asStitchTrailDesc({ trail: context.stitch.trail }),
+      },
       threads: finalThreads,
-    };
+    });
   },
 );

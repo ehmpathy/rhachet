@@ -2,7 +2,8 @@ import { asUniDateTime } from '@ehmpathy/uni-time';
 
 import { StitchRoute } from '../../domain/objects/StitchRoute';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
+import { asStitchTrailDesc } from '../../domain/objects/StitchTrail';
+import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 
@@ -36,20 +37,17 @@ export const enweaveOneRoute = withStitchTrail(
       // update the latest states
       threadsNow = threads; // enables subsequent stitchers to leverage prior results
       outputNow = stitch;
-
-      // expose for observability
-      // console.log(JSON.stringify(stitch, null, 2));
-      console.log('input', stitch.input);
-      console.log('output', stitch.output);
-      // todo: emit event to ObserverContext, that the stitch was completed; todo: do this within stitcher? both? e.g., enweave.checkpoint vs enstitch.checkpoint
     }
 
     // return the results
-    return {
+    return StitchSetEvent.build({
       occurredAt: asUniDateTime(new Date()),
-      trail: context.stitch.trail,
       stitch: outputNow,
+      stitcher: {
+        ...asStitcherDesc({ stitcher: input.stitcher }),
+        trail: asStitchTrailDesc({ trail: context.stitch.trail }),
+      },
       threads: threadsNow,
-    };
+    });
   },
 );

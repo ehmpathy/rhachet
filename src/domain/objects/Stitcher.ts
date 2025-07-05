@@ -2,6 +2,7 @@ import { ContextLogTrail } from 'as-procedure';
 import { createIsOfEnum, Literalize } from 'type-fns';
 
 import { ContextStitchTrail } from '../../logic/stitch/withStitchTrail';
+import { StitchChoice } from './StitchChoice';
 import { StitchFanout } from './StitchFanout';
 import { StitchRoute } from './StitchRoute';
 import { StitchStep } from './StitchStep';
@@ -77,7 +78,7 @@ export type Stitcher<
     any
   > = GStitcher<Threads<any, 'single'>, any, any>,
 > = StitcherBase<StitcherForm> &
-  (StitchStep<T> | StitchRoute<T> | StitchFanout<T>);
+  (StitchStep<T> | StitchRoute<T> | StitchFanout<T> | StitchChoice<T>);
 
 /**
  * .what = an extensible base declaration of a stitcher
@@ -103,6 +104,29 @@ export interface StitcherBase<TForm extends StitcherForm> {
    */
   readme: string | null;
 }
+
+/**
+ * .what = an observable description of a stitcher
+ * .why =
+ *   - used to summarize a stitcher
+ * .note =
+ *    - the readme will often be truncated to top 210 char. goal = max(signal to noise)!
+ */
+export type StitcherDesc<TForm extends StitcherForm> = Pick<
+  StitcherBase<TForm>,
+  'slug' | 'readme' | 'form'
+>;
+
+/**
+ * .what = converts a full stitcher into a StitcherDesc
+ * .why = used for observability and trail markers
+ */
+export const asStitcherDesc = <TStitcher extends StitcherBase<any>>(input: {
+  stitcher: TStitcher;
+}): StitcherDesc<TStitcher['form']> => {
+  const { slug, readme, form } = input.stitcher;
+  return { form, slug, readme };
+};
 
 /**
  * .what = extracts the GStitcher generic from a Stitcher
