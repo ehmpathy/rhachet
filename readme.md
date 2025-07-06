@@ -7,12 +7,12 @@ A framework for reliable, thorough thought. Weave threads of thought via stitche
 
 # purpose
 
-1. simplify usage of thought routes
-2. simplify usage of thread roles
-3. standardize the accumulation of thought tactics
-5. assure a ratchet like guarantee of progress; no wasted time on intractable solutions, fails fast upon slippage
-6. assure a guarded budget for resource utilization, with observability
-7. enable intuitive observability of thought routes, history, and artifacts
+1. declare thought routes, reusably and maintainably
+2. apply thought routes, observably and reliably
+3. compose and accumulate reusable thought tactics
+4. assure slipless progress towards goals, like a ratchet
+5. assure guarded budgets of money and time, with route plans, expense approvals, and circuit breakers
+6. observe thought routes and weaves intuitively
 
 # install
 
