@@ -3,7 +3,6 @@ import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../__test_assets__/genContextLogTrail';
 import { genContextStitchTrail } from '../../../__test_assets__/genContextStitchTrail';
-import { Stitch } from '../../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
 import {
   GStitcher,
@@ -14,6 +13,7 @@ import {
 import { Threads } from '../../../domain/objects/Threads';
 import { genThread } from '../../thread/genThread';
 import { asStitcher } from './asStitcher';
+import { asStitcherFlat } from './asStitcherFlat';
 import { genStitchCycle } from './genStitchCycle';
 import { genStitchRoute } from './genStitchRoute';
 
@@ -244,4 +244,195 @@ describe('genStitchCycle type preservation', () => {
       expect(invalid);
     });
   });
+
+  given('a repeatee that is a route of two steps, asStitcherFlat', () => {
+    const stepA = new StitchStepCompute<
+      GStitcher<
+        Threads<{ main: Empty }>,
+        { a: number } & GStitcher['context'],
+        string
+      >
+    >({
+      slug: 'step-a',
+      readme: null,
+      form: 'COMPUTE',
+      stitchee: 'main',
+      invoke: () => ({ input: null, output: 'step-a' }),
+    });
+
+    const stepB = new StitchStepCompute<
+      GStitcher<
+        Threads<{ main: Empty }>,
+        { b: boolean } & GStitcher['context'],
+        string
+      >
+    >({
+      slug: 'step-b',
+      readme: null,
+      form: 'COMPUTE',
+      stitchee: 'main',
+      invoke: () => ({ input: null, output: 'step-b' }),
+    });
+
+    const repeatee = asStitcherFlat<
+      GStitcher<
+        Threads<{ main: Empty }>,
+        { a: number; b: boolean } & GStitcher['context'],
+        string
+      >
+    >(
+      genStitchRoute({
+        slug: 'route:pair',
+        readme: null,
+        sequence: [stepA, stepB],
+      }),
+    );
+
+    const decider = new StitchStepCompute<
+      GStitcher<
+        Threads<{ main: Empty }>,
+        { d: Date } & GStitcher['context'],
+        { choice: 'repeat' | 'release' | 'halt' }
+      >
+    >({
+      slug: 'decide-again',
+      readme: null,
+      form: 'COMPUTE',
+      stitchee: 'main',
+      invoke: () => ({ input: null, output: { choice: 'release' } }),
+    });
+
+    const cycle = genStitchCycle({
+      slug: 'loop-route',
+      readme: 'Repeats a route',
+      repeatee,
+      decider,
+    });
+
+    type Output = GStitcherOf<typeof cycle>['output'];
+    type Context = GStitcherOf<typeof cycle>['context'];
+
+    then('it should merge context from both steps and decider', () => {
+      const valid: Context = {
+        a: 1,
+        b: true,
+        d: new Date(),
+        log: console,
+        stitch: { trail: [] },
+      };
+      expect(valid);
+
+      // @ts-expect-error: missing required key `b`
+      const invalid: Context = {
+        a: 1,
+        d: new Date(),
+      };
+      expect(invalid);
+    });
+
+    then('it should infer the output type from the repeatee route', () => {
+      const val: Output = 'step-a';
+      expect(val);
+
+      // @ts-expect-error: number is not assignable
+      const invalid: Output = 42;
+      expect(invalid);
+    });
+  });
+
+  given(
+    'a repeatee asStitcherFlat that has different threads than decider',
+    () => {
+      const stepA = new StitchStepCompute<
+        GStitcher<
+          Threads<{ main: Empty }>,
+          { a: number } & GStitcher['context'],
+          string
+        >
+      >({
+        slug: 'step-a',
+        readme: null,
+        form: 'COMPUTE',
+        stitchee: 'main',
+        invoke: () => ({ input: null, output: 'step-a' }),
+      });
+      const stepB = new StitchStepCompute<
+        GStitcher<
+          Threads<{ main: Empty }>,
+          { b: boolean } & GStitcher['context'],
+          string
+        >
+      >({
+        slug: 'step-b',
+        readme: null,
+        form: 'COMPUTE',
+        stitchee: 'main',
+        invoke: () => ({ input: null, output: 'step-b' }),
+      });
+      const repeatee = asStitcherFlat<
+        GStitcher<
+          Threads<{ main: Empty }>,
+          { a: number; b: boolean } & GStitcher['context'],
+          string
+        >
+      >(
+        genStitchRoute({
+          slug: 'route:pair',
+          readme: null,
+          sequence: [stepA, stepB],
+        }),
+      );
+
+      const decider = new StitchStepCompute<
+        GStitcher<
+          Threads<{ judge: Empty }>,
+          { d: Date } & GStitcher['context'],
+          { choice: 'repeat' | 'release' | 'halt' }
+        >
+      >({
+        slug: 'decide-again',
+        readme: null,
+        form: 'COMPUTE',
+        stitchee: 'judge',
+        invoke: () => ({ input: null, output: { choice: 'release' } }),
+      });
+
+      const cycle = genStitchCycle({
+        slug: 'loop-route',
+        readme: 'Repeats a route',
+        repeatee,
+        decider,
+      });
+
+      type Output = GStitcherOf<typeof cycle>['output'];
+      type Context = GStitcherOf<typeof cycle>['context'];
+
+      then('it should merge context from both steps and decider', () => {
+        const valid: Context = {
+          a: 1,
+          b: true,
+          d: new Date(),
+          log: console,
+          stitch: { trail: [] },
+        };
+        expect(valid);
+
+        // @ts-expect-error: missing required key `b`
+        const invalid: Context = {
+          a: 1,
+          d: new Date(),
+        };
+        expect(invalid);
+      });
+
+      then('it should infer the output type from the repeatee route', () => {
+        const val: Output = 'step-a';
+        expect(val);
+
+        // @ts-expect-error: number is not assignable
+        const invalid: Output = 42;
+        expect(invalid);
+      });
+    },
+  );
 });

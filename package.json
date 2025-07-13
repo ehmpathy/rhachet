@@ -53,7 +53,7 @@
     "openai": "5.8.2",
     "test-fns": "1.5.0",
     "type-fns": "1.19.0",
-    "uuid-fns": "1.0.0"
+    "uuid-fns": "1.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "19.3.0",

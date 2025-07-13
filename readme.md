@@ -3,7 +3,9 @@
 ![test](https://github.com/ehmpathy/rhachet/workflows/test/badge.svg)
 ![publish](https://github.com/ehmpathy/rhachet/workflows/publish/badge.svg)
 
-A framework for reliable, thorough thought. Weave threads of thought via stitches.
+Build reusable roles via rhachet: a framework for reliable, thorough thought.
+
+> Weave threads 🧵 of thought via stitches 🪡.
 
 # purpose
 

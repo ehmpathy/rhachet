@@ -15,7 +15,7 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
   const { stitcher, threads } = input;
 
   // enprompt the thread
-  const prompt = stitcher.enprompt({ threads });
+  const prompt = await stitcher.enprompt({ threads });
 
   // invoke the imagination
   const imagined = await stitcher.imagine(prompt, context);

@@ -46,7 +46,9 @@ export interface StitchStepImagine<
   /**
    * .what = encodes threads into a prompt
    */
-  enprompt: (input: { threads: TStitcher['threads'] }) => string;
+  enprompt: (input: {
+    threads: TStitcher['threads'];
+  }) => string | Promise<string>;
 
   /**
    * .what = invokes an llm to imagine based on a prompt
