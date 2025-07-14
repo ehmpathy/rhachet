@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/ehmpathy/rhachet/compare/v1.3.0...v1.3.1) (2025-07-14)
+
+
+### Bug Fixes
+
+* **pkg:** export template, thread, role procedures ([59a2b4f](https://github.com/ehmpathy/rhachet/commit/59a2b4fa8bf1f95b311016ecb682d708c8bb05c0))
+
 ## [1.3.0](https://github.com/ehmpathy/rhachet/compare/v1.2.0...v1.3.0) (2025-07-14)
 
 
