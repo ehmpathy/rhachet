@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/ehmpathy/rhachet/compare/v1.1.0...v1.2.0) (2025-07-14)
+
+
+### Features
+
+* **dobj:** liftup role and template dobjs ([2e850a7](https://github.com/ehmpathy/rhachet/commit/2e850a744ea1d92eefe773472222c3c054583509))
+
+
+### Bug Fixes
+
+* **deps:** bump to npm audit fix ([87f3b75](https://github.com/ehmpathy/rhachet/commit/87f3b759be39959d8672dbc4bde7da5c0c2a2e6e))
+* **deps:** update deps to drop audit concerns ([1fd8781](https://github.com/ehmpathy/rhachet/commit/1fd87811e4771eec9a7290e2a97c8af867336b43))
+
 ## [1.1.0](https://github.com/ehmpathy/rhachet/compare/v1.0.0...v1.1.0) (2025-07-05)
 
 
