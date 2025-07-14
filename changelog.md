@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/ehmpathy/rhachet/compare/v1.3.1...v1.3.2) (2025-07-14)
+
+
+### Bug Fixes
+
+* **test:** elim test flake via dep upgrade ([700a3e4](https://github.com/ehmpathy/rhachet/commit/700a3e4b0ff31fb592685ed83c04c6c6fe165604))
+
 ## [1.3.1](https://github.com/ehmpathy/rhachet/compare/v1.3.0...v1.3.1) (2025-07-14)
 
 
