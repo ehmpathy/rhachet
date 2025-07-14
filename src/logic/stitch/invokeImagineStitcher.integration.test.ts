@@ -1,3 +1,4 @@
+import { toMilliseconds } from '@ehmpathy/uni-time';
 import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
@@ -10,6 +11,8 @@ import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
 import { ContextOpenAI, imagineViaOpenAI } from './adapters/imagineViaOpenAI';
 import { enstitch } from './enstitch';
+
+jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
 describe('invokeImagineStitcher', () => {
   given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
