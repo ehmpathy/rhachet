@@ -11,3 +11,12 @@ export * from './Thread';
 export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
+
+export * from './Role';
+export * from './RoleContext';
+export * from './RoleRegistry';
+export * from './RoleSkill';
+export * from './RoleSkillArgGetter';
+export * from './RoleTrait';
+
+export * from './Template';

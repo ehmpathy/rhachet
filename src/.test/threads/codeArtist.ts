@@ -1,4 +1,4 @@
-import { getFile } from '../../__nonpublished_modules__/file-fns/src/getFile';
+import { getFile } from '../../_topublish/file-fns/src/getFile';
 import { Thread } from '../../domain/objects/Thread';
 import { ThreadContextRole } from '../../domain/objects/Threads';
 import { directoryTestAssets } from '../directory';

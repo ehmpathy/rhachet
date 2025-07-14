@@ -14,7 +14,12 @@
   "engines": {
     "node": ">=8.0.0"
   },
+  "types": "dist/contract/sdk.d.ts",
+  "bin": {
+    "declapract": "./bin/run"
+  },
   "files": [
+    "/bin",
     "/dist"
   ],
   "scripts": {
@@ -48,6 +53,7 @@
   "dependencies": {
     "@ehmpathy/uni-time": "1.8.1",
     "as-procedure": "1.1.6",
+    "commander": "14.0.0",
     "domain-objects": "0.25.2",
     "flattie": "1.1.1",
     "helpful-errors": "1.3.8",

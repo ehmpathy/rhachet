@@ -1,9 +1,9 @@
 import { toMilliseconds } from '@ehmpathy/uni-time';
 import { given, then, when } from 'test-fns';
 
-import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
-import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
-import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
+import { genContextLogTrail } from '../../.test/genContextLogTrail';
+import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
+import { getContextOpenAI } from '../../.test/getContextOpenAI';
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepImagine } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';

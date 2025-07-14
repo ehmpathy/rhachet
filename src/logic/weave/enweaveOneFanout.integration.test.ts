@@ -2,12 +2,12 @@ import { getError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
-import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
-import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
-import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
-import { genStitcherCodeReview } from '../../__test_assets__/stitchers/genStitcherCodeReviewImagine';
-import { stitcherFanoutRandomSum } from '../../__test_assets__/stitchers/stitcherFanoutRandomSum';
-import { stitcherFanoutWithRoutes } from '../../__test_assets__/stitchers/stitcherFanoutSubroutes';
+import { genContextLogTrail } from '../../.test/genContextLogTrail';
+import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
+import { getContextOpenAI } from '../../.test/getContextOpenAI';
+import { genStitcherCodeReview } from '../../.test/stitchers/genStitcherCodeReviewImagine';
+import { stitcherFanoutRandomSum } from '../../.test/stitchers/stitcherFanoutRandomSum';
+import { stitcherFanoutWithRoutes } from '../../.test/stitchers/stitcherFanoutSubroutes';
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';

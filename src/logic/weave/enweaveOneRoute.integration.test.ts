@@ -8,12 +8,12 @@ import { getError, UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
-import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
-import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
-import { getContextOpenAI } from '../../__test_assets__/getContextOpenAI';
-import { stitcherCodeDiffImagine } from '../../__test_assets__/stitchers/stitcherCodeDiffImagine';
-import { getExampleThreadCodeArtist } from '../../__test_assets__/threads/codeArtist';
-import { exampleThreadDirector } from '../../__test_assets__/threads/director';
+import { genContextLogTrail } from '../../.test/genContextLogTrail';
+import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
+import { getContextOpenAI } from '../../.test/getContextOpenAI';
+import { stitcherCodeDiffImagine } from '../../.test/stitchers/stitcherCodeDiffImagine';
+import { getExampleThreadCodeArtist } from '../../.test/threads/codeArtist';
+import { exampleThreadDirector } from '../../.test/threads/director';
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';

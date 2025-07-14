@@ -9,8 +9,8 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
-import { genContextLogTrail } from '../../../__test_assets__/genContextLogTrail';
-import { genContextStitchTrail } from '../../../__test_assets__/genContextStitchTrail';
+import { genContextLogTrail } from '../../../.test/genContextLogTrail';
+import { genContextStitchTrail } from '../../../.test/genContextStitchTrail';
 import { Stitch } from '../../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';

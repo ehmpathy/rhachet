@@ -2,8 +2,8 @@ import { asUniDateTime } from '@ehmpathy/uni-time';
 import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
-import { genContextLogTrail } from '../../__test_assets__/genContextLogTrail';
-import { genContextStitchTrail } from '../../__test_assets__/genContextStitchTrail';
+import { genContextLogTrail } from '../../.test/genContextLogTrail';
+import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
