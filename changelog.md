@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/ehmpathy/rhachet/compare/v1.2.0...v1.3.0) (2025-07-14)
+
+
+### Features
+
+* **cli:** liftup rhachet cli ([531d566](https://github.com/ehmpathy/rhachet/commit/531d566cf8b7d7a500436ff0a9c9bc92ec68cba8))
+
 ## [1.2.0](https://github.com/ehmpathy/rhachet/compare/v1.1.0...v1.2.0) (2025-07-14)
 
 
