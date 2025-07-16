@@ -48,7 +48,9 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   });
   program
     .name('rhachet')
-    .description('ehmpathy CLI interface')
+    .description(
+      'rhachet cli interface. weave threads 🧵 of thought, stitched 🪡 with a rhachet ⚙️',
+    )
     .option('-c, --config <path>', 'where to find the rhachet.use.ts config'); // tell commander that we expect the config input and not to complain about it
   invokeReadme({ program, registries });
   invokeList({ program, registries });

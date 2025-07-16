@@ -91,6 +91,7 @@ export const invokeAsk = ({
     });
 
     // execute the weave
+    console.log(`🫡 on it! began ${role.slug}.${skill.slug}`, { ask });
     await enweaveOneStitcher(
       {
         stitcher: skill.route,
