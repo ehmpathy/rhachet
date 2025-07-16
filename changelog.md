@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/ehmpathy/rhachet/compare/v1.3.2...v1.3.3) (2025-07-16)
+
+
+### Bug Fixes
+
+* **cli:** update package name for bin ([c68dcae](https://github.com/ehmpathy/rhachet/commit/c68dcaeca5ac342ca6c58607b2b31ef01b829f36))
+
 ## [1.3.2](https://github.com/ehmpathy/rhachet/compare/v1.3.1...v1.3.2) (2025-07-14)
 
 
