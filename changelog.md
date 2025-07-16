@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.4](https://github.com/ehmpathy/rhachet/compare/v1.3.3...v1.3.4) (2025-07-16)
+
+
+### Bug Fixes
+
+* **cli:** observability ([b5a5919](https://github.com/ehmpathy/rhachet/commit/b5a59190d6634f89acfca916d4750b4044e48edc))
+
 ## [1.3.3](https://github.com/ehmpathy/rhachet/compare/v1.3.2...v1.3.3) (2025-07-16)
 
 
