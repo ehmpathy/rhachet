@@ -16,7 +16,7 @@
   },
   "types": "dist/contract/sdk.d.ts",
   "bin": {
-    "declapract": "./bin/run"
+    "rhachet": "./bin/run"
   },
   "files": [
     "/bin",
