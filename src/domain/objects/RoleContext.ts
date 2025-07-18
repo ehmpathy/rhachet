@@ -33,7 +33,9 @@ export interface RoleContextSkill {
  */
 export interface RoleContext<
   TRole extends ThreadRole,
-  TStash extends Record<string, any> | undefined,
+  TStash extends Record<string, any> | undefined =
+    | Record<string, any>
+    | undefined,
 > extends ThreadContextRole<TRole> {
   role: TRole;
 

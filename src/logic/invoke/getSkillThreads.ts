@@ -45,19 +45,18 @@ export const getSkillThreads = async <
     // grab all the requested ones
     for (const [key, spec] of Object.entries(getter.lookup)) {
       const val = argv[key] ?? (spec.char ? argv[spec.char] : undefined);
-      if (val === undefined) {
+      if (val !== undefined) collected[key] = val;
+      if (val === undefined && !spec.type.startsWith('?'))
         BadRequestError.throw(`missing required arg --${key} (-${spec.char})`, {
           key,
           spec,
         });
-      }
-      collected[key] = val;
     }
 
     // verify they look right
     if (!getter.assess(collected))
       UnexpectedCodePathError.throw(
-        'from.lookup -> collected was assessed to have incorrect shape. this should not be possible',
+        'getter.assess=false; did you forget to update your .assess function in the skill declaration?',
         { from, collected },
       );
 

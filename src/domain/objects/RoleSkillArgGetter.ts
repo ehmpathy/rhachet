@@ -4,6 +4,8 @@ import { Empty } from 'type-fns';
 import { GStitcher } from './Stitcher';
 import { Threads } from './Threads';
 
+type WithOptionPrefix<T extends string> = T | `?${T}`;
+
 /**
  * .what = a generic specification for how to collect, verify, and instantiate skill arguments
  * .why =
@@ -22,51 +24,53 @@ export interface RoleSkillArgGetter<
   /**
    * .what = declares how to collect required inputs (from CLI, env, etc)
    */
-  lookup: Record<
-    string,
-    | {
-        /**
-         * .what = where to get lookup from
-         */
-        source: 'process.env';
+  lookup: {
+    [K in keyof Omit<TVariables, 'ask'>]:
+      | {
+          /**
+           * .what = where to get lookup from
+           */
+          source: 'process.env';
 
-        /**
-         * .what = a description of the input
-         */
-        desc: string;
+          /**
+           * .what = a description of the input
+           */
+          desc: string;
 
-        /**
-         * .what = what envar key to dereference
-         */
-        envar: string;
+          /**
+           * .what = what envar key to dereference
+           */
+          envar: string;
 
-        /**
-         * .what = what type to expect
-         */
-        type: 'string';
-      }
-    | {
-        /**
-         * .what = where to get lookup from
-         */
-        source: 'process.argv';
+          /**
+           * .what = what type to expect
+           * .note = prefix with `?` to designate as optional
+           */
+          type: WithOptionPrefix<'string'>;
+        }
+      | {
+          /**
+           * .what = where to get lookup from
+           */
+          source: 'process.argv';
 
-        /**
-         * .what = a description of the input
-         */
-        desc: string;
+          /**
+           * .what = a description of the input
+           */
+          desc: string;
 
-        /**
-         * .what = what shorthand char alias to use, if from process.argv
-         */
-        char?: string;
+          /**
+           * .what = what shorthand char alias to use, if from process.argv
+           */
+          char?: string;
 
-        /**
-         * .what = what type to expect
-         */
-        type: 'string'; // todo: extend to other types?
-      }
-  >;
+          /**
+           * .what = what type to expect
+           * .note = prefix with `?` to designate as optional
+           */
+          type: WithOptionPrefix<'string'>; // todo: extend to other types?
+        };
+  };
 
   /**
    * .what = assures the input from lookup or passin was correctly declared
@@ -97,9 +101,8 @@ export interface RoleSkillThreadsGetter<
    * .what = how to lookup the required inputs for thread instantiation
    * .example = { target: { char: t, desc: "the target file or dir to upsert against", shape: "string" } }
    */
-  lookup: Record<
-    string,
-    {
+  lookup: {
+    [K in keyof Omit<TVariables, 'ask'>]: {
       /**
        * .what = where to get lookup from
        */
@@ -117,10 +120,11 @@ export interface RoleSkillThreadsGetter<
 
       /**
        * .what = what type to expect
+       * .note = prefix with `?` to designate as optional
        */
-      type: 'string'; // todo: extend to other types?
-    }
-  > & {
+      type: WithOptionPrefix<'string'>; // todo: extend to other types?
+    };
+  } & {
     ask?: Empty; // .ask input is a standard, non-overridable input
   };
 }
@@ -149,9 +153,8 @@ export interface RoleSkillContextGetter<
    * .what = how to lookup the required inputs for context instantiation
    * .example = { openaiApiKey: { envar: "PREP_OPENAI_KEY" } }
    */
-  lookup: Record<
-    string,
-    {
+  lookup: {
+    [K in keyof TVariables]: {
       /**
        * .what = where to get lookup from
        */
@@ -169,10 +172,11 @@ export interface RoleSkillContextGetter<
 
       /**
        * .what = what type to expect
+       * .note = prefix with `?` to designate as optional
        */
-      type: 'string';
-    }
-  >;
+      type: WithOptionPrefix<'string'>;
+    };
+  };
 }
 export class RoleSkillContextGetter<
     TOutput extends GStitcher['context'],

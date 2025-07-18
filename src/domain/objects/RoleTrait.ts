@@ -1,7 +1,6 @@
 import { DomainEntity } from 'domain-objects';
-import { Serializable } from 'serde-fns';
-
-import { Template } from './Template';
+import { Artifact } from 'rhachet-artifact';
+import { GitFile } from 'rhachet-artifact-git';
 
 /**
  * .what = a trait is a reusable behavioral modifier for a role
@@ -15,7 +14,7 @@ import { Template } from './Template';
  *   - treat consistency as top priority
  *   - prefer given/when/then test suites
  */
-export interface RoleTrait<TVariables extends Serializable> {
+export interface RoleTrait {
   /**
    * .what = short identifier for this trait
    * .example = "asksQuestions"
@@ -31,11 +30,8 @@ export interface RoleTrait<TVariables extends Serializable> {
   /**
    * .what = the brief that houses this trait's declaration
    */
-  brief: Template<TVariables>;
+  brief: Artifact<typeof GitFile>;
 }
-export class RoleTrait<TVariables extends Serializable>
-  extends DomainEntity<RoleTrait<TVariables>>
-  implements RoleTrait<TVariables>
-{
+export class RoleTrait extends DomainEntity<RoleTrait> implements RoleTrait {
   public static unique = ['slug'] as const;
 }

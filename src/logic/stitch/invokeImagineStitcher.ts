@@ -1,3 +1,5 @@
+import { asUniDateTime, getDuration } from '@ehmpathy/uni-time';
+
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepImagine } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
@@ -14,6 +16,10 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
 ): Promise<Pick<Stitch<TStitcher['output']>, 'input' | 'output'>> => {
   const { stitcher, threads } = input;
 
+  // todo: generalize logs
+  const beganAt = asUniDateTime(new Date());
+  console.log(`🧠 imagine.began:${input.stitcher.slug}`, { beganAt });
+
   // enprompt the thread
   const prompt = await stitcher.enprompt({ threads });
 
@@ -25,6 +31,16 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
     threads,
     promptIn: prompt,
     promptOut: imagined,
+  });
+
+  // todo: generalize logs
+  const endedAt = asUniDateTime(new Date());
+  const duration = getDuration({
+    of: { range: { since: beganAt, until: endedAt } },
+  });
+  console.log(`🧠 imagine.ended:${input.stitcher.slug}`, {
+    endedAt,
+    duration,
   });
 
   // expose the stitch

@@ -19,3 +19,5 @@ export { genStepImagineViaTemplate } from '../logic/template/genStepImagineViaTe
 export { ContextStitchTrail } from '../logic/stitch/withStitchTrail';
 export { getStitch } from '../logic/thread/getStitch';
 export { enrollThread } from '../logic/role/enrollThread';
+
+export { genRoleSkill } from '../logic/role/genRoleSkill';
