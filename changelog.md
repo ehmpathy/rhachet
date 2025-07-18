@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/ehmpathy/rhachet/compare/v1.3.4...v1.4.0) (2025-07-18)
+
+
+### Features
+
+* **cli:** genRoleSkill, improved logs, and support optional vars ([f15750e](https://github.com/ehmpathy/rhachet/commit/f15750effdd4a630e1eeea6c4f8e4e9a3a950d5f))
+
 ## [1.3.4](https://github.com/ehmpathy/rhachet/compare/v1.3.3...v1.3.4) (2025-07-16)
 
 
