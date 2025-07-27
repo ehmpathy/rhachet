@@ -41,7 +41,7 @@ export interface Role {
    * .what = the traits inherent to the role
    * .why = declares how the role goes about things
    */
-  traits: RoleTrait<any>[];
+  traits: RoleTrait[];
 
   /**
    * .what = the skills known by the role

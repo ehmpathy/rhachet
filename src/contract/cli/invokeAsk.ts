@@ -43,7 +43,10 @@ export const invokeAsk = ({
 
     // register the dynamic inputs
     for (const [key, meta] of Object.entries(skill.threads.lookup)) {
-      thisCommand.option(`-${meta.char}, --${key} <${meta.type}>`, meta.desc);
+      const isOptional = meta.type.startsWith('?');
+      const typeParsed = isOptional ? meta.type.slice(1) : meta.type;
+      const typeLabel = isOptional ? `[${typeParsed}]` : `<${typeParsed}>`;
+      thisCommand.option(`-${meta.char}, --${key} ${typeLabel}`, meta.desc);
     }
 
     // re-parse with updated option definitions
