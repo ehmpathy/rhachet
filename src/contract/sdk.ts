@@ -9,6 +9,7 @@ export { enweaveOneStitcher } from '../logic/weave/enweaveOneStitcher';
 
 export { asStitcher } from '../logic/weave/compose/asStitcher';
 export { asStitcherFlat } from '../logic/weave/compose/asStitcherFlat';
+export { asStitcherAnyout } from '../logic/weave/compose/asStitcherAnyout';
 
 export { genTemplate } from '../logic/template/genTemplate';
 export { getTemplateValFromArtifacts } from '../logic/template/getTemplateValFromArtifacts';
