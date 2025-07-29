@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/ehmpathy/rhachet/compare/v1.3.4...v1.4.0) (2025-07-29)
+
+
+### Features
+
+* **cli:** genRoleSkill, improved logs, and support optional vars ([f15750e](https://github.com/ehmpathy/rhachet/commit/f15750effdd4a630e1eeea6c4f8e4e9a3a950d5f))
+
+
+### Bug Fixes
+
+* **cli:** repair optional args for role.skills ([d1cf75d](https://github.com/ehmpathy/rhachet/commit/d1cf75d22dec0ec11803bc91045671d0ee27ea0e))
+* **deps:** bump to latest artifact-git version ([765a184](https://github.com/ehmpathy/rhachet/commit/765a18484fddced704ea019a29d95b79f628f7be))
+
 ## [1.3.4](https://github.com/ehmpathy/rhachet/compare/v1.3.3...v1.3.4) (2025-07-16)
 
 
