@@ -5,7 +5,6 @@ import { Empty } from 'type-fns';
 import { getUuid } from 'uuid-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { getContextOpenAI } from '../../.test/getContextOpenAI';
 import { genStitcherCodeFileRead } from '../../.test/stitchers/genStitcherCodeFileRead';
 import { genStitcherCodeFileWrite } from '../../.test/stitchers/genStitcherCodeFileWrite';
@@ -17,6 +16,7 @@ import { exampleThreadDirector } from '../../.test/threads/director';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
 import { genThread } from '../thread/genThread';
 import { asStitcher } from './compose/asStitcher';

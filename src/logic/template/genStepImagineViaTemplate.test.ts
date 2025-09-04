@@ -2,8 +2,8 @@ import { given, when, then } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { GStitcher, Threads } from '../../domain/objects';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genThread } from '../thread/genThread';
 import { genStepImagineViaTemplate } from './genStepImagineViaTemplate';
 import { genTemplate } from './genTemplate';

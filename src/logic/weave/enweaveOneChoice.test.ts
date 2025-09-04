@@ -3,10 +3,10 @@ import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Threads } from '../../domain/objects/Threads';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genThread } from '../thread/genThread';
 import { asStitcher } from './compose/asStitcher';
 import { genStitchChoice } from './compose/genStitchChoice';

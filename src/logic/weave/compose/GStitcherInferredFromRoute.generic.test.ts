@@ -10,12 +10,12 @@ import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../../.test/genContextStitchTrail';
 import { Stitch } from '../../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
 import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { Thread } from '../../../domain/objects/Thread';
 import { Threads } from '../../../domain/objects/Threads';
+import { genContextStitchTrail } from '../../context/genContextStitchTrail';
 import { ContextStitchTrail } from '../../stitch/withStitchTrail';
 import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
 

@@ -2,13 +2,13 @@ import { toMilliseconds } from '@ehmpathy/uni-time';
 import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { getContextOpenAI } from '../../.test/getContextOpenAI';
 import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepImagine } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { ContextOpenAI, imagineViaOpenAI } from './adapters/imagineViaOpenAI';
 import { enstitch } from './enstitch';
 

@@ -7,6 +7,7 @@ import {
 import { withAssure } from 'type-fns';
 import { getUuid } from 'uuid-fns';
 
+import { StitchSetEvent } from '../../domain/objects';
 import {
   StitchTrail,
   StitchTrailMarker,
@@ -15,7 +16,17 @@ import { isOfStitcherForm, Stitcher } from '../../domain/objects/Stitcher';
 
 export interface ContextStitchTrail {
   stitch: {
+    /**
+     * the full stitch trail
+     */
     trail: StitchTrail;
+
+    /**
+     * where to stream stitch set events, if anywhere
+     */
+    stream?: {
+      emit: (input: StitchSetEvent<any, any>) => Promise<void>;
+    };
   };
 }
 
@@ -50,7 +61,8 @@ export const withStitchTrail = <TLogic extends Procedure>(
     });
     const stitchTrailContextNow: ContextStitchTrail = {
       stitch: {
-        trail: [...(context.stitch.trail ?? []), stitchTrailMarker],
+        trail: [...(context.stitch.trail ?? []), stitchTrailMarker], // append the trail marker
+        stream: context.stitch.stream, // forward the event stream, if provided
       },
     };
 

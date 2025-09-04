@@ -9,7 +9,6 @@ import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
 import { getContextOpenAI } from '../../.test/getContextOpenAI';
 import { stitcherCodeDiffImagine } from '../../.test/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '../../.test/threads/codeArtist';
@@ -19,6 +18,7 @@ import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genStitchRoute } from './compose/genStitchRoute';
 import { enweaveOneRoute } from './enweaveOneRoute';
 

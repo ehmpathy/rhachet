@@ -21,3 +21,4 @@ export { getStitch } from '../logic/thread/getStitch';
 export { enrollThread } from '../logic/role/enrollThread';
 
 export { genRoleSkill } from '../logic/role/genRoleSkill';
+export { genContextStitchTrail } from '../logic/context/genContextStitchTrail';

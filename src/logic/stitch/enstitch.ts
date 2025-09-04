@@ -136,8 +136,8 @@ export const enstitch = async <
     }),
   });
 
-  // emit the event
-  // todo: emit events via withStitchTrail
+  // emit events via stitch trail stream, if requested
+  if (context.stitch.stream) await context.stitch.stream.emit(event);
 
   // and bubble it up
   return event;

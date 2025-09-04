@@ -2,12 +2,11 @@ import { given, then, when } from 'test-fns';
 import { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { genContextStitchTrail } from '../../.test/genContextStitchTrail';
-import { Stitch } from '../../domain/objects/Stitch';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
 import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
 import { Threads } from '../../domain/objects/Threads';
+import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { enstitch } from './enstitch';
 
 describe('enstitch', () => {
@@ -116,6 +115,40 @@ describe('enstitch', () => {
         expect(result.stitch.output).toBe('A');
         expect(result.threads.main.stitches.length).toBe(1);
         expect(result.threads.main.stitches[0]!.output).toBe('A');
+      });
+    });
+  });
+
+  given('a stitcher with stitch.stream context', () => {
+    const threadMain = new Thread({
+      context: { role: 'main' as const },
+      stitches: [],
+    });
+    const streamEmitMock = jest.fn();
+    const contextWithStitchStream = {
+      ...context,
+      ...genContextStitchTrail({ stream: { emit: streamEmitMock } }),
+    };
+
+    const stitcher = new StitchStepCompute<
+      GStitcher<Threads<{ main: Empty }>, typeof context, 'A'>
+    >({
+      slug: 'repeatee',
+      readme: 'Repeat logic',
+      form: 'COMPUTE',
+      stitchee: 'main',
+      invoke: () => ({ input: null, output: 'A' }),
+    });
+
+    when('enstitch is called with a stitch.stream context', () => {
+      then('it should emit the stitch set event to the stream', async () => {
+        const result = await enstitch(
+          { stitcher, threads: { main: threadMain } },
+          contextWithStitchStream,
+        );
+
+        expect(streamEmitMock).toHaveBeenCalledTimes(1);
+        expect(streamEmitMock).toHaveBeenCalledWith(result);
       });
     });
   });
