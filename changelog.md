@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/ehmpathy/rhachet/compare/v1.4.0...v1.5.0) (2025-09-04)
+
+
+### Features
+
+* **stream:** emit stitch set events via stitch trail context stream ([1fa47ff](https://github.com/ehmpathy/rhachet/commit/1fa47ff7beab28210ab71c7109c307fc9f206240))
+
 ## [1.4.0](https://github.com/ehmpathy/rhachet/compare/v1.3.4...v1.4.0) (2025-07-29)
 
 
