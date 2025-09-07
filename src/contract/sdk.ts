@@ -22,3 +22,4 @@ export { enrollThread } from '../logic/role/enrollThread';
 
 export { genRoleSkill } from '../logic/role/genRoleSkill';
 export { genContextStitchTrail } from '../logic/context/genContextStitchTrail';
+export { getTemplatePathByCallerPath } from '../logic/template/getTemplatePathByCallerPath';
