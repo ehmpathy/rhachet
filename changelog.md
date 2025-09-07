@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/ehmpathy/rhachet/compare/v1.5.0...v1.6.0) (2025-09-07)
+
+
+### Features
+
+* **sdk:** expose getTemplatePathByCallerPath util ([2a79cde](https://github.com/ehmpathy/rhachet/commit/2a79cdef3593ebfeb6d7adf2f316e2abd8024506))
+
 ## [1.5.0](https://github.com/ehmpathy/rhachet/compare/v1.4.0...v1.5.0) (2025-09-04)
 
 
