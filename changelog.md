@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/ehmpathy/rhachet/compare/v1.6.0...v1.7.0) (2025-09-12)
+
+
+### Features
+
+* **cli:** perform in parallel isolated threads via --attempts ([fcbc01d](https://github.com/ehmpathy/rhachet/commit/fcbc01df3e35ace1848de52f016856c4c5f2d742))
+
 ## [1.6.0](https://github.com/ehmpathy/rhachet/compare/v1.5.0...v1.6.0) (2025-09-07)
 
 
