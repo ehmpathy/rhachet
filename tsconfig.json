@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "outDir": "dist",
-    "target": "es2020",
+    "target": "es2021",
     "lib": [
       "DOM"
     ]

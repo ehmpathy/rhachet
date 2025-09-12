@@ -1,13 +1,14 @@
 import path from 'path';
 import { given, then, when } from 'test-fns';
 
+import { TEST_FIXTURE_DIRECTORY } from '../../.test/directory';
 import { invoke } from './invoke';
 
 describe('invoke', () => {
   given('a valid config path pointing to a basic test registry', () => {
     const configPath = path.resolve(
-      __dirname,
-      './.test/example.rhachet.use.ts',
+      TEST_FIXTURE_DIRECTORY,
+      './example.use.repo/example.rhachet.use.ts',
     );
 
     when('asked to readme a role', () => {

@@ -99,7 +99,7 @@ describe('getSkillThreads', () => {
         const error = await getError(() =>
           getSkillThreads({
             getter,
-            from: { lookup: { argv: { target: 'src/x.ts' } } },
+            from: { lookup: { argv: { target: 'src/x.ts' } as any } },
           }),
         );
         expect(error).toBeInstanceOf(BadRequestError);

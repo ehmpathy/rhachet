@@ -1,15 +1,27 @@
 import { Command } from 'commander';
+import path from 'node:path';
 import { given, when, then, getError } from 'test-fns';
 
-import { EXAMPLE_REGISTRY } from './.test/example.echoRegistry';
+import { TEST_FIXTURE_DIRECTORY } from '../../.test/directory';
+import { EXAMPLE_REGISTRY } from '../../.test/example.use.repo/example.echoRegistry';
 import { invokeAsk } from './invokeAsk';
 
 describe('invokeAsk (integration)', () => {
   given(
     'a CLI program with invokeAsk registered using EXAMPLE_REGISTRY',
     () => {
+      // config path is required for nested attempts to be explicitly declared
+      const configPath = path.resolve(
+        TEST_FIXTURE_DIRECTORY,
+        './example.use.repo/example.rhachet.use.ts',
+      );
+
       const program = new Command();
-      invokeAsk({ program, registries: [EXAMPLE_REGISTRY] });
+      invokeAsk({
+        program,
+        config: { path: configPath },
+        registries: [EXAMPLE_REGISTRY],
+      });
 
       when('invoking a valid echo skill with ask input', () => {
         then('it should execute the skill successfully', async () => {
@@ -43,6 +55,23 @@ describe('invokeAsk (integration)', () => {
             program.parseAsync(args, { from: 'user' }),
           );
           expect(error?.message).toContain('no role named');
+        });
+      });
+
+      when('invoking a valid echo skill with attempts', () => {
+        then('it should execute the skill successfully', async () => {
+          const args = [
+            'ask',
+            '--role',
+            'echoer',
+            '--skill',
+            'echo',
+            '--ask',
+            'hello',
+            '--attempts',
+            '3',
+          ];
+          await program.parseAsync(args, { from: 'user' });
         });
       });
     },

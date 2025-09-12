@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { given, when, then, getError } from 'test-fns';
 
-import { EXAMPLE_REGISTRY } from './.test/example.echoRegistry';
+import { EXAMPLE_REGISTRY } from '../../.test/example.use.repo/example.echoRegistry';
 import { invokeReadme } from './invokeReadme';
 
 describe('invokeReadme (integration)', () => {

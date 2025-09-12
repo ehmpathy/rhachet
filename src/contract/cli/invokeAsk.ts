@@ -3,9 +3,8 @@ import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
-import { getSkillContext } from '../../logic/invoke/getSkillContext';
-import { getSkillThreads } from '../../logic/invoke/getSkillThreads';
-import { enweaveOneStitcher } from '../sdk';
+import { performInCurrentThread } from '../../logic/invoke/performInCurrentThread';
+import { performInIsolatedThreads } from '../../logic/invoke/performInIsolatedThreads';
 
 /**
  * .what = adds the "ask" command to the CLI
@@ -14,8 +13,10 @@ import { enweaveOneStitcher } from '../sdk';
 export const invokeAsk = ({
   program,
   registries,
+  ...input
 }: {
   program: Command;
+  config: { path: string };
   registries: RoleRegistry[];
 }): void => {
   const askCommand = program
@@ -23,6 +24,11 @@ export const invokeAsk = ({
     .requiredOption('-r, --role <slug>', 'role to invoke')
     .requiredOption('-s, --skill <slug>', 'skill to invoke')
     .option('-a, --ask <ask>', 'your ask')
+    .option(
+      '--attempts <int>',
+      'number of independent outputs (requires -o/--output)',
+    )
+    .option('--concurrency <int>', 'parallel subthreads limit (default 3)')
     .allowUnknownOption(true)
     .allowExcessArguments(true);
 
@@ -55,59 +61,20 @@ export const invokeAsk = ({
 
   // 🧠 perform the skill
   askCommand.action(async (opts: Record<string, string>) => {
-    const { ask, role: roleSlug, skill: skillSlug } = opts;
-
-    // lookup the role
-    const role = assureFindRole({
-      registries,
-      slug:
-        roleSlug ??
-        UnexpectedCodePathError.throw('roleSlug not defined. why not?', {
-          opts,
-        }),
-    });
-    if (!role) BadRequestError.throw(`unknown role "${roleSlug}"`);
-
-    // lookup the skill
-    const skill = role.skills.find((s) => s.slug === skillSlug);
-    if (!skill)
-      BadRequestError.throw(
-        `unknown skill "${skillSlug}" under role "${roleSlug}"`,
-      );
-
-    // instantiate the threads
+    // instantiate the composed argv
     const argvWithAsk = {
       ...opts,
       ask:
-        ask ?? UnexpectedCodePathError.throw('ask was not declared', { ask }),
+        opts.ask ??
+        UnexpectedCodePathError.throw('ask was not declared', { opts }),
+      config: input.config.path, // required for isolated child threads when used with attempts
     };
-    const threads = await getSkillThreads({
-      getter: skill.threads,
-      from: { lookup: { argv: argvWithAsk } },
-    });
 
-    // instantiate the context
-    const env = process.env as Record<string, string | undefined>;
-    const context = await getSkillContext({
-      getter: skill.context,
-      from: { lookup: { env } },
-    });
+    // if attempts were requested, perform the skill in isolated threads per attempt
+    if (opts.attempts)
+      return await performInIsolatedThreads({ opts: argvWithAsk });
 
-    // execute the weave
-    console.log('');
-    console.log('');
-    console.log('🎙️  heard');
-    console.log('');
-    console.log(argvWithAsk.ask);
-    console.log('');
-    console.log('🫡  on it!');
-    console.log('');
-    await enweaveOneStitcher(
-      {
-        stitcher: skill.route,
-        threads,
-      },
-      context,
-    );
+    // otherwise, perform in the main thread by default
+    return await performInCurrentThread({ opts: argvWithAsk, registries });
   });
 };

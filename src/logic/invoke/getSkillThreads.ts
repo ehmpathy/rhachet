@@ -2,6 +2,7 @@ import { UnexpectedCodePathError, BadRequestError } from 'helpful-errors';
 import { PickOne } from 'type-fns';
 
 import { Threads } from '../../domain/objects';
+import { InvokeOpts } from '../../domain/objects/InvokeOpts';
 import { RoleSkillThreadsGetter } from '../../domain/objects/RoleSkillArgGetter';
 
 /**
@@ -15,7 +16,7 @@ export const getSkillThreads = async <
   getter: RoleSkillThreadsGetter<TOutput, TVars>;
   from: PickOne<{
     passin: TVars;
-    lookup: { argv: Record<string, string> };
+    lookup: { argv: InvokeOpts<{ ask: string }> };
   }>;
 }): Promise<TOutput> => {
   const { getter, from } = input;
@@ -35,7 +36,7 @@ export const getSkillThreads = async <
     const argv = from.lookup.argv;
 
     // verify that ask was provided; its always required by default
-    const ask = argv.ask;
+    const ask: string = argv.ask;
     if (!ask)
       BadRequestError.throw('missing required argument: --ask', { argv });
 
@@ -45,7 +46,7 @@ export const getSkillThreads = async <
     // grab all the requested ones
     for (const [key, spec] of Object.entries(getter.lookup)) {
       const val = argv[key] ?? (spec.char ? argv[spec.char] : undefined);
-      if (val !== undefined) collected[key] = val;
+      if (val !== undefined) collected[key] = String(val);
       if (val === undefined && !spec.type.startsWith('?'))
         BadRequestError.throw(`missing required arg --${key} (-${spec.char})`, {
           key,

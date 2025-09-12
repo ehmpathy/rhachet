@@ -1,10 +1,10 @@
 import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { assureUniqueRoles } from '../../logic/invoke/assureUniqueRoles';
+import { getRegistriesByOpts } from '../../logic/invoke/getRegistriesByOpts';
 import { invokeAsk } from './invokeAsk';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
@@ -19,22 +19,19 @@ import { invokeReadme } from './invokeReadme';
  *   - config must export a `getRoleRegistries()` function returning a set of RoleRegistries to support
  */
 export const invoke = async (input: { args: string[] }): Promise<void> => {
-  const gitroot = await getGitRepoRoot({ from: process.cwd() });
-
-  // grab the config
+  // grab the config.registries
   const configArg = input.args.findIndex((a) => a === '--config' || a === '-c');
   const configPathExplicit =
     configArg >= 0 && input.args[configArg + 1]
       ? input.args[configArg + 1]!
       : undefined;
+  const cwd = process.cwd(); //
   const configPath = configPathExplicit
-    ? resolve(process.cwd(), configPathExplicit)
-    : resolve(gitroot, 'rhachet.use.ts');
-  const config: { getRoleRegistries: () => Promise<RoleRegistry[]> } =
-    await import(configPath);
-
-  // grab the registries configured
-  const registries = await config.getRoleRegistries();
+    ? resolve(cwd, configPathExplicit)
+    : resolve(await getGitRepoRoot({ from: cwd }), 'rhachet.use.ts');
+  const registries = await getRegistriesByOpts({
+    opts: { config: configPath },
+  });
 
   // failfast on duplicate roles // todo: update commands to allow registry based disambiguation
   await assureUniqueRoles(registries);
@@ -54,10 +51,9 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
     .option('-c, --config <path>', 'where to find the rhachet.use.ts config'); // tell commander that we expect the config input and not to complain about it
   invokeReadme({ program, registries });
   invokeList({ program, registries });
-  invokeAsk({ program, registries });
+  invokeAsk({ program, config: { path: configPath }, registries });
 
   // invoke it
-  // console.log('[args]', input.args); // todo: make it easier to d ebug
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {
     if (error instanceof BadRequestError) {
       console.error(``);
