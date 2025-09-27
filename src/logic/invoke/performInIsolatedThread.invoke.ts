@@ -95,6 +95,7 @@ export const invokePerformInIsolatedThread = async (input: {
       env: {
         ...process.env,
         RHACHET_ATTEMPT: String(input.opts.attempt),
+        RHACHET_ATTEMPTS: String(input.peer.attempts),
         RHACHET_INVOKE_OPTS_PAYLOAD: payload,
       },
     });
