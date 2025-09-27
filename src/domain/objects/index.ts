@@ -20,3 +20,4 @@ export * from './RoleSkillArgGetter';
 export * from './RoleTrait';
 
 export * from './Template';
+export * from './InvokeOpts';
