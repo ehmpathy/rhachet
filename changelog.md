@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/ehmpathy/rhachet/compare/v1.7.0...v1.7.1) (2025-09-27)
+
+
+### Bug Fixes
+
+* **cli:** passthrough peer attempts via env to isolated threads ([2507a31](https://github.com/ehmpathy/rhachet/commit/2507a31ce5f54dca9bc96b80767892632a65c8e8))
+
 ## [1.7.0](https://github.com/ehmpathy/rhachet/compare/v1.6.0...v1.7.0) (2025-09-12)
 
 
