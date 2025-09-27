@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/ehmpathy/rhachet/compare/v1.7.1...v1.7.2) (2025-09-27)
+
+
+### Bug Fixes
+
+* **sdk:** expose InvokeOpts type ([616357d](https://github.com/ehmpathy/rhachet/commit/616357d752d28cf7ed248952b188926e72f82072))
+
 ## [1.7.1](https://github.com/ehmpathy/rhachet/compare/v1.7.0...v1.7.1) (2025-09-27)
 
 
