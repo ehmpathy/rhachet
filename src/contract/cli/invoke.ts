@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { assureUniqueRoles } from '../../logic/invoke/assureUniqueRoles';
+import { getInvokeHooksByOpts } from '../../logic/invoke/getInvokeHooksByOpts';
 import { getRegistriesByOpts } from '../../logic/invoke/getRegistriesByOpts';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
@@ -33,6 +34,9 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   const registries = await getRegistriesByOpts({
     opts: { config: configPath },
   });
+  const hooks = await getInvokeHooksByOpts({
+    opts: { config: configPath }, // todo: maybe, getConfigByOpts ? returns both?
+  });
 
   // failfast on duplicate roles // todo: update commands to allow registry based disambiguation
   await assureUniqueRoles(registries);
@@ -53,7 +57,7 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program, registries });
   invokeList({ program, registries });
   invokeChoose({ program });
-  invokeAsk({ program, config: { path: configPath }, registries });
+  invokeAsk({ program, config: { path: configPath }, registries, hooks });
 
   // invoke it
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {

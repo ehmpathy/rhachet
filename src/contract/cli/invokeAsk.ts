@@ -1,10 +1,13 @@
 import { Command } from 'commander';
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
+import { InvokeHooks } from '../../domain/objects/InvokeHooks';
 import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
+import { onInvokeAskInput } from '../../logic/invoke/hooks/onInvokeAskInput';
 import { performInCurrentThread } from '../../logic/invoke/performInCurrentThread';
 import { performInIsolatedThreads } from '../../logic/invoke/performInIsolatedThreads';
+import { InvokeOpts } from '../sdk';
 
 /**
  * .what = adds the "ask" command to the CLI
@@ -18,6 +21,7 @@ export const invokeAsk = ({
   program: Command;
   config: { path: string };
   registries: RoleRegistry[];
+  hooks: null | InvokeHooks;
 }): void => {
   const askCommand = program
     .command('ask')
@@ -62,7 +66,7 @@ export const invokeAsk = ({
   // 🧠 perform the skill
   askCommand.action(async (opts: Record<string, string>) => {
     // instantiate the composed argv
-    const argvWithAsk = {
+    const argvWithAsk: InvokeOpts<{ ask: string; config: string }> = {
       ...opts,
       ask:
         opts.ask ??
@@ -70,11 +74,17 @@ export const invokeAsk = ({
       config: input.config.path, // required for isolated child threads when used with attempts
     };
 
+    // apply the onInvokeAskHooks
+    const argvWithHooks: InvokeOpts<{ ask: string; config: string }> =
+      input.hooks
+        ? onInvokeAskInput({ opts: argvWithAsk, hooks: input.hooks })
+        : argvWithAsk;
+
     // if attempts were requested, perform the skill in isolated threads per attempt
     if (opts.attempts)
-      return await performInIsolatedThreads({ opts: argvWithAsk });
+      return await performInIsolatedThreads({ opts: argvWithHooks });
 
     // otherwise, perform in the main thread by default
-    return await performInCurrentThread({ opts: argvWithAsk, registries });
+    return await performInCurrentThread({ opts: argvWithHooks, registries });
   });
 };

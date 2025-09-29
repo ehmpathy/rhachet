@@ -21,3 +21,4 @@ export * from './RoleTrait';
 
 export * from './Template';
 export * from './InvokeOpts';
+export * from './InvokeHooks';

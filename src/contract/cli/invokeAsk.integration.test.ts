@@ -21,6 +21,7 @@ describe('invokeAsk (integration)', () => {
         program,
         config: { path: configPath },
         registries: [EXAMPLE_REGISTRY],
+        hooks: null,
       });
 
       when('invoking a valid echo skill with ask input', () => {
