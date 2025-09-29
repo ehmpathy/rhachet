@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/ehmpathy/rhachet/compare/v1.8.0...v1.9.0) (2025-09-29)
+
+
+### Features
+
+* **hooks:** add invoke ask hooks support ([16afedc](https://github.com/ehmpathy/rhachet/commit/16afedc32400a575ad4615583b3839188fd591b3))
+
 ## [1.8.0](https://github.com/ehmpathy/rhachet/compare/v1.7.2...v1.8.0) (2025-09-28)
 
 
