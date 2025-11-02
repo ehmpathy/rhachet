@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/ehmpathy/rhachet/compare/v1.9.0...v1.10.0) (2025-11-02)
+
+
+### Features
+
+* **briefs:** add briefs link and briefs boot commands ([74212bc](https://github.com/ehmpathy/rhachet/commit/74212bc56d02b9b3c4b5d43cd21f7d203f18b362))
+
 ## [1.9.0](https://github.com/ehmpathy/rhachet/compare/v1.8.0...v1.9.0) (2025-09-29)
 
 
