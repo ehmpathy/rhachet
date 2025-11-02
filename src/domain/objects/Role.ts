@@ -48,6 +48,13 @@ export interface Role {
    * .why = declares what the role can do
    */
   skills: RoleSkill<any>[];
+
+  /**
+   * .what = the briefs curated for this role
+   * .why = declares the library of knowledge this role can and should leverage
+   *   - enables reuse of the briefs, independent from the skills
+   */
+  briefs: null | { dir: string };
 }
 export class Role extends DomainEntity<Role> implements Role {
   public static unique = ['slug'] as const;

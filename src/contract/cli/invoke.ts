@@ -7,6 +7,7 @@ import { assureUniqueRoles } from '../../logic/invoke/assureUniqueRoles';
 import { getInvokeHooksByOpts } from '../../logic/invoke/getInvokeHooksByOpts';
 import { getRegistriesByOpts } from '../../logic/invoke/getRegistriesByOpts';
 import { invokeAsk } from './invokeAsk';
+import { invokeBriefs } from './invokeBriefs';
 import { invokeChoose } from './invokeChoose';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
@@ -56,6 +57,7 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
     .option('-c, --config <path>', 'where to find the rhachet.use.ts config'); // tell commander that we expect the config input and not to complain about it
   invokeReadme({ program, registries });
   invokeList({ program, registries });
+  invokeBriefs({ program, registries });
   invokeChoose({ program });
   invokeAsk({ program, config: { path: configPath }, registries, hooks });
 

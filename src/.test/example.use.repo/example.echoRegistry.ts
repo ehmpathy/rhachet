@@ -119,6 +119,7 @@ const echoRole = Role.build({
   readme: 'knows how to echo input back to the user.',
   traits: [],
   skills: [echoSkill, writeSkill],
+  briefs: null,
 });
 
 export const EXAMPLE_REGISTRY = new RoleRegistry({
