@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { resolve, basename } from 'node:path';
+import { resolve, relative } from 'node:path';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 /**
@@ -30,11 +30,27 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
         );
       }
 
-      // Read all files in the directory
-      const files = readdirSync(briefsDir)
-        .map((file) => resolve(briefsDir, file))
-        .filter((filepath) => statSync(filepath).isFile())
-        .sort();
+      // Recursively read all files, including those in symlinked directories
+      const getAllFiles = (dir: string): string[] => {
+        const entries = readdirSync(dir);
+        const files: string[] = [];
+
+        for (const entry of entries) {
+          const fullPath = resolve(dir, entry);
+          const stats = statSync(fullPath); // statSync follows symlinks
+
+          if (stats.isDirectory()) {
+            // Recursively traverse directories (including symlinked ones)
+            files.push(...getAllFiles(fullPath));
+          } else if (stats.isFile()) {
+            files.push(fullPath);
+          }
+        }
+
+        return files;
+      };
+
+      const files = getAllFiles(briefsDir).sort();
 
       if (files.length === 0) {
         console.log(``);
@@ -43,12 +59,19 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
         return;
       }
 
-      // Count total characters
+      // Count total characters and approximate tokens
       let totalChars = 0;
       for (const filepath of files) {
         const content = readFileSync(filepath, 'utf-8');
         totalChars += content.length;
       }
+      const approxTokens = Math.ceil(totalChars / 4);
+      const costPerMillionTokens = 3; // $3 per million tokens
+      const approxCost = (approxTokens / 1_000_000) * costPerMillionTokens;
+      const costFormatted =
+        approxCost < 0.01
+          ? `< $0.01`
+          : `$${approxCost.toFixed(2).replace(/\.?0+$/, '')}`;
 
       // Print stats helper
       const printStats = () => {
@@ -60,7 +83,10 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
         console.log('');
         console.log('  quant');
         console.log(`    ├── files = ${files.length}`);
-        console.log(`    └── chars = ${totalChars}`);
+        console.log(`    ├── chars = ${totalChars}`);
+        console.log(
+          `    └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`,
+        );
         console.log('');
         console.log('  treestruct');
         const treeOutput = execSync(`tree -l ${briefsDir}`, {
@@ -77,7 +103,10 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
         console.log('');
         console.log('  quant');
         console.log(`    ├── files = ${files.length}`);
-        console.log(`    └── chars = ${totalChars}`);
+        console.log(`    ├── chars = ${totalChars}`);
+        console.log(
+          `    └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`,
+        );
         console.log('');
         console.log('#####################################################');
         console.log('## ended:stats');
@@ -93,7 +122,7 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
       // Print each file
       for (const filepath of files) {
         const content = readFileSync(filepath, 'utf-8');
-        const relativePath = `.briefs/${role}/${basename(filepath)}`;
+        const relativePath = `.briefs/${role}/${relative(briefsDir, filepath)}`;
 
         console.log('#####################################################');
         console.log('#####################################################');

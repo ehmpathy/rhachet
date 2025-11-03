@@ -169,5 +169,103 @@ describe('invokeBriefsBoot (integration)', () => {
         });
       },
     );
+
+    when(
+      'invoked with "boot --role mechanic" with symlinked directory containing files',
+      () => {
+        beforeAll(() => {
+          // Clean up first to ensure fresh state
+          const cleanBriefsDir = resolve(testDir, '.briefs');
+          if (existsSync(cleanBriefsDir)) {
+            rmSync(cleanBriefsDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create briefs directory
+          const briefsDir = resolve(testDir, '.briefs/mechanic');
+          mkdirSync(briefsDir, { recursive: true });
+
+          // Create a source directory with files and subdirectories
+          const sourceDir = resolve(testDir, 'test-briefs/subdir');
+          mkdirSync(sourceDir, { recursive: true });
+          writeFileSync(
+            resolve(sourceDir, 'nested1.md'),
+            '# Nested Brief 1\nThis is nested brief 1',
+          );
+          writeFileSync(
+            resolve(sourceDir, 'nested2.md'),
+            '# Nested Brief 2\nThis is nested brief 2',
+          );
+
+          // Create a subdirectory within the source directory
+          const nestedSubdir = resolve(sourceDir, 'deeper');
+          mkdirSync(nestedSubdir, { recursive: true });
+          writeFileSync(
+            resolve(nestedSubdir, 'deep1.md'),
+            '# Deep Brief 1\nThis is deep brief 1',
+          );
+          writeFileSync(
+            resolve(nestedSubdir, 'deep2.md'),
+            '# Deep Brief 2\nThis is deep brief 2',
+          );
+
+          // Create a symlink to the directory
+          symlinkSync(
+            '../../test-briefs/subdir',
+            resolve(briefsDir, 'linked-dir'),
+          );
+        });
+
+        then(
+          'it should print all files including those in symlinked directories',
+          async () => {
+            // Execute boot command
+            await briefsCommand.parseAsync(['boot', '--role', 'mechanic'], {
+              from: 'user',
+            });
+
+            // Check that stats show 4 files (2 in linked-dir, 2 in linked-dir/deeper)
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('files = 4'),
+            );
+
+            // Check that nested file contents were printed
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.briefs/mechanic/linked-dir/nested1.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is nested brief 1'),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.briefs/mechanic/linked-dir/nested2.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is nested brief 2'),
+            );
+
+            // Check that deeply nested file contents were printed
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.briefs/mechanic/linked-dir/deeper/deep1.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is deep brief 1'),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.briefs/mechanic/linked-dir/deeper/deep2.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is deep brief 2'),
+            );
+          },
+        );
+      },
+    );
   });
 });
