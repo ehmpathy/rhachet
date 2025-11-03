@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/ehmpathy/rhachet/compare/v1.10.0...v1.10.1) (2025-11-03)
+
+
+### Bug Fixes
+
+* **briefs:** ensure nested symlinked briefs also booted ([9888029](https://github.com/ehmpathy/rhachet/commit/9888029d5c027bb8ee4ea1bfdbced9b1c4d7bae4))
+
 ## [1.10.0](https://github.com/ehmpathy/rhachet/compare/v1.9.0...v1.10.0) (2025-11-02)
 
 
