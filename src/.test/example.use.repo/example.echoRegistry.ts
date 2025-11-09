@@ -118,8 +118,11 @@ const echoRole = Role.build({
   purpose: 'repeat things',
   readme: 'knows how to echo input back to the user.',
   traits: [],
-  skills: [echoSkill, writeSkill],
-  briefs: null,
+  skills: {
+    dirs: [],
+    refs: [echoSkill, writeSkill],
+  },
+  briefs: { dirs: [] },
 });
 
 export const EXAMPLE_REGISTRY = new RoleRegistry({

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBoot registered when: invoked with "boot --role mechanic" after creating briefs then: it should print all brief files with stats 1`] = `
+exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBoot registered when: invoked with "boot --repo test --role mechanic" after creating briefs then: it should print all brief files with stats 1`] = `
 "#####################################################
 #####################################################
 #####################################################
@@ -13,7 +13,7 @@ exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBo
     └── tokens ≈ 15 (< $0.01 at $3/mil)
 
   treestruct
-    @gitroot/src/contract/cli/.temp/invokeBriefsBoot/.briefs/mechanic
+    @gitroot/src/contract/cli/.temp/invokeBriefsBoot/.agent/repo=test/role=mechanic/briefs
     ├── brief1.md
     └── brief2.md
 
@@ -31,14 +31,14 @@ exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBo
 #####################################################
 #####################################################
 #####################################################
-## began:.briefs/mechanic/brief1.md
+## began:.agent/repo=test/role=mechanic/briefs/brief1.md
 #####################################################
 
   # Brief 1
   This is test brief 1
 
 #####################################################
-## ended:.briefs/mechanic/brief1.md
+## ended:.agent/repo=test/role=mechanic/briefs/brief1.md
 #####################################################
 #####################################################
 #####################################################
@@ -46,14 +46,14 @@ exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBo
 #####################################################
 #####################################################
 #####################################################
-## began:.briefs/mechanic/brief2.md
+## began:.agent/repo=test/role=mechanic/briefs/brief2.md
 #####################################################
 
   # Brief 2
   This is test brief 2
 
 #####################################################
-## ended:.briefs/mechanic/brief2.md
+## ended:.agent/repo=test/role=mechanic/briefs/brief2.md
 #####################################################
 #####################################################
 #####################################################
@@ -70,7 +70,7 @@ exports[`invokeBriefsBoot (integration) given: a CLI program with invokeBriefsBo
     └── tokens ≈ 15 (< $0.01 at $3/mil)
 
   treestruct
-    @gitroot/src/contract/cli/.temp/invokeBriefsBoot/.briefs/mechanic
+    @gitroot/src/contract/cli/.temp/invokeBriefsBoot/.agent/repo=test/role=mechanic/briefs
     ├── brief1.md
     └── brief2.md
 

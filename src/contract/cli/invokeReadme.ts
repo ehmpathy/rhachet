@@ -52,11 +52,11 @@ export const invokeReadme = ({
       if (!opts.skill) return printReadme(`${role.slug}`, role.readme);
 
       // resolve skill
-      const skill = role.skills.find((s) => s.slug === opts.skill);
+      const skill = role.skills.refs.find((s) => s.slug === opts.skill);
       if (!skill)
         BadRequestError.throw(
           `no skill "${opts.skill}" in role "${opts.role}"`,
-          { skills: role.skills.map((thisSkill) => thisSkill.slug) },
+          { skills: role.skills.refs.map((thisSkill) => thisSkill.slug) },
         );
 
       // skill-level readme

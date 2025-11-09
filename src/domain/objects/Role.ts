@@ -46,15 +46,21 @@ export interface Role {
   /**
    * .what = the skills known by the role
    * .why = declares what the role can do
+   * .how =
+   *   - dirs: directory-based skills (e.g., .sh scripts) for linking/booting
+   *   - refs: programmatic RoleSkill references for execution
    */
-  skills: RoleSkill<any>[];
+  skills: {
+    dirs: { uri: string }[];
+    refs: RoleSkill<any>[];
+  };
 
   /**
    * .what = the briefs curated for this role
    * .why = declares the library of knowledge this role can and should leverage
    *   - enables reuse of the briefs, independent from the skills
    */
-  briefs: null | { dir: string };
+  briefs: { dirs: { uri: string }[] };
 }
 export class Role extends DomainEntity<Role> implements Role {
   public static unique = ['slug'] as const;

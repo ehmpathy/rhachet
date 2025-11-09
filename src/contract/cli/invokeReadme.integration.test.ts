@@ -51,7 +51,7 @@ describe('invokeReadme (integration)', () => {
           expect(logSpy).toHaveBeenCalledWith('📜 echoer.echo.readme');
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining(
-              EXAMPLE_REGISTRY.roles[0]!.skills[0]!.readme.split('\n')[0]!,
+              EXAMPLE_REGISTRY.roles[0]!.skills.refs[0]!.readme.split('\n')[0]!,
             ),
           );
         });

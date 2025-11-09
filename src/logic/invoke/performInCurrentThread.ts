@@ -33,7 +33,7 @@ export const performInCurrentThread = async (input: {
   if (!role) BadRequestError.throw(`unknown role "${input.opts.role}"`);
 
   // lookup the skill
-  const skill = role.skills.find((s) => s.slug === input.opts.skill);
+  const skill = role.skills.refs.find((s) => s.slug === input.opts.skill);
   if (!skill)
     BadRequestError.throw(
       `unknown skill "${input.opts.skill}" under role "${input.opts.role}"`,

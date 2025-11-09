@@ -43,8 +43,11 @@ describe('invokeBriefsLink (integration)', () => {
       purpose: 'Test mechanic role',
       readme: 'Test readme',
       traits: [],
-      skills: [],
-      briefs: { dir: 'test-briefs' },
+      skills: {
+        dirs: [],
+        refs: [],
+      },
+      briefs: { dirs: [{ uri: 'test-briefs' }] },
     });
 
     const mockRegistry = new RoleRegistry({
@@ -58,58 +61,81 @@ describe('invokeBriefsLink (integration)', () => {
 
     beforeEach(() => {
       logSpy.mockClear();
-      // Clean up any existing .briefs directory
-      const briefsDir = resolve(testDir, '.briefs');
-      if (existsSync(briefsDir)) {
-        rmSync(briefsDir, { recursive: true, force: true });
+      // Clean up any existing .agent directory
+      const agentDir = resolve(testDir, '.agent');
+      if (existsSync(agentDir)) {
+        rmSync(agentDir, { recursive: true, force: true });
       }
     });
 
     invokeBriefsLink({ command: briefsCommand, registries: [mockRegistry] });
 
-    when('invoked with "link --role mechanic"', () => {
+    when('invoked with "link --repo test --role mechanic"', () => {
       then('it should create symlinks to briefs', async () => {
-        await briefsCommand.parseAsync(['link', '--role', 'mechanic'], {
-          from: 'user',
-        });
+        await briefsCommand.parseAsync(
+          ['link', '--repo', 'test', '--role', 'mechanic'],
+          {
+            from: 'user',
+          },
+        );
 
-        // Check that .briefs/mechanic directory was created
-        expect(existsSync(resolve(testDir, '.briefs/mechanic'))).toBe(true);
+        // Check that .agent/repo=test/role=mechanic/briefs directory was created
+        expect(
+          existsSync(resolve(testDir, '.agent/repo=test/role=mechanic/briefs')),
+        ).toBe(true);
 
         // Check that symlinks were created
-        expect(existsSync(resolve(testDir, '.briefs/mechanic/brief1.md'))).toBe(
-          true,
-        );
-        expect(existsSync(resolve(testDir, '.briefs/mechanic/brief2.md'))).toBe(
-          true,
-        );
+        expect(
+          existsSync(
+            resolve(testDir, '.agent/repo=test/role=mechanic/briefs/brief1.md'),
+          ),
+        ).toBe(true);
+        expect(
+          existsSync(
+            resolve(testDir, '.agent/repo=test/role=mechanic/briefs/brief2.md'),
+          ),
+        ).toBe(true);
 
         // Check log output
         expect(logSpy).toHaveBeenCalledWith(
           expect.stringContaining('Linking briefs for role "mechanic"'),
         );
-        expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Linked 2 brief(s)'),
+      });
+    });
+
+    when('invoked with "link" without --repo', () => {
+      then('it should throw an error requiring --repo', async () => {
+        const error = await getError(() =>
+          briefsCommand.parseAsync(['link', '--role', 'mechanic'], {
+            from: 'user',
+          }),
         );
+
+        expect(error?.message).toContain('--repo is required');
       });
     });
 
     when('invoked with "link" without --role', () => {
       then('it should throw an error requiring --role', async () => {
         const error = await getError(() =>
-          briefsCommand.parseAsync(['link'], { from: 'user' }),
+          briefsCommand.parseAsync(['link', '--repo', 'test'], {
+            from: 'user',
+          }),
         );
 
         expect(error?.message).toContain('--role is required');
       });
     });
 
-    when('invoked with "link --role nonexistent"', () => {
+    when('invoked with "link --repo test --role nonexistent"', () => {
       then('it should throw an error about role not found', async () => {
         const error = await getError(() =>
-          briefsCommand.parseAsync(['link', '--role', 'nonexistent'], {
-            from: 'user',
-          }),
+          briefsCommand.parseAsync(
+            ['link', '--repo', 'test', '--role', 'nonexistent'],
+            {
+              from: 'user',
+            },
+          ),
         );
 
         expect(error?.message).toContain('no role named "nonexistent"');

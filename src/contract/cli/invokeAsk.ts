@@ -41,13 +41,15 @@ export const invokeAsk = ({
     const opts = thisCommand.opts();
 
     const role = assureFindRole({ registries, slug: opts.role });
-    const skill = role?.skills.find((s) => s.slug === opts.skill);
+    const skill = role?.skills.refs.find((s) => s.slug === opts.skill);
     if (!skill)
       BadRequestError.throw(
         `no skill named "${opts.skill}" under role "${opts.role}"`,
         {
           opts,
-          role: { skills: role?.skills.map((thisSkill) => thisSkill.slug) },
+          role: {
+            skills: role?.skills.refs.map((thisSkill) => thisSkill.slug),
+          },
         },
       );
 

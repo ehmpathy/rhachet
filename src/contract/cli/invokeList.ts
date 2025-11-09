@@ -27,7 +27,7 @@ export const invokeList = ({
 
         console.log(``);
         console.log(`📖 ${role.slug}.skills =`);
-        for (const skill of role.skills)
+        for (const skill of role.skills.refs)
           console.log(`  - ${role.slug}.${skill.slug}`);
         console.log(``);
         return;
