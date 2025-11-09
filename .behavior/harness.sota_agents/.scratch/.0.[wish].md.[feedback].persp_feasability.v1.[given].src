@@ -1,0 +1,17 @@
+take a look at .behavior/harness.sota_agents/.0.[wish].md
+
+now, from a perspective of feasability
+
+review that wish.
+
+how possible is that to implement?
+
+---
+
+specifically, are we able to leverage claude-code via the cli with a constrained context? (e.g. if we execute it within a docker container? or OpenEnv?)
+
+
+---
+
+
+write your response to .behavior/harness.sota_agents/.0.[wish].md.[feedback].persp_feasability.v1.[given].i1.md

@@ -1,0 +1,9 @@
+demo how we can invoke claude code via shell
+
+demo how it can be invoked with an isolated context
+- e.g., what if we only want to give it...
+  - a subset of the `.briefs` dir in a repo
+  - a subset of the repo itself
+  - access to a .shell command to search the web, which runs through our own safety monitors
+
+write your demo to .behavior/harness.sota_agents/.3.[demo].claude_code_cli_usage.via_shell.isolated.[demo].i1.md
