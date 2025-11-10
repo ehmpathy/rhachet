@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/ehmpathy/rhachet/compare/v1.10.1...v1.11.0) (2025-11-10)
+
+
+### Features
+
+* **roles:** npx rhachet roles link & boot into .agent dir ([90cafb1](https://github.com/ehmpathy/rhachet/commit/90cafb13906364d45d30ac98233455b77e93359b))
+
 ## [1.10.1](https://github.com/ehmpathy/rhachet/compare/v1.10.0...v1.10.1) (2025-11-03)
 
 
