@@ -1,103 +1,16 @@
 import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
-import {
-  readdirSync,
-  mkdirSync,
-  symlinkSync,
-  existsSync,
-  writeFileSync,
-  readFileSync,
-  unlinkSync,
-  rmSync,
-} from 'node:fs';
-import { resolve, basename, relative } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
 import {
   getAgentRootReadmeTemplate,
   getAgentRepoThisReadmeTemplate,
 } from '../../logic/invoke/getAgentReadmeTemplates';
+import { findsertFile } from '../../logic/invoke/link/findsertFile';
+import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
 import { RoleRegistry } from '../sdk';
-
-/**
- * .what = finds or inserts a file with template content
- * .why = ensures standard readme files exist without overwriting custom changes
- * .how = only writes if file doesn't exist or content matches template exactly
- */
-const findsertFile = (options: { path: string; template: string }): void => {
-  const { path, template } = options;
-
-  if (!existsSync(path)) {
-    console.log(`  + ${basename(path)} (created)`);
-    writeFileSync(path, template, 'utf8');
-    return;
-  }
-
-  // File exists - check if it matches template
-  const existingContent = readFileSync(path, 'utf8');
-  if (existingContent === template) {
-    console.log(`  ✓ ${basename(path)} (unchanged)`);
-  } else {
-    console.log(`  ↻ ${basename(path)} (preserved with custom changes)`);
-  }
-};
-
-/**
- * .what = creates symlinks for all files in a source directory to a target directory
- * .why = enables role resources to be linked from node_modules or other sources
- */
-const symlinkDirectory = (options: {
-  sourceDir: string;
-  targetDir: string;
-  label: string;
-}): number => {
-  const { sourceDir, targetDir, label } = options;
-
-  if (!existsSync(sourceDir)) {
-    return 0; // No source directory, skip silently
-  }
-
-  const files = readdirSync(sourceDir);
-
-  if (files.length === 0) {
-    return 0;
-  }
-
-  mkdirSync(targetDir, { recursive: true });
-
-  for (const file of files) {
-    const sourcePath = resolve(sourceDir, file);
-    const targetPath = resolve(targetDir, basename(file));
-
-    // Remove existing symlink/file if it exists
-    if (existsSync(targetPath)) {
-      try {
-        unlinkSync(targetPath);
-        console.log(`  ↻ ${label}/${file} (updating)`);
-      } catch {
-        rmSync(targetPath, { recursive: true, force: true });
-        console.log(`  ↻ ${label}/${file} (updating)`);
-      }
-    } else {
-      console.log(`  + ${label}/${file}`);
-    }
-
-    // Create relative symlink from target directory to source file
-    const relativeSource = relative(targetDir, sourcePath);
-
-    try {
-      symlinkSync(relativeSource, targetPath);
-    } catch (error: any) {
-      if (error.code === 'EEXIST') {
-        console.log(`  ⚠️  ${label}/${file} already exists (skipping)`);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  return files.length;
-};
 
 /**
  * .what = adds the "roles link" subcommand to the CLI
@@ -162,32 +75,18 @@ export const invokeRolesLink = ({
       }
 
       // Link briefs if configured
-      let briefsCount = 0;
-      if (role.briefs.dirs.length > 0) {
-        for (const briefDir of role.briefs.dirs) {
-          const sourceDir = resolve(process.cwd(), briefDir.uri);
-          const targetDir = resolve(repoRoleDir, 'briefs');
-          briefsCount += symlinkDirectory({
-            sourceDir,
-            targetDir,
-            label: 'briefs',
-          });
-        }
-      }
+      const briefsCount = symlinkResourceDirectories({
+        sourceDirs: role.briefs.dirs,
+        targetDir: resolve(repoRoleDir, 'briefs'),
+        resourceName: 'briefs',
+      });
 
       // Link skills if configured
-      let skillsCount = 0;
-      if (role.skills.dirs.length > 0) {
-        for (const skillDir of role.skills.dirs) {
-          const sourceDir = resolve(process.cwd(), skillDir.uri);
-          const targetDir = resolve(repoRoleDir, 'skills');
-          skillsCount += symlinkDirectory({
-            sourceDir,
-            targetDir,
-            label: 'skills',
-          });
-        }
-      }
+      const skillsCount = symlinkResourceDirectories({
+        sourceDirs: role.skills.dirs,
+        targetDir: resolve(repoRoleDir, 'skills'),
+        resourceName: 'skills',
+      });
 
       console.log(``);
       console.log(`🔗 Linked role "${role.slug}" from repo "${repoSlug}"`);

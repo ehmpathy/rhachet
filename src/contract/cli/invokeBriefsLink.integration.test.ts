@@ -71,7 +71,7 @@ describe('invokeBriefsLink (integration)', () => {
     invokeBriefsLink({ command: briefsCommand, registries: [mockRegistry] });
 
     when('invoked with "link --repo test --role mechanic"', () => {
-      then('it should create symlinks to briefs', async () => {
+      then('it should create symlinks to briefs directory', async () => {
         await briefsCommand.parseAsync(
           ['link', '--repo', 'test', '--role', 'mechanic'],
           {
@@ -84,21 +84,40 @@ describe('invokeBriefsLink (integration)', () => {
           existsSync(resolve(testDir, '.agent/repo=test/role=mechanic/briefs')),
         ).toBe(true);
 
-        // Check that symlinks were created
+        // Check that the directory symlink was created (pointing to test-briefs)
         expect(
           existsSync(
-            resolve(testDir, '.agent/repo=test/role=mechanic/briefs/brief1.md'),
+            resolve(
+              testDir,
+              '.agent/repo=test/role=mechanic/briefs/test-briefs',
+            ),
+          ),
+        ).toBe(true);
+
+        // Check that files are accessible through the symlinked directory
+        expect(
+          existsSync(
+            resolve(
+              testDir,
+              '.agent/repo=test/role=mechanic/briefs/test-briefs/brief1.md',
+            ),
           ),
         ).toBe(true);
         expect(
           existsSync(
-            resolve(testDir, '.agent/repo=test/role=mechanic/briefs/brief2.md'),
+            resolve(
+              testDir,
+              '.agent/repo=test/role=mechanic/briefs/test-briefs/brief2.md',
+            ),
           ),
         ).toBe(true);
 
         // Check log output
         expect(logSpy).toHaveBeenCalledWith(
           expect.stringContaining('Linking briefs for role "mechanic"'),
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('2 brief(s)'),
         );
       });
     });

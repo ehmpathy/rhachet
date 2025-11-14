@@ -1,0 +1,225 @@
+import { Command } from 'commander';
+import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { given, when, then, getError } from 'test-fns';
+
+import { Role } from '../../domain/objects/Role';
+import { RoleRegistry } from '../../domain/objects/RoleRegistry';
+import { invokeRolesLink } from './invokeRolesLink';
+
+describe('invokeRolesLink (integration)', () => {
+  given('a CLI program with invokeRolesLink registered', () => {
+    const testDir = resolve(__dirname, './.temp/invokeRolesLink');
+    const originalCwd = process.cwd();
+
+    beforeAll(() => {
+      // Create test directory structure
+      mkdirSync(testDir, { recursive: true });
+      process.chdir(testDir);
+
+      // Create mock briefs directory
+      const briefsDir = resolve(testDir, 'test-briefs');
+      mkdirSync(briefsDir, { recursive: true });
+
+      // Create mock brief files
+      writeFileSync(
+        resolve(briefsDir, 'brief1.md'),
+        '# Brief 1\nThis is test brief 1',
+      );
+      writeFileSync(
+        resolve(briefsDir, 'brief2.md'),
+        '# Brief 2\nThis is test brief 2',
+      );
+
+      // Create mock skills directory
+      const skillsDir = resolve(testDir, 'test-skills');
+      mkdirSync(skillsDir, { recursive: true });
+
+      // Create mock skill files
+      writeFileSync(
+        resolve(skillsDir, 'skill1.sh'),
+        '#!/bin/bash\n# Skill 1\necho "test skill 1"',
+      );
+      writeFileSync(
+        resolve(skillsDir, 'skill2.sh'),
+        '#!/bin/bash\n# Skill 2\necho "test skill 2"',
+      );
+    });
+
+    afterAll(() => {
+      process.chdir(originalCwd);
+    });
+
+    // Create mock registries with a role that has briefs and skills configured
+    const mockRole = new Role({
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'Test mechanic role',
+      readme: '# Mechanic Role\n\nThis is the mechanic role readme.',
+      traits: [],
+      skills: {
+        dirs: [{ uri: 'test-skills' }],
+        refs: [],
+      },
+      briefs: { dirs: [{ uri: 'test-briefs' }] },
+    });
+
+    const mockRegistry = new RoleRegistry({
+      slug: 'test-registry',
+      readme: 'Test readme',
+      roles: [mockRole],
+    });
+
+    const rolesCommand = new Command('roles');
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    beforeEach(() => {
+      logSpy.mockClear();
+      // Clean up any existing .agent directory
+      const agentDir = resolve(testDir, '.agent');
+      if (existsSync(agentDir)) {
+        rmSync(agentDir, { recursive: true, force: true });
+      }
+    });
+
+    invokeRolesLink({ command: rolesCommand, registries: [mockRegistry] });
+
+    when('invoked with "link --repo test --role mechanic"', () => {
+      then(
+        'it should create .agent directory structure and link briefs and skills',
+        async () => {
+          await rolesCommand.parseAsync(
+            ['link', '--repo', 'test', '--role', 'mechanic'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Check that .agent directory structure was created
+          expect(existsSync(resolve(testDir, '.agent/readme.md'))).toBe(true);
+          expect(
+            existsSync(resolve(testDir, '.agent/repo=.this/readme.md')),
+          ).toBe(true);
+          expect(
+            existsSync(
+              resolve(testDir, '.agent/repo=test/role=mechanic/readme.md'),
+            ),
+          ).toBe(true);
+
+          // Check that role readme was created
+          const roleReadmeContent = require('fs').readFileSync(
+            resolve(testDir, '.agent/repo=test/role=mechanic/readme.md'),
+            'utf-8',
+          );
+          expect(roleReadmeContent).toContain('Mechanic Role');
+
+          // Check that briefs directory symlink was created
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/briefs/test-briefs',
+              ),
+            ),
+          ).toBe(true);
+
+          // Check that files are accessible through the symlinked briefs directory
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/briefs/test-briefs/brief1.md',
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/briefs/test-briefs/brief2.md',
+              ),
+            ),
+          ).toBe(true);
+
+          // Check that skills directory symlink was created
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/skills/test-skills',
+              ),
+            ),
+          ).toBe(true);
+
+          // Check that files are accessible through the symlinked skills directory
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/skills/test-skills/skill1.sh',
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/skills/test-skills/skill2.sh',
+              ),
+            ),
+          ).toBe(true);
+
+          // Check log output
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Linking role "mechanic"'),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('2 briefs linked'),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('2 skills linked'),
+          );
+        },
+      );
+    });
+
+    when('invoked with "link" without --repo', () => {
+      then('it should throw an error requiring --repo', async () => {
+        const error = await getError(() =>
+          rolesCommand.parseAsync(['link', '--role', 'mechanic'], {
+            from: 'user',
+          }),
+        );
+
+        expect(error?.message).toContain('--repo is required');
+      });
+    });
+
+    when('invoked with "link" without --role', () => {
+      then('it should throw an error requiring --role', async () => {
+        const error = await getError(() =>
+          rolesCommand.parseAsync(['link', '--repo', 'test'], {
+            from: 'user',
+          }),
+        );
+
+        expect(error?.message).toContain('--role is required');
+      });
+    });
+
+    when('invoked with "link --repo test --role nonexistent"', () => {
+      then('it should throw an error about role not found', async () => {
+        const error = await getError(() =>
+          rolesCommand.parseAsync(
+            ['link', '--repo', 'test', '--role', 'nonexistent'],
+            {
+              from: 'user',
+            },
+          ),
+        );
+
+        expect(error?.message).toContain('no role named "nonexistent"');
+      });
+    });
+  });
+});
