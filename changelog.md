@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.1](https://github.com/ehmpathy/rhachet/compare/v1.11.0...v1.11.1) (2025-11-21)
+
+
+### Bug Fixes
+
+* **links:** symlink full directories, not just direct children ([a7d81ee](https://github.com/ehmpathy/rhachet/commit/a7d81ee134517832b2fe75aab8572522ada7fac8))
+* **link:** use relative paths in link console output ([520cf9a](https://github.com/ehmpathy/rhachet/commit/520cf9a4a4b9c038640e68a3233200f2033b6ac9))
+
 ## [1.11.0](https://github.com/ehmpathy/rhachet/compare/v1.10.1...v1.11.0) (2025-11-10)
 
 
