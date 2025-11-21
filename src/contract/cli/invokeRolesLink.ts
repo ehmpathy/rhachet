@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
 import {
@@ -70,8 +70,9 @@ export const invokeRolesLink = ({
       // Upsert .agent/repo=$repo/role=$role/readme.md
       if (role.readme) {
         const roleReadmePath = resolve(repoRoleDir, 'readme.md');
+        const relativeRoleReadmePath = relative(process.cwd(), roleReadmePath);
         writeFileSync(roleReadmePath, role.readme, 'utf8');
-        console.log(`  + role=${role.slug}/readme.md (upserted)`);
+        console.log(`  + ${relativeRoleReadmePath} (upserted)`);
       }
 
       // Link briefs if configured

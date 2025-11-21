@@ -64,16 +64,17 @@ export const symlinkResourceDirectories = (options: {
     const targetPath = resolve(targetDir, basename(sourcePath));
 
     // Remove existing symlink/file if it exists
+    const relativeTargetPath = relative(process.cwd(), targetPath);
     if (existsSync(targetPath)) {
       try {
         unlinkSync(targetPath);
-        console.log(`  ↻ ${resourceName}/${basename(sourcePath)} (updating)`);
+        console.log(`  ↻ ${relativeTargetPath} (updated)`);
       } catch {
         rmSync(targetPath, { recursive: true, force: true });
-        console.log(`  ↻ ${resourceName}/${basename(sourcePath)} (updating)`);
+        console.log(`  ↻ ${relativeTargetPath} (updated)`);
       }
     } else {
-      console.log(`  + ${resourceName}/${basename(sourcePath)}`);
+      console.log(`  + ${relativeTargetPath}`);
     }
 
     // Create relative symlink from target directory to source directory
@@ -86,11 +87,7 @@ export const symlinkResourceDirectories = (options: {
       totalFileCount += fileCount;
     } catch (error: any) {
       if (error.code === 'EEXIST') {
-        console.log(
-          `  ⚠️  ${resourceName}/${basename(
-            sourcePath,
-          )} already exists (skipping)`,
-        );
+        console.log(`  ⚠️  ${relativeTargetPath} already exists (skipped)`);
       } else {
         throw error;
       }

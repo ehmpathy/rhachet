@@ -1,5 +1,5 @@
 import { existsSync, writeFileSync, readFileSync } from 'node:fs';
-import { basename } from 'node:path';
+import { relative } from 'node:path';
 
 /**
  * .what = finds or inserts a file with template content
@@ -11,9 +11,10 @@ export const findsertFile = (options: {
   template: string;
 }): void => {
   const { path, template } = options;
+  const relativePath = relative(process.cwd(), path);
 
   if (!existsSync(path)) {
-    console.log(`  + ${basename(path)} (created)`);
+    console.log(`  + ${relativePath} (created)`);
     writeFileSync(path, template, 'utf8');
     return;
   }
@@ -21,8 +22,8 @@ export const findsertFile = (options: {
   // File exists - check if it matches template
   const existingContent = readFileSync(path, 'utf8');
   if (existingContent === template) {
-    console.log(`  ✓ ${basename(path)} (unchanged)`);
+    console.log(`  ✓ ${relativePath} (unchanged)`);
   } else {
-    console.log(`  ↻ ${basename(path)} (preserved with custom changes)`);
+    console.log(`  ↻ ${relativePath} (preserved with custom changes)`);
   }
 };
