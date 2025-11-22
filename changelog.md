@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/ehmpathy/rhachet/compare/v1.11.1...v1.12.0) (2025-11-22)
+
+
+### Features
+
+* **init:** release npx rhachet init command ([1bfff34](https://github.com/ehmpathy/rhachet/commit/1bfff347dcc8b4918ce5cef15ee1bd38798626d5))
+
 ## [1.11.1](https://github.com/ehmpathy/rhachet/compare/v1.11.0...v1.11.1) (2025-11-21)
 
 
