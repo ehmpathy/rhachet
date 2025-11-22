@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/ehmpathy/rhachet/compare/v1.12.0...v1.12.1) (2025-11-22)
+
+
+### Bug Fixes
+
+* **cicd:** resolve integ test issues ([3a69bb0](https://github.com/ehmpathy/rhachet/commit/3a69bb0d008ba6261b1a25d648bb7b89bab6fae1))
+
 ## [1.12.0](https://github.com/ehmpathy/rhachet/compare/v1.11.1...v1.12.0) (2025-11-22)
 
 
