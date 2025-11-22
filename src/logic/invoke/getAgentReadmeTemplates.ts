@@ -26,7 +26,7 @@ brain = a human or robot imagination machine
 
 ---
 
-written by rhachet
+written by rhachet 🦾
 `;
 };
 

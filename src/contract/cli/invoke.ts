@@ -9,6 +9,7 @@ import { getRegistriesByOpts } from '../../logic/invoke/getRegistriesByOpts';
 import { invokeAsk } from './invokeAsk';
 import { invokeBriefs } from './invokeBriefs';
 import { invokeChoose } from './invokeChoose';
+import { invokeInit } from './invokeInit';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
 import { invokeRoles } from './invokeRoles';
@@ -23,6 +24,15 @@ import { invokeRoles } from './invokeRoles';
  *   - config must export a `getRoleRegistries()` function returning a set of RoleRegistries to support
  */
 export const invoke = async (input: { args: string[] }): Promise<void> => {
+  // treat init command specially - it's purpose is to run before configs exists
+  if (input.args.includes('init')) {
+    const program = new Command();
+    program.name('rhachet');
+    invokeInit({ program });
+    await program.parseAsync(input.args, { from: 'user' });
+    return;
+  }
+
   // grab the config.registries
   const configArg = input.args.findIndex((a) => a === '--config' || a === '-c');
   const configPathExplicit =
