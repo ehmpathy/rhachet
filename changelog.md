@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.2](https://github.com/ehmpathy/rhachet/compare/v1.12.1...v1.12.2) (2025-12-05)
+
+
+### Bug Fixes
+
+* **practs:** bump to latest best ([#27](https://github.com/ehmpathy/rhachet/issues/27)) ([2a6738e](https://github.com/ehmpathy/rhachet/commit/2a6738ebd980424feab7f9e1c0dfc9013e61f251))
+
 ## [1.12.1](https://github.com/ehmpathy/rhachet/compare/v1.12.0...v1.12.1) (2025-11-22)
 
 
