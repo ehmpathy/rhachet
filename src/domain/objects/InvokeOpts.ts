@@ -1,4 +1,4 @@
-import { Serializable } from 'serde-fns';
+import type { Serializable } from 'serde-fns';
 
 /**
  * .what = options declared to specify an invocation

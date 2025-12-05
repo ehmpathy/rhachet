@@ -1,6 +1,6 @@
+import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
-import { resolve } from 'node:path';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { assureUniqueRoles } from '../../logic/invoke/assureUniqueRoles';

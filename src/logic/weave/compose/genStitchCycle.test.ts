@@ -1,15 +1,15 @@
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../.test/genContextLogTrail';
-import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import {
+import type {
   GStitcher,
   GStitcherFlat,
   GStitcherOf,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import { StitchStepCompute } from '../../../domain/objects/StitchStep';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genContextStitchTrail } from '../../context/genContextStitchTrail';
 import { genThread } from '../../thread/genThread';
 import { asStitcher } from './asStitcher';
@@ -59,17 +59,15 @@ describe('genStitchCycle type preservation', () => {
     when('checking assignability to Stitcher<GStitcher>', () => {
       then('it should produce single-threaded inference', () => {
         type ThreadsKind = GStitcherOf<typeof cycle>['threads'];
-        type IsSingle = ThreadsKind extends Threads<any, 'single'>
-          ? true
-          : false;
+        type IsSingle =
+          ThreadsKind extends Threads<any, 'single'> ? true : false;
         const check: IsSingle = true;
         expect(check);
       });
 
       then('it should infer GStitcher shape', () => {
-        type Result = GStitcherOf<typeof cycle> extends GStitcher
-          ? true
-          : false;
+        type Result =
+          GStitcherOf<typeof cycle> extends GStitcher ? true : false;
         const result: Result = true;
         expect(result);
       });
@@ -85,16 +83,18 @@ describe('genStitchCycle type preservation', () => {
       });
 
       then('it should be assignable generically', () => {
-        type A = Cycle extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
-        type B = CycleNormed extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
+        type A =
+          Cycle extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
+        type B =
+          CycleNormed extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
         const checkA: A = true;
         const checkB: B = true;
         expect(checkA);

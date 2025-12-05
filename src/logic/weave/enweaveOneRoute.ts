@@ -1,8 +1,7 @@
 import { asUniDateTime } from '@ehmpathy/uni-time';
-
-import { StitchRoute } from '../../domain/objects/StitchRoute';
+import type { GStitcher } from '../../domain/objects/Stitcher';
+import type { StitchRoute } from '../../domain/objects/StitchRoute';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 

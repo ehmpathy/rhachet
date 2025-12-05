@@ -1,11 +1,10 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
-
-import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
 import {
-  GStitcher,
-  Stitcher,
+  type GStitcher,
+  type Stitcher,
   StitcherForm,
 } from '../../domain/objects/Stitcher';
+import type { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
 import { enstitch } from '../stitch/enstitch';
 import { enweaveOneChoice } from './enweaveOneChoice';
 import { enweaveOneCycle } from './enweaveOneCycle';

@@ -1,7 +1,12 @@
 import { DomainLiteral } from 'domain-objects';
 
-import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
-import { Threads } from './Threads';
+import type {
+  GStitcher,
+  Stitcher,
+  StitcherBase,
+  StitcherForm,
+} from './Stitcher';
+import type { Threads } from './Threads';
 
 /**
  * .what = fork+choose composite stitcher

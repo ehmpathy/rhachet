@@ -1,7 +1,7 @@
-import { Command } from 'commander';
-import { mkdir, writeFile, rm, readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
-import { given, when, then } from 'test-fns';
+import { Command } from 'commander';
+import { given, then, when } from 'test-fns';
 
 import { invokeChoose } from './invokeChoose';
 

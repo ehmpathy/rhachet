@@ -1,13 +1,13 @@
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
   symlinkSync,
   unlinkSync,
-  rmSync,
-  readdirSync,
-  statSync,
 } from 'node:fs';
-import { resolve, basename, relative } from 'node:path';
+import { basename, relative, resolve } from 'node:path';
 
 /**
  * .what = recursively counts all leaf files in a directory

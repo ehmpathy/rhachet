@@ -1,7 +1,7 @@
 import { asUniDateTime, toMilliseconds } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 import { getUuid } from 'uuid-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
@@ -13,11 +13,11 @@ import { stitcherCodeDiffImagine } from '../../.test/stitchers/stitcherCodeDiffI
 import { getExampleThreadCodeArtist } from '../../.test/threads/codeArtist';
 import { getExampleThreadCodeCritic } from '../../.test/threads/codeCritic';
 import { exampleThreadDirector } from '../../.test/threads/director';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
+import type { Threads } from '../../domain/objects/Threads';
 import { genContextStitchTrail } from '../context/genContextStitchTrail';
-import { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
+import type { ContextOpenAI } from '../stitch/adapters/imagineViaOpenAI';
 import { genThread } from '../thread/genThread';
 import { asStitcher } from './compose/asStitcher';
 import { asStitcherFlat } from './compose/asStitcherFlat';
@@ -312,7 +312,7 @@ export const sdkOpenMeteo = {
   );
 });
 
-export function deepOmit(obj: unknown, keys: string[]): unknown {
+function deepOmit(obj: unknown, keys: string[]): unknown {
   if (Array.isArray(obj)) {
     return obj.map((item) => deepOmit(item, keys));
   }
@@ -342,7 +342,7 @@ function getLetterLabel(index: number): string {
   return label;
 }
 
-export function deepReplaceShortUuidsWithLetters(obj: unknown): unknown {
+function deepReplaceShortUuidsWithLetters(obj: unknown): unknown {
   const seen = new Map<string, string>();
   let index = 0;
 

@@ -1,16 +1,15 @@
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { Stitch } from '../../../domain/objects/Stitch';
-import { StitchRoute } from '../../../domain/objects/StitchRoute';
-import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import {
+import type {
   GStitcher,
   GStitcherFlat,
   GStitcherOf,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import type { StitchRoute } from '../../../domain/objects/StitchRoute';
+import { StitchStepCompute } from '../../../domain/objects/StitchStep';
+import type { Threads } from '../../../domain/objects/Threads';
 import { asStitcher } from './asStitcher';
 import { genStitchRoute } from './genStitchRoute';
 
@@ -55,9 +54,8 @@ describe('genStitchRoute type preservation', () => {
       then('it should produce single threads', () => {
         type RouteG = GStitcherOf<typeof route>;
         type RouteThreads = RouteG['threads'];
-        type IsSingle = RouteThreads extends Threads<any, 'single'>
-          ? true
-          : false;
+        type IsSingle =
+          RouteThreads extends Threads<any, 'single'> ? true : false;
         const isSingle: IsSingle = true;
         expect(isSingle);
       });
@@ -72,13 +70,12 @@ describe('genStitchRoute type preservation', () => {
       then(
         'it should be assignable to StitchRoute<T extends GStitcher>',
         () => {
-          type IsAssignableToStichRoute = typeof route extends StitchRoute<
-            infer T
-          >
-            ? T extends GStitcher
-              ? true
-              : false
-            : false;
+          type IsAssignableToStichRoute =
+            typeof route extends StitchRoute<infer T>
+              ? T extends GStitcher
+                ? true
+                : false
+              : false;
           const isAssignable: IsAssignableToStichRoute = true;
           expect(isAssignable);
         },
@@ -94,27 +91,30 @@ describe('genStitchRoute type preservation', () => {
       });
 
       then('it should be assignable generically', () => {
-        type InferredA = Route extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
+        type InferredA =
+          Route extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
         const checkA: InferredA = true;
         expect(checkA);
 
-        type InferredB = RouteNormed extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
+        type InferredB =
+          RouteNormed extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
         const checkB: InferredB = true;
         expect(checkB);
 
-        type InferredC = typeof route extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
+        type InferredC =
+          typeof route extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
         const checkC: InferredC = true;
         expect(checkC);
       });
@@ -187,33 +187,36 @@ describe('genStitchRoute type preservation', () => {
     });
 
     then('innerRoute should be assignable to Stitcher<GStitcher>', () => {
-      type Check = typeof innerRoute extends Stitcher<infer T>
-        ? T extends GStitcher
-          ? true
-          : false
-        : false;
+      type Check =
+        typeof innerRoute extends Stitcher<infer T>
+          ? T extends GStitcher
+            ? true
+            : false
+          : false;
 
       const result: Check = true;
       expect(result);
     });
 
     then('outerRoute should be assignable to Stitcher<GStitcher>', () => {
-      type Check = typeof outerRoute extends Stitcher<infer T>
-        ? T extends GStitcher
-          ? true
-          : false
-        : false;
+      type Check =
+        typeof outerRoute extends Stitcher<infer T>
+          ? T extends GStitcher
+            ? true
+            : false
+          : false;
 
       const result: Check = true;
       expect(result);
     });
 
     then('innerRoute should be assignable to StitchRoute<GStitcher>', () => {
-      type Check = typeof innerRoute extends Stitcher<infer T>
-        ? T extends GStitcher
-          ? true
-          : false
-        : false;
+      type Check =
+        typeof innerRoute extends Stitcher<infer T>
+          ? T extends GStitcher
+            ? true
+            : false
+          : false;
 
       const result: Check = true;
       expect(result);

@@ -1,6 +1,11 @@
 import { DomainLiteral } from 'domain-objects';
 
-import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
+import type {
+  GStitcher,
+  Stitcher,
+  StitcherBase,
+  StitcherForm,
+} from './Stitcher';
 
 /**
  * .what = a route of stitchers to enstich in sequence; a composed tactic
@@ -24,7 +29,6 @@ export interface StitchRoute<
         any // typecheck the chain of stichers? right now, non-last does not have any requirements
       >
     >[],
-
     Stitcher<
       GStitcher<
         TStitcher['threads'],

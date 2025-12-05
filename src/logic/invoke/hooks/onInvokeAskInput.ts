@@ -1,5 +1,5 @@
-import { InvokeOpts } from '../../../domain/objects';
-import { InvokeHooks } from '../../../domain/objects/InvokeHooks';
+import type { InvokeOpts } from '../../../domain/objects';
+import type { InvokeHooks } from '../../../domain/objects/InvokeHooks';
 
 /**
  * .what = hooks to call onInvokeAskInput

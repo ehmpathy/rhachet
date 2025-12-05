@@ -1,6 +1,10 @@
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { Thread, threadOmitHistory, ThreadOmitHistory } from './Thread';
+import {
+  type Thread,
+  type ThreadOmitHistory,
+  threadOmitHistory,
+} from './Thread';
 
 /**
  * .what = a slug that uniquely identifies a role a thread can have
@@ -71,8 +75,8 @@ type ThreadsOmitHistory<TThreads extends Threads<any, any>> = {
         peers: ThreadOmitHistory<TPeer>[];
       }
     : TThreads[K] extends Thread<any>
-    ? ThreadOmitHistory<TThreads[K]>
-    : never;
+      ? ThreadOmitHistory<TThreads[K]>
+      : never;
 };
 
 /**

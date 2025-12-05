@@ -1,9 +1,14 @@
-import { UniDuration } from '@ehmpathy/uni-time';
+import type { UniDuration } from '@ehmpathy/uni-time';
 import { DomainLiteral } from 'domain-objects';
-import { PickAny } from 'type-fns';
+import type { PickAny } from 'type-fns';
 
-import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
-import { Threads } from './Threads';
+import type {
+  GStitcher,
+  Stitcher,
+  StitcherBase,
+  StitcherForm,
+} from './Stitcher';
+import type { Threads } from './Threads';
 
 /**
  * .what = repeater composite stitcher

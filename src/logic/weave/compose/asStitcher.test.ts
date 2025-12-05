@@ -1,14 +1,13 @@
 import { given, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { Stitch } from '../../../domain/objects/Stitch';
-import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import {
+import type {
   GStitcher,
   GStitcherOf,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import { StitchStepCompute } from '../../../domain/objects/StitchStep';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genThread } from '../../thread/genThread';
 import { asStitcher } from './asStitcher';
 import { genStitchRoute } from './genStitchRoute';
@@ -45,9 +44,8 @@ describe('asStitcher type normalization', () => {
       type ThreadsType = T['threads'];
 
       type IsSingle = ThreadsType extends Threads<any, 'single'> ? true : false;
-      type HasMain = ThreadsType extends Threads<{ main: any }, 'single'>
-        ? true
-        : false;
+      type HasMain =
+        ThreadsType extends Threads<{ main: any }, 'single'> ? true : false;
 
       const checkA: IsSingle = true;
       const checkB: HasMain = true;
@@ -127,9 +125,8 @@ describe('asStitcher type normalization', () => {
       type ThreadsType = T['threads'];
 
       type IsSingle = ThreadsType extends Threads<any, 'single'> ? true : false;
-      type HasMain = ThreadsType extends Threads<{ main: any }, 'single'>
-        ? true
-        : false;
+      type HasMain =
+        ThreadsType extends Threads<{ main: any }, 'single'> ? true : false;
 
       const checkA: IsSingle = true;
       const checkB: HasMain = true;

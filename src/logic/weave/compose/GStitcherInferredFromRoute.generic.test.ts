@@ -2,22 +2,21 @@ import {
   addDuration,
   asUniDateTime,
   isUniDateTime,
-  UniDateTime,
+  type UniDateTime,
 } from '@ehmpathy/uni-time';
-import { ContextLogTrail } from 'as-procedure';
+import type { ContextLogTrail } from 'as-procedure';
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../.test/genContextLogTrail';
-import { Stitch } from '../../../domain/objects/Stitch';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { Thread } from '../../../domain/objects/Thread';
-import { Threads } from '../../../domain/objects/Threads';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genContextStitchTrail } from '../../context/genContextStitchTrail';
-import { ContextStitchTrail } from '../../stitch/withStitchTrail';
-import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
+import type { ContextStitchTrail } from '../../stitch/withStitchTrail';
+import type { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
 
 describe('GStitcherInferredFromRoute', () => {
   const exampleContext = {

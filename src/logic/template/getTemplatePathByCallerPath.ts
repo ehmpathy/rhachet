@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import pathFns from 'path';
-import { PickOne } from 'type-fns';
+import type { PickOne } from 'type-fns';
 
 /**
  * .what = get the path of the file of the caller of this procedure
@@ -54,10 +54,10 @@ export const getTemplatePathByCallerPath = (
   // grab the path; support "auto" for auto detection
   const path =
     input.auto === true
-      ? getCallerFilePath({ depth: 2 }) ??
+      ? (getCallerFilePath({ depth: 2 }) ??
         UnexpectedCodePathError.throw(
           'should have been able to get caller file path',
-        )
+        ))
       : input.path;
 
   // parse dir, name, and ext separately

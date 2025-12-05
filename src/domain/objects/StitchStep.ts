@@ -1,8 +1,8 @@
 import { DomainLiteral } from 'domain-objects';
 
-import { Stitch } from './Stitch';
-import { GStitcher, StitcherBase, StitcherForm } from './Stitcher';
-import { Threads } from './Threads';
+import type { Stitch } from './Stitch';
+import type { GStitcher, StitcherBase, StitcherForm } from './Stitcher';
+import type { Threads } from './Threads';
 
 /**
  * .what = a step by which to stitch, via computation

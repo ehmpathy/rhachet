@@ -1,8 +1,8 @@
 import { asUniDateTime, getDuration } from '@ehmpathy/uni-time';
 
-import { Stitch } from '../../domain/objects/Stitch';
-import { StitchStepImagine } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
+import type { Stitch } from '../../domain/objects/Stitch';
+import type { GStitcher } from '../../domain/objects/Stitcher';
+import type { StitchStepImagine } from '../../domain/objects/StitchStep';
 
 /**
  * .what = invokes the imagine stitcher by invocation of stitcher mechanisms

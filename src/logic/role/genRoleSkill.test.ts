@@ -1,11 +1,11 @@
-import { given, when, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import {
-  GStitcher,
-  RoleContext,
+  type GStitcher,
+  type RoleContext,
   RoleSkill,
-  Stitcher,
-  Threads,
+  type Stitcher,
+  type Threads,
 } from '../../domain/objects';
 import { enrollThread } from './enrollThread';
 import { genRoleSkill } from './genRoleSkill';

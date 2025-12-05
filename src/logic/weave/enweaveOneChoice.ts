@@ -1,9 +1,9 @@
 import { asUniDateTime } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { StitchChoice } from '../../domain/objects/StitchChoice';
+import type { StitchChoice } from '../../domain/objects/StitchChoice';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 

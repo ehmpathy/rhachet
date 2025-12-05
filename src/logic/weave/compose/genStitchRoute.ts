@@ -1,7 +1,7 @@
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import { StitchRoute } from '../../../domain/objects/StitchRoute';
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
 
 /**
  * .what = generates a thoroughly typesafe stitch route

@@ -1,9 +1,8 @@
-import { UniDateTime } from '@ehmpathy/uni-time';
-import { DomainEntity, DomainLiteral } from 'domain-objects';
-import { Uuid } from 'uuid-fns';
-
-import { StitchTrail, StitchTrailDesc } from './StitchTrail';
-import { StitcherDesc } from './Stitcher';
+import type { UniDateTime } from '@ehmpathy/uni-time';
+import { DomainEntity } from 'domain-objects';
+import type { Uuid } from 'uuid-fns';
+import type { StitcherDesc } from './Stitcher';
+import type { StitchTrail, StitchTrailDesc } from './StitchTrail';
 
 export interface Stitch<TOutput> {
   // todo: some declaration of invalidation triggers? (or is that assumption based)

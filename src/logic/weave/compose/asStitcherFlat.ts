@@ -1,5 +1,5 @@
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { Threads } from '../../../domain/objects/Threads';
 
 /**
  * .what = narrows a stitcher with deeply inferred or recursive types into a pre-flattened form

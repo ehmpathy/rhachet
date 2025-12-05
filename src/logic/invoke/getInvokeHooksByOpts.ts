@@ -1,5 +1,5 @@
-import { InvokeHooks } from '../../domain/objects/InvokeHooks';
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { InvokeHooks } from '../../domain/objects/InvokeHooks';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 
 /**
  * .what = get invoke hooks from the invocation options declared

@@ -1,9 +1,9 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { Artifact } from 'rhachet-artifact';
-import { GitFile } from 'rhachet-artifact-git';
+import type { Artifact } from 'rhachet-artifact';
+import type { GitFile } from 'rhachet-artifact-git';
 
-import { Thread } from '../../domain/objects';
-import { RoleContext } from '../../domain/objects/RoleContext';
+import type { Thread } from '../../domain/objects';
+import type { RoleContext } from '../../domain/objects/RoleContext';
 import { genThread } from '../thread/genThread';
 import { addRoleTraits } from './addRoleTraits';
 

@@ -1,9 +1,13 @@
 import { DomainLiteral } from 'domain-objects';
-
-import { StitchStep } from './StitchStep';
-import { GStitcher, Stitcher, StitcherBase, StitcherForm } from './Stitcher';
-import { Thread } from './Thread';
-import { Threads } from './Threads';
+import type {
+  GStitcher,
+  Stitcher,
+  StitcherBase,
+  StitcherForm,
+} from './Stitcher';
+import type { StitchStep } from './StitchStep';
+import type { Thread } from './Thread';
+import type { Threads } from './Threads';
 
 /**
  * .what = parallel composite stitcher

@@ -1,10 +1,10 @@
 import { withExpectOutput } from 'as-procedure';
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { Artifact } from 'rhachet-artifact';
-import { GitFile } from 'rhachet-artifact-git';
-import { given, when, then } from 'test-fns';
+import type { Artifact } from 'rhachet-artifact';
+import type { GitFile } from 'rhachet-artifact-git';
+import { given, then, when } from 'test-fns';
 
-import { RoleContextTrait } from '../../domain/objects/RoleContext';
+import type { RoleContextTrait } from '../../domain/objects/RoleContext';
 import { addRoleTraits } from './addRoleTraits';
 
 const makeFakeArtifact = (content: string): Artifact<typeof GitFile> => ({

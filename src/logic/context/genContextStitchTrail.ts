@@ -1,12 +1,10 @@
-import { ContextStitchTrail } from '../stitch/withStitchTrail';
+import type { ContextStitchTrail } from '../stitch/withStitchTrail';
 
 /**
  * .what = generates a new context stitch trail
  */
 export const genContextStitchTrail = (
-  input: {
-    stream?: ContextStitchTrail['stitch']['stream'];
-  } = {},
+  input: { stream?: ContextStitchTrail['stitch']['stream'] } = {},
 ): ContextStitchTrail => ({
   stitch: {
     trail: [],

@@ -1,9 +1,9 @@
-import { UnexpectedCodePathError, BadRequestError } from 'helpful-errors';
-import { PickOne } from 'type-fns';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import type { PickOne } from 'type-fns';
 
-import { Threads } from '../../domain/objects';
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
-import { RoleSkillThreadsGetter } from '../../domain/objects/RoleSkillArgGetter';
+import type { Threads } from '../../domain/objects';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { RoleSkillThreadsGetter } from '../../domain/objects/RoleSkillArgGetter';
 
 /**
  * .what = hydrates skill threads using either passin or lookup mode

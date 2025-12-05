@@ -1,9 +1,9 @@
-import { Artifact } from 'rhachet-artifact';
-import { GitFile } from 'rhachet-artifact-git';
-import { PickAny } from 'type-fns';
+import type { Artifact } from 'rhachet-artifact';
+import type { GitFile } from 'rhachet-artifact-git';
+import type { PickAny } from 'type-fns';
 
-import { Thread } from '../../domain/objects';
-import {
+import type { Thread } from '../../domain/objects';
+import type {
   RoleContext,
   RoleContextTrait,
 } from '../../domain/objects/RoleContext';

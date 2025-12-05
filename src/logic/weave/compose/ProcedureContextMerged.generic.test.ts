@@ -1,6 +1,6 @@
 import { given, then } from 'test-fns';
 
-import { ProcedureContextMerged } from './ProcedureContextMerged.generic';
+import type { ProcedureContextMerged } from './ProcedureContextMerged.generic';
 
 describe('ProcedureContextMerged', () => {
   given('a tuple with only one context', () => {

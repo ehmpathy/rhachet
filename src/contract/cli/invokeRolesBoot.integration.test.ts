@@ -1,13 +1,13 @@
-import { Command } from 'commander';
 import {
   existsSync,
   mkdirSync,
-  writeFileSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
-import { given, when, then, getError } from 'test-fns';
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
 
 import { invokeRolesBoot } from './invokeRolesBoot';
 

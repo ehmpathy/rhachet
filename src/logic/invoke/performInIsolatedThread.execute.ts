@@ -1,4 +1,4 @@
-import { ProcedureInput } from 'as-procedure';
+import type { ProcedureInput } from 'as-procedure';
 import { BadRequestError } from 'helpful-errors';
 import {
   deSerialBase64,
@@ -7,7 +7,7 @@ import {
   isSerialJSON,
 } from 'serde-fns';
 
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 import { getRegistriesByOpts } from './getRegistriesByOpts';
 import { performInCurrentThread } from './performInCurrentThread';
 

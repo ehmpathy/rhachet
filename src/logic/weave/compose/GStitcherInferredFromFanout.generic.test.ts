@@ -1,14 +1,13 @@
 import { given, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../.test/genContextLogTrail';
-import { Stitch } from '../../../domain/objects/Stitch';
+import type { GStitcher } from '../../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import { GStitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genContextStitchTrail } from '../../context/genContextStitchTrail';
 import { genThread } from '../../thread/genThread';
-import { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
+import type { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
 
 const stitcherComputeRandom = new StitchStepCompute<
   GStitcher<Threads<{ main: Empty }>, GStitcher['context'], number>

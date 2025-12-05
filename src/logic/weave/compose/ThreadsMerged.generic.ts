@@ -1,21 +1,22 @@
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Thread } from '../../../domain/objects/Thread';
-import { Threads } from '../../../domain/objects/Threads';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { Thread } from '../../../domain/objects/Thread';
+import type { Threads } from '../../../domain/objects/Threads';
 
 /**
  * .what = extracts the context (excluding `role`) from a Thread
  * .why = isolates the business-relevant part of a thread's context
  * .fallback = `Empty` if no keys besides `role`
  */
-type ThreadContext<T> = T extends Thread<infer C>
-  ? Omit<C, 'role'> extends infer R
-    ? keyof R extends never
-      ? Empty
-      : R
-    : never
-  : never;
+type ThreadContext<T> =
+  T extends Thread<infer C>
+    ? Omit<C, 'role'> extends infer R
+      ? keyof R extends never
+        ? Empty
+        : R
+      : never
+    : never;
 
 /**
  * .what = merges two thread context objects safely
@@ -24,8 +25,8 @@ type ThreadContext<T> = T extends Thread<infer C>
 type MergeThreadContexts<A, B> = [A] extends [Empty]
   ? B
   : [B] extends [Empty]
-  ? A
-  : A & B;
+    ? A
+    : A & B;
 
 /**
  * .what = merges two thread maps (e.g., from Threads<...>)
@@ -44,8 +45,8 @@ type MergeTwoThreadMaps<
         >
       : A[K]
     : K extends keyof B
-    ? B[K]
-    : never;
+      ? B[K]
+      : never;
 };
 
 /**

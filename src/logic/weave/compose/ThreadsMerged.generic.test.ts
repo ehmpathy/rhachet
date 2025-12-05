@@ -1,10 +1,10 @@
 import { given, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { Thread } from '../../../domain/objects/Thread';
-import { Threads } from '../../../domain/objects/Threads';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genThread } from '../../thread/genThread';
-import { ThreadsMerged } from './ThreadsMerged.generic';
+import type { ThreadsMerged } from './ThreadsMerged.generic';
 
 describe('ThreadsMerged', () => {
   const artistEmpty = new Thread({

@@ -1,8 +1,8 @@
-import { given, when, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import { given, then, when } from 'test-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
-import { GStitcher, Threads } from '../../domain/objects';
+import type { GStitcher, Threads } from '../../domain/objects';
 import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genThread } from '../thread/genThread';
 import { genStepImagineViaTemplate } from './genStepImagineViaTemplate';

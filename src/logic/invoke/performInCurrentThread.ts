@@ -1,7 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import { RoleRegistry } from '../../domain/objects';
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { RoleRegistry } from '../../domain/objects';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 import { enweaveOneStitcher } from '../weave/enweaveOneStitcher';
 import { assureFindRole } from './assureFindRole';
 import { getSkillContext } from './getSkillContext';

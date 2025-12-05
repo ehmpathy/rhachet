@@ -1,4 +1,4 @@
-import { Stitch } from '../../domain/objects';
+import type { Stitch } from '../../domain/objects';
 import { getStitch } from './getStitch';
 
 describe('getStitch', () => {

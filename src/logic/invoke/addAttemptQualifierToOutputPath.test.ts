@@ -1,4 +1,4 @@
-import { given, when, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { addAttemptQualifierToOutputPath } from './addAttemptQualifierToOutputPath';
 

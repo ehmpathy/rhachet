@@ -1,5 +1,5 @@
-import { given, when, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import { given, then, when } from 'test-fns';
+import type { Empty } from 'type-fns';
 
 import { Template } from './Template';
 

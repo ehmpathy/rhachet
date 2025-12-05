@@ -1,10 +1,10 @@
-import { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
 import { resolve } from 'node:path';
+import type { Command } from 'commander';
+import { BadRequestError } from 'helpful-errors';
 
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
 import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
-import { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '../sdk';
 
 /**
  * .what = adds the "briefs link" subcommand to the CLI

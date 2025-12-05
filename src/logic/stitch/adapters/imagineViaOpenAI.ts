@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import OpenAI from 'openai';
-import { ChatModel } from 'openai/resources/shared';
+import type { ChatModel } from 'openai/resources/shared';
 
 export interface ContextOpenAI {
   openai: {

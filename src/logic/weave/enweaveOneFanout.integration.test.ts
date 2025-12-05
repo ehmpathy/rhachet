@@ -1,17 +1,17 @@
 import { getError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
 import { getContextOpenAI } from '../../.test/getContextOpenAI';
 import { genStitcherCodeReview } from '../../.test/stitchers/genStitcherCodeReviewImagine';
 import { stitcherFanoutRandomSum } from '../../.test/stitchers/stitcherFanoutRandomSum';
 import { stitcherFanoutWithRoutes } from '../../.test/stitchers/stitcherFanoutSubroutes';
-import { Stitch } from '../../domain/objects/Stitch';
+import type { Stitch } from '../../domain/objects/Stitch';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
-import { Threads } from '../../domain/objects/Threads';
+import type { Threads } from '../../domain/objects/Threads';
 import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genThread } from '../thread/genThread';
 import { genStitchFanout } from './compose/genStitchFanout';
@@ -115,7 +115,7 @@ describe('enweaveOneFanout', () => {
         output: {
           path: '__path__',
           content: `
-import { UnexpectedCodePathError } from '@ehmpathy/error-fns';
+import { UnexpectedCodePathError } from 'helpful-errors';
 import { UniDateTime } from '@ehmpathy/uni-time';
 import { PickOne } from 'type-fns';
 

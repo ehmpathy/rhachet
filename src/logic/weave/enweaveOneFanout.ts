@@ -1,12 +1,11 @@
 import { asUniDateTime } from '@ehmpathy/uni-time';
-
-import {
+import type { GStitcher } from '../../domain/objects/Stitcher';
+import type {
   StitchFanout,
   ThreadsFromFanout,
 } from '../../domain/objects/StitchFanout';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Thread } from '../../domain/objects/Thread';
+import type { Thread } from '../../domain/objects/Thread';
 import { enstitch } from '../stitch/enstitch';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';

@@ -1,13 +1,12 @@
 import { getError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../../.test/genContextLogTrail';
-import { Stitch } from '../../../domain/objects/Stitch';
+import type { GStitcher } from '../../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import { GStitcher } from '../../../domain/objects/Stitcher';
 import { Thread } from '../../../domain/objects/Thread';
-import { Threads } from '../../../domain/objects/Threads';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genContextStitchTrail } from '../../context/genContextStitchTrail';
 import { enweaveOneFanout } from '../enweaveOneFanout';
 import { genStitchFanout } from './genStitchFanout';

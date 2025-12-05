@@ -1,6 +1,6 @@
-import { Command } from 'commander';
 import path from 'node:path';
-import { given, when, then, getError } from 'test-fns';
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
 
 import { TEST_FIXTURE_DIRECTORY } from '../../.test/directory';
 import { EXAMPLE_REGISTRY } from '../../.test/example.use.repo/example.echoRegistry';

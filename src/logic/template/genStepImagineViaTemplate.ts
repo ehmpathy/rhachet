@@ -1,5 +1,5 @@
-import { GStitcher, StitchStepImagine } from '../../domain/objects';
-import { Template } from '../../domain/objects/Template';
+import { type GStitcher, StitchStepImagine } from '../../domain/objects';
+import type { Template } from '../../domain/objects/Template';
 
 /**
  * .what = creates a typed StitchStepImagine from a prompt template and AI imagine function

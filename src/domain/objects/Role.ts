@@ -1,7 +1,7 @@
 import { DomainEntity } from 'domain-objects';
 
-import { RoleSkill } from './RoleSkill';
-import { RoleTrait } from './RoleTrait';
+import type { RoleSkill } from './RoleSkill';
+import type { RoleTrait } from './RoleTrait';
 
 /**
  * .what = defines a role that can have traits, know skills, and be instantiated across thread.context

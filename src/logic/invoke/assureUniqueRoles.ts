@@ -1,4 +1,4 @@
-import { RoleRegistry } from '../../domain/objects';
+import type { RoleRegistry } from '../../domain/objects';
 
 /**
  * .what = ensure we fail fast upon duplicate role.slugs across registries

@@ -1,9 +1,9 @@
 import { flattie } from 'flattie';
 import { BadRequestError } from 'helpful-errors';
 import { genArtifactGitFile } from 'rhachet-artifact-git';
-import { Serializable } from 'serde-fns';
+import type { Serializable } from 'serde-fns';
 
-import { Template } from '../../domain/objects/Template';
+import type { Template } from '../../domain/objects/Template';
 
 /**
  * .what = hydrates a template file with given variables

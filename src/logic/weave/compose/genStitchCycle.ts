@@ -1,14 +1,14 @@
-import { UniDuration } from '@ehmpathy/uni-time';
-import { PickAny } from 'type-fns';
+import type { UniDuration } from '@ehmpathy/uni-time';
+import type { PickAny } from 'type-fns';
 
 import { StitchCycle } from '../../../domain/objects/StitchCycle';
-import {
+import type {
   GStitcher,
   GStitcherFlat,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { GStitcherInferredFromCycle } from './GStitcherInferredFromCycle.generic';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { GStitcherInferredFromCycle } from './GStitcherInferredFromCycle.generic';
 
 /**
  * .what = generates a stitcher that repeats a step until the decider returns 'release' or 'halt'

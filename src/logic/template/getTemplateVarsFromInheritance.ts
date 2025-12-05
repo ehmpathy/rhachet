@@ -1,4 +1,4 @@
-import { Thread } from '../../domain/objects';
+import type { Thread } from '../../domain/objects';
 
 /**
  * .what = extracts template vars from a thread's inherited traits and skills

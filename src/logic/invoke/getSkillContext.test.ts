@@ -1,7 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
-import { given, when, then, getError } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
-import { RoleSkillContextGetter, GStitcher } from '../../domain/objects';
+import { type GStitcher, RoleSkillContextGetter } from '../../domain/objects';
 import { getSkillContext } from './getSkillContext';
 
 const getterExample = RoleSkillContextGetter.build<
@@ -23,7 +23,7 @@ const getterExample = RoleSkillContextGetter.build<
   instantiate: (input) =>
     ({
       key: input.openaiApiKey,
-    } as any),
+    }) as any,
 });
 
 describe('getSkillContext', () => {

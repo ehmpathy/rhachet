@@ -1,8 +1,8 @@
 import { genArtifactGitFile } from 'rhachet-artifact-git';
-import { given, when, then } from 'test-fns';
-import { Empty } from 'type-fns';
+import { given, then, when } from 'test-fns';
+import type { Empty } from 'type-fns';
 
-import { Threads } from '../../domain/objects';
+import type { Threads } from '../../domain/objects';
 import { genThread } from '../thread/genThread';
 import { genTemplate } from './genTemplate';
 
