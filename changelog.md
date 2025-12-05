@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.3](https://github.com/ehmpathy/rhachet/compare/v1.12.2...v1.12.3) (2025-12-05)
+
+
+### Bug Fixes
+
+* **deps:** upgrade git artifact for better gitroot detection ([#29](https://github.com/ehmpathy/rhachet/issues/29)) ([ae23c20](https://github.com/ehmpathy/rhachet/commit/ae23c20fdca6563d461890cbf6c5b6e954ec5c12))
+
 ## [1.12.2](https://github.com/ehmpathy/rhachet/compare/v1.12.1...v1.12.2) (2025-12-05)
 
 
