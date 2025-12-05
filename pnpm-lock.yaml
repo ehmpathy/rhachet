@@ -39,11 +39,11 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
       rhachet-artifact:
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.1
+        version: 1.0.1
       rhachet-artifact-git:
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 1.1.3
+        version: 1.1.3
       serde-fns:
         specifier: 1.3.1
         version: 1.3.1
@@ -2054,10 +2054,6 @@ packages:
     resolution: {integrity: sha512-Bcjk4hbOrl35Q1a9y/3HMchAwJlJu3yCvODwjWDPYJPgvDrTadTAIlLwLYVMyJVfGlStZgqHH9B8XmDBjNYSDg==}
     engines: {node: '>=8.0.0'}
 
-  domain-objects@0.25.2:
-    resolution: {integrity: sha512-CcV0IhH9byG84uDx6g+h63DmI1YFC/wfwMGEHQ4OKsAOpX8/kSwcJx5ulQLG4XR7c5ZwMu+hFkQSyRjnkWXoGg==}
-    engines: {node: '>=8.0.0'}
-
   domain-objects@0.29.4:
     resolution: {integrity: sha512-+xf8Ey16t6XlJKnRKy3mO+ZKj0epu6LGm8X8zd+Igqq1/r5sggAGV9SKCTrLcRLuQLPOfc72Oo/4h4nBvR5GyQ==}
     engines: {node: '>=8.0.0'}
@@ -3075,12 +3071,12 @@ packages:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  rhachet-artifact-git@1.1.0:
-    resolution: {integrity: sha512-OZtfH5+4/nj4kSX0pnamIT54YVIKTNhavBqiYpCK3978sGGagYo7AwXwYAjQav9+Vjhtk5b73RJUQN0bSe3a+g==}
+  rhachet-artifact-git@1.1.3:
+    resolution: {integrity: sha512-l8v8sdRW44w4CCFjWIydjk6BgyaQ+HCH00s/ZtuoxdHSYRU++0sxHiDJzgSQyYCHy/egSiD0OCQLbjqcDCS20Q==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-artifact@1.0.0:
-    resolution: {integrity: sha512-dNGjHYykoxC5vljtdWL/VhZmPU89gVS9gGI5yHPzJiwNtk6hMZLtQe1B0hpZu+tu95+eerU4jNPklTj2Sdg5Tg==}
+  rhachet-artifact@1.0.1:
+    resolution: {integrity: sha512-BCD7rwyArOn9k3AwDocv0UrgkNDmJ/goPAROCLyMx06n72Xhq8nO9RAVVqhdggIjyX8lI0Qriul8tgUJ+3zoIA==}
     engines: {node: '>=8.0.0'}
 
   run-async@2.4.1:
@@ -6082,15 +6078,6 @@ snapshots:
 
   domain-glossary-procedure@1.0.0: {}
 
-  domain-objects@0.25.2:
-    dependencies:
-      '@ehmpathy/error-fns': 1.3.7
-      '@types/joi': 17.2.3
-      '@types/yup': 0.29.14
-      change-case: 4.1.2
-      cross-sha256: 1.2.0
-      type-fns: 1.21.0
-
   domain-objects@0.29.4:
     dependencies:
       '@types/joi': 17.2.3
@@ -7318,22 +7305,23 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  rhachet-artifact-git@1.1.0:
+  rhachet-artifact-git@1.1.3:
     dependencies:
       '@ehmpathy/uni-time': 1.8.1
       as-procedure: 1.1.7
-      domain-objects: 0.25.2
+      domain-objects: 0.31.3
       find-up: 5.0.0
       hash-fns: 1.1.0
-      helpful-errors: 1.3.8
-      rhachet-artifact: 1.0.0
+      helpful-errors: 1.5.3
+      rhachet-artifact: 1.0.1
       serde-fns: 1.3.0
-      type-fns: 1.19.0
+      type-fns: 1.21.0
 
-  rhachet-artifact@1.0.0:
+  rhachet-artifact@1.0.1:
     dependencies:
       as-procedure: 1.1.7
-      domain-objects: 0.25.2
+      domain-objects: 0.31.3
+      helpful-errors: 1.5.3
 
   run-async@2.4.1: {}
 
