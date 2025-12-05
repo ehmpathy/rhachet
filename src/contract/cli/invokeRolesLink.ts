@@ -1,16 +1,16 @@
-import { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve, relative } from 'node:path';
+import { relative, resolve } from 'node:path';
+import type { Command } from 'commander';
+import { BadRequestError } from 'helpful-errors';
 
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
 import {
-  getAgentRootReadmeTemplate,
   getAgentRepoThisReadmeTemplate,
+  getAgentRootReadmeTemplate,
 } from '../../logic/invoke/getAgentReadmeTemplates';
 import { findsertFile } from '../../logic/invoke/link/findsertFile';
 import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
-import { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '../sdk';
 
 /**
  * .what = adds the "roles link" subcommand to the CLI

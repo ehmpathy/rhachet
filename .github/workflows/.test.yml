@@ -7,11 +7,10 @@ on:
         type: string
         description: the aws region within which we should run the tests
         required: false
+    secrets:
       aws-account-id:
-        type: string
         description: the id of the account the credentials are expected to access
         required: false
-    secrets:
       aws-access-key-id:
         required: false
         description: required credentials to authenticate with aws the aws account against which to run the tests
@@ -32,14 +31,14 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # we need all commits to test:commits
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -55,12 +54,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -76,12 +75,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: set terraform version
         uses: hashicorp/setup-terraform@v3
@@ -100,12 +99,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -121,12 +120,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -142,12 +141,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -156,7 +155,7 @@ jobs:
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
       - name: configure aws credentials
-        if: "${{ inputs.aws-account-id != '' }}"
+        if: "${{ inputs.aws-region != '' }}"
         uses: aws-actions/configure-aws-credentials@v1
         id: credentials
         with:
@@ -165,14 +164,17 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: confirm aws credentials
-        if: "${{ inputs.aws-account-id != '' }}"
+        if: "${{ inputs.aws-region != '' }}"
         run: |
-          [[ ${{steps.credentials.outputs.aws-account-id}} != ${{ inputs.aws-account-id }} ]] \
+          [[ ${{steps.credentials.outputs.aws-account-id}} != ${{ secrets.aws-account-id }} ]] \
             && echo 'wrong aws account' && exit 1 \
             || echo 'correct aws account';
 
-      - name: provision:integration-test-db
-        run: npm run provision:integration-test-db --if-present
+      - name: start:testdb
+        run: npm run start:testdb --if-present
+
+      - name: start:livedb:dev
+        run: npm run start:livedb:dev --if-present
 
       - name: test:integration
         run: THOROUGH=true npm run test:integration
@@ -184,12 +186,12 @@ jobs:
     needs: [install]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set node-version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
@@ -198,7 +200,7 @@ jobs:
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
       - name: configure aws credentials
-        if: "${{ inputs.aws-account-id != '' }}"
+        if: "${{ inputs.aws-region != '' }}"
         uses: aws-actions/configure-aws-credentials@v1
         id: credentials
         with:
@@ -207,14 +209,17 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: confirm aws credentials
-        if: "${{ inputs.aws-account-id != '' }}"
+        if: "${{ inputs.aws-region != '' }}"
         run: |
-          [[ ${{steps.credentials.outputs.aws-account-id}} != ${{ inputs.aws-account-id }} ]] \
+          [[ ${{steps.credentials.outputs.aws-account-id}} != ${{ secrets.aws-account-id }} ]] \
             && echo 'wrong aws account' && exit 1 \
             || echo 'correct aws account';
 
-      - name: provision:integration-test-db
-        run: npm run provision:integration-test-db --if-present
+      - name: start:testdb
+        run: npm run start:testdb --if-present
+
+      - name: start:livedb:dev
+        run: npm run start:livedb:dev --if-present
 
       - name: test:acceptance:locally
         run: npm run test:acceptance:locally

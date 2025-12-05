@@ -1,17 +1,17 @@
-import {
-  asUniDateTime,
-  getDuration,
-  UniDateTimeRange,
-  UniDuration,
-} from '@ehmpathy/uni-time';
-import chalk from 'chalk';
-import { UnexpectedCodePathError } from 'helpful-errors';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import readline from 'node:readline';
-import { asSerialBase64, asSerialJSON, Serializable } from 'serde-fns';
+import {
+  asUniDateTime,
+  getDuration,
+  type UniDateTimeRange,
+  type UniDuration,
+} from '@ehmpathy/uni-time';
+import chalk from 'chalk';
+import { UnexpectedCodePathError } from 'helpful-errors';
+import { asSerialBase64, asSerialJSON, type Serializable } from 'serde-fns';
 
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 
 /**
  * .what = gets the standard output prefix for this attempt

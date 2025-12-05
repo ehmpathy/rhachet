@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import type { Command } from 'commander';
 import glob from 'fast-glob';
 import * as fs from 'fs';
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';

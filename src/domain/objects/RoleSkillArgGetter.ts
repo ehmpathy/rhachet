@@ -1,8 +1,8 @@
 import { DomainLiteral } from 'domain-objects';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { GStitcher } from './Stitcher';
-import { Threads } from './Threads';
+import type { GStitcher } from './Stitcher';
+import type { Threads } from './Threads';
 
 type WithOptionPrefix<T extends string> = T | `?${T}`;
 

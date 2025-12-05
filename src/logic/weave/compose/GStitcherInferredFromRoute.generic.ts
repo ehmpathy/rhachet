@@ -1,7 +1,7 @@
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { ProcedureContextMerged } from './ProcedureContextMerged.generic';
-import { ThreadsMerged } from './ThreadsMerged.generic';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { ProcedureContextMerged } from './ProcedureContextMerged.generic';
+import type { ThreadsMerged } from './ThreadsMerged.generic';
 
 type Last<T extends readonly any[]> = T extends readonly [...any[], infer L]
   ? L

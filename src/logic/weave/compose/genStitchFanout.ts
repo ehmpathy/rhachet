@@ -1,11 +1,11 @@
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 import {
   StitchFanout,
-  ThreadsFromFanout,
+  type ThreadsFromFanout,
 } from '../../../domain/objects/StitchFanout';
-import { StitchStep } from '../../../domain/objects/StitchStep';
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
+import type { StitchStep } from '../../../domain/objects/StitchStep';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { GStitcherInferredFromFanout } from './GStitcherInferredFromFanout.generic';
 
 /**
  * .what = generates a stitcher that fans out to multiple parallel stitchers, then concludes with a final one

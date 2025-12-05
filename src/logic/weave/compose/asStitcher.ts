@@ -1,5 +1,5 @@
-import { Stitcher, GStitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { Threads } from '../../../domain/objects/Threads';
 
 /**
  * .what = applies a standardized type wrapper around a stitcher to enforce single-thread compatibility

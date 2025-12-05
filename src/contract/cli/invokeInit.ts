@@ -1,7 +1,7 @@
-import { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
 import { existsSync, writeFileSync } from 'node:fs';
-import { resolve, relative } from 'node:path';
+import { relative, resolve } from 'node:path';
+import type { Command } from 'commander';
+import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { discoverRolePackages } from '../../logic/init/discoverRolePackages';

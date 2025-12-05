@@ -1,7 +1,7 @@
-import { Serializable } from 'serde-fns';
+import type { Serializable } from 'serde-fns';
 
-import { Threads } from '../../domain/objects';
-import { Template } from '../../domain/objects/Template';
+import type { Threads } from '../../domain/objects';
+import type { Template } from '../../domain/objects/Template';
 import { useTemplate } from './useTemplate';
 
 /**

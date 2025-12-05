@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { Artifact } from 'rhachet-artifact';
-import { GitFile, getGitRepoRoot } from 'rhachet-artifact-git';
+import type { Artifact } from 'rhachet-artifact';
+import { type GitFile, getGitRepoRoot } from 'rhachet-artifact-git';
 
 /**
  * .what = reads the artifacts given and returns a string for use in a template val

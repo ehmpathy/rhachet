@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`generateRhachetConfig should convert kebab-case to PascalCase for aliases 1`] = `
 "import { InvokeHooks, RoleRegistry } from 'rhachet';

@@ -1,5 +1,5 @@
-import { DomainEntity, RefByUnique } from 'domain-objects';
-import { GitFile } from 'rhachet-artifact-git';
+import { DomainEntity, type RefByUnique } from 'domain-objects';
+import type { GitFile } from 'rhachet-artifact-git';
 
 /**
  * .what = a template reference that can be hydrated with variables

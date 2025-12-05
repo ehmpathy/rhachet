@@ -1,25 +1,19 @@
 export * from '../domain/objects';
-
+export { genContextStitchTrail } from '../logic/context/genContextStitchTrail';
+export { enrollThread } from '../logic/role/enrollThread';
+export { genRoleSkill } from '../logic/role/genRoleSkill';
+export type { ContextStitchTrail } from '../logic/stitch/withStitchTrail';
+export { genStepImagineViaTemplate } from '../logic/template/genStepImagineViaTemplate';
+export { genTemplate } from '../logic/template/genTemplate';
+export { getTemplatePathByCallerPath } from '../logic/template/getTemplatePathByCallerPath';
+export { getTemplateValFromArtifacts } from '../logic/template/getTemplateValFromArtifacts';
+export { getTemplateVarsFromRoleInherit } from '../logic/template/getTemplateVarsFromInheritance';
+export { useTemplate } from '../logic/template/useTemplate';
+export { getStitch } from '../logic/thread/getStitch';
+export { asStitcher } from '../logic/weave/compose/asStitcher';
+export { asStitcherFlat } from '../logic/weave/compose/asStitcherFlat';
 export { genStitchChoice } from '../logic/weave/compose/genStitchChoice';
 export { genStitchCycle } from '../logic/weave/compose/genStitchCycle';
 export { genStitchFanout } from '../logic/weave/compose/genStitchFanout';
 export { genStitchRoute } from '../logic/weave/compose/genStitchRoute';
-
 export { enweaveOneStitcher } from '../logic/weave/enweaveOneStitcher';
-
-export { asStitcher } from '../logic/weave/compose/asStitcher';
-export { asStitcherFlat } from '../logic/weave/compose/asStitcherFlat';
-
-export { genTemplate } from '../logic/template/genTemplate';
-export { getTemplateValFromArtifacts } from '../logic/template/getTemplateValFromArtifacts';
-export { getTemplateVarsFromRoleInherit } from '../logic/template/getTemplateVarsFromInheritance';
-export { useTemplate } from '../logic/template/useTemplate';
-export { genStepImagineViaTemplate } from '../logic/template/genStepImagineViaTemplate';
-
-export { ContextStitchTrail } from '../logic/stitch/withStitchTrail';
-export { getStitch } from '../logic/thread/getStitch';
-export { enrollThread } from '../logic/role/enrollThread';
-
-export { genRoleSkill } from '../logic/role/genRoleSkill';
-export { genContextStitchTrail } from '../logic/context/genContextStitchTrail';
-export { getTemplatePathByCallerPath } from '../logic/template/getTemplatePathByCallerPath';

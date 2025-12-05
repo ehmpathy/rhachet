@@ -1,4 +1,4 @@
-import { ThreadContextRole, ThreadRole } from './Threads';
+import type { ThreadContextRole, ThreadRole } from './Threads';
 
 /**
  * .what = a resolved RoleTrait, accessible in a thread's context

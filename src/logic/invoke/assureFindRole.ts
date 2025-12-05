@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
-import { Role } from '../../domain/objects/Role';
-import { RoleRegistry } from '../../domain/objects/RoleRegistry';
+import type { Role } from '../../domain/objects/Role';
+import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
 
 /**
  * .what = finds the first matching role across registries

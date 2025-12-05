@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`enweaveOneStitcher given: a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max when: executing the full review loop with realistic threads for artist, critic, director, and judge then: it should exit after 3 cycles if blockers are always returned 1`] = `
 "{

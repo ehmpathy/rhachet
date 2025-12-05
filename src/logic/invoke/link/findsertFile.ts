@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative } from 'node:path';
 
 /**

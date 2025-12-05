@@ -1,10 +1,10 @@
 import { DomainEntity } from 'domain-objects';
 
-import {
+import type {
   RoleSkillContextGetter,
   RoleSkillThreadsGetter,
 } from './RoleSkillArgGetter';
-import { GStitcher, Stitcher } from './Stitcher';
+import type { GStitcher, Stitcher } from './Stitcher';
 
 /**
  * .what = a skill is an action a role can perform; a route it can weave

@@ -1,15 +1,15 @@
 import {
-  asUniDateTime,
   addDuration,
-  UniDateTime,
+  asUniDateTime,
   getDuration,
   isUniDateTimeRange,
+  type UniDateTime,
 } from '@ehmpathy/uni-time';
 import { HelpfulError, UnexpectedCodePathError } from 'helpful-errors';
 
-import { StitchCycle } from '../../domain/objects/StitchCycle';
+import type { StitchCycle } from '../../domain/objects/StitchCycle';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { GStitcher } from '../../domain/objects/Stitcher';
 import { withStitchTrail } from '../stitch/withStitchTrail';
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 

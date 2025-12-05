@@ -1,8 +1,8 @@
-import { UniDateTime } from '@ehmpathy/uni-time';
+import type { UniDateTime } from '@ehmpathy/uni-time';
 import { DomainLiteral } from 'domain-objects';
 
-import { Stitch } from './Stitch';
-import { Threads } from './Threads';
+import type { Stitch } from './Stitch';
+import type { Threads } from './Threads';
 
 /**
  * .what = an event that describes the occurrence of a stich being set

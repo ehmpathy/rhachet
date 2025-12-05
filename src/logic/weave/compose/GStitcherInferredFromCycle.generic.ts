@@ -1,11 +1,11 @@
-import {
+import type {
   GStitcher,
   GStitcherOf,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { ProcedureContextMerged } from './ProcedureContextMerged.generic';
-import { ThreadsMerged } from './ThreadsMerged.generic';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { ProcedureContextMerged } from './ProcedureContextMerged.generic';
+import type { ThreadsMerged } from './ThreadsMerged.generic';
 
 /**
  * .what = infers a composite GStitcher from a StitchCycle config

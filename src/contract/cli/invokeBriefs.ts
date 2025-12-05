@@ -1,6 +1,6 @@
-import { Command } from 'commander';
+import type { Command } from 'commander';
 
-import { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '../sdk';
 import { invokeBriefsBoot } from './invokeBriefsBoot';
 import { invokeBriefsLink } from './invokeBriefsLink';
 

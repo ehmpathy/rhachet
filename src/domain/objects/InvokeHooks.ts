@@ -1,4 +1,4 @@
-import { InvokeOpts } from '.';
+import type { InvokeOpts } from '.';
 
 export interface InvokeHooks {
   onInvokeAskInput: Array<

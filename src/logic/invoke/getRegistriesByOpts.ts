@@ -1,5 +1,5 @@
-import { RoleRegistry } from '../../domain/objects';
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { RoleRegistry } from '../../domain/objects';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 
 /**
  * .what = get registries from the invocation options declared

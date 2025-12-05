@@ -1,4 +1,4 @@
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
 
 /**
  * .what = transforms a union into an intersection of its members
@@ -14,11 +14,10 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
  * .what = merges a tuple of object types into one composite object type
  * .why = uses `UnionToIntersection` to combine all tuple elements, then removes any leftover index signatures (e.g. from `Record<string, never>`)
  */
-type MergeUnion<T extends readonly any[]> = UnionToIntersection<
-  T[number]
-> extends infer I
-  ? { [K in keyof I]: I[K] }
-  : never;
+type MergeUnion<T extends readonly any[]> =
+  UnionToIntersection<T[number]> extends infer I
+    ? { [K in keyof I]: I[K] }
+    : never;
 
 /**
  * .what = semantic alias for any object type used as a procedure context

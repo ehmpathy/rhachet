@@ -3,15 +3,15 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { getUuid } from 'uuid-fns';
 
 import { Stitch } from '../../domain/objects/Stitch';
+import { asStitcherDesc, type GStitcher } from '../../domain/objects/Stitcher';
 import { StitchSetEvent } from '../../domain/objects/StitchSetEvent';
-import { StitchStep } from '../../domain/objects/StitchStep';
+import type { StitchStep } from '../../domain/objects/StitchStep';
 import {
   asStitchTrailDesc,
   StitchTrailMarker,
 } from '../../domain/objects/StitchTrail';
-import { asStitcherDesc, GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
-import { Threads } from '../../domain/objects/Threads';
+import type { Threads } from '../../domain/objects/Threads';
 import { invokeImagineStitcher } from './invokeImagineStitcher';
 
 /**
@@ -44,9 +44,10 @@ export const normThreadsToSingle = <TThreads extends Threads<any, any>>(
   }
   return result;
 };
-type ReqThreadsSingle<T> = T extends Threads<infer TContextDict, any>
-  ? Threads<TContextDict, 'single'>
-  : never;
+type ReqThreadsSingle<T> =
+  T extends Threads<infer TContextDict, any>
+    ? Threads<TContextDict, 'single'>
+    : never;
 
 /**
  * .what = enstitche a single stitch step to produce a stitch

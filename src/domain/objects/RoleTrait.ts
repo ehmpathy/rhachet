@@ -1,6 +1,6 @@
 import { DomainEntity } from 'domain-objects';
-import { Artifact } from 'rhachet-artifact';
-import { GitFile } from 'rhachet-artifact-git';
+import type { Artifact } from 'rhachet-artifact';
+import type { GitFile } from 'rhachet-artifact-git';
 
 /**
  * .what = a trait is a reusable behavioral modifier for a role

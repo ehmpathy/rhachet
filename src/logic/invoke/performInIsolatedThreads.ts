@@ -2,7 +2,7 @@ import { asDurationInWords } from '@ehmpathy/uni-time';
 import Bottleneck from 'bottleneck';
 import { BadRequestError } from 'helpful-errors';
 
-import { InvokeOpts } from '../../domain/objects/InvokeOpts';
+import type { InvokeOpts } from '../../domain/objects/InvokeOpts';
 import { addAttemptQualifierToOutputPath } from './addAttemptQualifierToOutputPath';
 import { performInIsolatedThread } from './performInIsolatedThread.invoke';
 

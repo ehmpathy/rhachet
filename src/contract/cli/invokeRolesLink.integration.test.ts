@@ -1,7 +1,7 @@
-import { Command } from 'commander';
-import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { given, when, then, getError } from 'test-fns';
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
 
 import { Role } from '../../domain/objects/Role';
 import { RoleRegistry } from '../../domain/objects/RoleRegistry';

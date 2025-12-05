@@ -1,8 +1,8 @@
 import { DomainLiteral } from 'domain-objects';
 import { omit } from 'type-fns';
 
-import { Stitch } from './Stitch';
-import { StitchSetEvent } from './StitchSetEvent';
+import type { Stitch } from './Stitch';
+import type { StitchSetEvent } from './StitchSetEvent';
 
 /**
  * .what = a declaration of a thought thread

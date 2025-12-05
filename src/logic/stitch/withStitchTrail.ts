@@ -1,4 +1,4 @@
-import {
+import type {
   Procedure,
   ProcedureContext,
   ProcedureInput,
@@ -7,12 +7,12 @@ import {
 import { withAssure } from 'type-fns';
 import { getUuid } from 'uuid-fns';
 
-import { StitchSetEvent } from '../../domain/objects';
+import type { StitchSetEvent } from '../../domain/objects';
+import { isOfStitcherForm, type Stitcher } from '../../domain/objects/Stitcher';
 import {
-  StitchTrail,
+  type StitchTrail,
   StitchTrailMarker,
 } from '../../domain/objects/StitchTrail';
-import { isOfStitcherForm, Stitcher } from '../../domain/objects/Stitcher';
 
 export interface ContextStitchTrail {
   stitch: {

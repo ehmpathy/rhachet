@@ -1,12 +1,12 @@
-import { ThreadsFromFanout } from '../../../domain/objects/StitchFanout';
-import { StitchStep } from '../../../domain/objects/StitchStep';
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
-import {
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { ThreadsFromFanout } from '../../../domain/objects/StitchFanout';
+import type { StitchStep } from '../../../domain/objects/StitchStep';
+import type { GStitcherInferredFromRoute } from './GStitcherInferredFromRoute.generic';
+import type {
   ProcedureContextMerged,
   ProcedureContextSpread,
 } from './ProcedureContextMerged.generic';
-import { ThreadsMerged } from './ThreadsMerged.generic';
+import type { ThreadsMerged } from './ThreadsMerged.generic';
 
 /**
  * .what = a mech to infer a GStitcher from a StitchFanout setup

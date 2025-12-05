@@ -1,10 +1,10 @@
-import { ContextLogTrail } from 'as-procedure';
+import type { ContextLogTrail } from 'as-procedure';
 
-import { ContextStitchTrail } from '../../logic/stitch/withStitchTrail';
-import { StitchStep } from './StitchStep';
-import { GStitcher, Stitcher } from './Stitcher';
-import { Thread } from './Thread';
-import { Threads } from './Threads';
+import type { ContextStitchTrail } from '../../logic/stitch/withStitchTrail';
+import type { GStitcher, Stitcher } from './Stitcher';
+import type { StitchStep } from './StitchStep';
+import type { Thread } from './Thread';
+import type { Threads } from './Threads';
 
 type ArtistContext = { name: string };
 

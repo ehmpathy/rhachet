@@ -1,11 +1,11 @@
 import { sleep } from '@ehmpathy/uni-time';
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
+import type { Threads } from '../../domain/objects/Threads';
 import { genContextStitchTrail } from '../context/genContextStitchTrail';
 import { genThread } from '../thread/genThread';
 import { genStitchCycle } from './compose/genStitchCycle';
@@ -156,7 +156,7 @@ describe('enweaveOneCycle', () => {
         async () => {
           await expect(
             enweaveOneCycle({ stitcher, threads }, context),
-          ).rejects.toThrowError(/DECIDED/);
+          ).rejects.toThrow(/DECIDED/);
         },
       );
     });

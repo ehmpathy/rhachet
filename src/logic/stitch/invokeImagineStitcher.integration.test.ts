@@ -3,13 +3,16 @@ import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '../../.test/genContextLogTrail';
 import { getContextOpenAI } from '../../.test/getContextOpenAI';
-import { Stitch } from '../../domain/objects/Stitch';
+import type { Stitch } from '../../domain/objects/Stitch';
+import type { GStitcher } from '../../domain/objects/Stitcher';
 import { StitchStepImagine } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
 import { Thread } from '../../domain/objects/Thread';
-import { Threads } from '../../domain/objects/Threads';
+import type { Threads } from '../../domain/objects/Threads';
 import { genContextStitchTrail } from '../context/genContextStitchTrail';
-import { ContextOpenAI, imagineViaOpenAI } from './adapters/imagineViaOpenAI';
+import {
+  type ContextOpenAI,
+  imagineViaOpenAI,
+} from './adapters/imagineViaOpenAI';
 import { enstitch } from './enstitch';
 
 jest.setTimeout(toMilliseconds({ minutes: 3 }));

@@ -1,9 +1,9 @@
 import {
-  GStitcher,
-  Stitcher,
-  RoleSkillThreadsGetter,
-  RoleSkillContextGetter,
+  type GStitcher,
   RoleSkill,
+  type RoleSkillContextGetter,
+  type RoleSkillThreadsGetter,
+  type Stitcher,
 } from '../../domain/objects';
 
 /**

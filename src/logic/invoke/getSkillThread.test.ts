@@ -1,7 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
-import { given, when, then, getError } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
-import { Threads } from '../../domain/objects';
+import type { Threads } from '../../domain/objects';
 import { RoleSkillThreadsGetter } from '../../domain/objects/RoleSkillArgGetter';
 import { genThread } from '../thread/genThread';
 import { getSkillThreads } from './getSkillThreads';

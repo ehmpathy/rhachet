@@ -1,16 +1,15 @@
 import { given, then, when } from 'test-fns';
-import { Empty } from 'type-fns';
+import type { Empty } from 'type-fns';
 
-import { Stitch } from '../../../domain/objects/Stitch';
-import { StitchChoice } from '../../../domain/objects/StitchChoice';
-import { StitchStepCompute } from '../../../domain/objects/StitchStep';
-import {
+import type { StitchChoice } from '../../../domain/objects/StitchChoice';
+import type {
   GStitcher,
   GStitcherFlat,
   GStitcherOf,
   Stitcher,
 } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
+import { StitchStepCompute } from '../../../domain/objects/StitchStep';
+import type { Threads } from '../../../domain/objects/Threads';
 import { genThread } from '../../thread/genThread';
 import { asStitcher } from './asStitcher';
 import { genStitchChoice } from './genStitchChoice';
@@ -67,17 +66,15 @@ describe('genStitchChoice type preservation', () => {
     when('checking assignability to Stitcher<GStitcher>', () => {
       then('it should produce single threads', () => {
         type ThreadsKind = GStitcherOf<typeof choice>['threads'];
-        type IsSingle = ThreadsKind extends Threads<any, 'single'>
-          ? true
-          : false;
+        type IsSingle =
+          ThreadsKind extends Threads<any, 'single'> ? true : false;
         const check: IsSingle = true;
         expect(check);
       });
 
       then('it should produce a valid GStitcher', () => {
-        type Result = GStitcherOf<typeof choice> extends GStitcher
-          ? true
-          : false;
+        type Result =
+          GStitcherOf<typeof choice> extends GStitcher ? true : false;
         const result: Result = true;
         expect(result);
       });
@@ -85,13 +82,12 @@ describe('genStitchChoice type preservation', () => {
       then(
         'it should be assignable to StitchChoice<T extends GStitcher>',
         () => {
-          type IsAssignableToStitchChoice = typeof choice extends StitchChoice<
-            infer T
-          >
-            ? T extends GStitcher
-              ? true
-              : false
-            : false;
+          type IsAssignableToStitchChoice =
+            typeof choice extends StitchChoice<infer T>
+              ? T extends GStitcher
+                ? true
+                : false
+              : false;
 
           const check: IsAssignableToStitchChoice = true;
           expect(check);
@@ -99,21 +95,24 @@ describe('genStitchChoice type preservation', () => {
       );
 
       then('it should be assignable generically', () => {
-        type A = Choice extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
-        type B = ChoiceNormed extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
-        type C = typeof choice extends Stitcher<infer T>
-          ? T extends GStitcher
-            ? true
-            : false
-          : false;
+        type A =
+          Choice extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
+        type B =
+          ChoiceNormed extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
+        type C =
+          typeof choice extends Stitcher<infer T>
+            ? T extends GStitcher
+              ? true
+              : false
+            : false;
 
         const checkA: A = true;
         const checkB: B = true;
@@ -328,11 +327,12 @@ describe('genStitchChoice type preservation', () => {
       });
 
       then('it should be assignable to StitchChoice<T>', () => {
-        type Check = typeof rootChoice extends StitchChoice<infer G>
-          ? G extends GStitcher
-            ? true
-            : false
-          : false;
+        type Check =
+          typeof rootChoice extends StitchChoice<infer G>
+            ? G extends GStitcher
+              ? true
+              : false
+            : false;
 
         const result: Check = true;
         expect(result);

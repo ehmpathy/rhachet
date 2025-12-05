@@ -1,7 +1,7 @@
 import { StitchChoice } from '../../../domain/objects/StitchChoice';
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import { Threads } from '../../../domain/objects/Threads';
-import { GStitcherInferredFromChoice } from './GStitcherInferredFromChoice.generic';
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type { Threads } from '../../../domain/objects/Threads';
+import type { GStitcherInferredFromChoice } from './GStitcherInferredFromChoice.generic';
 
 /**
  * .what = generates a stitcher that forks to multiple options and chooses one

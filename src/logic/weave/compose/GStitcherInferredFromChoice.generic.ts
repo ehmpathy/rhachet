@@ -1,9 +1,9 @@
-import { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
-import {
+import type { GStitcher, Stitcher } from '../../../domain/objects/Stitcher';
+import type {
   ProcedureContextMerged,
   ProcedureContextSpread,
 } from './ProcedureContextMerged.generic';
-import { ThreadsMerged, ThreadsSpread } from './ThreadsMerged.generic';
+import type { ThreadsMerged, ThreadsSpread } from './ThreadsMerged.generic';
 
 /**
  * .what = infers a composite GStitcher from a StitchChoice config

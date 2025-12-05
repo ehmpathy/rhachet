@@ -1,8 +1,8 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
-import { PickOne } from 'type-fns';
+import type { PickOne } from 'type-fns';
 
-import { GStitcher } from '../../domain/objects';
-import { RoleSkillContextGetter } from '../../domain/objects/RoleSkillArgGetter';
+import type { GStitcher } from '../../domain/objects';
+import type { RoleSkillContextGetter } from '../../domain/objects/RoleSkillArgGetter';
 
 /**
  * .what = hydrates skill context using either passin or lookup mode
