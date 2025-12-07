@@ -1,0 +1,16 @@
+bootup your mechanic's role via `npx rhachet roles boot --repo ehmpathy --role mechanic`
+
+then, execute
+- phase0 to phaseN
+of roadmap
+- .behavior/v2025_12_06.roles-cost-report/4.1.roadmap.v1.i1.md
+
+ref:
+- .behavior/v2025_12_06.roles-cost-report/3.3.blueprint.v1.i1.md
+
+---
+
+track your progress
+
+emit todos and check them off into
+- .behavior/v2025_12_06.roles-cost-report/5.1.execution.phase0_to_phaseN.v1.i1.md

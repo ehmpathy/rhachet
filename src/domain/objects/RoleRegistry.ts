@@ -9,10 +9,14 @@ import { Role } from './Role';
  *   - enables composition of registries
  *   - supports cli and documentation introspection
  *   - supports fluid composition of roles via delegation (e.g., one role can runtime delegate to another that it found via registry)
+ *
+ * .note = a RoleRegistry is synonymous with a "repo" in CLI commands;
+ *   the registry slug is used as the repo slug (e.g., --repo ehmpathy)
  */
 export interface RoleRegistry {
   /**
    * .what = unique identifier for this registry
+   * .note = this is also used as the "repo" slug in CLI commands
    */
   slug: string;
 

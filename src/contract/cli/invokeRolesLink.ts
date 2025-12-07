@@ -8,6 +8,7 @@ import {
   getAgentRepoThisReadmeTemplate,
   getAgentRootReadmeTemplate,
 } from '../../logic/invoke/getAgentReadmeTemplates';
+import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
 import { findsertFile } from '../../logic/invoke/link/findsertFile';
 import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
 import type { RoleRegistry } from '../sdk';
@@ -30,16 +31,18 @@ export const invokeRolesLink = ({
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to link resources for')
     .action((opts: { repo?: string; role?: string }) => {
-      if (!opts.repo)
-        BadRequestError.throw('--repo is required (e.g., --repo ehmpathy)');
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const repoSlug = opts.repo;
       const role = assureFindRole({ registries, slug: opts.role });
+      const repo = opts.repo
+        ? registries.find((r) => r.slug === opts.repo)
+        : inferRepoByRole({ registries, roleSlug: opts.role });
+      if (!repo)
+        BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
 
       console.log(``);
-      console.log(`🔗 Linking role "${role.slug}" from repo "${repoSlug}"...`);
+      console.log(`🔗 Linking role "${role.slug}" from repo "${repo.slug}"...`);
       console.log(``);
 
       // Create .agent directory structure
@@ -47,7 +50,7 @@ export const invokeRolesLink = ({
       const repoThisDir = resolve(agentDir, 'repo=.this');
       const repoRoleDir = resolve(
         agentDir,
-        `repo=${repoSlug}`,
+        `repo=${repo.slug}`,
         `role=${role.slug}`,
       );
 
@@ -90,7 +93,7 @@ export const invokeRolesLink = ({
       });
 
       console.log(``);
-      console.log(`🔗 Linked role "${role.slug}" from repo "${repoSlug}"`);
+      console.log(`🔗 Linked role "${role.slug}" from repo "${repo.slug}"`);
       if (briefsCount > 0) console.log(`  - ${briefsCount} brief(s) linked`);
       if (skillsCount > 0) console.log(`  - ${skillsCount} skill(s) linked`);
       console.log(``);

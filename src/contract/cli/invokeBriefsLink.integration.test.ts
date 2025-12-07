@@ -51,7 +51,7 @@ describe('invokeBriefsLink (integration)', () => {
     });
 
     const mockRegistry = new RoleRegistry({
-      slug: 'test-registry',
+      slug: 'test',
       readme: 'Test readme',
       roles: [mockRole],
     });
@@ -122,16 +122,42 @@ describe('invokeBriefsLink (integration)', () => {
       });
     });
 
-    when('invoked with "link" without --repo', () => {
-      then('it should throw an error requiring --repo', async () => {
-        const error = await getError(() =>
-          briefsCommand.parseAsync(['link', '--role', 'mechanic'], {
+    when(
+      'invoked with "link --role mechanic" without --repo (single registry has the role)',
+      () => {
+        then('it should auto-infer the repo and create symlinks', async () => {
+          await briefsCommand.parseAsync(['link', '--role', 'mechanic'], {
             from: 'user',
-          }),
-        );
+          });
 
-        expect(error?.message).toContain('--repo is required');
-      });
+          // Check that .agent/repo=test/role=mechanic/briefs directory was created
+          expect(
+            existsSync(
+              resolve(testDir, '.agent/repo=test/role=mechanic/briefs'),
+            ),
+          ).toBe(true);
+
+          // Check log output mentions the inferred repo
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Linking briefs for role "mechanic"'),
+          );
+        });
+      },
+    );
+
+    when('invoked with "link --role nonexistent"', () => {
+      then(
+        'it should throw an error about role not found in registries',
+        async () => {
+          const error = await getError(() =>
+            briefsCommand.parseAsync(['link', '--role', 'nonexistent'], {
+              from: 'user',
+            }),
+          );
+
+          expect(error?.message).toContain('no role named "nonexistent"');
+        },
+      );
     });
 
     when('invoked with "link" without --role', () => {

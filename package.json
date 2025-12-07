@@ -89,6 +89,8 @@
     "esbuild-register": "3.6.0",
     "husky": "8.0.3",
     "jest": "30.2.0",
+    "rhachet": "1.12.3",
+    "rhachet-roles-ehmpathy": "1.12.1",
     "test-fns": "1.7.0",
     "tsx": "4.20.6",
     "typescript": "5.4.5"
