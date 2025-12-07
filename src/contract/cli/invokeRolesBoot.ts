@@ -5,6 +5,9 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
+import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
+
 /**
  * .what = extracts documentation from a skill file without showing implementation
  * .why = agents should understand what skills do, not how they do it
@@ -61,24 +64,33 @@ const extractSkillDocumentation = (filepath: string): string => {
  * .why = outputs role resources (briefs and skills) with stats for context loading
  * .how = reads all files in .agent/repo=$repo/role=$role and prints them with formatting
  */
-export const invokeRolesBoot = ({ command }: { command: Command }): void => {
+export const invokeRolesBoot = ({
+  command,
+  registries,
+}: {
+  command: Command;
+  registries: RoleRegistry[];
+}): void => {
   command
     .command('boot')
     .description('boot context from role resources (briefs and skills)')
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to boot resources for')
     .action(async (opts: { repo?: string; role?: string }) => {
-      if (!opts.repo)
-        BadRequestError.throw('--repo is required (e.g., --repo ehmpathy)');
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const repoSlug = opts.repo;
       const roleSlug = opts.role;
+      const repo = opts.repo
+        ? registries.find((r) => r.slug === opts.repo)
+        : inferRepoByRole({ registries, roleSlug });
+      if (!repo)
+        BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
+
       const roleDir = resolve(
         process.cwd(),
         '.agent',
-        `repo=${repoSlug}`,
+        `repo=${repo.slug}`,
         `role=${roleSlug}`,
       );
       const gitRoot = await getGitRepoRoot({ from: roleDir });
@@ -86,7 +98,7 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
       // Check if role directory exists
       if (!existsSync(roleDir)) {
         BadRequestError.throw(
-          `Role directory not found: ${roleDir}\nRun "rhachet roles link --repo ${repoSlug} --role ${roleSlug}" first`,
+          `Role directory not found: ${roleDir}\nRun "rhachet roles link --repo ${repo.slug} --role ${roleSlug}" first`,
         );
       }
 
@@ -207,7 +219,7 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
 
       // Print each file
       for (const filepath of allFiles) {
-        const relativePath = `.agent/repo=${repoSlug}/role=${roleSlug}/${relative(
+        const relativePath = `.agent/repo=${repo.slug}/role=${roleSlug}/${relative(
           roleDir,
           filepath,
         )}`;

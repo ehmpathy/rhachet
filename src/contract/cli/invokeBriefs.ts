@@ -21,5 +21,5 @@ export const invokeBriefs = ({
     .description('manage role briefs (link, boot)');
 
   invokeBriefsLink({ command: briefsCommand, registries });
-  invokeBriefsBoot({ command: briefsCommand });
+  invokeBriefsBoot({ command: briefsCommand, registries });
 };

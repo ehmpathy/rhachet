@@ -65,7 +65,7 @@ describe('invokeRolesLink (integration)', () => {
     });
 
     const mockRegistry = new RoleRegistry({
-      slug: 'test-registry',
+      slug: 'test',
       readme: 'Test readme',
       roles: [mockRole],
     });
@@ -183,16 +183,47 @@ describe('invokeRolesLink (integration)', () => {
       );
     });
 
-    when('invoked with "link" without --repo', () => {
-      then('it should throw an error requiring --repo', async () => {
-        const error = await getError(() =>
-          rolesCommand.parseAsync(['link', '--role', 'mechanic'], {
-            from: 'user',
-          }),
-        );
+    when(
+      'invoked with "link --role mechanic" without --repo (single registry has the role)',
+      () => {
+        then(
+          'it should auto-infer the repo and create .agent structure',
+          async () => {
+            await rolesCommand.parseAsync(['link', '--role', 'mechanic'], {
+              from: 'user',
+            });
 
-        expect(error?.message).toContain('--repo is required');
-      });
+            // Check that .agent directory structure was created with inferred repo
+            expect(
+              existsSync(
+                resolve(testDir, '.agent/repo=test/role=mechanic/readme.md'),
+              ),
+            ).toBe(true);
+
+            // Check log output mentions the inferred repo
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'Linking role "mechanic" from repo "test"',
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    when('invoked with "link --role nonexistent"', () => {
+      then(
+        'it should throw an error about role not found in registries',
+        async () => {
+          const error = await getError(() =>
+            rolesCommand.parseAsync(['link', '--role', 'nonexistent'], {
+              from: 'user',
+            }),
+          );
+
+          expect(error?.message).toContain('no role named "nonexistent"');
+        },
+      );
     });
 
     when('invoked with "link" without --role', () => {

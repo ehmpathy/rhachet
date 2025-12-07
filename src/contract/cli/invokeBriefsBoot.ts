@@ -5,29 +5,41 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
+import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
+
 /**
  * .what = adds the "briefs boot" subcommand to the CLI
  * .why = outputs all brief files with stats for context loading
  * .how = reads all files in .agent/repo=$repo/role=$role/briefs and prints them with formatting
  */
-export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
+export const invokeBriefsBoot = ({
+  command,
+  registries,
+}: {
+  command: Command;
+  registries: RoleRegistry[];
+}): void => {
   command
     .command('boot')
     .description('boot context from role briefs (print all brief files)')
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to boot briefs for')
     .action(async (opts: { repo?: string; role?: string }) => {
-      if (!opts.repo)
-        BadRequestError.throw('--repo is required (e.g., --repo ehmpathy)');
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const repoSlug = opts.repo;
       const roleSlug = opts.role;
+      const repo = opts.repo
+        ? registries.find((r) => r.slug === opts.repo)
+        : inferRepoByRole({ registries, roleSlug });
+      if (!repo)
+        BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
+
       const briefsDir = resolve(
         process.cwd(),
         '.agent',
-        `repo=${repoSlug}`,
+        `repo=${repo.slug}`,
         `role=${roleSlug}`,
         'briefs',
       );
@@ -36,7 +48,7 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
       // Check if briefs directory exists
       if (!existsSync(briefsDir)) {
         BadRequestError.throw(
-          `Briefs directory not found: ${briefsDir}\nRun "rhachet briefs link --repo ${repoSlug} --role ${roleSlug}" first`,
+          `Briefs directory not found: ${briefsDir}\nRun "rhachet briefs link --repo ${repo.slug} --role ${roleSlug}" first`,
         );
       }
 
@@ -132,7 +144,7 @@ export const invokeBriefsBoot = ({ command }: { command: Command }): void => {
       // Print each file
       for (const filepath of files) {
         const content = readFileSync(filepath, 'utf-8');
-        const relativePath = `.agent/repo=${repoSlug}/role=${roleSlug}/briefs/${relative(
+        const relativePath = `.agent/repo=${repo.slug}/role=${roleSlug}/briefs/${relative(
           briefsDir,
           filepath,
         )}`;

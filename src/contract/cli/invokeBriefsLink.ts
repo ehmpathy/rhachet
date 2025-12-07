@@ -3,6 +3,7 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
 import { assureFindRole } from '../../logic/invoke/assureFindRole';
+import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
 import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
 import type { RoleRegistry } from '../sdk';
 
@@ -24,15 +25,16 @@ export const invokeBriefsLink = ({
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to link briefs for')
     .action((opts: { repo?: string; role?: string }) => {
-      if (!opts.repo)
-        BadRequestError.throw('--repo is required (e.g., --repo ehmpathy)');
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const repoSlug = opts.repo;
-
       // Find the role from registries
       const role = assureFindRole({ registries, slug: opts.role });
+      const repo = opts.repo
+        ? registries.find((r) => r.slug === opts.repo)
+        : inferRepoByRole({ registries, roleSlug: opts.role });
+      if (!repo)
+        BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
 
       // Check if role has briefs configured
       if (role.briefs.dirs.length === 0) {
@@ -43,14 +45,14 @@ export const invokeBriefsLink = ({
 
       console.log(``);
       console.log(
-        `📎 Linking briefs for role "${role.slug}" from repo "${repoSlug}"...`,
+        `📎 Linking briefs for role "${role.slug}" from repo "${repo.slug}"...`,
       );
 
       // Create .agent/repo=$repo/role=$role/briefs directory and link briefs
       const briefsDir = resolve(
         process.cwd(),
         '.agent',
-        `repo=${repoSlug}`,
+        `repo=${repo.slug}`,
         `role=${role.slug}`,
         'briefs',
       );

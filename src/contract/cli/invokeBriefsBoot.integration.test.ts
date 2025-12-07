@@ -9,6 +9,8 @@ import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
+import { Role } from '../../domain/objects/Role';
+import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { invokeBriefsBoot } from './invokeBriefsBoot';
 
 describe('invokeBriefsBoot (integration)', () => {
@@ -26,6 +28,23 @@ describe('invokeBriefsBoot (integration)', () => {
       process.chdir(originalCwd);
     });
 
+    // Create mock registries with roles
+    const mockRole = new Role({
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'Test mechanic role',
+      readme: '# Mechanic',
+      traits: [],
+      skills: { dirs: [], refs: [] },
+      briefs: { dirs: [] },
+    });
+
+    const mockRegistry = new RoleRegistry({
+      slug: 'test',
+      readme: 'Test registry',
+      roles: [mockRole],
+    });
+
     const briefsCommand = new Command('briefs');
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -33,7 +52,7 @@ describe('invokeBriefsBoot (integration)', () => {
       logSpy.mockClear();
     });
 
-    invokeBriefsBoot({ command: briefsCommand });
+    invokeBriefsBoot({ command: briefsCommand, registries: [mockRegistry] });
 
     when(
       'invoked with "boot --repo test --role mechanic" after creating briefs',
@@ -122,17 +141,64 @@ describe('invokeBriefsBoot (integration)', () => {
       },
     );
 
-    when('invoked with "boot" without --repo', () => {
-      then('it should throw an error requiring --repo', async () => {
-        const error = await getError(() =>
-          briefsCommand.parseAsync(['boot', '--role', 'mechanic'], {
-            from: 'user',
-          }),
-        );
+    when(
+      'invoked with "boot --role mechanic" without --repo (single registry has the role)',
+      () => {
+        beforeAll(() => {
+          // Clean up first to ensure fresh state
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
 
-        expect(error?.message).toContain('--repo is required');
-      });
-    });
+          // Setup: Create briefs directory for the inferred repo
+          const briefsDir = resolve(
+            testDir,
+            '.agent/repo=test/role=mechanic/briefs',
+          );
+          mkdirSync(briefsDir, { recursive: true });
+          writeFileSync(
+            resolve(briefsDir, 'inferred.md'),
+            '# Inferred Brief\nThis brief was auto-inferred.',
+          );
+        });
+
+        then(
+          'it should auto-infer the repo and boot successfully',
+          async () => {
+            // Execute boot command WITHOUT --repo
+            await briefsCommand.parseAsync(['boot', '--role', 'mechanic'], {
+              from: 'user',
+            });
+
+            // Check that the briefs were booted from the inferred repo
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.agent/repo=test/role=mechanic/briefs/inferred.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('Inferred Brief'),
+            );
+          },
+        );
+      },
+    );
+
+    when(
+      'invoked with "boot" without --repo and role not in any registry',
+      () => {
+        then('it should throw an error about role not found', async () => {
+          const error = await getError(() =>
+            briefsCommand.parseAsync(['boot', '--role', 'nonexistent'], {
+              from: 'user',
+            }),
+          );
+
+          expect(error?.message).toContain('No repo has role "nonexistent"');
+        });
+      },
+    );
 
     when('invoked with "boot" without --role', () => {
       then('it should throw an error requiring --role', async () => {

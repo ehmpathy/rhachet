@@ -1,0 +1,12 @@
+declare a roadmap,
+
+- checklist style
+- with ordered dependencies
+- with behavioral acceptance criteria
+- with behavioral acceptance verification at each step
+
+for how to execute the blueprint specified in .behavior/v2025_12_06.roles-without-repo/3.3.blueprint.v1.i1.md
+
+---
+
+emit into .behavior/v2025_12_06.roles-without-repo/4.1.roadmap.v1.i1.md

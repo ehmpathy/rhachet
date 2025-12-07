@@ -21,5 +21,5 @@ export const invokeRoles = ({
     .description('manage role resources (link, boot)');
 
   invokeRolesLink({ command: rolesCommand, registries });
-  invokeRolesBoot({ command: rolesCommand });
+  invokeRolesBoot({ command: rolesCommand, registries });
 };
