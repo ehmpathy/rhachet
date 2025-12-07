@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0](https://github.com/ehmpathy/rhachet/compare/v1.12.3...v1.13.0) (2025-12-07)
+
+
+### Features
+
+* **roles:** emit cost report on npx rhachet roles cost ([#33](https://github.com/ehmpathy/rhachet/issues/33)) ([8a3b189](https://github.com/ehmpathy/rhachet/commit/8a3b189daf784710e35d14a3e791af297f25099e))
+* **roles:** make --repo arg optional when inferrable via --role ([#31](https://github.com/ehmpathy/rhachet/issues/31)) ([cad3f88](https://github.com/ehmpathy/rhachet/commit/cad3f8887dbc842016852a7fe4558bc87a87a1fb))
+
 ## [1.12.3](https://github.com/ehmpathy/rhachet/compare/v1.12.2...v1.12.3) (2025-12-05)
 
 
