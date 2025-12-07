@@ -1,3 +1,4 @@
+export { withImmute } from 'domain-objects';
 export * from '../domain/objects';
 export { genContextStitchTrail } from '../logic/context/genContextStitchTrail';
 export { enrollThread } from '../logic/role/enrollThread';
