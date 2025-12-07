@@ -7,57 +7,7 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
-
-/**
- * .what = extracts documentation from a skill file without showing implementation
- * .why = agents should understand what skills do, not how they do it
- * .how = reads file and extracts only comments/documentation at the top
- */
-const extractSkillDocumentation = (filepath: string): string => {
-  const content = readFileSync(filepath, 'utf-8');
-  const lines = content.split('\n');
-  const docLines: string[] = [];
-
-  // Extract shebang and leading comments/documentation
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Include shebang
-    if (trimmed.startsWith('#!')) {
-      docLines.push(line);
-      continue;
-    }
-
-    // Include comment lines (shell, python, etc)
-    if (
-      trimmed.startsWith('#') ||
-      trimmed.startsWith('//') ||
-      trimmed.startsWith('*')
-    ) {
-      docLines.push(line);
-      continue;
-    }
-
-    // Stop at first non-comment, non-blank line
-    if (trimmed !== '') {
-      break;
-    }
-
-    // Include blank lines between comments
-    docLines.push(line);
-  }
-
-  // If we got some documentation, add a note about implementation being hidden
-  if (docLines.length > 0) {
-    docLines.push('');
-    docLines.push('# [implementation hidden - use skill to execute]');
-  } else {
-    docLines.push('# [no documentation found]');
-    docLines.push('# [implementation hidden - use skill to execute]');
-  }
-
-  return docLines.join('\n');
-};
+import { extractSkillDocumentation } from '../../logic/role/extractSkillDocumentation';
 
 /**
  * .what = adds the "roles boot" subcommand to the CLI
