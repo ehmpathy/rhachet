@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/ehmpathy/rhachet/compare/v1.13.0...v1.13.1) (2025-12-07)
+
+
+### Bug Fixes
+
+* **pkg:** export withImmute for portable typedefs ([#34](https://github.com/ehmpathy/rhachet/issues/34)) ([d2a0037](https://github.com/ehmpathy/rhachet/commit/d2a0037e9624f39d854e116c44c4c6b8ae37e35d))
+
 ## [1.13.0](https://github.com/ehmpathy/rhachet/compare/v1.12.3...v1.13.0) (2025-12-07)
 
 
