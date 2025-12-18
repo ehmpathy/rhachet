@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.2](https://github.com/ehmpathy/rhachet/compare/v1.13.1...v1.13.2) (2025-12-18)
+
+
+### Bug Fixes
+
+* **boot:** support boot repo .this ([#36](https://github.com/ehmpathy/rhachet/issues/36)) ([3ec5c08](https://github.com/ehmpathy/rhachet/commit/3ec5c083b1ce6eedc2a64e729b859a1d3d93b896))
+* **cicd:** deworm release.yml via github appauth ([#37](https://github.com/ehmpathy/rhachet/issues/37)) ([153ad08](https://github.com/ehmpathy/rhachet/commit/153ad0824acaf5a970e69beb3e911580e2753077))
+
 ## [1.13.1](https://github.com/ehmpathy/rhachet/compare/v1.13.0...v1.13.1) (2025-12-07)
 
 
