@@ -158,8 +158,15 @@ describe('invokeRolesBoot (integration)', () => {
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('skills = 2'),
           );
+
+          // Check that readme was printed
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('other = 1'), // readme.md
+            expect.stringContaining(
+              'began:.agent/repo=test/role=mechanic/readme.md',
+            ),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Mechanic Role'),
           );
 
           // Check that brief file contents were printed
@@ -400,5 +407,335 @@ describe('invokeRolesBoot (integration)', () => {
         expect(error?.message).toContain('--repo');
       });
     });
+  });
+
+  given('--repo this is provided', () => {
+    const testDir = resolve(__dirname, './.temp/invokeRolesBoot-this');
+    const originalCwd = process.cwd();
+
+    beforeAll(() => {
+      mkdirSync(testDir, { recursive: true });
+      process.chdir(testDir);
+
+      // Initialize a git repo (required by invokeRolesBoot for getGitRepoRoot)
+      const { execSync } = require('node:child_process');
+      try {
+        execSync('git init', { cwd: testDir, stdio: 'ignore' });
+        execSync('git config user.email "test@example.com"', {
+          cwd: testDir,
+          stdio: 'ignore',
+        });
+        execSync('git config user.name "Test User"', {
+          cwd: testDir,
+          stdio: 'ignore',
+        });
+      } catch {
+        // Ignore errors if git is not available
+      }
+    });
+
+    afterAll(() => {
+      process.chdir(originalCwd);
+    });
+
+    const mockRegistry = new RoleRegistry({
+      slug: 'test',
+      readme: 'Test registry',
+      roles: [],
+    });
+
+    const rolesCommand = new Command('roles');
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    beforeEach(() => {
+      logSpy.mockClear();
+    });
+
+    invokeRolesBoot({ command: rolesCommand, registries: [mockRegistry] });
+
+    when(
+      'invoked with "boot --repo this --role any" with briefs and skills present',
+      () => {
+        beforeAll(() => {
+          // Clean up first to ensure fresh state
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create .agent/repo=.this/role=any directory structure
+          const roleDir = resolve(testDir, '.agent/repo=.this/role=any');
+          const briefsDir = resolve(roleDir, 'briefs');
+          const skillsDir = resolve(roleDir, 'skills');
+          mkdirSync(briefsDir, { recursive: true });
+          mkdirSync(skillsDir, { recursive: true });
+
+          // Create brief files directly (not symlinked)
+          writeFileSync(
+            resolve(briefsDir, 'local-brief.md'),
+            '# Local Brief\nThis is a local brief for the any role',
+          );
+
+          // Create skill files directly
+          writeFileSync(
+            resolve(skillsDir, 'local-skill.sh'),
+            '#!/bin/bash\n# Local Skill - Does something specific to this repo\necho "local skill"',
+          );
+        });
+
+        then(
+          'it should print all briefs and skills from .agent/repo=.this/role=any',
+          async () => {
+            await rolesCommand.parseAsync(
+              ['boot', '--repo', 'this', '--role', 'any'],
+              {
+                from: 'user',
+              },
+            );
+
+            // Check that stats were printed
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('began:stats'),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('files = 2'),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('briefs = 1'),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('skills = 1'),
+            );
+
+            // Check that brief file was printed with correct path
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.agent/repo=.this/role=any/briefs/local-brief.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is a local brief for the any role'),
+            );
+
+            // Check that skill documentation was extracted
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.agent/repo=.this/role=any/skills/local-skill.sh',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('Local Skill'),
+            );
+
+            // Check that skill implementation is hidden
+            expect(logSpy).not.toHaveBeenCalledWith(
+              expect.stringContaining('echo "local skill"'),
+            );
+          },
+        );
+      },
+    );
+
+    when(
+      'invoked with "boot --repo this --role robot" with briefs present',
+      () => {
+        beforeAll(() => {
+          // Clean up first to ensure fresh state
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create .agent/repo=.this/role=robot directory structure
+          const roleDir = resolve(testDir, '.agent/repo=.this/role=robot');
+          const briefsDir = resolve(roleDir, 'briefs');
+          mkdirSync(briefsDir, { recursive: true });
+
+          // Create brief files directly
+          writeFileSync(
+            resolve(briefsDir, 'robot-brief.md'),
+            '# Robot Brief\nThis is a brief for the robot role',
+          );
+        });
+
+        then(
+          'it should print briefs from .agent/repo=.this/role=robot',
+          async () => {
+            await rolesCommand.parseAsync(
+              ['boot', '--repo', 'this', '--role', 'robot'],
+              {
+                from: 'user',
+              },
+            );
+
+            // Check that brief file was printed with correct path
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'began:.agent/repo=.this/role=robot/briefs/robot-brief.md',
+              ),
+            );
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining('This is a brief for the robot role'),
+            );
+          },
+        );
+      },
+    );
+
+    when(
+      'invoked with "boot --repo this --role any" with empty role directory',
+      () => {
+        beforeAll(() => {
+          // Clean up first
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create empty .agent/repo=.this/role=any
+          const roleDir = resolve(testDir, '.agent/repo=.this/role=any');
+          mkdirSync(roleDir, { recursive: true });
+        });
+
+        then('it should warn about no resources found', async () => {
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', 'this', '--role', 'any'],
+            {
+              from: 'user',
+            },
+          );
+
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('No resources found'),
+          );
+        });
+      },
+    );
+
+    when('invoked with "boot --repo this" without --role', () => {
+      then('it should throw error: --role is required', async () => {
+        const error = await getError(() =>
+          rolesCommand.parseAsync(['boot', '--repo', 'this'], {
+            from: 'user',
+          }),
+        );
+
+        expect(error?.message).toContain('--role is required');
+      });
+    });
+
+    when(
+      'invoked with "boot --repo this --role any" but role directory does not exist',
+      () => {
+        beforeAll(() => {
+          // Clean up to ensure .agent/repo=.this/role=any doesn't exist
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+        });
+
+        then(
+          'it should throw error suggesting to create the directory',
+          async () => {
+            const error = await getError(() =>
+              rolesCommand.parseAsync(
+                ['boot', '--repo', 'this', '--role', 'any'],
+                {
+                  from: 'user',
+                },
+              ),
+            );
+
+            expect(error?.message).toContain('not found');
+            expect(error?.message).toContain('role=any');
+          },
+        );
+      },
+    );
+
+    when('invoked with "boot --repo THIS --role any" (uppercase repo)', () => {
+      beforeAll(() => {
+        // Clean up first
+        const cleanAgentDir = resolve(testDir, '.agent');
+        if (existsSync(cleanAgentDir)) {
+          rmSync(cleanAgentDir, { recursive: true, force: true });
+        }
+
+        // Setup: Create .agent/repo=.this/role=any with a brief
+        const roleDir = resolve(testDir, '.agent/repo=.this/role=any');
+        const briefsDir = resolve(roleDir, 'briefs');
+        mkdirSync(briefsDir, { recursive: true });
+
+        writeFileSync(
+          resolve(briefsDir, 'uppercase-test.md'),
+          '# Uppercase Test\nTesting case insensitivity',
+        );
+      });
+
+      then(
+        'it should work the same as --repo this (case insensitive)',
+        async () => {
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', 'THIS', '--role', 'any'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Check that brief was printed
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+              'began:.agent/repo=.this/role=any/briefs/uppercase-test.md',
+            ),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Testing case insensitivity'),
+          );
+        },
+      );
+    });
+
+    when(
+      'invoked with "boot --repo .this --role robot" (with dot prefix)',
+      () => {
+        beforeAll(() => {
+          // Clean up first
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create .agent/repo=.this/role=robot with a brief
+          const roleDir = resolve(testDir, '.agent/repo=.this/role=robot');
+          const briefsDir = resolve(roleDir, 'briefs');
+          mkdirSync(briefsDir, { recursive: true });
+
+          writeFileSync(
+            resolve(briefsDir, 'dotprefix-test.md'),
+            '# Dot Prefix Test\nTesting .this syntax with robot role',
+          );
+        });
+
+        then('it should work the same as --repo this', async () => {
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', '.this', '--role', 'robot'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Check that brief was printed
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+              'began:.agent/repo=.this/role=robot/briefs/dotprefix-test.md',
+            ),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Testing .this syntax with robot role'),
+          );
+        });
+      },
+    );
   });
 });
