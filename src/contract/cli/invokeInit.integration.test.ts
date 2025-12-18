@@ -145,6 +145,79 @@ describe('invokeInit (integration)', () => {
       });
     });
 
+    when('invoked successfully', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            dependencies: { 'rhachet-roles-ehmpathy': '1.0.0' },
+          }),
+        );
+
+        // Clean up agent dirs
+        const agentDir = resolve(testDir, '.agent');
+        if (existsSync(agentDir)) rmSync(agentDir, { recursive: true });
+      });
+
+      then(
+        'it should create .agent/repo=.this/role=any/briefs and skills directories',
+        async () => {
+          await program.parseAsync(['init'], { from: 'user' });
+
+          const briefsDir = resolve(
+            testDir,
+            '.agent/repo=.this/role=any/briefs',
+          );
+          const skillsDir = resolve(
+            testDir,
+            '.agent/repo=.this/role=any/skills',
+          );
+
+          expect(existsSync(briefsDir)).toBe(true);
+          expect(existsSync(skillsDir)).toBe(true);
+        },
+      );
+
+      then(
+        'it should create .agent/repo=.this/role=any/readme.md with correct content',
+        async () => {
+          await program.parseAsync(['init'], { from: 'user' });
+
+          const readmePath = resolve(
+            testDir,
+            '.agent/repo=.this/role=any/readme.md',
+          );
+
+          expect(existsSync(readmePath)).toBe(true);
+          expect(readFileSync(readmePath, 'utf8')).toBe(
+            'this role applies to any agent that works within this repo\n',
+          );
+        },
+      );
+
+      then(
+        'it should not overwrite existing agent directories or readme (findsert)',
+        async () => {
+          // Pre-create with custom content
+          const roleAnyDir = resolve(testDir, '.agent/repo=.this/role=any');
+          const briefsDir = resolve(roleAnyDir, 'briefs');
+          const readmePath = resolve(roleAnyDir, 'readme.md');
+
+          mkdirSync(briefsDir, { recursive: true });
+          writeFileSync(readmePath, 'custom content');
+
+          await program.parseAsync(['init'], { from: 'user' });
+
+          // Should preserve custom content
+          expect(readFileSync(readmePath, 'utf8')).toBe('custom content');
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('○ [found]'),
+          );
+        },
+      );
+    });
+
     when('rhachet.use.ts already exists', () => {
       beforeEach(() => {
         writeFileSync(

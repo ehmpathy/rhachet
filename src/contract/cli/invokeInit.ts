@@ -5,7 +5,7 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
 import { generateRhachetConfig } from '@src/domain.operations/init/generateRhachetConfig';
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 
 /**
@@ -63,6 +63,26 @@ export const invokeInit = ({ program }: { program: Command }): void => {
       const content = generateRhachetConfig({ packages });
       writeFileSync(configPath, content, 'utf8');
       console.log(`  + [created] ${relativeConfigPath}`);
+
+      // Create .agent/repo=.this/role=any directories and readme (findsert: only if not found)
+      const roleAnyDir = resolve(root, '.agent', 'repo=.this', 'role=any');
+      const findsert = (input: { path: string; content?: string }): void => {
+        if (existsSync(input.path)) {
+          console.log(`  ○ [found] ${relative(cwd, input.path)}`);
+          return;
+        }
+        if (input.content !== undefined)
+          writeFileSync(input.path, input.content, 'utf8');
+        else mkdirSync(input.path, { recursive: true });
+        console.log(`  + [created] ${relative(cwd, input.path)}`);
+      };
+
+      findsert({ path: resolve(roleAnyDir, 'briefs') });
+      findsert({ path: resolve(roleAnyDir, 'skills') });
+      findsert({
+        path: resolve(roleAnyDir, 'readme.md'),
+        content: 'this role applies to any agent that works within this repo\n',
+      });
 
       console.log(``);
       console.log(
