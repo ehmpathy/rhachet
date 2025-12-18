@@ -1,3 +1,9 @@
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
+
+import { Role } from '@src/domain.objects/Role';
+import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+
 import {
   existsSync,
   mkdirSync,
@@ -6,11 +12,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
-import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
-
-import { Role } from '../../domain/objects/Role';
-import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { invokeBriefsBoot } from './invokeBriefsBoot';
 
 describe('invokeBriefsBoot (integration)', () => {
@@ -74,7 +75,7 @@ describe('invokeBriefsBoot (integration)', () => {
           // Create mock node_modules structure for symlinks
           const mockRoleDir = resolve(
             testDir,
-            'node_modules/rhachet-roles-ehmpathy/dist/logic/roles/mechanic/.briefs',
+            'node_modules/rhachet-roles-ehmpathy/dist/domain.operations/roles/mechanic/.briefs',
           );
           mkdirSync(mockRoleDir, { recursive: true });
           writeFileSync(
@@ -88,11 +89,11 @@ describe('invokeBriefsBoot (integration)', () => {
 
           // Create symlinks (need to go up 4 levels from briefs/ to testDir root)
           symlinkSync(
-            '../../../../node_modules/rhachet-roles-ehmpathy/dist/logic/roles/mechanic/.briefs/brief1.md',
+            '../../../../node_modules/rhachet-roles-ehmpathy/dist/domain.operations/roles/mechanic/.briefs/brief1.md',
             resolve(briefsDir, 'brief1.md'),
           );
           symlinkSync(
-            '../../../../node_modules/rhachet-roles-ehmpathy/dist/logic/roles/mechanic/.briefs/brief2.md',
+            '../../../../node_modules/rhachet-roles-ehmpathy/dist/domain.operations/roles/mechanic/.briefs/brief2.md',
             resolve(briefsDir, 'brief2.md'),
           );
         });

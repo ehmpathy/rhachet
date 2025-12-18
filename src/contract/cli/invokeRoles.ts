@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 
-import type { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '@src/contract/sdk';
+
 import { invokeRolesBoot } from './invokeRolesBoot';
 import { invokeRolesCost } from './invokeRolesCost';
 import { invokeRolesLink } from './invokeRolesLink';

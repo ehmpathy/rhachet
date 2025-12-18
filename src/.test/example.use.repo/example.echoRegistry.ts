@@ -10,8 +10,8 @@ import {
   GStitcherOf,
   Role,
   RoleRegistry,
-} from '../../domain/objects';
-import { genThread } from '../../logic/thread/genThread';
+} from '@src/domain.objects';
+import { genThread } from '@src/domain.operations/thread/genThread';
 
 const stepEchoAsk = new StitchStepCompute<
   GStitcher<Threads<{ caller: { ask: string } }>>

@@ -1,3 +1,9 @@
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
+
+import { Role } from '@src/domain.objects/Role';
+import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+
 import {
   existsSync,
   mkdirSync,
@@ -6,11 +12,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
-import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
-
-import { Role } from '../../domain/objects/Role';
-import { RoleRegistry } from '../../domain/objects/RoleRegistry';
 import { invokeRolesBoot } from './invokeRolesBoot';
 
 describe('invokeRolesBoot (integration)', () => {
@@ -90,7 +91,7 @@ describe('invokeRolesBoot (integration)', () => {
           // Create mock briefs source directory and files
           const mockBriefsSourceDir = resolve(
             testDir,
-            'node_modules/rhachet-roles-test/dist/logic/roles/mechanic/.briefs',
+            'node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.briefs',
           );
           mkdirSync(mockBriefsSourceDir, { recursive: true });
           writeFileSync(
@@ -105,7 +106,7 @@ describe('invokeRolesBoot (integration)', () => {
           // Create mock skills source directory and files
           const mockSkillsSourceDir = resolve(
             testDir,
-            'node_modules/rhachet-roles-test/dist/logic/roles/mechanic/.skills',
+            'node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.skills',
           );
           mkdirSync(mockSkillsSourceDir, { recursive: true });
           writeFileSync(
@@ -120,12 +121,12 @@ describe('invokeRolesBoot (integration)', () => {
           // Create symlinks to the directories (following new directory-linking behavior)
           // Path is relative from briefsDir back to testDir, then to node_modules
           symlinkSync(
-            '../../../../node_modules/rhachet-roles-test/dist/logic/roles/mechanic/.briefs',
+            '../../../../node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.briefs',
             resolve(briefsDir, '.briefs'),
           );
           // Path is relative from skillsDir back to testDir, then to node_modules
           symlinkSync(
-            '../../../../node_modules/rhachet-roles-test/dist/logic/roles/mechanic/.skills',
+            '../../../../node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.skills',
             resolve(skillsDir, '.skills'),
           );
 

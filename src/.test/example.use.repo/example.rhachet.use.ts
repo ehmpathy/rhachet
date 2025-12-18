@@ -1,4 +1,4 @@
-import { RoleRegistry } from '../../contract/sdk';
+import { RoleRegistry } from '@src/contract/sdk';
 import { EXAMPLE_REGISTRY } from './example.echoRegistry';
 
 export const getRoleRegistries = async (): Promise<RoleRegistry[]> => {

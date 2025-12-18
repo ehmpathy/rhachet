@@ -1,8 +1,8 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import { assureFindRole } from '../../logic/invoke/assureFindRole';
-import type { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '@src/contract/sdk';
+import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 
 /**
  * .what = adds the "list" command to the CLI

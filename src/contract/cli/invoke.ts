@@ -1,11 +1,12 @@
-import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { assureUniqueRoles } from '../../logic/invoke/assureUniqueRoles';
-import { getInvokeHooksByOpts } from '../../logic/invoke/getInvokeHooksByOpts';
-import { getRegistriesByOpts } from '../../logic/invoke/getRegistriesByOpts';
+import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
+import { getInvokeHooksByOpts } from '@src/domain.operations/invoke/getInvokeHooksByOpts';
+import { getRegistriesByOpts } from '@src/domain.operations/invoke/getRegistriesByOpts';
+
+import { resolve } from 'node:path';
 import { invokeAsk } from './invokeAsk';
 import { invokeBriefs } from './invokeBriefs';
 import { invokeChoose } from './invokeChoose';

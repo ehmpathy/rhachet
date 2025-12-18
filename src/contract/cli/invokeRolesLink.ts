@@ -1,17 +1,18 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import { assureFindRole } from '../../logic/invoke/assureFindRole';
+import type { RoleRegistry } from '@src/contract/sdk';
+import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import {
   getAgentRepoThisReadmeTemplate,
   getAgentRootReadmeTemplate,
-} from '../../logic/invoke/getAgentReadmeTemplates';
-import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
-import { findsertFile } from '../../logic/invoke/link/findsertFile';
-import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
-import type { RoleRegistry } from '../sdk';
+} from '@src/domain.operations/invoke/getAgentReadmeTemplates';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+import { findsertFile } from '@src/domain.operations/invoke/link/findsertFile';
+import { symlinkResourceDirectories } from '@src/domain.operations/invoke/link/symlinkResourceDirectories';
+
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 
 /**
  * .what = adds the "roles link" subcommand to the CLI

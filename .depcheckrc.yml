@@ -15,3 +15,6 @@ ignores:
   - "@swc/core"
   - "@swc/jest"
   - tsx
+  - "@src/*"
+  - "@src/.*"
+  - tsc-alias

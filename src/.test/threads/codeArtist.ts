@@ -1,7 +1,7 @@
-import { getFile } from '../../_topublish/file-fns/src/getFile';
-import { Thread } from '../../domain/objects/Thread';
-import { ThreadContextRole } from '../../domain/objects/Threads';
-import { directoryTestAssets } from '../directory';
+import { getFile } from '@src/_topublish/file-fns/src/getFile';
+import { Thread } from '@src/domain.objects/Thread';
+import { ThreadContextRole } from '@src/domain.objects/Threads';
+import { directoryTestAssets } from '@src/.test/directory';
 
 // todo: use enroleThread to add role context & apply role tools
 export const getExampleThreadCodeArtist = async (): Promise<

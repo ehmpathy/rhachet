@@ -1,3 +1,7 @@
+import { execSync } from 'child_process';
+import { Command } from 'commander';
+import { getError, given, then, when } from 'test-fns';
+
 import {
   existsSync,
   mkdirSync,
@@ -6,10 +10,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
-import { execSync } from 'child_process';
-import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
-
 import { invokeInit } from './invokeInit';
 
 describe('invokeInit (integration)', () => {

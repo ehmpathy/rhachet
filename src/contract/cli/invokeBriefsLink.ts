@@ -1,11 +1,12 @@
-import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import { assureFindRole } from '../../logic/invoke/assureFindRole';
-import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
-import { symlinkResourceDirectories } from '../../logic/invoke/link/symlinkResourceDirectories';
-import type { RoleRegistry } from '../sdk';
+import type { RoleRegistry } from '@src/contract/sdk';
+import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+import { symlinkResourceDirectories } from '@src/domain.operations/invoke/link/symlinkResourceDirectories';
+
+import { resolve } from 'node:path';
 
 /**
  * .what = adds the "briefs link" subcommand to the CLI

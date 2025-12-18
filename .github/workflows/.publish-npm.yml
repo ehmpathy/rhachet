@@ -2,10 +2,9 @@ name: .publish-npm
 
 on:
   workflow_call:
-    secrets:
-      npm-auth-token:
-        required: true
-        description: required credentials to authenticate with the aws account under which to publish
+
+permissions:
+  id-token: write # required for oidc
 
 jobs:
   install:
@@ -31,10 +30,32 @@ jobs:
           path: ./node_modules
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
+      - name: verify oidc auth
+        run: |
+          OIDC_TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r '.value')
+          PACKAGE_NAME_PLAIN=$(jq -r '.name' package.json)
+          PACKAGE_NAME_ENCODED=$(printf '%s' "$PACKAGE_NAME_PLAIN" | jq -sRr @uri)
+          HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $OIDC_TOKEN" "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$PACKAGE_NAME_ENCODED")
+          if [[ "$HTTP_CODE" =~ ^2 ]]; then
+            echo "oidc: configured for $PACKAGE_NAME_PLAIN"
+          else
+            echo "::error::oidc: not configured for $PACKAGE_NAME_PLAIN (http $HTTP_CODE). add oidc by-hand at https://www.npmjs.com/package/$PACKAGE_NAME_ENCODED/access"
+            exit 1
+          fi
+
+      - name: verify oidc compat
+        run: |
+          NPM_VERSION=$(npm --version)
+          MIN_VERSION="11.5.1"
+          if [ "$(printf '%s\n' "$MIN_VERSION" "$NPM_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
+            echo "npm $NPM_VERSION < $MIN_VERSION, will upgrade npm now to support oidc..."
+            npm install -g npm@latest
+          else
+            echo "npm $NPM_VERSION >= $MIN_VERSION, ready to use!"
+          fi
+
       - name: build
         run: npm run build
 
       - name: publish
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-auth-token }}
+        run: npm publish --access public --provenance

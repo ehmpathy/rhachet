@@ -1,8 +1,8 @@
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import * as path from 'node:path';
 import { Command } from 'commander';
 import { given, then, when } from 'test-fns';
 
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import * as path from 'node:path';
 import { invokeChoose } from './invokeChoose';
 
 // tiny fs helpers

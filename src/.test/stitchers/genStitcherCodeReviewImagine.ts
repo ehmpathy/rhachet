@@ -2,14 +2,14 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { Empty } from 'type-fns';
 
-import { Stitch } from '../../domain/objects/Stitch';
-import { StitchStepImagine } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
+import { Stitch } from '@src/domain.objects/Stitch';
+import { StitchStepImagine } from '@src/domain.objects/StitchStep';
+import { GStitcher } from '@src/domain.objects/Stitcher';
+import { Threads } from '@src/domain.objects/Threads';
 import {
   ContextOpenAI,
   imagineViaOpenAI,
-} from '../../logic/stitch/adapters/imagineViaOpenAI';
+} from '@src/domain.operations/stitch/adapters/imagineViaOpenAI';
 
 // an example of the kind of knowledge that can be embedded globally within the stitcher, rather than the thread.role
 const getReviewTools = (input: {
