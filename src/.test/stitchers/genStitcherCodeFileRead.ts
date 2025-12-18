@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { isAFunction } from 'type-fns';
 
-import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
-import { ContextOpenAI } from '../../logic/stitch/adapters/imagineViaOpenAI';
+import { StitchStepCompute } from '@src/domain.objects/StitchStep';
+import { GStitcher } from '@src/domain.objects/Stitcher';
+import { Threads } from '@src/domain.objects/Threads';
+import { ContextOpenAI } from '@src/domain.operations/stitch/adapters/imagineViaOpenAI';
 
 export type OutputFileRead = {
   path: string;

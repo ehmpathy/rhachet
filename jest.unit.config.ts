@@ -14,6 +14,9 @@ const config: Config = {
   verbose: true,
   testEnvironment: 'node',
   moduleFileExtensions: ['js', 'ts'],
+  moduleNameMapper: {
+    '^@src/(.*)$': '<rootDir>/src/$1',
+  },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
   },

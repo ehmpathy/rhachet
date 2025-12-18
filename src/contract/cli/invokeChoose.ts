@@ -5,7 +5,7 @@ import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import * as path from 'path';
 import { genArtifactGitFile } from 'rhachet-artifact-git';
 
-import { getPeerQualifiersOfOutputChoice } from '../../logic/invoke/getPeerQualifiersOfOutputChoice';
+import { getPeerQualifiersOfOutputChoice } from '@src/domain.operations/invoke/getPeerQualifiersOfOutputChoice';
 
 /**
  * .what = adds the "choose" command to the CLI

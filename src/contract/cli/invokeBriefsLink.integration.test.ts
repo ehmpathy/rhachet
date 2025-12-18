@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
-import { Role } from '../../domain/objects/Role';
-import { RoleRegistry } from '../../domain/objects/RoleRegistry';
+import { Role } from '@src/domain.objects/Role';
+import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { invokeBriefsLink } from './invokeBriefsLink';
 
 describe('invokeBriefsLink (integration)', () => {

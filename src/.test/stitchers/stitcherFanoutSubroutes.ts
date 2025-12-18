@@ -1,11 +1,11 @@
 import { Empty } from 'type-fns';
 
-import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
-import { asStitcher } from '../../logic/weave/compose/asStitcher';
-import { genStitchFanout } from '../../logic/weave/compose/genStitchFanout';
-import { genStitchRoute } from '../../logic/weave/compose/genStitchRoute';
+import { StitchStepCompute } from '@src/domain.objects/StitchStep';
+import { GStitcher } from '@src/domain.objects/Stitcher';
+import { Threads } from '@src/domain.objects/Threads';
+import { asStitcher } from '@src/domain.operations/weave/compose/asStitcher';
+import { genStitchFanout } from '@src/domain.operations/weave/compose/genStitchFanout';
+import { genStitchRoute } from '@src/domain.operations/weave/compose/genStitchRoute';
 
 const stepAdd1 = new StitchStepCompute<
   GStitcher<Threads<{ main: Empty }>, GStitcher['context'], number>

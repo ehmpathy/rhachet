@@ -1,5 +1,5 @@
-import { Thread } from '../../domain/objects/Thread';
-import { ThreadContextRole } from '../../domain/objects/Threads';
+import { Thread } from '@src/domain.objects/Thread';
+import { ThreadContextRole } from '@src/domain.objects/Threads';
 
 // todo: use enroleThread to add role context & apply role tools
 export const exampleThreadDirector = Thread.build<

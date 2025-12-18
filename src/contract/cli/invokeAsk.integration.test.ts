@@ -1,9 +1,10 @@
-import path from 'node:path';
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
-import { TEST_FIXTURE_DIRECTORY } from '../../.test/directory';
-import { EXAMPLE_REGISTRY } from '../../.test/example.use.repo/example.echoRegistry';
+import { TEST_FIXTURE_DIRECTORY } from '@src/.test/directory';
+import { EXAMPLE_REGISTRY } from '@src/.test/example.use.repo/example.echoRegistry';
+
+import path from 'node:path';
 import { invokeAsk } from './invokeAsk';
 
 describe('invokeAsk (integration)', () => {

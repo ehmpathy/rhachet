@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { ContextOpenAI } from '../logic/stitch/adapters/imagineViaOpenAI';
+import { ContextOpenAI } from '@src/domain.operations/stitch/adapters/imagineViaOpenAI';
 
 export const getContextOpenAI = (): ContextOpenAI => ({
   openai: {

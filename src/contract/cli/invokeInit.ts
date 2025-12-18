@@ -1,11 +1,12 @@
-import { existsSync, writeFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { discoverRolePackages } from '../../logic/init/discoverRolePackages';
-import { generateRhachetConfig } from '../../logic/init/generateRhachetConfig';
+import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { generateRhachetConfig } from '@src/domain.operations/init/generateRhachetConfig';
+
+import { existsSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 
 /**
  * .what = adds the "init" command to the CLI

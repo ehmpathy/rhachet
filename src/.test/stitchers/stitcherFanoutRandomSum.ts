@@ -1,9 +1,9 @@
 import { Empty } from 'type-fns';
 
-import { StitchStepCompute } from '../../domain/objects/StitchStep';
-import { GStitcher } from '../../domain/objects/Stitcher';
-import { Threads } from '../../domain/objects/Threads';
-import { genStitchFanout } from '../../logic/weave/compose/genStitchFanout';
+import { StitchStepCompute } from '@src/domain.objects/StitchStep';
+import { GStitcher } from '@src/domain.objects/Stitcher';
+import { Threads } from '@src/domain.objects/Threads';
+import { genStitchFanout } from '@src/domain.operations/weave/compose/genStitchFanout';
 
 const stitcherComputeRandom = new StitchStepCompute<
   GStitcher<Threads<{ main: Empty }>, GStitcher['context'], number>

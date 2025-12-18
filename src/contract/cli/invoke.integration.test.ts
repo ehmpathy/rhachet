@@ -1,7 +1,8 @@
 import path from 'path';
 import { given, then, when } from 'test-fns';
 
-import { TEST_FIXTURE_DIRECTORY } from '../../.test/directory';
+import { TEST_FIXTURE_DIRECTORY } from '@src/.test/directory';
+
 import { invoke } from './invoke';
 
 describe('invoke', () => {

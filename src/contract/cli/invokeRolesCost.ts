@@ -1,15 +1,19 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
-import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
-import { formatCost, formatCostTree } from '../../logic/role/formatCostTree';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+import {
+  formatCost,
+  formatCostTree,
+} from '@src/domain.operations/role/formatCostTree';
 import {
   aggregateFileCosts,
   getRoleFileCosts,
-} from '../../logic/role/getRoleFileCosts';
+} from '@src/domain.operations/role/getRoleFileCosts';
+
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 /**
  * .what = adds the "roles cost" subcommand to the CLI

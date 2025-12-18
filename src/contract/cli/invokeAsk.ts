@@ -1,13 +1,13 @@
 import type { Command } from 'commander';
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import type { InvokeHooks } from '../../domain/objects/InvokeHooks';
-import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
-import { assureFindRole } from '../../logic/invoke/assureFindRole';
-import { onInvokeAskInput } from '../../logic/invoke/hooks/onInvokeAskInput';
-import { performInCurrentThread } from '../../logic/invoke/performInCurrentThread';
-import { performInIsolatedThreads } from '../../logic/invoke/performInIsolatedThreads';
-import type { InvokeOpts } from '../sdk';
+import type { InvokeOpts } from '@src/contract/sdk';
+import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
+import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
+import { performInCurrentThread } from '@src/domain.operations/invoke/performInCurrentThread';
+import { performInIsolatedThreads } from '@src/domain.operations/invoke/performInIsolatedThreads';
 
 /**
  * .what = adds the "ask" command to the CLI

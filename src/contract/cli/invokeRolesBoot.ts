@@ -1,9 +1,9 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
-import { bootRoleResources } from '../../logic/invoke/bootRoleResources';
-import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { bootRoleResources } from '@src/domain.operations/invoke/bootRoleResources';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 
 /**
  * .what = adds the "roles boot" subcommand to the CLI

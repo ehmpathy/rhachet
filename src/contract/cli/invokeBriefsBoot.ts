@@ -1,12 +1,13 @@
-import { execSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import type { RoleRegistry } from '../../domain/objects/RoleRegistry';
-import { inferRepoByRole } from '../../logic/invoke/inferRepoByRole';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+
+import { execSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 
 /**
  * .what = adds the "briefs boot" subcommand to the CLI
