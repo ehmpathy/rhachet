@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.5](https://github.com/ehmpathy/rhachet/compare/v1.13.4...v1.13.5) (2025-12-18)
+
+
+### Bug Fixes
+
+* **init:** initialize .this repo any role ([#43](https://github.com/ehmpathy/rhachet/issues/43)) ([c31d677](https://github.com/ehmpathy/rhachet/commit/c31d677f7050a31f0a58691c0493c26afd59c433))
+
 ## [1.13.4](https://github.com/ehmpathy/rhachet/compare/v1.13.3...v1.13.4) (2025-12-18)
 
 
