@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.4](https://github.com/ehmpathy/rhachet/compare/v1.13.3...v1.13.4) (2025-12-18)
+
+
+### Bug Fixes
+
+* **boot:** boot --if-present flag ([#41](https://github.com/ehmpathy/rhachet/issues/41)) ([c39e37a](https://github.com/ehmpathy/rhachet/commit/c39e37a2aefeefaf70dc7f8fabe76c9b81701a44))
+
 ## [1.13.3](https://github.com/ehmpathy/rhachet/compare/v1.13.2...v1.13.3) (2025-12-18)
 
 
