@@ -655,6 +655,61 @@ describe('invokeRolesBoot (integration)', () => {
       },
     );
 
+    when(
+      'invoked with "boot --repo this --role missing --if-present" but role directory does not exist',
+      () => {
+        beforeAll(() => {
+          // Clean up to ensure .agent/repo=.this/role=missing doesn't exist
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+        });
+
+        then('it should exit silently without error', async () => {
+          // Should not throw
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', 'this', '--role', 'missing', '--if-present'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Should not output anything
+          expect(logSpy).not.toHaveBeenCalled();
+        });
+      },
+    );
+
+    when(
+      'invoked with "boot --repo this --role empty --if-present" with empty role directory',
+      () => {
+        beforeAll(() => {
+          // Clean up first
+          const cleanAgentDir = resolve(testDir, '.agent');
+          if (existsSync(cleanAgentDir)) {
+            rmSync(cleanAgentDir, { recursive: true, force: true });
+          }
+
+          // Setup: Create empty .agent/repo=.this/role=empty
+          const roleDir = resolve(testDir, '.agent/repo=.this/role=empty');
+          mkdirSync(roleDir, { recursive: true });
+        });
+
+        then('it should exit silently without warning', async () => {
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', 'this', '--role', 'empty', '--if-present'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Should not output anything (no "No resources found" warning)
+          expect(logSpy).not.toHaveBeenCalled();
+        });
+      },
+    );
+
     when('invoked with "boot --repo THIS --role any" (uppercase repo)', () => {
       beforeAll(() => {
         // Clean up first

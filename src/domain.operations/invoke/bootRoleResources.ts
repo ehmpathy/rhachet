@@ -35,9 +35,11 @@ const getAllFilesFromDir = (dir: string): string[] => {
 export const bootRoleResources = async ({
   repoSlug,
   roleSlug,
+  ifPresent,
 }: {
   repoSlug: string;
   roleSlug: string;
+  ifPresent: boolean;
 }): Promise<void> => {
   const gitRoot = await getGitRepoRoot({ from: process.cwd() });
   const isRepoThis = repoSlug === '.this';
@@ -51,6 +53,9 @@ export const bootRoleResources = async ({
 
   // check if role directory exists
   if (!existsSync(roleDir)) {
+    // if --if-present, exit silently without error
+    if (ifPresent) return;
+
     const hint = isRepoThis
       ? `Create .agent/repo=.this/role=${roleSlug}/[briefs,skills] directories`
       : `Run "rhachet roles link --repo ${repoSlug} --role ${roleSlug}" first`;
@@ -74,6 +79,9 @@ export const bootRoleResources = async ({
 
   // handle empty case
   if (relevantFiles.length === 0) {
+    // if --if-present, exit silently without warning
+    if (ifPresent) return;
+
     console.log(``);
     console.log(`⚠️  No resources found in ${roleDir}`);
     console.log(``);
