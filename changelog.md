@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/ehmpathy/rhachet/compare/v1.13.2...v1.13.3) (2025-12-18)
+
+
+### Bug Fixes
+
+* **practs:** deworm and bump to latest best ([#39](https://github.com/ehmpathy/rhachet/issues/39)) ([7be48c7](https://github.com/ehmpathy/rhachet/commit/7be48c7708467c891534dae6774b77deb3e05222))
+
 ## [1.13.2](https://github.com/ehmpathy/rhachet/compare/v1.13.1...v1.13.2) (2025-12-18)
 
 
