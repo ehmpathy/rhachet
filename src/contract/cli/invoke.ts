@@ -8,7 +8,6 @@ import { getRegistriesByOpts } from '@src/domain.operations/invoke/getRegistries
 
 import { resolve } from 'node:path';
 import { invokeAsk } from './invokeAsk';
-import { invokeBriefs } from './invokeBriefs';
 import { invokeChoose } from './invokeChoose';
 import { invokeInit } from './invokeInit';
 import { invokeList } from './invokeList';
@@ -70,7 +69,6 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program, registries });
   invokeList({ program, registries });
   invokeRoles({ program, registries });
-  invokeBriefs({ program, registries });
   invokeChoose({ program });
   invokeAsk({ program, config: { path: configPath }, registries, hooks });
 

@@ -147,9 +147,7 @@ describe('invokeRolesBoot (integration)', () => {
           );
 
           // Check that stats were printed
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('began:stats'),
-          );
+          expect(logSpy).toHaveBeenCalledWith('<stats>');
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('files = 5'), // 1 readme + 2 briefs + 2 skills
           );
@@ -162,9 +160,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that readme was printed
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=test/role=mechanic/readme.md',
-            ),
+            '<readme path=".agent/repo=test/role=mechanic/readme.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Mechanic Role'),
@@ -172,17 +168,13 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief file contents were printed
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=test/role=mechanic/briefs/.briefs/brief1.md',
-            ),
+            '<brief path=".agent/repo=test/role=mechanic/briefs/.briefs/brief1.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('This is test brief 1'),
           );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=test/role=mechanic/briefs/.briefs/brief2.md',
-            ),
+            '<brief path=".agent/repo=test/role=mechanic/briefs/.briefs/brief2.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('This is test brief 2'),
@@ -190,9 +182,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that skill documentation was extracted (not full implementation)
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=test/role=mechanic/skills/.skills/skill1.sh',
-            ),
+            '<skill path=".agent/repo=test/role=mechanic/skills/.skills/skill1.sh">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Skill 1 - Test skill'),
@@ -206,16 +196,6 @@ describe('invokeRolesBoot (integration)', () => {
           // Check that implementation is NOT printed for skills
           expect(logSpy).not.toHaveBeenCalledWith(
             expect.stringContaining('echo "test skill 1"'),
-          );
-
-          // Check that readme was printed
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=test/role=mechanic/readme.md',
-            ),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Mechanic Role'),
           );
         });
       },
@@ -252,9 +232,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that the role was booted from the inferred repo
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'began:.agent/repo=test/role=mechanic/readme.md',
-              ),
+              '<readme path=".agent/repo=test/role=mechanic/readme.md">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('Inferred Mechanic Role'),
@@ -495,9 +473,7 @@ describe('invokeRolesBoot (integration)', () => {
             );
 
             // Check that stats were printed
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('began:stats'),
-            );
+            expect(logSpy).toHaveBeenCalledWith('<stats>');
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('files = 2'),
             );
@@ -510,9 +486,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that brief file was printed with correct path
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'began:.agent/repo=.this/role=any/briefs/local-brief.md',
-              ),
+              '<brief path=".agent/repo=.this/role=any/briefs/local-brief.md">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('This is a local brief for the any role'),
@@ -520,9 +494,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that skill documentation was extracted
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'began:.agent/repo=.this/role=any/skills/local-skill.sh',
-              ),
+              '<skill path=".agent/repo=.this/role=any/skills/local-skill.sh">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('Local Skill'),
@@ -571,9 +543,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that brief file was printed with correct path
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'began:.agent/repo=.this/role=robot/briefs/robot-brief.md',
-              ),
+              '<brief path=".agent/repo=.this/role=robot/briefs/robot-brief.md">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('This is a brief for the robot role'),
@@ -741,9 +711,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief was printed
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=.this/role=any/briefs/uppercase-test.md',
-            ),
+            '<brief path=".agent/repo=.this/role=any/briefs/uppercase-test.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Testing case insensitivity'),
@@ -783,9 +751,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief was printed
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'began:.agent/repo=.this/role=robot/briefs/dotprefix-test.md',
-            ),
+            '<brief path=".agent/repo=.this/role=robot/briefs/dotprefix-test.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Testing .this syntax with robot role'),

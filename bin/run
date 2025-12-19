@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env -S npx tsx
 import { invoke } from '../dist/contract/cli/invoke';
 
 void invoke({ args: process.argv.slice(2) });
