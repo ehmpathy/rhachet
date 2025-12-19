@@ -1,8 +1,5 @@
-import { getGitRepoRoot } from 'rhachet-artifact-git';
-
 import { extractSkillDocumentation } from '@src/domain.operations/role/extractSkillDocumentation';
 
-import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 
@@ -41,7 +38,6 @@ export const bootRoleResources = async ({
   roleSlug: string;
   ifPresent: boolean;
 }): Promise<void> => {
-  const gitRoot = await getGitRepoRoot({ from: process.cwd() });
   const isRepoThis = repoSlug === '.this';
 
   const roleDir = resolve(
@@ -111,48 +107,14 @@ export const bootRoleResources = async ({
 
   // print stats helper
   const printStats = (): void => {
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log('## began:stats');
-    console.log('#####################################################');
-    console.log('');
-    console.log('  quant');
-    console.log(`    ├── files = ${relevantFiles.length}`);
-    console.log(`    │   ├── briefs = ${briefFiles.length}`);
-    console.log(`    │   └── skills = ${skillFiles.length}`);
-    console.log(`    ├── chars = ${totalChars}`);
-    console.log(
-      `    └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`,
-    );
-    console.log('');
-    console.log('  treestruct');
-    const treeOutput = execSync(`tree -l ${roleDir}`, {
-      encoding: 'utf-8',
-    })
-      .split('\n')
-      .map((line) => line.replace(/ -> .*$/, ''))
-      .map((line) => line.replace(gitRoot, '@gitroot'))
-      .filter((line) => !line.match(/^\s*\d+\s+director(y|ies),/))
-      .filter((line) => line.trim() !== '')
-      .map((line) => `    ${line}`)
-      .join('\n');
-    console.log(treeOutput);
-    console.log('');
-    console.log('  quant');
-    console.log(`    ├── files = ${relevantFiles.length}`);
-    console.log(`    │   ├── briefs = ${briefFiles.length}`);
-    console.log(`    │   └── skills = ${skillFiles.length}`);
-    console.log(`    ├── chars = ${totalChars}`);
-    console.log(
-      `    └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`,
-    );
-    console.log('');
-    console.log('#####################################################');
-    console.log('## ended:stats');
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log('#####################################################');
+    console.log('<stats>');
+    console.log('quant');
+    console.log(`  ├── files = ${relevantFiles.length}`);
+    console.log(`  │   ├── briefs = ${briefFiles.length}`);
+    console.log(`  │   └── skills = ${skillFiles.length}`);
+    console.log(`  ├── chars = ${totalChars}`);
+    console.log(`  └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`);
+    console.log('</stats>');
     console.log('');
   };
 
@@ -163,30 +125,17 @@ export const bootRoleResources = async ({
   for (const filepath of relevantFiles) {
     const relativePath = `.agent/repo=${repoSlug}/role=${roleSlug}/${relative(roleDir, filepath)}`;
     const isSkill = filepath.startsWith(skillsDir);
+    const isReadme = filepath === readmePath;
+    const tagName = isSkill ? 'skill' : isReadme ? 'readme' : 'brief';
 
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log(`## began:${relativePath}`);
-    console.log('#####################################################');
-    console.log('');
+    console.log(`<${tagName} path="${relativePath}">`);
 
     const content = isSkill
       ? extractSkillDocumentation(filepath)
       : readFileSync(filepath, 'utf-8');
 
-    const indentedContent = content
-      .split('\n')
-      .map((line) => `  ${line}`)
-      .join('\n');
-    console.log(indentedContent);
-
-    console.log('');
-    console.log('#####################################################');
-    console.log(`## ended:${relativePath}`);
-    console.log('#####################################################');
-    console.log('#####################################################');
-    console.log('#####################################################');
+    console.log(content);
+    console.log(`</${tagName}>`);
     console.log('');
   }
 
