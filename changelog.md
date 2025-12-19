@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.6](https://github.com/ehmpathy/rhachet/compare/v1.13.5...v1.13.6) (2025-12-19)
+
+
+### Bug Fixes
+
+* **cli:** rhachet init should findsert each resource ([#45](https://github.com/ehmpathy/rhachet/issues/45)) ([e647415](https://github.com/ehmpathy/rhachet/commit/e647415ac73b95b4b118a4caeac9ec757f909c4c))
+
 ## [1.13.5](https://github.com/ehmpathy/rhachet/compare/v1.13.4...v1.13.5) (2025-12-18)
 
 
