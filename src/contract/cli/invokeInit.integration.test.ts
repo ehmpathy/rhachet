@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import {
   existsSync,
@@ -232,22 +232,22 @@ describe('invokeInit (integration)', () => {
         writeFileSync(resolve(testDir, 'rhachet.use.ts'), '// existing config');
       });
 
-      then('it should throw an error without --force', async () => {
-        const error = await getError(() =>
-          program.parseAsync(['init'], { from: 'user' }),
-        );
+      then(
+        'it should report [found] and preserve existing content (findsert)',
+        async () => {
+          await program.parseAsync(['init'], { from: 'user' });
 
-        expect(error?.message).toContain('already exists');
-        expect(error?.message).toContain('--force');
-      });
+          // should preserve existing content
+          const configPath = resolve(testDir, 'rhachet.use.ts');
+          const content = readFileSync(configPath, 'utf8');
+          expect(content).toBe('// existing config');
 
-      then('it should overwrite with --force', async () => {
-        await program.parseAsync(['init', '--force'], { from: 'user' });
-
-        const configPath = resolve(testDir, 'rhachet.use.ts');
-        const content = readFileSync(configPath, 'utf8');
-        expect(content).toContain('getRoleRegistryEhmpathy');
-      });
+          // should report found
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('○ [found]'),
+          );
+        },
+      );
     });
   });
 });
