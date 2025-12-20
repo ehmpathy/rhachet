@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`generateRhachetConfig should convert kebab-case to PascalCase for aliases 1`] = `
-"import { InvokeHooks, RoleRegistry } from 'rhachet';
+"import type { InvokeHooks, RoleRegistry } from 'rhachet';
 
 import { getRoleRegistry as getRoleRegistryMyCustomRoles, getInvokeHooks as getInvokeHooksMyCustomRoles } from 'rhachet-roles-my-custom-roles';
 
@@ -11,7 +11,7 @@ export const getInvokeHooks = (): InvokeHooks[] => [getInvokeHooksMyCustomRoles(
 `;
 
 exports[`generateRhachetConfig should generate config for multiple packages 1`] = `
-"import { InvokeHooks, RoleRegistry } from 'rhachet';
+"import type { InvokeHooks, RoleRegistry } from 'rhachet';
 
 import { getRoleRegistry as getRoleRegistryEhmpathy, getInvokeHooks as getInvokeHooksEhmpathy } from 'rhachet-roles-ehmpathy';
 import { getRoleRegistry as getRoleRegistryOther, getInvokeHooks as getInvokeHooksOther } from 'rhachet-roles-other';
@@ -22,7 +22,7 @@ export const getInvokeHooks = (): InvokeHooks[] => [getInvokeHooksEhmpathy(), ge
 `;
 
 exports[`generateRhachetConfig should generate config for single package with aliased imports 1`] = `
-"import { InvokeHooks, RoleRegistry } from 'rhachet';
+"import type { InvokeHooks, RoleRegistry } from 'rhachet';
 
 import { getRoleRegistry as getRoleRegistryEhmpathy, getInvokeHooks as getInvokeHooksEhmpathy } from 'rhachet-roles-ehmpathy';
 
