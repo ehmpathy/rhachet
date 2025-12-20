@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.9](https://github.com/ehmpathy/rhachet/compare/v1.13.8...v1.13.9) (2025-12-20)
+
+
+### Bug Fixes
+
+* **bin:** use node with --strip-ts-types instead of tsx ([#51](https://github.com/ehmpathy/rhachet/issues/51)) ([200896d](https://github.com/ehmpathy/rhachet/commit/200896ddb714196a958f6fe4cf287640eb5264a7))
+
 ## [1.13.8](https://github.com/ehmpathy/rhachet/compare/v1.13.7...v1.13.8) (2025-12-20)
 
 
