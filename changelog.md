@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.10](https://github.com/ehmpathy/rhachet/compare/v1.13.9...v1.13.10) (2025-12-20)
+
+
+### Bug Fixes
+
+* **link:** linked role breifs and skills should be readonly executable, but not writable ([#53](https://github.com/ehmpathy/rhachet/issues/53)) ([b59d373](https://github.com/ehmpathy/rhachet/commit/b59d373e124ae9914c4dd44c71de057890aeac25))
+
 ## [1.13.9](https://github.com/ehmpathy/rhachet/compare/v1.13.8...v1.13.9) (2025-12-20)
 
 
