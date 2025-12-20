@@ -5,7 +5,8 @@ import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePa
 import { generateRhachetConfig } from '@src/domain.operations/init/generateRhachetConfig';
 import { findsertFile } from '@src/infra/findsertFile';
 
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 
 /**
  * .what = adds the "init" command to the CLI
@@ -52,6 +53,19 @@ export const invokeInit = ({ program }: { program: Command }): void => {
       const configPath = resolve(root, 'rhachet.use.ts');
       const configContent = generateRhachetConfig({ packages });
       findsertFile({ cwd, path: configPath, content: configContent });
+
+      // fix legacy import syntax: `import { InvokeHook` -> `import type { InvokeHook`
+      if (existsSync(configPath)) {
+        const content = readFileSync(configPath, 'utf8');
+        if (content.includes('import { InvokeHook')) {
+          const fixed = content.replace(
+            /import \{ InvokeHook/g,
+            'import type { InvokeHook',
+          );
+          writeFileSync(configPath, fixed, 'utf8');
+          console.log(`  ↻ [fixed] ${relative(cwd, configPath)} (import type)`);
+        }
+      }
 
       // findsert .agent/repo=.this/role=any directories and readme
       const roleAnyDir = resolve(root, '.agent', 'repo=.this', 'role=any');
