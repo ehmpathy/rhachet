@@ -1,5 +1,7 @@
 import {
+  chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   rmSync,
@@ -29,6 +31,35 @@ const countFilesInDirectory = (dirPath: string): number => {
   }
 
   return count;
+};
+
+/**
+ * .what = recursively sets all files and directories to readonly
+ * .why = prevents agents from accidentally or maliciously overwriting linked resources from node_modules
+ */
+const setDirectoryReadonly = (dirPath: string): void => {
+  const entries = readdirSync(dirPath);
+
+  for (const entry of entries) {
+    const fullPath = resolve(dirPath, entry);
+    const lstats = lstatSync(fullPath);
+
+    // skip nested symlinks to avoid infinite loops
+    if (lstats.isSymbolicLink()) continue;
+
+    if (lstats.isDirectory()) {
+      // recurse first, then set directory permissions
+      setDirectoryReadonly(fullPath);
+      // r-x for directories (need execute to traverse)
+      chmodSync(fullPath, 0o555);
+    } else if (lstats.isFile()) {
+      // r-- for files
+      chmodSync(fullPath, 0o444);
+    }
+  }
+
+  // set the root directory itself to readonly after processing contents
+  chmodSync(dirPath, 0o555);
 };
 
 /**
@@ -82,7 +113,11 @@ export const symlinkResourceDirectories = (options: {
 
     try {
       symlinkSync(relativeSource, targetPath, 'dir');
-      // Count the files in the source directory
+
+      // set all files and directories to readonly to prevent accidental or malicious overwrites
+      setDirectoryReadonly(sourcePath);
+
+      // count the files in the source directory
       const fileCount = countFilesInDirectory(sourcePath);
       totalFileCount += fileCount;
     } catch (error: any) {

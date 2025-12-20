@@ -4,9 +4,41 @@ import { getError, given, then, when } from 'test-fns';
 import { Role } from '@src/domain.objects/Role';
 import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { resolve } from 'node:path';
 import { invokeRolesLink } from './invokeRolesLink';
+
+/**
+ * .what = recursively makes all files and directories writable
+ * .why = enables cleanup of readonly directories set by setDirectoryReadonly
+ */
+const makeDirectoryWritable = (dirPath: string): void => {
+  if (!existsSync(dirPath)) return;
+  const entries = readdirSync(dirPath);
+  for (const entry of entries) {
+    const fullPath = resolve(dirPath, entry);
+    const lstats = lstatSync(fullPath);
+    if (lstats.isSymbolicLink()) continue;
+    if (lstats.isDirectory()) {
+      // make directory writable first so we can recurse into it
+      chmodSync(fullPath, 0o755);
+      makeDirectoryWritable(fullPath);
+    } else if (lstats.isFile()) {
+      chmodSync(fullPath, 0o644);
+    }
+  }
+  // make the root directory writable
+  chmodSync(dirPath, 0o755);
+};
 
 describe('invokeRolesLink (integration)', () => {
   given('a CLI program with invokeRolesLink registered', () => {
@@ -14,7 +46,11 @@ describe('invokeRolesLink (integration)', () => {
     const originalCwd = process.cwd();
 
     beforeAll(() => {
-      // Create test directory structure
+      // make files writable first, then clean up (handles readonly files from previous runs)
+      makeDirectoryWritable(testDir);
+      rmSync(testDir, { recursive: true, force: true });
+
+      // create test directory structure
       mkdirSync(testDir, { recursive: true });
       process.chdir(testDir);
 
@@ -169,6 +205,32 @@ describe('invokeRolesLink (integration)', () => {
               ),
             ),
           ).toBe(true);
+
+          // Check that linked files are set to readonly (0o444)
+          const brief1Path = resolve(
+            testDir,
+            '.agent/repo=test/role=mechanic/briefs/test-briefs/brief1.md',
+          );
+          const brief1Stats = statSync(brief1Path);
+          // eslint-disable-next-line no-bitwise
+          const brief1Mode = brief1Stats.mode & 0o777;
+          expect(brief1Mode).toBe(0o444);
+
+          const skill1Path = resolve(
+            testDir,
+            '.agent/repo=test/role=mechanic/skills/test-skills/skill1.sh',
+          );
+          const skill1Stats = statSync(skill1Path);
+          // eslint-disable-next-line no-bitwise
+          const skill1Mode = skill1Stats.mode & 0o777;
+          expect(skill1Mode).toBe(0o444);
+
+          // Check that linked directories are set to readonly (0o555)
+          const briefsDirPath = resolve(testDir, 'test-briefs');
+          const briefsDirStats = statSync(briefsDirPath);
+          // eslint-disable-next-line no-bitwise
+          const briefsDirMode = briefsDirStats.mode & 0o777;
+          expect(briefsDirMode).toBe(0o555);
 
           // Check log output
           expect(logSpy).toHaveBeenCalledWith(
