@@ -1,4 +1,4 @@
-import type { InvokeHooks, RoleRegistry } from 'rhachet';
+import { InvokeHooks, RoleRegistry } from 'rhachet';
 
 import { getRoleRegistry as getRoleRegistryEhmpathy, getInvokeHooks as getInvokeHooksEhmpathy } from 'rhachet-roles-ehmpathy';
 

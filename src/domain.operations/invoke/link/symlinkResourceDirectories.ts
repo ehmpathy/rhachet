@@ -34,10 +34,10 @@ const countFilesInDirectory = (dirPath: string): number => {
 };
 
 /**
- * .what = recursively sets all files and directories to readonly
- * .why = prevents agents from accidentally or maliciously overwriting linked resources from node_modules
+ * .what = recursively sets all files and directories to readonly and executable
+ * .why = prevents agents from accidentally or maliciously overwriting linked resources from node_modules, while allowing skills to be executed
  */
-const setDirectoryReadonly = (dirPath: string): void => {
+const setDirectoryReadonlyExecutable = (dirPath: string): void => {
   const entries = readdirSync(dirPath);
 
   for (const entry of entries) {
@@ -49,12 +49,12 @@ const setDirectoryReadonly = (dirPath: string): void => {
 
     if (lstats.isDirectory()) {
       // recurse first, then set directory permissions
-      setDirectoryReadonly(fullPath);
+      setDirectoryReadonlyExecutable(fullPath);
       // r-x for directories (need execute to traverse)
       chmodSync(fullPath, 0o555);
     } else if (lstats.isFile()) {
-      // r-- for files
-      chmodSync(fullPath, 0o444);
+      // r-x for files (readonly + executable for skills)
+      chmodSync(fullPath, 0o555);
     }
   }
 
@@ -114,8 +114,8 @@ export const symlinkResourceDirectories = (options: {
     try {
       symlinkSync(relativeSource, targetPath, 'dir');
 
-      // set all files and directories to readonly to prevent accidental or malicious overwrites
-      setDirectoryReadonly(sourcePath);
+      // set all files and directories to readonly+executable to prevent accidental or malicious overwrites while allowing skills to run
+      setDirectoryReadonlyExecutable(sourcePath);
 
       // count the files in the source directory
       const fileCount = countFilesInDirectory(sourcePath);
