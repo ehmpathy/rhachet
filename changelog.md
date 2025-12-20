@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.8](https://github.com/ehmpathy/rhachet/compare/v1.13.7...v1.13.8) (2025-12-20)
+
+
+### Bug Fixes
+
+* **sec:** ensure booted briefs and skills are readonly ([#49](https://github.com/ehmpathy/rhachet/issues/49)) ([526e52e](https://github.com/ehmpathy/rhachet/commit/526e52e4a828c618696e7af38b68a65e2befaefa))
+
 ## [1.13.7](https://github.com/ehmpathy/rhachet/compare/v1.13.6...v1.13.7) (2025-12-19)
 
 
