@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.11](https://github.com/ehmpathy/rhachet/compare/v1.13.10...v1.13.11) (2025-12-20)
+
+
+### Bug Fixes
+
+* **init:** auto repair import of use.ts to work with node strip types ([#55](https://github.com/ehmpathy/rhachet/issues/55)) ([4ac9470](https://github.com/ehmpathy/rhachet/commit/4ac947047a1586e250fd1e86cebe7d4076950767))
+
 ## [1.13.10](https://github.com/ehmpathy/rhachet/compare/v1.13.9...v1.13.10) (2025-12-20)
 
 
