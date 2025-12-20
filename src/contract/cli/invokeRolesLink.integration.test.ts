@@ -214,7 +214,7 @@ describe('invokeRolesLink (integration)', () => {
           const brief1Stats = statSync(brief1Path);
           // eslint-disable-next-line no-bitwise
           const brief1Mode = brief1Stats.mode & 0o777;
-          expect(brief1Mode).toBe(0o444);
+          expect(brief1Mode).toBe(0o555);
 
           const skill1Path = resolve(
             testDir,
@@ -223,7 +223,7 @@ describe('invokeRolesLink (integration)', () => {
           const skill1Stats = statSync(skill1Path);
           // eslint-disable-next-line no-bitwise
           const skill1Mode = skill1Stats.mode & 0o777;
-          expect(skill1Mode).toBe(0o444);
+          expect(skill1Mode).toBe(0o555);
 
           // Check that linked directories are set to readonly (0o555)
           const briefsDirPath = resolve(testDir, 'test-briefs');
