@@ -38,7 +38,7 @@ export const generateRhachetConfig = (input: {
     )
     .join(', ');
 
-  return `import { InvokeHooks, RoleRegistry } from 'rhachet';
+  return `import type { InvokeHooks, RoleRegistry } from 'rhachet';
 
 ${imports}
 
