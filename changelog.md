@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/ehmpathy/rhachet/compare/v1.14.1...v1.15.0) (2025-12-22)
+
+
+### Features
+
+* **run:** npx rhachet run --skill ([#65](https://github.com/ehmpathy/rhachet/issues/65)) ([0e6f756](https://github.com/ehmpathy/rhachet/commit/0e6f756c35a1624b31c704f3cf893cf4dd1712f5))
+
 ## [1.14.1](https://github.com/ehmpathy/rhachet/compare/v1.14.0...v1.14.1) (2025-12-22)
 
 
