@@ -289,6 +289,50 @@ describe('invokeRolesLink (integration)', () => {
       );
     });
 
+    when('re-linking after role config removes a directory', () => {
+      then('it should remove the deprecated symlink from .agent', async () => {
+        // First, link with the original config
+        await rolesCommand.parseAsync(
+          ['link', '--repo', 'test', '--role', 'mechanic'],
+          { from: 'user' },
+        );
+
+        // Manually create an "old" symlink that simulates a previously linked directory
+        const deprecatedSymlinkPath = resolve(
+          testDir,
+          '.agent/repo=test/role=mechanic/briefs/deprecated-briefs',
+        );
+        mkdirSync(deprecatedSymlinkPath, { recursive: true });
+
+        // Verify it exists
+        expect(existsSync(deprecatedSymlinkPath)).toBe(true);
+
+        // Re-link (which should remove the deprecated symlink)
+        await rolesCommand.parseAsync(
+          ['link', '--repo', 'test', '--role', 'mechanic'],
+          { from: 'user' },
+        );
+
+        // Verify the deprecated symlink was removed
+        expect(existsSync(deprecatedSymlinkPath)).toBe(false);
+
+        // Verify the valid symlink still exists
+        expect(
+          existsSync(
+            resolve(
+              testDir,
+              '.agent/repo=test/role=mechanic/briefs/test-briefs',
+            ),
+          ),
+        ).toBe(true);
+
+        // Check log output mentions removal
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('deprecated-briefs (removed'),
+        );
+      });
+    });
+
     when('invoked with "link" without --role', () => {
       then('it should throw an error requiring --role', async () => {
         const error = await getError(() =>
