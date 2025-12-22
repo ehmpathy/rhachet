@@ -25,7 +25,8 @@ import { invokeRoles } from './invokeRoles';
  */
 export const invoke = async (input: { args: string[] }): Promise<void> => {
   // treat init command specially - it's purpose is to run before configs exists
-  if (input.args.includes('init')) {
+  // note: only the bare 'init' command, not 'roles init' which requires config
+  if (input.args[0] === 'init') {
     const program = new Command();
     program.name('rhachet');
     invokeInit({ program });
