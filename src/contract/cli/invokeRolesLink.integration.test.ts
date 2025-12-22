@@ -345,6 +345,96 @@ describe('invokeRolesLink (integration)', () => {
       });
     });
 
+    when('role uses single-dir mode for briefs and skills', () => {
+      // create a role with single-dir mode (non-array dirs)
+      const singleDirRole = new Role({
+        slug: 'single-dir',
+        name: 'Single Dir Role',
+        purpose: 'Test role with single dir mode',
+        readme: '# Single Dir Role',
+        traits: [],
+        skills: {
+          dirs: { uri: 'test-skills' },
+          refs: [],
+        },
+        briefs: { dirs: { uri: 'test-briefs' } },
+      });
+
+      const singleDirRegistry = new RoleRegistry({
+        slug: 'single-test',
+        readme: 'Single test readme',
+        roles: [singleDirRole],
+      });
+
+      const singleRolesCommand = new Command('roles');
+      invokeRolesLink({
+        command: singleRolesCommand,
+        registries: [singleDirRegistry],
+      });
+
+      then(
+        'it should symlink dirs directly as briefs/ and skills/ directories',
+        async () => {
+          await singleRolesCommand.parseAsync(
+            ['link', '--repo', 'single-test', '--role', 'single-dir'],
+            { from: 'user' },
+          );
+
+          // check that briefs is a direct symlink to test-briefs (not a dir containing test-briefs)
+          const briefsPath = resolve(
+            testDir,
+            '.agent/repo=single-test/role=single-dir/briefs',
+          );
+          expect(existsSync(briefsPath)).toBe(true);
+          expect(lstatSync(briefsPath).isSymbolicLink()).toBe(true);
+
+          // check files are directly accessible under briefs/
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=single-test/role=single-dir/briefs/brief1.md',
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=single-test/role=single-dir/briefs/brief2.md',
+              ),
+            ),
+          ).toBe(true);
+
+          // check that skills is a direct symlink to test-skills
+          const skillsPath = resolve(
+            testDir,
+            '.agent/repo=single-test/role=single-dir/skills',
+          );
+          expect(existsSync(skillsPath)).toBe(true);
+          expect(lstatSync(skillsPath).isSymbolicLink()).toBe(true);
+
+          // check files are directly accessible under skills/
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=single-test/role=single-dir/skills/skill1.sh',
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=single-test/role=single-dir/skills/skill2.sh',
+              ),
+            ),
+          ).toBe(true);
+        },
+      );
+    });
+
     when('invoked with "link --repo test --role nonexistent"', () => {
       then('it should throw an error about role not found', async () => {
         const error = await getError(() =>
