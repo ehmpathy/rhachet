@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.12](https://github.com/ehmpathy/rhachet/compare/v1.13.11...v1.13.12) (2025-12-22)
+
+
+### Bug Fixes
+
+* **roles:** link should remove old skills and breifs dirs ([#57](https://github.com/ehmpathy/rhachet/issues/57)) ([d88e611](https://github.com/ehmpathy/rhachet/commit/d88e6118e8f354f7609763d4cbcd92ebc26591f0))
+
 ## [1.13.11](https://github.com/ehmpathy/rhachet/compare/v1.13.10...v1.13.11) (2025-12-20)
 
 
