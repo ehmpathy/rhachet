@@ -65,7 +65,7 @@ const setDirectoryReadonlyExecutable = (dirPath: string): void => {
 /**
  * .what = creates symlinks for resource directories to a target directory
  * .why = enables role resources (briefs, skills, etc.) to be linked from node_modules or other sources
- * .how = creates symlinks for entire directories, returns count of leaf files
+ * .how = removes deprecated symlinks, then creates symlinks for entire directories, returns count of leaf files
  */
 export const symlinkResourceDirectories = (options: {
   sourceDirs: Array<{ uri: string }>;
@@ -73,6 +73,26 @@ export const symlinkResourceDirectories = (options: {
   resourceName: string; // e.g., 'briefs', 'skills'
 }): number => {
   const { sourceDirs, targetDir, resourceName } = options;
+
+  // Calculate expected symlink names based on source directories
+  const expectedNames = new Set(sourceDirs.map((dir) => basename(dir.uri)));
+
+  // Remove deprecated symlinks (ones that exist but are no longer in the config)
+  if (existsSync(targetDir)) {
+    const existingEntries = readdirSync(targetDir);
+    for (const entry of existingEntries) {
+      if (!expectedNames.has(entry)) {
+        const entryPath = resolve(targetDir, entry);
+        const relativeEntryPath = relative(process.cwd(), entryPath);
+        try {
+          unlinkSync(entryPath);
+        } catch {
+          rmSync(entryPath, { recursive: true, force: true });
+        }
+        console.log(`  - ${relativeEntryPath} (removed, no longer in role)`);
+      }
+    }
+  }
 
   if (sourceDirs.length === 0) {
     return 0;
