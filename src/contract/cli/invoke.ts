@@ -13,6 +13,7 @@ import { invokeInit } from './invokeInit';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
 import { invokeRoles } from './invokeRoles';
+import { invokeRun } from './invokeRun';
 
 /**
  * .what = main entrypoint for CLI execution
@@ -70,6 +71,7 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program, registries });
   invokeList({ program, registries });
   invokeRoles({ program, registries });
+  invokeRun({ program });
   invokeChoose({ program });
   invokeAsk({ program, config: { path: configPath }, registries, hooks });
 

@@ -20,5 +20,6 @@ export * from './RoleContext';
 export * from './RoleRegistry';
 export * from './RoleSkill';
 export * from './RoleSkillArgGetter';
+export * from './RoleSkillExecutable';
 export * from './RoleTrait';
 export * from './Template';
