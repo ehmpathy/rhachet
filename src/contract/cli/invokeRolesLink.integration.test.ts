@@ -81,13 +81,23 @@ describe('invokeRolesLink (integration)', () => {
         resolve(skillsDir, 'skill2.sh'),
         '#!/bin/bash\n# Skill 2\necho "test skill 2"',
       );
+
+      // Create mock inits directory
+      const initsDir = resolve(testDir, 'test-inits');
+      mkdirSync(initsDir, { recursive: true });
+
+      // Create mock init files
+      writeFileSync(
+        resolve(initsDir, 'init.claude.sh'),
+        '#!/bin/bash\n# Init Claude\necho "init claude"',
+      );
     });
 
     afterAll(() => {
       process.chdir(originalCwd);
     });
 
-    // Create mock registries with a role that has briefs and skills configured
+    // Create mock registries with a role that has briefs, skills, and inits configured
     const mockRole = new Role({
       slug: 'mechanic',
       name: 'Mechanic',
@@ -99,6 +109,7 @@ describe('invokeRolesLink (integration)', () => {
         refs: [],
       },
       briefs: { dirs: [{ uri: 'test-briefs' }] },
+      inits: { dirs: [{ uri: 'test-inits' }] },
     });
 
     const mockRegistry = new RoleRegistry({
@@ -206,6 +217,26 @@ describe('invokeRolesLink (integration)', () => {
             ),
           ).toBe(true);
 
+          // Check that inits directory symlink was created
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/inits/test-inits',
+              ),
+            ),
+          ).toBe(true);
+
+          // Check that files are accessible through the symlinked inits directory
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=test/role=mechanic/inits/test-inits/init.claude.sh',
+              ),
+            ),
+          ).toBe(true);
+
           // Check that linked files are set to readonly (0o444)
           const brief1Path = resolve(
             testDir,
@@ -241,6 +272,9 @@ describe('invokeRolesLink (integration)', () => {
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('2 skill(s) linked'),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('1 init(s) linked'),
           );
         },
       );
@@ -345,7 +379,7 @@ describe('invokeRolesLink (integration)', () => {
       });
     });
 
-    when('role uses single-dir mode for briefs and skills', () => {
+    when('role uses single-dir mode for briefs, skills, and inits', () => {
       // create a role with single-dir mode (non-array dirs)
       const singleDirRole = new Role({
         slug: 'single-dir',
@@ -358,6 +392,7 @@ describe('invokeRolesLink (integration)', () => {
           refs: [],
         },
         briefs: { dirs: { uri: 'test-briefs' } },
+        inits: { dirs: { uri: 'test-inits' } },
       });
 
       const singleDirRegistry = new RoleRegistry({
@@ -373,7 +408,7 @@ describe('invokeRolesLink (integration)', () => {
       });
 
       then(
-        'it should symlink dirs directly as briefs/ and skills/ directories',
+        'it should symlink dirs directly as briefs/, skills/, and inits/ directories',
         async () => {
           await singleRolesCommand.parseAsync(
             ['link', '--repo', 'single-test', '--role', 'single-dir'],
@@ -428,6 +463,24 @@ describe('invokeRolesLink (integration)', () => {
               resolve(
                 testDir,
                 '.agent/repo=single-test/role=single-dir/skills/skill2.sh',
+              ),
+            ),
+          ).toBe(true);
+
+          // check that inits is a direct symlink to test-inits
+          const initsPath = resolve(
+            testDir,
+            '.agent/repo=single-test/role=single-dir/inits',
+          );
+          expect(existsSync(initsPath)).toBe(true);
+          expect(lstatSync(initsPath).isSymbolicLink()).toBe(true);
+
+          // check files are directly accessible under inits/
+          expect(
+            existsSync(
+              resolve(
+                testDir,
+                '.agent/repo=single-test/role=single-dir/inits/init.claude.sh',
               ),
             ),
           ).toBe(true);
