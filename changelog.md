@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/ehmpathy/rhachet/compare/v1.13.13...v1.14.0) (2025-12-22)
+
+
+### Features
+
+* **roles:** support rhachet roles init behavior ([#61](https://github.com/ehmpathy/rhachet/issues/61)) ([e156fd9](https://github.com/ehmpathy/rhachet/commit/e156fd9f00c1d1c6d1695e866886d83741aa92ce))
+
 ## [1.13.13](https://github.com/ehmpathy/rhachet/compare/v1.13.12...v1.13.13) (2025-12-22)
 
 
