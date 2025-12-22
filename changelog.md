@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.13](https://github.com/ehmpathy/rhachet/compare/v1.13.12...v1.13.13) (2025-12-22)
+
+
+### Bug Fixes
+
+* **roles:** enable link of root skills and briefs dir, rather than nested ([#59](https://github.com/ehmpathy/rhachet/issues/59)) ([8e4cb5a](https://github.com/ehmpathy/rhachet/commit/8e4cb5aacf894859c26de6511a38971d3571d9ff))
+
 ## [1.13.12](https://github.com/ehmpathy/rhachet/compare/v1.13.11...v1.13.12) (2025-12-22)
 
 
