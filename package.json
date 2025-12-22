@@ -51,7 +51,7 @@
     "postversion": "git push origin HEAD --tags --no-verify",
     "prepare:husky": "husky install && chmod ug+x .husky/*",
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi",
-    "prepare:rhachet": "rhachet init --force && rhachet roles link --role mechanic && .agent/repo=ehmpathy/role=mechanic/skills/.skills/init.claude.sh"
+    "prepare:rhachet": "rhachet init && rhachet roles link --role mechanic && .agent/repo=ehmpathy/role=mechanic/skills/.skills/init.claude.sh"
   },
   "dependencies": {
     "@ehmpathy/uni-time": "1.9.0",
@@ -89,8 +89,8 @@
     "esbuild-register": "3.6.0",
     "husky": "8.0.3",
     "jest": "30.2.0",
-    "rhachet": "1.13.1",
-    "rhachet-roles-ehmpathy": "1.15.1",
+    "rhachet": "1.13.11",
+    "rhachet-roles-ehmpathy": "1.15.12",
     "test-fns": "1.7.0",
     "tsc-alias": "1.8.10",
     "tsx": "~4.20.6",

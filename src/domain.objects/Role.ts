@@ -48,10 +48,12 @@ export interface Role {
    * .why = declares what the role can do
    * .how =
    *   - dirs: directory-based skills (e.g., .sh scripts) for linking/booting
+   *     - single { uri: string }: symlinks this dir as the full skills dir
+   *     - array { uri: string }[]: symlinks each dir within the skills dir
    *   - refs: programmatic RoleSkill references for execution
    */
   skills: {
-    dirs: { uri: string }[];
+    dirs: { uri: string } | { uri: string }[];
     refs: RoleSkill<any>[];
   };
 
@@ -59,8 +61,12 @@ export interface Role {
    * .what = the briefs curated for this role
    * .why = declares the library of knowledge this role can and should leverage
    *   - enables reuse of the briefs, independent from the skills
+   * .how =
+   *   - dirs: directory-based briefs for linking/booting
+   *     - single { uri: string }: symlinks this dir as the full briefs dir
+   *     - array { uri: string }[]: symlinks each dir within the briefs dir
    */
-  briefs: { dirs: { uri: string }[] };
+  briefs: { dirs: { uri: string } | { uri: string }[] };
 }
 export class Role extends DomainEntity<Role> implements Role {
   public static unique = ['slug'] as const;
