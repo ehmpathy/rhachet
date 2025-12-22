@@ -1,0 +1,20 @@
+propose a blueprint for how we can implement the wish described
+- in .behavior/v2025_12_22.role-inits/0.wish.md
+
+with the domain distillation declared
+- in .behavior/v2025_12_22.role-inits/3.2.distill.domain._.v1.i1.md (if declared)
+
+follow the patterns already present in this repo
+
+---
+
+reference the below for full context
+- .behavior/v2025_12_22.role-inits/0.wish.md
+- .behavior/v2025_12_22.role-inits/1.vision.md (if declared)
+- .behavior/v2025_12_22.role-inits/2.criteria.md (if declared)
+- .behavior/v2025_12_22.role-inits/3.1.research.domain._.v1.i1.md (if declared)
+- .behavior/v2025_12_22.role-inits/3.2.distill.domain._.v1.i1.md (if declared)
+
+---
+
+emit to .behavior/v2025_12_22.role-inits/3.3.blueprint.v1.i1.md

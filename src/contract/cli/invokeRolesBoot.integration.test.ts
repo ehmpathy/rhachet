@@ -130,6 +130,25 @@ describe('invokeRolesBoot (integration)', () => {
             resolve(skillsDir, '.skills'),
           );
 
+          // Create mock inits source directory and files (to verify they are NOT booted)
+          const mockInitsSourceDir = resolve(
+            testDir,
+            'node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.inits',
+          );
+          mkdirSync(mockInitsSourceDir, { recursive: true });
+          writeFileSync(
+            resolve(mockInitsSourceDir, 'init.claude.sh'),
+            '#!/bin/bash\n# Init Claude\necho "init claude"',
+          );
+
+          // Create inits directory and symlink
+          const initsDir = resolve(roleDir, 'inits');
+          mkdirSync(initsDir, { recursive: true });
+          symlinkSync(
+            '../../../../node_modules/rhachet-roles-test/dist/domain.operations/roles/mechanic/.inits',
+            resolve(initsDir, '.inits'),
+          );
+
           // Create a readme file in the role directory
           writeFileSync(
             resolve(roleDir, 'readme.md'),
@@ -196,6 +215,32 @@ describe('invokeRolesBoot (integration)', () => {
           // Check that implementation is NOT printed for skills
           expect(logSpy).not.toHaveBeenCalledWith(
             expect.stringContaining('echo "test skill 1"'),
+          );
+        });
+
+        then('it should NOT include inits in the boot output', async () => {
+          // Execute boot command
+          await rolesCommand.parseAsync(
+            ['boot', '--repo', 'test', '--role', 'mechanic'],
+            {
+              from: 'user',
+            },
+          );
+
+          // Check that inits are NOT printed (inits are one-time setup, not booted)
+          expect(logSpy).not.toHaveBeenCalledWith(
+            expect.stringContaining('init.claude.sh'),
+          );
+          expect(logSpy).not.toHaveBeenCalledWith(
+            expect.stringContaining('Init Claude'),
+          );
+          expect(logSpy).not.toHaveBeenCalledWith(
+            expect.stringContaining('<init'),
+          );
+
+          // Verify that stats do NOT count inits
+          expect(logSpy).not.toHaveBeenCalledWith(
+            expect.stringContaining('inits ='),
           );
         });
       },

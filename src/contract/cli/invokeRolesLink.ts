@@ -93,10 +93,20 @@ export const invokeRolesLink = ({
         resourceName: 'skills',
       });
 
+      // Link inits if configured
+      const initsCount = role.inits?.dirs
+        ? symlinkResourceDirectories({
+            sourceDirs: role.inits.dirs,
+            targetDir: resolve(repoRoleDir, 'inits'),
+            resourceName: 'inits',
+          })
+        : 0;
+
       console.log(``);
       console.log(`🔗 Linked role "${role.slug}" from repo "${repo.slug}"`);
       if (briefsCount > 0) console.log(`  - ${briefsCount} brief(s) linked`);
       if (skillsCount > 0) console.log(`  - ${skillsCount} skill(s) linked`);
+      if (initsCount > 0) console.log(`  - ${initsCount} init(s) linked`);
       console.log(``);
     });
 };

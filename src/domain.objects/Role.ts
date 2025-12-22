@@ -67,6 +67,20 @@ export interface Role {
    *     - array { uri: string }[]: symlinks each dir within the briefs dir
    */
   briefs: { dirs: { uri: string } | { uri: string }[] };
+
+  /**
+   * .what = initialization resources and commands for this role
+   * .why = declares setup actions that should run once when instantiating a role
+   * .how =
+   *   - dirs: directory-based init scripts for linking (same pattern as briefs/skills)
+   *     - single { uri: string }: symlinks this dir as the full inits dir
+   *     - array { uri: string }[]: symlinks each dir within the inits dir
+   *   - exec: commands to execute when `npx rhachet roles init` is run
+   */
+  inits?: {
+    dirs?: { uri: string } | { uri: string }[];
+    exec?: { cmd: string }[];
+  };
 }
 export class Role extends DomainEntity<Role> implements Role {
   public static unique = ['slug'] as const;
