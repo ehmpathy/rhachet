@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/ehmpathy/rhachet/compare/v1.14.0...v1.14.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* **roles:** ensure roles init is dispatched successfully ([#63](https://github.com/ehmpathy/rhachet/issues/63)) ([450bf7d](https://github.com/ehmpathy/rhachet/commit/450bf7df7c7c6298b590e2dadec5a51c4dd11f5d))
+
 ## [1.14.0](https://github.com/ehmpathy/rhachet/compare/v1.13.13...v1.14.0) (2025-12-22)
 
 
