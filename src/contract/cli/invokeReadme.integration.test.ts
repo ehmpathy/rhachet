@@ -14,9 +14,9 @@ describe('invokeReadme (integration)', () => {
       beforeEach(() => logSpy.mockClear());
       invokeReadme({ program, registries: [EXAMPLE_REGISTRY] });
 
-      when('invoked with only --registry', () => {
-        then('it should print the registry readme', async () => {
-          await program.parseAsync(['readme', '--registry', 'echo'], {
+      when('invoked with only --repo', () => {
+        then('it should print the repo readme', async () => {
+          await program.parseAsync(['readme', '--repo', 'echo'], {
             from: 'user',
           });
 
@@ -87,15 +87,15 @@ describe('invokeReadme (integration)', () => {
         });
       });
 
-      when('invoked with an unknown registry', () => {
-        then('it should throw a missing registry error', async () => {
+      when('invoked with an unknown repo', () => {
+        then('it should throw a missing repo error', async () => {
           const error = await getError(() =>
-            program.parseAsync(['readme', '--registry', 'notreal'], {
+            program.parseAsync(['readme', '--repo', 'notreal'], {
               from: 'user',
             }),
           );
 
-          expect(error?.message).toContain('no registry matches given options');
+          expect(error?.message).toContain('no repo matches given options');
         });
       });
     },
