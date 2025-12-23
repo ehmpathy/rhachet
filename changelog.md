@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/ehmpathy/rhachet/compare/v1.15.0...v1.15.1) (2025-12-23)
+
+
+### Bug Fixes
+
+* **cli:** make skill not found error on run more helpful ([#67](https://github.com/ehmpathy/rhachet/issues/67)) ([2fc1221](https://github.com/ehmpathy/rhachet/commit/2fc1221e316804f109679bdc250789f8ca1b3440))
+
 ## [1.15.0](https://github.com/ehmpathy/rhachet/compare/v1.14.1...v1.15.0) (2025-12-22)
 
 
