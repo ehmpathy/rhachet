@@ -33,7 +33,24 @@ export const findUniqueSkillExecutable = (input: {
       ? `no skill "${input.skillSlug}" found with ${filters}`
       : `no skill "${input.skillSlug}" found in any linked role`;
 
-    BadRequestError.throw(hint, { input });
+    // discover all available skills to show suggestions
+    const allSkills = discoverSkillExecutables({
+      repoSlug: input.repoSlug,
+      roleSlug: input.roleSlug,
+    });
+    const suggestions =
+      allSkills.length > 0
+        ? `\n\navailable skills:\n${allSkills
+            .slice(0, 5)
+            .map((s) => `  - ${s.slug} (repo=${s.repoSlug} role=${s.roleSlug})`)
+            .join(
+              '\n',
+            )}${allSkills.length > 5 ? `\n  ... and ${allSkills.length - 5} more` : ''}`
+        : '';
+
+    const tip = `\n\ntip: did you \`npx rhachet roles link\` the --role this skill comes from?`;
+
+    BadRequestError.throw(`${hint}${suggestions}${tip}`, { input });
   }
 
   // handle multiple matches
