@@ -18,23 +18,22 @@ export const invokeReadme = ({
   program
     .command('readme')
     .description('print documentation for the registry, a role, or a skill')
-    .option('--registry <slug>', 'which registry to inspect')
+    .option('--repo <slug>', 'which repo to inspect')
     .option('--role <slug>', 'which role to inspect')
     .option('--skill <slug>', 'which skill to inspect')
-    .action((opts: { registry?: string; role?: string; skill?: string }) => {
+    .action((opts: { repo?: string; role?: string; skill?: string }) => {
       // no inputs provided
-      if (!opts.registry && !opts.role)
-        BadRequestError.throw('must provide --registry or --role');
+      if (!opts.repo && !opts.role)
+        BadRequestError.throw('must provide --repo or --role');
 
-      // resolve registry
-      const registry = opts.registry
-        ? registries.find((r) => r.slug === opts.registry)
+      // resolve registry by repo slug
+      const registry = opts.repo
+        ? registries.find((r) => r.slug === opts.repo)
         : null;
       if (!opts.role) {
-        if (!registry)
-          BadRequestError.throw(`no registry matches given options`);
+        if (!registry) BadRequestError.throw(`no repo matches given options`);
 
-        // registry level readme
+        // repo level readme
         return printReadme(`${registry.slug}`, registry.readme);
       }
 

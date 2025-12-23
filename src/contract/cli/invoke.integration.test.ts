@@ -17,7 +17,7 @@ describe('invoke', () => {
         '--config',
         configPath,
         'readme',
-        '--registry',
+        '--repo',
         'echo',
         '--role',
         'echoer',
