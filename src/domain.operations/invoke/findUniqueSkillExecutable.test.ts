@@ -73,6 +73,40 @@ describe('findUniqueSkillExecutable', () => {
     });
   });
 
+  given('skill does not exist but other skills do', () => {
+    beforeEach(() => {
+      const skillsDir = resolve(testDir, '.agent/repo=.this/role=any/skills');
+      mkdirSync(skillsDir, { recursive: true });
+      writeFileSync(resolve(skillsDir, 'init.sh'), '#!/usr/bin/env bash');
+      writeFileSync(resolve(skillsDir, 'build.sh'), '#!/usr/bin/env bash');
+      writeFileSync(resolve(skillsDir, 'deploy.sh'), '#!/usr/bin/env bash');
+      chmodSync(resolve(skillsDir, 'init.sh'), '755');
+      chmodSync(resolve(skillsDir, 'build.sh'), '755');
+      chmodSync(resolve(skillsDir, 'deploy.sh'), '755');
+    });
+
+    when('finding nonexistent skill', () => {
+      then('error lists available skills', async () => {
+        const error = await getError(() =>
+          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+        );
+        expect(error?.message).toContain('available skills:');
+        expect(error?.message).toContain('init');
+        expect(error?.message).toContain('build');
+        expect(error?.message).toContain('deploy');
+      });
+
+      then('error includes tip about linking roles', async () => {
+        const error = await getError(() =>
+          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+        );
+        expect(error?.message).toContain('tip:');
+        expect(error?.message).toContain('npx rhachet roles link');
+        expect(error?.message).toContain('--role');
+      });
+    });
+  });
+
   given('skill does not exist', () => {
     beforeEach(() => {
       // create empty .agent structure
