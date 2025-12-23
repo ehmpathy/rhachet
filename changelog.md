@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.2](https://github.com/ehmpathy/rhachet/compare/v1.15.1...v1.15.2) (2025-12-23)
+
+
+### Bug Fixes
+
+* **cli:** standardize on --repo flag over --registry flag ([#68](https://github.com/ehmpathy/rhachet/issues/68)) ([80ccf72](https://github.com/ehmpathy/rhachet/commit/80ccf723d7443893bf311c882a3fbcc0fac77641))
+
 ## [1.15.1](https://github.com/ehmpathy/rhachet/compare/v1.15.0...v1.15.1) (2025-12-23)
 
 
