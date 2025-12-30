@@ -4,6 +4,7 @@ export * from '@src/domain.objects';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';
 export { enrollThread } from '@src/domain.operations/role/enrollThread';
 export { genRoleSkill } from '@src/domain.operations/role/genRoleSkill';
+export { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
 export type { ContextStitchTrail } from '@src/domain.operations/stitch/withStitchTrail';
 export { genStepImagineViaTemplate } from '@src/domain.operations/template/genStepImagineViaTemplate';
 export { genTemplate } from '@src/domain.operations/template/genTemplate';

@@ -118,8 +118,8 @@ importers:
         specifier: 0.4.2
         version: 0.4.2(@types/node@22.15.21)(zod@3.25.76)
       rhachet-roles-ehmpathy:
-        specifier: 1.15.12
-        version: 1.15.12(@types/node@22.15.21)(zod@3.25.76)
+        specifier: 1.15.21
+        version: 1.15.21(@types/node@22.15.21)(zod@3.25.76)
       test-fns:
         specifier: 1.7.0
         version: 1.7.0
@@ -3330,12 +3330,12 @@ packages:
     resolution: {integrity: sha512-y7psc/M3TkmLbpC4bDIB+33UtDvL48TgW/2jzwNGpJWYISjXyQbkgUQynwd70vI6kQbPcYFhV1kd3DegYv9IyA==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-ehmpathy@1.15.12:
-    resolution: {integrity: sha512-qaT/KM5+vu8LAHBtQM17y4/jXHEIU70ifbH0hda4Q2JOIKDRwCxOJBalD7MZOMhL6unQFlLU3qDaYaDAxqmSog==}
+  rhachet-roles-ehmpathy@1.15.21:
+    resolution: {integrity: sha512-zG6cEloUkpA4SSt//B052m8JDtktlTyA6ixNDmlOiQO3mL3u0jPXFs/Hs+/dPsraU31Xd3f74ZWHkOzaaPyPQQ==}
     engines: {node: '>=8.0.0'}
 
-  rhachet@1.13.11:
-    resolution: {integrity: sha512-VI6tnesljWBzvate7RQXJEK+FgKH8R2ez/66mDVNJoAJPq+BdHP7Cs91/0mWWme6W7HYiAK7iIUonW+oTZYtpw==}
+  rhachet@1.14.1:
+    resolution: {integrity: sha512-1S2/zm5G/MCMYxIz4dm//rqlk7ZTo0KEfqR4N1SonPzvWSvStu6zPZUYnZlu046ATCHxTbL2KBawYhn7CsEmWQ==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -6572,7 +6572,7 @@ snapshots:
       helpful-errors: 1.5.3
       joi: 17.4.0
       rhachet: 1.15.2(@types/node@22.15.21)(zod@3.25.76)
-      rhachet-roles-ehmpathy: 1.15.12(@types/node@22.15.21)(zod@3.25.76)
+      rhachet-roles-ehmpathy: 1.15.21(@types/node@22.15.21)(zod@3.25.76)
       type-fns: 1.21.0
       uuid-fns: 1.1.3
     transitivePeerDependencies:
@@ -7936,7 +7936,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet-roles-ehmpathy@1.15.12(@types/node@22.15.21)(zod@3.25.76):
+  rhachet-roles-ehmpathy@1.15.21(@types/node@22.15.21)(zod@3.25.76):
     dependencies:
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
@@ -7946,7 +7946,7 @@ snapshots:
       helpful-errors: 1.5.3
       inquirer: 12.7.0(@types/node@22.15.21)
       openai: 5.8.2(zod@3.25.76)
-      rhachet: 1.13.11(zod@3.25.76)
+      rhachet: 1.14.1(zod@3.25.76)
       rhachet-artifact: 1.0.0
       rhachet-artifact-git: 1.1.0
       serde-fns: 1.2.0
@@ -7960,7 +7960,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet@1.13.11(zod@3.25.76):
+  rhachet@1.14.1(zod@3.25.76):
     dependencies:
       '@ehmpathy/uni-time': 1.9.0
       as-procedure: 1.1.6
