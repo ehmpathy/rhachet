@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/ehmpathy/rhachet/compare/v1.15.2...v1.16.0) (2025-12-30)
+
+
+### Features
+
+* **roles:** enable npx rhachet roles init --command invocation ([#71](https://github.com/ehmpathy/rhachet/issues/71)) ([54262b5](https://github.com/ehmpathy/rhachet/commit/54262b50423def803ea64d8f50f2a17bc817dd3a))
+
 ## [1.15.2](https://github.com/ehmpathy/rhachet/compare/v1.15.1...v1.15.2) (2025-12-23)
 
 
