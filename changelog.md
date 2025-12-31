@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/ehmpathy/rhachet/compare/v1.16.0...v1.17.0) (2025-12-30)
+
+
+### Features
+
+* **sdk:** expose getRoleBriefs sdk operation ([#73](https://github.com/ehmpathy/rhachet/issues/73)) ([3cf5a15](https://github.com/ehmpathy/rhachet/commit/3cf5a1577512722fe71fc4c9beb662f041b7b607))
+
 ## [1.16.0](https://github.com/ehmpathy/rhachet/compare/v1.15.2...v1.16.0) (2025-12-30)
 
 
