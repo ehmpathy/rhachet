@@ -1,0 +1,38 @@
+declare the blueprint criteria (mechanism bounds) that satisfies the blackbox criteria
+
+ref:
+- blackbox criteria .behavior/v2025_12_30.sdk-brain-context/2.criteria.blackbox.md
+- wish .behavior/v2025_12_30.sdk-brain-context/0.wish.md
+- vision .behavior/v2025_12_30.sdk-brain-context/1.vision.md (if declared)
+
+via the template in .behavior/v2025_12_30.sdk-brain-context/2.criteria.blueprint.md
+
+emit into .behavior/v2025_12_30.sdk-brain-context/2.criteria.blueprint.md
+
+---
+
+blueprint criteria = MECHANISM BOUNDS
+- constraints on what contracts/composition must exist to deliver the experience
+- this is OPTIONAL — not all behaviors need prescribed mechanism bounds
+
+first, confirm which blackbox experience bounds will be satisfied
+
+then, declare ONLY:
+- what subcomponents are needed with what contracts/interfaces?
+- how do subcomponents compose together?
+- what integration boundaries exist?
+- what test coverage is required?
+
+DO NOT prescribe:
+- internal implementation details of subcomponents
+- specific algorithms or data structures
+- how subcomponents achieve their contracts internally
+
+note: blueprint criteria is NOT "how to build" — that's decided in blueprint.md (3.3)
+      blueprint criteria is "what mechanisms must exist" to deliver the experience
+
+the HOW is discovered during research (3.1) and decided during blueprint (3.3)
+
+----
+
+remember, if the subcomponent is not prescribed by the wish or blackbox, dont include it - let it be imagined in the blueprint phase. only prescribe the mandated contracts

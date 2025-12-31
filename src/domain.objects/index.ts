@@ -13,6 +13,9 @@ export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
 
+export * from './BrainAtom';
+export * from './BrainRepl';
+export * from './ContextBrain';
 export * from './InvokeHooks';
 export * from './InvokeOpts';
 export * from './Role';
