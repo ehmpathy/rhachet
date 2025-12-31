@@ -38,15 +38,19 @@ export const genContextBrain = (input: {
   return {
     brain: {
       atom: {
-        imagine: async (imagineInput) => {
-          const atom = findBrainAtomByRef({ atoms, ref: imagineInput.brain });
-          return atom.imagine(imagineInput, {}) as any;
+        ask: async (askInput) => {
+          const atom = findBrainAtomByRef({ atoms, ref: askInput.brain });
+          return atom.ask(askInput, {}) as any;
         },
       },
       repl: {
-        imagine: async (imagineInput) => {
-          const repl = findBrainReplByRef({ repls, ref: imagineInput.brain });
-          return repl.imagine(imagineInput, {}) as any;
+        ask: async (askInput) => {
+          const repl = findBrainReplByRef({ repls, ref: askInput.brain });
+          return repl.ask(askInput, {}) as any;
+        },
+        act: async (actInput) => {
+          const repl = findBrainReplByRef({ repls, ref: actInput.brain });
+          return repl.act(actInput, {}) as any;
         },
       },
     },

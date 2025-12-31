@@ -30,15 +30,15 @@ describe('genContextBrain.integration', () => {
       });
     });
 
-    when('[t1] atom imagine is invoked', () => {
-      then('atom imagine is called', async () => {
-        let imagineWasCalled = false;
+    when('[t1] atom ask is invoked', () => {
+      then('atom ask is called', async () => {
+        let askWasCalled = false;
         const testAtom = new BrainAtom({
           repo: '__mock_repo__',
           slug: '__mock_atom__',
-          description: 'test atom verifying imagine invocation',
-          imagine: async (input) => {
-            imagineWasCalled = true;
+          description: 'test atom verifying ask invocation',
+          ask: async (input) => {
+            askWasCalled = true;
             expect(input.prompt).toEqual('test prompt');
             return input.schema.output.parse({ content: '__mock_response__' });
           },
@@ -49,27 +49,61 @@ describe('genContextBrain.integration', () => {
           repls: [],
         });
 
-        await context.brain.atom.imagine({
+        await context.brain.atom.ask({
           brain: testAtom,
           role: {},
           prompt: 'test prompt',
           schema: { output: outputSchema },
         });
 
-        expect(imagineWasCalled).toBe(true);
+        expect(askWasCalled).toBe(true);
       });
     });
 
-    when('[t2] repl imagine is invoked', () => {
-      then('repl imagine is called', async () => {
-        let imagineWasCalled = false;
+    when('[t2] repl ask is invoked', () => {
+      then('repl ask is called', async () => {
+        let askWasCalled = false;
         const testRepl = new BrainRepl({
           repo: '__mock_repo__',
           slug: '__mock_repl__',
-          description: 'test repl verifying imagine invocation',
-          imagine: async (input) => {
-            imagineWasCalled = true;
+          description: 'test repl verifying ask invocation',
+          ask: async (input) => {
+            askWasCalled = true;
             expect(input.prompt).toEqual('test task');
+            return input.schema.output.parse({ content: '__mock_response__' });
+          },
+          act: async (input) =>
+            input.schema.output.parse({ content: '__mock_response__' }),
+        });
+
+        const context = genContextBrain({
+          atoms: [],
+          repls: [testRepl],
+        });
+
+        await context.brain.repl.ask({
+          brain: testRepl,
+          role: {},
+          prompt: 'test task',
+          schema: { output: outputSchema },
+        });
+
+        expect(askWasCalled).toBe(true);
+      });
+    });
+
+    when('[t3] repl act is invoked', () => {
+      then('repl act is called', async () => {
+        let actWasCalled = false;
+        const testRepl = new BrainRepl({
+          repo: '__mock_repo__',
+          slug: '__mock_repl__',
+          description: 'test repl verifying act invocation',
+          ask: async (input) =>
+            input.schema.output.parse({ content: '__mock_response__' }),
+          act: async (input) => {
+            actWasCalled = true;
+            expect(input.prompt).toEqual('test action');
             return input.schema.output.parse({ content: '__mock_response__' });
           },
         });
@@ -79,27 +113,27 @@ describe('genContextBrain.integration', () => {
           repls: [testRepl],
         });
 
-        await context.brain.repl.imagine({
+        await context.brain.repl.act({
           brain: testRepl,
           role: {},
-          prompt: 'test task',
+          prompt: 'test action',
           schema: { output: outputSchema },
         });
 
-        expect(imagineWasCalled).toBe(true);
+        expect(actWasCalled).toBe(true);
       });
     });
   });
 
   given('[case2] role.briefs are passed through to plugins', () => {
-    when('[t0] briefs are provided to atom imagine', () => {
-      then('briefs are forwarded to plugin imagine', async () => {
+    when('[t0] briefs are provided to atom ask', () => {
+      then('briefs are forwarded to plugin ask', async () => {
         let receivedBriefs: unknown;
         const testAtom = new BrainAtom({
           repo: '__mock_repo__',
           slug: '__mock_atom__',
           description: 'test atom capturing briefs',
-          imagine: async (input) => {
+          ask: async (input) => {
             receivedBriefs = input.role.briefs;
             return input.schema.output.parse({ content: '__mock_response__' });
           },
@@ -108,7 +142,7 @@ describe('genContextBrain.integration', () => {
         const mockBriefs = [{ content: 'brief 1' }, { content: 'brief 2' }];
         const context = genContextBrain({ atoms: [testAtom] });
 
-        await context.brain.atom.imagine({
+        await context.brain.atom.ask({
           brain: testAtom,
           role: { briefs: mockBriefs as any },
           prompt: 'test',

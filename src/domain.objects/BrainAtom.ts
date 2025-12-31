@@ -4,6 +4,8 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainAtomPlugs } from './BrainAtomPlugs';
+
 /**
  * .what = an LLM inference endpoint capable of creative language imagination
  * .why =
@@ -31,7 +33,7 @@ export interface BrainAtom {
   description: string;
 
   /**
-   * .what = the imagination operation contract
+   * .what = the ask operation contract (renamed from imagine)
    * .why = standardizes how all atoms are invoked, regardless of provider
    *
    * .note = plugin is responsible for handling role.briefs appropriately.
@@ -39,9 +41,11 @@ export interface BrainAtom {
    *   - context window optimization (e.g., claude's 200k vs gpt's 128k)
    *   - provider-specific caching (e.g., anthropic prompt caching)
    *   - finetuned behaviors (e.g., system prompt placement, formatting)
+   *   - native JSON schema enforcement for structured outputs
    */
-  imagine: <TOutput>(
+  ask: <TOutput>(
     input: {
+      plugs?: BrainAtomPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };

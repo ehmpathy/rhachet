@@ -4,6 +4,8 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainReplPlugs } from './BrainReplPlugs';
+
 /**
  * .what = a brain.atom operating behind a REPL (read-execute-print-loop)
  * .why =
@@ -34,17 +36,36 @@ export interface BrainRepl {
   description: string;
 
   /**
-   * .what = the imagination operation contract
-   * .why = standardizes how all repls are invoked, regardless of provider
+   * .what = readonly analysis operation (research, queries, code review)
+   * .why = provides safe, non-mutating agent interactions
+   *   with only read access to filesystem and tools
    *
-   * .note = plugin is responsible for handling role.briefs appropriately.
-   *   this design maximizes leverage of each brain's unique capabilities:
-   *   - context window optimization (e.g., claude-code's extended context)
-   *   - provider-specific caching (e.g., session persistence, tool caching)
-   *   - finetuned behaviors (e.g., agentic loop tuning, tool configurations)
+   * .sdk.mapping =
+   *   - claude-agent-sdk: disallowedTools=["Edit","Write","Bash","NotebookEdit"]
+   *   - codex-sdk: --sandbox read-only
    */
-  imagine: <TOutput>(
+  ask: <TOutput>(
     input: {
+      plugs?: BrainReplPlugs;
+      role: { briefs?: Artifact<typeof GitFile>[] };
+      prompt: string;
+      schema: { output: z.Schema<TOutput> };
+    },
+    context?: Empty,
+  ) => Promise<TOutput>;
+
+  /**
+   * .what = read+write action operation (code changes, file edits)
+   * .why = provides full agentic capabilities with write access
+   *   for tasks that require modifying the codebase
+   *
+   * .sdk.mapping =
+   *   - claude-agent-sdk: allowedTools=["Read","Edit","Write","Bash","Glob","Grep"]
+   *   - codex-sdk: --sandbox workspace-write
+   */
+  act: <TOutput>(
+    input: {
+      plugs?: BrainReplPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };

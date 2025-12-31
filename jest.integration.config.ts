@@ -13,17 +13,23 @@ process.env.FORCE_COLOR = 'true';
 const config: Config = {
   verbose: true,
   testEnvironment: 'node',
-  moduleFileExtensions: ['js', 'ts'],
+  moduleFileExtensions: ['js', 'ts', 'mjs'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    // codex-sdk is ESM-only with type: module, needs explicit resolution
+    '^@openai/codex-sdk$': '<rootDir>/node_modules/@openai/codex-sdk/dist/index.js',
   },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
+    '^.+\\.mjs$': '@swc/jest',
   },
   transformIgnorePatterns: [
-    // here's an example of how to ignore esm module transformation, when needed
-    // 'node_modules/(?!(@octokit|universal-user-agent|before-after-hook)/)',
+    // transform ESM packages that jest needs to handle
+    // pattern handles both direct node_modules and pnpm's .pnpm structure
+    '/node_modules/(?!(\\.pnpm/(@anthropic-ai|@openai))|(@anthropic-ai|@openai)/)',
   ],
+  // resolve ESM modules from node_modules
+  extensionsToTreatAsEsm: ['.ts'],
   testMatch: ['**/*.integration.test.ts', '!**/.yalc/**'],
   setupFilesAfterEnv: ['./jest.integration.env.ts'],
 

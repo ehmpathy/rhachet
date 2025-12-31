@@ -4,7 +4,9 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { z } from 'zod';
 
 import type { BrainAtom } from './BrainAtom';
+import type { BrainAtomPlugs } from './BrainAtomPlugs';
 import type { BrainRepl } from './BrainRepl';
+import type { BrainReplPlugs } from './BrainReplPlugs';
 
 /**
  * .what = runtime context providing unified access to brain atoms and repls
@@ -20,11 +22,12 @@ export interface ContextBrain {
   brain: {
     atom: {
       /**
-       * .what = lookup and invoke a brain atom by reference
+       * .what = lookup and invoke a brain atom for single-turn inference
        * .why = provides ergonomic access to atoms with automatic lookup
        */
-      imagine: <TOutput>(input: {
+      ask: <TOutput>(input: {
         brain: RefByUnique<typeof BrainAtom>;
+        plugs?: BrainAtomPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
@@ -33,11 +36,24 @@ export interface ContextBrain {
 
     repl: {
       /**
-       * .what = lookup and invoke a brain repl by reference
-       * .why = provides ergonomic access to repls with automatic lookup
+       * .what = lookup and invoke a brain repl for readonly analysis
+       * .why = provides safe agentic analysis without file modifications
        */
-      imagine: <TOutput>(input: {
+      ask: <TOutput>(input: {
         brain: RefByUnique<typeof BrainRepl>;
+        plugs?: BrainReplPlugs;
+        role: { briefs?: Artifact<typeof GitFile>[] };
+        prompt: string;
+        schema: { output: z.Schema<TOutput> };
+      }) => Promise<TOutput>;
+
+      /**
+       * .what = lookup and invoke a brain repl for read+write actions
+       * .why = provides full agentic capabilities with file modifications
+       */
+      act: <TOutput>(input: {
+        brain: RefByUnique<typeof BrainRepl>;
+        plugs?: BrainReplPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
