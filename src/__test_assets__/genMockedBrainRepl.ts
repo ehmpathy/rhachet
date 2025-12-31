@@ -14,8 +14,12 @@ export const genMockedBrainRepl = (input?: {
     repo: input?.repo ?? '__mock_repo__',
     slug: input?.slug ?? '__mock_repl__',
     description: input?.description ?? 'mocked brain repl for testing',
-    imagine: async (imagineInput) =>
-      imagineInput.schema.output.parse({
+    ask: async (askInput) =>
+      askInput.schema.output.parse({
+        content: input?.content ?? '__mock_response__',
+      }),
+    act: async (actInput) =>
+      actInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       }),
   });

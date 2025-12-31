@@ -4,7 +4,7 @@ import { genArtifactGitFile } from 'rhachet-artifact-git';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { brainAtomGpt4o } from './brainAtomGpt4o';
+import { genBrainAtom } from './genBrainAtom';
 
 const BRIEFS_DIR = path.join(
   __dirname,
@@ -16,30 +16,33 @@ const outputSchema = z.object({ content: z.string() });
 if (!process.env.OPENAI_API_KEY)
   throw new BadRequestError('OPENAI_API_KEY is required for integration tests');
 
-describe('brainAtomGpt4o.integration', () => {
+describe('genBrainAtom.integration', () => {
   jest.setTimeout(30000);
 
-  given('[case1] brainAtomGpt4o instance', () => {
+  // use gpt-4o-mini for fast integration tests
+  const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
+
+  given('[case1] genBrainAtom({ slug: "openai/gpt-4o-mini" })', () => {
     when('[t0] inspecting the atom', () => {
       then('repo is "openai"', () => {
-        expect(brainAtomGpt4o.repo).toEqual('openai');
+        expect(brainAtom.repo).toEqual('openai');
       });
 
-      then('slug is "gpt-4o"', () => {
-        expect(brainAtomGpt4o.slug).toEqual('gpt-4o');
+      then('slug is "openai/gpt-4o-mini"', () => {
+        expect(brainAtom.slug).toEqual('openai/gpt-4o-mini');
       });
 
       then('description is defined', () => {
-        expect(brainAtomGpt4o.description).toBeDefined();
-        expect(brainAtomGpt4o.description.length).toBeGreaterThan(0);
+        expect(brainAtom.description).toBeDefined();
+        expect(brainAtom.description.length).toBeGreaterThan(0);
       });
     });
   });
 
-  given('[case2] imagine is called', () => {
+  given('[case2] ask is called', () => {
     when('[t0] with simple prompt', () => {
       then('it returns a substantive response', async () => {
-        const result = await brainAtomGpt4o.imagine({
+        const result = await brainAtom.ask({
           role: {},
           prompt: 'respond with exactly: hello world',
           schema: { output: outputSchema },
@@ -57,7 +60,7 @@ describe('brainAtomGpt4o.integration', () => {
             uri: path.join(BRIEFS_DIR, 'secret-code.brief.md'),
           }),
         ];
-        const result = await brainAtomGpt4o.imagine({
+        const result = await brainAtom.ask({
           role: { briefs },
           prompt: 'say hello',
           schema: { output: outputSchema },

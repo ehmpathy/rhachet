@@ -4,7 +4,7 @@ import { genArtifactGitFile } from 'rhachet-artifact-git';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { brainReplCodex } from './brainReplCodex';
+import { genBrainRepl } from './genBrainRepl';
 
 const BRIEFS_DIR = path.join(
   __dirname,
@@ -16,30 +16,32 @@ const outputSchema = z.object({ content: z.string() });
 if (!process.env.OPENAI_API_KEY)
   throw new BadRequestError('OPENAI_API_KEY is required for integration tests');
 
-describe('brainReplCodex.integration', () => {
+describe('genBrainRepl.integration', () => {
   jest.setTimeout(60000);
 
-  given('[case1] brainReplCodex instance', () => {
+  const brainRepl = genBrainRepl({ slug: 'openai/codex' });
+
+  given('[case1] genBrainRepl({ slug: "openai/codex" })', () => {
     when('[t0] inspecting the repl', () => {
       then('repo is "openai"', () => {
-        expect(brainReplCodex.repo).toEqual('openai');
+        expect(brainRepl.repo).toEqual('openai');
       });
 
-      then('slug is "codex"', () => {
-        expect(brainReplCodex.slug).toEqual('codex');
+      then('slug is "openai/codex"', () => {
+        expect(brainRepl.slug).toEqual('openai/codex');
       });
 
       then('description is defined', () => {
-        expect(brainReplCodex.description).toBeDefined();
-        expect(brainReplCodex.description.length).toBeGreaterThan(0);
+        expect(brainRepl.description).toBeDefined();
+        expect(brainRepl.description.length).toBeGreaterThan(0);
       });
     });
   });
 
-  given('[case2] imagine is called', () => {
+  given('[case2] ask is called (readonly mode)', () => {
     when('[t0] with simple prompt', () => {
-      then('it returns a substantive response with reasoning', async () => {
-        const result = await brainReplCodex.imagine({
+      then('it returns a substantive response', async () => {
+        const result = await brainRepl.ask({
           role: {},
           prompt: 'respond with exactly: hello from codex',
           schema: { output: outputSchema },
@@ -57,13 +59,28 @@ describe('brainReplCodex.integration', () => {
             uri: path.join(BRIEFS_DIR, 'secret-code.brief.md'),
           }),
         ];
-        const result = await brainReplCodex.imagine({
+        const result = await brainRepl.ask({
           role: { briefs },
           prompt: 'say hello',
           schema: { output: outputSchema },
         });
         expect(result.content).toBeDefined();
         expect(result.content).toContain('ZEBRA42');
+      });
+    });
+  });
+
+  given('[case3] act is called (read+write mode)', () => {
+    when('[t0] with simple prompt', () => {
+      then('it returns a substantive response', async () => {
+        const result = await brainRepl.act({
+          role: {},
+          prompt: 'respond with exactly: hello from codex action',
+          schema: { output: outputSchema },
+        });
+        expect(result.content).toBeDefined();
+        expect(result.content.length).toBeGreaterThan(0);
+        expect(result.content.toLowerCase()).toContain('hello');
       });
     });
   });
