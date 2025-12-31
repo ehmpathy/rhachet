@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.0](https://github.com/ehmpathy/rhachet/compare/v1.17.0...v1.18.0) (2025-12-31)
+
+
+### Features
+
+* **brain:** brain.atom.imagine -&gt; brain.atom.ask; brain.repl.imagine -> brain.repl.act and brain.repl.ask ([#78](https://github.com/ehmpathy/rhachet/issues/78)) ([c8a13f2](https://github.com/ehmpathy/rhachet/commit/c8a13f29b2c4ff2f515f581c9ad1033b5551f58c))
+* **brain:** declare RhachetBrainAtom and RhachetBrainRepl contracts ([#75](https://github.com/ehmpathy/rhachet/issues/75)) ([ec80153](https://github.com/ehmpathy/rhachet/commit/ec80153cd9a089c397b95b3e01ad89aa0e2bf097))
+
 ## [1.17.0](https://github.com/ehmpathy/rhachet/compare/v1.16.0...v1.17.0) (2025-12-30)
 
 
