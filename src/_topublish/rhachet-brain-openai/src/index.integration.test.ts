@@ -63,7 +63,7 @@ describe('rhachet-brain-openai.integration', () => {
       });
 
       then('has correct slug', () => {
-        expect(repl.slug).toEqual('openai/codex');
+        expect(repl.slug).toEqual('codex');
       });
     });
   });

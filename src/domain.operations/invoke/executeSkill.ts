@@ -5,11 +5,13 @@ import { execSync } from 'node:child_process';
 /**
  * .what = executes a skill script with passthrough args
  * .why = runs the discovered skill with full arg passthrough
+ *
+ * .note = captures stdout and parses JSON output when available
  */
 export const executeSkill = (input: {
   skill: RoleSkillExecutable;
   args: string[];
-}): void => {
+}): unknown => {
   // build command with args
   const command = [input.skill.path, ...input.args]
     .map((arg) => {
@@ -19,10 +21,21 @@ export const executeSkill = (input: {
     })
     .join(' ');
 
-  // execute with inherited stdio
-  execSync(command, {
+  // execute and capture stdout
+  const stdout = execSync(command, {
     cwd: process.cwd(),
-    stdio: 'inherit',
     shell: '/bin/bash',
+    encoding: 'utf-8',
   });
+
+  // parse JSON output if present
+  const trimmed = stdout.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // return raw string if not valid JSON
+    return trimmed;
+  }
 };

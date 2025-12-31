@@ -1,0 +1,11 @@
+{
+  "name": "rhachet-roles-example.published",
+  "version": "0.0.1",
+  "description": "test fixture: published pattern role with skills.solid and skills.rigid",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo 'fixture'"
+  }
+}

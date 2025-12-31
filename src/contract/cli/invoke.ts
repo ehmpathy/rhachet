@@ -3,10 +3,12 @@ import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
+import { getBrainReplsByOpts } from '@src/domain.operations/invoke/getBrainReplsByOpts';
 import { getInvokeHooksByOpts } from '@src/domain.operations/invoke/getInvokeHooksByOpts';
 import { getRegistriesByOpts } from '@src/domain.operations/invoke/getRegistriesByOpts';
 
 import { resolve } from 'node:path';
+import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
 import { invokeInit } from './invokeInit';
@@ -48,6 +50,9 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   const registries = await getRegistriesByOpts({
     opts: { config: configPath },
   });
+  const brains = await getBrainReplsByOpts({
+    opts: { config: configPath },
+  });
   const hooks = await getInvokeHooksByOpts({
     opts: { config: configPath }, // todo: maybe, getConfigByOpts ? returns both?
   });
@@ -71,9 +76,16 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program, registries });
   invokeList({ program, registries });
   invokeRoles({ program, registries });
-  invokeRun({ program });
+  invokeRun({ program, registries, brains });
   invokeChoose({ program });
-  invokeAsk({ program, config: { path: configPath }, registries, hooks });
+  invokeAsk({
+    program,
+    config: { path: configPath },
+    registries,
+    brains,
+    hooks,
+  });
+  invokeAct({ program, registries, brains, hooks });
 
   // invoke it
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {
