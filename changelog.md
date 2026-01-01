@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.0](https://github.com/ehmpathy/rhachet/compare/v1.18.0...v1.19.0) (2026-01-01)
+
+
+### Features
+
+* **actor:** genActor, with .ask, .act, and .run support ([#77](https://github.com/ehmpathy/rhachet/issues/77)) ([e762c8e](https://github.com/ehmpathy/rhachet/commit/e762c8e2f47c6b7111cd05a65aaec791f2cd15ee))
+
 ## [1.18.0](https://github.com/ehmpathy/rhachet/compare/v1.17.0...v1.18.0) (2025-12-31)
 
 
