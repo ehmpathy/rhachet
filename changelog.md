@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.2](https://github.com/ehmpathy/rhachet/compare/v1.19.1...v1.19.2) (2026-01-01)
+
+
+### Bug Fixes
+
+* **docs:** tune readme; polish order ([#82](https://github.com/ehmpathy/rhachet/issues/82)) ([f21c53d](https://github.com/ehmpathy/rhachet/commit/f21c53d775dfc0b5bd4488d698db25abf9e36863))
+
 ## [1.19.1](https://github.com/ehmpathy/rhachet/compare/v1.19.0...v1.19.1) (2026-01-01)
 
 
