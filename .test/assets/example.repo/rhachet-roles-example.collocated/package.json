@@ -1,0 +1,11 @@
+{
+  "name": "rhachet-roles-example.collocated",
+  "version": "0.0.1",
+  "description": "test fixture: collocated pattern with .agent/ checked in directly",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo 'fixture'"
+  }
+}

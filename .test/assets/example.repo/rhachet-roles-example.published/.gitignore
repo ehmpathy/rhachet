@@ -1,0 +1,4 @@
+# .agent/ is NOT checked in for published pattern
+# it is created via `rhachet roles link` which symlinks from src/domain.roles/
+.agent/
+node_modules/

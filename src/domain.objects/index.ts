@@ -13,6 +13,8 @@ export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
 
+export * from './Actor';
+export * from './ActorRoleSkill';
 export * from './BrainAtom';
 export * from './BrainRepl';
 export * from './ContextBrain';

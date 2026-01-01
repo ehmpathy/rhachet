@@ -27,8 +27,8 @@ describe('genBrainRepl.integration', () => {
         expect(brainRepl.repo).toEqual('openai');
       });
 
-      then('slug is "openai/codex"', () => {
-        expect(brainRepl.slug).toEqual('openai/codex');
+      then('slug is "codex"', () => {
+        expect(brainRepl.slug).toEqual('codex');
       });
 
       then('description is defined', () => {

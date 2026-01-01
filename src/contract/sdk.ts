@@ -1,6 +1,7 @@
 export { withImmute } from 'domain-objects';
 
 export * from '@src/domain.objects';
+export { genActor } from '@src/domain.operations/actor/genActor';
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';

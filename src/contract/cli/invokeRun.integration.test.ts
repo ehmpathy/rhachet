@@ -1,5 +1,10 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
+import { z } from 'zod';
+
+import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
+import { Role } from '@src/domain.objects/Role';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
 import {
   chmodSync,
@@ -33,7 +38,8 @@ describe('invokeRun (integration)', () => {
       logSpy.mockClear();
     });
 
-    invokeRun({ program });
+    // use empty registries and brains for command-mode discovery behavior tests
+    invokeRun({ program, registries: [], brains: [] });
 
     when('skill exists in repo=.this/role=any', () => {
       beforeAll(() => {
@@ -137,7 +143,7 @@ describe('invokeRun (integration)', () => {
     });
 
     when('--skill is not provided', () => {
-      then('throws error requiring --skill', async () => {
+      then('it throws error that requires --skill', async () => {
         const error = await getError(() =>
           program.parseAsync(['run'], {
             from: 'user',
@@ -330,4 +336,129 @@ describe('invokeRun (integration)', () => {
       });
     });
   });
+
+  given(
+    'a CLI program with invokeRun registered (actor-mode with typed solid skill)',
+    () => {
+      const testDir = resolve(__dirname, './.temp/invokeRunActorMode');
+      const originalCwd = process.cwd();
+
+      beforeAll(() => {
+        // create test directory
+        mkdirSync(testDir, { recursive: true });
+        process.chdir(testDir);
+
+        // clean up any existing .agent
+        const cleanAgentDir = resolve(testDir, '.agent');
+        if (existsSync(cleanAgentDir)) {
+          rmSync(cleanAgentDir, { recursive: true, force: true });
+        }
+
+        // create skill file for greet
+        const skillsDir = resolve(
+          testDir,
+          '.agent/repo=.this/role=runner/skills',
+        );
+        mkdirSync(skillsDir, { recursive: true });
+
+        const greetSkill = resolve(skillsDir, 'greet.sh');
+        writeFileSync(
+          greetSkill,
+          '#!/usr/bin/env bash\necho "hello ${1:-stranger}"',
+        );
+        chmodSync(greetSkill, '755');
+      });
+
+      afterAll(() => {
+        process.chdir(originalCwd);
+      });
+
+      // create real brain via genBrainRepl
+      const brain = genBrainRepl({ slug: 'openai/codex' });
+
+      // create test role with typed solid skill
+      const testRole = new Role({
+        slug: 'runner',
+        name: 'Runner',
+        purpose: 'test role for invokeRun actor-mode tests',
+        readme: 'a role for invokeRun actor-mode tests',
+        traits: [],
+        skills: {
+          solid: {
+            greet: {
+              input: z.object({ name: z.string() }),
+              output: z.object({ message: z.string() }),
+            },
+          },
+          dirs: { uri: '.agent/repo=.this/role=runner/skills' },
+          refs: [],
+        },
+        briefs: { dirs: { uri: '.agent/repo=.this/role=runner/briefs' } },
+      });
+
+      const testRegistry: RoleRegistry = {
+        slug: '.this',
+        readme: 'test registry for invokeRun actor-mode tests',
+        roles: [testRole],
+      };
+
+      const program = new Command();
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      beforeEach(() => {
+        logSpy.mockClear();
+      });
+
+      invokeRun({
+        program,
+        registries: [testRegistry],
+        brains: [brain],
+      });
+
+      when('run command is invoked with typed solid skill', () => {
+        then('it invokes actor.run with the skill', async () => {
+          const args = ['run', '--skill', 'greet', '--role', 'runner'];
+          await program.parseAsync(args, { from: 'user' });
+
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('skill "greet"'),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('role="runner"'),
+          );
+        });
+      });
+
+      when('run command is invoked with args for typed solid skill', () => {
+        then('it passes args to actor.run', async () => {
+          const args = [
+            'run',
+            '--skill',
+            'greet',
+            '--role',
+            'runner',
+            '--name',
+            'World',
+          ];
+          await program.parseAsync(args, { from: 'user' });
+
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('skill "greet"'),
+          );
+        });
+      });
+
+      when('run command is invoked with nonexistent skill on role', () => {
+        then('it falls back to command-mode and fails', async () => {
+          const args = ['run', '--skill', 'nonexistent', '--role', 'runner'];
+          const error = await getError(() =>
+            program.parseAsync(args, { from: 'user' }),
+          );
+
+          // falls back to command-mode which fails to find the skill
+          expect(error?.message).toContain('no skill');
+        });
+      });
+    },
+  );
 });

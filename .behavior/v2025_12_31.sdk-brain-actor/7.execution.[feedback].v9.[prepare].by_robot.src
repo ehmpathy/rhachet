@@ -1,0 +1,22 @@
+emit your response into
+- .behavior/v2025_12_31.sdk-brain-actor/7.execution.[feedback].v9.[prepare].by_robot.md
+
+---
+
+bootup you context about the wish, vision, and blueprint
+- .behavior/v2025_12_31.sdk-brain-actor/0.wish.md
+- .behavior/v2025_12_31.sdk-brain-actor/1.vision.md (if declared)
+
+---
+---
+---
+
+now
+
+review the current state against the .behavior/v2025_12_31.sdk-brain-actor/1.vision.md
+
+enumerate each contract implied in the vision.
+
+decompose it into distinct contracts that we must support
+
+enumerate each individually into the response target

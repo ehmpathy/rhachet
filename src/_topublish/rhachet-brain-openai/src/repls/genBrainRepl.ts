@@ -110,9 +110,12 @@ const invokeCodex = async <TOutput>(input: {
 export const genBrainRepl = (input: { slug: CodexSlug }): BrainRepl => {
   const config = CONFIG_BY_SLUG[input.slug];
 
+  // extract model slug without the repo prefix (e.g., 'openai/codex' -> 'codex')
+  const modelSlug = input.slug.replace(/^openai\//, '');
+
   return new BrainRepl({
     repo: 'openai',
-    slug: input.slug,
+    slug: modelSlug,
     description: config.description,
 
     /**

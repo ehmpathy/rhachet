@@ -50,6 +50,19 @@ if (
   );
 
 /**
+ * .what = verify that brain API keys are present for actor/brain integration tests
+ * .why =
+ *   - prevent time wasted waiting on tests to fail due to missing API keys
+ *   - provide clear instructions on how to set up API keys
+ */
+if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)
+  throw new Error(
+    `no brain API keys present. please run:\n\n` +
+      `  source .agent/repo=.this/role=any/skills/use.apikeys.sh && npm run test:integration -- path/to/file\n\n` +
+      `to authenticate with OpenAI or Anthropic for integration tests.`,
+  );
+
+/**
  * .what = verify that the testdb has been provisioned if a databaseUserName is declared
  * .why =
  *   - prevent time wasted waiting on tests to fail due to missing testdb

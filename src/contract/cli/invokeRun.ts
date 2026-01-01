@@ -1,6 +1,10 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import type { Role } from '@src/domain.objects/Role';
+import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { genActor } from '@src/domain.operations/actor/genActor';
 import { executeSkill } from '@src/domain.operations/invoke/executeSkill';
 import { findUniqueSkillExecutable } from '@src/domain.operations/invoke/findUniqueSkillExecutable';
 
@@ -16,16 +20,77 @@ const getRawArgsAfterRun = (): string[] => {
 };
 
 /**
- * .what = adds the "run" command to the CLI
- * .why = discovers and executes skills from linked role directories
+ * .what = performs run via actor-mode (typed solid skill on role)
+ * .why = executes a typed solid skill via actor.run with full type safety
  */
-export const invokeRun = ({ program }: { program: Command }): void => {
+const performRunViaActorMode = async (input: {
+  opts: { skill: string; role: string };
+  role: Role;
+  brains: BrainRepl[];
+}): Promise<void> => {
+  // create actor
+  const actor = genActor({ role: input.role, brains: input.brains });
+
+  // log which skill will run
+  console.log(``);
+  console.log(`🪨 skill "${input.opts.skill}" from role="${input.opts.role}"`);
+  console.log(``);
+
+  // parse skill input from remaining args
+  const rawArgs = getRawArgsAfterRun();
+  const skillArgs = parseArgsToObject(rawArgs, input.opts.skill);
+
+  // invoke actor.run
+  await actor.run({ skill: { [input.opts.skill]: skillArgs } });
+};
+
+/**
+ * .what = performs run via command-mode (shell skill discovery)
+ * .why = discovers and executes shell skills from .agent/ directories
+ */
+const performRunViaCommandMode = (input: {
+  opts: { skill: string; repo?: string; role?: string };
+}): void => {
+  // discover skill via .agent/ dirs
+  const skill = findUniqueSkillExecutable({
+    repoSlug: input.opts.repo,
+    roleSlug: input.opts.role,
+    skillSlug: input.opts.skill,
+  });
+
+  // log which skill will run
+  console.log(``);
+  console.log(
+    `🪨 skill "${skill.slug}" from repo=${skill.repoSlug} role=${skill.roleSlug}`,
+  );
+  console.log(``);
+
+  // get all args after 'run' for passthrough
+  const rawArgs = getRawArgsAfterRun();
+
+  // execute with all args passed through
+  executeSkill({ skill, args: rawArgs });
+};
+
+/**
+ * .what = adds the "run" command to the CLI
+ * .why = discovers and executes solid skills (deterministic, no brain)
+ */
+export const invokeRun = ({
+  program,
+  registries,
+  brains,
+}: {
+  program: Command;
+  registries: RoleRegistry[];
+  brains: BrainRepl[];
+}): void => {
   program
     .command('run')
-    .description('run a skill from linked role directories')
+    .description('run a solid skill (deterministic, no brain)')
     .option('-s, --skill <slug>', 'the skill to execute')
     .option('--repo <slug>', 'filter to specific repo')
-    .option('--role <slug>', 'filter to specific role')
+    .option('-r, --role <slug>', 'filter to specific role')
     .allowUnknownOption(true)
     .allowExcessArguments(true)
     .action(async (opts: { skill?: string; repo?: string; role?: string }) => {
@@ -35,24 +100,91 @@ export const invokeRun = ({ program }: { program: Command }): void => {
           '--skill is required (e.g., --skill init.claude)',
         );
 
-      // find unique skill
-      const skill = findUniqueSkillExecutable({
-        repoSlug: opts.repo,
-        roleSlug: opts.role,
-        skillSlug: opts.skill,
-      });
+      // determine which mode to use
+      const allRoles = registries.flatMap((r) => r.roles);
+      const roleFound = opts.role
+        ? allRoles.find((r) => r.slug === opts.role)
+        : undefined;
+      const hasTypedSolidSkill =
+        roleFound?.skills?.solid?.[opts.skill] !== undefined;
 
-      // log which skill will run
-      console.log(``);
-      console.log(
-        `🌊 skill "${skill.slug}" from repo=${skill.repoSlug} role=${skill.roleSlug}`,
+      const isActorMode = roleFound && hasTypedSolidSkill && brains.length > 0;
+      const isCommandMode = !isActorMode;
+
+      // 🪨 actor-mode: invoke typed solid skill via actor.run
+      if (isActorMode)
+        return await performRunViaActorMode({
+          opts: { skill: opts.skill, role: opts.role! },
+          role: roleFound,
+          brains,
+        });
+
+      // 🐚 command-mode: discover and execute shell skill
+      if (isCommandMode)
+        return performRunViaCommandMode({
+          opts: { skill: opts.skill, repo: opts.repo, role: opts.role },
+        });
+
+      // neither mode matched - unexpected
+      throw new UnexpectedCodePathError(
+        'invokeRun: neither actor-mode nor command-mode matched',
+        { opts },
       );
-      console.log(``);
-
-      // get all args after 'run' for passthrough
-      const rawArgs = getRawArgsAfterRun();
-
-      // execute with all args passed through
-      executeSkill({ skill, args: rawArgs });
     });
+};
+
+/**
+ * .what = parses raw CLI args into object for skill input
+ * .why = converts --key value pairs to { key: value } object
+ */
+const parseArgsToObject = (
+  rawArgs: string[],
+  skillSlug: string,
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+  let i = 0;
+
+  while (i < rawArgs.length) {
+    const arg = rawArgs[i]!;
+
+    // skip --skill, --role, --repo (already consumed)
+    if (
+      arg === '--skill' ||
+      arg === '-s' ||
+      arg === '--role' ||
+      arg === '-r' ||
+      arg === '--repo'
+    ) {
+      i += 2; // skip flag and its value
+      continue;
+    }
+
+    // skip the skill slug value if it matches
+    if (arg === skillSlug) {
+      i++;
+      continue;
+    }
+
+    // parse --key value or --key=value
+    if (arg.startsWith('--')) {
+      const eqIdx = arg.indexOf('=');
+      if (eqIdx > 0) {
+        // --key=value format
+        const key = arg.slice(2, eqIdx);
+        const value = arg.slice(eqIdx + 1);
+        result[key] = value;
+        i++;
+      } else {
+        // --key value format
+        const key = arg.slice(2);
+        const value = rawArgs[i + 1] ?? '';
+        result[key] = value;
+        i += 2;
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return result;
 };
