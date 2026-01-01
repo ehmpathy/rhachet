@@ -11,9 +11,9 @@ a framework for reliable, composable, and iteratively improvable thought.
 
 rhachet makes it simple to leverage thought routes - safely, easily, and effectively.
 
-- 🪨 **solid** routes for deterministic automation
-- 🔩 **rigid** routes for augmented workflows
-- 🌊 **fluid** routes for open-ended exploration
+- 🪨 **solid** routes for deterministic operations
+- 🔩 **rigid** routes for augmented orchestration
+- 💧 **fluid** routes for probabalistic exploration
 
 with rhachet, you can:
 - declare thought routes, reusably and maintainably
@@ -28,48 +28,53 @@ with rhachet, you can:
 
 thought routes describe the determinism profile of an execution path.
 
-| route       | what                                             | when to use                          |
-| ----------- | ------------------------------------------------ | ------------------------------------ |
-| 🪨 **solid** | deterministic throughout                         | scripted automation, data transforms |
-| 🔩 **rigid** | deterministic harness + probabilistic operations | augmented workflows, controlled ai   |
-| 🌊 **fluid** | probabilistic throughout                         | exploration, open-ended problems     |
+| route       | what                                             | when to use                                      |
+| ----------- | ------------------------------------------------ | ------------------------------------------------ |
+| 🪨 **solid** | deterministic throughout                         | whenever you can; faster, cheaper, more reliable |
+| 🔩 **rigid** | deterministic harness + probabilistic operations | when you can control the flow, brain fills gaps  |
+| 💧 **fluid** | probabilistic throughout                         | when brain must decide the flow                  |
 
 the key distinction:
 - 🔩 **rigid**: you know when thought is needed, harness controls
-- 🌊 **fluid**: you don't know when or what thought is needed, brain decides
+- 💧 **fluid**: you don't know when or what thought is needed, brain decides
 
 ## brains
 
 brains are probabilistic imagination mechanisms that provide creative thought capabilities:
 
-| type | what | characteristics |
-| ---- | ---- | --------------- |
-| **brain.atom** | single inference | stateless, one-shot |
+| type           | what                 | characteristics                |
+| -------------- | -------------------- | ------------------------------ |
+| **brain.atom** | single inference     | stateless, one-shot            |
 | **brain.repl** | read-eval-print-loop | stateful, multi-turn, tool use |
 
 brain.atom is for single-turn operations. brain.repl is for multi-turn operations.
 
 ## actors, roles, skills, briefs
 
-rhachet organizes thought operators into a composable hierarchy:
+rhachet organizes thought operators into a composable hierarchy
 
 ```
-actor = brain + role
-role = skills + briefs
+actor
+├── brain
+└── role
+    ├── briefs
+    └── skills
 ```
 
-| concept   | what                               | example                                 |
-| --------- | ---------------------------------- | --------------------------------------- |
-| **actor** | a brain assuming a role            | mechanic actor (claude + mechanic role) |
-| **role**  | a bundle of skills + briefs        | mechanic, reviewer, architect           |
-| **skill** | an executable capability           | review, deliver, init                   |
-| **brief** | context and knowledge for the role | coding standards, domain patterns       |
+| concept     | what                               | example                                      |
+| ----------- | ---------------------------------- | -------------------------------------------- |
+| 🎭 **actor** | a brain in a role                  | mechanic actor (brain:codex + role:mechanic) |
+| 🧢 **role**  | a bundle of skills + briefs        | mechanic, reviewer, architect                |
+| 📚 **brief** | curated knowledge for the role     | code standards, domain patterns              |
+| 💪 **skill** | executable capability for the role | review, deliver, decompose                   |
+
+actors cause action - yet are not agents until delegated to.
 
 roles are portable - the same role can be assumed by different brains.
 
-skills are composable - they can invoke other skills, nest thought routes, and build complexity incrementally.
-
 briefs are cumulative - they encode institutional knowledge that improves over time.
+
+skills are composable - they can invoke other skills, nest thought routes, and build complexity incrementally.
 
 # install
 
@@ -87,7 +92,7 @@ rhachet provides cli commands for each thought route:
 | ----------------- | ------- | ------------------------------------------ |
 | `npx rhachet run` | 🪨 solid | execute a shell skill, no brain            |
 | `npx rhachet act` | 🔩 rigid | execute a skill with deterministic harness |
-| `npx rhachet ask` | 🌊 fluid | converse with an actor, brain decides path |
+| `npx rhachet ask` | 💧 fluid | converse with an actor, brain decides path |
 
 ### setup
 
@@ -110,7 +115,7 @@ export const getRoleRegistries = () => [
 npx rhachet run --skill gh.workflow.logs --workflow test
 ```
 
-deterministic execution, no brain involved.
+deterministic operations, no brain.
 
 ### 🔩 rigid: act
 
@@ -125,9 +130,9 @@ npx rhachet act \
   --brain openai/codex
 ```
 
-deterministic harness controls flow, brain operations are wrapped and validated.
+augmented orchestration, harness controls flow, brain augments.
 
-### 🌊 fluid: ask
+### 💧 fluid: ask
 
 ```sh
 npx rhachet ask \
@@ -135,17 +140,17 @@ npx rhachet ask \
   --ask "are birds real?"
 ```
 
-brain decides the path, exploration is the goal.
+probabilistic exploration, brain decides the path.
 
 ## sdk
 
 rhachet provides a type-safe sdk for programmatic actor usage.
 
-| method         | route   | what it does                               |
-| -------------- | ------- | ------------------------------------------ |
-| `actor.run()`  | 🪨 solid | execute a shell skill, no brain            |
-| `actor.act()`  | 🔩 rigid | execute a skill with deterministic harness |
-| `actor.ask()`  | 🌊 fluid | converse with an actor, brain decides path |
+| method        | route   | what it does                               |
+| ------------- | ------- | ------------------------------------------ |
+| `actor.run()` | 🪨 solid | execute a shell skill, no brain            |
+| `actor.act()` | 🔩 rigid | execute a skill with deterministic harness |
+| `actor.ask()` | 💧 fluid | converse with an actor, brain decides path |
 
 ### setup
 
@@ -178,7 +183,7 @@ await mechanic.run({
 });
 ```
 
-deterministic execution, no brain involved.
+deterministic operations, no brain.
 
 ### 🔩 rigid: act
 
@@ -195,17 +200,17 @@ await mechanic.act({
 });
 ```
 
-deterministic harness controls flow, brain operations are wrapped and validated.
+augmented orchestration, harness controls flow, brain augments.
 
-### 🌊 fluid: ask
+### 💧 fluid: ask
 
 ```ts
-await mechanic.ask({
+await skeptic.ask({
   prompt: 'are birds real?',
 });
 ```
 
-brain decides the path, exploration is the goal.
+probabilistic exploration, brain decides the path.
 
 # vision
 

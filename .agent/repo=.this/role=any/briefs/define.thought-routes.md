@@ -1,4 +1,4 @@
-# thought routes = 🪨 solid vs 🔩 rigid vs 🌊 fluid
+# thought routes = 🪨 solid vs 🔩 rigid vs 💧 fluid
 
 ## .what
 
@@ -7,7 +7,7 @@ thought routes describe the determinism profile of an execution path
 three archetypes:
 - 🪨 **solid** = deterministic throughout
 - 🔩 **rigid** = deterministic entrypoint, mixed operations + orchestration
-- 🌊 **fluid** = probabilistic throughout
+- 💧 **fluid** = probabilistic throughout
 
 ## .why
 
@@ -21,7 +21,7 @@ three archetypes:
 
 ## comparison
 
-| aspect             | 🪨 solid       | 🔩 rigid            | 🌊 fluid       |
+| aspect             | 🪨 solid       | 🔩 rigid            | 💧 fluid       |
 | ------------------ | ------------- | ------------------ | ------------- |
 | entrypoint         | deterministic | deterministic      | probabilistic |
 | operations         | deterministic | mixed (det + prob) | probabilistic |
@@ -43,7 +43,7 @@ three archetypes:
 - isolate probabilistic operations
 - validate outputs before continuation
 
-### use 🌊 fluid for exploration
+### use 💧 fluid for exploration
 - when you don't know when or what thought is needed, brain decides
 - when the path is unknown
 - accept variance as a feature, not a bug
@@ -56,7 +56,7 @@ three archetypes:
 | ----------------- | ------------- | ------------------------------------------------------------------- |
 | `npx rhachet run` | 🪨 solid       | shell skill execution, no brain                                     |
 | `npx rhachet act` | 🔩 rigid       | skill with deterministic harness, possible probabilistic operations |
-| `npx rhachet ask` | 🌊 fluid       | conversational brain.repl, brain decides path                       |
+| `npx rhachet ask` | 💧 fluid       | conversational brain.repl, brain decides path                       |
 
 
 ---
@@ -123,7 +123,7 @@ brain.repl.act "fix these errors and push" --input "$summary"
 
 ---
 
-## 🌊 fluid routes
+## 💧 fluid routes
 
 ### .what
 - probabilistic entrypoint (brain receives prompt)
