@@ -15,7 +15,7 @@ rhachet makes it simple to leverage thought routes - safely, easily, and effecti
 - 🔩 **rigid** routes for augmented orchestration
 - 💧 **fluid** routes for probabalistic exploration
 
-with rhachet, you can:
+with rhachet, you can
 - declare thought routes, reusably and maintainably
 - apply thought routes, observably and reliably
 - compose and accumulate reusable thought skill
@@ -86,7 +86,7 @@ npm install rhachet
 
 ## cli
 
-rhachet provides cli commands for each thought route:
+rhachet provides cli commands for each thought route
 
 | command           | route   | what it does                               |
 | ----------------- | ------- | ------------------------------------------ |
@@ -111,13 +111,15 @@ export const getRoleRegistries = () => [
 
 ### 🪨 solid: run
 
+deterministic operations, no brain.
+
 ```sh
 npx rhachet run --skill gh.workflow.logs --workflow test
 ```
 
-deterministic operations, no brain.
-
 ### 🔩 rigid: act
+
+augmented orchestration, harness controls flow, brain augments.
 
 ```sh
 npx rhachet act \
@@ -130,17 +132,15 @@ npx rhachet act \
   --brain openai/codex
 ```
 
-augmented orchestration, harness controls flow, brain augments.
-
 ### 💧 fluid: ask
+
+probabilistic exploration, brain decides the path.
 
 ```sh
 npx rhachet ask \
   --role skeptic \
   --ask "are birds real?"
 ```
-
-probabilistic exploration, brain decides the path.
 
 ## sdk
 
@@ -177,15 +177,17 @@ the `brains` allowlist:
 
 ### 🪨 solid: run
 
+deterministic operations, no brain.
+
 ```ts
 await mechanic.run({
   skill: { 'gh.workflow.logs': { workflow: 'test' } },
 });
 ```
 
-deterministic operations, no brain.
-
 ### 🔩 rigid: act
+
+augmented orchestration, harness controls flow, brain augments.
 
 ```ts
 // uses default brain (first in allowlist)
@@ -200,17 +202,15 @@ await mechanic.act({
 });
 ```
 
-augmented orchestration, harness controls flow, brain augments.
-
 ### 💧 fluid: ask
+
+probabilistic exploration, brain decides the path.
 
 ```ts
 await skeptic.ask({
   prompt: 'are birds real?',
 });
 ```
-
-probabilistic exploration, brain decides the path.
 
 # vision
 
