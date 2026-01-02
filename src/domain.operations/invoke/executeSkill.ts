@@ -1,13 +1,15 @@
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 
 /**
  * .what = executes a skill script with passthrough args
  * .why = runs the discovered skill with full arg passthrough
  *
- * .note = when stream=true (default), streams stdout/stderr progressively
- * .note = when stream=false, captures stdout and parses JSON output
+ * .note = when stream=true (default), stdout/stderr stream progressively
+ * .note = when stream=false, captures stdout and parses as JSON
+ * .note = uses spawnSync with explicit stdin passthrough to ensure input
+ *         reaches the script (Commander.js may consume stdin before execSync)
  */
 export const executeSkill = (input: {
   skill: RoleSkillExecutable;
@@ -26,17 +28,23 @@ export const executeSkill = (input: {
     })
     .join(' ');
 
-  // streaming mode: inherit stdio for progressive output
+  // stream mode: use spawnSync with explicit stdin passthrough
   if (stream) {
-    execSync(command, {
+    const result = spawnSync(command, [], {
       cwd: process.cwd(),
       shell: '/bin/bash',
-      stdio: 'inherit',
+      stdio: [process.stdin, process.stdout, process.stderr],
     });
+
+    // propagate non-zero exit codes
+    if (result.status !== 0) {
+      process.exit(result.status ?? 1);
+    }
+
     return undefined;
   }
 
-  // capture mode: capture stdout for JSON parsing
+  // capture mode: capture stdout for JSON parse
   const stdout = execSync(command, {
     cwd: process.cwd(),
     shell: '/bin/bash',

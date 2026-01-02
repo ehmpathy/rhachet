@@ -1,10 +1,13 @@
 import type { RoleInitExecutable } from '@src/domain.objects/RoleInitExecutable';
 
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
 /**
  * .what = executes an init script with passthrough args
  * .why = runs the discovered init with full arg passthrough
+ *
+ * .note = uses spawnSync with explicit stdin passthrough to ensure input
+ *         reaches the script (Commander.js may consume stdin before execSync)
  */
 export const executeInit = (input: {
   init: RoleInitExecutable;
@@ -19,10 +22,15 @@ export const executeInit = (input: {
     })
     .join(' ');
 
-  // execute with inherited stdio
-  execSync(command, {
+  // execute with explicit stdin passthrough to ensure data reaches script
+  const result = spawnSync(command, [], {
     cwd: process.cwd(),
-    stdio: 'inherit',
+    stdio: [process.stdin, process.stdout, process.stderr],
     shell: '/bin/bash',
   });
+
+  // propagate non-zero exit codes
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 };

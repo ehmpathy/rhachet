@@ -7,7 +7,7 @@ import { executeInit } from '@src/domain.operations/invoke/executeInit';
 import { findUniqueInitExecutable } from '@src/domain.operations/invoke/findUniqueInitExecutable';
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
 /**
  * .what = extracts all args after 'init' command from process.argv
@@ -88,14 +88,19 @@ export const invokeRolesInit = ({
       console.log(`🔧 Init role "${role.slug}" from repo "${repo.slug}"`);
       console.log(``);
 
-      // execute each command sequentially
+      // execute each command sequentially with explicit stdin passthrough
       for (const { cmd } of execCmds) {
         console.log(`  ▸ ${cmd}`);
-        execSync(cmd, {
+        const result = spawnSync(cmd, [], {
           cwd: process.cwd(),
-          stdio: 'inherit',
+          stdio: [process.stdin, process.stdout, process.stderr],
           shell: '/bin/bash',
         });
+
+        // propagate non-zero exit codes
+        if (result.status !== 0) {
+          process.exit(result.status ?? 1);
+        }
       }
 
       console.log(``);
