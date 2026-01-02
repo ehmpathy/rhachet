@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.3](https://github.com/ehmpathy/rhachet/compare/v1.19.2...v1.19.3) (2026-01-02)
+
+
+### Bug Fixes
+
+* **cli:** inherit stdio on cli skill run ([#84](https://github.com/ehmpathy/rhachet/issues/84)) ([e7675b9](https://github.com/ehmpathy/rhachet/commit/e7675b972435054d6bd5bba0cf60b329f1e14cdc))
+
 ## [1.19.2](https://github.com/ehmpathy/rhachet/compare/v1.19.1...v1.19.2) (2026-01-01)
 
 
