@@ -17,10 +17,11 @@ export const actorRun = async (input: {
     argsArray.push(`--${key}`, String(value));
   }
 
-  // execute skill via spawn
+  // execute skill via spawn (capture mode for SDK return value)
   const result = await executeSkill({
     skill: input.skill.executable,
     args: argsArray,
+    stream: false,
   });
 
   return result;

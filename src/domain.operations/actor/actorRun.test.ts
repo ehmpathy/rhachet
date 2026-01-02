@@ -48,6 +48,7 @@ describe('actorRun', () => {
         expect(mockExecuteSkill).toHaveBeenCalledWith({
           skill: testSkill.executable,
           args: ['--name', 'world'],
+          stream: false,
         });
       });
     });
@@ -64,6 +65,7 @@ describe('actorRun', () => {
         expect(mockExecuteSkill).toHaveBeenCalledWith({
           skill: testSkill.executable,
           args: ['--name', 'world', '--count', '5'],
+          stream: false,
         });
       });
     });
@@ -80,6 +82,7 @@ describe('actorRun', () => {
         expect(mockExecuteSkill).toHaveBeenCalledWith({
           skill: testSkill.executable,
           args: [],
+          stream: false,
         });
       });
     });
