@@ -47,11 +47,18 @@ cat > stdin-received.txt
           tool_input: { command: 'echo hello' },
         });
 
-        invokeRhachetInit({
+        const result = invokeRhachetInit({
           command: 'claude.hooks/pretooluse.read-stdin',
           cwd: testDir.path,
           stdin: stdinData,
         });
+
+        // verify command succeeded
+        if (result.status !== 0) {
+          throw new Error(
+            `rhachet roles init failed with status ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+          );
+        }
 
         // verify the init script ran and received stdin
         const outputPath = resolve(testDir.path, 'stdin-received.txt');
@@ -80,10 +87,17 @@ touch ${markerFile}
 
         testDir.rm(markerFile);
 
-        invokeRhachetInit({
+        const result = invokeRhachetInit({
           command: 'touch-file',
           cwd: testDir.path,
         });
+
+        // verify command succeeded
+        if (result.status !== 0) {
+          throw new Error(
+            `rhachet roles init failed with status ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+          );
+        }
 
         // marker file is created in cwd (testDir), not in initsDir
         expect(existsSync(resolve(testDir.path, markerFile))).toBe(true);

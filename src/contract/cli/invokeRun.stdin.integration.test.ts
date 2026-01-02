@@ -47,11 +47,18 @@ cat > stdin-received.txt
           value: 42,
         });
 
-        invokeRhachetRun({
+        const result = invokeRhachetRun({
           skill: 'read-stdin',
           cwd: testDir.path,
           stdin: stdinData,
         });
+
+        // verify command succeeded
+        if (result.status !== 0) {
+          throw new Error(
+            `rhachet run failed with status ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+          );
+        }
 
         // verify the skill script ran and received stdin
         const outputPath = resolve(testDir.path, 'stdin-received.txt');
@@ -79,10 +86,17 @@ touch ${markerFile}
 
         testDir.rm(markerFile);
 
-        invokeRhachetRun({
+        const result = invokeRhachetRun({
           skill: 'touch-file',
           cwd: testDir.path,
         });
+
+        // verify command succeeded
+        if (result.status !== 0) {
+          throw new Error(
+            `rhachet run failed with status ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+          );
+        }
 
         // marker file is created in cwd (testDir), not in skillsDir
         expect(existsSync(resolve(testDir.path, markerFile))).toBe(true);
