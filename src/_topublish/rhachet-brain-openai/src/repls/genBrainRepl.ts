@@ -2,6 +2,7 @@ import { Codex } from '@openai/codex-sdk';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
+import { withRetry, withTimeout } from 'wrapper-fns';
 import type { z } from 'zod';
 
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -90,9 +91,13 @@ const invokeCodex = async <TOutput>(input: {
     sandboxMode,
   });
 
-  // compose full prompt and run
+  // compose full prompt and run with timeout + retry for resilience
   const fullPrompt = composePromptWithSystem(input.prompt, systemPrompt);
-  const response = await thread.run(fullPrompt, { outputSchema });
+  const response = await withRetry(
+    withTimeout(async () => thread.run(fullPrompt, { outputSchema }), {
+      threshold: { seconds: 60 },
+    }),
+  )();
 
   // parse output via schema for runtime validation
   return input.schema.output.parse(JSON.parse(response.finalResponse));

@@ -4,7 +4,7 @@ import { join } from 'path';
 import util from 'util';
 
 // eslint-disable-next-line no-undef
-jest.setTimeout(90000); // since we're calling downstream apis
+jest.setTimeout(180000); // since we're calling downstream apis w/ retries
 
 // set console.log to not truncate nested objects
 util.inspect.defaultOptions.depth = 5;

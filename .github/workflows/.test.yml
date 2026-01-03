@@ -13,14 +13,12 @@ on:
         type: string
         default: "us-east-1"
     secrets:
-      prep-openai-key:
-        required: true
       openai-api-key:
         description: "api key for openai, used in integration tests"
-        required: false
+        required: true
       anthropic-api-key:
         description: "api key for anthropic, used in integration tests"
-        required: false
+        required: true
 
 permissions:
   id-token: write # required for oidc
@@ -176,7 +174,6 @@ jobs:
       - name: test:integration
         run: THOROUGH=true npm run test:integration
         env:
-          PREP_OPENAI_KEY: ${{ secrets.prep-openai-key }}
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
 
@@ -214,6 +211,5 @@ jobs:
       - name: test:acceptance:locally
         run: THOROUGH=true npm run test:acceptance --if-present
         env:
-          PREP_OPENAI_KEY: ${{ secrets.prep-openai-key }}
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
