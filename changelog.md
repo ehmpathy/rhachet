@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.6](https://github.com/ehmpathy/rhachet/compare/v1.19.5...v1.19.6) (2026-01-03)
+
+
+### Bug Fixes
+
+* **cli:** render skill exec errors better ([#90](https://github.com/ehmpathy/rhachet/issues/90)) ([64c7d9c](https://github.com/ehmpathy/rhachet/commit/64c7d9c40238865085d2a545e6030d12e8c03ae6))
+
 ## [1.19.5](https://github.com/ehmpathy/rhachet/compare/v1.19.4...v1.19.5) (2026-01-03)
 
 
