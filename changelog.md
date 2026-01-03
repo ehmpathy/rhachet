@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.8](https://github.com/ehmpathy/rhachet/compare/v1.19.7...v1.19.8) (2026-01-03)
+
+
+### Bug Fixes
+
+* **cicd:** make integ tests flake less via timeout ([#97](https://github.com/ehmpathy/rhachet/issues/97)) ([089ef97](https://github.com/ehmpathy/rhachet/commit/089ef97c95059e287a80e63fd5676a321b14b5a2))
+* **link:** link the readme of the repo too ([#96](https://github.com/ehmpathy/rhachet/issues/96)) ([b4dd0fe](https://github.com/ehmpathy/rhachet/commit/b4dd0fe7eac1ba7f290649051bd76cb2c06d0a33))
+
 ## [1.19.7](https://github.com/ehmpathy/rhachet/compare/v1.19.6...v1.19.7) (2026-01-03)
 
 
