@@ -5,7 +5,10 @@ import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
-import { executeSkill } from '@src/domain.operations/invoke/executeSkill';
+import {
+  executeSkill,
+  SkillExecutionError,
+} from '@src/domain.operations/invoke/executeSkill';
 import { findUniqueSkillExecutable } from '@src/domain.operations/invoke/findUniqueSkillExecutable';
 
 /**
@@ -120,10 +123,20 @@ export const invokeRun = ({
         });
 
       // 🐚 command-mode: discover and execute shell skill
-      if (isCommandMode)
-        return performRunViaCommandMode({
-          opts: { skill: opts.skill, repo: opts.repo, role: opts.role },
-        });
+      if (isCommandMode) {
+        try {
+          return performRunViaCommandMode({
+            opts: { skill: opts.skill, repo: opts.repo, role: opts.role },
+          });
+        } catch (error) {
+          // handle skill failures cleanly without stack trace
+          if (error instanceof SkillExecutionError) {
+            console.error(`\n⛈️ ${error.message}`);
+            process.exit(1);
+          }
+          throw error;
+        }
+      }
 
       // neither mode matched - unexpected
       throw new UnexpectedCodePathError(
