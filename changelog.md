@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.10](https://github.com/ehmpathy/rhachet/compare/v1.19.9...v1.19.10) (2026-01-03)
+
+
+### Bug Fixes
+
+* **link:** ensure roles link symlinks readmes ([#101](https://github.com/ehmpathy/rhachet/issues/101)) ([d8ee46d](https://github.com/ehmpathy/rhachet/commit/d8ee46d9b8f7b12f6efad4b76cf769a2778b5fe5))
+
 ## [1.19.9](https://github.com/ehmpathy/rhachet/compare/v1.19.8...v1.19.9) (2026-01-03)
 
 
