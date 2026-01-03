@@ -3,6 +3,7 @@ import { HelpfulError } from 'helpful-errors';
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 
 import { spawnSync } from 'node:child_process';
+import * as path from 'node:path';
 
 /**
  * .what = error thrown when a skill script exits with non-zero status
@@ -45,7 +46,7 @@ export const executeSkill = (input: {
   if (result.status !== 0)
     throw new SkillExecutionError('skill execution failed', {
       skill: input.skill.slug,
-      path: input.skill.path,
+      path: path.relative(process.cwd(), input.skill.path),
     });
 
   // stream mode has no return value
