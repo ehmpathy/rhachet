@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.5](https://github.com/ehmpathy/rhachet/compare/v1.19.4...v1.19.5) (2026-01-03)
+
+
+### Bug Fixes
+
+* **test:** denoise tests, remove outofscope assertions ([#88](https://github.com/ehmpathy/rhachet/issues/88)) ([ee04afb](https://github.com/ehmpathy/rhachet/commit/ee04afb5431e125be190393f9919e504d313aa6a))
+
 ## [1.19.4](https://github.com/ehmpathy/rhachet/compare/v1.19.3...v1.19.4) (2026-01-03)
 
 
