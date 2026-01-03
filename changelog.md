@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.7](https://github.com/ehmpathy/rhachet/compare/v1.19.6...v1.19.7) (2026-01-03)
+
+
+### Bug Fixes
+
+* **tests:** add accept.blackbox acceptance test coverage ([#92](https://github.com/ehmpathy/rhachet/issues/92)) ([ee41f8c](https://github.com/ehmpathy/rhachet/commit/ee41f8c3b41749fa9d155c802c176f1dd58220ff))
+
 ## [1.19.6](https://github.com/ehmpathy/rhachet/compare/v1.19.5...v1.19.6) (2026-01-03)
 
 
