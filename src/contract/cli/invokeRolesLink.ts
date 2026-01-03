@@ -55,8 +55,11 @@ export const invokeRolesLink = ({
         `role=${role.slug}`,
       );
 
+      const repoDir = resolve(agentDir, `repo=${repo.slug}`);
+
       mkdirSync(agentDir, { recursive: true });
       mkdirSync(repoThisDir, { recursive: true });
+      mkdirSync(repoDir, { recursive: true });
       mkdirSync(repoRoleDir, { recursive: true });
 
       // Findsert .agent/readme.md
@@ -70,6 +73,14 @@ export const invokeRolesLink = ({
         path: resolve(repoThisDir, 'readme.md'),
         template: getAgentRepoThisReadmeTemplate(),
       });
+
+      // Upsert .agent/repo=$repo/readme.md
+      if (repo.readme) {
+        const repoReadmePath = resolve(repoDir, 'readme.md');
+        const relativeRepoReadmePath = relative(process.cwd(), repoReadmePath);
+        writeFileSync(repoReadmePath, repo.readme, 'utf8');
+        console.log(`  + ${relativeRepoReadmePath} (upserted)`);
+      }
 
       // Upsert .agent/repo=$repo/role=$role/readme.md
       if (role.readme) {

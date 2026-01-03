@@ -17,7 +17,8 @@ export type TestRepoFixture =
   | 'minimal'
   | 'with-skills'
   | 'with-briefs'
-  | 'with-registry';
+  | 'with-registry'
+  | 'with-link-sources';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

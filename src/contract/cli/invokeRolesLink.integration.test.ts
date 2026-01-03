@@ -114,7 +114,7 @@ describe('invokeRolesLink (integration)', () => {
 
     const mockRegistry = new RoleRegistry({
       slug: 'test',
-      readme: 'Test readme',
+      readme: '# Test Repository\n\nThis is the test repo readme.',
       roles: [mockRole],
     });
 
@@ -149,10 +149,21 @@ describe('invokeRolesLink (integration)', () => {
             existsSync(resolve(testDir, '.agent/repo=.this/readme.md')),
           ).toBe(true);
           expect(
+            existsSync(resolve(testDir, '.agent/repo=test/readme.md')),
+          ).toBe(true);
+          expect(
             existsSync(
               resolve(testDir, '.agent/repo=test/role=mechanic/readme.md'),
             ),
           ).toBe(true);
+
+          // Check that repo readme was created
+          const repoReadmeContent = require('fs').readFileSync(
+            resolve(testDir, '.agent/repo=test/readme.md'),
+            'utf-8',
+          );
+          expect(repoReadmeContent).toContain('Test Repository');
+          expect(repoReadmeContent).toContain('test repo readme');
 
           // Check that role readme was created
           const roleReadmeContent = require('fs').readFileSync(
@@ -397,7 +408,8 @@ describe('invokeRolesLink (integration)', () => {
 
       const singleDirRegistry = new RoleRegistry({
         slug: 'single-test',
-        readme: 'Single test readme',
+        readme:
+          '# Single Test Repository\n\nThis is the single-test repo readme.',
         roles: [singleDirRole],
       });
 
@@ -414,6 +426,18 @@ describe('invokeRolesLink (integration)', () => {
             ['link', '--repo', 'single-test', '--role', 'single-dir'],
             { from: 'user' },
           );
+
+          // check that repo readme was created
+          const repoReadmePath = resolve(
+            testDir,
+            '.agent/repo=single-test/readme.md',
+          );
+          expect(existsSync(repoReadmePath)).toBe(true);
+          const repoReadmeContent = require('fs').readFileSync(
+            repoReadmePath,
+            'utf-8',
+          );
+          expect(repoReadmeContent).toContain('Single Test Repository');
 
           // check that briefs is a direct symlink to test-briefs (not a dir containing test-briefs)
           const briefsPath = resolve(
