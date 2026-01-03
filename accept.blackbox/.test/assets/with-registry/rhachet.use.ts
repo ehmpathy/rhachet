@@ -3,13 +3,13 @@ import type { RoleRegistry } from 'rhachet';
 export const getRoleRegistries = (): RoleRegistry[] => [
   {
     slug: '.this',
-    readme: 'test registry',
+    readme: { uri: '.agent/repo=.this/readme.md' },
     roles: [
       {
         slug: 'any',
         name: 'Any',
         purpose: 'applies to any agent',
-        readme: '# any role',
+        readme: { uri: '.agent/repo=.this/role=any/readme.md' },
         traits: [],
         skills: {
           dirs: { uri: '.agent/repo=.this/role=any/skills' },

@@ -39,7 +39,7 @@ describe('genActor', () => {
     slug: 'tester',
     name: 'Tester',
     purpose: 'test role for unit tests',
-    readme: 'a role for testing genActor',
+    readme: { uri: '.test/readme.md' }, // 'a role for testing genActor',
     traits: [],
     skills: {
       solid: {
@@ -176,7 +176,7 @@ describe('genActor', () => {
       slug: 'typed-tester',
       name: 'Typed Tester',
       purpose: 'test role with preserved literal types',
-      readme: 'demonstrates type-safe skill invocation',
+      readme: { uri: '.test/readme.md' },
       traits: [],
       skills: {
         solid: {

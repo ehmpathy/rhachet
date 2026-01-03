@@ -12,7 +12,7 @@ describe('inferRepoByRole', () => {
       slug,
       name: slug,
       purpose: `Test ${slug} role`,
-      readme: `# ${slug}`,
+      readme: { uri: '.test/readme.md' },
       traits: [],
       skills: { dirs: [], refs: [] },
       briefs: { dirs: [] },
@@ -22,7 +22,7 @@ describe('inferRepoByRole', () => {
   const createRegistry = (slug: string, slugRoles: string[]): RoleRegistry =>
     new RoleRegistry({
       slug,
-      readme: `# ${slug}`,
+      readme: { uri: '.test/readme.md' },
       roles: slugRoles.map(createRole),
     });
 

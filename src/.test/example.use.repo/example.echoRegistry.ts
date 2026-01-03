@@ -116,7 +116,7 @@ const echoRole = Role.build({
   slug: 'echoer',
   name: 'Echoer',
   purpose: 'repeat things',
-  readme: 'knows how to echo input back to the user.',
+  readme: { uri: 'src/.test/example.use.repo/readme.role.md' },
   traits: [],
   skills: {
     dirs: [],
@@ -127,6 +127,6 @@ const echoRole = Role.build({
 
 export const EXAMPLE_REGISTRY = new RoleRegistry({
   slug: 'echo',
-  readme: 'basic registry for testing CLI execution',
+  readme: { uri: 'src/.test/example.use.repo/readme.registry.md' },
   roles: [echoRole],
 });

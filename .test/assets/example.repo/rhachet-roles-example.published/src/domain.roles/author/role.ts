@@ -10,7 +10,7 @@ export const authorRole: Role = {
   slug: 'author',
   name: 'Author',
   purpose: 'writes prose about the sunshine ocean surfer turtles',
-  readme: 'an author who crafts tales of turtles surfing sunny ocean waves',
+  readme: { uri: 'src/domain.roles/author/readme.md' },
   traits: [],
   skills: {
     solid: {

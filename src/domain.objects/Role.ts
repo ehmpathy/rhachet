@@ -54,11 +54,11 @@ export interface Role<
   purpose: string;
 
   /**
-   * .what = a readme that explains more about the role
+   * .what = reference to markdown file that explains more about the role
    * .why =
    *   - give detail about what it does and how it does it
    */
-  readme: string;
+  readme: { uri: string };
 
   /**
    * .what = the traits inherent to the role

@@ -35,7 +35,7 @@ describe('invokeRolesInit (integration)', () => {
       slug: 'mechanic',
       name: 'Mechanic',
       purpose: 'Test mechanic role',
-      readme: '# Mechanic Role',
+      readme: { uri: '.test/readme.md' }, // '# Mechanic Role',
       traits: [],
       skills: { dirs: [], refs: [] },
       briefs: { dirs: [] },
@@ -52,7 +52,7 @@ describe('invokeRolesInit (integration)', () => {
       slug: 'designer',
       name: 'Designer',
       purpose: 'Test designer role',
-      readme: '# Designer Role',
+      readme: { uri: '.test/readme.md' }, // '# Designer Role',
       traits: [],
       skills: { dirs: [], refs: [] },
       briefs: { dirs: [] },
@@ -60,7 +60,7 @@ describe('invokeRolesInit (integration)', () => {
 
     const mockRegistry = new RoleRegistry({
       slug: 'test',
-      readme: 'Test readme',
+      readme: { uri: '.test/readme.md' },
       roles: [mockRoleWithInits, mockRoleWithoutInits],
     });
 
@@ -195,7 +195,7 @@ describe('invokeRolesInit (integration)', () => {
       slug: 'mechanic',
       name: 'Mechanic',
       purpose: 'Mechanic from repo1',
-      readme: '# Mechanic',
+      readme: { uri: '.test/readme.md' }, // '# Mechanic',
       traits: [],
       skills: { dirs: [], refs: [] },
       briefs: { dirs: [] },
@@ -206,7 +206,7 @@ describe('invokeRolesInit (integration)', () => {
       slug: 'mechanic',
       name: 'Mechanic',
       purpose: 'Mechanic from repo2',
-      readme: '# Mechanic',
+      readme: { uri: '.test/readme.md' }, // '# Mechanic',
       traits: [],
       skills: { dirs: [], refs: [] },
       briefs: { dirs: [] },
@@ -215,13 +215,13 @@ describe('invokeRolesInit (integration)', () => {
 
     const registry1 = new RoleRegistry({
       slug: 'repo1',
-      readme: 'Repo 1',
+      readme: { uri: '.test/readme.md' },
       roles: [mockRole1],
     });
 
     const registry2 = new RoleRegistry({
       slug: 'repo2',
-      readme: 'Repo 2',
+      readme: { uri: '.test/readme.md' },
       roles: [mockRole2],
     });
 
