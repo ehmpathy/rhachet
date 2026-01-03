@@ -91,6 +91,14 @@ describe('invokeRolesLink (integration)', () => {
         resolve(initsDir, 'init.claude.sh'),
         '#!/bin/bash\n# Init Claude\necho "init claude"',
       );
+
+      // Create .test directory with readme files for uri refs
+      const testFixtureDir = resolve(testDir, '.test');
+      mkdirSync(testFixtureDir, { recursive: true });
+      writeFileSync(
+        resolve(testFixtureDir, 'readme.md'),
+        '# Test Repository\n\nThis is the test repo readme.\n\n# Mechanic Role\n\nThis is the mechanic role readme.\n\n# Single Test Repository\n\n# Single Dir Role',
+      );
     });
 
     afterAll(() => {
@@ -102,7 +110,7 @@ describe('invokeRolesLink (integration)', () => {
       slug: 'mechanic',
       name: 'Mechanic',
       purpose: 'Test mechanic role',
-      readme: '# Mechanic Role\n\nThis is the mechanic role readme.',
+      readme: { uri: '.test/readme.md' }, // '# Mechanic Role\n\nThis is the mechanic role readme.',
       traits: [],
       skills: {
         dirs: [{ uri: 'test-skills' }],
@@ -114,7 +122,7 @@ describe('invokeRolesLink (integration)', () => {
 
     const mockRegistry = new RoleRegistry({
       slug: 'test',
-      readme: '# Test Repository\n\nThis is the test repo readme.',
+      readme: { uri: '.test/readme.md' }, // '# Test Repository\n\nThis is the test repo readme.',
       roles: [mockRole],
     });
 
@@ -123,7 +131,7 @@ describe('invokeRolesLink (integration)', () => {
 
     beforeEach(() => {
       logSpy.mockClear();
-      // Clean up any existing .agent directory
+      // clean up prior .agent directory if present
       const agentDir = resolve(testDir, '.agent');
       if (existsSync(agentDir)) {
         rmSync(agentDir, { recursive: true, force: true });
@@ -396,7 +404,7 @@ describe('invokeRolesLink (integration)', () => {
         slug: 'single-dir',
         name: 'Single Dir Role',
         purpose: 'Test role with single dir mode',
-        readme: '# Single Dir Role',
+        readme: { uri: '.test/readme.md' }, // '# Single Dir Role',
         traits: [],
         skills: {
           dirs: { uri: 'test-skills' },
@@ -408,8 +416,7 @@ describe('invokeRolesLink (integration)', () => {
 
       const singleDirRegistry = new RoleRegistry({
         slug: 'single-test',
-        readme:
-          '# Single Test Repository\n\nThis is the single-test repo readme.',
+        readme: { uri: '.test/readme.md' },
         roles: [singleDirRole],
       });
 

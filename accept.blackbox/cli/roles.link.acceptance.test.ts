@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
@@ -44,6 +44,29 @@ describe('rhachet roles link', () => {
         const content = readFileSync(readmePath, 'utf-8');
         expect(content).toContain('Tester Role');
         expect(content).toContain('tester role readme for acceptance tests');
+      });
+
+      then('repo readme is a symlink to source file', () => {
+        const readmePath = resolve(repo.path, '.agent/repo=test-repo/readme.md');
+        const stats = lstatSync(readmePath);
+        expect(stats.isSymbolicLink()).toBe(true);
+
+        // verify symlink points to the correct source
+        const linkTarget = readlinkSync(readmePath);
+        expect(linkTarget).toContain('.source/repo-readme.md');
+      });
+
+      then('role readme is a symlink to source file', () => {
+        const readmePath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/readme.md',
+        );
+        const stats = lstatSync(readmePath);
+        expect(stats.isSymbolicLink()).toBe(true);
+
+        // verify symlink points to the correct source
+        const linkTarget = readlinkSync(readmePath);
+        expect(linkTarget).toContain('.source/role-readme.md');
       });
 
       then('links briefs from source directory', () => {

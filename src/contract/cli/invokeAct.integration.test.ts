@@ -17,7 +17,7 @@ describe('invokeAct (integration)', () => {
       slug: 'summarizer',
       name: 'Summarizer',
       purpose: 'test role for invokeAct integration tests',
-      readme: 'a role for invokeAct tests',
+      readme: { uri: '.test/readme.md' },
       traits: [],
       skills: {
         rigid: {
@@ -34,7 +34,7 @@ describe('invokeAct (integration)', () => {
 
     const testRegistry: RoleRegistry = {
       slug: '.this',
-      readme: 'test registry for invokeAct tests',
+      readme: { uri: '.test/readme.md' },
       roles: [testRole],
     };
 
@@ -207,7 +207,7 @@ describe('invokeAct (integration)', () => {
 
       const testRegistry: RoleRegistry = {
         slug: '.this',
-        readme: 'test registry for invokeAct happy path tests',
+        readme: { uri: '.test/readme.md' },
         roles: [testerRole],
       };
 

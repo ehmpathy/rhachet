@@ -27,7 +27,7 @@ describe('invokeAct', () => {
     slug: 'tester',
     name: 'Tester',
     purpose: 'test role for CLI tests',
-    readme: 'a role for testing invokeAct',
+    readme: { uri: '.test/readme.md' }, // 'a role for testing invokeAct',
     traits: [],
     skills: {
       rigid: {
@@ -54,7 +54,7 @@ describe('invokeAct', () => {
   // create mock registry
   const mockRegistry: RoleRegistry = {
     slug: '.this',
-    readme: 'test registry',
+    readme: { uri: '.test/readme.md' },
     roles: [testRole],
   };
 

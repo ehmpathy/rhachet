@@ -3,6 +3,8 @@ import { getError, given, then, when } from 'test-fns';
 
 import { EXAMPLE_REGISTRY } from '@src/.test/example.use.repo/example.echoRegistry';
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { invokeReadme } from './invokeReadme';
 
 describe('invokeReadme (integration)', () => {
@@ -21,8 +23,12 @@ describe('invokeReadme (integration)', () => {
           });
 
           expect(logSpy).toHaveBeenCalledWith('📜 echo.readme');
+          const readmeContent = readFileSync(
+            resolve(process.cwd(), EXAMPLE_REGISTRY.readme.uri),
+            'utf-8',
+          );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(EXAMPLE_REGISTRY.readme.split('\n')[0]!),
+            expect.stringContaining(readmeContent.split('\n')[0]!),
           );
         });
       });
@@ -34,10 +40,12 @@ describe('invokeReadme (integration)', () => {
           });
 
           expect(logSpy).toHaveBeenCalledWith('📜 echoer.readme');
+          const roleReadmeContent = readFileSync(
+            resolve(process.cwd(), EXAMPLE_REGISTRY.roles[0]!.readme.uri),
+            'utf-8',
+          );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              EXAMPLE_REGISTRY.roles[0]!.readme.split('\n')[0]!,
-            ),
+            expect.stringContaining(roleReadmeContent.split('\n')[0]!),
           );
         });
       });

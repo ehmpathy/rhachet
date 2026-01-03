@@ -21,10 +21,10 @@ export interface RoleRegistry {
   slug: string;
 
   /**
-   * .what = markdown-formatted overview of what this registry contains
+   * .what = reference to markdown file with overview of what this registry contains
    * .why = provides documentation, context, and intended use
    */
-  readme: string;
+  readme: { uri: string };
 
   /**
    * .what = the roles that this registry has collected

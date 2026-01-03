@@ -377,7 +377,7 @@ describe('invokeRun (integration)', () => {
         slug: 'runner',
         name: 'Runner',
         purpose: 'test role for invokeRun actor-mode tests',
-        readme: 'a role for invokeRun actor-mode tests',
+        readme: { uri: '.test/readme.md' },
         traits: [],
         skills: {
           solid: {
@@ -394,7 +394,7 @@ describe('invokeRun (integration)', () => {
 
       const testRegistry: RoleRegistry = {
         slug: '.this',
-        readme: 'test registry for invokeRun actor-mode tests',
+        readme: { uri: '.test/readme.md' },
         roles: [testRole],
       };
 

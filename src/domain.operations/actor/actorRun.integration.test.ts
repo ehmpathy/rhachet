@@ -54,7 +54,7 @@ echo "{\\"count\\": $count}"
     slug: 'tester',
     name: 'Tester',
     purpose: 'test role for integration tests',
-    readme: 'a role for testing actorRun',
+    readme: { uri: '.test/readme.md' }, // 'a role for testing actorRun',
     traits: [],
     skills: {
       solid: {

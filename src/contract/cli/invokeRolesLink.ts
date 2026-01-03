@@ -9,9 +9,10 @@ import {
 } from '@src/domain.operations/invoke/getAgentReadmeTemplates';
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 import { findsertFile } from '@src/domain.operations/invoke/link/findsertFile';
+import { symlinkReadme } from '@src/domain.operations/invoke/link/symlinkReadme';
 import { symlinkResourceDirectories } from '@src/domain.operations/invoke/link/symlinkResourceDirectories';
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 
 /**
@@ -74,20 +75,30 @@ export const invokeRolesLink = ({
         template: getAgentRepoThisReadmeTemplate(),
       });
 
-      // Upsert .agent/repo=$repo/readme.md
-      if (repo.readme) {
-        const repoReadmePath = resolve(repoDir, 'readme.md');
-        const relativeRepoReadmePath = relative(process.cwd(), repoReadmePath);
-        writeFileSync(repoReadmePath, repo.readme, 'utf8');
-        console.log(`  + ${relativeRepoReadmePath} (upserted)`);
+      // Symlink .agent/repo=$repo/readme.md
+      if (repo.readme?.uri) {
+        const targetPath = resolve(repoDir, 'readme.md');
+        const relativeTargetPath = relative(process.cwd(), targetPath);
+        const { status } = symlinkReadme({
+          sourcePath: repo.readme.uri,
+          targetPath,
+        });
+        console.log(
+          `  ${status === 'updated' ? '↻' : '+'} ${relativeTargetPath}${status === 'updated' ? ' (updated)' : ''}`,
+        );
       }
 
-      // Upsert .agent/repo=$repo/role=$role/readme.md
-      if (role.readme) {
-        const roleReadmePath = resolve(repoRoleDir, 'readme.md');
-        const relativeRoleReadmePath = relative(process.cwd(), roleReadmePath);
-        writeFileSync(roleReadmePath, role.readme, 'utf8');
-        console.log(`  + ${relativeRoleReadmePath} (upserted)`);
+      // Symlink .agent/repo=$repo/role=$role/readme.md
+      if (role.readme?.uri) {
+        const targetPath = resolve(repoRoleDir, 'readme.md');
+        const relativeTargetPath = relative(process.cwd(), targetPath);
+        const { status } = symlinkReadme({
+          sourcePath: role.readme.uri,
+          targetPath,
+        });
+        console.log(
+          `  ${status === 'updated' ? '↻' : '+'} ${relativeTargetPath}${status === 'updated' ? ' (updated)' : ''}`,
+        );
       }
 
       // Link briefs if configured

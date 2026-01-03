@@ -4,6 +4,9 @@ import { BadRequestError } from 'helpful-errors';
 import type { RoleRegistry } from '@src/contract/sdk';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 /**
  * .what = main entrypoint for `readme` CLI command
  * .why = allows devs to introspect registry, role, or skill documentation from the CLI
@@ -34,7 +37,11 @@ export const invokeReadme = ({
         if (!registry) BadRequestError.throw(`no repo matches given options`);
 
         // repo level readme
-        return printReadme(`${registry.slug}`, registry.readme);
+        const repoReadmeContent = readFileSync(
+          resolve(process.cwd(), registry.readme.uri),
+          'utf-8',
+        );
+        return printReadme(`${registry.slug}`, repoReadmeContent);
       }
 
       // resolve role
@@ -48,7 +55,13 @@ export const invokeReadme = ({
         );
 
       // role-level readme
-      if (!opts.skill) return printReadme(`${role.slug}`, role.readme);
+      if (!opts.skill) {
+        const roleReadmeContent = readFileSync(
+          resolve(process.cwd(), role.readme.uri),
+          'utf-8',
+        );
+        return printReadme(`${role.slug}`, roleReadmeContent);
+      }
 
       // resolve skill
       const skill = role.skills.refs.find((s) => s.slug === opts.skill);

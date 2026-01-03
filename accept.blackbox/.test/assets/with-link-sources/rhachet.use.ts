@@ -3,13 +3,13 @@ import type { RoleRegistry } from 'rhachet';
 export const getRoleRegistries = (): RoleRegistry[] => [
   {
     slug: 'test-repo',
-    readme: '# Test Repository\n\nThis is the test repo readme for acceptance tests.',
+    readme: { uri: '.source/repo-readme.md' },
     roles: [
       {
         slug: 'tester',
         name: 'Tester',
         purpose: 'test role for acceptance tests',
-        readme: '# Tester Role\n\nThis is the tester role readme for acceptance tests.',
+        readme: { uri: '.source/role-readme.md' },
         traits: [],
         skills: {
           dirs: { uri: '.source/skills' },

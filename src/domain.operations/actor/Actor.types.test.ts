@@ -15,7 +15,7 @@ const typedRole = new Role({
   slug: 'typed-tester',
   name: 'Typed Tester',
   purpose: 'type test role',
-  readme: 'testing type inference',
+  readme: { uri: '.test/readme.md' },
   traits: [],
   skills: {
     solid: {

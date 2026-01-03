@@ -25,7 +25,7 @@ describe('findActorRoleSkillBySlug', () => {
     slug: 'tester',
     name: 'Tester',
     purpose: 'test role for unit tests',
-    readme: 'a role for testing findActorRoleSkillBySlug',
+    readme: { uri: '.test/readme.md' }, // 'a role for testing findActorRoleSkillBySlug',
     traits: [],
     skills: {
       solid: {

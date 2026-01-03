@@ -100,7 +100,7 @@ describe('invokeAsk (integration)', () => {
         slug: 'tester',
         name: 'Tester',
         purpose: 'test role for integration tests',
-        readme: 'a role for testing invokeAsk',
+        readme: { uri: '.test/readme.md' }, // 'a role for testing invokeAsk',
         traits: [],
         skills: {
           dirs: { uri: '.agent/repo=.this/role=tester/skills' },
@@ -111,7 +111,7 @@ describe('invokeAsk (integration)', () => {
 
       const testRegistry = {
         slug: '.this',
-        readme: 'test registry for invokeAsk tests',
+        readme: { uri: '.test/readme.md' },
         roles: [testRole],
       };
 

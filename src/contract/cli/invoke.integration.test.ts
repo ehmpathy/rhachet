@@ -38,7 +38,7 @@ describe('invoke', () => {
 
         const callArgs = logSpy.mock.calls.flat();
         const printed = callArgs.join('\n');
-        expect(printed).toContain('knows how to echo input back to the user.');
+        expect(printed).toContain('Knows how to echo input back to the user.');
       });
     });
 

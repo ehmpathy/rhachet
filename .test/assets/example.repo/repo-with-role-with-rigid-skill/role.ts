@@ -12,7 +12,7 @@ export const testerRole = Role.typed({
   slug: 'tester',
   name: 'Tester',
   purpose: 'test role for integration tests',
-  readme: 'a role for testing actor operations',
+  readme: { uri: '.agent/repo=.this/role=tester/readme.md' },
   traits: [],
   skills: {
     rigid: {

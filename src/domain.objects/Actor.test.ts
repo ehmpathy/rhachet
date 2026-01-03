@@ -20,7 +20,7 @@ describe('Actor', () => {
       slug: 'tester',
       name: 'Tester',
       purpose: 'test role for actor tests',
-      readme: 'a role for testing Actor type safety',
+      readme: { uri: '.test/readme.md' }, // 'a role for testing Actor type safety',
       traits: [],
       skills: {
         solid: {
@@ -92,7 +92,7 @@ describe('Actor', () => {
       slug: 'mechanic',
       name: 'Mechanic',
       purpose: 'test role for type inference',
-      readme: 'a role for testing Actor type safety',
+      readme: { uri: '.test/readme.md' }, // 'a role for testing Actor type safety',
       traits: [],
       skills: {
         solid: {

@@ -10,7 +10,7 @@ export const scribeRole: Role = {
   slug: 'scribe',
   name: 'Scribe',
   purpose: 'summarizes and counts content',
-  readme: 'a scribe who condenses verbose text into concise summaries',
+  readme: { uri: '.agent/repo=.this/role=scribe/readme.md' },
   traits: [],
   skills: {
     solid: {
