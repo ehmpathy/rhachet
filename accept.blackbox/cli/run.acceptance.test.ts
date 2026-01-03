@@ -1,0 +1,113 @@
+import { given, then, useBeforeAll, when } from 'test-fns';
+
+import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
+import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+
+describe('rhachet run', () => {
+  given('[case1] repo with skills', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] run --skill say-hello', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'say-hello'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('outputs skill discovery log', () => {
+        expect(result.stdout).toContain('say-hello');
+      });
+    });
+
+    when('[t1] run --skill say-hello with positional arg', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'say-hello', 'claude'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+    });
+
+    when('[t2] run --skill nonexistent', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'nonexistent'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr contains error message', () => {
+        expect(result.stderr).toContain('nonexistent');
+      });
+    });
+
+    when('[t3] run without --skill', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+    });
+  });
+
+  given('[case2] repo with registry', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-registry' }),
+    );
+
+    when('[t0] run --skill say-hello', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'say-hello'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+    });
+  });
+
+  given('[case3] minimal repo', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] run --skill any', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'any'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status (no skills found)', () => {
+        expect(result.status).not.toEqual(0);
+      });
+    });
+  });
+});

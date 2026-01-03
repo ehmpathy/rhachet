@@ -16,6 +16,7 @@ const config: Config = {
   moduleFileExtensions: ['js', 'ts'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
