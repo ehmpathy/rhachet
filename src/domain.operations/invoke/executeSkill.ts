@@ -1,6 +1,14 @@
+import { HelpfulError } from 'helpful-errors';
+
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 
-import { execSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
+
+/**
+ * .what = error thrown when a skill script exits with non-zero status
+ * .why = enables callers to catch and handle skill failures gracefully
+ */
+export class SkillExecutionError extends HelpfulError {}
 
 /**
  * .what = executes a skill script with passthrough args
@@ -16,49 +24,40 @@ export const executeSkill = (input: {
   args: string[];
   stream?: boolean;
 }): unknown => {
-  // default to streaming (backwards compatible with CLI behavior)
   const stream = input.stream ?? true;
 
   // build command with args
   const command = [input.skill.path, ...input.args]
-    .map((arg) => {
-      // quote args with spaces
-      if (arg.includes(' ')) return `"${arg}"`;
-      return arg;
-    })
+    .map((arg) => (arg.includes(' ') ? `"${arg}"` : arg))
     .join(' ');
 
-  // stream mode: use spawnSync with explicit stdin passthrough
-  if (stream) {
-    const result = spawnSync(command, [], {
-      cwd: process.cwd(),
-      shell: '/bin/bash',
-      stdio: [process.stdin, process.stdout, process.stderr],
-    });
-
-    // propagate non-zero exit codes
-    if (result.status !== 0) {
-      process.exit(result.status ?? 1);
-    }
-
-    return undefined;
-  }
-
-  // capture mode: capture stdout for JSON parse
-  const stdout = execSync(command, {
+  // run skill: stream mode passes through stdio, capture mode pipes stdout
+  const result = spawnSync(command, [], {
     cwd: process.cwd(),
     shell: '/bin/bash',
     encoding: 'utf-8',
+    stdio: stream
+      ? [process.stdin, process.stdout, process.stderr]
+      : ['inherit', 'pipe', 'inherit'],
   });
 
-  // parse JSON output if present
-  const trimmed = stdout.trim();
-  if (!trimmed) return undefined;
+  // throw on non-zero exit
+  if (result.status !== 0)
+    throw new SkillExecutionError('skill execution failed', {
+      skill: input.skill.slug,
+      path: input.skill.path,
+    });
+
+  // stream mode has no return value
+  if (stream) return undefined;
+
+  // capture mode: parse JSON output if present
+  const stdout = ((result.stdout as string) ?? '').trim();
+  if (!stdout) return undefined;
 
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(stdout);
   } catch {
-    // return raw string if not valid JSON
-    return trimmed;
+    return stdout;
   }
 };

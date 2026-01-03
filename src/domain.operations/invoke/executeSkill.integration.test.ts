@@ -6,7 +6,7 @@ import { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { executeSkill } from './executeSkill';
+import { executeSkill, SkillExecutionError } from './executeSkill';
 
 describe('executeSkill (integration)', () => {
   given('a skill script that reads stdin', () => {
@@ -107,6 +107,54 @@ echo '${JSON.stringify(jsonData)}'
         const result = executeSkill({ skill, args: [], stream: false });
 
         expect(result).toEqual(jsonData);
+      });
+    });
+
+    when('skill exits with non-zero status in stream mode', () => {
+      then('throws SkillExecutionError', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-stream.sh',
+          content: `#!/usr/bin/env bash
+echo "error: something went wrong" >&2
+exit 7
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-stream',
+          path,
+          repoSlug: '.this',
+          roleSlug: 'test',
+        });
+
+        expect(() => executeSkill({ skill, args: [], stream: true })).toThrow(
+          SkillExecutionError,
+        );
+      });
+    });
+
+    when('skill exits with non-zero status in capture mode', () => {
+      then('throws SkillExecutionError', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-capture.sh',
+          content: `#!/usr/bin/env bash
+echo "error: capture mode failed" >&2
+exit 3
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-capture',
+          path,
+          repoSlug: '.this',
+          roleSlug: 'test',
+        });
+
+        expect(() => executeSkill({ skill, args: [], stream: false })).toThrow(
+          SkillExecutionError,
+        );
       });
     });
   });
