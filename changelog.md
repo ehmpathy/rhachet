@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.9](https://github.com/ehmpathy/rhachet/compare/v1.19.8...v1.19.9) (2026-01-03)
+
+
+### Bug Fixes
+
+* **cli:** standardize cli entry log messages ([#95](https://github.com/ehmpathy/rhachet/issues/95)) ([f5e7e44](https://github.com/ehmpathy/rhachet/commit/f5e7e44b317248ce56c6cb8bda5192f2e9cc7bbf))
+
 ## [1.19.8](https://github.com/ehmpathy/rhachet/compare/v1.19.7...v1.19.8) (2026-01-03)
 
 
