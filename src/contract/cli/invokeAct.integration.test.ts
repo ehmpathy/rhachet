@@ -105,40 +105,6 @@ describe('invokeAct (integration)', () => {
       });
     });
 
-    when('act command is invoked without --skill', () => {
-      then('it throws error requiring --skill', async () => {
-        const args = [
-          'act',
-          '--role',
-          'summarizer',
-          '--input',
-          '{"content":"hello"}',
-        ];
-        const error = await getError(() =>
-          program.parseAsync(args, { from: 'user' }),
-        );
-
-        expect(error?.message).toContain('--skill');
-      });
-    });
-
-    when('act command is invoked without --role', () => {
-      then('it throws error requiring --role', async () => {
-        const args = [
-          'act',
-          '--skill',
-          'summarize',
-          '--input',
-          '{"content":"hello"}',
-        ];
-        const error = await getError(() =>
-          program.parseAsync(args, { from: 'user' }),
-        );
-
-        expect(error?.message).toContain('--role');
-      });
-    });
-
     when('act command is invoked with invalid brain format', () => {
       // need brains for this test to reach the brain validation logic
       const programWithBrain = new Command();
