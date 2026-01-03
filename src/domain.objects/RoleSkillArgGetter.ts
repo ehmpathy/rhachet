@@ -151,7 +151,7 @@ export interface RoleSkillContextGetter<
 > extends RoleSkillArgGetter<TOutput, TVariables> {
   /**
    * .what = how to lookup the required inputs for context instantiation
-   * .example = { openaiApiKey: { envar: "PREP_OPENAI_KEY" } }
+   * .example = { openaiApiKey: { envar: "OPENAI_API_KEY" } }
    */
   lookup: {
     [K in keyof TVariables]: {

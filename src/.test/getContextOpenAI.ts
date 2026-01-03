@@ -6,7 +6,7 @@ export const getContextOpenAI = (): ContextOpenAI => ({
   openai: {
     auth: {
       key:
-        process.env.PREP_OPENAI_KEY ??
+        process.env.OPENAI_API_KEY ??
         UnexpectedCodePathError.throw('prep openai key not declared in env'),
     },
     llm: {
