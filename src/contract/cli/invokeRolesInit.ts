@@ -8,6 +8,7 @@ import { findUniqueInitExecutable } from '@src/domain.operations/invoke/findUniq
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 
 import { spawnSync } from 'node:child_process';
+import * as path from 'node:path';
 
 /**
  * .what = extracts all args after 'init' command from process.argv
@@ -44,15 +45,15 @@ export const invokeRolesInit = ({
       // handle --command mode: run a specific init from linked inits directory
       if (opts.command) {
         const init = findUniqueInitExecutable({
-          repoSlug: opts.repo,
-          roleSlug: opts.role,
-          initSlug: opts.command,
+          slugRepo: opts.repo,
+          slugRole: opts.role,
+          slugInit: opts.command,
         });
 
         // log which init will run
         console.log(``);
         console.log(
-          `🔧 init "${init.slug}" from repo=${init.repoSlug} role=${init.roleSlug}`,
+          `🔧 run init repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
         );
         console.log(``);
 
@@ -71,7 +72,7 @@ export const invokeRolesInit = ({
       const role = assureFindRole({ registries, slug: opts.role });
       const repo = opts.repo
         ? registries.find((r) => r.slug === opts.repo)
-        : inferRepoByRole({ registries, roleSlug: opts.role });
+        : inferRepoByRole({ registries, slugRole: opts.role });
       if (!repo)
         BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
 
@@ -85,12 +86,14 @@ export const invokeRolesInit = ({
       }
 
       console.log(``);
-      console.log(`🔧 Init role "${role.slug}" from repo "${repo.slug}"`);
-      console.log(``);
+      console.log(`🔧 run init repo=${repo.slug}/role=${role.slug}`);
 
       // execute each command sequentially with explicit stdin passthrough
-      for (const { cmd } of execCmds) {
-        console.log(`  ▸ ${cmd}`);
+      for (let i = 0; i < execCmds.length; i++) {
+        const { cmd } = execCmds[i]!;
+        const cmdRelative = path.relative(process.cwd(), cmd);
+        const branch = i === execCmds.length - 1 ? '└─' : '├─';
+        console.log(`   ${branch} ${cmdRelative}`);
         const result = spawnSync(cmd, [], {
           cwd: process.cwd(),
           stdio: [process.stdin, process.stdout, process.stderr],
@@ -104,7 +107,7 @@ export const invokeRolesInit = ({
       }
 
       console.log(``);
-      console.log(`✨ Role "${role.slug}" initialized successfully.`);
+      console.log(`✨ repo=${repo.slug}/role=${role.slug} init complete`);
       console.log(``);
     });
 };

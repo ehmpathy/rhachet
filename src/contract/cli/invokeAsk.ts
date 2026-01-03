@@ -9,6 +9,7 @@ import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 import { performInCurrentThread } from '@src/domain.operations/invoke/performInCurrentThread';
 import { performInIsolatedThreads } from '@src/domain.operations/invoke/performInIsolatedThreads';
 
@@ -57,6 +58,7 @@ const performAskViaActorMode = async (input: {
   opts: { role: string; ask?: string };
   role: Role;
   brains: BrainRepl[];
+  registries: RoleRegistry[];
 }): Promise<void> => {
   // validate brains are available
   if (input.brains.length === 0)
@@ -74,8 +76,12 @@ const performAskViaActorMode = async (input: {
     );
 
   // log which role will be asked
+  const repo = inferRepoByRole({
+    registries: input.registries,
+    slugRole: input.opts.role,
+  });
   console.log(``);
-  console.log(`🌊 ask role="${input.opts.role}"`);
+  console.log(`💧 ask fluid skill repo=${repo.slug}/role=${input.opts.role}`);
   console.log(``);
 
   // invoke actor.ask
@@ -171,14 +177,14 @@ export const invokeAsk = ({
         });
       }
 
-      // 🌊 actor-mode: invoke fluid conversation via brain.repl
+      // 💧 actor-mode: invoke fluid conversation via brain.repl
       if (isActorMode) {
         const role = assureFindRole({ registries, slug: opts.role });
         if (!role)
           throw new BadRequestError(`role "${opts.role}" not found`, {
             availableRoles: registries.flatMap((r) => r.roles),
           });
-        return await performAskViaActorMode({ opts, role, brains });
+        return await performAskViaActorMode({ opts, role, brains, registries });
       }
 
       // neither mode matched - unexpected

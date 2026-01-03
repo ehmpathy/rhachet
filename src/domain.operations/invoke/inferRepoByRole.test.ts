@@ -19,11 +19,11 @@ describe('inferRepoByRole', () => {
     });
 
   // Helper to create a registry with roles
-  const createRegistry = (slug: string, roleSlugs: string[]): RoleRegistry =>
+  const createRegistry = (slug: string, slugRoles: string[]): RoleRegistry =>
     new RoleRegistry({
       slug,
       readme: `# ${slug}`,
-      roles: roleSlugs.map(createRole),
+      roles: slugRoles.map(createRole),
     });
 
   given('exactly one registry has the role', () => {
@@ -36,7 +36,7 @@ describe('inferRepoByRole', () => {
       then('it returns the registry with that role', () => {
         const result = inferRepoByRole({
           registries,
-          roleSlug: 'mechanic',
+          slugRole: 'mechanic',
         });
         expect(result.slug).toBe('ehmpathy');
       });
@@ -54,7 +54,7 @@ describe('inferRepoByRole', () => {
         expect(() =>
           inferRepoByRole({
             registries,
-            roleSlug: 'mechanic',
+            slugRole: 'mechanic',
           }),
         ).toThrow(/Multiple repos have role "mechanic"/);
       });
@@ -63,14 +63,14 @@ describe('inferRepoByRole', () => {
         expect(() =>
           inferRepoByRole({
             registries,
-            roleSlug: 'mechanic',
+            slugRole: 'mechanic',
           }),
         ).toThrow(/ehmpathy/);
 
         expect(() =>
           inferRepoByRole({
             registries,
-            roleSlug: 'mechanic',
+            slugRole: 'mechanic',
           }),
         ).toThrow(/acme/);
       });
@@ -88,7 +88,7 @@ describe('inferRepoByRole', () => {
         expect(() =>
           inferRepoByRole({
             registries,
-            roleSlug: 'mechanic',
+            slugRole: 'mechanic',
           }),
         ).toThrow(/No repo has role "mechanic"/);
       });
@@ -101,7 +101,7 @@ describe('inferRepoByRole', () => {
         expect(() =>
           inferRepoByRole({
             registries: [],
-            roleSlug: 'mechanic',
+            slugRole: 'mechanic',
           }),
         ).toThrow(/No repo has role "mechanic"/);
       });

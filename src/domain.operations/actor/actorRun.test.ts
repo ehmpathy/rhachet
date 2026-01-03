@@ -30,8 +30,8 @@ describe('actorRun', () => {
       executable: {
         slug: 'greet',
         path: '/path/to/greet.sh',
-        repoSlug: '.this',
-        roleSlug: 'tester',
+        slugRepo: '.this',
+        slugRole: 'tester',
       },
     });
 
@@ -100,8 +100,8 @@ describe('actorRun', () => {
       executable: {
         slug: 'wordcount',
         path: '/path/to/wordcount.sh',
-        repoSlug: '.this',
-        roleSlug: 'tester',
+        slugRepo: '.this',
+        slugRole: 'tester',
       },
     });
 

@@ -9,11 +9,11 @@ import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
  */
 export const inferRepoByRole = (input: {
   registries: RoleRegistry[];
-  roleSlug: string;
+  slugRole: string;
 }): RoleRegistry => {
   // Find all registries (repos) that have the specified role
   const matchingRepos = input.registries.filter((registry) =>
-    registry.roles.some((role) => role.slug === input.roleSlug),
+    registry.roles.some((role) => role.slug === input.slugRole),
   );
 
   // Handle unique match
@@ -23,12 +23,12 @@ export const inferRepoByRole = (input: {
   if (matchingRepos.length > 1) {
     const repoList = matchingRepos.map((r) => `  - ${r.slug}`).join('\n');
     BadRequestError.throw(
-      `Multiple repos have role "${input.roleSlug}":\n${repoList}\nPlease specify --repo to disambiguate.`,
+      `Multiple repos have role "${input.slugRole}":\n${repoList}\nPlease specify --repo to disambiguate.`,
     );
   }
 
   // Handle not found case
   BadRequestError.throw(
-    `No repo has role "${input.roleSlug}".\nCheck that the role exists in your registries.`,
+    `No repo has role "${input.slugRole}".\nCheck that the role exists in your registries.`,
   );
 };

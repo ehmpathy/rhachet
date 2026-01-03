@@ -9,40 +9,40 @@ import { discoverSkillExecutables } from './discoverSkillExecutables';
  * .why = ensures unambiguous skill resolution before execution
  */
 export const findUniqueSkillExecutable = (input: {
-  repoSlug?: string;
-  roleSlug?: string;
-  skillSlug: string;
+  slugRepo?: string;
+  slugRole?: string;
+  slugSkill: string;
 }): RoleSkillExecutable => {
   // discover skills with filters
   const matches = discoverSkillExecutables({
-    repoSlug: input.repoSlug,
-    roleSlug: input.roleSlug,
-    skillSlug: input.skillSlug,
+    slugRepo: input.slugRepo,
+    slugRole: input.slugRole,
+    slugSkill: input.slugSkill,
   });
 
   // handle no matches
   if (matches.length === 0) {
     const filters = [
-      input.repoSlug ? `--repo ${input.repoSlug}` : null,
-      input.roleSlug ? `--role ${input.roleSlug}` : null,
+      input.slugRepo ? `--repo ${input.slugRepo}` : null,
+      input.slugRole ? `--role ${input.slugRole}` : null,
     ]
       .filter(Boolean)
       .join(' ');
 
     const hint = filters
-      ? `no skill "${input.skillSlug}" found with ${filters}`
-      : `no skill "${input.skillSlug}" found in any linked role`;
+      ? `no skill "${input.slugSkill}" found with ${filters}`
+      : `no skill "${input.slugSkill}" found in any linked role`;
 
     // discover all available skills to show suggestions
     const allSkills = discoverSkillExecutables({
-      repoSlug: input.repoSlug,
-      roleSlug: input.roleSlug,
+      slugRepo: input.slugRepo,
+      slugRole: input.slugRole,
     });
     const suggestions =
       allSkills.length > 0
         ? `\n\navailable skills:\n${allSkills
             .slice(0, 5)
-            .map((s) => `  - ${s.slug} (repo=${s.repoSlug} role=${s.roleSlug})`)
+            .map((s) => `  - ${s.slug} (repo=${s.slugRepo} role=${s.slugRole})`)
             .join(
               '\n',
             )}${allSkills.length > 5 ? `\n  ... and ${allSkills.length - 5} more` : ''}`
@@ -56,11 +56,11 @@ export const findUniqueSkillExecutable = (input: {
   // handle multiple matches
   if (matches.length > 1) {
     const matchList = matches
-      .map((m) => `  - repo=${m.repoSlug} role=${m.roleSlug}`)
+      .map((m) => `  - repo=${m.slugRepo} role=${m.slugRole}`)
       .join('\n');
 
     BadRequestError.throw(
-      `multiple skills found for "${input.skillSlug}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
+      `multiple skills found for "${input.slugSkill}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
       { input, matches },
     );
   }

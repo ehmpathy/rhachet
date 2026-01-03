@@ -30,7 +30,7 @@ export const genActor = <TRole extends Role>(input: {
   if (input.brains.length === 0)
     throw new BadRequestError(
       'genActor requires at least one brain in allowlist',
-      { roleSlug: input.role.slug },
+      { slugRole: input.role.slug },
     );
 
   // extract default brain (first in list)
@@ -52,11 +52,11 @@ export const genActor = <TRole extends Role>(input: {
       throw new BadRequestError('actor.act expects exactly one skill entry', {
         entriesCount: entries.length,
       });
-    const [skillSlug, skillArgs] = entries[0]!;
+    const [slugSkill, skillArgs] = entries[0]!;
 
     // resolve skill from role
     const skillResolved = findActorRoleSkillBySlug({
-      slug: skillSlug,
+      slug: slugSkill,
       role: input.role,
       route: 'rigid',
     });
@@ -78,11 +78,11 @@ export const genActor = <TRole extends Role>(input: {
       throw new BadRequestError('actor.run expects exactly one skill entry', {
         entriesCount: entries.length,
       });
-    const [skillSlug, skillArgs] = entries[0]!;
+    const [slugSkill, skillArgs] = entries[0]!;
 
     // resolve skill from role
     const skillResolved = findActorRoleSkillBySlug({
-      slug: skillSlug,
+      slug: slugSkill,
       role: input.role,
       route: 'solid',
     });

@@ -241,10 +241,9 @@ describe('invokeAct (integration)', () => {
 
           // verify skill execution was logged
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "echo.review"'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('role="tester"'),
+            expect.stringContaining(
+              'act rigid skill repo=.this/role=tester/skill=echo.review',
+            ),
           );
         });
       });
@@ -265,7 +264,9 @@ describe('invokeAct (integration)', () => {
           await program.parseAsync(args, { from: 'user' });
 
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "echo.review"'),
+            expect.stringContaining(
+              'act rigid skill repo=.this/role=tester/skill=echo.review',
+            ),
           );
         });
       });

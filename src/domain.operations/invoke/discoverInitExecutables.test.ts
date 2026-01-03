@@ -83,8 +83,8 @@ describe('discoverInitExecutables', () => {
         const result = discoverInitExecutables({});
         const initScript = result.find((s) => s.slug === 'init.claude');
         expect(initScript).toBeDefined();
-        expect(initScript?.repoSlug).toBe('.this');
-        expect(initScript?.roleSlug).toBe('any');
+        expect(initScript?.slugRepo).toBe('.this');
+        expect(initScript?.slugRole).toBe('any');
       });
 
       then('extracts slug from extensionless file', () => {
@@ -94,15 +94,15 @@ describe('discoverInitExecutables', () => {
       });
     });
 
-    when('filtering by initSlug', () => {
+    when('filtering by slugInit', () => {
       then('returns only matching init', () => {
-        const result = discoverInitExecutables({ initSlug: 'init.claude' });
+        const result = discoverInitExecutables({ slugInit: 'init.claude' });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
       });
 
       then('returns empty for non-matching slug', () => {
-        const result = discoverInitExecutables({ initSlug: 'nonexistent' });
+        const result = discoverInitExecutables({ slugInit: 'nonexistent' });
         expect(result).toEqual([]);
       });
     });
@@ -130,18 +130,18 @@ describe('discoverInitExecutables', () => {
       then('finds inits from both repos', () => {
         const result = discoverInitExecutables({});
         expect(result).toHaveLength(2);
-        expect(result.map((s) => s.repoSlug).sort()).toEqual([
+        expect(result.map((s) => s.slugRepo).sort()).toEqual([
           '.this',
           'ehmpathy',
         ]);
       });
     });
 
-    when('filtering by repoSlug', () => {
+    when('filtering by slugRepo', () => {
       then('returns only inits from that repo', () => {
-        const result = discoverInitExecutables({ repoSlug: '.this' });
+        const result = discoverInitExecutables({ slugRepo: '.this' });
         expect(result).toHaveLength(1);
-        expect(result[0]?.repoSlug).toBe('.this');
+        expect(result[0]?.slugRepo).toBe('.this');
         expect(result[0]?.slug).toBe('local');
       });
     });
@@ -175,18 +175,18 @@ describe('discoverInitExecutables', () => {
       then('finds inits from both roles', () => {
         const result = discoverInitExecutables({});
         expect(result).toHaveLength(2);
-        expect(result.map((s) => s.roleSlug).sort()).toEqual([
+        expect(result.map((s) => s.slugRole).sort()).toEqual([
           'designer',
           'mechanic',
         ]);
       });
     });
 
-    when('filtering by roleSlug', () => {
+    when('filtering by slugRole', () => {
       then('returns only inits from that role', () => {
-        const result = discoverInitExecutables({ roleSlug: 'mechanic' });
+        const result = discoverInitExecutables({ slugRole: 'mechanic' });
         expect(result).toHaveLength(1);
-        expect(result[0]?.roleSlug).toBe('mechanic');
+        expect(result[0]?.slugRole).toBe('mechanic');
         expect(result[0]?.slug).toBe('init.claude');
       });
     });
@@ -243,7 +243,7 @@ describe('discoverInitExecutables', () => {
     when('filtering by nested init slug with full path', () => {
       then('finds the nested init', () => {
         const result = discoverInitExecutables({
-          initSlug: 'claude.hooks/sessionstart.notify-permissions',
+          slugInit: 'claude.hooks/sessionstart.notify-permissions',
         });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe(
@@ -255,7 +255,7 @@ describe('discoverInitExecutables', () => {
     when('filtering by partial nested path (should not match)', () => {
       then('returns empty because slug must match exactly', () => {
         const result = discoverInitExecutables({
-          initSlug: 'sessionstart.notify-permissions',
+          slugInit: 'sessionstart.notify-permissions',
         });
         expect(result).toEqual([]);
       });
@@ -280,23 +280,23 @@ describe('discoverInitExecutables', () => {
       then('finds init from external repo', () => {
         const result = discoverInitExecutables({});
         expect(result).toHaveLength(1);
-        expect(result[0]?.repoSlug).toBe('ehmpathy');
-        expect(result[0]?.roleSlug).toBe('mechanic');
+        expect(result[0]?.slugRepo).toBe('ehmpathy');
+        expect(result[0]?.slugRole).toBe('mechanic');
         expect(result[0]?.slug).toBe('init.claude');
       });
     });
 
-    when('filtering by external repoSlug', () => {
+    when('filtering by external slugRepo', () => {
       then('returns the init', () => {
-        const result = discoverInitExecutables({ repoSlug: 'ehmpathy' });
+        const result = discoverInitExecutables({ slugRepo: 'ehmpathy' });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
       });
     });
 
-    when('filtering by wrong repoSlug', () => {
+    when('filtering by wrong slugRepo', () => {
       then('returns empty', () => {
-        const result = discoverInitExecutables({ repoSlug: '.this' });
+        const result = discoverInitExecutables({ slugRepo: '.this' });
         expect(result).toEqual([]);
       });
     });
@@ -332,13 +332,13 @@ describe('discoverInitExecutables', () => {
         const result = discoverInitExecutables({});
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
-        expect(result[0]?.repoSlug).toBe('ehmpathy');
+        expect(result[0]?.slugRepo).toBe('ehmpathy');
       });
     });
 
-    when('filtering by repoSlug', () => {
+    when('filtering by slugRepo', () => {
       then('finds init through symlink', () => {
-        const result = discoverInitExecutables({ repoSlug: 'ehmpathy' });
+        const result = discoverInitExecutables({ slugRepo: 'ehmpathy' });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
       });
@@ -364,28 +364,28 @@ describe('discoverInitExecutables', () => {
       }
     });
 
-    when('filtering by repoSlug and roleSlug', () => {
+    when('filtering by slugRepo and slugRole', () => {
       then('returns only matching init', () => {
         const result = discoverInitExecutables({
-          repoSlug: '.this',
-          roleSlug: 'mechanic',
+          slugRepo: '.this',
+          slugRole: 'mechanic',
         });
         expect(result).toHaveLength(1);
-        expect(result[0]?.repoSlug).toBe('.this');
-        expect(result[0]?.roleSlug).toBe('mechanic');
+        expect(result[0]?.slugRepo).toBe('.this');
+        expect(result[0]?.slugRole).toBe('mechanic');
       });
     });
 
-    when('filtering by all three: repoSlug, roleSlug, initSlug', () => {
+    when('filtering by all three: slugRepo, slugRole, slugInit', () => {
       then('returns exact match', () => {
         const result = discoverInitExecutables({
-          repoSlug: 'ehmpathy',
-          roleSlug: 'mechanic',
-          initSlug: 'init.claude',
+          slugRepo: 'ehmpathy',
+          slugRole: 'mechanic',
+          slugInit: 'init.claude',
         });
         expect(result).toHaveLength(1);
-        expect(result[0]?.repoSlug).toBe('ehmpathy');
-        expect(result[0]?.roleSlug).toBe('mechanic');
+        expect(result[0]?.slugRepo).toBe('ehmpathy');
+        expect(result[0]?.slugRole).toBe('mechanic');
         expect(result[0]?.slug).toBe('init.claude');
       });
     });

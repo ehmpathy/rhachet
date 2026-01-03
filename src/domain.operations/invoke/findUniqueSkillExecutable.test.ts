@@ -43,20 +43,20 @@ describe('findUniqueSkillExecutable', () => {
       chmodSync(resolve(skillsDir, 'init.sh'), '755');
     });
 
-    when('finding by skillSlug only', () => {
+    when('finding by slugSkill only', () => {
       then('returns the unique skill', () => {
-        const result = findUniqueSkillExecutable({ skillSlug: 'init' });
+        const result = findUniqueSkillExecutable({ slugSkill: 'init' });
         expect(result.slug).toBe('init');
-        expect(result.repoSlug).toBe('.this');
-        expect(result.roleSlug).toBe('any');
+        expect(result.slugRepo).toBe('.this');
+        expect(result.slugRole).toBe('any');
       });
     });
 
     when('finding with explicit repo filter', () => {
       then('returns the skill', () => {
         const result = findUniqueSkillExecutable({
-          skillSlug: 'init',
-          repoSlug: '.this',
+          slugSkill: 'init',
+          slugRepo: '.this',
         });
         expect(result.slug).toBe('init');
       });
@@ -65,8 +65,8 @@ describe('findUniqueSkillExecutable', () => {
     when('finding with explicit role filter', () => {
       then('returns the skill', () => {
         const result = findUniqueSkillExecutable({
-          skillSlug: 'init',
-          roleSlug: 'any',
+          slugSkill: 'init',
+          slugRole: 'any',
         });
         expect(result.slug).toBe('init');
       });
@@ -88,7 +88,7 @@ describe('findUniqueSkillExecutable', () => {
     when('finding nonexistent skill', () => {
       then('error lists available skills', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+          findUniqueSkillExecutable({ slugSkill: 'nonexistent' }),
         );
         expect(error?.message).toContain('available skills:');
         expect(error?.message).toContain('init');
@@ -98,7 +98,7 @@ describe('findUniqueSkillExecutable', () => {
 
       then('error includes tip about linking roles', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+          findUniqueSkillExecutable({ slugSkill: 'nonexistent' }),
         );
         expect(error?.message).toContain('tip:');
         expect(error?.message).toContain('npx rhachet roles link');
@@ -118,14 +118,14 @@ describe('findUniqueSkillExecutable', () => {
     when('finding nonexistent skill', () => {
       then('throws error with skill name', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+          findUniqueSkillExecutable({ slugSkill: 'nonexistent' }),
         );
         expect(error?.message).toContain('no skill "nonexistent" found');
       });
 
       then('error mentions "any linked role"', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'nonexistent' }),
+          findUniqueSkillExecutable({ slugSkill: 'nonexistent' }),
         );
         expect(error?.message).toContain('in any linked role');
       });
@@ -135,8 +135,8 @@ describe('findUniqueSkillExecutable', () => {
       then('error mentions the repo filter', async () => {
         const error = await getError(() =>
           findUniqueSkillExecutable({
-            skillSlug: 'nonexistent',
-            repoSlug: '.this',
+            slugSkill: 'nonexistent',
+            slugRepo: '.this',
           }),
         );
         expect(error?.message).toContain('--repo .this');
@@ -147,8 +147,8 @@ describe('findUniqueSkillExecutable', () => {
       then('error mentions the role filter', async () => {
         const error = await getError(() =>
           findUniqueSkillExecutable({
-            skillSlug: 'nonexistent',
-            roleSlug: 'any',
+            slugSkill: 'nonexistent',
+            slugRole: 'any',
           }),
         );
         expect(error?.message).toContain('--role any');
@@ -159,9 +159,9 @@ describe('findUniqueSkillExecutable', () => {
       then('error mentions both filters', async () => {
         const error = await getError(() =>
           findUniqueSkillExecutable({
-            skillSlug: 'nonexistent',
-            repoSlug: '.this',
-            roleSlug: 'any',
+            slugSkill: 'nonexistent',
+            slugRepo: '.this',
+            slugRole: 'any',
           }),
         );
         expect(error?.message).toContain('--repo .this');
@@ -188,14 +188,14 @@ describe('findUniqueSkillExecutable', () => {
     when('finding without disambiguation', () => {
       then('throws error about multiple matches', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'dupe' }),
+          findUniqueSkillExecutable({ slugSkill: 'dupe' }),
         );
         expect(error?.message).toContain('multiple skills found');
       });
 
       then('error lists all matching locations', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'dupe' }),
+          findUniqueSkillExecutable({ slugSkill: 'dupe' }),
         );
         expect(error?.message).toContain('role=mechanic');
         expect(error?.message).toContain('role=designer');
@@ -203,21 +203,21 @@ describe('findUniqueSkillExecutable', () => {
 
       then('error suggests disambiguation flags', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'dupe' }),
+          findUniqueSkillExecutable({ slugSkill: 'dupe' }),
         );
         expect(error?.message).toContain('--repo');
         expect(error?.message).toContain('--role');
       });
     });
 
-    when('disambiguating with roleSlug', () => {
+    when('disambiguating with slugRole', () => {
       then('returns the correct skill', () => {
         const result = findUniqueSkillExecutable({
-          skillSlug: 'dupe',
-          roleSlug: 'mechanic',
+          slugSkill: 'dupe',
+          slugRole: 'mechanic',
         });
         expect(result.slug).toBe('dupe');
-        expect(result.roleSlug).toBe('mechanic');
+        expect(result.slugRole).toBe('mechanic');
       });
     });
   });
@@ -243,28 +243,28 @@ describe('findUniqueSkillExecutable', () => {
     when('finding without disambiguation', () => {
       then('throws error about multiple matches', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'common' }),
+          findUniqueSkillExecutable({ slugSkill: 'common' }),
         );
         expect(error?.message).toContain('multiple skills found');
       });
 
       then('error lists both repos', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'common' }),
+          findUniqueSkillExecutable({ slugSkill: 'common' }),
         );
         expect(error?.message).toContain('repo=.this');
         expect(error?.message).toContain('repo=ehmpathy');
       });
     });
 
-    when('disambiguating with repoSlug', () => {
+    when('disambiguating with slugRepo', () => {
       then('returns the correct skill', () => {
         const result = findUniqueSkillExecutable({
-          skillSlug: 'common',
-          repoSlug: 'ehmpathy',
+          slugSkill: 'common',
+          slugRepo: 'ehmpathy',
         });
         expect(result.slug).toBe('common');
-        expect(result.repoSlug).toBe('ehmpathy');
+        expect(result.slugRepo).toBe('ehmpathy');
       });
     });
   });
@@ -283,31 +283,31 @@ describe('findUniqueSkillExecutable', () => {
       chmodSync(resolve(skillsDir, 'deploy.sh'), '755');
     });
 
-    when('finding by skillSlug only', () => {
+    when('finding by slugSkill only', () => {
       then('returns the skill from external repo', () => {
-        const result = findUniqueSkillExecutable({ skillSlug: 'deploy' });
+        const result = findUniqueSkillExecutable({ slugSkill: 'deploy' });
         expect(result.slug).toBe('deploy');
-        expect(result.repoSlug).toBe('ehmpathy');
-        expect(result.roleSlug).toBe('mechanic');
+        expect(result.slugRepo).toBe('ehmpathy');
+        expect(result.slugRole).toBe('mechanic');
       });
     });
 
-    when('finding with explicit external repoSlug', () => {
+    when('finding with explicit external slugRepo', () => {
       then('returns the skill', () => {
         const result = findUniqueSkillExecutable({
-          skillSlug: 'deploy',
-          repoSlug: 'ehmpathy',
+          slugSkill: 'deploy',
+          slugRepo: 'ehmpathy',
         });
-        expect(result.repoSlug).toBe('ehmpathy');
+        expect(result.slugRepo).toBe('ehmpathy');
       });
     });
 
-    when('finding with wrong repoSlug filter', () => {
+    when('finding with wrong slugRepo filter', () => {
       then('throws error mentioning the filter', async () => {
         const error = await getError(() =>
           findUniqueSkillExecutable({
-            skillSlug: 'deploy',
-            repoSlug: '.this',
+            slugSkill: 'deploy',
+            slugRepo: '.this',
           }),
         );
         expect(error?.message).toContain('no skill "deploy" found');
@@ -320,7 +320,7 @@ describe('findUniqueSkillExecutable', () => {
     when('finding any skill', () => {
       then('throws helpful error', async () => {
         const error = await getError(() =>
-          findUniqueSkillExecutable({ skillSlug: 'anything' }),
+          findUniqueSkillExecutable({ slugSkill: 'anything' }),
         );
         expect(error?.message).toContain('no skill "anything" found');
       });

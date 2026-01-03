@@ -25,8 +25,8 @@ export const findActorRoleSkillBySlug = (input: {
   if (skillSchema) {
     // find executable from .agent/ dirs (skill schema defines type, but executable runs)
     const executables = discoverSkillExecutables({
-      roleSlug: input.role.slug,
-      skillSlug: input.slug,
+      slugRole: input.role.slug,
+      slugSkill: input.slug,
     });
 
     // fail fast if skill is declared but no executable found
@@ -34,8 +34,8 @@ export const findActorRoleSkillBySlug = (input: {
       throw new BadRequestError(
         `skill "${input.slug}" declared in role.skills.${input.route} but no executable found in .agent/`,
         {
-          skillSlug: input.slug,
-          roleSlug: input.role.slug,
+          slugSkill: input.slug,
+          slugRole: input.role.slug,
           route: input.route,
           hint: `create .agent/repo=.this/role=${input.role.slug}/skills/${input.slug}.sh`,
         },
@@ -52,8 +52,8 @@ export const findActorRoleSkillBySlug = (input: {
 
   // fall back to .agent/ discovery (executable exists but no schema)
   const executables = discoverSkillExecutables({
-    roleSlug: input.role.slug,
-    skillSlug: input.slug,
+    slugRole: input.role.slug,
+    slugSkill: input.slug,
   });
 
   // executable exists but no schema = not usable via actor contracts
@@ -61,8 +61,8 @@ export const findActorRoleSkillBySlug = (input: {
     throw new BadRequestError(
       `skill "${input.slug}" found in .agent/ but lacks schema in role.skills.${input.route}`,
       {
-        skillSlug: input.slug,
-        roleSlug: input.role.slug,
+        slugSkill: input.slug,
+        slugRole: input.role.slug,
         route: input.route,
         hint: `add schema to role.skills.${input.route}.${input.slug} to use via actor contracts`,
         executable: executables[0],
@@ -71,8 +71,8 @@ export const findActorRoleSkillBySlug = (input: {
 
   // skill not found
   throw new BadRequestError(`skill not found: ${input.slug}`, {
-    skillSlug: input.slug,
-    roleSlug: input.role.slug,
+    slugSkill: input.slug,
+    slugRole: input.role.slug,
     route: input.route,
     availableSolidSkills: input.role.skills.solid
       ? Object.keys(input.role.skills.solid)

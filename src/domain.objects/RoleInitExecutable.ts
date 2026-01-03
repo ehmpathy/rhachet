@@ -20,17 +20,17 @@ export interface RoleInitExecutable {
    * .what = the repo (registry) this init belongs to
    * .example = "ehmpathy", ".this"
    */
-  repoSlug: string;
+  slugRepo: string;
 
   /**
    * .what = the role this init belongs to
    * .example = "mechanic", "designer"
    */
-  roleSlug: string;
+  slugRole: string;
 }
 export class RoleInitExecutable
   extends DomainLiteral<RoleInitExecutable>
   implements RoleInitExecutable
 {
-  public static unique = ['repoSlug', 'roleSlug', 'slug'] as const;
+  public static unique = ['slugRepo', 'slugRole', 'slug'] as const;
 }

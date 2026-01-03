@@ -36,7 +36,9 @@ const performRunViaActorMode = async (input: {
 
   // log which skill will run
   console.log(``);
-  console.log(`🪨 skill "${input.opts.skill}" from role="${input.opts.role}"`);
+  console.log(
+    `🪨 run solid skill role=${input.opts.role}/skill=${input.opts.skill}`,
+  );
   console.log(``);
 
   // parse skill input from remaining args
@@ -56,15 +58,15 @@ const performRunViaCommandMode = (input: {
 }): void => {
   // discover skill via .agent/ dirs
   const skill = findUniqueSkillExecutable({
-    repoSlug: input.opts.repo,
-    roleSlug: input.opts.role,
-    skillSlug: input.opts.skill,
+    slugRepo: input.opts.repo,
+    slugRole: input.opts.role,
+    slugSkill: input.opts.skill,
   });
 
   // log which skill will run
   console.log(``);
   console.log(
-    `🪨 skill "${skill.slug}" from repo=${skill.repoSlug} role=${skill.roleSlug}`,
+    `🪨 run solid skill repo=${skill.slugRepo}/role=${skill.slugRole}/skill=${skill.slug}`,
   );
   console.log(``);
 
@@ -152,7 +154,7 @@ export const invokeRun = ({
  */
 const parseArgsToObject = (
   rawArgs: string[],
-  skillSlug: string,
+  slugSkill: string,
 ): Record<string, string> => {
   const result: Record<string, string> = {};
   let i = 0;
@@ -173,7 +175,7 @@ const parseArgsToObject = (
     }
 
     // skip the skill slug value if it matches
-    if (arg === skillSlug) {
+    if (arg === slugSkill) {
       i++;
       continue;
     }

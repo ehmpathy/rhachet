@@ -43,9 +43,9 @@ const extractSlugFromFilename = (filename: string): string => {
  * .why = enables `rhachet run --skill` to find and execute skills
  */
 export const discoverSkillExecutables = (input: {
-  repoSlug?: string;
-  roleSlug?: string;
-  skillSlug?: string;
+  slugRepo?: string;
+  slugRole?: string;
+  slugSkill?: string;
 }): RoleSkillExecutable[] => {
   const agentDir = resolve(process.cwd(), '.agent');
 
@@ -60,10 +60,10 @@ export const discoverSkillExecutables = (input: {
   const skills: RoleSkillExecutable[] = [];
 
   for (const repoEntry of repoEntries) {
-    const repoSlug = repoEntry.replace('repo=', '');
+    const slugRepo = repoEntry.replace('repo=', '');
 
-    // filter by repoSlug if specified
-    if (input.repoSlug && repoSlug !== input.repoSlug) continue;
+    // filter by slugRepo if specified
+    if (input.slugRepo && slugRepo !== input.slugRepo) continue;
 
     const repoDir = resolve(agentDir, repoEntry);
 
@@ -73,10 +73,10 @@ export const discoverSkillExecutables = (input: {
     );
 
     for (const roleEntry of roleEntries) {
-      const roleSlug = roleEntry.replace('role=', '');
+      const slugRole = roleEntry.replace('role=', '');
 
-      // filter by roleSlug if specified
-      if (input.roleSlug && roleSlug !== input.roleSlug) continue;
+      // filter by slugRole if specified
+      if (input.slugRole && slugRole !== input.slugRole) continue;
 
       const skillsDir = resolve(repoDir, roleEntry, 'skills');
 
@@ -87,15 +87,15 @@ export const discoverSkillExecutables = (input: {
         const filename = basename(skillPath);
         const slug = extractSlugFromFilename(filename);
 
-        // filter by skillSlug if specified
-        if (input.skillSlug && slug !== input.skillSlug) continue;
+        // filter by slugSkill if specified
+        if (input.slugSkill && slug !== input.slugSkill) continue;
 
         skills.push(
           new RoleSkillExecutable({
             slug,
             path: skillPath,
-            repoSlug,
-            roleSlug,
+            slugRepo,
+            slugRole,
           }),
         );
       }

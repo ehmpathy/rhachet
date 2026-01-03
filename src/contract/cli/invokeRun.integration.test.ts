@@ -70,13 +70,9 @@ describe('invokeRun (integration)', () => {
 
           // check log output
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "say-hello"'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('repo=.this'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('role=any'),
+            expect.stringContaining(
+              'run solid skill repo=.this/role=any/skill=say-hello',
+            ),
           );
         },
       );
@@ -245,13 +241,9 @@ describe('invokeRun (integration)', () => {
           });
 
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "deploy"'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('repo=ehmpathy'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('role=mechanic'),
+            expect.stringContaining(
+              'run solid skill repo=ehmpathy/role=mechanic/skill=deploy',
+            ),
           );
         },
       );
@@ -317,7 +309,9 @@ describe('invokeRun (integration)', () => {
 
         // skill executed successfully (no error)
         expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('skill "echo-args"'),
+          expect.stringContaining(
+            'run solid skill repo=.this/role=any/skill=echo-args',
+          ),
         );
       });
 
@@ -331,7 +325,9 @@ describe('invokeRun (integration)', () => {
 
         // skill executed successfully
         expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('skill "echo-args"'),
+          expect.stringContaining(
+            'run solid skill repo=.this/role=any/skill=echo-args',
+          ),
         );
       });
     });
@@ -421,10 +417,7 @@ describe('invokeRun (integration)', () => {
           await program.parseAsync(args, { from: 'user' });
 
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "greet"'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('role="runner"'),
+            expect.stringContaining('run solid skill role=runner/skill=greet'),
           );
         });
       });
@@ -443,7 +436,7 @@ describe('invokeRun (integration)', () => {
           await program.parseAsync(args, { from: 'user' });
 
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('skill "greet"'),
+            expect.stringContaining('run solid skill role=runner/skill=greet'),
           );
         });
       });

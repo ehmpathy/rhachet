@@ -9,40 +9,40 @@ import { discoverInitExecutables } from './discoverInitExecutables';
  * .why = ensures unambiguous init resolution before execution
  */
 export const findUniqueInitExecutable = (input: {
-  repoSlug?: string;
-  roleSlug?: string;
-  initSlug: string;
+  slugRepo?: string;
+  slugRole?: string;
+  slugInit: string;
 }): RoleInitExecutable => {
   // discover inits with filters
   const matches = discoverInitExecutables({
-    repoSlug: input.repoSlug,
-    roleSlug: input.roleSlug,
-    initSlug: input.initSlug,
+    slugRepo: input.slugRepo,
+    slugRole: input.slugRole,
+    slugInit: input.slugInit,
   });
 
   // handle no matches
   if (matches.length === 0) {
     const filters = [
-      input.repoSlug ? `--repo ${input.repoSlug}` : null,
-      input.roleSlug ? `--role ${input.roleSlug}` : null,
+      input.slugRepo ? `--repo ${input.slugRepo}` : null,
+      input.slugRole ? `--role ${input.slugRole}` : null,
     ]
       .filter(Boolean)
       .join(' ');
 
     const hint = filters
-      ? `no init "${input.initSlug}" found with ${filters}`
-      : `no init "${input.initSlug}" found in any linked role`;
+      ? `no init "${input.slugInit}" found with ${filters}`
+      : `no init "${input.slugInit}" found in any linked role`;
 
     // discover all available inits to show suggestions
     const allInits = discoverInitExecutables({
-      repoSlug: input.repoSlug,
-      roleSlug: input.roleSlug,
+      slugRepo: input.slugRepo,
+      slugRole: input.slugRole,
     });
     const suggestions =
       allInits.length > 0
         ? `\n\navailable inits:\n${allInits
             .slice(0, 5)
-            .map((s) => `  - ${s.slug} (repo=${s.repoSlug} role=${s.roleSlug})`)
+            .map((s) => `  - ${s.slug} (repo=${s.slugRepo} role=${s.slugRole})`)
             .join(
               '\n',
             )}${allInits.length > 5 ? `\n  ... and ${allInits.length - 5} more` : ''}`
@@ -56,11 +56,11 @@ export const findUniqueInitExecutable = (input: {
   // handle multiple matches
   if (matches.length > 1) {
     const matchList = matches
-      .map((m) => `  - repo=${m.repoSlug} role=${m.roleSlug}`)
+      .map((m) => `  - repo=${m.slugRepo} role=${m.slugRole}`)
       .join('\n');
 
     BadRequestError.throw(
-      `multiple inits found for "${input.initSlug}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
+      `multiple inits found for "${input.slugInit}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
       { input, matches },
     );
   }
