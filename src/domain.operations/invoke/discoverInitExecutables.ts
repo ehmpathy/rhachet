@@ -49,9 +49,9 @@ const extractSlugFromPath = (input: {
  * .why = enables `rhachet roles init --command` to find and execute inits
  */
 export const discoverInitExecutables = (input: {
-  repoSlug?: string;
-  roleSlug?: string;
-  initSlug?: string;
+  slugRepo?: string;
+  slugRole?: string;
+  slugInit?: string;
 }): RoleInitExecutable[] => {
   const agentDir = resolve(process.cwd(), '.agent');
 
@@ -66,10 +66,10 @@ export const discoverInitExecutables = (input: {
   const inits: RoleInitExecutable[] = [];
 
   for (const repoEntry of repoEntries) {
-    const repoSlug = repoEntry.replace('repo=', '');
+    const slugRepo = repoEntry.replace('repo=', '');
 
-    // filter by repoSlug if specified
-    if (input.repoSlug && repoSlug !== input.repoSlug) continue;
+    // filter by slugRepo if specified
+    if (input.slugRepo && slugRepo !== input.slugRepo) continue;
 
     const repoDir = resolve(agentDir, repoEntry);
 
@@ -79,10 +79,10 @@ export const discoverInitExecutables = (input: {
     );
 
     for (const roleEntry of roleEntries) {
-      const roleSlug = roleEntry.replace('role=', '');
+      const slugRole = roleEntry.replace('role=', '');
 
-      // filter by roleSlug if specified
-      if (input.roleSlug && roleSlug !== input.roleSlug) continue;
+      // filter by slugRole if specified
+      if (input.slugRole && slugRole !== input.slugRole) continue;
 
       const initsDir = resolve(repoDir, roleEntry, 'inits');
 
@@ -92,15 +92,15 @@ export const discoverInitExecutables = (input: {
       for (const initPath of initFiles) {
         const slug = extractSlugFromPath({ initsDir, filePath: initPath });
 
-        // filter by initSlug if specified
-        if (input.initSlug && slug !== input.initSlug) continue;
+        // filter by slugInit if specified
+        if (input.slugInit && slug !== input.slugInit) continue;
 
         inits.push(
           new RoleInitExecutable({
             slug,
             path: initPath,
-            repoSlug,
-            roleSlug,
+            slugRepo,
+            slugRole,
           }),
         );
       }

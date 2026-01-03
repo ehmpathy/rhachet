@@ -20,17 +20,17 @@ export interface RoleSkillExecutable {
    * .what = the repo (registry) this skill belongs to
    * .example = "ehmpathy", ".this"
    */
-  repoSlug: string;
+  slugRepo: string;
 
   /**
    * .what = the role this skill belongs to
    * .example = "mechanic", "designer"
    */
-  roleSlug: string;
+  slugRole: string;
 }
 export class RoleSkillExecutable
   extends DomainLiteral<RoleSkillExecutable>
   implements RoleSkillExecutable
 {
-  public static unique = ['repoSlug', 'roleSlug', 'slug'] as const;
+  public static unique = ['slugRepo', 'slugRole', 'slug'] as const;
 }

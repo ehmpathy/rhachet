@@ -38,7 +38,7 @@ export const invokeRolesLink = ({
       const role = assureFindRole({ registries, slug: opts.role });
       const repo = opts.repo
         ? registries.find((r) => r.slug === opts.repo)
-        : inferRepoByRole({ registries, roleSlug: opts.role });
+        : inferRepoByRole({ registries, slugRole: opts.role });
       if (!repo)
         BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
 

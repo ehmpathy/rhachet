@@ -46,10 +46,10 @@ export const getAllFiles = (dir: string): string[] => {
  */
 export const getRoleFileCosts = (input: {
   roleDir: string;
-  repoSlug: string;
-  roleSlug: string;
+  slugRepo: string;
+  slugRole: string;
 }): FileCost[] => {
-  const { roleDir, repoSlug, roleSlug } = input;
+  const { roleDir, slugRepo, slugRole } = input;
 
   // define directories for type classification
   const briefsDir = resolve(roleDir, 'briefs');
@@ -85,7 +85,7 @@ export const getRoleFileCosts = (input: {
 
     return {
       path: filepath,
-      relativePath: `.agent/repo=${repoSlug}/role=${roleSlug}/${relative(roleDir, filepath)}`,
+      relativePath: `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`,
       chars,
       tokens,
       cost,

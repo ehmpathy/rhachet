@@ -37,12 +37,12 @@ export const invokeRolesCost = ({
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const roleSlug = opts.role;
+      const slugRole = opts.role;
 
       // resolve repo from option or inference
       const repo = opts.repo
         ? registries.find((r) => r.slug === opts.repo)
-        : inferRepoByRole({ registries, roleSlug });
+        : inferRepoByRole({ registries, slugRole });
       if (!repo)
         BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
 
@@ -51,21 +51,21 @@ export const invokeRolesCost = ({
         process.cwd(),
         '.agent',
         `repo=${repo.slug}`,
-        `role=${roleSlug}`,
+        `role=${slugRole}`,
       );
 
       // check if role directory exists
       if (!existsSync(roleDir)) {
         BadRequestError.throw(
-          `Role directory not found: ${roleDir}\nRun "rhachet roles link --repo ${repo.slug} --role ${roleSlug}" first`,
+          `Role directory not found: ${roleDir}\nRun "rhachet roles link --repo ${repo.slug} --role ${slugRole}" first`,
         );
       }
 
       // get file costs
       const fileCosts = getRoleFileCosts({
         roleDir,
-        repoSlug: repo.slug,
-        roleSlug,
+        slugRepo: repo.slug,
+        slugRole,
       });
 
       // handle empty role
@@ -85,11 +85,11 @@ export const invokeRolesCost = ({
 
       // print header
       console.log(``);
-      console.log(`🌊 Role Cost Report: ${roleSlug} @ ${repo.slug}`);
+      console.log(`🌊 Role Cost Report: ${slugRole} @ ${repo.slug}`);
       console.log(``);
 
       // print tree structure with costs
-      const rootPath = `.agent/repo=${repo.slug}/role=${roleSlug}`;
+      const rootPath = `.agent/repo=${repo.slug}/role=${slugRole}`;
       const tree = formatCostTree({ fileCosts, rootPath });
       console.log(tree);
       console.log(``);

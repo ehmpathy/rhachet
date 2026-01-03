@@ -43,20 +43,20 @@ describe('findUniqueInitExecutable', () => {
       chmodSync(resolve(initsDir, 'init.claude.sh'), '755');
     });
 
-    when('finding by initSlug only', () => {
+    when('finding by slugInit only', () => {
       then('returns the unique init', () => {
-        const result = findUniqueInitExecutable({ initSlug: 'init.claude' });
+        const result = findUniqueInitExecutable({ slugInit: 'init.claude' });
         expect(result.slug).toBe('init.claude');
-        expect(result.repoSlug).toBe('.this');
-        expect(result.roleSlug).toBe('any');
+        expect(result.slugRepo).toBe('.this');
+        expect(result.slugRole).toBe('any');
       });
     });
 
     when('finding with explicit repo filter', () => {
       then('returns the init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'init.claude',
-          repoSlug: '.this',
+          slugInit: 'init.claude',
+          slugRepo: '.this',
         });
         expect(result.slug).toBe('init.claude');
       });
@@ -65,8 +65,8 @@ describe('findUniqueInitExecutable', () => {
     when('finding with explicit role filter', () => {
       then('returns the init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'init.claude',
-          roleSlug: 'any',
+          slugInit: 'init.claude',
+          slugRole: 'any',
         });
         expect(result.slug).toBe('init.claude');
       });
@@ -93,13 +93,13 @@ describe('findUniqueInitExecutable', () => {
     when('finding by full nested path slug', () => {
       then('returns the nested init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'claude.hooks/sessionstart.notify-permissions',
+          slugInit: 'claude.hooks/sessionstart.notify-permissions',
         });
         expect(result.slug).toBe(
           'claude.hooks/sessionstart.notify-permissions',
         );
-        expect(result.repoSlug).toBe('ehmpathy');
-        expect(result.roleSlug).toBe('mechanic');
+        expect(result.slugRepo).toBe('ehmpathy');
+        expect(result.slugRole).toBe('mechanic');
       });
     });
 
@@ -107,7 +107,7 @@ describe('findUniqueInitExecutable', () => {
       then('throws error about not found', async () => {
         const error = await getError(() =>
           findUniqueInitExecutable({
-            initSlug: 'sessionstart.notify-permissions',
+            slugInit: 'sessionstart.notify-permissions',
           }),
         );
         expect(error?.message).toContain(
@@ -135,7 +135,7 @@ describe('findUniqueInitExecutable', () => {
     when('finding nonexistent init', () => {
       then('error lists available inits', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'nonexistent' }),
+          findUniqueInitExecutable({ slugInit: 'nonexistent' }),
         );
         expect(error?.message).toContain('available inits:');
         expect(error?.message).toContain('init.claude');
@@ -145,7 +145,7 @@ describe('findUniqueInitExecutable', () => {
 
       then('error includes tip about linking roles', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'nonexistent' }),
+          findUniqueInitExecutable({ slugInit: 'nonexistent' }),
         );
         expect(error?.message).toContain('tip:');
         expect(error?.message).toContain('npx rhachet roles link');
@@ -165,14 +165,14 @@ describe('findUniqueInitExecutable', () => {
     when('finding nonexistent init', () => {
       then('throws error with init name', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'nonexistent' }),
+          findUniqueInitExecutable({ slugInit: 'nonexistent' }),
         );
         expect(error?.message).toContain('no init "nonexistent" found');
       });
 
       then('error mentions "any linked role"', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'nonexistent' }),
+          findUniqueInitExecutable({ slugInit: 'nonexistent' }),
         );
         expect(error?.message).toContain('in any linked role');
       });
@@ -182,8 +182,8 @@ describe('findUniqueInitExecutable', () => {
       then('error mentions the repo filter', async () => {
         const error = await getError(() =>
           findUniqueInitExecutable({
-            initSlug: 'nonexistent',
-            repoSlug: '.this',
+            slugInit: 'nonexistent',
+            slugRepo: '.this',
           }),
         );
         expect(error?.message).toContain('--repo .this');
@@ -194,8 +194,8 @@ describe('findUniqueInitExecutable', () => {
       then('error mentions the role filter', async () => {
         const error = await getError(() =>
           findUniqueInitExecutable({
-            initSlug: 'nonexistent',
-            roleSlug: 'any',
+            slugInit: 'nonexistent',
+            slugRole: 'any',
           }),
         );
         expect(error?.message).toContain('--role any');
@@ -206,9 +206,9 @@ describe('findUniqueInitExecutable', () => {
       then('error mentions both filters', async () => {
         const error = await getError(() =>
           findUniqueInitExecutable({
-            initSlug: 'nonexistent',
-            repoSlug: '.this',
-            roleSlug: 'any',
+            slugInit: 'nonexistent',
+            slugRepo: '.this',
+            slugRole: 'any',
           }),
         );
         expect(error?.message).toContain('--repo .this');
@@ -238,14 +238,14 @@ describe('findUniqueInitExecutable', () => {
     when('finding without disambiguation', () => {
       then('throws error about multiple matches', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'init.claude' }),
+          findUniqueInitExecutable({ slugInit: 'init.claude' }),
         );
         expect(error?.message).toContain('multiple inits found');
       });
 
       then('error lists all matching locations', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'init.claude' }),
+          findUniqueInitExecutable({ slugInit: 'init.claude' }),
         );
         expect(error?.message).toContain('role=mechanic');
         expect(error?.message).toContain('role=designer');
@@ -253,21 +253,21 @@ describe('findUniqueInitExecutable', () => {
 
       then('error suggests disambiguation flags', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'init.claude' }),
+          findUniqueInitExecutable({ slugInit: 'init.claude' }),
         );
         expect(error?.message).toContain('--repo');
         expect(error?.message).toContain('--role');
       });
     });
 
-    when('disambiguating with roleSlug', () => {
+    when('disambiguating with slugRole', () => {
       then('returns the correct init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'init.claude',
-          roleSlug: 'mechanic',
+          slugInit: 'init.claude',
+          slugRole: 'mechanic',
         });
         expect(result.slug).toBe('init.claude');
-        expect(result.roleSlug).toBe('mechanic');
+        expect(result.slugRole).toBe('mechanic');
       });
     });
   });
@@ -293,28 +293,28 @@ describe('findUniqueInitExecutable', () => {
     when('finding without disambiguation', () => {
       then('throws error about multiple matches', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'init.claude' }),
+          findUniqueInitExecutable({ slugInit: 'init.claude' }),
         );
         expect(error?.message).toContain('multiple inits found');
       });
 
       then('error lists both repos', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'init.claude' }),
+          findUniqueInitExecutable({ slugInit: 'init.claude' }),
         );
         expect(error?.message).toContain('repo=.this');
         expect(error?.message).toContain('repo=ehmpathy');
       });
     });
 
-    when('disambiguating with repoSlug', () => {
+    when('disambiguating with slugRepo', () => {
       then('returns the correct init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'init.claude',
-          repoSlug: 'ehmpathy',
+          slugInit: 'init.claude',
+          slugRepo: 'ehmpathy',
         });
         expect(result.slug).toBe('init.claude');
-        expect(result.repoSlug).toBe('ehmpathy');
+        expect(result.slugRepo).toBe('ehmpathy');
       });
     });
   });
@@ -333,31 +333,31 @@ describe('findUniqueInitExecutable', () => {
       chmodSync(resolve(initsDir, 'init.claude.sh'), '755');
     });
 
-    when('finding by initSlug only', () => {
+    when('finding by slugInit only', () => {
       then('returns the init from external repo', () => {
-        const result = findUniqueInitExecutable({ initSlug: 'init.claude' });
+        const result = findUniqueInitExecutable({ slugInit: 'init.claude' });
         expect(result.slug).toBe('init.claude');
-        expect(result.repoSlug).toBe('ehmpathy');
-        expect(result.roleSlug).toBe('mechanic');
+        expect(result.slugRepo).toBe('ehmpathy');
+        expect(result.slugRole).toBe('mechanic');
       });
     });
 
-    when('finding with explicit external repoSlug', () => {
+    when('finding with explicit external slugRepo', () => {
       then('returns the init', () => {
         const result = findUniqueInitExecutable({
-          initSlug: 'init.claude',
-          repoSlug: 'ehmpathy',
+          slugInit: 'init.claude',
+          slugRepo: 'ehmpathy',
         });
-        expect(result.repoSlug).toBe('ehmpathy');
+        expect(result.slugRepo).toBe('ehmpathy');
       });
     });
 
-    when('finding with wrong repoSlug filter', () => {
+    when('finding with wrong slugRepo filter', () => {
       then('throws error mentioning the filter', async () => {
         const error = await getError(() =>
           findUniqueInitExecutable({
-            initSlug: 'init.claude',
-            repoSlug: '.this',
+            slugInit: 'init.claude',
+            slugRepo: '.this',
           }),
         );
         expect(error?.message).toContain('no init "init.claude" found');
@@ -370,7 +370,7 @@ describe('findUniqueInitExecutable', () => {
     when('finding any init', () => {
       then('throws helpful error', async () => {
         const error = await getError(() =>
-          findUniqueInitExecutable({ initSlug: 'anything' }),
+          findUniqueInitExecutable({ slugInit: 'anything' }),
         );
         expect(error?.message).toContain('no init "anything" found');
       });

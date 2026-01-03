@@ -6,6 +6,7 @@ import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
+import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
 
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -58,12 +59,13 @@ export const invokeAct = ({
           'no brains available. add getBrainRepls() to your rhachet.use.ts',
         );
 
-      // find the role
+      // find the role and repo
       const role = assureFindRole({ registries, slug: opts.role });
       if (!role)
         throw new BadRequestError(`role "${opts.role}" not found`, {
           availableRoles: registries.flatMap((r) => r.roles.map((rr) => rr)),
         });
+      const repo = inferRepoByRole({ registries, slugRole: opts.role });
 
       // resolve brain reference if provided
       let brainRef: { repo: string; slug: string } | undefined;
@@ -106,7 +108,7 @@ export const invokeAct = ({
         // log which skill will run
         console.log(``);
         console.log(
-          `🔩 skill "${opts.skill}" from role="${opts.role}" attempt=${attempt}/${attempts}`,
+          `🔩 act rigid skill repo=${repo.slug}/role=${opts.role}/skill=${opts.skill} attempt=${attempt}/${attempts}`,
         );
         console.log(``);
 

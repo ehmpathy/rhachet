@@ -162,7 +162,7 @@ describe('invokeAsk (integration)', () => {
 
           expect(mockBrain.ask).toHaveBeenCalledTimes(1);
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('ask role="tester"'),
+            expect.stringContaining('ask fluid skill repo=.this/role=tester'),
           );
         });
       });

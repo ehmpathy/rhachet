@@ -97,7 +97,9 @@ describe('invokeAct', () => {
 
         expect(mockBrain.act).toHaveBeenCalled();
         expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('skill "summarize"'),
+          expect.stringContaining(
+            'act rigid skill repo=.this/role=tester/skill=summarize',
+          ),
         );
       });
     });

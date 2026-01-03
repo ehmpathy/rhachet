@@ -31,10 +31,10 @@ export const invokeRolesBoot = ({
         // require --role for all cases
         if (!opts.role)
           BadRequestError.throw('--role is required (e.g., --role mechanic)');
-        const roleSlug = opts.role;
+        const slugRole = opts.role;
 
-        // resolve repoSlug
-        const repoSlug = (() => {
+        // resolve slugRepo
+        const slugRepo = (() => {
           // normalize "this"/"THIS"/".this" to ".this"
           const normalized = opts.repo?.trim().toLowerCase();
           if (normalized === 'this' || normalized === '.this') return '.this';
@@ -42,7 +42,7 @@ export const invokeRolesBoot = ({
           // otherwise lookup from registries
           const repo = opts.repo
             ? registries.find((r) => r.slug === opts.repo)
-            : inferRepoByRole({ registries, roleSlug });
+            : inferRepoByRole({ registries, slugRole });
           if (!repo)
             BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
           return repo.slug;
@@ -50,8 +50,8 @@ export const invokeRolesBoot = ({
 
         // boot the role resources
         await bootRoleResources({
-          repoSlug,
-          roleSlug,
+          slugRepo,
+          slugRole,
           ifPresent: opts.ifPresent ?? false,
         });
       },

@@ -75,8 +75,8 @@ echo "$@" > ${outputFile}
         const skill = new RoleSkillExecutable({
           slug: 'echo-args',
           path,
-          repoSlug: '.this',
-          roleSlug: 'test',
+          slugRepo: '.this',
+          slugRole: 'test',
         });
 
         executeSkill({ skill, args: ['--foo', 'bar', '--baz', 'qux'] });
@@ -100,8 +100,8 @@ echo '${JSON.stringify(jsonData)}'
         const skill = new RoleSkillExecutable({
           slug: 'json-output',
           path,
-          repoSlug: '.this',
-          roleSlug: 'test',
+          slugRepo: '.this',
+          slugRole: 'test',
         });
 
         const result = executeSkill({ skill, args: [], stream: false });
@@ -124,8 +124,8 @@ exit 7
         const skill = new RoleSkillExecutable({
           slug: 'fail-stream',
           path,
-          repoSlug: '.this',
-          roleSlug: 'test',
+          slugRepo: '.this',
+          slugRole: 'test',
         });
 
         expect(() => executeSkill({ skill, args: [], stream: true })).toThrow(
@@ -148,8 +148,8 @@ exit 3
         const skill = new RoleSkillExecutable({
           slug: 'fail-capture',
           path,
-          repoSlug: '.this',
-          roleSlug: 'test',
+          slugRepo: '.this',
+          slugRole: 'test',
         });
 
         expect(() => executeSkill({ skill, args: [], stream: false })).toThrow(

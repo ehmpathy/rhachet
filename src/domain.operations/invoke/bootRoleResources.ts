@@ -30,21 +30,21 @@ const getAllFilesFromDir = (dir: string): string[] => {
  * .how = reads files from .agent/repo=$repo/role=$role and prints them with formatting
  */
 export const bootRoleResources = async ({
-  repoSlug,
-  roleSlug,
+  slugRepo,
+  slugRole,
   ifPresent,
 }: {
-  repoSlug: string;
-  roleSlug: string;
+  slugRepo: string;
+  slugRole: string;
   ifPresent: boolean;
 }): Promise<void> => {
-  const isRepoThis = repoSlug === '.this';
+  const isRepoThis = slugRepo === '.this';
 
   const roleDir = resolve(
     process.cwd(),
     '.agent',
-    `repo=${repoSlug}`,
-    `role=${roleSlug}`,
+    `repo=${slugRepo}`,
+    `role=${slugRole}`,
   );
 
   // check if role directory exists
@@ -53,8 +53,8 @@ export const bootRoleResources = async ({
     if (ifPresent) return;
 
     const hint = isRepoThis
-      ? `Create .agent/repo=.this/role=${roleSlug}/[briefs,skills] directories`
-      : `Run "rhachet roles link --repo ${repoSlug} --role ${roleSlug}" first`;
+      ? `Create .agent/repo=.this/role=${slugRole}/[briefs,skills] directories`
+      : `Run "rhachet roles link --repo ${slugRepo} --role ${slugRole}" first`;
     throw new Error(`Role directory not found: ${roleDir}\n${hint}`);
   }
 
@@ -123,7 +123,7 @@ export const bootRoleResources = async ({
 
   // print each file
   for (const filepath of relevantFiles) {
-    const relativePath = `.agent/repo=${repoSlug}/role=${roleSlug}/${relative(roleDir, filepath)}`;
+    const relativePath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`;
     const isSkill = filepath.startsWith(skillsDir);
     const isReadme = filepath === readmePath;
     const tagName = isSkill ? 'skill' : isReadme ? 'readme' : 'brief';

@@ -75,8 +75,8 @@ echo "$@" > ${outputFile}
         const init = new RoleInitExecutable({
           slug: 'echo-args',
           path,
-          repoSlug: '.this',
-          roleSlug: 'test',
+          slugRepo: '.this',
+          slugRole: 'test',
         });
 
         executeInit({ init, args: ['--foo', 'bar', '--baz', 'qux'] });

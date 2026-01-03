@@ -45,8 +45,8 @@ describe('actorAct', () => {
     executable: {
       slug: 'summarize',
       path: '/fake/.agent/skills/summarize.sh',
-      repoSlug: '.this',
-      roleSlug: 'tester',
+      slugRepo: '.this',
+      slugRole: 'tester',
     },
   });
 

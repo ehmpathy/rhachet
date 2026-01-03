@@ -53,8 +53,8 @@ describe('getRoleFileCosts', () => {
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       expect(costs[0]?.chars).toBe(100);
@@ -68,8 +68,8 @@ describe('getRoleFileCosts', () => {
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       // 4000 chars = 1000 tokens = $0.003
@@ -85,8 +85,8 @@ describe('getRoleFileCosts', () => {
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       const skillCost = costs.find((c) => c.type === 'skill');
@@ -98,8 +98,8 @@ describe('getRoleFileCosts', () => {
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       const briefCost = costs.find((c) => c.path.includes('briefs'));
@@ -111,8 +111,8 @@ describe('getRoleFileCosts', () => {
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       const otherCost = costs.find((c) => c.path.includes('readme'));
@@ -132,8 +132,8 @@ echo "more implementation"`;
 
       const costs = getRoleFileCosts({
         roleDir,
-        repoSlug: 'test',
-        roleSlug: 'testrole',
+        slugRepo: 'test',
+        slugRole: 'testrole',
       });
 
       const skillCost = costs.find((c) => c.type === 'skill');
