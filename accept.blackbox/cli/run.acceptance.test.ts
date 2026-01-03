@@ -110,4 +110,32 @@ describe('rhachet run', () => {
       });
     });
   });
+
+  given('[case4] repo with skills and --attempts flag', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] run --skill say-hello --attempts 3', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'say-hello', '--attempts', '3'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr contains helpful error about --attempts not supported', () => {
+        expect(result.stderr).toContain('--attempts is not supported');
+      });
+
+      then('stderr suggests using ask or act instead', () => {
+        expect(result.stderr).toMatch(/ask.*--attempts|act.*--attempts/);
+      });
+    });
+  });
 });

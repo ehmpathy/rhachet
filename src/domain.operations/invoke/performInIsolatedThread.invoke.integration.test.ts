@@ -33,6 +33,7 @@ describe('performInIsolatedThread', () => {
         role: 'echoer',
         attempt: 1,
         ask: 'do it',
+        mode: 'stitch',
       };
 
       then('it should successfully execute it', async () => {
@@ -53,6 +54,7 @@ describe('performInIsolatedThread', () => {
           role: 'echoer',
           attempt: 1,
           ask: 'do it',
+          mode: 'stitch',
         };
 
         then('it should successfully execute it', async () => {
@@ -76,6 +78,7 @@ describe('performInIsolatedThread', () => {
           role: 'echoer',
           attempt: 3,
           ask: 'do it',
+          mode: 'stitch',
         };
 
         then('it should successfully execute it', async () => {

@@ -85,7 +85,13 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
     brains,
     hooks,
   });
-  invokeAct({ program, registries, brains, hooks });
+  invokeAct({
+    program,
+    config: { path: configPath },
+    registries,
+    brains,
+    hooks,
+  });
 
   // invoke it
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {

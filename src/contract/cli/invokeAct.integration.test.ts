@@ -43,6 +43,7 @@ describe('invokeAct (integration)', () => {
 
     invokeAct({
       program,
+      config: { path: '/fake/rhachet.use.ts' },
       registries: [testRegistry],
       brains: [], // no brains - to test error handling
       hooks: null,
@@ -82,6 +83,7 @@ describe('invokeAct (integration)', () => {
 
       invokeAct({
         program: programWithBrain,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
@@ -121,6 +123,7 @@ describe('invokeAct (integration)', () => {
 
       invokeAct({
         program: programWithBrain,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
@@ -161,6 +164,7 @@ describe('invokeAct (integration)', () => {
 
       invokeAct({
         program: programWithBrain,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
@@ -221,6 +225,7 @@ describe('invokeAct (integration)', () => {
 
       invokeAct({
         program,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [testRegistry],
         brains: [brain],
         hooks: null,

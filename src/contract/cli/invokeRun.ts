@@ -96,56 +96,71 @@ export const invokeRun = ({
     .option('-s, --skill <slug>', 'the skill to execute')
     .option('--repo <slug>', 'filter to specific repo')
     .option('-r, --role <slug>', 'filter to specific role')
+    .option('--attempts <int>', 'not supported for run command')
     .allowUnknownOption(true)
     .allowExcessArguments(true)
-    .action(async (opts: { skill?: string; repo?: string; role?: string }) => {
-      // validate skill is provided
-      if (!opts.skill)
-        BadRequestError.throw(
-          '--skill is required (e.g., --skill init.claude)',
-        );
+    .action(
+      async (opts: {
+        skill?: string;
+        repo?: string;
+        role?: string;
+        attempts?: string;
+      }) => {
+        // validate --attempts is not used with run
+        if (opts.attempts)
+          BadRequestError.throw(
+            '--attempts is not supported for "run" (solid skills are deterministic). use "ask --skill --attempts" for stitch-mode or "act --skill --attempts" for actor-mode.',
+          );
 
-      // determine which mode to use
-      const allRoles = registries.flatMap((r) => r.roles);
-      const roleFound = opts.role
-        ? allRoles.find((r) => r.slug === opts.role)
-        : undefined;
-      const hasTypedSolidSkill =
-        roleFound?.skills?.solid?.[opts.skill] !== undefined;
+        // validate skill is provided
+        if (!opts.skill)
+          BadRequestError.throw(
+            '--skill is required (e.g., --skill init.claude)',
+          );
 
-      const isActorMode = roleFound && hasTypedSolidSkill && brains.length > 0;
-      const isCommandMode = !isActorMode;
+        // determine which mode to use
+        const allRoles = registries.flatMap((r) => r.roles);
+        const roleFound = opts.role
+          ? allRoles.find((r) => r.slug === opts.role)
+          : undefined;
+        const hasTypedSolidSkill =
+          roleFound?.skills?.solid?.[opts.skill] !== undefined;
 
-      // 🪨 actor-mode: invoke typed solid skill via actor.run
-      if (isActorMode)
-        return await performRunViaActorMode({
-          opts: { skill: opts.skill, role: opts.role! },
-          role: roleFound,
-          brains,
-        });
+        const isActorMode =
+          roleFound && hasTypedSolidSkill && brains.length > 0;
+        const isCommandMode = !isActorMode;
 
-      // 🐚 command-mode: discover and execute shell skill
-      if (isCommandMode) {
-        try {
-          return performRunViaCommandMode({
-            opts: { skill: opts.skill, repo: opts.repo, role: opts.role },
+        // 🪨 actor-mode: invoke typed solid skill via actor.run
+        if (isActorMode)
+          return await performRunViaActorMode({
+            opts: { skill: opts.skill, role: opts.role! },
+            role: roleFound,
+            brains,
           });
-        } catch (error) {
-          // handle skill failures cleanly without stack trace
-          if (error instanceof SkillExecutionError) {
-            console.error(`\n⛈️ ${error.message}`);
-            process.exit(1);
-          }
-          throw error;
-        }
-      }
 
-      // neither mode matched - unexpected
-      throw new UnexpectedCodePathError(
-        'invokeRun: neither actor-mode nor command-mode matched',
-        { opts },
-      );
-    });
+        // 🐚 command-mode: discover and execute shell skill
+        if (isCommandMode) {
+          try {
+            return performRunViaCommandMode({
+              opts: { skill: opts.skill, repo: opts.repo, role: opts.role },
+            });
+          } catch (error) {
+            // handle skill failures cleanly without stack trace
+            if (error instanceof SkillExecutionError) {
+              console.error(`\n⛈️ ${error.message}`);
+              process.exit(1);
+            }
+            throw error;
+          }
+        }
+
+        // neither mode matched - unexpected
+        throw new UnexpectedCodePathError(
+          'invokeRun: neither actor-mode nor command-mode matched',
+          { opts },
+        );
+      },
+    );
 };
 
 /**

@@ -1,5 +1,5 @@
 import type { ProcedureInput } from 'as-procedure';
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import {
   deSerialBase64,
   deSerialJSON,
@@ -10,26 +10,58 @@ import {
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 
 import { getRegistriesByOpts } from './getRegistriesByOpts';
-import { performInCurrentThread } from './performInCurrentThread';
+import { performInCurrentThreadForActor } from './performInCurrentThreadForActor';
+import { performInCurrentThreadForStitch } from './performInCurrentThreadForStitch';
 
 /**
  * .what = executes the performance of a skill within a currently isolated thread
- *   - looks up the registries from the opts
- *   - performs in current thread
+ * .why = branches between stitch-mode and actor-mode based on RHACHET_INVOKE_MODE env
+ * .how =
+ *   - reads mode from environment variable
+ *   - stitch-mode: performs via performInCurrentThreadForStitch (thread.stitch)
+ *   - actor-mode: performs via performInCurrentThreadForActor (brain.act)
  */
 export const executePerformInIsolatedThread = async (input: {
   opts: InvokeOpts<{
     config: string;
-    ask: string;
     role: string;
     skill: string;
+    // stitch-mode fields
+    ask?: string;
+    // actor-mode fields
+    brain?: string;
+    output?: string;
   }>;
 }): Promise<void> => {
-  // grab the registries for the current options
-  const registries = await getRegistriesByOpts({ opts: input.opts });
+  // read mode from environment variable; failfast if not declared
+  const mode =
+    process.env.RHACHET_INVOKE_MODE ??
+    UnexpectedCodePathError.throw(
+      'RHACHET_INVOKE_MODE should have been set by performInIsolatedThread.invoke',
+      { env: process.env },
+    );
 
-  // perform in the current thread
-  await performInCurrentThread({ opts: input.opts, registries });
+  // branch based on mode
+  if (mode === 'stitch') {
+    // grab the registries for the current options
+    const registries = await getRegistriesByOpts({ opts: input.opts });
+
+    // perform in the current thread via stitch-mode
+    await performInCurrentThreadForStitch({ opts: input.opts, registries });
+    return;
+  }
+
+  if (mode === 'actor') {
+    // perform via actor.act in isolated thread
+    await performInCurrentThreadForActor({ opts: input.opts });
+    return;
+  }
+
+  // unexpected mode
+  UnexpectedCodePathError.throw(`unknown RHACHET_INVOKE_MODE: ${mode}`, {
+    mode,
+    opts: input.opts,
+  });
 };
 
 /**

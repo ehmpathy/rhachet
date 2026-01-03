@@ -1,0 +1,14 @@
+distill the declastruct domain.objects and domain.operations that would
+- enable fulfillment of
+  - this wish .behavior/v2026_01_03.act-attempts/0.wish.md
+  - this vision .behavior/v2026_01_03.act-attempts/1.vision.md (if declared)
+  - this criteria .behavior/v2026_01_03.act-attempts/2.criteria.blackbox.md (if declared)
+- given the research declared here
+  - .behavior/v2026_01_03.act-attempts/3.1.research.domain._.v1.i1.md (if declared)
+
+procedure
+1. declare the usecases and envision the contract that would be used to fulfill the usecases
+2. declare the domain.objects, domain.operations, and access.daos that would fulfill this, via the declastruct pattern in this repo
+
+emit into
+- .behavior/v2026_01_03.act-attempts/3.2.distill.domain._.v1.i1.md

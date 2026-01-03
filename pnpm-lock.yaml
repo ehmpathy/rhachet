@@ -107,13 +107,13 @@ importers:
         version: 0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       declapract-typescript-ehmpathy:
         specifier: 0.46.3
-        version: 0.46.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76)
+        version: 0.46.3(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)
       declastruct:
         specifier: 1.7.3
-        version: 1.7.3(domain-objects@0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))
+        version: 1.7.3(domain-objects@0.31.7)
       declastruct-github:
         specifier: 1.3.0
-        version: 1.3.0(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+        version: 1.3.0
       depcheck:
         specifier: 1.4.3
         version: 1.4.3
@@ -131,13 +131,13 @@ importers:
         version: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
       rhachet-roles-bhrain:
         specifier: 0.5.5
-        version: 0.5.5(@types/node@22.15.21)(hono@4.11.3)
+        version: 0.5.5(@types/node@22.15.21)
       rhachet-roles-bhuild:
         specifier: 0.4.2
-        version: 0.4.2(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+        version: 0.4.2(@types/node@22.15.21)(zod@3.25.76)
       rhachet-roles-ehmpathy:
-        specifier: 1.17.6
-        version: 1.17.6(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+        specifier: 1.17.7
+        version: 1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       test-fns:
         specifier: 1.7.0
         version: 1.7.0
@@ -3931,8 +3931,8 @@ packages:
     resolution: {integrity: sha512-y7psc/M3TkmLbpC4bDIB+33UtDvL48TgW/2jzwNGpJWYISjXyQbkgUQynwd70vI6kQbPcYFhV1kd3DegYv9IyA==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-ehmpathy@1.17.6:
-    resolution: {integrity: sha512-GqQWExxkU5fnDJbX8UKNubMzG+dziTnhdRF4jXDMJR+7/VSIYa3YdX8AH5kfod0VZV/Od/kZkDDM2+GYsLIE+w==}
+  rhachet-roles-ehmpathy@1.17.7:
+    resolution: {integrity: sha512-BoPIy3EMuGW35uPszqWnSVoV/pNb/aV4eIcJWhb7RSCQjd5qsViPtt6kGme6SZJUkzS1sst+pQ1+/wa7krt9fA==}
     engines: {node: '>=8.0.0'}
 
   rhachet@1.15.2:
@@ -6050,31 +6050,6 @@ snapshots:
       - hono
       - supports-color
 
-  '@morphllm/morphmcp@0.8.60(@anthropic-ai/sdk@0.51.0)(ai@5.0.117(zod@3.25.76))(hono@4.11.3)(openai@5.8.2(zod@3.25.76))':
-    dependencies:
-      '@google/generative-ai': 0.21.0
-      '@modelcontextprotocol/sdk': 1.25.1(hono@4.11.3)(zod@3.25.76)
-      '@morphllm/morphsdk': 0.2.87(@anthropic-ai/sdk@0.51.0)(@google/generative-ai@0.21.0)(ai@5.0.117(zod@3.25.76))(openai@5.8.2(zod@3.25.76))(zod@3.25.76)
-      '@vscode/ripgrep': 1.17.0
-      axios: 1.13.2
-      chalk: 5.6.2
-      diff: 5.2.0
-      glob: 10.5.0
-      minimatch: 10.1.1
-      p-defer: 4.0.1
-      semver: 7.7.3
-      string-argv: 0.3.2
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - ai
-      - debug
-      - hono
-      - openai
-      - supports-color
-
   '@morphllm/morphmcp@0.8.60(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(ai@5.0.117(zod@3.25.76))(hono@4.11.3)(openai@5.8.2(zod@3.25.76))':
     dependencies:
       '@google/generative-ai': 0.21.0
@@ -6098,20 +6073,6 @@ snapshots:
       - debug
       - hono
       - openai
-      - supports-color
-
-  '@morphllm/morphsdk@0.2.87(@anthropic-ai/sdk@0.51.0)(@google/generative-ai@0.21.0)(ai@5.0.117(zod@3.25.76))(openai@5.8.2(zod@3.25.76))(zod@3.25.76)':
-    dependencies:
-      '@vscode/ripgrep': 1.17.0
-      diff: 7.0.0
-      isomorphic-git: 1.36.1
-    optionalDependencies:
-      '@anthropic-ai/sdk': 0.51.0
-      '@google/generative-ai': 0.21.0
-      ai: 5.0.117(zod@3.25.76)
-      openai: 5.8.2(zod@3.25.76)
-      zod: 3.25.76
-    transitivePeerDependencies:
       - supports-color
 
   '@morphllm/morphsdk@0.2.87(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@google/generative-ai@0.21.0)(ai@5.0.117(zod@3.25.76))(openai@5.8.2(zod@3.25.76))(zod@3.25.76)':
@@ -7425,7 +7386,7 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  declapract-typescript-ehmpathy@0.46.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76):
+  declapract-typescript-ehmpathy@0.46.3(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12):
     dependencies:
       declapract: 0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
@@ -7435,16 +7396,9 @@ snapshots:
       helpful-errors: 1.5.3
       yaml: 2.8.2
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
       - esbuild
-      - hono
       - supports-color
       - ws
-      - zod
 
   declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
     dependencies:
@@ -7479,7 +7433,7 @@ snapshots:
       - ws
       - zod
 
-  declastruct-github@1.3.0(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  declastruct-github@1.3.0:
     dependencies:
       '@ehmpathy/uni-time': 1.7.4
       '@octokit/rest': 21.1.1
@@ -7492,17 +7446,10 @@ snapshots:
       visualogic: 1.3.2
       with-simple-cache: 0.15.1
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
       - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
-      - zod
 
-  declastruct@1.7.3(domain-objects@0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)):
+  declastruct@1.7.3(domain-objects@0.31.7):
     dependencies:
       bottleneck: 2.19.5
       chalk: 5.4.1
@@ -7625,38 +7572,6 @@ snapshots:
       type-fns: 1.21.0
       uuid-fns: 1.1.3
 
-  domain-objects@0.31.7:
-    dependencies:
-      change-case: 4.1.2
-      domain-objects: 0.31.3
-      helpful-errors: 1.5.3
-      joi: 17.4.0
-      rhachet: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
-      rhachet-roles-ehmpathy: 1.17.6(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      type-fns: 1.21.0
-      uuid-fns: 1.1.3
-
-  domain-objects@0.31.7(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
-    dependencies:
-      change-case: 4.1.2
-      domain-objects: 0.31.3
-      helpful-errors: 1.5.3
-      joi: 17.4.0
-      rhachet: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
-      rhachet-roles-ehmpathy: 1.17.6(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      type-fns: 1.21.0
-      uuid-fns: 1.1.3
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
-      - ws
-      - zod
-
   domain-objects@0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
     dependencies:
       change-case: 4.1.2
@@ -7664,7 +7579,7 @@ snapshots:
       helpful-errors: 1.5.3
       joi: 17.4.0
       rhachet: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
-      rhachet-roles-ehmpathy: 1.17.6(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet-roles-ehmpathy: 1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       type-fns: 1.21.0
       uuid-fns: 1.1.3
     transitivePeerDependencies:
@@ -9238,7 +9153,7 @@ snapshots:
       domain-objects: 0.31.3
       helpful-errors: 1.5.3
 
-  rhachet-roles-bhrain@0.3.0(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet-roles-bhrain@0.3.0(@types/node@22.15.21)(zod@3.25.76):
     dependencies:
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
@@ -9250,37 +9165,32 @@ snapshots:
       openai: 5.8.2(zod@3.25.76)
       rhachet-artifact: 1.0.0
       rhachet-artifact-git: 1.1.0
-      rhachet-roles-bhuild: 0.1.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet-roles-bhuild: 0.1.3(zod@3.25.76)
       serde-fns: 1.2.0
       simple-in-memory-cache: 0.4.0
       type-fns: 1.21.0
       with-simple-caching: 0.14.2
       wrapper-fns: 1.1.0
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
       - '@types/node'
       - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
       - zod
 
-  rhachet-roles-bhrain@0.5.5(@types/node@22.15.21)(hono@4.11.3):
+  rhachet-roles-bhrain@0.5.5(@types/node@22.15.21):
     dependencies:
       '@anthropic-ai/sdk': 0.51.0
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
       as-procedure: 1.1.7
-      domain-objects: 0.31.7(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       fast-glob: 3.3.3
       helpful-errors: 1.5.3
       inquirer: 12.7.0(@types/node@22.15.21)
       openai: 5.8.2(zod@3.25.76)
       rhachet-artifact: 1.0.0
       rhachet-artifact-git: 1.1.0
-      rhachet-roles-bhuild: 0.1.3(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet-roles-bhuild: 0.1.3(zod@3.25.76)
       serde-fns: 1.2.0
       simple-in-memory-cache: 0.4.0
       type-fns: 1.21.0
@@ -9289,103 +9199,40 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.0(zod@3.25.76)
     transitivePeerDependencies:
-      - '@cfworker/json-schema'
       - '@types/node'
       - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
 
-  rhachet-roles-bhuild@0.1.3(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
-    dependencies:
-      domain-objects: 0.31.7(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      helpful-errors: 1.5.3
-      rhachet: 1.15.2(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
-      - ws
-      - zod
-
-  rhachet-roles-bhuild@0.1.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet-roles-bhuild@0.1.3(zod@3.25.76):
     dependencies:
       domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       helpful-errors: 1.5.3
-      rhachet: 1.15.2(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet: 1.15.2(zod@3.25.76)
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
       - zod
 
-  rhachet-roles-bhuild@0.4.2(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet-roles-bhuild@0.4.2(@types/node@22.15.21)(zod@3.25.76):
     dependencies:
       domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       helpful-errors: 1.5.3
-      rhachet: 1.15.2(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      rhachet-roles-bhrain: 0.3.0(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet: 1.15.2(zod@3.25.76)
+      rhachet-roles-bhrain: 0.3.0(@types/node@22.15.21)(zod@3.25.76)
       test-fns: 1.7.2
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
       - '@types/node'
       - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
       - zod
 
-  rhachet-roles-ehmpathy@1.17.6(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
-    dependencies:
-      '@ehmpathy/as-command': 1.0.3
-      '@ehmpathy/uni-time': 1.8.1
-      '@morphllm/morphmcp': 0.8.60(@anthropic-ai/sdk@0.51.0)(ai@5.0.117(zod@3.25.76))(hono@4.11.3)(openai@5.8.2(zod@3.25.76))
-      ai: 5.0.117(zod@3.25.76)
-      as-procedure: 1.1.7
-      domain-objects: 0.31.7(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      fast-glob: 3.3.3
-      helpful-errors: 1.5.3
-      inquirer: 12.7.0(@types/node@22.15.21)
-      openai: 5.8.2(zod@3.25.76)
-      rhachet: 1.19.6
-      rhachet-artifact: 1.0.0
-      rhachet-artifact-git: 1.1.0
-      serde-fns: 1.2.0
-      simple-in-memory-cache: 0.4.0
-      type-fns: 1.21.0
-      with-simple-caching: 0.14.2
-      wrapper-fns: 1.1.0
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
-      - ws
-      - zod
-
-  rhachet-roles-ehmpathy@1.17.6(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet-roles-ehmpathy@1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
     dependencies:
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
       '@morphllm/morphmcp': 0.8.60(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(ai@5.0.117(zod@3.25.76))(hono@4.11.3)(openai@5.8.2(zod@3.25.76))
       ai: 5.0.117(zod@3.25.76)
       as-procedure: 1.1.7
-      domain-objects: 0.31.7
+      domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       fast-glob: 3.3.3
       helpful-errors: 1.5.3
       inquirer: 12.7.0(@types/node@22.15.21)
@@ -9409,35 +9256,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet@1.15.2(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
-    dependencies:
-      '@ehmpathy/uni-time': 1.9.0
-      as-procedure: 1.1.6
-      bottleneck: 2.19.5
-      chalk: 4.1.2
-      commander: 14.0.0
-      domain-objects: 0.31.7(@anthropic-ai/sdk@0.51.0)(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
-      fast-glob: 3.3.3
-      flattie: 1.1.1
-      helpful-errors: 1.5.3
-      openai: 5.8.2(zod@3.25.76)
-      rhachet-artifact: 1.0.1
-      rhachet-artifact-git: 1.1.3
-      serde-fns: 1.3.1
-      type-fns: 1.21.0
-      uuid-fns: 1.0.1
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
-      - ws
-      - zod
-
-  rhachet@1.15.2(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet@1.15.2(zod@3.25.76):
     dependencies:
       '@ehmpathy/uni-time': 1.9.0
       as-procedure: 1.1.6
@@ -9455,13 +9274,6 @@ snapshots:
       type-fns: 1.21.0
       uuid-fns: 1.0.1
     transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@cfworker/json-schema'
-      - '@types/node'
-      - aws-crt
-      - debug
-      - hono
-      - supports-color
       - ws
       - zod
 
@@ -9475,7 +9287,7 @@ snapshots:
       bottleneck: 2.19.5
       chalk: 4.1.2
       commander: 14.0.0
-      domain-objects: 0.31.7
+      domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       fast-glob: 3.3.3
       flattie: 1.1.1
       helpful-errors: 1.5.3

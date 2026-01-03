@@ -30,6 +30,7 @@ describe('performInIsolatedThreads', () => {
     when('asked to perform a skill registered in the config 3 times', () => {
       const opts = {
         config: configPath,
+        mode: 'stitch' as const,
         role: 'echoer',
         skill: 'echo',
         attempts: 3,
@@ -56,6 +57,7 @@ describe('performInIsolatedThreads', () => {
     when('asked to perform a skill registered in the config 3 times', () => {
       const opts = {
         config: configPath,
+        mode: 'stitch' as const,
         output:
           TEST_FIXTURE_DIRECTORY +
           `/example.use.repo/.tmp/performInIsolatedThreads/${Date.now()}.demo.md`,
