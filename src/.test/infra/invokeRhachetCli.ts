@@ -2,10 +2,10 @@ import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { resolve } from 'node:path';
 
 /**
- * .what = path to the rhachet CLI entrypoint
- * .why = centralized reference for test invocations
+ * .what = path to the rhachet CLI entrypoint for tests
+ * .why = uses TypeScript source directly so tests work without compiled dist/
  */
-const RHACHET_BIN = resolve(__dirname, '../../..', 'bin/run');
+const RHACHET_BIN = resolve(__dirname, 'runRhachetCli.ts');
 
 /**
  * .what = invokes the rhachet CLI via npx tsx
