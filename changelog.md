@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.4](https://github.com/ehmpathy/rhachet/compare/v1.19.3...v1.19.4) (2026-01-03)
+
+
+### Bug Fixes
+
+* **cli:** pipe stdin through to skills and cmds ([#86](https://github.com/ehmpathy/rhachet/issues/86)) ([206d83a](https://github.com/ehmpathy/rhachet/commit/206d83a728851595ce249c90e1022f213ff6c89c))
+
 ## [1.19.3](https://github.com/ehmpathy/rhachet/compare/v1.19.2...v1.19.3) (2026-01-02)
 
 
