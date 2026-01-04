@@ -1,6 +1,6 @@
-import { asDurationInWords } from '@ehmpathy/uni-time';
 import Bottleneck from 'bottleneck';
 import { BadRequestError } from 'helpful-errors';
+import { asDurationInWords } from 'iso-time';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 

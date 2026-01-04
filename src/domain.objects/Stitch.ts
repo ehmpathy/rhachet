@@ -1,5 +1,5 @@
-import type { UniDateTime } from '@ehmpathy/uni-time';
 import { DomainEntity } from 'domain-objects';
+import type { IsoTimeStamp } from 'iso-time';
 import type { Uuid } from 'uuid-fns';
 
 import type { StitcherDesc } from './Stitcher';
@@ -17,7 +17,7 @@ export interface Stitch<TOutput> {
   /**
    * .what = when the stitch was set
    */
-  createdAt: UniDateTime;
+  createdAt: IsoTimeStamp;
 
   /**
    * .what = the stitcher that set it

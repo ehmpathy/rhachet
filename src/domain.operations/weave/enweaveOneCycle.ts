@@ -1,11 +1,11 @@
+import { HelpfulError, UnexpectedCodePathError } from 'helpful-errors';
 import {
   addDuration,
-  asUniDateTime,
+  asIsoTimeStamp,
   getDuration,
-  isUniDateTimeRange,
-  type UniDateTime,
-} from '@ehmpathy/uni-time';
-import { HelpfulError, UnexpectedCodePathError } from 'helpful-errors';
+  type IsoTimeStamp,
+  isIsoTimeStampRange,
+} from 'iso-time';
 
 import type { StitchCycle } from '@src/domain.objects/StitchCycle';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
@@ -37,12 +37,12 @@ export const enweaveOneCycle = withStitchTrail(
 
     // declare the state we'll mutate while the stitch is in progress
     const progress: {
-      beganAt: UniDateTime;
+      beganAt: IsoTimeStamp;
       threads: TStitcher['threads'];
       repetitions: number;
       stitch: TStitcher['output'] | null;
     } = {
-      beganAt: asUniDateTime(new Date()),
+      beganAt: asIsoTimeStamp(new Date()),
       repetitions: 0,
       stitch: null,
       threads: input.threads,
@@ -55,7 +55,7 @@ export const enweaveOneCycle = withStitchTrail(
     };
     const hasBreached = () => {
       if (progress.repetitions >= threshold.repetitions) return true;
-      const now = asUniDateTime(new Date());
+      const now = asIsoTimeStamp(new Date());
       const deadline = addDuration(progress.beganAt, threshold.duration);
       return now > deadline;
     };
@@ -71,9 +71,9 @@ export const enweaveOneCycle = withStitchTrail(
             ...progress,
             duration: getDuration({
               of: {
-                range: isUniDateTimeRange.assure({
+                range: isIsoTimeStampRange.assure({
                   since: progress.beganAt,
-                  until: asUniDateTime(new Date()),
+                  until: asIsoTimeStamp(new Date()),
                 }),
               },
             }),
@@ -126,7 +126,7 @@ export const enweaveOneCycle = withStitchTrail(
 
     // declare the final result as a StitchSetEvent
     return StitchSetEvent.build({
-      occurredAt: asUniDateTime(new Date()),
+      occurredAt: asIsoTimeStamp(new Date()),
       stitch:
         progress.stitch ??
         UnexpectedCodePathError.throw(

@@ -13,6 +13,7 @@
     "**/*.test.js",
     "**/.test/**/*",
     "**/.scratch/**/*",
-    "**/__test*__/**/*" // todo: deprecate this pattern in favor of .test
+    "**/__test*__/**/*", // todo: deprecate this pattern in favor of .test
+    "**/invoke.bun.entry.*.ts" // bun compile entrypoints (compiled by bun, not tsc)
   ]
 }

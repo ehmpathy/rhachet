@@ -1,10 +1,10 @@
+import { getError, UnexpectedCodePathError } from 'helpful-errors';
 import {
   addDuration,
-  asUniDateTime,
-  isUniDateTime,
-  type UniDateTime,
-} from '@ehmpathy/uni-time';
-import { getError, UnexpectedCodePathError } from 'helpful-errors';
+  asIsoTimeStamp,
+  type IsoTimeStamp,
+  isIsoTimeStamp,
+} from 'iso-time';
 import { given, then, when } from 'test-fns';
 import type { Empty } from 'type-fns';
 
@@ -32,16 +32,16 @@ describe('enweaveOneRoute', () => {
     'a route with compute stitchers (fast and no api keys required); same threads required for each stitcher',
     () => {
       const stitcherGetTime = new StitchStepCompute<
-        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], IsoTimeStamp>
       >({
         slug: 'get-time',
         readme: null,
         form: 'COMPUTE',
         stitchee: 'main',
-        invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+        invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
       });
       const stitcherAddHours = new StitchStepCompute<
-        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
+        GStitcher<Threads<{ main: Empty }>, GStitcher['context'], IsoTimeStamp>
       >({
         slug: 'add-hours',
         readme: null,
@@ -56,7 +56,7 @@ describe('enweaveOneRoute', () => {
             );
           return {
             input: lastStitch.output,
-            output: addDuration(isUniDateTime.assure(lastStitch.output), {
+            output: addDuration(isIsoTimeStamp.assure(lastStitch.output), {
               hours: 1,
             }),
           };
@@ -116,8 +116,8 @@ describe('enweaveOneRoute', () => {
           console.log(stitch.output);
 
           // stitch should look right
-          expect(isUniDateTime(stitch.output));
-          expect(isUniDateTime(stitch.input));
+          expect(isIsoTimeStamp(stitch.output));
+          expect(isIsoTimeStamp(stitch.input));
           expect(stitch.output).not.toEqual(stitch.input);
 
           // stitchee should be updated, too

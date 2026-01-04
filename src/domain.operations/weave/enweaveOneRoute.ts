@@ -1,4 +1,4 @@
-import { asUniDateTime } from '@ehmpathy/uni-time';
+import { asIsoTimeStamp } from 'iso-time';
 
 import type { GStitcher } from '@src/domain.objects/Stitcher';
 import type { StitchRoute } from '@src/domain.objects/StitchRoute';
@@ -41,7 +41,7 @@ export const enweaveOneRoute = withStitchTrail(
 
     // return the results
     return StitchSetEvent.build({
-      occurredAt: asUniDateTime(new Date()),
+      occurredAt: asIsoTimeStamp(new Date()),
       stitch: outputNow,
       threads: threadsNow,
     });

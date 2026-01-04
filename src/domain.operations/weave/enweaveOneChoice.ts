@@ -1,5 +1,5 @@
-import { asUniDateTime } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp } from 'iso-time';
 
 import type { StitchChoice } from '@src/domain.objects/StitchChoice';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
@@ -63,7 +63,7 @@ export const enweaveOneChoice = withStitchTrail(
 
     // declare the result
     return StitchSetEvent.build({
-      occurredAt: asUniDateTime(new Date()),
+      occurredAt: asIsoTimeStamp(new Date()),
       stitch: resultStitch,
       threads: threadsAfterChoice,
     });

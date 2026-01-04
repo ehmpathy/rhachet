@@ -29,8 +29,14 @@
     "fix:format": "npm run fix:format:biome",
     "fix:lint": "biome check --write",
     "fix": "npm run fix:format && npm run fix:lint",
-    "build:clean": "rm dist/ -rf",
-    "build:compile": "tsc -p ./tsconfig.build.json && tsc-alias -p ./tsconfig.build.json",
+    "build:clean": "rm dist/ -rf && rm -f ./bin/*.bc",
+    "build:compile": "npm run build:compile:tsc && npm run build:compile:bun",
+    "build:compile:tsc": "tsc -p ./tsconfig.build.json && tsc-alias -p ./tsconfig.build.json",
+    "build:compile:bun": "npm run build:compile:bun:check:before && npm run build:compile:bun:run && npm run build:compile:bun:roles && npm run build:compile:bun:check:after",
+    "build:compile:bun:check:before": "echo '🔍 bun check...' && BUN_VERSION=$(bun --version) && [ -n \"$BUN_VERSION\" ] && echo \"👌 bun installed: $BUN_VERSION\" || (echo '⛈️ bun not functional' && exit 1)",
+    "build:compile:bun:check:after": "test -f ./bin/run.bun.rhachet-run.bc && test -f ./bin/run.bun.rhachet-roles.bc && echo '👌 .bc files created' || (echo '⛈️ .bc files not found' && ls -la ./bin/ && exit 1)",
+    "build:compile:bun:run": "bun build ./src/contract/cli/invoke.bun.entry.run.ts --compile --bytecode --sourcemap --outfile ./bin/run.bun.rhachet-run.bc",
+    "build:compile:bun:roles": "bun build ./src/contract/cli/invoke.bun.entry.roles.ts --compile --bytecode --sourcemap --outfile ./bin/run.bun.rhachet-roles.bc",
     "build": "npm run build:clean && npm run build:compile && npm run build:complete --if-present",
     "test:commits": "LAST_TAG=$(git describe --tags --abbrev=0 @^ 2> /dev/null || git rev-list --max-parents=0 HEAD) && npx commitlint --from $LAST_TAG --to HEAD --verbose",
     "test:types": "tsc -p ./tsconfig.json --noEmit",
@@ -56,23 +62,23 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.1.76",
     "@anthropic-ai/sdk": "0.71.2",
-    "@ehmpathy/uni-time": "1.9.0",
     "@openai/codex-sdk": "0.77.0",
-    "as-procedure": "1.1.6",
+    "as-procedure": "1.1.11",
     "bottleneck": "2.19.5",
     "chalk": "4.1.2",
     "commander": "14.0.0",
-    "domain-objects": "0.31.7",
+    "domain-objects": "0.31.9",
     "fast-glob": "3.3.3",
     "flattie": "1.1.1",
     "helpful-errors": "1.5.3",
+    "iso-time": "1.10.1",
     "openai": "5.8.2",
-    "rhachet-artifact": "1.0.1",
-    "rhachet-artifact-git": "1.1.3",
+    "rhachet-artifact": "1.0.3",
+    "rhachet-artifact-git": "1.1.5",
     "serde-fns": "1.3.1",
     "type-fns": "1.21.0",
     "uuid-fns": "1.0.1",
-    "wrapper-fns": "1.1.1",
+    "wrapper-fns": "1.1.5",
     "zod": "3.25.76",
     "zod-to-json-schema": "3.25.1"
   },
@@ -86,6 +92,7 @@
     "@tsconfig/strictest": "2.0.5",
     "@types/jest": "30.0.0",
     "@types/node": "22.15.21",
+    "bun": "1.3.5",
     "cz-conventional-changelog": "3.3.0",
     "declapract": "0.13.4",
     "declapract-typescript-ehmpathy": "0.46.3",
@@ -95,11 +102,11 @@
     "esbuild-register": "3.6.0",
     "husky": "8.0.3",
     "jest": "30.2.0",
-    "rhachet": "1.19.11",
+    "rhachet": "1.19.15",
     "rhachet-roles-bhrain": "0.5.5",
     "rhachet-roles-bhuild": "0.5.1",
-    "rhachet-roles-ehmpathy": "1.17.8",
-    "test-fns": "1.7.0",
+    "rhachet-roles-ehmpathy": "1.17.10",
+    "test-fns": "1.7.2",
     "tsc-alias": "1.8.10",
     "tsx": "~4.20.6",
     "typescript": "5.4.5"
@@ -108,6 +115,11 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "bun"
+    ]
   },
   "packageManager": "pnpm@10.24.0"
 }

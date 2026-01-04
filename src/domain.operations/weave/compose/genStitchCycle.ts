@@ -1,4 +1,4 @@
-import type { UniDuration } from '@ehmpathy/uni-time';
+import type { IsoDuration } from 'iso-time';
 import type { PickAny } from 'type-fns';
 
 import { StitchCycle } from '@src/domain.objects/StitchCycle';
@@ -36,7 +36,7 @@ export const genStitchCycle = <
   halter?: {
     threshold: PickAny<{
       repetitions: number;
-      duration: UniDuration;
+      duration: IsoDuration;
     }>;
   };
 }): StitchCycle<

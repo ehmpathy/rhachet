@@ -1,0 +1,5 @@
+declare a proposal for how we can eliminate the flag DEBUG_PERF
+
+it feels like a hack; a code smell
+
+how can we emit the same data via performance logs on demand via a `--debug` flag, into `.rhachet/debug/perf/...` ?

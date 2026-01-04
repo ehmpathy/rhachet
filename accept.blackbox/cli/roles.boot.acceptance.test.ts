@@ -64,12 +64,13 @@ describe('rhachet roles boot', () => {
         }),
       );
 
-      then('exits with status 0 (silent success)', () => {
+      then('exits with status 0', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('outputs nothing', () => {
-        expect(result.stdout.trim()).toEqual('');
+      then('outputs skipped message', () => {
+        expect(result.stdout).toContain('🫧');
+        expect(result.stdout).toContain('skipped');
       });
     });
   });
@@ -119,8 +120,13 @@ describe('rhachet roles boot', () => {
         }),
       );
 
-      then('exits with status 0 (silent success)', () => {
+      then('exits with status 0', () => {
         expect(result.status).toEqual(0);
+      });
+
+      then('outputs skipped message', () => {
+        expect(result.stdout).toContain('🫧');
+        expect(result.stdout).toContain('skipped');
       });
     });
   });

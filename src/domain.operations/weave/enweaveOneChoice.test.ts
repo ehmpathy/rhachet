@@ -1,4 +1,4 @@
-import { asUniDateTime } from '@ehmpathy/uni-time';
+import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 import type { Empty } from 'type-fns';
 
@@ -96,7 +96,7 @@ describe('enweaveOneChoice', () => {
 
         expect(result.stitch.output).toBe('iterated');
         expect(result.threads.main.stitches.length).toBe(2);
-        expect(result.occurredAt).toEqual(asUniDateTime(result.occurredAt));
+        expect(result.occurredAt).toEqual(asIsoTimeStamp(result.occurredAt));
       });
     });
   });
@@ -227,7 +227,7 @@ describe('enweaveOneChoice', () => {
 
           expect(result.stitch.output).toEqual('inspection-scheduled');
           expect(result.threads.main.stitches.length).toBeGreaterThanOrEqual(2);
-          expect(result.occurredAt).toEqual(asUniDateTime(result.occurredAt));
+          expect(result.occurredAt).toEqual(asIsoTimeStamp(result.occurredAt));
         },
       );
 

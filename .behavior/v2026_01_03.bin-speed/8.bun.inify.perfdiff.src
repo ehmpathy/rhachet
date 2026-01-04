@@ -1,0 +1,28 @@
+ensure our bun builds use these production settings, too; bun build --compile --bytecode --minify --sourcemap
+
+per
+
+
+    ## .recommended production settings
+
+    bun documentation recommends [1]:
+    ```bash
+    bun build --compile --bytecode --minify --sourcemap ./src/index.ts
+    ```
+
+    - `--bytecode`: faster startup (pre-compiled to bytecode)
+    - `--minify`: smaller bundle (less to parse)
+    - `--sourcemap`: debugging support in production
+
+in
+
+.agent/repo=.this/role=tuner/briefs/bun.compile.realistic.durations.md
+
+---
+
+
+test the performance diff before and after --minify
+
+and emit the performance diff report into
+.behavior/v2026_01_03.bin-speed/8.bun.minify.perfdiff.md
+

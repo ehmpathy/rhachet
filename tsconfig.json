@@ -37,6 +37,7 @@
   "exclude": [
     "dist",
     "coverage",
-    "node_modules"
+    "node_modules",
+    "**/invoke.bun.entry.*.ts"
   ]
 }

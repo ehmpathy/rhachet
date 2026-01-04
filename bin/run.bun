@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+######################################################################
+# .what = shell dispatcher for rhachet CLI
+# .why = routes commands to specialized binaries for optimal perf
+#
+# architecture:
+#   run --skill/--init → run.bun.rhachet-run.bc (bun, reads .agent/)
+#   roles boot/cost    → run.bun.rhachet-roles.bc (bun, reads .agent/)
+#   roles link/init    → run.jit (jit, imports from npm packages)
+#   *                  → run.jit (jit, safe fallback)
+#
+# .note = the .agent/ pattern enables bun binaries to skip npm imports
+#         via symlinks created by `roles link`
+######################################################################
+
+# resolve script directory (handles symlinks)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "$1" in
+  run)
+    # fast path: reads from .agent/ directly, no package imports
+    exec "$SCRIPT_DIR/run.bun.rhachet-run.bc" "$@"
+    ;;
+  roles)
+    case "$2" in
+      boot|cost)
+        # fast path: reads from .agent/ symlinks, no package imports
+        exec "$SCRIPT_DIR/run.bun.rhachet-roles.bc" "$@"
+        ;;
+      link|init|*)
+        # link: imports from npm packages to get source paths
+        # init: run-all mode needs registry (Role.inits.exec)
+        # *: unknown subcommand, use jit for safety
+        exec "$SCRIPT_DIR/run.jit" "$@"
+        ;;
+    esac
+    ;;
+  *)
+    # all other commands use jit (may need package imports)
+    exec "$SCRIPT_DIR/run.jit" "$@"
+    ;;
+esac

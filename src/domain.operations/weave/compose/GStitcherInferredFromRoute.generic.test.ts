@@ -1,11 +1,11 @@
-import {
-  addDuration,
-  asUniDateTime,
-  isUniDateTime,
-  type UniDateTime,
-} from '@ehmpathy/uni-time';
 import type { ContextLogTrail } from 'as-procedure';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import {
+  addDuration,
+  asIsoTimeStamp,
+  type IsoTimeStamp,
+  isIsoTimeStamp,
+} from 'iso-time';
 import { given, then, when } from 'test-fns';
 import type { Empty } from 'type-fns';
 
@@ -26,17 +26,17 @@ describe('GStitcherInferredFromRoute', () => {
   };
 
   const stitcherGetTime = new StitchStepCompute<
-    GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
+    GStitcher<Threads<{ main: Empty }>, GStitcher['context'], IsoTimeStamp>
   >({
     form: 'COMPUTE',
     readme: null,
     slug: 'get-time',
     stitchee: 'main',
-    invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+    invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
   });
 
   const stitcherAddHours = new StitchStepCompute<
-    GStitcher<Threads<{ main: Empty }>, GStitcher['context'], UniDateTime>
+    GStitcher<Threads<{ main: Empty }>, GStitcher['context'], IsoTimeStamp>
   >({
     form: 'COMPUTE',
     readme: null,
@@ -50,7 +50,7 @@ describe('GStitcherInferredFromRoute', () => {
         });
       return {
         input: lastStitch.output,
-        output: addDuration(isUniDateTime.assure(lastStitch.output), {
+        output: addDuration(isIsoTimeStamp.assure(lastStitch.output), {
           hours: 1,
         }),
       };
@@ -63,7 +63,7 @@ describe('GStitcherInferredFromRoute', () => {
     then(
       'there should be a type error at usage, as we enforce readonly consts to maximize type inference, and fail fast when omitted',
       () => {
-        // @ts-expect-error: Type 'StitchStepCompute<GStitcher<Threads<{ main: Empty; }>, Empty, string & OfGlossary<"uni-time.UniDateTime">>>[]' does not satisfy the constraint 'readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]]'.
+        // @ts-expect-error: Type 'StitchStepCompute<GStitcher<Threads<{ main: Empty; }>, Empty, string & OfGlossary<"uni-time.IsoTimeStamp">>>[]' does not satisfy the constraint 'readonly [Stitcher<GStitcher>, ...Stitcher<GStitcher>[]]'.
         type Inferred = GStitcherInferredFromRoute<typeof sequence>;
         expect(true as any as Inferred); // just to satisfy the linter of unused type
       },
@@ -89,11 +89,11 @@ describe('GStitcherInferredFromRoute', () => {
 
     then('output should match expected shape', () => {
       // positive case
-      const assertOutput: Inferred['output'] = asUniDateTime(new Date());
+      const assertOutput: Inferred['output'] = asIsoTimeStamp(new Date());
       expect(assertOutput);
 
       // negative case
-      // @ts-expect-error: number is not assignable to UniDateTime
+      // @ts-expect-error: number is not assignable to IsoTimeStamp
       const expectError: Inferred['output'] = 821;
       expect(expectError);
     });
@@ -136,13 +136,13 @@ describe('GStitcherInferredFromRoute', () => {
 
   given('a sequence of stitchers with different thread roles or output', () => {
     const stitcherWithClock = new StitchStepCompute<
-      GStitcher<Threads<{ clock: Empty }>, GStitcher['context'], UniDateTime>
+      GStitcher<Threads<{ clock: Empty }>, GStitcher['context'], IsoTimeStamp>
     >({
       form: 'COMPUTE',
       readme: null,
       slug: 'with-clock',
       stitchee: 'clock',
-      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
     });
 
     const sequence = [stitcherGetTime, stitcherWithClock] as const;
@@ -161,7 +161,7 @@ describe('GStitcherInferredFromRoute', () => {
         GStitcher<
           Threads<{ two: Empty }>,
           { foo: number } & GStitcher['context'],
-          UniDateTime
+          IsoTimeStamp
         >
       >;
 
@@ -187,7 +187,7 @@ describe('GStitcherInferredFromRoute', () => {
         GStitcher<
           Threads<{ two: Empty }>,
           { foo: number } & GStitcher['context'],
-          UniDateTime
+          IsoTimeStamp
         >
       >;
 
@@ -211,27 +211,27 @@ describe('GStitcherInferredFromRoute', () => {
 
   given('a sequence of stitchers with varied procedure.contexts', () => {
     const stitcherWithEmptyContext = new StitchStepCompute<
-      GStitcher<Threads<{ one: Empty }>, GStitcher['context'], UniDateTime>
+      GStitcher<Threads<{ one: Empty }>, GStitcher['context'], IsoTimeStamp>
     >({
       form: 'COMPUTE',
       readme: null,
       slug: 'slug',
       stitchee: 'one',
-      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
     });
 
     const stitcherWithFooContext = new StitchStepCompute<
       GStitcher<
         Threads<{ two: Empty }>,
         { foo: number } & ContextLogTrail & ContextStitchTrail,
-        UniDateTime
+        IsoTimeStamp
       >
     >({
       form: 'COMPUTE',
       readme: null,
       slug: 'slug',
       stitchee: 'two',
-      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
     });
 
     then(
@@ -253,14 +253,14 @@ describe('GStitcherInferredFromRoute', () => {
       GStitcher<
         Threads<{ three: Empty }>,
         { bar: string } & GStitcher['context'],
-        UniDateTime
+        IsoTimeStamp
       >
     >({
       form: 'COMPUTE',
       readme: null,
       slug: 'slug',
       stitchee: 'three',
-      invoke: () => ({ input: null, output: asUniDateTime(new Date()) }),
+      invoke: () => ({ input: null, output: asIsoTimeStamp(new Date()) }),
     });
     then('when multiple contexts are defined, it should merge them', () => {
       const sequence = [

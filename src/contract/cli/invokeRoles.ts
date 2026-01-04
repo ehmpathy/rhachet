@@ -25,6 +25,6 @@ export const invokeRoles = ({
 
   invokeRolesLink({ command: rolesCommand, registries });
   invokeRolesInit({ command: rolesCommand, registries });
-  invokeRolesBoot({ command: rolesCommand, registries });
-  invokeRolesCost({ command: rolesCommand, registries });
+  invokeRolesBoot({ command: rolesCommand });
+  invokeRolesCost({ command: rolesCommand });
 };

@@ -1,8 +1,7 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
-import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+import { findUniqueRoleDir } from '@src/domain.operations/invoke/findUniqueRoleDir';
 import {
   formatCost,
   formatCostTree,
@@ -13,65 +12,69 @@ import {
 } from '@src/domain.operations/role/getRoleFileCosts';
 
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 /**
  * .what = adds the "roles cost" subcommand to the CLI
- * .why = outputs role resource costs without loading full file contents
+ * .why = outputs role resource costs without full file content load
  * .how = reads files in .agent/repo=$repo/role=$role and computes per-file token/cost estimates
  */
-export const invokeRolesCost = ({
-  command,
-  registries,
-}: {
-  command: Command;
-  registries: RoleRegistry[];
-}): void => {
+export const invokeRolesCost = ({ command }: { command: Command }): void => {
   command
     .command('cost')
     .description('show token/cost estimates for role resources')
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to analyze')
-    .action((opts: { repo?: string; role?: string }) => {
+    .option(
+      '--if-present',
+      'exit silently if role directory does not exist (no error)',
+    )
+    .action((opts: { repo?: string; role?: string; ifPresent?: boolean }) => {
       // validate role is provided
       if (!opts.role)
         BadRequestError.throw('--role is required (e.g., --role mechanic)');
 
-      const slugRole = opts.role;
+      // discover role dir from .agent/
+      const roleFound = findUniqueRoleDir({
+        slugRepo: opts.repo,
+        slugRole: opts.role,
+        ifPresent: opts.ifPresent,
+      });
 
-      // resolve repo from option or inference
-      const repo = opts.repo
-        ? registries.find((r) => r.slug === opts.repo)
-        : inferRepoByRole({ registries, slugRole });
-      if (!repo)
-        BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
-
-      // build role directory path
-      const roleDir = resolve(
-        process.cwd(),
-        '.agent',
-        `repo=${repo.slug}`,
-        `role=${slugRole}`,
-      );
+      // skip if role not found and --if-present
+      if (!roleFound) {
+        if (!opts.ifPresent)
+          throw new UnexpectedCodePathError(
+            'roleFound null without ifPresent',
+            {
+              opts,
+            },
+          );
+        console.log(`🫧 role not present, skipped`);
+        return;
+      }
 
       // check if role directory exists
-      if (!existsSync(roleDir)) {
+      if (!existsSync(roleFound.roleDir)) {
+        if (opts.ifPresent) {
+          console.log(`🫧 role not present, skipped`);
+          return;
+        }
         BadRequestError.throw(
-          `Role directory not found: ${roleDir}\nRun "rhachet roles link --repo ${repo.slug} --role ${slugRole}" first`,
+          `Role directory not found: ${roleFound.roleDir}\nRun "rhachet roles link --repo ${roleFound.slugRepo} --role ${roleFound.slugRole}" first`,
         );
       }
 
       // get file costs
       const fileCosts = getRoleFileCosts({
-        roleDir,
-        slugRepo: repo.slug,
-        slugRole,
+        roleDir: roleFound.roleDir,
+        slugRepo: roleFound.slugRepo,
+        slugRole: roleFound.slugRole,
       });
 
       // handle empty role
       if (fileCosts.length === 0) {
         console.log(``);
-        console.log(`⚠️  No resources found in ${roleDir}`);
+        console.log(`⚠️  No resources found in ${roleFound.roleDir}`);
         console.log(``);
         return;
       }
@@ -85,11 +88,13 @@ export const invokeRolesCost = ({
 
       // print header
       console.log(``);
-      console.log(`🌊 Role Cost Report: ${slugRole} @ ${repo.slug}`);
+      console.log(
+        `🌊 Role Cost Report: ${roleFound.slugRole} @ ${roleFound.slugRepo}`,
+      );
       console.log(``);
 
       // print tree structure with costs
-      const rootPath = `.agent/repo=${repo.slug}/role=${slugRole}`;
+      const rootPath = `.agent/repo=${roleFound.slugRepo}/role=${roleFound.slugRole}`;
       const tree = formatCostTree({ fileCosts, rootPath });
       console.log(tree);
       console.log(``);

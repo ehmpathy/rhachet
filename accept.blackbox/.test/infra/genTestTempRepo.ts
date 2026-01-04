@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { chmodSync, cpSync, readdirSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -19,7 +19,11 @@ export type TestRepoFixture =
   | 'with-briefs'
   | 'with-registry'
   | 'with-inits'
-  | 'with-link-sources';
+  | 'with-link-sources'
+  | 'with-perf-skills'
+  | 'with-perf-test'
+  | 'with-perf-collocated'
+  | 'with-published-roles';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()
@@ -33,6 +37,8 @@ export const genTestTempRepo = (input: {
   fixture: TestRepoFixture;
   /** optional unique suffix for the repo name */
   suffix?: string;
+  /** run pnpm install after copy (for fixtures with package.json) */
+  install?: boolean;
 }): {
   /** absolute path to the test repo */
   path: string;
@@ -59,6 +65,16 @@ export const genTestTempRepo = (input: {
     cwd: repoPath,
     stdio: 'ignore',
   });
+
+  // install dependencies if requested and package.json exists
+  // use bun install for bun-compatible node_modules structure
+  if (input.install && existsSync(join(repoPath, 'package.json'))) {
+    execSync('bun install', {
+      cwd: repoPath,
+      stdio: 'inherit',
+      timeout: 120000, // 2 minute timeout
+    });
+  }
 
   return { path: repoPath };
 };

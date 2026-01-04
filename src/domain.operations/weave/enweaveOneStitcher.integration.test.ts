@@ -1,5 +1,5 @@
-import { asUniDateTime, toMilliseconds } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp, toMilliseconds } from 'iso-time';
 import { given, then, when } from 'test-fns';
 import type { Empty } from 'type-fns';
 import { getUuid } from 'uuid-fns';
@@ -256,7 +256,7 @@ export const sdkOpenMeteo = {
                 stitches: [
                   {
                     uuid: getUuid(),
-                    createdAt: asUniDateTime(new Date()),
+                    createdAt: asIsoTimeStamp(new Date()),
                     input: null,
                     output: { directive: 'fillout the stubout' },
                     stitcher: null,

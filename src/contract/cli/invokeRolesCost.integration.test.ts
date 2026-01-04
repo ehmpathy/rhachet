@@ -1,9 +1,6 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
-import { Role } from '@src/domain.objects/Role';
-import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
-
 import {
   existsSync,
   mkdirSync,
@@ -29,23 +26,6 @@ describe('invokeRolesCost (integration)', () => {
       process.chdir(originalCwd);
     });
 
-    // create mock registries with roles
-    const mockRole = new Role({
-      slug: 'mechanic',
-      name: 'Mechanic',
-      purpose: 'Test mechanic role',
-      readme: { uri: '.test/readme.md' }, // '# Mechanic Role\n\nThis is the mechanic role readme.',
-      traits: [],
-      skills: { dirs: [], refs: [] },
-      briefs: { dirs: [] },
-    });
-
-    const mockRegistry = new RoleRegistry({
-      slug: 'test',
-      readme: { uri: '.test/readme.md' },
-      roles: [mockRole],
-    });
-
     const rolesCommand = new Command('roles');
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -53,7 +33,7 @@ describe('invokeRolesCost (integration)', () => {
       logSpy.mockClear();
     });
 
-    invokeRolesCost({ command: rolesCommand, registries: [mockRegistry] });
+    invokeRolesCost({ command: rolesCommand });
 
     when(
       'invoked with "cost --repo test --role mechanic" after creating briefs and skills',
@@ -247,7 +227,7 @@ describe('invokeRolesCost (integration)', () => {
         });
 
         then(
-          'it should throw an error about missing role directory',
+          'it should throw an error about absent role directory',
           async () => {
             const error = await getError(() =>
               rolesCommand.parseAsync(
@@ -256,7 +236,10 @@ describe('invokeRolesCost (integration)', () => {
               ),
             );
 
-            expect(error?.message).toContain('Role directory not found');
+            // error message depends on whether .agent/ exists
+            expect(error?.message).toMatch(
+              /\.agent\/ directory not found|no role/,
+            );
             expect(error?.message).toContain('roles link');
           },
         );
@@ -292,47 +275,35 @@ describe('invokeRolesCost (integration)', () => {
     );
   });
 
-  given('multiple registries have the same role', () => {
+  given('multiple repos have the same role slug in .agent/', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesCost-ambiguous');
     const originalCwd = process.cwd();
 
     beforeAll(() => {
       mkdirSync(testDir, { recursive: true });
       process.chdir(testDir);
+
+      // clean up first
+      const agentDir = resolve(testDir, '.agent');
+      if (existsSync(agentDir)) {
+        rmSync(agentDir, { recursive: true, force: true });
+      }
+
+      // create same role in two repos
+      mkdirSync(resolve(testDir, '.agent/repo=repo-one/role=mechanic'), {
+        recursive: true,
+      });
+      mkdirSync(resolve(testDir, '.agent/repo=repo-two/role=mechanic'), {
+        recursive: true,
+      });
     });
 
     afterAll(() => {
       process.chdir(originalCwd);
     });
 
-    const mockRole = new Role({
-      slug: 'mechanic',
-      name: 'Mechanic',
-      purpose: 'Test mechanic role',
-      readme: { uri: '.test/readme.md' }, // '# Mechanic',
-      traits: [],
-      skills: { dirs: [], refs: [] },
-      briefs: { dirs: [] },
-    });
-
-    const registry1 = new RoleRegistry({
-      slug: 'repo-one',
-      readme: { uri: '.test/readme.md' },
-      roles: [mockRole],
-    });
-
-    const registry2 = new RoleRegistry({
-      slug: 'repo-two',
-      readme: { uri: '.test/readme.md' },
-      roles: [mockRole],
-    });
-
     const rolesCommand = new Command('roles');
-
-    invokeRolesCost({
-      command: rolesCommand,
-      registries: [registry1, registry2],
-    });
+    invokeRolesCost({ command: rolesCommand });
 
     when('invoked with "cost --role mechanic" without --repo', () => {
       then('it should throw an error about ambiguous repos', async () => {
@@ -342,7 +313,8 @@ describe('invokeRolesCost (integration)', () => {
           }),
         );
 
-        expect(error?.message).toContain('Multiple repos have role "mechanic"');
+        expect(error?.message).toContain('multiple repos');
+        expect(error?.message).toContain('mechanic');
         expect(error?.message).toContain('repo-one');
         expect(error?.message).toContain('repo-two');
         expect(error?.message).toContain('--repo');
