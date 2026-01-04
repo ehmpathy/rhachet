@@ -1,7 +1,1 @@
-## 🔧 Mechanic
-
-- **scale**: repo-level, implementation detail
-- **focus**: maintainability, observability, readability
-- **maximizes**: empathy for the 3am on-call engineer
-
-Used to write and revise the actual logic that runs the system.
+../../../node_modules/.pnpm/rhachet-roles-ehmpathy@1.17.8_@anthropic-ai+sdk@0.71.2_zod@3.25.76__@types+node@22.15.21_hono@4.11.3_zod@3.25.76/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/readme.md
