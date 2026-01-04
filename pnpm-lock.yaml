@@ -127,17 +127,17 @@ importers:
         specifier: 30.2.0
         version: 30.2.0(@types/node@22.15.21)(esbuild-register@3.6.0(esbuild@0.25.12))(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.15.21)(typescript@5.4.5))
       rhachet:
-        specifier: 1.19.9
-        version: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
+        specifier: 1.19.11
+        version: 1.19.11(@types/node@22.15.21)(hono@4.11.3)
       rhachet-roles-bhrain:
         specifier: 0.5.5
         version: 0.5.5(@types/node@22.15.21)
       rhachet-roles-bhuild:
-        specifier: 0.4.2
-        version: 0.4.2(@types/node@22.15.21)(zod@3.25.76)
+        specifier: 0.5.1
+        version: 0.5.1(@types/node@22.15.21)(zod@3.25.76)
       rhachet-roles-ehmpathy:
-        specifier: 1.17.7
-        version: 1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+        specifier: 1.17.8
+        version: 1.17.8(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       test-fns:
         specifier: 1.7.0
         version: 1.7.0
@@ -3931,16 +3931,16 @@ packages:
     resolution: {integrity: sha512-wVJrFafD/JEmufaMl/tRbmKyQ7RFhXyixV+HopXiMn1MUq83egfnaMVPd98vrbx9Q9xRhJVwKUOfcjJlul8j0g==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-bhuild@0.4.2:
-    resolution: {integrity: sha512-y7psc/M3TkmLbpC4bDIB+33UtDvL48TgW/2jzwNGpJWYISjXyQbkgUQynwd70vI6kQbPcYFhV1kd3DegYv9IyA==}
+  rhachet-roles-bhuild@0.5.1:
+    resolution: {integrity: sha512-e5lCuWAKkyitD5G2nS+z9G8VF19uTGsc6ldWi1QqGTmwV3YDZxXdnozdMTta0xwgBpBh943GrUfltbhvGQmWVA==}
     engines: {node: '>=8.0.0'}
 
   rhachet-roles-ehmpathy@1.13.3:
     resolution: {integrity: sha512-p0xLdXVHCjT2lYAthR4ARZZcAgy2RvarBzNyMgXMg3V0GcUAsZhpy37JrLk8dAu2y2YDWR/sbLIUl4CTgCazwg==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-ehmpathy@1.17.7:
-    resolution: {integrity: sha512-BoPIy3EMuGW35uPszqWnSVoV/pNb/aV4eIcJWhb7RSCQjd5qsViPtt6kGme6SZJUkzS1sst+pQ1+/wa7krt9fA==}
+  rhachet-roles-ehmpathy@1.17.8:
+    resolution: {integrity: sha512-n3/XY2CnL18AeYDQJZhP9k+SoYnle1fymYqDQQgcE8KN56iJTaIxawsWLVsAelL8PN+9v0V3q9M8r4QkmOOMlA==}
     engines: {node: '>=8.0.0'}
 
   rhachet@1.13.1:
@@ -3953,13 +3953,13 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  rhachet@1.19.6:
-    resolution: {integrity: sha512-+beHdxp1kHnttIhzTvYl3hE2pA7lsFyeQ2TgbKX+iEcGEIKBuKJ3sFhQIZR+Nvk526/GG3tTp3owD694bjdlTg==}
+  rhachet@1.19.10:
+    resolution: {integrity: sha512-MotZt496t4oTtIjMqK86xuAN6wKjup2YE9H3ATHIHap0BGuYblLw9dr1U4nQvzaFb7An1+5PyjaCd8n2qcRIRw==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  rhachet@1.19.9:
-    resolution: {integrity: sha512-28F4cClNM13KGpfQUTG9k4RwUXeVWGU83NHvxSqYx0E4hnlkpe/Y6rnj7Ht21aNXIUOxq3ga1lmgP1/cTWwvPg==}
+  rhachet@1.19.11:
+    resolution: {integrity: sha512-GudY0k7Gzjsbh7J/gulvbWxRa1EGku2lCmEga4TvshfACeqDSGKiYtpnYLWJOxZ7ijvX2sPONJsAJI/lsYebbQ==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -7625,8 +7625,8 @@ snapshots:
       domain-objects: 0.31.3
       helpful-errors: 1.5.3
       joi: 17.4.0
-      rhachet: 1.19.9(@types/node@22.15.21)(hono@4.11.3)
-      rhachet-roles-ehmpathy: 1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet: 1.19.11(@types/node@22.15.21)(hono@4.11.3)
+      rhachet-roles-ehmpathy: 1.17.8(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       type-fns: 1.21.0
       uuid-fns: 1.1.3
     transitivePeerDependencies:
@@ -9259,11 +9259,10 @@ snapshots:
       - ws
       - zod
 
-  rhachet-roles-bhuild@0.4.2(@types/node@22.15.21)(zod@3.25.76):
+  rhachet-roles-bhuild@0.5.1(@types/node@22.15.21)(zod@3.25.76):
     dependencies:
       domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       helpful-errors: 1.5.3
-      rhachet: 1.15.2(zod@3.25.76)
       rhachet-roles-bhrain: 0.3.0(@types/node@22.15.21)(zod@3.25.76)
       test-fns: 1.7.2
     transitivePeerDependencies:
@@ -9296,7 +9295,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet-roles-ehmpathy@1.17.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  rhachet-roles-ehmpathy@1.17.8(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
     dependencies:
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
@@ -9308,7 +9307,7 @@ snapshots:
       helpful-errors: 1.5.3
       inquirer: 12.7.0(@types/node@22.15.21)
       openai: 5.8.2(zod@3.25.76)
-      rhachet: 1.19.6
+      rhachet: 1.19.10
       rhachet-artifact: 1.0.0
       rhachet-artifact-git: 1.1.0
       serde-fns: 1.2.0
@@ -9370,7 +9369,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet@1.19.6:
+  rhachet@1.19.10:
     dependencies:
       '@anthropic-ai/claude-agent-sdk': 0.1.76(zod@3.25.76)
       '@anthropic-ai/sdk': 0.71.2(zod@3.25.76)
@@ -9390,12 +9389,13 @@ snapshots:
       serde-fns: 1.3.1
       type-fns: 1.21.0
       uuid-fns: 1.0.1
+      wrapper-fns: 1.1.0
       zod: 3.25.76
       zod-to-json-schema: 3.25.1(zod@3.25.76)
     transitivePeerDependencies:
       - ws
 
-  rhachet@1.19.9(@types/node@22.15.21)(hono@4.11.3):
+  rhachet@1.19.11(@types/node@22.15.21)(hono@4.11.3):
     dependencies:
       '@anthropic-ai/claude-agent-sdk': 0.1.76(zod@3.25.76)
       '@anthropic-ai/sdk': 0.71.2(zod@3.25.76)
