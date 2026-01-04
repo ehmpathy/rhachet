@@ -17,9 +17,22 @@ import { performInIsolatedThread } from './performInIsolatedThread.invoke';
  *     - etc
  * .how =
  *    - spawns isolated child threads and performs the skill within each of those threads
+ *    - supports two modes:
+ *      - 'stitch': executes via performInCurrentThreadForStitch (thread stitcher)
+ *      - 'actor': executes via performInCurrentThreadForActor (brain.act)
  */
 export const performInIsolatedThreads = async (input: {
-  opts: InvokeOpts<{ config: string; ask: string; output?: string }>;
+  opts: InvokeOpts<{
+    config: string;
+    mode: 'stitch' | 'actor';
+    output?: string;
+    // stitch-mode fields
+    ask?: string;
+    // actor-mode fields
+    role?: string;
+    skill?: string;
+    brain?: string;
+  }>;
 }): Promise<void> => {
   // validate that attempts were requested
   if (!input.opts.attempts)

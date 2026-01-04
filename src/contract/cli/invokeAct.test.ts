@@ -70,6 +70,7 @@ describe('invokeAct', () => {
 
       invokeAct({
         program,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [mockRegistry],
         brains: [mockBrain],
         hooks: null,
@@ -181,6 +182,7 @@ describe('invokeAct', () => {
 
       invokeAct({
         program,
+        config: { path: '/fake/rhachet.use.ts' },
         registries: [mockRegistry],
         brains: [], // no brains
         hooks: null,

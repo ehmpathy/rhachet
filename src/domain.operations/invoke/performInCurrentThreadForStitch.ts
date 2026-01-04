@@ -14,14 +14,24 @@ import { getSkillThreads } from './getSkillThreads';
  *   - this is the default way to perform a skill; contrasted to within isolated threads, for isolated parallelism
  *   - this is reused within the performance of skills within isolated threads
  */
-export const performInCurrentThread = async (input: {
+export const performInCurrentThreadForStitch = async (input: {
   opts: InvokeOpts<{
-    ask: string;
+    ask?: string;
     role?: string;
     skill?: string;
   }>;
   registries: RoleRegistry[];
 }): Promise<void> => {
+  // validate ask is provided for stitch-mode
+  const ask =
+    input.opts.ask ??
+    UnexpectedCodePathError.throw('opts.ask not defined for stitch-mode', {
+      opts: input.opts,
+    });
+
+  // create narrowed opts with validated ask
+  const optsWithAsk = { ...input.opts, ask };
+
   // lookup the role
   const role = assureFindRole({
     registries: input.registries,
@@ -43,7 +53,7 @@ export const performInCurrentThread = async (input: {
   // instantiate the threads
   const threads = await getSkillThreads({
     getter: skill.threads,
-    from: { lookup: { argv: input.opts } },
+    from: { lookup: { argv: optsWithAsk } },
   });
 
   // instantiate the context
@@ -58,7 +68,7 @@ export const performInCurrentThread = async (input: {
   console.log('');
   console.log('🎙️  heard');
   console.log('');
-  console.log(input.opts.ask);
+  console.log(ask);
   console.log('');
   console.log('🫡  on it!');
   console.log('');

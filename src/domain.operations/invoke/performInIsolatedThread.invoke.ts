@@ -72,6 +72,14 @@ export const invokePerformInIsolatedThread = async (input: {
       { argv: input.opts },
     );
 
+  // grab the mode from the argv; failfast if not declared
+  const mode =
+    (input.opts as { mode?: string }).mode ??
+    UnexpectedCodePathError.throw(
+      'mode should have been declared in argv if this was called',
+      { argv: input.opts },
+    );
+
   // grab the prefix to log with
   const logPrefix = getLogPrefixForAttempt({
     attempt,
@@ -98,6 +106,7 @@ export const invokePerformInIsolatedThread = async (input: {
         RHACHET_ATTEMPT: String(input.opts.attempt),
         RHACHET_ATTEMPTS: String(input.peer.attempts),
         RHACHET_INVOKE_OPTS_PAYLOAD: payload,
+        RHACHET_INVOKE_MODE: mode,
       },
     });
 

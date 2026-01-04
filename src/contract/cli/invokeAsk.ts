@@ -10,7 +10,7 @@ import { genActor } from '@src/domain.operations/actor/genActor';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
-import { performInCurrentThread } from '@src/domain.operations/invoke/performInCurrentThread';
+import { performInCurrentThreadForStitch } from '@src/domain.operations/invoke/performInCurrentThreadForStitch';
 import { performInIsolatedThreads } from '@src/domain.operations/invoke/performInIsolatedThreads';
 
 /**
@@ -24,7 +24,11 @@ const performAskViaStitchMode = async (input: {
   hooks: null | InvokeHooks;
 }): Promise<void> => {
   // instantiate the composed argv
-  const argvWithAsk: InvokeOpts<{ ask: string; config: string }> = {
+  const argvWithAsk: InvokeOpts<{
+    ask: string;
+    config: string;
+    mode: 'stitch' | 'actor';
+  }> = {
     ...input.opts,
     ask:
       input.opts.ask ??
@@ -32,11 +36,19 @@ const performAskViaStitchMode = async (input: {
         opts: input.opts,
       }),
     config: input.config.path, // required for isolated child threads when used with attempts
+    mode: 'stitch', // stitch-mode for ask --skill
   };
 
   // apply the onInvokeAskHooks
-  const argvWithHooks: InvokeOpts<{ ask: string; config: string }> = input.hooks
-    ? onInvokeAskInput({ opts: argvWithAsk, hooks: input.hooks })
+  const argvWithHooks: InvokeOpts<{
+    ask: string;
+    config: string;
+    mode: 'stitch' | 'actor';
+  }> = input.hooks
+    ? {
+        ...onInvokeAskInput({ opts: argvWithAsk, hooks: input.hooks }),
+        mode: 'stitch' as const,
+      }
     : argvWithAsk;
 
   // if attempts were requested, perform the skill in isolated threads per attempt
@@ -44,7 +56,7 @@ const performAskViaStitchMode = async (input: {
     return await performInIsolatedThreads({ opts: argvWithHooks });
 
   // otherwise, perform in the main thread by default
-  return await performInCurrentThread({
+  return await performInCurrentThreadForStitch({
     opts: argvWithHooks,
     registries: input.registries,
   });
@@ -166,7 +178,7 @@ export const invokeAsk = ({
       const isStitchMode = opts.skill !== undefined;
       const isActorMode = !isStitchMode;
 
-      // 🧵 stitch-mode: invoke skill via thread stitching
+      // 🧵 stitch-mode: invoke skill via thread.stitch
       if (isStitchMode) {
         const skill = opts.skill!; // asserted as string (validated by isStitchMode)
         return await performAskViaStitchMode({
