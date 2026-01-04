@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.12](https://github.com/ehmpathy/rhachet/compare/v1.19.11...v1.19.12) (2026-01-04)
+
+
+### Bug Fixes
+
+* **deps:** bump wrapper-fns to elim retry with timeout issue ([#106](https://github.com/ehmpathy/rhachet/issues/106)) ([f9f68d5](https://github.com/ehmpathy/rhachet/commit/f9f68d5c60af2387951e79e6356bf0aa4aeff648))
+
 ## [1.19.11](https://github.com/ehmpathy/rhachet/compare/v1.19.10...v1.19.11) (2026-01-04)
 
 
