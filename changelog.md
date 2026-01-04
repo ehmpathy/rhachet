@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.11](https://github.com/ehmpathy/rhachet/compare/v1.19.10...v1.19.11) (2026-01-04)
+
+
+### Bug Fixes
+
+* **cli:** ensure rhachet act operates with --attempts as intended ([#100](https://github.com/ehmpathy/rhachet/issues/100)) ([81ce810](https://github.com/ehmpathy/rhachet/commit/81ce810167a9be064f311f642e2988bc71672461))
+
 ## [1.19.10](https://github.com/ehmpathy/rhachet/compare/v1.19.9...v1.19.10) (2026-01-03)
 
 
