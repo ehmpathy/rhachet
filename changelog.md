@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.13](https://github.com/ehmpathy/rhachet/compare/v1.19.12...v1.19.13) (2026-01-04)
+
+
+### Bug Fixes
+
+* **tests:** more acceptance tests for npx rhachet roles init --command pipe support ([#104](https://github.com/ehmpathy/rhachet/issues/104)) ([8e0fef9](https://github.com/ehmpathy/rhachet/commit/8e0fef9ca929dce6e12b153c06b61b6ebb48a9ff))
+
 ## [1.19.12](https://github.com/ehmpathy/rhachet/compare/v1.19.11...v1.19.12) (2026-01-04)
 
 
