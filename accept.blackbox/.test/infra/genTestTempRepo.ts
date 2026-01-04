@@ -18,6 +18,7 @@ export type TestRepoFixture =
   | 'with-skills'
   | 'with-briefs'
   | 'with-registry'
+  | 'with-inits'
   | 'with-link-sources';
 
 /**
