@@ -15,7 +15,8 @@ import { basename, relative, resolve } from 'node:path';
  * .what = recursively counts all leaf files in a directory
  * .why = to provide accurate file counts when linking directories
  */
-const countFilesInDirectory = (dirPath: string): number => {
+const countFilesInDirectory = (input: { dirPath: string }): number => {
+  const { dirPath } = input;
   let count = 0;
   const entries = readdirSync(dirPath);
 
@@ -24,7 +25,7 @@ const countFilesInDirectory = (dirPath: string): number => {
     const stats = statSync(fullPath);
 
     if (stats.isDirectory()) {
-      count += countFilesInDirectory(fullPath);
+      count += countFilesInDirectory({ dirPath: fullPath });
     } else if (stats.isFile()) {
       count++;
     }
@@ -37,7 +38,8 @@ const countFilesInDirectory = (dirPath: string): number => {
  * .what = recursively sets all files and directories to readonly and executable
  * .why = prevents agents from accidentally or maliciously overwriting linked resources from node_modules, while allowing skills to be executed
  */
-const setDirectoryReadonlyExecutable = (dirPath: string): void => {
+const setDirectoryReadonlyExecutable = (input: { dirPath: string }): void => {
+  const { dirPath } = input;
   const entries = readdirSync(dirPath);
 
   for (const entry of entries) {
@@ -49,7 +51,7 @@ const setDirectoryReadonlyExecutable = (dirPath: string): void => {
 
     if (lstats.isDirectory()) {
       // recurse first, then set directory permissions
-      setDirectoryReadonlyExecutable(fullPath);
+      setDirectoryReadonlyExecutable({ dirPath: fullPath });
       // r-x for directories (need execute to traverse)
       chmodSync(fullPath, 0o555);
     } else if (lstats.isFile()) {
@@ -60,6 +62,60 @@ const setDirectoryReadonlyExecutable = (dirPath: string): void => {
 
   // set the root directory itself to readonly after processing contents
   chmodSync(dirPath, 0o555);
+};
+
+/**
+ * .what = remove path if it exists (symlink, file, or directory)
+ * .why = upsert semantics - always succeed even if target already exists, including broken symlinks
+ */
+const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
+  const { targetPath } = input;
+  const lstats = (() => {
+    try {
+      return lstatSync(targetPath);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+  })();
+
+  if (!lstats) return 'created';
+
+  try {
+    unlinkSync(targetPath);
+  } catch {
+    rmSync(targetPath, { recursive: true, force: true });
+  }
+  return 'updated';
+};
+
+/**
+ * .what = create a symlink from targetPath to sourcePath, clear existing, log action
+ * .why = shared logic for both single-dir and array-dir modes
+ */
+const linkSourceToTarget = (input: {
+  sourcePath: string;
+  targetPath: string;
+}): number => {
+  const { sourcePath, targetPath } = input;
+  // clear existing and log
+  const relativeTargetPath = relative(process.cwd(), targetPath);
+  const action = clearPath({ targetPath });
+  console.log(
+    action === 'updated'
+      ? `  ↻ ${relativeTargetPath} (updated)`
+      : `  + ${relativeTargetPath}`,
+  );
+
+  // create parent directory if needed
+  const targetParent = resolve(targetPath, '..');
+  mkdirSync(targetParent, { recursive: true });
+
+  // create relative symlink
+  const relativeSource = relative(targetParent, sourcePath);
+  symlinkSync(relativeSource, targetPath, 'dir');
+  setDirectoryReadonlyExecutable({ dirPath: sourcePath });
+  return countFilesInDirectory({ dirPath: sourcePath });
 };
 
 /**
@@ -75,98 +131,36 @@ export const symlinkResourceDirectories = (options: {
   targetDir: string;
   resourceName: string; // e.g., 'briefs', 'skills'
 }): number => {
-  const { sourceDirs, targetDir, resourceName } = options;
+  const { sourceDirs, targetDir } = options;
 
-  // handle single-dir mode: symlink source dir directly as target dir
+  // single-dir mode: symlink source dir directly as target dir
   if (!Array.isArray(sourceDirs)) {
     const sourcePath = resolve(process.cwd(), sourceDirs.uri);
-
     if (!existsSync(sourcePath)) return 0;
-
-    // remove existing target if present (symlink or directory)
-    const relativeTargetPath = relative(process.cwd(), targetDir);
-    if (existsSync(targetDir)) {
-      try {
-        unlinkSync(targetDir);
-        console.log(`  ↻ ${relativeTargetPath} (updated)`);
-      } catch {
-        rmSync(targetDir, { recursive: true, force: true });
-        console.log(`  ↻ ${relativeTargetPath} (updated)`);
-      }
-    } else {
-      console.log(`  + ${relativeTargetPath}`);
-    }
-
-    // create parent directory if needed
-    const targetParent = resolve(targetDir, '..');
-    mkdirSync(targetParent, { recursive: true });
-
-    // create relative symlink: targetDir -> sourcePath
-    const relativeSource = relative(targetParent, sourcePath);
-
-    symlinkSync(relativeSource, targetDir, 'dir');
-    setDirectoryReadonlyExecutable(sourcePath);
-    return countFilesInDirectory(sourcePath);
+    return linkSourceToTarget({ sourcePath, targetPath: targetDir });
   }
 
-  // handle array-dir mode: symlink each dir within target dir
-  // calculate expected symlink names based on source directories
-  const expectedNames = new Set(sourceDirs.map((dir) => basename(dir.uri)));
-
+  // array-dir mode: symlink each source dir within target dir
   // remove deprecated symlinks (ones that exist but are no longer in the config)
+  const expectedNames = new Set(sourceDirs.map((dir) => basename(dir.uri)));
   if (existsSync(targetDir)) {
-    const existingEntries = readdirSync(targetDir);
-    for (const entry of existingEntries) {
-      if (!expectedNames.has(entry)) {
-        const entryPath = resolve(targetDir, entry);
-        const relativeEntryPath = relative(process.cwd(), entryPath);
-        try {
-          unlinkSync(entryPath);
-        } catch {
-          rmSync(entryPath, { recursive: true, force: true });
-        }
-        console.log(`  - ${relativeEntryPath} (removed, no longer in role)`);
-      }
+    for (const entry of readdirSync(targetDir)) {
+      if (expectedNames.has(entry)) continue;
+      const entryPath = resolve(targetDir, entry);
+      clearPath({ targetPath: entryPath });
+      console.log(
+        `  - ${relative(process.cwd(), entryPath)} (removed, no longer in role)`,
+      );
     }
   }
 
-  if (sourceDirs.length === 0) return 0;
-
+  // create symlinks for each source dir
   let totalFileCount = 0;
-
   for (const sourceDir of sourceDirs) {
     const sourcePath = resolve(process.cwd(), sourceDir.uri);
-
     if (!existsSync(sourcePath)) continue;
-
-    // create target directory parent if needed
-    mkdirSync(targetDir, { recursive: true });
-
-    // create a unique target path for this source directory
     const targetPath = resolve(targetDir, basename(sourcePath));
-
-    // remove existing symlink/file if it exists
-    const relativeTargetPath = relative(process.cwd(), targetPath);
-    if (existsSync(targetPath)) {
-      try {
-        unlinkSync(targetPath);
-        console.log(`  ↻ ${relativeTargetPath} (updated)`);
-      } catch {
-        rmSync(targetPath, { recursive: true, force: true });
-        console.log(`  ↻ ${relativeTargetPath} (updated)`);
-      }
-    } else {
-      console.log(`  + ${relativeTargetPath}`);
-    }
-
-    // create relative symlink from target directory to source directory
-    const relativeSource = relative(targetDir, sourcePath);
-
-    symlinkSync(relativeSource, targetPath, 'dir');
-    setDirectoryReadonlyExecutable(sourcePath);
-    const fileCount = countFilesInDirectory(sourcePath);
-    totalFileCount += fileCount;
+    totalFileCount += linkSourceToTarget({ sourcePath, targetPath });
   }
-
   return totalFileCount;
 };
