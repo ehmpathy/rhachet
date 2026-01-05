@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.14](https://github.com/ehmpathy/rhachet/compare/v1.19.13...v1.19.14) (2026-01-05)
+
+
+### Bug Fixes
+
+* **init:** support explicit mode upsert vs findsert ([#109](https://github.com/ehmpathy/rhachet/issues/109)) ([200810a](https://github.com/ehmpathy/rhachet/commit/200810ac090f244534e8680aa6da4e30fee91de6))
+
 ## [1.19.13](https://github.com/ehmpathy/rhachet/compare/v1.19.12...v1.19.13) (2026-01-04)
 
 
