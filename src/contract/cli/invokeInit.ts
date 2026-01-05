@@ -4,6 +4,7 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
 import { generateRhachetConfig } from '@src/domain.operations/init/generateRhachetConfig';
 import { findsertFile } from '@src/infra/findsertFile';
+import { upsertFile } from '@src/infra/upsertFile';
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
@@ -19,7 +20,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
     .description(
       'initialize rhachet.use.ts config from discovered role packages',
     )
-    .action(async () => {
+    .option(
+      '--mode <mode>',
+      'findsert (default) preserves existing, upsert overwrites',
+      'findsert',
+    )
+    .action(async (options: { mode: 'findsert' | 'upsert' }) => {
       const cwd = process.cwd();
       const root = await getGitRepoRoot({ from: cwd });
 
@@ -46,16 +52,20 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         console.log(`  - [found] ${pkg}`);
       }
 
-      console.log(``);
-      console.log(`✨ findsert rhachet resources...`);
+      // select persist function based on mode
+      const persistFile = options.mode === 'upsert' ? upsertFile : findsertFile;
 
-      // findsert rhachet.use.ts
+      console.log(``);
+      console.log(`✨ ${options.mode} rhachet resources...`);
+
+      // persist rhachet.use.ts (upsert or findsert based on mode)
       const configPath = resolve(root, 'rhachet.use.ts');
       const configContent = generateRhachetConfig({ packages });
-      findsertFile({ cwd, path: configPath, content: configContent });
+      persistFile({ cwd, path: configPath, content: configContent });
 
       // fix legacy import syntax: `import { InvokeHook` -> `import type { InvokeHook`
-      if (existsSync(configPath)) {
+      // (only needed for findsert mode when existing file may have old syntax)
+      if (options.mode === 'findsert' && existsSync(configPath)) {
         const content = readFileSync(configPath, 'utf8');
         if (content.includes('import { InvokeHook')) {
           const fixed = content.replace(
@@ -67,11 +77,11 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         }
       }
 
-      // findsert .agent/repo=.this/role=any directories and readme
+      // persist .agent/repo=.this/role=any directories and readme
       const roleAnyDir = resolve(root, '.agent', 'repo=.this', 'role=any');
-      findsertFile({ cwd, path: resolve(roleAnyDir, 'briefs') });
-      findsertFile({ cwd, path: resolve(roleAnyDir, 'skills') });
-      findsertFile({
+      persistFile({ cwd, path: resolve(roleAnyDir, 'briefs') });
+      persistFile({ cwd, path: resolve(roleAnyDir, 'skills') });
+      persistFile({
         cwd,
         path: resolve(roleAnyDir, 'readme.md'),
         content: 'this role applies to any agent that works within this repo\n',

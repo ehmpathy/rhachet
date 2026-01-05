@@ -249,5 +249,102 @@ describe('invokeInit (integration)', () => {
         },
       );
     });
+
+    when('rhachet.use.ts already exists and --mode upsert is used', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+        writeFileSync(resolve(testDir, 'rhachet.use.ts'), '// existing config');
+      });
+
+      then(
+        'it should report [updated] and overwrite existing content',
+        async () => {
+          await program.parseAsync(['init', '--mode', 'upsert'], {
+            from: 'user',
+          });
+
+          // should overwrite with new content
+          const configPath = resolve(testDir, 'rhachet.use.ts');
+          const content = readFileSync(configPath, 'utf8');
+          expect(content).not.toBe('// existing config');
+          expect(content).toContain('getRoleRegistryEhmpathy');
+
+          // should report updated
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('↻ [updated]'),
+          );
+        },
+      );
+    });
+
+    when('rhachet.use.ts does not exist and --mode upsert is used', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+      });
+
+      then('it should report [created] and create the file', async () => {
+        await program.parseAsync(['init', '--mode', 'upsert'], {
+          from: 'user',
+        });
+
+        // should create with new content
+        const configPath = resolve(testDir, 'rhachet.use.ts');
+        expect(existsSync(configPath)).toBe(true);
+        const content = readFileSync(configPath, 'utf8');
+        expect(content).toContain('getRoleRegistryEhmpathy');
+
+        // should report created
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('+ [created]'),
+        );
+      });
+    });
+
+    when('--mode findsert is explicitly used (default behavior)', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+        writeFileSync(resolve(testDir, 'rhachet.use.ts'), '// existing config');
+      });
+
+      then('it should preserve existing content like default', async () => {
+        await program.parseAsync(['init', '--mode', 'findsert'], {
+          from: 'user',
+        });
+
+        // should preserve existing content
+        const configPath = resolve(testDir, 'rhachet.use.ts');
+        const content = readFileSync(configPath, 'utf8');
+        expect(content).toBe('// existing config');
+
+        // should report found
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('○ [found]'),
+        );
+      });
+    });
   });
 });
