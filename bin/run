@@ -1,1 +1,37 @@
-run.bun
+#!/usr/bin/env bash
+######################################################################
+# .what = shell entrypoint for rhachet CLI
+# .why = routes to bun (fast) or jit (flexible) dispatcher
+#
+# architecture:
+#   run, roles boot/cost → run.bun (bun compiled, reads .agent/)
+#   *                    → run.jit (jit, imports from npm packages)
+#
+# .note = run.bun does finer-grained dispatch to .bc binaries
+######################################################################
+
+# resolve script directory (handles symlinks)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "$1" in
+  run)
+    # fast path: dispatch to bun, if allowlisted
+    exec "$SCRIPT_DIR/run.bun" "$@"
+    ;;
+  roles)
+    case "$2" in
+      boot|cost)
+        # fast path: dispatch to bun, if allowlisted
+        exec "$SCRIPT_DIR/run.bun" "$@"
+        ;;
+      *)
+        # else, use jit
+        exec "$SCRIPT_DIR/run.jit" "$@"
+        ;;
+    esac
+    ;;
+  *)
+    # else, use jit
+    exec "$SCRIPT_DIR/run.jit" "$@"
+    ;;
+esac
