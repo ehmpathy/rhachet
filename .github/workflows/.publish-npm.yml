@@ -58,4 +58,35 @@ jobs:
         run: npm run build
 
       - name: publish
+        id: publish
+        continue-on-error: true
         run: npm publish --access public --provenance
+
+      # if publish fails, check whether the intent was successful still, for behavioral idempotency (i.e., if the failure just reported that this is a retry, then its an idempotent success)
+      - name: idempotify
+        if: steps.publish.outcome == 'failure'
+        run: |
+          # get package info
+          PACKAGE_NAME=$(jq -r '.name' package.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+
+          # check if version exists on npm
+          if ! npm view "$PACKAGE_NAME@$PACKAGE_VERSION" dist.shasum > /dev/null 2>&1; then
+            echo "::error::publish: this version failed to be published. see prior step for cause"
+            exit 1
+          fi
+
+          # get shasums: local (via dry-run) and published (via registry)
+          EXPECTED_SHASUM=$(npm pack --dry-run --json 2>/dev/null | jq -r '.[0].shasum')
+          DETECTED_SHASUM=$(npm view "$PACKAGE_NAME@$PACKAGE_VERSION" dist.shasum)
+          echo "EXPECTED_SHASUM=$EXPECTED_SHASUM"
+          echo "DETECTED_SHASUM=$DETECTED_SHASUM"
+
+          # compare shasums
+          if [ "$EXPECTED_SHASUM" = "$DETECTED_SHASUM" ]; then
+            echo "publish: idempotent success. detected version matches expected version. this was a succesful retry"
+            exit 0
+          else
+            echo "::error::publish: this version was already published with a different payload. overwrites are forbidden. EXPECTED_SHASUM=$EXPECTED_SHASUM, DETECTED_SHASUM=$DETECTED_SHASUM"
+            exit 1
+          fi
