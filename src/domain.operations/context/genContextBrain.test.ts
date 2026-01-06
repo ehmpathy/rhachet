@@ -2,8 +2,8 @@ import { BadRequestError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genMockedBrainAtom } from '@src/__test_assets__/genMockedBrainAtom';
-import { genMockedBrainRepl } from '@src/__test_assets__/genMockedBrainRepl';
+import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
+import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 

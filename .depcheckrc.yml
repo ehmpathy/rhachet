@@ -18,3 +18,7 @@ ignores:
   - "@src/*"
   - "@src/.*"
   - tsc-alias
+  - rhachet-roles-bhrain
+  - rhachet-roles-bhuild
+  - rhachet-roles-ehmpathy
+  - yalc

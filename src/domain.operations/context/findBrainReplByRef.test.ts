@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
-import { genMockedBrainRepl } from '@src/__test_assets__/genMockedBrainRepl';
+import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { findBrainReplByRef } from './findBrainReplByRef';

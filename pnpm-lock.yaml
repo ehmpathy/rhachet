@@ -106,11 +106,11 @@ importers:
         specifier: 3.3.0
         version: 3.3.0(@types/node@22.15.21)(typescript@5.4.5)
       declapract:
-        specifier: 0.13.4
-        version: 0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+        specifier: 0.13.11
+        version: 0.13.11(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       declapract-typescript-ehmpathy:
-        specifier: 0.46.3
-        version: 0.46.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76)
+        specifier: 0.47.14
+        version: 0.47.14(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.11(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76)
       declastruct:
         specifier: 1.7.3
         version: 1.7.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(domain-objects@0.31.9)(hono@4.11.3)(zod@3.25.76)
@@ -133,8 +133,8 @@ importers:
         specifier: 1.19.15
         version: 1.19.15(@types/node@22.15.21)(hono@4.11.3)
       rhachet-roles-bhrain:
-        specifier: 0.5.5
-        version: 0.5.5(@types/node@22.15.21)(hono@4.11.3)
+        specifier: 0.5.9
+        version: 0.5.9(@types/node@22.15.21)(hono@4.11.3)
       rhachet-roles-bhuild:
         specifier: 0.5.1
         version: 0.5.1(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
@@ -2526,14 +2526,14 @@ packages:
       supports-color:
         optional: true
 
-  declapract-typescript-ehmpathy@0.46.3:
-    resolution: {integrity: sha512-Gc9KubpFU+96FfGYKYfKO7fC55W6hvugB40HEGBULX7SHhJDpvUPW6Gx80pg341NYzuWO/7ns04gYKMGjfZlqw==}
+  declapract-typescript-ehmpathy@0.47.14:
+    resolution: {integrity: sha512-upwFom1n6eufD4pJdoYruXxfnTQI2lHAkGKCXerTo0KRWbCWTRMlL2o1kmjUKb7ha09yIyPxuZXGWQq+AON3JQ==}
     peerDependencies:
-      declapract: '>=0.13.1'
+      declapract: '>=0.13.3'
 
-  declapract@0.13.4:
-    resolution: {integrity: sha512-UPmnhH85diRIKbBlleybjx7fynDwYaXQvBNvhTLpLrbXtwBq5XknaJUWPpJSCmL0w2gDSmkAJaUEhoIY3OKk1g==}
-    engines: {node: '>=12.0.0'}
+  declapract@0.13.11:
+    resolution: {integrity: sha512-s/nCi6d7yCCtjhTunIJYkjJmFNGAm9JXPoBu0vtXS1WyKXTzanQDBs164a/7pK4XHy3/WZcrb/VCPoFJ6qlQJw==}
+    engines: {node: '>=18.19.0'}
     hasBin: true
 
   declastruct-github@1.3.0:
@@ -4011,8 +4011,8 @@ packages:
     resolution: {integrity: sha512-+Nk2bNKKuvXEx/ryq3zNTzw9Ay+2wGRs3JGg7mzHiVMDNseN/C5LM6BvruDE4tFjSgLMS3oHybJvl79lVC9mbQ==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-bhrain@0.5.5:
-    resolution: {integrity: sha512-4zriSU2ceDaA+qR3pMJiqa5xVXz41rTQuD6M+DGqu5pJHracJWoaEwtCHslJ6wVSZHrYZXNkb4KopgWDvYlNcQ==}
+  rhachet-roles-bhrain@0.5.9:
+    resolution: {integrity: sha512-tBx17IkE+gromCOOuKo01hSGSnDaHaMRTJPQa8ew1i9ulKGhD3HCHAndL/MKQ5L+4p+CgsJfsi5ydflbRXrMRQ==}
     engines: {node: '>=8.0.0'}
 
   rhachet-roles-bhuild@0.1.3:
@@ -7723,9 +7723,9 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  declapract-typescript-ehmpathy@0.46.3(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76):
+  declapract-typescript-ehmpathy@0.47.14(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(declapract@0.13.11(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76))(esbuild@0.25.12)(hono@4.11.3)(zod@3.25.76):
     dependencies:
-      declapract: 0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      declapract: 0.13.11(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       domain-objects: 0.31.7(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
       esbuild-register: 3.6.0(esbuild@0.25.12)
       expect: 29.4.2
@@ -7744,7 +7744,7 @@ snapshots:
       - ws
       - zod
 
-  declapract@0.13.4(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
+  declapract@0.13.11(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76):
     dependencies:
       chalk: 2.4.2
       commander: 12.1.0
@@ -9534,7 +9534,7 @@ snapshots:
       find-up: 5.0.0
       hash-fns: 1.1.0
       helpful-errors: 1.3.8
-      rhachet-artifact: 1.0.0(@anthropic-ai/sdk@0.71.2(zod@3.25.76))(@types/node@22.15.21)(hono@4.11.3)(zod@3.25.76)
+      rhachet-artifact: 1.0.0
       serde-fns: 1.3.0
       type-fns: 1.19.0
     transitivePeerDependencies:
@@ -9738,7 +9738,7 @@ snapshots:
       - ws
       - zod
 
-  rhachet-roles-bhrain@0.5.5(@types/node@22.15.21)(hono@4.11.3):
+  rhachet-roles-bhrain@0.5.9(@types/node@22.15.21)(hono@4.11.3):
     dependencies:
       '@anthropic-ai/sdk': 0.51.0
       '@ehmpathy/as-command': 1.0.3
