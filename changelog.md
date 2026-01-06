@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.15](https://github.com/ehmpathy/rhachet/compare/v1.19.14...v1.19.15) (2026-01-06)
+
+
+### Bug Fixes
+
+* **cli:** rhachet link roles should not halt on broken symlinks ([#111](https://github.com/ehmpathy/rhachet/issues/111)) ([78009e0](https://github.com/ehmpathy/rhachet/commit/78009e093bc597fe6d27f3608ca2267545cba4a6))
+
 ## [1.19.14](https://github.com/ehmpathy/rhachet/compare/v1.19.13...v1.19.14) (2026-01-05)
 
 
