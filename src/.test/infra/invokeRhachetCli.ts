@@ -39,28 +39,6 @@ export const invokeRhachetCli = (input: {
 };
 
 /**
- * .what = invokes rhachet roles init --command
- * .why = common pattern for init script tests
- */
-export const invokeRhachetInit = (input: {
-  command: string;
-  cwd: string;
-  stdin?: string;
-  repo?: string;
-  role?: string;
-}): SpawnSyncReturns<string> => {
-  const args = ['roles', 'init', '--command', input.command];
-  if (input.repo) args.push('--repo', input.repo);
-  if (input.role) args.push('--role', input.role);
-
-  return invokeRhachetCli({
-    args,
-    cwd: input.cwd,
-    stdin: input.stdin,
-  });
-};
-
-/**
  * .what = invokes rhachet run --skill
  * .why = common pattern for skill execution tests
  */

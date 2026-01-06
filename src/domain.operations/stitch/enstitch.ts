@@ -1,5 +1,5 @@
-import { asUniDateTime } from '@ehmpathy/uni-time';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp } from 'iso-time';
 import { getUuid } from 'uuid-fns';
 
 import { Stitch } from '@src/domain.objects/Stitch';
@@ -94,7 +94,7 @@ export const enstitch = async <
   const stitchUuid = getUuid();
   const stitch = Stitch.build({
     uuid: stitchUuid,
-    createdAt: asUniDateTime(new Date()),
+    createdAt: asIsoTimeStamp(new Date()),
     stitcher: asStitcherDesc({ stitcher: input.stitcher }),
     trail: {
       desc: asStitchTrailDesc({
@@ -130,7 +130,7 @@ export const enstitch = async <
   const event = StitchSetEvent.build<
     StitchSetEvent<ReqThreadsSingle<TStitcher['threads']>, TStitcher['output']> // propagate the type:inference
   >({
-    occurredAt: asUniDateTime(new Date()),
+    occurredAt: asIsoTimeStamp(new Date()),
     stitch,
     threads: normThreadsToSingle({
       ...input.threads,

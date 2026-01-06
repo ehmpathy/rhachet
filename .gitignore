@@ -13,3 +13,6 @@ coverage
 dist
 node_modules
 *.bak.*
+
+# bun compiled binaries (built artifacts)
+*.bc

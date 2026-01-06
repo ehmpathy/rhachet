@@ -1,5 +1,5 @@
-import type { UniDuration } from '@ehmpathy/uni-time';
 import { DomainLiteral } from 'domain-objects';
+import type { IsoDuration } from 'iso-time';
 import type { PickAny } from 'type-fns';
 
 import type {
@@ -54,7 +54,7 @@ export interface StitchCycle<
       /**
        * the amount of time spent in the cycle
        */
-      duration: UniDuration;
+      duration: IsoDuration;
     }>;
   };
 }

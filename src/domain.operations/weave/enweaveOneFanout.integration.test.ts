@@ -117,7 +117,7 @@ describe('enweaveOneFanout', () => {
           path: '__path__',
           content: `
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { UniDateTime } from '@ehmpathy/uni-time';
+import { IsoTimeStamp } from 'iso-time';
 import { PickOne } from 'type-fns';
 
 import { daoJobProspect } from '@src/access/daos/jobProspectDao';
@@ -129,8 +129,8 @@ input: PickOne<{
   byProvider: { providerUuid: string };
 }> & {
   page: {
-    since?: { openedAt: UniDateTime };
-    until?: { openedAt: UniDateTime };
+    since?: { openedAt: IsoTimeStamp };
+    until?: { openedAt: IsoTimeStamp };
     limit: number;
   };
 },

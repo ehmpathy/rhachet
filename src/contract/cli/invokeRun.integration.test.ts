@@ -1,15 +1,11 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
-import { z } from 'zod';
-
-import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
-import { Role } from '@src/domain.objects/Role';
-import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
 import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -38,8 +34,8 @@ describe('invokeRun (integration)', () => {
       logSpy.mockClear();
     });
 
-    // use empty registries and brains for command-mode discovery behavior tests
-    invokeRun({ program, registries: [], brains: [] });
+    // command-mode only (actor-mode is not supported)
+    invokeRun({ program });
 
     when('skill exists in repo=.this/role=any', () => {
       beforeAll(() => {
@@ -139,14 +135,14 @@ describe('invokeRun (integration)', () => {
     });
 
     when('--skill is not provided', () => {
-      then('it throws error that requires --skill', async () => {
+      then('it throws error that requires --skill or --init', async () => {
         const error = await getError(() =>
           program.parseAsync(['run'], {
             from: 'user',
           }),
         );
 
-        expect(error?.message).toContain('--skill is required');
+        expect(error?.message).toContain('--skill or --init is required');
       });
     });
 
@@ -333,125 +329,195 @@ describe('invokeRun (integration)', () => {
     });
   });
 
-  given(
+  // actor-mode tests skipped: actor-mode is not supported yet
+  // we need to support .agent/ linkage for actor-mode solid skills
+  // for now, we only support command-mode
+  // .question = do we even need actor support via cli? or is cmd enough?
+  given.skip(
     'a CLI program with invokeRun registered (actor-mode with typed solid skill)',
     () => {
-      const testDir = resolve(__dirname, './.temp/invokeRunActorMode');
-      const originalCwd = process.cwd();
-
-      beforeAll(() => {
-        // create test directory
-        mkdirSync(testDir, { recursive: true });
-        process.chdir(testDir);
-
-        // clean up any existing .agent
-        const cleanAgentDir = resolve(testDir, '.agent');
-        if (existsSync(cleanAgentDir)) {
-          rmSync(cleanAgentDir, { recursive: true, force: true });
-        }
-
-        // create skill file for greet
-        const skillsDir = resolve(
-          testDir,
-          '.agent/repo=.this/role=runner/skills',
-        );
-        mkdirSync(skillsDir, { recursive: true });
-
-        const greetSkill = resolve(skillsDir, 'greet.sh');
-        writeFileSync(
-          greetSkill,
-          '#!/usr/bin/env bash\necho "hello ${1:-stranger}"',
-        );
-        chmodSync(greetSkill, '755');
-      });
-
-      afterAll(() => {
-        process.chdir(originalCwd);
-      });
-
-      // create real brain via genBrainRepl
-      const brain = genBrainRepl({ slug: 'openai/codex' });
-
-      // create test role with typed solid skill
-      const testRole = new Role({
-        slug: 'runner',
-        name: 'Runner',
-        purpose: 'test role for invokeRun actor-mode tests',
-        readme: { uri: '.test/readme.md' },
-        traits: [],
-        skills: {
-          solid: {
-            greet: {
-              input: z.object({ name: z.string() }),
-              output: z.object({ message: z.string() }),
-            },
-          },
-          dirs: { uri: '.agent/repo=.this/role=runner/skills' },
-          refs: [],
-        },
-        briefs: { dirs: { uri: '.agent/repo=.this/role=runner/briefs' } },
-      });
-
-      const testRegistry: RoleRegistry = {
-        slug: '.this',
-        readme: { uri: '.test/readme.md' },
-        roles: [testRole],
-      };
-
-      const program = new Command();
-      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
-      beforeEach(() => {
-        logSpy.mockClear();
-      });
-
-      invokeRun({
-        program,
-        registries: [testRegistry],
-        brains: [brain],
-      });
-
-      when('run command is invoked with typed solid skill', () => {
-        then('it invokes actor.run with the skill', async () => {
-          const args = ['run', '--skill', 'greet', '--role', 'runner'];
-          await program.parseAsync(args, { from: 'user' });
-
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('run solid skill role=runner/skill=greet'),
-          );
-        });
-      });
-
-      when('run command is invoked with args for typed solid skill', () => {
-        then('it passes args to actor.run', async () => {
-          const args = [
-            'run',
-            '--skill',
-            'greet',
-            '--role',
-            'runner',
-            '--name',
-            'World',
-          ];
-          await program.parseAsync(args, { from: 'user' });
-
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('run solid skill role=runner/skill=greet'),
-          );
-        });
-      });
-
-      when('run command is invoked with nonexistent skill on role', () => {
-        then('it falls back to command-mode and fails', async () => {
-          const args = ['run', '--skill', 'nonexistent', '--role', 'runner'];
-          const error = await getError(() =>
-            program.parseAsync(args, { from: 'user' }),
-          );
-
-          // falls back to command-mode which fails to find the skill
-          expect(error?.message).toContain('no skill');
-        });
-      });
+      // actor-mode tests removed - see invokeRun.ts for explanation
     },
   );
+
+  given('linked roles with inits directory', () => {
+    const testDir = resolve(__dirname, './.temp/invokeRun-init');
+    const originalCwd = process.cwd();
+
+    beforeAll(() => {
+      rmSync(testDir, { recursive: true, force: true });
+      mkdirSync(testDir, { recursive: true });
+      process.chdir(testDir);
+
+      // create .agent directory structure with init scripts
+      const initsDir = resolve(
+        testDir,
+        '.agent/repo=ehmpathy/role=mechanic/inits',
+      );
+      mkdirSync(initsDir, { recursive: true });
+
+      // create a flat init script
+      writeFileSync(
+        resolve(initsDir, 'init.claude.sh'),
+        '#!/usr/bin/env bash\necho "init.claude executed" > init-claude-output.txt',
+      );
+      chmodSync(resolve(initsDir, 'init.claude.sh'), '755');
+
+      // create a nested init script (key usecase for --init)
+      const nestedDir = resolve(initsDir, 'claude.hooks');
+      mkdirSync(nestedDir, { recursive: true });
+      writeFileSync(
+        resolve(nestedDir, 'sessionstart.notify-permissions.sh'),
+        '#!/usr/bin/env bash\necho "sessionstart.notify-permissions executed" > nested-init-output.txt',
+      );
+      chmodSync(
+        resolve(nestedDir, 'sessionstart.notify-permissions.sh'),
+        '755',
+      );
+    });
+
+    afterAll(() => {
+      process.chdir(originalCwd);
+    });
+
+    const program = new Command();
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    beforeEach(() => {
+      logSpy.mockClear();
+      rmSync(resolve(testDir, 'init-claude-output.txt'), { force: true });
+      rmSync(resolve(testDir, 'nested-init-output.txt'), { force: true });
+    });
+
+    invokeRun({ program });
+
+    when('invoked with --init init.claude', () => {
+      then('it discovers and executes that specific init', async () => {
+        await program.parseAsync(['run', '--init', 'init.claude'], {
+          from: 'user',
+        });
+
+        // check that the init script ran
+        expect(existsSync(resolve(testDir, 'init-claude-output.txt'))).toBe(
+          true,
+        );
+        const content = readFileSync(
+          resolve(testDir, 'init-claude-output.txt'),
+          'utf-8',
+        );
+        expect(content.trim()).toBe('init.claude executed');
+
+        // check log output
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'run init repo=ehmpathy/role=mechanic/init=init.claude',
+          ),
+        );
+      });
+    });
+
+    when(
+      'invoked with --init claude.hooks/sessionstart.notify-permissions',
+      () => {
+        then('it discovers and executes the nested init', async () => {
+          await program.parseAsync(
+            ['run', '--init', 'claude.hooks/sessionstart.notify-permissions'],
+            { from: 'user' },
+          );
+
+          // check that the nested init script ran
+          expect(existsSync(resolve(testDir, 'nested-init-output.txt'))).toBe(
+            true,
+          );
+          const content = readFileSync(
+            resolve(testDir, 'nested-init-output.txt'),
+            'utf-8',
+          );
+          expect(content.trim()).toBe(
+            'sessionstart.notify-permissions executed',
+          );
+
+          // check log output includes full path slug
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+              'run init repo=ehmpathy/role=mechanic/init=claude.hooks/sessionstart.notify-permissions',
+            ),
+          );
+        });
+      },
+    );
+
+    when(
+      'invoked with --init claude.hooks/sessionstart.notify-permissions --repo ehmpathy --role mechanic',
+      () => {
+        then('it executes with explicit disambiguation', async () => {
+          await program.parseAsync(
+            [
+              'run',
+              '--init',
+              'claude.hooks/sessionstart.notify-permissions',
+              '--repo',
+              'ehmpathy',
+              '--role',
+              'mechanic',
+            ],
+            { from: 'user' },
+          );
+
+          // check that the nested init script ran
+          expect(existsSync(resolve(testDir, 'nested-init-output.txt'))).toBe(
+            true,
+          );
+
+          // check log output includes repo and role
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('repo=ehmpathy'),
+          );
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('role=mechanic'),
+          );
+        });
+      },
+    );
+
+    when('invoked with --init nonexistent', () => {
+      then('it throws error with available inits', async () => {
+        const error = await getError(() =>
+          program.parseAsync(['run', '--init', 'nonexistent'], {
+            from: 'user',
+          }),
+        );
+
+        expect(error?.message).toContain('no init "nonexistent" found');
+        expect(error?.message).toContain('available inits:');
+        expect(error?.message).toContain('init.claude');
+      });
+    });
+
+    when(
+      'invoked with --init nonexistent --repo ehmpathy --role mechanic',
+      () => {
+        then('it throws error that includes the filters', async () => {
+          const error = await getError(() =>
+            program.parseAsync(
+              [
+                'run',
+                '--init',
+                'nonexistent',
+                '--repo',
+                'ehmpathy',
+                '--role',
+                'mechanic',
+              ],
+              { from: 'user' },
+            ),
+          );
+
+          expect(error?.message).toContain('no init "nonexistent" found');
+          expect(error?.message).toContain('--repo ehmpathy');
+          expect(error?.message).toContain('--role mechanic');
+        });
+      },
+    );
+  });
 });

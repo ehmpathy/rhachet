@@ -1,4 +1,4 @@
-import { asUniDateTime, getDuration } from '@ehmpathy/uni-time';
+import { asIsoTimeStamp, getDuration } from 'iso-time';
 
 import type { Stitch } from '@src/domain.objects/Stitch';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
@@ -17,7 +17,7 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
   const { stitcher, threads } = input;
 
   // todo: generalize logs
-  const beganAt = asUniDateTime(new Date());
+  const beganAt = asIsoTimeStamp(new Date());
   console.log(`🧠 imagine.began:${input.stitcher.slug}`, { beganAt });
 
   // enprompt the thread
@@ -34,7 +34,7 @@ export const invokeImagineStitcher = async <TStitcher extends GStitcher>(
   });
 
   // todo: generalize logs
-  const endedAt = asUniDateTime(new Date());
+  const endedAt = asIsoTimeStamp(new Date());
   const duration = getDuration({
     of: { range: { since: beganAt, until: endedAt } },
   });

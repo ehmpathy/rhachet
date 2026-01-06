@@ -23,8 +23,8 @@ import { invokeRun } from './invokeRun';
  *   - sets up CLI commands and loads dynamic config from project root
  *   - enables skills to be registered dynamically via `rhachet.use.ts`
  * .how =
- *   - defaults to loading `@gitroot/rhachet.use.ts` unless overridden with `--config` or `-c`
- *   - config must export a `getRoleRegistries()` function returning a set of RoleRegistries to support
+ *   - defaults to load `@gitroot/rhachet.use.ts` unless overridden with `--config` or `-c`
+ *   - config must export a `getRoleRegistries()` function that returns a set of RoleRegistries to support
  */
 export const invoke = async (input: { args: string[] }): Promise<void> => {
   // treat init command specially - it's purpose is to run before configs exists
@@ -43,10 +43,11 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
     configArg >= 0 && input.args[configArg + 1]
       ? input.args[configArg + 1]!
       : undefined;
-  const cwd = process.cwd(); //
+  const cwd = process.cwd();
+  const gitRoot = await getGitRepoRoot({ from: cwd });
   const configPath = configPathExplicit
     ? resolve(cwd, configPathExplicit)
-    : resolve(await getGitRepoRoot({ from: cwd }), 'rhachet.use.ts');
+    : resolve(gitRoot, 'rhachet.use.ts');
   const registries = await getRegistriesByOpts({
     opts: { config: configPath },
   });
@@ -76,7 +77,7 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program, registries });
   invokeList({ program, registries });
   invokeRoles({ program, registries });
-  invokeRun({ program, registries, brains });
+  invokeRun({ program });
   invokeChoose({ program });
   invokeAsk({
     program,

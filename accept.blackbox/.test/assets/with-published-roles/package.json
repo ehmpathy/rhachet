@@ -1,0 +1,9 @@
+{
+  "name": "test-with-published-roles",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet": "^1.19.0",
+    "rhachet-roles-ehmpathy": "^1.17.0"
+  }
+}

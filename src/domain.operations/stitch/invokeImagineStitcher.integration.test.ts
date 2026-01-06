@@ -1,4 +1,4 @@
-import { toMilliseconds } from '@ehmpathy/uni-time';
+import { toMilliseconds } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';

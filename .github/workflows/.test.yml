@@ -209,7 +209,7 @@ jobs:
         run: npm run start:livedb:dev --if-present
 
       - name: test:acceptance:locally
-        run: THOROUGH=true npm run test:acceptance --if-present
+        run: THOROUGH=true npm run test:acceptance:locally --if-present
         env:
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}

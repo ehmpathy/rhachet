@@ -1,4 +1,4 @@
-import { sleep } from '@ehmpathy/uni-time';
+import { sleep } from 'iso-time';
 import { given, then, when } from 'test-fns';
 import type { Empty } from 'type-fns';
 

@@ -1,2 +1,1 @@
-#!/usr/bin/env -S node --experimental-strip-types --experimental-transform-types --disable-warning=ExperimentalWarning
-require('../dist/contract/cli/invoke').invoke({ args: process.argv.slice(2) });
+run.bun

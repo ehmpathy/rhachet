@@ -1,6 +1,14 @@
+import { HelpfulError } from 'helpful-errors';
+
 import type { RoleInitExecutable } from '@src/domain.objects/RoleInitExecutable';
 
 import { spawnSync } from 'node:child_process';
+
+/**
+ * .what = error thrown when an init script exits with non-zero status
+ * .why = enables callers to catch and handle init failures gracefully
+ */
+export class InitExecutionError extends HelpfulError {}
 
 /**
  * .what = executes an init script with passthrough args
@@ -29,8 +37,10 @@ export const executeInit = (input: {
     shell: '/bin/bash',
   });
 
-  // propagate non-zero exit codes
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+  // throw on non-zero exit
+  if (result.status !== 0)
+    throw new InitExecutionError('init execution failed', {
+      init: input.init.slug,
+      path: input.init.path,
+    });
 };

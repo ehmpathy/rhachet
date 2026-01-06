@@ -1,11 +1,11 @@
-import {
-  asUniDateTime,
-  getDuration,
-  type UniDateTimeRange,
-  type UniDuration,
-} from '@ehmpathy/uni-time';
 import chalk from 'chalk';
 import { UnexpectedCodePathError } from 'helpful-errors';
+import {
+  asIsoTimeStamp,
+  getDuration,
+  type IsoDuration,
+  type IsoTimeStampRange,
+} from 'iso-time';
 import { asSerialBase64, asSerialJSON, type Serializable } from 'serde-fns';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
@@ -60,8 +60,8 @@ export const invokePerformInIsolatedThread = async (input: {
   attempt: number;
   code: number | null;
   clock: {
-    range: UniDateTimeRange;
-    duration: UniDuration;
+    range: IsoTimeStampRange;
+    duration: IsoDuration;
   };
 }> => {
   // grab the attempt index from the argv
@@ -122,9 +122,9 @@ export const invokePerformInIsolatedThread = async (input: {
     pipe(child.stderr!, (s) => process.stderr.write(s + '\n'));
 
     // resolve this procedure on exit of worker
-    const beganAt = asUniDateTime(new Date());
+    const beganAt = asIsoTimeStamp(new Date());
     child.once('exit', (code) => {
-      const range = { since: beganAt, until: asUniDateTime(new Date()) };
+      const range = { since: beganAt, until: asIsoTimeStamp(new Date()) };
       resolve({
         attempt,
         code,

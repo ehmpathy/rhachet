@@ -1,5 +1,5 @@
-import type { UniDateTime } from '@ehmpathy/uni-time';
 import { DomainLiteral } from 'domain-objects';
+import type { IsoTimeStamp } from 'iso-time';
 
 import type { Stitch } from './Stitch';
 import type { Threads } from './Threads';
@@ -14,7 +14,7 @@ export interface StitchSetEvent<
   /**
    * .what = when the stitch was set
    */
-  occurredAt: UniDateTime;
+  occurredAt: IsoTimeStamp;
 
   /**
    * .what = the stitch which was set

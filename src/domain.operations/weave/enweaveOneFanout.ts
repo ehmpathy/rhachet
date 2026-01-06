@@ -1,4 +1,4 @@
-import { asUniDateTime } from '@ehmpathy/uni-time';
+import { asIsoTimeStamp } from 'iso-time';
 
 import type { GStitcher } from '@src/domain.objects/Stitcher';
 import type {
@@ -64,7 +64,7 @@ export const enweaveOneFanout = withStitchTrail(
 
     // declare the result
     return StitchSetEvent.build({
-      occurredAt: asUniDateTime(new Date()),
+      occurredAt: asIsoTimeStamp(new Date()),
       stitch: finalStitch,
       threads: finalThreads,
     });

@@ -1,22 +1,15 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { bootRoleResources } from '@src/domain.operations/invoke/bootRoleResources';
-import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
+import { findUniqueRoleDir } from '@src/domain.operations/invoke/findUniqueRoleDir';
 
 /**
  * .what = adds the "roles boot" subcommand to the CLI
- * .why = outputs role resources (briefs and skills) with stats for context loading
- * .how = resolves repo and role, then delegates to bootRoleResources
+ * .why = outputs role resources (briefs and skills) with stats for context load
+ * .how = resolves repo and role via .agent/ scan, then delegates to bootRoleResources
  */
-export const invokeRolesBoot = ({
-  command,
-  registries,
-}: {
-  command: Command;
-  registries: RoleRegistry[];
-}): void => {
+export const invokeRolesBoot = ({ command }: { command: Command }): void => {
   command
     .command('boot')
     .description('boot context from role resources (briefs and skills)')
@@ -31,27 +24,31 @@ export const invokeRolesBoot = ({
         // require --role for all cases
         if (!opts.role)
           BadRequestError.throw('--role is required (e.g., --role mechanic)');
-        const slugRole = opts.role;
 
-        // resolve slugRepo
-        const slugRepo = (() => {
-          // normalize "this"/"THIS"/".this" to ".this"
-          const normalized = opts.repo?.trim().toLowerCase();
-          if (normalized === 'this' || normalized === '.this') return '.this';
+        // discover role dir from .agent/
+        const roleDir = findUniqueRoleDir({
+          slugRepo: opts.repo,
+          slugRole: opts.role,
+          ifPresent: opts.ifPresent,
+        });
 
-          // otherwise lookup from registries
-          const repo = opts.repo
-            ? registries.find((r) => r.slug === opts.repo)
-            : inferRepoByRole({ registries, slugRole });
-          if (!repo)
-            BadRequestError.throw(`No repo found with slug "${opts.repo}"`);
-          return repo.slug;
-        })();
+        // skip if role not found and --if-present
+        if (!roleDir) {
+          if (!opts.ifPresent)
+            throw new UnexpectedCodePathError(
+              'roleDir null without ifPresent',
+              {
+                opts,
+              },
+            );
+          console.log(`🫧 role not present, skipped`);
+          return;
+        }
 
         // boot the role resources
         await bootRoleResources({
-          slugRepo,
-          slugRole,
+          slugRepo: roleDir.slugRepo,
+          slugRole: roleDir.slugRole,
           ifPresent: opts.ifPresent ?? false,
         });
       },
