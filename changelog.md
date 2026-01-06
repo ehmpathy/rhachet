@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.1](https://github.com/ehmpathy/rhachet/compare/v1.20.0...v1.20.1) (2026-01-06)
+
+
+### Bug Fixes
+
+* **pkg:** ensure bin/*.bc files are bundled ([#115](https://github.com/ehmpathy/rhachet/issues/115)) ([c59a781](https://github.com/ehmpathy/rhachet/commit/c59a78182398d3ae1a0dadfd078bc65f22e4f005))
+
 ## [1.20.0](https://github.com/ehmpathy/rhachet/compare/v1.19.15...v1.20.0) (2026-01-06)
 
 
