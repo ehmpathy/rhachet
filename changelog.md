@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/ehmpathy/rhachet/compare/v1.19.15...v1.20.0) (2026-01-06)
+
+
+### Features
+
+* **perf:** dispatch .agent/ based skills via bun for speed++ ([#105](https://github.com/ehmpathy/rhachet/issues/105)) ([bbb6292](https://github.com/ehmpathy/rhachet/commit/bbb629246f3abeb65ba8d09024942d2ab0f95284))
+
 ## [1.19.15](https://github.com/ehmpathy/rhachet/compare/v1.19.14...v1.19.15) (2026-01-06)
 
 
