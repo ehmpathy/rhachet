@@ -11,12 +11,16 @@ import type { StitchStep } from './StitchStep';
 import type { Threads } from './Threads';
 
 /**
+ * .what = the base context required for a stitcher generically
+ */
+export type GStitcherContextBase = ContextLogTrail & ContextStitchTrail;
+
+/**
  * .what = the common generics of a stitcher
  */
 export type GStitcher<
   TThreads extends Threads<any, any> = Threads<any, 'single'>,
-  TContext extends ContextLogTrail & ContextStitchTrail = ContextLogTrail &
-    ContextStitchTrail,
+  TContext extends GStitcherContextBase = GStitcherContextBase,
   TOutput = any,
 > = {
   threads: TThreads;
