@@ -1,5 +1,5 @@
 export { withImmute } from 'domain-objects';
-export type { ContextLogTrail, LogMethods } from 'simple-log-methods';
+export type { ContextLogTrail } from 'simple-log-methods';
 
 export * from '@src/domain.objects';
 export { genActor } from '@src/domain.operations/actor/genActor';
