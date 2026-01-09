@@ -156,7 +156,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
             // handle init failures cleanly without stack trace
             if (error instanceof InitExecutionError) {
               console.error(`\n⛈️ ${error.message}`);
-              process.exit(1);
+              process.exit(error.exitCode);
             }
             throw error;
           }
@@ -172,7 +172,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
             // handle skill failures cleanly without stack trace
             if (error instanceof SkillExecutionError) {
               console.error(`\n⛈️ ${error.message}`);
-              process.exit(1);
+              process.exit(error.exitCode);
             }
             throw error;
           }

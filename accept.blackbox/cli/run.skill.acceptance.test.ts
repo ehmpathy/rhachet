@@ -111,7 +111,68 @@ describe('rhachet run', () => {
     });
   });
 
-  given('[case4] repo with skills and --attempts flag', () => {
+  given('[case4] repo with exit-code skill', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] run --skill exit-code --code 0', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'exit-code', '--code', '0'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+    });
+
+    when('[t1] run --skill exit-code --code 2', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'exit-code', '--code', '2'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 2 (not 1)', () => {
+        expect(result.status).toEqual(2);
+      });
+    });
+
+    when('[t2] run --skill exit-code --code 7', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'exit-code', '--code', '7'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 7 (preserves original exit code)', () => {
+        expect(result.status).toEqual(7);
+      });
+    });
+
+    when('[t3] run --skill exit-code --code 127', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'exit-code', '--code', '127'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 127 (command not found convention)', () => {
+        expect(result.status).toEqual(127);
+      });
+    });
+  });
+
+  given('[case5] repo with skills and --attempts flag', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-skills' }),
     );

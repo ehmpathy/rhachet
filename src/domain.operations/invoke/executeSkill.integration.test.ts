@@ -116,7 +116,7 @@ echo '${JSON.stringify(jsonData)}'
           dir: testDir.path,
           name: 'fail-stream.sh',
           content: `#!/usr/bin/env bash
-echo "error: something went wrong" >&2
+echo "error: task failed" >&2
 exit 7
 `,
         });
@@ -131,6 +131,58 @@ exit 7
         expect(() => executeSkill({ skill, args: [], stream: true })).toThrow(
           SkillExecutionError,
         );
+      });
+
+      then('SkillExecutionError includes original exit code (7)', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-stream-code7.sh',
+          content: `#!/usr/bin/env bash
+exit 7
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-stream-code7',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        try {
+          executeSkill({ skill, args: [], stream: true });
+          fail('expected SkillExecutionError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(SkillExecutionError);
+          expect((error as SkillExecutionError).exitCode).toEqual(7);
+        }
+      });
+    });
+
+    when('skill exits with exit code 2 in stream mode', () => {
+      then('SkillExecutionError includes exit code 2 (not 1)', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-stream-code2.sh',
+          content: `#!/usr/bin/env bash
+exit 2
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-stream-code2',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        try {
+          executeSkill({ skill, args: [], stream: true });
+          fail('expected SkillExecutionError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(SkillExecutionError);
+          expect((error as SkillExecutionError).exitCode).toEqual(2);
+        }
       });
     });
 
@@ -155,6 +207,31 @@ exit 3
         expect(() => executeSkill({ skill, args: [], stream: false })).toThrow(
           SkillExecutionError,
         );
+      });
+
+      then('SkillExecutionError includes original exit code (3)', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-capture-code3.sh',
+          content: `#!/usr/bin/env bash
+exit 3
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-capture-code3',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        try {
+          executeSkill({ skill, args: [], stream: false });
+          fail('expected SkillExecutionError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(SkillExecutionError);
+          expect((error as SkillExecutionError).exitCode).toEqual(3);
+        }
       });
     });
   });
