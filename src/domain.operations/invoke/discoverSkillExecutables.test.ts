@@ -347,6 +347,69 @@ describe('discoverSkillExecutables', () => {
     });
   });
 
+  given('broken symlink in skills directory', () => {
+    beforeEach(() => {
+      const skillsDir = resolve(testDir, '.agent/repo=.this/role=any/skills');
+      mkdirSync(skillsDir, { recursive: true });
+
+      // create a valid skill
+      writeFileSync(
+        resolve(skillsDir, 'valid.sh'),
+        '#!/usr/bin/env bash\necho valid',
+      );
+      chmodSync(resolve(skillsDir, 'valid.sh'), '755');
+
+      // create a broken symlink (points to nonexistent target)
+      symlinkSync(
+        resolve(skillsDir, 'nonexistent-target.sh'),
+        resolve(skillsDir, 'broken-link.sh'),
+      );
+    });
+
+    when('discovering skills', () => {
+      then('ignores broken symlink and finds valid skill', () => {
+        const result = discoverSkillExecutables({});
+        expect(result).toHaveLength(1);
+        expect(result[0]?.slug).toBe('valid');
+      });
+
+      then('does not throw ENOENT error', () => {
+        expect(() => discoverSkillExecutables({})).not.toThrow();
+      });
+    });
+  });
+
+  given('broken symlink in nested subdirectory', () => {
+    beforeEach(() => {
+      const nestedDir = resolve(
+        testDir,
+        '.agent/repo=.this/role=any/skills/nested',
+      );
+      mkdirSync(nestedDir, { recursive: true });
+
+      // create a valid nested skill
+      writeFileSync(
+        resolve(nestedDir, 'nested-valid.sh'),
+        '#!/usr/bin/env bash\necho nested',
+      );
+      chmodSync(resolve(nestedDir, 'nested-valid.sh'), '755');
+
+      // create a broken symlink in nested dir
+      symlinkSync(
+        resolve(nestedDir, 'nonexistent.sh'),
+        resolve(nestedDir, 'broken.sh'),
+      );
+    });
+
+    when('discovering skills', () => {
+      then('ignores broken symlink in nested directory', () => {
+        const result = discoverSkillExecutables({});
+        expect(result).toHaveLength(1);
+        expect(result[0]?.slug).toBe('nested-valid');
+      });
+    });
+  });
+
   given('combined filters', () => {
     beforeEach(() => {
       // same skill name in different repos/roles
