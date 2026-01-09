@@ -1,32 +1,8 @@
 import { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
+import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
-
-/**
- * .what = recursively finds all executable files in a directory
- * .why = skills can be nested in subdirectories (e.g., claude.hooks/)
- */
-const getAllFilesFromDir = (dir: string): string[] => {
-  // skip if directory does not exist
-  if (!existsSync(dir)) return [];
-
-  const entries = readdirSync(dir);
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    const fullPath = resolve(dir, entry);
-    const stats = statSync(fullPath);
-
-    if (stats.isDirectory()) {
-      files.push(...getAllFilesFromDir(fullPath));
-    } else if (stats.isFile()) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-};
 
 /**
  * .what = extracts skill slug from a filename

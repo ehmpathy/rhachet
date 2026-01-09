@@ -1,28 +1,8 @@
 import { extractSkillDocumentation } from '@src/domain.operations/role/extractSkillDocumentation';
+import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
-
-/**
- * .what = recursively reads all files from a directory, following symlinks
- */
-const getAllFilesFromDir = (dir: string): string[] => {
-  const entries = readdirSync(dir);
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    const fullPath = resolve(dir, entry);
-    const stats = statSync(fullPath);
-
-    if (stats.isDirectory()) {
-      files.push(...getAllFilesFromDir(fullPath));
-    } else if (stats.isFile()) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-};
 
 /**
  * .what = boots role resources (readme, briefs, skills) from a role directory

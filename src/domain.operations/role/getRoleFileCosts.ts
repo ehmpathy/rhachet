@@ -1,4 +1,6 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
+
+import { readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { extractSkillDocumentation } from './extractSkillDocumentation';
 
@@ -17,27 +19,10 @@ export interface FileCost {
 }
 
 /**
- * .what = recursively collects all files from a directory, following symlinks
- * .why = need to traverse role directories including symlinked briefs/skills
- * .how = uses statSync which follows symlinks to traverse directories
+ * .what = re-exports getAllFilesFromDir for backwards compatibility
+ * .why = prior tests import getAllFiles from this module
  */
-export const getAllFiles = (dir: string): string[] => {
-  const entries = readdirSync(dir);
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    const fullPath = resolve(dir, entry);
-    const stats = statSync(fullPath);
-
-    if (stats.isDirectory()) {
-      files.push(...getAllFiles(fullPath));
-    } else if (stats.isFile()) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-};
+export const getAllFiles = getAllFilesFromDir;
 
 /**
  * .what = calculates token costs for all files in a role directory
