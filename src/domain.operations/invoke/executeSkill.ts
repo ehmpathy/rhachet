@@ -8,7 +8,21 @@ import { spawnSync } from 'node:child_process';
  * .what = error thrown when a skill script exits with non-zero status
  * .why = enables callers to catch and handle skill failures gracefully
  */
-export class SkillExecutionError extends HelpfulError {}
+export class SkillExecutionError extends HelpfulError {
+  /**
+   * .what = the exit code from the skill script
+   * .why = enables callers to forward the original exit code to process.exit()
+   */
+  public readonly exitCode: number;
+
+  constructor(
+    message: string,
+    metadata: { skill: string; path: string; exitCode: number | null },
+  ) {
+    super(message, metadata);
+    this.exitCode = metadata.exitCode ?? 1;
+  }
+}
 
 /**
  * .what = executes a skill script with passthrough args
@@ -41,11 +55,12 @@ export const executeSkill = (input: {
       : ['inherit', 'pipe', 'inherit'],
   });
 
-  // throw on non-zero exit
+  // throw on non-zero exit, preserve the original exit code
   if (result.status !== 0)
     throw new SkillExecutionError('skill execution failed', {
       skill: input.skill.slug,
       path: input.skill.path,
+      exitCode: result.status,
     });
 
   // stream mode has no return value

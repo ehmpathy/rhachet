@@ -8,7 +8,21 @@ import { spawnSync } from 'node:child_process';
  * .what = error thrown when an init script exits with non-zero status
  * .why = enables callers to catch and handle init failures gracefully
  */
-export class InitExecutionError extends HelpfulError {}
+export class InitExecutionError extends HelpfulError {
+  /**
+   * .what = the exit code from the init script
+   * .why = enables callers to forward the original exit code to process.exit()
+   */
+  public readonly exitCode: number;
+
+  constructor(
+    message: string,
+    metadata: { init: string; path: string; exitCode: number | null },
+  ) {
+    super(message, metadata);
+    this.exitCode = metadata.exitCode ?? 1;
+  }
+}
 
 /**
  * .what = executes an init script with passthrough args
@@ -37,10 +51,11 @@ export const executeInit = (input: {
     shell: '/bin/bash',
   });
 
-  // throw on non-zero exit
+  // throw on non-zero exit, preserve the original exit code
   if (result.status !== 0)
     throw new InitExecutionError('init execution failed', {
       init: input.init.slug,
       path: input.init.path,
+      exitCode: result.status,
     });
 };
