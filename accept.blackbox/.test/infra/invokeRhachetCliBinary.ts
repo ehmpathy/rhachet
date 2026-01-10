@@ -20,12 +20,15 @@ export const invokeRhachetCliBinary = (input: {
   stdin?: string;
   /** whether to log output on failure (default: true) */
   logOnError?: boolean;
+  /** optional env vars to merge with process.env */
+  env?: Record<string, string | undefined>;
 }): SpawnSyncReturns<string> => {
   const result = spawnSync(RHACHET_BIN, input.args, {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
     shell: '/bin/bash',
+    env: input.env ? { ...process.env, ...input.env } : undefined,
   });
 
   // log output for debug on failure
