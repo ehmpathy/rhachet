@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import { withEmojiSpaceShim } from '@src/_topublish/emoji-space-shim/src';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
 import { getBrainReplsByOpts } from '@src/domain.operations/invoke/getBrainReplsByOpts';
 import { getInvokeHooksByOpts } from '@src/domain.operations/invoke/getInvokeHooksByOpts';
@@ -26,7 +27,7 @@ import { invokeRun } from './invokeRun';
  *   - defaults to load `@gitroot/rhachet.use.ts` unless overridden with `--config` or `-c`
  *   - config must export a `getRoleRegistries()` function that returns a set of RoleRegistries to support
  */
-export const invoke = async (input: { args: string[] }): Promise<void> => {
+const _invoke = async (input: { args: string[] }): Promise<void> => {
   // treat init command specially - it's purpose is to run before configs exists
   // note: only the bare 'init' command, not 'roles init' which requires config
   if (input.args[0] === 'init') {
@@ -107,3 +108,7 @@ export const invoke = async (input: { args: string[] }): Promise<void> => {
     throw error;
   });
 };
+
+// wrap with emoji space shim for correct terminal render
+export const invoke = (input: { args: string[] }): Promise<void> =>
+  withEmojiSpaceShim({ logic: () => _invoke(input) });

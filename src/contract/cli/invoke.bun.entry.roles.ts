@@ -7,17 +7,26 @@
  */
 import { Command } from 'commander';
 
+import { withEmojiSpaceShim } from '@src/_topublish/emoji-space-shim/src';
+
 import { invokeRolesBoot } from './invokeRolesBoot';
 import { invokeRolesCost } from './invokeRolesCost';
 
-const program = new Command();
-program.name('rhachet').description('bun binary for rhachet roles (boot/cost)');
+const _invoke = async (): Promise<void> => {
+  const program = new Command();
+  program
+    .name('rhachet')
+    .description('bun binary for rhachet roles (boot/cost)');
 
-const rolesCommand = program
-  .command('roles')
-  .description('role context operations (boot/cost)');
+  const rolesCommand = program
+    .command('roles')
+    .description('role context operations (boot/cost)');
 
-invokeRolesBoot({ command: rolesCommand });
-invokeRolesCost({ command: rolesCommand });
+  invokeRolesBoot({ command: rolesCommand });
+  invokeRolesCost({ command: rolesCommand });
 
-program.parse(process.argv);
+  program.parse(process.argv);
+};
+
+// wrap entrypoint with emoji shim for correct terminal render
+void withEmojiSpaceShim({ logic: _invoke });
