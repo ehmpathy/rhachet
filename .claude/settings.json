@@ -18,7 +18,7 @@
           },
           {
             "type": "command",
-            "command": ".agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/sessionstart.notify-permissions.sh",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/sessionstart.notify-permissions",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
@@ -31,13 +31,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/pretooluse.forbid-stderr-redirect.sh",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-stderr-redirect",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           },
           {
             "type": "command",
-            "command": ".agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/pretooluse.check-permissions.sh",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.check-permissions",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/pretooluse.forbid-gerunds.sh",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-gerunds",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/pretooluse.forbid-gerunds.sh",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-gerunds",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
@@ -102,6 +102,7 @@
       "Bash(git ls-files:*)",
       "Bash(git ls-tree:*)",
       "Bash(git cat-file:*)",
+      "Bash(git release --watch)",
       "Bash(npx rhachet run --skill sedreplace:*)",
       "Bash(npx rhachet run --skill cpsafe:*)",
       "Bash(npx rhachet run --skill mvsafe:*)",
@@ -109,12 +110,13 @@
       "Bash(npx rhachet run --skill show.gh.action.logs:*)",
       "Bash(npx rhachet run --skill show.gh.test.errors:*)",
       "Bash(npx rhachet run --skill show.gh.test.errors --scope test-integration)",
+      "Bash(npx rhachet run:*)",
+      "Bash(npx rhachet:*)",
       "Bash(npm view:*)",
       "Bash(npm list:*)",
       "Bash(npm remove:*)",
       "Bash(npm help:*)",
       "Bash(pnpm help:*)",
-      "Bash(npx rhachet:*)",
       "Bash(npx tsx ./bin/run:*)",
       "Bash(npm run build:*)",
       "Bash(npm run build:compile)",

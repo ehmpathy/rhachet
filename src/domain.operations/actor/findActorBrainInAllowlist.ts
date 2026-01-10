@@ -1,6 +1,6 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import type { ActorBrain } from '@src/domain.objects/Actor';
 
 /**
  * .what = finds a brain in the actor's allowlist
@@ -8,12 +8,12 @@ import type { BrainRepl } from '@src/domain.objects/BrainRepl';
  *
  * .note = accepts either:
  *   - ref: { repo, slug } for lookup by unique key
- *   - direct BrainRepl instance for validation against allowlist
+ *   - direct ActorBrain instance for validation against allowlist
  */
 export const findActorBrainInAllowlist = (input: {
-  brain: { repo: string; slug: string } | BrainRepl;
-  allowlist: BrainRepl[];
-}): BrainRepl => {
+  brain: { repo: string; slug: string } | ActorBrain;
+  allowlist: ActorBrain[];
+}): ActorBrain => {
   // extract repo and slug from brain (whether ref or instance)
   const brainRef = {
     repo: input.brain.repo,

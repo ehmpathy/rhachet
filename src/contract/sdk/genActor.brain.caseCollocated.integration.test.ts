@@ -2,6 +2,7 @@ import * as path from 'path';
 import { given, then, when } from 'test-fns';
 
 import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
+import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 
 import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -104,10 +105,11 @@ echo '{"summary":"summarized content"}'
       then('starts fluid conversation with default brain', async () => {
         const result = await scribe.ask({
           prompt: 'summarize the concept of brevity',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
         expect(result).toBeDefined();
-        expect(result.response).toBeDefined();
+        expect(result.answer).toBeDefined();
       });
     });
   });
