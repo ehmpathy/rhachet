@@ -3,6 +3,7 @@ import { genBrainRepl } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -41,13 +42,15 @@ describe('invokeAct (integration)', () => {
     const program = new Command();
     program.exitOverride(); // prevent process.exit in tests
 
-    invokeAct({
-      program,
-      config: { path: '/fake/rhachet.use.ts' },
+    // register with mock context that has no brains (to test error handling)
+    const mockContext = genMockContextConfigOfUsage({
+      isExplicit: true,
+      explicitPath: '/fake/rhachet.use.ts',
       registries: [testRegistry],
-      brains: [], // no brains - to test error handling
+      brains: [],
       hooks: null,
     });
+    invokeAct({ program }, mockContext);
 
     when('act command is invoked with no brains available', () => {
       then('it throws error about no brains', async () => {
@@ -81,13 +84,14 @@ describe('invokeAct (integration)', () => {
         act: async () => ({ result: '' }),
       };
 
-      invokeAct({
-        program: programWithBrain,
-        config: { path: '/fake/rhachet.use.ts' },
+      const brainContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
       });
+      invokeAct({ program: programWithBrain }, brainContext);
 
       then('it throws error about role not found', async () => {
         const args = [
@@ -121,13 +125,14 @@ describe('invokeAct (integration)', () => {
         act: async () => ({ result: '' }),
       };
 
-      invokeAct({
-        program: programWithBrain,
-        config: { path: '/fake/rhachet.use.ts' },
+      const formatContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
       });
+      invokeAct({ program: programWithBrain }, formatContext);
 
       then('it throws error about format', async () => {
         const args = [
@@ -162,13 +167,14 @@ describe('invokeAct (integration)', () => {
         act: async () => ({ result: '' }),
       };
 
-      invokeAct({
-        program: programWithBrain,
-        config: { path: '/fake/rhachet.use.ts' },
+      const attemptsContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [testRegistry],
         brains: [simpleBrain as any],
         hooks: null,
       });
+      invokeAct({ program: programWithBrain }, attemptsContext);
 
       then('it throws error requiring --output', async () => {
         const args = [
@@ -223,13 +229,15 @@ describe('invokeAct (integration)', () => {
         logSpy.mockClear();
       });
 
-      invokeAct({
-        program,
-        config: { path: '/fake/rhachet.use.ts' },
+      // register with mock context that provides the tester registry and brain
+      const happyContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [testRegistry],
         brains: [brain],
         hooks: null,
       });
+      invokeAct({ program }, happyContext);
 
       when('act command is invoked with default brain', () => {
         then('it executes the rigid skill with the default brain', async () => {

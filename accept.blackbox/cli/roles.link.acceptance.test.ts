@@ -93,8 +93,8 @@ describe('rhachet roles link', () => {
       });
 
       then('outputs linked counts', () => {
-        expect(result.stdout).toContain('1 brief(s) linked');
-        expect(result.stdout).toContain('1 skill(s) linked');
+        expect(result.stdout).toContain('1 brief(s)');
+        expect(result.stdout).toContain('1 skill(s)');
       });
     });
 
@@ -111,12 +111,12 @@ describe('rhachet roles link', () => {
       });
 
       then('outputs inferred repo in message', () => {
-        expect(result.stdout).toContain('from repo "test-repo"');
+        expect(result.stdout).toContain('test-repo/tester');
       });
     });
   });
 
-  given('[case2] minimal repo', () => {
+  given('[case2] minimal repo (empty registries)', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'minimal' }),
     );
@@ -134,8 +134,8 @@ describe('rhachet roles link', () => {
         expect(result.status).not.toEqual(0);
       });
 
-      then('outputs error about role not found', () => {
-        expect(result.stderr).toContain('no role named "nonexistent"');
+      then('outputs error about no registries', () => {
+        expect(result.stderr).toContain('No registries found');
       });
     });
 
@@ -154,6 +154,58 @@ describe('rhachet roles link', () => {
 
       then('outputs error about --role required', () => {
         expect(result.stderr).toContain('--role is required');
+      });
+    });
+  });
+
+  given('[case3] repo without rhachet.use.ts but with rhachet-roles packages', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-roles-packages' }),
+    );
+
+    when('[t0] roles link --role tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'link', '--role', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains discovery message', () => {
+        expect(result.stdout).toContain('No rhachet.use.ts found');
+        expect(result.stdout).toContain('discover from packages');
+      });
+
+      then('creates .agent directory structure', () => {
+        const readmePath = resolve(repo.path, '.agent/readme.md');
+        const content = readFileSync(readmePath, 'utf-8');
+        expect(content).toContain('agent');
+      });
+
+      then('links role from discovered package', () => {
+        const roleReadmePath = resolve(
+          repo.path,
+          '.agent/repo=test/role=tester/readme.md',
+        );
+        const content = readFileSync(roleReadmePath, 'utf-8');
+        expect(content).toContain('Tester Role');
+      });
+    });
+
+    when('[t1] roles link --role test/tester (with repo prefix)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'link', '--role', 'tester', '--repo', 'test'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
       });
     });
   });

@@ -2,13 +2,13 @@ import type { BrainRepl } from '@src/domain.objects';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 
 /**
- * .what = get brain repls from the invocation options declared
- * .why = enables CLI commands to resolve brains from config
+ * .what = get brain repls from explicit config (rhachet.use.ts)
+ * .why = enables CLI commands to resolve brains from user-declared config
  * .how =
  *   - lookup the config based on the options
  *   - grab the brain repls from the config
  */
-export const getBrainReplsByOpts = async (input: {
+export const getBrainsByConfigExplicit = async (input: {
   opts: InvokeOpts<{ config: string }>;
 }): Promise<BrainRepl[]> => {
   // import the config

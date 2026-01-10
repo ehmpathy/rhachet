@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
 import { EXAMPLE_REGISTRY } from '@src/.test/example.use.repo/example.echoRegistry';
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -14,7 +15,13 @@ describe('invokeReadme (integration)', () => {
       const program = new Command();
       const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       beforeEach(() => logSpy.mockClear());
-      invokeReadme({ program, registries: [EXAMPLE_REGISTRY] });
+
+      // register with mock context that provides the example registry
+      const mockContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        registries: [EXAMPLE_REGISTRY],
+      });
+      invokeReadme({ program }, mockContext);
 
       when('invoked with only --repo', () => {
         then('it should print the repo readme', async () => {

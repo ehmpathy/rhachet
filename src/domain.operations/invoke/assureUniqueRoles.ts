@@ -9,7 +9,7 @@ export const assureUniqueRoles = (registries: RoleRegistry[]): void => {
     for (const role of registry.roles) {
       if (seen.has(role.slug)) {
         throw new Error(
-          `❌ duplicate role.slug "${
+          `⛈️ duplicate role.slug "${
             role.slug
           }" found in registries: "${seen.get(role.slug)}" and "${
             registry.slug

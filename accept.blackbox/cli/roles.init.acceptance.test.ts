@@ -59,8 +59,8 @@ describe('rhachet roles init', () => {
         expect(result.status).not.toEqual(0);
       });
 
-      then('stderr contains error about role not found', () => {
-        expect(result.stderr).toContain('no role named');
+      then('stderr contains error about no registries', () => {
+        expect(result.stderr).toContain('No registries found');
       });
     });
 
@@ -79,6 +79,49 @@ describe('rhachet roles init', () => {
 
       then('stderr contains error about --role required', () => {
         expect(result.stderr).toContain('--role');
+      });
+    });
+  });
+
+  given('[case3] repo without rhachet.use.ts but with rhachet-roles packages', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = genTestTempRepo({ fixture: 'with-roles-packages' });
+
+      // link role first to create .agent/ directory
+      const linkResult = invokeRhachetCliBinary({
+        args: ['roles', 'link', '--role', 'tester'],
+        cwd: tempRepo.path,
+      });
+
+      if (linkResult.status !== 0) {
+        throw new Error(
+          `roles link failed: ${linkResult.stderr}\n${linkResult.stdout}`,
+        );
+      }
+
+      return tempRepo;
+    });
+
+    when('[t0] roles init --role tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'init', '--role', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains discovery message', () => {
+        expect(result.stdout).toContain('No rhachet.use.ts found');
+        expect(result.stdout).toContain('discover from packages');
+      });
+
+      then('stdout contains no init commands message', () => {
+        // the test role has inits dirs but no exec commands
+        expect(result.stdout).toContain('no initialization commands');
       });
     });
   });

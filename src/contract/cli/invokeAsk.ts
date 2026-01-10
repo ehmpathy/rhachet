@@ -8,6 +8,7 @@ import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
@@ -111,19 +112,13 @@ const performAskViaActorMode = async (input: {
  * .what = adds the "ask" command to the CLI
  * .why = lets users invoke a skill from any role in the given registries
  *        or start a fluid conversation with an actor (when no --skill)
+ *
+ * .note = requires explicit config (rhachet.use.ts)
  */
-export const invokeAsk = ({
-  program,
-  registries,
-  brains,
-  ...input
-}: {
-  program: Command;
-  config: { path: string };
-  registries: RoleRegistry[];
-  brains: BrainRepl[];
-  hooks: null | InvokeHooks;
-}): void => {
+export const invokeAsk = (
+  { program }: { program: Command },
+  context: ContextConfigOfUsage,
+): void => {
   const askCommand = program
     .command('ask')
     .description('invoke a skill or start a fluid conversation with an actor')
@@ -139,11 +134,15 @@ export const invokeAsk = ({
     .allowExcessArguments(true);
 
   // 💉 dynamically inject CLI flags from skill inputs (only in stitch-mode)
-  askCommand.hook('preAction', (thisCommand) => {
+  askCommand.hook('preAction', async (thisCommand) => {
     const opts = thisCommand.opts();
 
     // skip dynamic injection if no skill specified (actor-mode)
     if (!opts.skill) return;
+
+    // load registries just-in-time
+    const registries = (await context.config.usage.get.registries.explicit())
+      .registries;
 
     const role = assureFindRole({ registries, slug: opts.role });
     const skill = role?.skills.refs.find((s) => s.slug === opts.skill);
@@ -178,6 +177,13 @@ export const invokeAsk = ({
       ask?: string;
       attempts?: string;
     }) => {
+      // load resources just-in-time
+      const registries = (await context.config.usage.get.registries.explicit())
+        .registries;
+      const brains = await context.config.usage.get.brains.explicit();
+      const hooks = await context.config.usage.get.hooks.explicit();
+      const configPath = context.config.usage.getExplicitPath();
+
       // determine which mode to use
       const isStitchMode = opts.skill !== undefined;
       const isActorMode = !isStitchMode;
@@ -187,9 +193,9 @@ export const invokeAsk = ({
         const skill = opts.skill!; // asserted as string (validated by isStitchMode)
         return await performAskViaStitchMode({
           opts: { ...opts, skill },
-          config: input.config,
+          config: { path: configPath },
           registries,
-          hooks: input.hooks,
+          hooks,
         });
       }
 

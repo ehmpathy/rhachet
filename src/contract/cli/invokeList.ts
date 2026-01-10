@@ -1,26 +1,29 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import type { RoleRegistry } from '@src/contract/sdk';
+import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 
 /**
  * .what = adds the "list" command to the CLI
  * .why = lets users list all available roles or skills across multiple registries
+ *
+ * .note = requires explicit config (rhachet.use.ts)
  */
-export const invokeList = ({
-  program,
-  registries,
-}: {
-  program: Command;
-  registries: RoleRegistry[];
-}): void => {
+export const invokeList = (
+  { program }: { program: Command },
+  context: ContextConfigOfUsage,
+): void => {
   program
     .command('list')
     .description('list available roles or skills under a role')
     .option('--repo <slug>', 'list roles under this repo')
     .option('--role <slug>', 'list skills under this role (repo optional)')
-    .action((opts: { repo?: string; role?: string }) => {
+    .action(async (opts: { repo?: string; role?: string }) => {
+      // load registries just-in-time
+      const registries = (await context.config.usage.get.registries.explicit())
+        .registries;
+
       // list skills for a specific role
       if (opts.role) {
         const role = assureFindRole({ registries, slug: opts.role });

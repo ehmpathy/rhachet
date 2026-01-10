@@ -23,6 +23,7 @@ export * from './InvokeOpts';
 export * from './Role';
 export * from './RoleContext';
 export * from './RoleRegistry';
+export * from './RoleRegistryManifest';
 export * from './RoleSkill';
 export * from './RoleSkillArgGetter';
 export * from './RoleSkillExecutable';

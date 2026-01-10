@@ -1,0 +1,119 @@
+lets upgrade the blueprint for how we can implement the wish described
+- in .behavior/v2026_01_09.init-roles-many/0.wish.md
+
+from
+- .behavior/v2026_01_09.init-roles-many/3.3.blueprint.v1.i1.md
+
+into
+- .behavior/v2026_01_09.init-roles-many/3.3.blueprint.v2.i1.md
+
+
+---
+
+specifically
+
+lets refine the blueprint found in
+
+1. i'd like to make the usage of RoleRegistry vs RoleRegistryManifest more explicit
+  and symmetric.
+
+  e.g.,
+
+  getRegistriesByConfigExplicit
+
+  vs
+
+  getRegistriesByConfigImplicit
+
+
+2. i'd like to eliminate the need to cast RoleRegistryManifest into RoleRegistry
+
+  operations that need to support usage of `RoleRegistryManifest` should use it directly, so that the typedefs inform them of the limitations of that version directly
+
+
+3. i'd like to eliminate the need to escape early for invoke commands which need configs
+
+  lets just load the configs just-in-time. we can put a with-simple-cache + simple-in-memory-cache packages cache wrapper aroudn the getRegistriesByX, ByY operations to make it not a problem to invoke repeatedly from different spots
+
+  also, we can declare
+
+
+
+  const brains = await getBrainReplsByOpts({
+    opts: { config: configPath },
+  });
+  const hooks = await getInvokeHooksByOpts({
+    opts: { config: configPath }, // todo: maybe, getConfigByOpts ? returns both?
+  });
+
+
+  getUsableBrainsByConfigExplicit
+  getUsableHooksByConfigExplict
+
+  (where we dont need to and dont at all support the ByConfigImplicit for hooks or brains yet)
+
+
+  also, lets reuse that Plugin concpt for
+
+  getUsableRegistriesByConfigExplicit
+  vs
+  getUsableRegistriesByConfigImplicit
+
+  to make it clear where we get the registries from... usable role packages!
+
+
+  the goal here is to eliminate the need to do these 'escape early to avoid config' braches within invoke.ts
+  ideally, we can just collapse those into conditionless codepaths
+
+  e.g., avoid this
+
+
+      // treat init command specially - it's purpose is to run before configs exists
+      // note: only the bare 'init' command, not 'roles init' which requires config
+      if (input.args[0] === 'init') {
+        const program = new Command();
+        program.name('rhachet');
+        invokeInit({ program });
+        await program.parseAsync(input.args, { from: 'user' });
+        return;
+      }
+
+      // treat repo introspect specially - it loads its own config
+      if (input.args[0] === 'repo' && input.args[1] === 'introspect') {
+        const program = new Command();
+        program.name('rhachet');
+        invokeRepoIntrospect({ program });
+        await program.parseAsync(input.args, { from: 'user' });
+        return;
+      }
+
+      // treat roles link/init specially - they have fallback to package discovery
+      if (
+        input.args[0] === 'roles' &&
+        (input.args[1] === 'link' || input.args[1] === 'init')
+      ) {
+        const program = new Command();
+        program.name('rhachet');
+
+
+
+---
+
+reference the below for full context
+- .behavior/v2026_01_09.init-roles-many/0.wish.md
+- .behavior/v2026_01_09.init-roles-many/1.vision.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/2.criteria.blackbox.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/2.criteria.blueprint.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.access._.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.claims._.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.domain._.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.1.research.templates._.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.2.distill.domain._.v1.i1.md (if declared)
+
+---
+
+emit to .behavior/v2026_01_09.init-roles-many/3.3.blueprint.v2.i1.md
+
+emit only the changes proposed to the reult of V1, since we've already completed V1.
