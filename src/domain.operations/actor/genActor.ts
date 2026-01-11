@@ -1,8 +1,12 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { ActorActOp, ActorRunOp } from '@src/domain.objects/Actor';
+import type {
+  ActorActOp,
+  ActorAskOp,
+  ActorBrain,
+  ActorRunOp,
+} from '@src/domain.objects/Actor';
 import { Actor } from '@src/domain.objects/Actor';
-import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { Role } from '@src/domain.objects/Role';
 
 import { actorAct } from './actorAct';
@@ -17,14 +21,15 @@ import { findActorRoleSkillBySlug } from './findActorRoleSkillBySlug';
  *
  * .note =
  *   - first brain in allowlist is the default
+ *   - .act() requires BrainRepl (validates at runtime)
  *   - .act() uses default brain when none specified
  *   - .act() validates brain against allowlist when specified
  *   - .run() executes solid skills without brain
- *   - .ask() starts fluid conversation with default brain
+ *   - .ask() works with both BrainRepl and BrainAtom
  */
 export const genActor = <TRole extends Role>(input: {
   role: TRole;
-  brains: BrainRepl[];
+  brains: ActorBrain[];
 }): Actor<TRole> => {
   // validate that at least one brain is provided
   if (input.brains.length === 0)
@@ -45,6 +50,13 @@ export const genActor = <TRole extends Role>(input: {
           allowlist: input.brains,
         })
       : defaultBrain;
+
+    // validate brain supports .act() (BrainRepl only, not BrainAtom)
+    if (!('act' in brainResolved))
+      throw new BadRequestError(
+        'actor.act() requires a BrainRepl brain with .act() method',
+        { brainSlug: brainResolved.slug },
+      );
 
     // extract skill slug and args from skill object
     const entries = Object.entries(actInput.skill);
@@ -94,15 +106,14 @@ export const genActor = <TRole extends Role>(input: {
     });
   };
 
-  // create bound .ask() method
-  const ask = async (askInput: {
-    prompt: string;
-  }): Promise<{ response: string }> => {
+  // create bound .ask() method with schema passthrough
+  const ask: ActorAskOp = async (askInput) => {
     // delegate to actorAsk with default brain
     return actorAsk({
       role: input.role,
       brain: defaultBrain,
       prompt: askInput.prompt,
+      schema: askInput.schema,
     });
   };
 

@@ -19,6 +19,9 @@ on:
       anthropic-api-key:
         description: "api key for anthropic, used in integration tests"
         required: true
+      xai-api-key:
+        description: "api key for xai, used in integration tests"
+        required: true
 
 permissions:
   id-token: write # required for oidc
@@ -176,6 +179,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+          XAI_API_KEY: ${{ secrets.xai-api-key }}
 
   test-acceptance-locally:
     runs-on: ubuntu-24.04
@@ -213,3 +217,4 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+          XAI_API_KEY: ${{ secrets.xai-api-key }}

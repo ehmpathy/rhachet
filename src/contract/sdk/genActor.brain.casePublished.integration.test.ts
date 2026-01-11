@@ -2,6 +2,7 @@ import * as path from 'path';
 import { getError, given, then, when } from 'test-fns';
 
 import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
+import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 
 import {
@@ -129,10 +130,11 @@ echo '{"content":"drafted content about $1"}'
       then('starts fluid conversation with default brain', async () => {
         const result = await author.ask({
           prompt: 'tell me about the turtles',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
         expect(result).toBeDefined();
-        expect(result.response).toBeDefined();
+        expect(result.answer).toBeDefined();
       });
     });
   });

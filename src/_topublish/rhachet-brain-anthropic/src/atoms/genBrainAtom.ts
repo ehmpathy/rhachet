@@ -3,6 +3,7 @@ import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
@@ -107,22 +108,35 @@ export const genBrainAtom = (input: { slug: ClaudeAtomSlug }): BrainAtom => {
         (context?.anthropic as Anthropic | undefined) ??
         new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-      // call anthropic api
+      // convert zod schema to json schema for tool definition
+      const jsonSchema = zodToJsonSchema(askInput.schema.output, {
+        $refStrategy: 'none',
+      });
+
+      // call anthropic api with tool use for structured output
       const response = await anthropic.messages.create({
         model: config.model,
         max_tokens: 16384,
         system: systemPrompt,
         messages: [{ role: 'user', content: askInput.prompt }],
+        tools: [
+          {
+            name: 'respond',
+            description: 'respond with structured output',
+            input_schema: jsonSchema as Anthropic.Tool['input_schema'],
+          },
+        ],
+        tool_choice: { type: 'tool', name: 'respond' },
       });
 
-      // extract text content from response
-      const textBlock = response.content.find(
-        (block): block is Anthropic.TextBlock => block.type === 'text',
+      // extract tool use input from response
+      const toolUseBlock = response.content.find(
+        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
       );
-      const content = textBlock?.text ?? '';
+      const toolInput = toolUseBlock?.input ?? {};
 
-      // parse output via schema
-      return askInput.schema.output.parse({ content });
+      // validate via schema
+      return askInput.schema.output.parse(toolInput);
     },
   });
 };

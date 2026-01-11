@@ -1,8 +1,18 @@
 import { DomainEntity } from 'domain-objects';
 import type { z } from 'zod';
 
+import type { BrainAtom } from './BrainAtom';
 import type { BrainRepl } from './BrainRepl';
 import type { Role, RoleSkillSchema } from './Role';
+
+/**
+ * .what = a brain that an actor can use
+ * .why = enables actors to use both BrainRepl and BrainAtom
+ *
+ * .note = BrainRepl supports both .ask() and .act()
+ * .note = BrainAtom supports only .ask()
+ */
+export type ActorBrain = BrainRepl | BrainAtom;
 
 /**
  * .what = extracts skill input type from a RoleSkillSchema
@@ -48,10 +58,13 @@ export type ActorRunOp<TRole extends Role> = <
 /**
  * .what = type for actor.ask() method
  * .why = enables fluid conversation with brain
+ *
+ * .note = schema is required; use ACTOR_ASK_DEFAULT_SCHEMA for { answer: string }
  */
-export type ActorAskOp = (input: {
+export type ActorAskOp = <TOutput>(input: {
   prompt: string;
-}) => Promise<{ response: string }>;
+  schema: { output: z.Schema<TOutput> };
+}) => Promise<TOutput>;
 
 /**
  * .what = a role assumed by a brain, ready for invocation
@@ -75,8 +88,9 @@ export interface Actor<TRole extends Role = Role> {
   /**
    * .what = the brains this actor is allowed to use
    * .note = first brain is the default
+   * .note = BrainAtom only supports .ask(), BrainRepl supports both .ask() and .act()
    */
-  brains: BrainRepl[];
+  brains: ActorBrain[];
 
   /**
    * .what = invokes a rigid skill with brain

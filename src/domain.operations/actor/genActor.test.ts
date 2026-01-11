@@ -1,9 +1,11 @@
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
+import { ACTOR_ASK_DEFAULT_SCHEMA } from './actorAsk';
 import { genActor } from './genActor';
 
 // mock getRoleBriefs to avoid .agent/ directory requirement in unit tests
@@ -60,20 +62,30 @@ describe('genActor', () => {
     briefs: { dirs: { uri: '.agent/repo=.this/role=tester/briefs' } },
   });
 
-  // create mock brains
-  const mockBrain1 = {
+  // create mock BrainRepl instances
+  const mockBrainRepl1 = new BrainRepl({
     repo: 'anthropic',
-    slug: 'claude',
+    slug: 'anthropic/claude',
+    description: 'mock brain repl 1',
     act: jest.fn().mockResolvedValue({ summary: 'test summary' }),
-    ask: jest.fn().mockResolvedValue('test response'),
-  } as unknown as BrainRepl;
+    ask: jest.fn().mockResolvedValue({ response: 'test response' }),
+  });
 
-  const mockBrain2 = {
+  const mockBrainRepl2 = new BrainRepl({
     repo: 'openai',
-    slug: 'codex',
+    slug: 'openai/codex',
+    description: 'mock brain repl 2',
     act: jest.fn().mockResolvedValue({ summary: 'codex summary' }),
-    ask: jest.fn().mockResolvedValue('codex response'),
-  } as unknown as BrainRepl;
+    ask: jest.fn().mockResolvedValue({ response: 'codex response' }),
+  });
+
+  // create mock BrainAtom instance (no .act() method)
+  const mockBrainAtom = new BrainAtom({
+    repo: 'xai',
+    slug: 'xai/grok',
+    description: 'mock brain atom',
+    ask: jest.fn().mockResolvedValue({ response: 'atom response' }),
+  });
 
   given('[case1] genActor is called with empty brains array', () => {
     when('[t0] attempting to create actor', () => {
@@ -92,7 +104,7 @@ describe('genActor', () => {
   given('[case2] genActor is called with valid brains', () => {
     const actor = genActor({
       role: testRole,
-      brains: [mockBrain1, mockBrain2],
+      brains: [mockBrainRepl1, mockBrainRepl2],
     });
 
     when('[t0] actor is created', () => {
@@ -102,7 +114,7 @@ describe('genActor', () => {
 
       then('has brains array', () => {
         expect(actor.brains).toHaveLength(2);
-        expect(actor.brains[0]).toEqual(mockBrain1);
+        expect(actor.brains[0]).toEqual(mockBrainRepl1);
       });
 
       then('has act method', () => {
@@ -121,27 +133,27 @@ describe('genActor', () => {
     when('[t1] act is called without brain', () => {
       then('uses default brain (first in allowlist)', async () => {
         await actor.act({ skill: { summarize: { content: 'test' } } });
-        expect(mockBrain1.act).toHaveBeenCalled();
+        expect(mockBrainRepl1.act).toHaveBeenCalled();
       });
     });
 
     when('[t2] act is called with explicit brain ref', () => {
       then('uses specified brain from allowlist', async () => {
         await actor.act({
-          brain: { repo: 'openai', slug: 'codex' },
+          brain: { repo: 'openai', slug: 'openai/codex' },
           skill: { summarize: { content: 'test' } },
         });
-        expect(mockBrain2.act).toHaveBeenCalled();
+        expect(mockBrainRepl2.act).toHaveBeenCalled();
       });
     });
 
     when('[t3] act is called with explicit brain (direct pass-in)', () => {
       then('uses passed BrainRepl instance from allowlist', async () => {
         await actor.act({
-          brain: mockBrain2, // pass BrainRepl directly, not { repo, slug }
+          brain: mockBrainRepl2, // pass BrainRepl directly, not { repo, slug }
           skill: { summarize: { content: 'test' } },
         });
-        expect(mockBrain2.act).toHaveBeenCalled();
+        expect(mockBrainRepl2.act).toHaveBeenCalled();
       });
     });
 
@@ -160,12 +172,12 @@ describe('genActor', () => {
   });
 
   given('[case3] genActor with single brain', () => {
-    const actor = genActor({ role: testRole, brains: [mockBrain1] });
+    const actor = genActor({ role: testRole, brains: [mockBrainRepl1] });
 
     when('[t0] ask is called', () => {
       then('uses default brain', async () => {
-        await actor.ask({ prompt: 'hello' });
-        expect(mockBrain1.ask).toHaveBeenCalled();
+        await actor.ask({ prompt: 'hello', schema: ACTOR_ASK_DEFAULT_SCHEMA });
+        expect(mockBrainRepl1.ask).toHaveBeenCalled();
       });
     });
   });
@@ -199,14 +211,14 @@ describe('genActor', () => {
 
     const typedActor = genActor({
       role: typedRole,
-      brains: [mockBrain1],
+      brains: [mockBrainRepl1],
     });
 
     when('[t0] act is called with valid rigid skill', () => {
       then('accepts valid skill name and input types', async () => {
         // valid skill: 'summarize' with { content: string }
         await typedActor.act({ skill: { summarize: { content: 'test' } } });
-        expect(mockBrain1.act).toHaveBeenCalled();
+        expect(mockBrainRepl1.act).toHaveBeenCalled();
       });
     });
 
@@ -298,6 +310,84 @@ describe('genActor', () => {
           typedActor.run({ skill: { wordcount: { text: 999 } } });
         };
         void _typeCheck;
+      });
+    });
+  });
+
+  given('[case5] genActor with BrainAtom as default brain', () => {
+    const actor = genActor({
+      role: testRole,
+      brains: [mockBrainAtom],
+    });
+
+    when('[t0] ask is called', () => {
+      then('works with BrainAtom', async () => {
+        await actor.ask({
+          prompt: 'hello from atom',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
+        });
+        expect(mockBrainAtom.ask).toHaveBeenCalled();
+      });
+    });
+
+    when('[t1] act is called', () => {
+      then(
+        'throws BadRequestError because BrainAtom lacks .act()',
+        async () => {
+          const error = await getError(() =>
+            actor.act({ skill: { summarize: { content: 'test' } } }),
+          );
+          expect(error).toBeDefined();
+          expect(error.message).toContain(
+            'actor.act() requires a BrainRepl brain with .act() method',
+          );
+        },
+      );
+    });
+  });
+
+  given('[case6] genActor with mixed brains (BrainAtom + BrainRepl)', () => {
+    const actor = genActor({
+      role: testRole,
+      brains: [mockBrainAtom, mockBrainRepl1],
+    });
+
+    when('[t0] ask is called (uses default = BrainAtom)', () => {
+      then('works with BrainAtom', async () => {
+        await actor.ask({ prompt: 'hello', schema: ACTOR_ASK_DEFAULT_SCHEMA });
+        expect(mockBrainAtom.ask).toHaveBeenCalled();
+      });
+    });
+
+    when('[t1] act is called without brain (default = BrainAtom)', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(() =>
+          actor.act({ skill: { summarize: { content: 'test' } } }),
+        );
+        expect(error).toBeDefined();
+        expect(error.message).toContain(
+          'actor.act() requires a BrainRepl brain with .act() method',
+        );
+      });
+    });
+
+    when('[t2] act is called with explicit BrainRepl', () => {
+      then('works with BrainRepl from allowlist', async () => {
+        await actor.act({
+          brain: mockBrainRepl1,
+          skill: { summarize: { content: 'test' } },
+        });
+        expect(mockBrainRepl1.act).toHaveBeenCalled();
+      });
+    });
+
+    when('[t3] act is called with explicit BrainRepl ref', () => {
+      then('works with BrainRepl from allowlist', async () => {
+        await actor.act({
+          brain: { repo: 'anthropic', slug: 'anthropic/claude' },
+          skill: { summarize: { content: 'test' } },
+        });
+        expect(mockBrainRepl1.act).toHaveBeenCalled();
       });
     });
   });

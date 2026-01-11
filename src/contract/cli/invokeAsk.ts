@@ -6,6 +6,7 @@ import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
@@ -97,10 +98,13 @@ const performAskViaActorMode = async (input: {
   console.log(``);
 
   // invoke actor.ask
-  const result = await actor.ask({ prompt: input.opts.ask });
+  const result = await actor.ask({
+    prompt: input.opts.ask,
+    schema: ACTOR_ASK_DEFAULT_SCHEMA,
+  });
 
   // output response
-  console.log(result.response);
+  console.log(result.answer);
 };
 
 /**

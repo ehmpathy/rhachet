@@ -10,6 +10,8 @@ import { z } from 'zod';
 import type { Actor, SkillInput, SkillOutput } from '@src/domain.objects/Actor';
 import { Role } from '@src/domain.objects/Role';
 
+import { ACTOR_ASK_DEFAULT_SCHEMA } from './actorAsk';
+
 // define a role with typed skills for testing
 const typedRole = new Role({
   slug: 'typed-tester',
@@ -92,8 +94,16 @@ async () => {
   const result = await typedActor.act({
     skill: { summarize: { content: 'hello', maxLength: 100 } },
   });
-  // result should have summary property
+  // positive: result should have summary property with correct type
   const _summary: string = result.summary;
+
+  // negative: wrong property on result
+  // @ts-expect-error - 'content' property does not exist on output { summary: string }
+  const _content = result.content;
+
+  // negative: wrong type assignment
+  // @ts-expect-error - summary is string, not number
+  const _wrongType: number = result.summary;
 };
 
 // valid: analyze is a rigid skill
@@ -101,9 +111,17 @@ async () => {
   const result = await typedActor.act({
     skill: { analyze: { data: [1, 2, 3] } },
   });
-  // result should have mean and median
+  // positive: result should have mean and median with correct types
   const _mean: number = result.mean;
   const _median: number = result.median;
+
+  // negative: wrong property on result
+  // @ts-expect-error - 'data' property does not exist on output { mean, median }
+  const _data = result.data;
+
+  // negative: wrong type assignment
+  // @ts-expect-error - mean is number, not string
+  const _wrongType: string = result.mean;
 };
 
 /**
@@ -114,8 +132,16 @@ async () => {
   const result = await typedActor.run({
     skill: { wordcount: { text: 'hello world' } },
   });
-  // result should have count property
+  // positive: result should have count property with correct type
   const _count: number = result.count;
+
+  // negative: wrong property on result
+  // @ts-expect-error - 'text' property does not exist on output { count: number }
+  const _text = result.text;
+
+  // negative: wrong type assignment
+  // @ts-expect-error - count is number, not string
+  const _wrongType: string = result.count;
 };
 
 // valid: greet is a solid skill
@@ -123,17 +149,52 @@ async () => {
   const result = await typedActor.run({
     skill: { greet: { name: 'Alice', formal: true } },
   });
-  // result should have greeting property
+  // positive: result should have greeting property with correct type
   const _greeting: string = result.greeting;
+
+  // negative: wrong property on result
+  // @ts-expect-error - 'name' property does not exist on output { greeting: string }
+  const _name = result.name;
+
+  // negative: wrong type assignment
+  // @ts-expect-error - greeting is string, not boolean
+  const _wrongType: boolean = result.greeting;
 };
 
 /**
- * test: Actor.ask() returns { response: string }
+ * test: Actor.ask() with default schema returns { answer: string }
  */
 async () => {
-  const result = await typedActor.ask({ prompt: 'hello' });
-  // result should have response property
-  const _response: string = result.response;
+  const result = await typedActor.ask({
+    prompt: 'hello',
+    schema: ACTOR_ASK_DEFAULT_SCHEMA,
+  });
+
+  // positive: answer exists
+  const _answer: string = result.answer;
+
+  // negative: response does not exist
+  // @ts-expect-error - response property does not exist on { answer: string }
+  const _response = result.response;
+};
+
+/**
+ * test: Actor.ask() with custom schema returns custom type
+ */
+async () => {
+  const customSchema = z.object({ score: z.number(), label: z.string() });
+  const result = await typedActor.ask({
+    prompt: 'rate this',
+    schema: { output: customSchema },
+  });
+
+  // positive: custom properties exist
+  const _score: number = result.score;
+  const _label: string = result.label;
+
+  // negative: answer does not exist on custom schema
+  // @ts-expect-error - answer property does not exist on { score: number, label: string }
+  const _answer = result.answer;
 };
 
 // verify type tests are used (prevents unused variable errors)
