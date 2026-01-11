@@ -1,0 +1,20 @@
+declare a roadmap,
+
+- checklist style
+- with ordered dependencies
+- with behavioral acceptance criteria
+- with behavioral acceptance verification at each step
+
+for how to execute the blueprint specified in .behavior/v2026_01_08.actor-brain-atom-support/3.3.blueprint.v1.i1.md
+
+ref:
+- .behavior/v2026_01_08.actor-brain-atom-support/0.wish.md
+- .behavior/v2026_01_08.actor-brain-atom-support/1.vision.md (if declared)
+- .behavior/v2026_01_08.actor-brain-atom-support/2.criteria.blackbox.md (if declared)
+- .behavior/v2026_01_08.actor-brain-atom-support/2.criteria.blueprint.md (if declared)
+- .behavior/v2026_01_08.actor-brain-atom-support/3.2.distill.domain._.v1.i1.md (if declared)
+- .behavior/v2026_01_08.actor-brain-atom-support/3.3.blueprint.v1.i1.md
+
+---
+
+emit into .behavior/v2026_01_08.actor-brain-atom-support/4.1.roadmap.v1.i1.md

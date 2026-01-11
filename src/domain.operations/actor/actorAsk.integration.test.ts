@@ -4,7 +4,7 @@ import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/gen
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
 import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-with-rigid-skill/role';
-import { actorAsk } from './actorAsk';
+import { ACTOR_ASK_DEFAULT_SCHEMA, actorAsk } from './actorAsk';
 
 describe('actorAsk (integration)', () => {
   // use test asset directory
@@ -30,12 +30,13 @@ describe('actorAsk (integration)', () => {
           role: testerRole,
           brain,
           prompt: 'say hello',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
         // brain.ask returns response
         expect(result).toBeDefined();
-        expect(result.response).toBeDefined();
-        expect(typeof result.response).toEqual('string');
+        expect(result.answer).toBeDefined();
+        expect(typeof result.answer).toEqual('string');
       });
     });
   });
@@ -47,10 +48,11 @@ describe('actorAsk (integration)', () => {
           role: testerRole,
           brain,
           prompt: 'respond with just the word: ok',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
-        expect(result.response).toBeDefined();
-        expect(result.response.length).toBeGreaterThan(0);
+        expect(result.answer).toBeDefined();
+        expect(result.answer.length).toBeGreaterThan(0);
       });
     });
   });

@@ -56,7 +56,12 @@ if [[ -z "$TAVILY_API_KEY" ]]; then
   echo "⚠ TAVILY_API_KEY not set (get one at https://tavily.com)"
   return 1
 fi
+if [[ -z "$XAI_API_KEY" ]]; then
+  echo "⚠ TAVILY_API_KEY not set (get one at https://tavily.com)"
+  return 1
+fi
 
 echo "✓ OPENAI_API_KEY set"
 echo "✓ ANTHROPIC_API_KEY set"
 echo "✓ TAVILY_API_KEY set"
+echo "✓ XAI_API_KEY set"
