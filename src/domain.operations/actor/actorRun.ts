@@ -6,11 +6,12 @@ import { executeSkill } from '@src/domain.operations/invoke/executeSkill';
  * .why = deterministic shell execution, no brain
  *
  * .note = skill is pre-resolved by genActor; this just executes
+ * .note = TOutput generic enables type flow from genActor
  */
-export const actorRun = async (input: {
-  skill: ActorRoleSkill;
+export const actorRun = async <TOutput>(input: {
+  skill: ActorRoleSkill<TOutput>;
   args: Record<string, unknown>;
-}): Promise<unknown> => {
+}): Promise<TOutput> => {
   // convert skill args object to CLI args array
   const argsArray: string[] = [];
   for (const [key, value] of Object.entries(input.args)) {
@@ -18,10 +19,11 @@ export const actorRun = async (input: {
   }
 
   // execute skill via spawn (capture mode for SDK return value)
-  const result = await executeSkill({
+  const result = executeSkill<TOutput>({
     skill: input.skill.executable,
     args: argsArray,
     stream: false,
+    schema: { output: input.skill.schema.output },
   });
 
   return result;

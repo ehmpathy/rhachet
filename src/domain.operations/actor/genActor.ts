@@ -5,6 +5,7 @@ import type {
   ActorAskOp,
   ActorBrain,
   ActorRunOp,
+  SkillOutput,
 } from '@src/domain.objects/Actor';
 import { Actor } from '@src/domain.objects/Actor';
 import type { Role } from '@src/domain.objects/Role';
@@ -67,14 +68,17 @@ export const genActor = <TRole extends Role>(input: {
     const [slugSkill, skillArgs] = entries[0]!;
 
     // resolve skill from role
-    const skillResolved = findActorRoleSkillBySlug({
+    type TOutput = SkillOutput<
+      NonNullable<TRole['skills']['rigid']>[typeof slugSkill]
+    >;
+    const skillResolved = findActorRoleSkillBySlug<TOutput>({
       slug: slugSkill,
       role: input.role,
       route: 'rigid',
     });
 
     // delegate to actorAct with pre-resolved skill
-    return actorAct({
+    return actorAct<TOutput>({
       role: input.role,
       brain: brainResolved,
       skill: skillResolved,
@@ -93,14 +97,17 @@ export const genActor = <TRole extends Role>(input: {
     const [slugSkill, skillArgs] = entries[0]!;
 
     // resolve skill from role
-    const skillResolved = findActorRoleSkillBySlug({
+    type TOutput = SkillOutput<
+      NonNullable<TRole['skills']['solid']>[typeof slugSkill]
+    >;
+    const skillResolved = findActorRoleSkillBySlug<TOutput>({
       slug: slugSkill,
       role: input.role,
       route: 'solid',
     });
 
     // delegate to actorRun with pre-resolved skill
-    return actorRun({
+    return actorRun<TOutput>({
       skill: skillResolved,
       args: skillArgs as Record<string, unknown>,
     });

@@ -12,8 +12,9 @@ import type { RoleSkillExecutable } from './RoleSkillExecutable';
  *
  * .note = executable is required; ActorRoleSkill is only constructable
  *   when a skill executable has been found
+ * .note = TOutput generic enables type flow through schema.output
  */
-export interface ActorRoleSkill {
+export interface ActorRoleSkill<TOutput = unknown> {
   /**
    * .what = the skill's slug identifier
    */
@@ -34,8 +35,9 @@ export interface ActorRoleSkill {
   /**
    * .what = the zod schema for input/output validation
    * .note = required; skills must have schemas to be executable via actor contracts
+   * .note = output schema is typed to TOutput for type flow
    */
-  schema: RoleSkillSchema;
+  schema: RoleSkillSchema<TOutput>;
 
   /**
    * .what = the executable file for this skill

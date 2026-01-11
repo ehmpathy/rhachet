@@ -2,8 +2,7 @@ import OpenAI from 'openai';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
-import type { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { z } from 'zod';
 
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
@@ -101,9 +100,7 @@ export const genBrainAtom = (input: { slug: OpenAIAtomSlug }): BrainAtom => {
       messages.push({ role: 'user', content: askInput.prompt });
 
       // convert zod schema to json schema for structured output
-      const jsonSchema = zodToJsonSchema(askInput.schema.output, {
-        $refStrategy: 'none',
-      });
+      const jsonSchema = z.toJSONSchema(askInput.schema.output, {});
 
       // call openai api with strict json_schema response format
       const response = await openai.chat.completions.create({

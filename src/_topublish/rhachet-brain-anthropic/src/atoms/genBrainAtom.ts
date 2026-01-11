@@ -1,9 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
@@ -108,35 +108,24 @@ export const genBrainAtom = (input: { slug: ClaudeAtomSlug }): BrainAtom => {
         (context?.anthropic as Anthropic | undefined) ??
         new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-      // convert zod schema to json schema for tool definition
-      const jsonSchema = zodToJsonSchema(askInput.schema.output, {
-        $refStrategy: 'none',
-      });
-
-      // call anthropic api with tool use for structured output
-      const response = await anthropic.messages.create({
+      // call anthropic api with native structured output (constrained decoding)
+      const response = await anthropic.beta.messages.create({
         model: config.model,
         max_tokens: 16384,
+        betas: ['structured-outputs-2025-11-13'],
         system: systemPrompt,
         messages: [{ role: 'user', content: askInput.prompt }],
-        tools: [
-          {
-            name: 'respond',
-            description: 'respond with structured output',
-            input_schema: jsonSchema as Anthropic.Tool['input_schema'],
-          },
-        ],
-        tool_choice: { type: 'tool', name: 'respond' },
+        output_format: betaZodOutputFormat(askInput.schema.output),
       });
 
-      // extract tool use input from response
-      const toolUseBlock = response.content.find(
-        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+      // extract structured output from response text
+      const textBlock = response.content.find(
+        (block): block is Anthropic.TextBlock => block.type === 'text',
       );
-      const toolInput = toolUseBlock?.input ?? {};
+      const output = textBlock?.text ? JSON.parse(textBlock.text) : {};
 
       // validate via schema
-      return askInput.schema.output.parse(toolInput);
+      return askInput.schema.output.parse(output);
     },
   });
 };

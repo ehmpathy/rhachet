@@ -7,10 +7,11 @@ import type { RoleTrait } from './RoleTrait';
 /**
  * .what = type definition for a skill's schema (input/output zod schemas)
  * .why = enables type-safe skill invocation via .act() and .run()
+ * .note = TOutput generic enables type flow through output schema
  */
-export interface RoleSkillSchema {
+export interface RoleSkillSchema<TOutput = unknown> {
   input: z.ZodSchema;
-  output: z.ZodSchema;
+  output: z.ZodSchema<TOutput>;
 }
 
 /**

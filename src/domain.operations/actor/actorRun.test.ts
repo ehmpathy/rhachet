@@ -49,6 +49,7 @@ describe('actorRun', () => {
           skill: testSkill.executable,
           args: ['--name', 'world'],
           stream: false,
+          schema: { output: testSkill.schema.output },
         });
       });
     });
@@ -66,6 +67,7 @@ describe('actorRun', () => {
           skill: testSkill.executable,
           args: ['--name', 'world', '--count', '5'],
           stream: false,
+          schema: { output: testSkill.schema.output },
         });
       });
     });
@@ -83,6 +85,7 @@ describe('actorRun', () => {
           skill: testSkill.executable,
           args: [],
           stream: false,
+          schema: { output: testSkill.schema.output },
         });
       });
     });
