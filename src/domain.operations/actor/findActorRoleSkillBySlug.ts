@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
 import { ActorRoleSkill } from '@src/domain.objects/ActorRoleSkill';
-import type { Role } from '@src/domain.objects/Role';
+import type { Role, RoleSkillSchema } from '@src/domain.objects/Role';
 import { discoverSkillExecutables } from '@src/domain.operations/invoke/discoverSkillExecutables';
 
 /**
@@ -9,12 +9,13 @@ import { discoverSkillExecutables } from '@src/domain.operations/invoke/discover
  * .why = resolves skill from role.skills[route] or .agent/ dirs
  *
  * .note = role.skills[route] takes precedence over .agent/ dirs (usecase.8)
+ * .note = TOutput generic enables type flow to ActorRoleSkill
  */
-export const findActorRoleSkillBySlug = (input: {
+export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
   slug: string;
   role: Role;
   route: 'solid' | 'rigid';
-}): ActorRoleSkill => {
+}): ActorRoleSkill<TOutput> => {
   // check role.skills[route] first (takes precedence per usecase.8)
   const skillsForRoute =
     input.route === 'solid' ? input.role.skills.solid : input.role.skills.rigid;
@@ -45,7 +46,7 @@ export const findActorRoleSkillBySlug = (input: {
       slug: input.slug,
       route: input.route,
       source: 'role.skills',
-      schema: skillSchema,
+      schema: skillSchema as RoleSkillSchema<TOutput>,
       executable: executables[0]!,
     });
   }

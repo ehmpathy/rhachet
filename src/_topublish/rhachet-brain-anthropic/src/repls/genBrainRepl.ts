@@ -6,7 +6,8 @@ import type { z } from 'zod';
 
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
-import { castZodToJsonSchema } from '@src/domain.operations/schema/castZodToJsonSchema';
+
+import { asJSONSchema } from '../infra/asJSONSchema';
 
 /**
  * .what = supported claude code repl slugs
@@ -114,10 +115,7 @@ const invokeQuery = async <TOutput>(input: {
     : undefined;
 
   // convert zod schema to json schema for native structured output
-  const jsonSchema = castZodToJsonSchema({
-    schema: input.schema.output,
-    target: 'claude',
-  });
+  const jsonSchema = asJSONSchema({ schema: input.schema.output });
 
   // build tool constraints based on mode
   const toolConstraints =

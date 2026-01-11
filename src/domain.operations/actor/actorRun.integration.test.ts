@@ -60,7 +60,7 @@ echo "{\\"count\\": $count}"
       solid: {
         echo: {
           input: z.object({ message: z.string() }),
-          output: z.object({ received: z.string() }),
+          output: z.string(),
         },
         wordcount: {
           input: z.object({ text: z.string() }),

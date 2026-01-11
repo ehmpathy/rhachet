@@ -1,1 +1,1 @@
-../../../node_modules/.pnpm/rhachet-roles-ehmpathy@1.17.11_@anthropic-ai+sdk@0.71.2_zod@3.25.76__@types+node@22.15.21_hono@4.11.3_zod@3.25.76/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/readme.md
+../../../node_modules/.pnpm/rhachet-roles-ehmpathy@1.17.11_@anthropic-ai+sdk@0.71.2_zod@4.3.4__@types+node@22.15.21_hono@4.11.3_zod@4.3.4/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/readme.md

@@ -8,13 +8,14 @@ import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
  * .why = deterministic harness with probabilistic brain operations
  *
  * .note = skill is pre-resolved by genActor; this just executes
+ * .note = TOutput generic enables type flow from genActor
  */
-export const actorAct = async (input: {
+export const actorAct = async <TOutput>(input: {
   role: Role;
   brain: BrainRepl;
-  skill: ActorRoleSkill;
+  skill: ActorRoleSkill<TOutput>;
   args: Record<string, unknown>;
-}): Promise<unknown> => {
+}): Promise<TOutput> => {
   // resolve briefs from role
   const briefs = await getRoleBriefs({
     by: {
@@ -24,11 +25,11 @@ export const actorAct = async (input: {
   });
 
   // execute rigid skill with brain
-  const result = await input.brain.act({
+  const result = await input.brain.act<TOutput>({
     role: { briefs },
     prompt: `Execute skill "${input.skill.slug}" with args: ${JSON.stringify(input.args)}`,
     schema: {
-      output: input.skill.schema?.output ?? ({} as any),
+      output: input.skill.schema.output,
     },
   });
 

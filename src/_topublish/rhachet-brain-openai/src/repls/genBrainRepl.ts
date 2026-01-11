@@ -3,11 +3,10 @@ import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import { withRetry, withTimeout } from 'wrapper-fns';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
-import { castZodToJsonSchema } from '@src/domain.operations/schema/castZodToJsonSchema';
 
 /**
  * .what = supported openai codex repl slugs
@@ -74,9 +73,8 @@ const invokeCodex = async <TOutput>(input: {
     : undefined;
 
   // convert zod schema to json schema for native enforcement
-  const outputSchema = castZodToJsonSchema({
-    schema: input.schema.output,
-    target: 'openai',
+  const outputSchema = z.toJSONSchema(input.schema.output, {
+    target: 'openAi',
   });
 
   // create codex client

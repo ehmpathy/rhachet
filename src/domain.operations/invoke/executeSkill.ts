@@ -1,4 +1,5 @@
 import { HelpfulError } from 'helpful-errors';
+import type { z } from 'zod';
 
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 
@@ -30,14 +31,17 @@ export class SkillExecutionError extends HelpfulError {
  *
  * .note = when stream=true (default), stdout/stderr stream progressively
  * .note = when stream=false, captures stdout and parses as JSON
+ * .note = when schema.output provided, validates output against zod schema
  * .note = uses spawnSync with explicit stdin passthrough to ensure input
  *         reaches the script (Commander.js may consume stdin before execSync)
+ * .note = TOutput generic enables type flow when schema provided
  */
-export const executeSkill = (input: {
+export const executeSkill = <TOutput = unknown>(input: {
   skill: RoleSkillExecutable;
   args: string[];
   stream?: boolean;
-}): unknown => {
+  schema?: { output: z.ZodSchema<TOutput> };
+}): TOutput => {
   const stream = input.stream ?? true;
 
   // build command with args
@@ -64,15 +68,22 @@ export const executeSkill = (input: {
     });
 
   // stream mode has no return value
-  if (stream) return undefined;
+  if (stream) return undefined as TOutput;
 
   // capture mode: parse JSON output if present
   const stdout = ((result.stdout as string) ?? '').trim();
-  if (!stdout) return undefined;
+  if (!stdout) return undefined as TOutput;
 
+  // parse stdout as JSON
+  let parsed: unknown;
   try {
-    return JSON.parse(stdout);
+    parsed = JSON.parse(stdout);
   } catch {
-    return stdout;
+    parsed = stdout;
   }
+
+  // validate against schema if provided
+  if (input.schema) return input.schema.output.parse(parsed);
+
+  return parsed as TOutput;
 };
