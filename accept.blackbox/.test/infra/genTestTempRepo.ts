@@ -23,7 +23,8 @@ export type TestRepoFixture =
   | 'with-perf-skills'
   | 'with-perf-test'
   | 'with-perf-collocated'
-  | 'with-published-roles';
+  | 'with-published-roles'
+  | 'with-scratch-archive';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

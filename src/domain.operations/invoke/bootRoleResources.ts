@@ -44,8 +44,13 @@ export const bootRoleResources = async ({
   const skillsDir = resolve(roleDir, 'skills');
   const readmePath = resolve(roleDir, 'readme.md');
 
+  // blocklisted brief directories (work-in-progress and deprecated content)
+  const blocklist = ['.scratch', '.archive'];
+
   const readmeFile = allFiles.find((f) => f === readmePath);
-  const briefFiles = allFiles.filter((f) => f.startsWith(briefsDir));
+  const briefFiles = allFiles
+    .filter((f) => f.startsWith(briefsDir))
+    .filter((f) => !blocklist.some((dir) => f.includes(`/${dir}/`)));
   const skillFiles = allFiles.filter((f) => f.startsWith(skillsDir));
   const relevantFiles = [
     ...(readmeFile ? [readmeFile] : []),
