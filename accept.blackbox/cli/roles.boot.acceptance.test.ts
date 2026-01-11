@@ -130,4 +130,42 @@ describe('rhachet roles boot', () => {
       });
     });
   });
+
+  given('[case4] repo with .scratch and .archive directories', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-scratch-archive' }),
+    );
+
+    when('[t0] roles boot --repo .this --role any', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'boot', '--repo', '.this', '--role', 'any'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('includes the normal brief', () => {
+        expect(result.stdout).toContain('included.brief.md');
+        expect(result.stdout).toContain('this brief should be included');
+      });
+
+      then('excludes briefs in .scratch directory', () => {
+        expect(result.stdout).not.toContain('excluded.scratch.md');
+        expect(result.stdout).not.toContain('briefs/.scratch/');
+      });
+
+      then('excludes briefs in .archive directory', () => {
+        expect(result.stdout).not.toContain('excluded.archive.md');
+        expect(result.stdout).not.toContain('briefs/.archive/');
+      });
+
+      then('reports correct brief count (1, not 3)', () => {
+        expect(result.stdout).toContain('briefs = 1');
+      });
+    });
+  });
 });
