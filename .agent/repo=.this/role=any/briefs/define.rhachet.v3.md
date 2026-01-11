@@ -1,9 +1,8 @@
 # rhachet
 
-![test](https://github.com/ehmpathy/rhachet/workflows/test/badge.svg)
-![publish](https://github.com/ehmpathy/rhachet/workflows/publish/badge.svg)
+## .what
 
-a framework for reliable, composable, and iteratively improvable thought.
+rhachet is a framework for reliable thought.
 
 register 🧢 roles && add 🧠 brains to produce 🎭 actors who clone that thought.
 
@@ -12,7 +11,7 @@ register 🧢 roles && add 🧠 brains to produce 🎭 actors who clone that tho
 ### step 1: create or reuse 🧢 roles
 
 a 🧢 role bundles 💪 skills and 📚 briefs:
-- 💪 skills = executable capabilities (e.g., `fetch-pr-comments.sh`, `review.rigid.ts`)
+- 💪 skills = executable capabilities (e.g., `fetch-pr-comments.sh`, `review.act.ts`)
 - 📚 briefs = curated knowledge (e.g., `rule.require.arrow-functions.md`, `define.input-context-pattern.md`)
 
 create your own roles, or reuse roles published as `rhachet-roles-*` packages.
@@ -33,10 +32,10 @@ enroll a 🧠 brain with a 🧢 role → produce an 🎭 actor.
 ```ts
 const mechanic = genActor({
   role: mechanicRole,
-  brains: [genBrainRepl({ slug: 'openai/codex' })],
+  brains: [openai('gpt-4o')],
 });
 
-await mechanic.ask({ prompt: 'how to simplify ...?' });        // 💧 fluid
+await mechanic.ask({ prompt: 'what needs refactor?' });        // 💧 fluid
 await mechanic.act({ skill: { review: { pr } } });             // 🔩 rigid
 await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
 ```
@@ -54,8 +53,6 @@ await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
       → 🪨 .run() curated executables
 ```
 
-## .terms
-
 ### .terms.objects
 
 | concept | emoji | what                                                    |
@@ -65,17 +62,6 @@ await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
 | actor   | 🎭     | brain enrolled in a role                                |
 | skill   | 💪     | executable capability                                   |
 | brief   | 📚     | curated knowledge                                       |
-
-### .terms.brain.grains
-
-🧠 brains are inference providers that enable probabilistic thought:
-
-| grain      | symbol | what                 | characteristics                | example                          |
-| ---------- | ------ | -------------------- | ------------------------------ | -------------------------------- |
-| brain.atom | ○      | single inference     | stateless, one-shot            | claude/haiku, openai/gpt-4o-mini |
-| brain.repl | ↻      | read-eval-print-loop | stateful, multi-turn, tool use | claude/code, openai/codex        |
-
-○ brain.atom is for single-turn operations. ↻ brain.repl is for multi-turn operations.
 
 ### .terms.thought.routes
 
@@ -92,6 +78,7 @@ await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
 | `.run()` | 🪨     | execute skill, no brain       |
 | `.act()` | 🔩     | execute skill, brain augments |
 | `.ask()` | 💧     | converse, brain decides path  |
+
 
 ## .enrollment
 
@@ -165,151 +152,3 @@ skills unlock consistency. 🧠 brains are probabilistic — they won't do the s
 | 💧 fluid | "what should we refactor?"                                  | 100% probabilistic |
 
 ideally, eject as much work as possible into 🪨 solid skills. use 🔩 rigid when you need to blend deterministic setup with probabilistic thought. reserve 💧 fluid for open-ended exploration.
-
-# install
-
-```sh
-npm install rhachet
-```
-
-# use
-
-## cli
-
-rhachet provides cli commands for each thought route
-
-| command           | route   | what it does                               |
-| ----------------- | ------- | ------------------------------------------ |
-| `npx rhachet run` | 🪨 solid | execute a shell skill, no brain            |
-| `npx rhachet act` | 🔩 rigid | execute a skill with deterministic harness |
-| `npx rhachet ask` | 💧 fluid | converse with an actor, brain decides path |
-
-### setup
-
-rhachet looks for `@gitroot/rhachet.use.ts`:
-
-```ts
-// rhachet.use.ts
-import { getRoleRegistry as getBhrainRegistry } from 'rhachet-roles-bhrain';
-import { getRoleRegistry as getEhmpathyRegistry } from 'rhachet-roles-ehmpathy';
-
-export const getRoleRegistries = () => [
-  getBhrainRegistry(),
-  getEhmpathyRegistry(),
-];
-```
-
-### 🪨 solid: run
-
-deterministic operations, no brain.
-
-```sh
-npx rhachet run --skill gh.workflow.logs --workflow test
-```
-
-### 🔩 rigid: act
-
-augmented orchestration, harness controls flow, brain augments.
-
-```sh
-npx rhachet act \
-  --role mechanic --skill review \
-  --input "https://github.com/org/repo/pull/9"
-
-npx rhachet act \
-  --role mechanic --skill review \
-  --input "https://github.com/org/repo/pull/9" \
-  --brain openai/codex
-```
-
-### 💧 fluid: ask
-
-probabilistic exploration, brain decides the path.
-
-```sh
-npx rhachet ask \
-  --role skeptic \
-  --ask "are birds real?"
-```
-
-## sdk
-
-rhachet provides a type-safe sdk for programmatic actor usage.
-
-| method        | route   | what it does                               |
-| ------------- | ------- | ------------------------------------------ |
-| `actor.run()` | 🪨 solid | execute a shell skill, no brain            |
-| `actor.act()` | 🔩 rigid | execute a skill with deterministic harness |
-| `actor.ask()` | 💧 fluid | converse with an actor, brain decides path |
-
-### setup
-
-generate an actor from a role with an allowlist of brains:
-
-```ts
-import { genActor } from 'rhachet';
-import { genBrainRepl } from 'rhachet-brains-openai';
-import { mechanicRole } from './roles/mechanic';
-
-export const mechanic = genActor({
-  role: mechanicRole,
-  brains: [
-    genBrainRepl({ slug: 'openai/codex' }),       // default (first in list)
-    genBrainRepl({ slug: 'openai/codex/mini' }),  // fast + cheap alternative
-  ],
-});
-```
-
-the `brains` allowlist:
-- defines which brains this actor supports
-- first brain is the default (used when no explicit brain is provided)
-- ensures only allowlisted brains can be used
-
-### 🪨 solid: run
-
-deterministic operations, no brain.
-
-```ts
-await mechanic.run({
-  skill: { 'gh.workflow.logs': { workflow: 'test' } },
-});
-```
-
-### 🔩 rigid: act
-
-augmented orchestration, harness controls flow, brain augments.
-
-```ts
-// uses default brain (first in allowlist)
-await mechanic.act({
-  skill: { review: { input: 'https://github.com/org/repo/pull/9' } },
-});
-
-// uses explicit brain (must be in allowlist)
-await mechanic.act({
-  brain: { repo: 'openai', slug: 'codex/mini' },
-  skill: { review: { input: 'https://github.com/org/repo/pull/9' } },
-});
-```
-
-### 💧 fluid: ask
-
-probabilistic exploration, brain decides the path.
-
-```ts
-await skeptic.ask({
-  prompt: 'are birds real?',
-});
-```
-
-# vision
-
-build or use digital actors, who work even from your laptop, and work for anyone you choose.
-
-distill your skills and roles iteratively, with rhachet. use them, compose them, share them, open source them. the choice is yours.
-
-- with open source top to bottom, we can raise the floor and prosper collectively.
-- with observable routes of thought, we can not only debug, but align.
-- with composable thought routes, we can build incremental complexity and automate test coverage just like any code.
-
-here's to a solarpunk future of abundance 🌞🌴
