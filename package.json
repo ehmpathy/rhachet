@@ -75,6 +75,7 @@
     "rhachet-artifact": "1.0.3",
     "rhachet-artifact-git": "1.1.5",
     "serde-fns": "1.3.1",
+    "simple-log-methods": "0.6.9",
     "type-fns": "1.21.0",
     "uuid-fns": "1.0.1",
     "yaml": "2.8.2"
