@@ -1,8 +1,8 @@
 import { Command } from 'commander';
+import { withEmojiSpaceShim } from 'emoji-space-shim';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { withEmojiSpaceShim } from '@src/_topublish/emoji-space-shim/src';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
 import { getBrainReplsByOpts } from '@src/domain.operations/invoke/getBrainReplsByOpts';
 import { getInvokeHooksByOpts } from '@src/domain.operations/invoke/getInvokeHooksByOpts';

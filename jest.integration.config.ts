@@ -17,8 +17,6 @@ const config: Config = {
   moduleFileExtensions: ['js', 'ts', 'mjs'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
-    // codex-sdk is ESM-only with type: module, needs explicit resolution
-    '^@openai/codex-sdk$': '<rootDir>/node_modules/@openai/codex-sdk/dist/index.js',
   },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',

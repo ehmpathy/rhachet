@@ -1,6 +1,5 @@
+import { genBrainRepl } from 'rhachet-brains-openai';
 import { given, then, when } from 'test-fns';
-
-import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
 import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-with-rigid-skill/role';

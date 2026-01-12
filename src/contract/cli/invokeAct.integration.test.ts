@@ -1,8 +1,8 @@
 import { Command } from 'commander';
+import { genBrainRepl } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 

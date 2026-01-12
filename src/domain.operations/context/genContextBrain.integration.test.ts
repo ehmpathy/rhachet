@@ -1,14 +1,14 @@
-import { given, then, when } from 'test-fns';
-import { z } from 'zod';
-
 import {
   getBrainAtomsByAnthropic,
   getBrainReplsByAnthropic,
-} from '@src/_topublish/rhachet-brain-anthropic/src/index';
+} from 'rhachet-brains-anthropic';
 import {
   getBrainAtomsByOpenAI,
   getBrainReplsByOpenAI,
-} from '@src/_topublish/rhachet-brain-openai/src/index';
+} from 'rhachet-brains-openai';
+import { given, then, when } from 'test-fns';
+import { z } from 'zod';
+
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 

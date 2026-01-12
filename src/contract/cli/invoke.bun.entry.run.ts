@@ -3,8 +3,7 @@
  * .why = fast startup via skip of registry load; reads from .agent/ directly
  */
 import { Command } from 'commander';
-
-import { withEmojiSpaceShim } from '@src/_topublish/emoji-space-shim/src';
+import { withEmojiSpaceShim } from 'emoji-space-shim';
 
 import { invokeRun } from './invokeRun';
 
