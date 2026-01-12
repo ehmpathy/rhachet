@@ -1,10 +1,10 @@
 import { BadRequestError } from 'helpful-errors';
 import * as path from 'path';
+import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
+import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genBrainRepl as genBrainReplOpenAI } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
-import { genBrainAtom as genBrainAtomXAI } from '@src/_topublish/rhachet-brain-xai/src/atoms/genBrainAtom';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';

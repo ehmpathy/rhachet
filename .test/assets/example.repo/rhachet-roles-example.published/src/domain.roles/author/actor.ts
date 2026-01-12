@@ -1,5 +1,5 @@
 import { genActor } from 'rhachet';
-import { genBrainRepl } from 'rhachet-brain-openai';
+import { genBrainRepl } from 'rhachet-brains-openai';
 
 import { authorRole } from './role';
 

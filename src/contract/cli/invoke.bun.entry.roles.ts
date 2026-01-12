@@ -6,8 +6,7 @@
  *         roles link/init is routed to JIT binary (needs npm package imports)
  */
 import { Command } from 'commander';
-
-import { withEmojiSpaceShim } from '@src/_topublish/emoji-space-shim/src';
+import { withEmojiSpaceShim } from 'emoji-space-shim';
 
 import { invokeRolesBoot } from './invokeRolesBoot';
 import { invokeRolesCost } from './invokeRolesCost';

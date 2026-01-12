@@ -1,7 +1,7 @@
 import * as path from 'path';
+import { genBrainRepl } from 'rhachet-brains-openai';
 import { given, then, when } from 'test-fns';
 
-import { genBrainRepl } from '@src/_topublish/rhachet-brain-openai/src/repls/genBrainRepl';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 
