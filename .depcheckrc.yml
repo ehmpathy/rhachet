@@ -2,7 +2,7 @@ ignores:
   - depcheck
   - declapract
   - declapract-typescript-ehmpathy
-  - '@commitlint/config-conventional'
+  - "@commitlint/config-conventional"
   - serverless-prune-plugin
   - type-fns
   - husky
@@ -22,3 +22,4 @@ ignores:
   - rhachet-roles-bhuild
   - rhachet-roles-ehmpathy
   - yalc
+  - simple-log-methods # needed to support portable types
