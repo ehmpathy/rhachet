@@ -3,6 +3,7 @@ import { getError, given, then, when } from 'test-fns';
 
 import { TEST_FIXTURE_DIRECTORY } from '@src/.test/directory';
 import { EXAMPLE_REGISTRY } from '@src/.test/example.use.repo/example.echoRegistry';
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
@@ -21,13 +22,16 @@ describe('invokeAsk (integration)', () => {
     'a CLI program with invokeAsk registered, with EXAMPLE_REGISTRY (stitch-mode)',
     () => {
       const program = new Command();
-      invokeAsk({
-        program,
-        config: { path: configPath },
+
+      // register with mock context for stitch-mode tests
+      const stitchContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: configPath,
         registries: [EXAMPLE_REGISTRY],
         brains: [],
         hooks: null,
       });
+      invokeAsk({ program }, stitchContext);
 
       when('a valid echo skill is invoked with ask input', () => {
         then('it should execute the skill successfully', async () => {
@@ -147,13 +151,15 @@ describe('invokeAsk (integration)', () => {
         jest.clearAllMocks();
       });
 
-      invokeAsk({
-        program,
-        config: { path: configPath },
+      // register with mock context for actor-mode tests
+      const actorContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: configPath,
         registries: [testRegistry],
         brains: [mockBrain],
         hooks: null,
       });
+      invokeAsk({ program }, actorContext);
 
       when('a valid role and prompt are provided (no --skill)', () => {
         then('it should invoke actor.ask with the prompt', async () => {
@@ -192,13 +198,15 @@ describe('invokeAsk (integration)', () => {
   given('a CLI program with no brains (actor mode)', () => {
     const program = new Command();
 
-    invokeAsk({
-      program,
-      config: { path: configPath },
+    // register with mock context that has no brains
+    const noBrainsContext = genMockContextConfigOfUsage({
+      isExplicit: true,
+      explicitPath: configPath,
       registries: [EXAMPLE_REGISTRY],
       brains: [],
       hooks: null,
     });
+    invokeAsk({ program }, noBrainsContext);
 
     when('ask command is invoked without --skill', () => {
       then('it should throw error about no brains', async () => {

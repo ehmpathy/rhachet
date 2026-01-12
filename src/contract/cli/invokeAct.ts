@@ -6,6 +6,7 @@ import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { assureRigidSkillHasOutputInput } from '@src/domain.operations/invoke/assureRigidSkillHasOutputInput';
 import { inferRepoByRole } from '@src/domain.operations/invoke/inferRepoByRole';
@@ -165,20 +166,13 @@ const performActInCurrentThread = async (input: {
 /**
  * .what = adds the "act" command to the CLI
  * .why = invokes a rigid skill with brain from any role in the given registries
+ *
+ * .note = requires explicit config (rhachet.use.ts)
  */
-export const invokeAct = ({
-  program,
-  registries,
-  brains,
-  hooks,
-  ...input
-}: {
-  program: Command;
-  config: { path: string };
-  registries: RoleRegistry[];
-  brains: BrainRepl[];
-  hooks: null | InvokeHooks;
-}): void => {
+export const invokeAct = (
+  { program }: { program: Command },
+  context: ContextConfigOfUsage,
+): void => {
   const actCommand = program
     .command('act')
     .description('invoke a rigid skill with brain')
@@ -206,7 +200,14 @@ export const invokeAct = ({
       attempts?: string;
       concurrency?: string;
     }) => {
-      // determine if using isolated threads for parallel attempts
+      // load resources just-in-time
+      const registries = (await context.config.usage.get.registries.explicit())
+        .registries;
+      const brains = await context.config.usage.get.brains.explicit();
+      const hooks = await context.config.usage.get.hooks.explicit();
+      const configPath = context.config.usage.getExplicitPath();
+
+      // determine if isolated threads mode is requested for parallel attempts
       const useIsolatedThreads = opts.attempts !== undefined;
 
       // validate attempts requires output
@@ -221,7 +222,7 @@ export const invokeAct = ({
             output: opts.output!, // validated above
             attempts: opts.attempts!, // validated by useIsolatedThreads
           },
-          config: input.config,
+          config: { path: configPath },
           registries,
         });
       }

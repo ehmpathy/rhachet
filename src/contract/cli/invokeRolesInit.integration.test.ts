@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import { Role } from '@src/domain.objects/Role';
 import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -68,7 +69,12 @@ describe('invokeRolesInit (integration)', () => {
       rmSync(resolve(testDir, 'init-output-2.txt'), { force: true });
     });
 
-    invokeRolesInit({ command: rolesCommand, registries: [mockRegistry] });
+    // register with mock context that provides the mock registry
+    const mockContext = genMockContextConfigOfUsage({
+      isExplicit: true,
+      registries: [mockRegistry],
+    });
+    invokeRolesInit({ command: rolesCommand }, mockContext);
 
     when('invoked with "init --repo test --role mechanic"', () => {
       then('it should execute all init commands sequentially', async () => {
@@ -165,7 +171,7 @@ describe('invokeRolesInit (integration)', () => {
           }),
         );
 
-        expect(error?.message).toContain('no role named "nonexistent"');
+        expect(error?.message).toContain('role "nonexistent" not found');
       });
     });
   });
@@ -221,10 +227,12 @@ describe('invokeRolesInit (integration)', () => {
     const rolesCommand = new Command('roles');
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    invokeRolesInit({
-      command: rolesCommand,
+    // register with mock context that provides both registries
+    const multiContext = genMockContextConfigOfUsage({
+      isExplicit: true,
       registries: [registry1, registry2],
     });
+    invokeRolesInit({ command: rolesCommand }, multiContext);
 
     when('invoked with "init --role mechanic" without --repo', () => {
       then('it should throw an error about ambiguous repos', async () => {
@@ -234,7 +242,7 @@ describe('invokeRolesInit (integration)', () => {
           }),
         );
 
-        expect(error?.message).toContain('multiple roles named "mechanic"');
+        expect(error?.message).toContain('role "mechanic" is ambiguous');
       });
     });
   });

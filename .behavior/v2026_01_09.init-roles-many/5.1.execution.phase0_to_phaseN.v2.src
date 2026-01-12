@@ -1,0 +1,22 @@
+bootup your mechanic's role via `npx rhachet roles boot --repo ehmpathy --role mechanic`
+
+then, start or continue to execute
+- phase0 to phaseN
+of roadmap
+- .behavior/v2026_01_09.init-roles-many/4.1.roadmap.v2.i1.md
+
+ref:
+- .behavior/v2026_01_09.init-roles-many/0.wish.md
+- .behavior/v2026_01_09.init-roles-many/1.vision.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/2.criteria.blackbox.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/2.criteria.blueprint.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.2.distill.domain._.v1.i1.md (if declared)
+- .behavior/v2026_01_09.init-roles-many/3.3.blueprint.v2.i1.md
+
+
+---
+
+track your progress
+
+emit todos and check them off into
+- .behavior/v2026_01_09.init-roles-many/5.1.execution.phase0_to_phaseN.v2.i1.md

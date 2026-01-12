@@ -1,8 +1,8 @@
-import { generateRhachetConfig } from './generateRhachetConfig';
+import { genRhachetUseConfig } from './genRhachetUseConfig';
 
-describe('generateRhachetConfig', () => {
+describe('genRhachetUseConfig', () => {
   it('should generate config for single package with aliased imports', () => {
-    const result = generateRhachetConfig({
+    const result = genRhachetUseConfig({
       packages: ['rhachet-roles-ehmpathy'],
     });
 
@@ -16,7 +16,7 @@ describe('generateRhachetConfig', () => {
   });
 
   it('should generate config for multiple packages', () => {
-    const result = generateRhachetConfig({
+    const result = genRhachetUseConfig({
       packages: ['rhachet-roles-ehmpathy', 'rhachet-roles-other'],
     });
 
@@ -31,7 +31,7 @@ describe('generateRhachetConfig', () => {
   });
 
   it('should convert kebab-case to PascalCase for aliases', () => {
-    const result = generateRhachetConfig({
+    const result = genRhachetUseConfig({
       packages: ['rhachet-roles-my-custom-roles'],
     });
 

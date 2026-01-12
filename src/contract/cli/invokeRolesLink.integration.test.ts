@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import { Role } from '@src/domain.objects/Role';
 import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -138,7 +139,12 @@ describe('invokeRolesLink (integration)', () => {
       }
     });
 
-    invokeRolesLink({ command: rolesCommand, registries: [mockRegistry] });
+    // register with mock context that provides the mock registry
+    const mockContext = genMockContextConfigOfUsage({
+      isExplicit: true,
+      registries: [mockRegistry],
+    });
+    invokeRolesLink({ command: rolesCommand }, mockContext);
 
     when('invoked with "link --repo test --role mechanic"', () => {
       then(
@@ -284,16 +290,16 @@ describe('invokeRolesLink (integration)', () => {
 
           // Check log output
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Linked role "mechanic"'),
+            expect.stringContaining('🔗 link role test/mechanic'),
           );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('2 brief(s) linked'),
+            expect.stringContaining('2 brief(s)'),
           );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('2 skill(s) linked'),
+            expect.stringContaining('2 skill(s)'),
           );
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('1 init(s) linked'),
+            expect.stringContaining('1 init(s)'),
           );
         },
       );
@@ -316,11 +322,9 @@ describe('invokeRolesLink (integration)', () => {
               ),
             ).toBe(true);
 
-            // Check log output mentions the inferred repo
+            // Check log output mentions the link
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'Linking role "mechanic" from repo "test"',
-              ),
+              expect.stringContaining('🔗 link role test/mechanic'),
             );
           },
         );
@@ -337,7 +341,7 @@ describe('invokeRolesLink (integration)', () => {
             }),
           );
 
-          expect(error?.message).toContain('no role named "nonexistent"');
+          expect(error?.message).toContain('role "nonexistent" not found');
         },
       );
     });
@@ -421,10 +425,11 @@ describe('invokeRolesLink (integration)', () => {
       });
 
       const singleRolesCommand = new Command('roles');
-      invokeRolesLink({
-        command: singleRolesCommand,
+      const singleDirContext = genMockContextConfigOfUsage({
+        isExplicit: true,
         registries: [singleDirRegistry],
       });
+      invokeRolesLink({ command: singleRolesCommand }, singleDirContext);
 
       then(
         'it should symlink dirs directly as briefs/, skills/, and inits/ directories',
@@ -530,7 +535,9 @@ describe('invokeRolesLink (integration)', () => {
           ),
         );
 
-        expect(error?.message).toContain('no role named "nonexistent"');
+        expect(error?.message).toContain(
+          'role "nonexistent" not found in manifest "test"',
+        );
       });
     });
   });

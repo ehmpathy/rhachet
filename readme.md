@@ -16,17 +16,90 @@ use 🧢 roles & add 🧠 brains to produce 🎭 actors who clone thought routes
       → 🪨 .run() curated executables
 ```
 
+---
+
 # install
 
 ```sh
 npm install rhachet
 ```
 
-# use
+---
+
+# 🧢 roles.<use>
+
+if you want to use rhachet, you want to use roles.
+
+there's two ways to use roles. via `cli` and via `sdk`. both are described below.
+
+---
 
 ## cli
 
-rhachet provides cli commands for each thought route
+humans have brains. robots have brains. who would have thought they'd need the same briefs and skills to work well?
+
+the cli powers the most common usecase for rhachet. robots and humans depend on it in day to day operations via their roles.
+
+### tldr
+
+```sh
+# install role repos
+npm install rhachet-roles-ehmpathy
+
+# init roles
+npx rhachet init --roles mechanic
+
+# invoke skills
+npx rhachet run --skill show.gh.test.errors
+
+# use enrolled agents
+claude # will have been enrolled as a mechanic via hooks, from init
+```
+
+### init
+
+#### how
+
+install a rhachet-roles package and run init:
+
+```sh
+# install the role repos you'd like to use. e.g.,
+npm install rhachet-roles-ehmpathy rhachet-roles-bhuild rhachet-roles-bhrain
+
+# initialize the roles, to make them available for use to agents in the repo
+npx rhachet init --roles mechanic behaver reviewer
+```
+
+if the same role name exists in multiple packages, use `$repo/$role` syntax to disambiguate
+
+```sh
+# init the role repos with repo disambiguation. e.g.,
+npx rhachet init --roles ehmpathy/mechanic bhuild/behaver bhrain/reviewer
+```
+
+after init, any agents you spawn in the repo will boot with those roles. rhachet configures your brain-repls via hooks (e.g., in `.claude/settings.json`) so enrollment happens automatically and resiliently.
+
+#### why
+
+the `.agent/` directory is a curated & shared source of truth. robots get their briefs and skills from here. so can humans.
+
+**zero magic. full transparency.**
+
+```
+.agent/
+  repo=.this/              # roles specific to this repo
+    role=any/
+      readme.md            # ← you can read this
+      briefs/              # ← and these (which robots boot with)
+      skills/              # ← and these (which robots exec from)
+  repo=ehmpathy/           # roles linked from rhachet-roles-ehmpathy
+    role=mechanic/  →      # symlink to node_modules/...
+                           # ← same exact structure as above
+```
+
+browse the same briefs robots get booted with. invoke the same skills they dispatch. edit and iterate — changes take effect immediately.
+
+### use
 
 | command           | route   | what it does                               |
 | ----------------- | ------- | ------------------------------------------ |
@@ -34,22 +107,7 @@ rhachet provides cli commands for each thought route
 | `npx rhachet act` | 🔩 rigid | execute a skill with deterministic harness |
 | `npx rhachet ask` | 💧 fluid | converse with an actor, brain decides path |
 
-### setup
-
-rhachet looks for `@gitroot/rhachet.use.ts`:
-
-```ts
-// rhachet.use.ts
-import { getRoleRegistry as getBhrainRegistry } from 'rhachet-roles-bhrain';
-import { getRoleRegistry as getEhmpathyRegistry } from 'rhachet-roles-ehmpathy';
-
-export const getRoleRegistries = () => [
-  getBhrainRegistry(),
-  getEhmpathyRegistry(),
-];
-```
-
-### 🪨 solid: run
+#### 🪨 solid: run
 
 deterministic operations, no brain.
 
@@ -57,7 +115,7 @@ deterministic operations, no brain.
 npx rhachet run --skill gh.workflow.logs --workflow test
 ```
 
-### 🔩 rigid: act
+#### 🔩 rigid: act
 
 augmented orchestration, harness controls flow, brain augments.
 
@@ -72,7 +130,7 @@ npx rhachet act \
   --brain openai/codex
 ```
 
-### 💧 fluid: ask
+#### 💧 fluid: ask
 
 probabilistic exploration, brain decides the path.
 
@@ -82,24 +140,41 @@ npx rhachet ask \
   --ask "are birds real?"
 ```
 
+---
+
 ## sdk
 
-rhachet provides a type-safe sdk for programmatic actor usage.
+the sdk powers programmatic actor usage with strict contracts. applications and services depend on it to leverage actors for reliable, composable, and improvable thought.
 
-| method        | route   | what it does                               |
-| ------------- | ------- | ------------------------------------------ |
-| `actor.run()` | 🪨 solid | execute a shell skill, no brain            |
-| `actor.act()` | 🔩 rigid | execute a skill with deterministic harness |
-| `actor.ask()` | 💧 fluid | converse with an actor, brain decides path |
+### tldr
 
-### setup
+```ts
+import { genActor } from 'rhachet';
+import { genBrainRepl } from 'rhachet-brains-openai';
+import { mechanicRole } from './domain.roles/mechanic';
+
+// init actor
+const mechanic = genActor({
+  role: mechanicRole,
+  brains: [genBrainRepl({ slug: 'openai/codex' })],
+});
+
+// use actor
+await mechanic.ask({ prompt: 'how to simplify ...?' });        // 💧 fluid
+await mechanic.act({ skill: { review: { pr } } });             // 🔩 rigid
+await mechanic.run({ skill: { 'fetch.pr-comments': { pr } } }) // 🪨 solid
+```
+
+### init
+
+#### how
 
 generate an actor from a role with an allowlist of brains:
 
 ```ts
 import { genActor } from 'rhachet';
 import { genBrainRepl } from 'rhachet-brains-openai';
-import { mechanicRole } from './roles/mechanic';
+import { mechanicRole } from './domain.roles/mechanic';
 
 export const mechanic = genActor({
   role: mechanicRole,
@@ -110,12 +185,28 @@ export const mechanic = genActor({
 });
 ```
 
-the `brains` allowlist:
-- defines which brains this actor supports
-- first brain is the default (used when no explicit brain is provided)
-- ensures only allowlisted brains can be used
+#### why
 
-### 🪨 solid: run
+the actor interface provides:
+- **strict enrollment** — brains allowlist ensures only approved brains can be used
+- **isomorphic with cli** — same `.run()`, `.act()`, `.ask()` interface as cli commands
+- **composition** — actors can be composed into higher-order workflows and skills
+- **consistent contracts** — type-safe inputs and outputs across all thought routes
+
+common usecases:
+- create reusable skills that leverage brain capabilities
+- deliver product behaviors powered by enrolled actors
+- build automation pipelines with reliable, testable thought
+
+### use
+
+| method        | route   | what it does                               |
+| ------------- | ------- | ------------------------------------------ |
+| `actor.run()` | 🪨 solid | execute a shell skill, no brain            |
+| `actor.act()` | 🔩 rigid | execute a skill with deterministic harness |
+| `actor.ask()` | 💧 fluid | converse with an actor, brain decides path |
+
+#### 🪨 solid: run
 
 deterministic operations, no brain.
 
@@ -125,7 +216,7 @@ await mechanic.run({
 });
 ```
 
-### 🔩 rigid: act
+#### 🔩 rigid: act
 
 augmented orchestration, harness controls flow, brain augments.
 
@@ -142,15 +233,97 @@ await mechanic.act({
 });
 ```
 
-### 💧 fluid: ask
+#### 💧 fluid: ask
 
 probabilistic exploration, brain decides the path.
 
 ```ts
 await skeptic.ask({
-  prompt: 'are birds real?',
+  prompt: 'are birds real? or are they just government drones 🤔',
 });
 ```
+
+---
+
+# 🧢 roles.<add>
+
+## collocated roles
+
+create directly in `.agent/repo=.this/`. zero dependencies. instant experimentation.
+
+### default: `role=any`
+
+`repo=.this/role=any/` is created whenever rhachet is linked in a repo. it applies to anyone who works in the repo — human or robot. use it for repo-wide briefs and skills.
+
+### custom: `role=$name`
+
+create custom roles for scoped briefs and skills:
+
+| role           | purpose                                           |
+| -------------- | ------------------------------------------------- |
+| `role=human`   | briefs & skills applicable only to humans         |
+| `role=robot`   | briefs & skills applicable only to robots         |
+| `role=dbadmin` | briefs & skills for database administration scope |
+
+custom roles are opt-in — irrelevant by default, enrolled when needed.
+
+```
+.agent/repo=.this/
+  role=any/        # default, applies to everyone
+  role=human/      # human-specific
+  role=robot/      # robot-specific
+  role=dbadmin/    # scoped to db work
+```
+
+## published roles
+
+to share roles via npm as a `rhachet-roles-*` package, generate a `rhachet.repo.yml` manifest.
+
+### generate manifest
+
+run `repo introspect` to generate the manifest from your package's `getRoleRegistry` export
+
+```sh
+npx rhachet repo introspect
+# creates rhachet.repo.yml at package root
+```
+
+preview before write:
+
+```sh
+npx rhachet repo introspect --output -
+# outputs yaml to stdout
+```
+
+### rhachet.repo.yml schema
+
+the manifest describes your roles for package-based discovery:
+
+```yaml
+slug: ehmpathy
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+    inits:
+      dirs: roles/mechanic/inits
+```
+
+| field               | what                                    |
+| ------------------- | --------------------------------------- |
+| `slug`              | unique identifier for the repo          |
+| `readme`            | path to repo readme relative to root    |
+| `roles`             | list of role definitions                |
+| `roles.slug`        | unique identifier for the role          |
+| `roles.readme`      | path to role readme                     |
+| `roles.briefs.dirs` | path(s) to briefs directories           |
+| `roles.skills.dirs` | path(s) to skills directories           |
+| `roles.inits.dirs`  | path(s) to inits directories (optional) |
+
 
 ---
 
@@ -281,20 +454,20 @@ briefs supply knowledge about:
 
 briefs are suffixed to every system prompt and survive compaction — reliable enrollment.
 
-**🪐 analogy: concept planets**
-
-🧠 brains navigate concept space like ships navigate galactic space.
-
-📚 briefs register concept planets. each planet has gravity that pulls the brain's thought toward it.
-
-ask an unenrolled brain to review code. it drifts toward whatever concepts it absorbed — java idioms, verbose comments, patterns you've never used.
-
-enroll that brain with a mechanic role. the 📚 briefs register concept planets:
-- 🪐 "arrow functions only"
-- 🪐 "input-context pattern"
-- 🪐 "fail fast via HelpfulError"
-
-these planets now have immense gravity. the brain's thought bends toward them. it reviews code the way your team reviews code — because enrollment shaped the gravity of the concepts it navigates to.
+> **🪐 analogy: concept planets**
+>
+> 🧠 brains navigate concept space like ships navigate galactic space.
+>
+> 📚 briefs register concept planets. each planet has gravity that pulls the brain's thought toward it.
+>
+> ask an unenrolled brain to review code. it drifts toward whatever concepts it absorbed — java idioms, verbose comments, patterns you've never used.
+>
+> enroll that brain with a mechanic role. the 📚 briefs register concept planets:
+> - 🪐 "arrow functions only"
+> - 🪐 "input-context pattern"
+> - 🪐 "fail fast via HelpfulError"
+>
+> these planets now have immense gravity. the brain's thought bends toward them. it reviews code the way your team reviews code — because enrollment shaped the gravity of the concepts it navigates to.
 
 ### 💪 skills curate the skillset
 

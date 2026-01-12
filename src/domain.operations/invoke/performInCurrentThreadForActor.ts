@@ -2,10 +2,10 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { getBrainsByConfigExplicit } from '@src/domain.operations/config/getBrainsByConfigExplicit';
+import { getRegistriesByConfigExplicit } from '@src/domain.operations/config/getRegistriesByConfigExplicit';
 
 import { assureFindRole } from './assureFindRole';
-import { getBrainReplsByOpts } from './getBrainReplsByOpts';
-import { getRegistriesByOpts } from './getRegistriesByOpts';
 import { inferRepoByRole } from './inferRepoByRole';
 
 /**
@@ -23,10 +23,10 @@ export const performInCurrentThreadForActor = async (input: {
   }>;
 }): Promise<void> => {
   // get registries from config
-  const registries = await getRegistriesByOpts({ opts: input.opts });
+  const registries = await getRegistriesByConfigExplicit({ opts: input.opts });
 
   // get brains from config
-  const brains = await getBrainReplsByOpts({ opts: input.opts });
+  const brains = await getBrainsByConfigExplicit({ opts: input.opts }); // todo: support implicit lookup via rhachet-brains-* pattern
   if (brains.length === 0)
     BadRequestError.throw(
       'no brains available. add getBrainRepls() to your rhachet.use.ts',

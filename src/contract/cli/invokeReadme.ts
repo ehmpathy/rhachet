@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
-import type { RoleRegistry } from '@src/contract/sdk';
+import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 
 import { readFileSync } from 'node:fs';
@@ -10,21 +10,24 @@ import { resolve } from 'node:path';
 /**
  * .what = main entrypoint for `readme` CLI command
  * .why = allows devs to introspect registry, role, or skill documentation from the CLI
+ *
+ * .note = requires explicit config (rhachet.use.ts)
  */
-export const invokeReadme = ({
-  program,
-  registries,
-}: {
-  program: Command;
-  registries: RoleRegistry[];
-}): void => {
+export const invokeReadme = (
+  { program }: { program: Command },
+  context: ContextConfigOfUsage,
+): void => {
   program
     .command('readme')
     .description('print documentation for the registry, a role, or a skill')
     .option('--repo <slug>', 'which repo to inspect')
     .option('--role <slug>', 'which role to inspect')
     .option('--skill <slug>', 'which skill to inspect')
-    .action((opts: { repo?: string; role?: string; skill?: string }) => {
+    .action(async (opts: { repo?: string; role?: string; skill?: string }) => {
+      // load registries just-in-time
+      const registries = (await context.config.usage.get.registries.explicit())
+        .registries;
+
       // no inputs provided
       if (!opts.repo && !opts.role)
         BadRequestError.throw('must provide --repo or --role');

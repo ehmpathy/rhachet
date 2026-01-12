@@ -1,0 +1,8 @@
+{
+  "name": "test-with-roles-packages",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-test": "file:./node_modules/rhachet-roles-test"
+  }
+}

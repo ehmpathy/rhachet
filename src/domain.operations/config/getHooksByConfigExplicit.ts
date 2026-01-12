@@ -2,13 +2,14 @@ import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 
 /**
- * .what = get invoke hooks from the invocation options declared
+ * .what = get invoke hooks from explicit config (rhachet.use.ts)
+ * .why = enables CLI commands to resolve hooks from user-declared config
  * .how =
  *   - lookup the config based on the options
  *   - grab the hooks from the config (supports array of InvokeHooks)
  *   - merge hooks from all sources
  */
-export const getInvokeHooksByOpts = async (input: {
+export const getHooksByConfigExplicit = async (input: {
   opts: InvokeOpts<{ config: string }>;
 }): Promise<InvokeHooks | null> => {
   // import the config

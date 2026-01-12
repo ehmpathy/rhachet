@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -68,13 +69,15 @@ describe('invokeAct', () => {
       logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       jest.clearAllMocks();
 
-      invokeAct({
-        program,
-        config: { path: '/fake/rhachet.use.ts' },
+      // register with mock context
+      const mockContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [mockRegistry],
         brains: [mockBrain],
         hooks: null,
       });
+      invokeAct({ program }, mockContext);
     });
 
     afterEach(() => {
@@ -180,13 +183,15 @@ describe('invokeAct', () => {
       program = new Command();
       program.exitOverride();
 
-      invokeAct({
-        program,
-        config: { path: '/fake/rhachet.use.ts' },
+      // register with mock context that has no brains
+      const noBrainsContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        explicitPath: '/fake/rhachet.use.ts',
         registries: [mockRegistry],
-        brains: [], // no brains
+        brains: [],
         hooks: null,
       });
+      invokeAct({ program }, noBrainsContext);
     });
 
     when('act command is called', () => {

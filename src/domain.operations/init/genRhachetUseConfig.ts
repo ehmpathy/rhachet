@@ -13,9 +13,7 @@ const toPascalCase = (str: string): string =>
  * .why = enables auto-initialization from discovered role packages
  * .how = creates aliased imports and exports for registries and hooks
  */
-export const generateRhachetConfig = (input: {
-  packages: string[];
-}): string => {
+export const genRhachetUseConfig = (input: { packages: string[] }): string => {
   // Always use aliased imports for consistency
   const imports = input.packages
     .map((pkg) => {
