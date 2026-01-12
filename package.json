@@ -14,7 +14,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "types": "dist/contract/sdk.d.ts",
+  "types": "dist/index.d.ts",
   "bin": {
     "rhachet": "./bin/run"
   },
@@ -31,8 +31,9 @@
     "fix:lint": "biome check --write",
     "fix": "npm run fix:format && npm run fix:lint",
     "build:clean": "rm dist/ -rf && rm -f ./bin/*.bc",
-    "build:compile": "npm run build:compile:tsc && npm run build:compile:bun",
+    "build:compile": "npm run build:compile:tsc && npm run build:compile:dts && npm run build:compile:bun",
     "build:compile:tsc": "tsc -p ./tsconfig.build.json && tsc-alias -p ./tsconfig.build.json",
+    "build:compile:dts": "tsup src/index.ts --dts-only --dts-resolve -d dist --tsconfig tsconfig.build.json",
     "build:compile:bun": "npm run build:compile:bun:check:before && npm run build:compile:bun:run && npm run build:compile:bun:roles && npm run build:compile:bun:check:after",
     "build:compile:bun:check:before": "echo '🔍 bun check...' && BUN_VERSION=$(bun --version) && [ -n \"$BUN_VERSION\" ] && echo \"👌 bun installed: $BUN_VERSION\" || (echo '⛈️ bun not functional' && exit 1)",
     "build:compile:bun:check:after": "test -f ./bin/run.bun.rhachet-run.bc && test -f ./bin/run.bun.rhachet-roles.bc && echo '👌 .bc files created' || (echo '⛈️ .bc files not found' && ls -la ./bin/ && exit 1)",
@@ -100,6 +101,7 @@
     "declastruct": "1.7.3",
     "declastruct-github": "1.3.0",
     "depcheck": "1.4.3",
+    "tsup": "8.5.1",
     "esbuild-register": "3.6.0",
     "husky": "8.0.3",
     "jest": "30.2.0",
