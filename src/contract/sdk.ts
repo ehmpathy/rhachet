@@ -1,4 +1,13 @@
 export { withImmute } from 'domain-objects';
+// forward simple-log-methods types for portable consumer imports
+export type {
+  ContextLogTrail,
+  HasContextLogTrail,
+  LogLevel,
+  LogMethod,
+  LogMethods,
+  LogTrail,
+} from 'simple-log-methods';
 
 export * from '@src/domain.objects';
 export { genActor } from '@src/domain.operations/actor/genActor';
