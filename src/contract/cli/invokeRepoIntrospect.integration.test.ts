@@ -203,5 +203,131 @@ exports.getRoleRegistry = () => registry;
         expect(logs).toContain('custom-manifest.yml');
       });
     });
+
+    when('[t3] package.json has no files array', () => {
+      beforeEach(() => {
+        // reset package.json without files array
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('adds rhachet.repo.yml to files array', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.files).toEqual(['rhachet.repo.yml']);
+      });
+
+      then('logs files array update', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logs).toContain('package.json:.files += "rhachet.repo.yml"');
+      });
+    });
+
+    when('[t4] package.json has files array without rhachet.repo.yml', () => {
+      beforeEach(() => {
+        // reset package.json with files array missing rhachet.repo.yml
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist', 'src'],
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('appends rhachet.repo.yml to files array', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.files).toEqual(['dist', 'src', 'rhachet.repo.yml']);
+      });
+    });
+
+    when('[t5] package.json already has rhachet.repo.yml in files', () => {
+      beforeEach(() => {
+        // reset package.json with rhachet.repo.yml already present
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist', 'rhachet.repo.yml'],
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('does not duplicate rhachet.repo.yml', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.files).toEqual(['dist', 'rhachet.repo.yml']);
+      });
+
+      then('does not log files array update', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logs).not.toContain('package.json:.files');
+      });
+    });
+
+    when('[t6] output is stdout', () => {
+      beforeEach(() => {
+        // reset package.json without files array
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('does not modify package.json files array', async () => {
+        await program.parseAsync(['repo', 'introspect', '-o', '-'], {
+          from: 'user',
+        });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.files).toBeUndefined();
+      });
+    });
   });
 });
