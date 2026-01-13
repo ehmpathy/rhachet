@@ -92,6 +92,22 @@ export const invokeRepoIntrospect = ({
         const outputPath = resolve(cwd, options.output);
         writeFileSync(outputPath, yaml, 'utf8');
         console.log(`   + ${options.output}`);
+
+        // findsert rhachet.repo.yml into package.json files array
+        const filesArray: string[] = packageJson.files ?? [];
+        const manifestFilename = 'rhachet.repo.yml';
+        const filesArrayContainsManifest =
+          filesArray.includes(manifestFilename);
+        if (!filesArrayContainsManifest) {
+          packageJson.files = [...filesArray, manifestFilename];
+          writeFileSync(
+            packageJsonPath,
+            JSON.stringify(packageJson, null, 2) + '\n',
+            'utf8',
+          );
+          console.log(`   + package.json:.files += "${manifestFilename}"`);
+        }
+
         console.log(``);
         console.log(
           `🌊 Done, rhachet.repo.yml generated with ${registry.roles.length} role(s)`,
