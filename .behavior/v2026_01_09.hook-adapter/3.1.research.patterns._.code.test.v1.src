@@ -2,6 +2,9 @@ research the test codepath patterns available in order to fulfill
 - this wish .behavior/v2026_01_09.hook-adapter/0.wish.md
 - this vision .behavior/v2026_01_09.hook-adapter/1.vision.md (if declared)
 - this criteria .behavior/v2026_01_09.hook-adapter/2.criteria.md (if declared)
+- these briefs
+  - .agent/repo=.this/role=any/briefs/define.term.suppliers.md
+  - .agent/repo=.this/role=any/briefs/define.term.adapters.md
 
 specifically
 - what are the current key patterns in this repo, that are relevant?

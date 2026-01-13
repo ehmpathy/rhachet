@@ -1,6 +1,9 @@
 declare the blackbox criteria (experience bounds) required to fulfill
 - this wish .behavior/v2026_01_09.hook-adapter/0.wish.md
 - this vision .behavior/v2026_01_09.hook-adapter/1.vision.md (if declared)
+- these briefs
+  - .agent/repo=.this/role=any/briefs/define.term.suppliers.md
+  - .agent/repo=.this/role=any/briefs/define.term.adapters.md
 
 via bdd declarations, per your briefs
 

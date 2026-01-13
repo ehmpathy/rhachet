@@ -10,6 +10,9 @@ distill the declastruct domain.objects and domain.operations that would
   - .behavior/v2026_01_09.hook-adapter/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
   - .behavior/v2026_01_09.hook-adapter/3.1.research.patterns._.code.test.v1.i1.md (if declared)
   - .behavior/v2026_01_09.hook-adapter/3.1.research.templates._.v1.i1.md (if declared)
+- these briefs
+  - .agent/repo=.this/role=any/briefs/define.term.suppliers.md
+  - .agent/repo=.this/role=any/briefs/define.term.adapters.md
 
 procedure
 1. declare the usecases and envision the contract that would be used to fulfill the usecases
