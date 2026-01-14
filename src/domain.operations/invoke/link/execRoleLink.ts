@@ -8,6 +8,7 @@ import {
   getAgentRootReadmeTemplate,
 } from '../getAgentReadmeTemplates';
 import { findsertFile } from './findsertFile';
+import { findsertRepoGitignore } from './findsertRepoGitignore';
 import { symlinkReadme } from './symlinkReadme';
 import { symlinkResourceDirectories } from './symlinkResourceDirectories';
 
@@ -32,6 +33,11 @@ export const execRoleLink = (input: {
   mkdirSync(repoThisDir, { recursive: true });
   mkdirSync(repoDir, { recursive: true });
   mkdirSync(repoRoleDir, { recursive: true });
+
+  // create .gitignore for external repos (not .this)
+  if (input.repo.slug !== '.this') {
+    findsertRepoGitignore({ repoDir });
+  }
 
   // findsert .agent/readme.md
   findsertFile({
