@@ -14,6 +14,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
@@ -372,11 +373,15 @@ describe('invokeRolesLink (integration)', () => {
         );
 
         // Manually create an "old" symlink that simulates a previously linked directory
+        const deprecatedSourcePath = resolve(testDir, 'deprecated-source');
+        mkdirSync(deprecatedSourcePath, { recursive: true });
+        writeFileSync(resolve(deprecatedSourcePath, 'old.md'), '# old');
+
         const deprecatedSymlinkPath = resolve(
           testDir,
           '.agent/repo=test/role=mechanic/briefs/deprecated-briefs',
         );
-        mkdirSync(deprecatedSymlinkPath, { recursive: true });
+        symlinkSync(deprecatedSourcePath, deprecatedSymlinkPath);
 
         // Verify it exists
         expect(existsSync(deprecatedSymlinkPath)).toBe(true);
