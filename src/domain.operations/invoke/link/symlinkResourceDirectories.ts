@@ -1,10 +1,11 @@
+import { UnexpectedCodePathError } from 'helpful-errors';
+
 import {
   chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readdirSync,
-  rmSync,
   statSync,
   symlinkSync,
   unlinkSync,
@@ -82,12 +83,17 @@ const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
 
   if (!lstats) return 'created';
 
-  try {
+  // symlinks: just unlink — never recurse into symlink target
+  if (lstats.isSymbolicLink()) {
     unlinkSync(targetPath);
-  } catch {
-    rmSync(targetPath, { recursive: true, force: true });
+    return 'updated';
   }
-  return 'updated';
+
+  // real files/directories: fail-fast to avoid accidental deletion of source files
+  throw new UnexpectedCodePathError(
+    `clearPath expected symlink but found ${lstats.isDirectory() ? 'directory' : 'file'}. will not delete to protect source files. please remove manually if intended.`,
+    { targetPath },
+  );
 };
 
 /**
