@@ -133,7 +133,7 @@ describe('rhachet roles link', () => {
       });
 
       then('outputs inferred repo in message', () => {
-        expect(result.stdout).toContain('test-repo/tester');
+        expect(result.stdout).toContain('repo=test-repo/role=tester');
       });
     });
   });

@@ -7,22 +7,52 @@ import {
   getAgentRepoThisReadmeTemplate,
   getAgentRootReadmeTemplate,
 } from '../getAgentReadmeTemplates';
-import { findsertFile } from './findsertFile';
+import { findsertFile, type LinkResult } from './findsertFile';
 import { findsertRepoGitignore } from './findsertRepoGitignore';
 import { symlinkReadme } from './symlinkReadme';
 import { symlinkResourceDirectories } from './symlinkResourceDirectories';
+
+/**
+ * .what = formats a link result for display
+ * .why = consistent status symbols across all link operations
+ */
+const formatLinkResult = (result: LinkResult): string => {
+  const symbol =
+    result.status === 'created'
+      ? '+'
+      : result.status === 'unchanged'
+        ? '✓'
+        : result.status === 'removed'
+          ? '-'
+          : '↻';
+  const suffix =
+    result.status === 'created'
+      ? ''
+      : result.status === 'unchanged'
+        ? ' (unchanged)'
+        : result.status === 'removed'
+          ? ' (removed)'
+          : ' (updated)';
+  return `${symbol} ${result.path}${suffix}`;
+};
 
 /**
  * .what = links a role into the .agent directory structure
  * .why = shared link logic for invokeRolesLink and initRolesFromPackages
  *
  * .note = creates .agent/repo=$repo/role=$role structure with symlinks
+ * .note = prints tree with two branches: links and stats
  */
 export const execRoleLink = (input: {
   role: RoleManifest;
   repo: RoleRegistryManifest;
-  indent?: string;
 }): { briefsCount: number; skillsCount: number; initsCount: number } => {
+  // log which role is being linked
+  console.log(`📚 link role repo=${input.repo.slug}/role=${input.role.slug}`);
+
+  // collect all link results for tree output
+  const linkResults: LinkResult[] = [];
+
   // create .agent directory structure
   const agentDir = resolve(process.cwd(), '.agent');
   const repoThisDir = resolve(agentDir, 'repo=.this');
@@ -34,22 +64,21 @@ export const execRoleLink = (input: {
   mkdirSync(repoDir, { recursive: true });
   mkdirSync(repoRoleDir, { recursive: true });
 
-  // create .gitignore for external repos (not .this)
-  if (input.repo.slug !== '.this') {
-    findsertRepoGitignore({ repoDir });
-  }
-
   // findsert .agent/readme.md
-  findsertFile({
-    path: resolve(agentDir, 'readme.md'),
-    template: getAgentRootReadmeTemplate(),
-  });
+  linkResults.push(
+    findsertFile({
+      path: resolve(agentDir, 'readme.md'),
+      template: getAgentRootReadmeTemplate(),
+    }),
+  );
 
   // findsert .agent/repo=.this/readme.md
-  findsertFile({
-    path: resolve(repoThisDir, 'readme.md'),
-    template: getAgentRepoThisReadmeTemplate(),
-  });
+  linkResults.push(
+    findsertFile({
+      path: resolve(repoThisDir, 'readme.md'),
+      template: getAgentRepoThisReadmeTemplate(),
+    }),
+  );
 
   // symlink .agent/repo=$repo/readme.md
   if (input.repo.readme?.uri) {
@@ -59,9 +88,12 @@ export const execRoleLink = (input: {
       sourcePath: input.repo.readme.uri,
       targetPath,
     });
-    console.log(
-      `  ${status === 'updated' ? '↻' : '+'} ${relativeTargetPath}${status === 'updated' ? ' (updated)' : ''}`,
-    );
+    linkResults.push({ path: relativeTargetPath, status });
+  }
+
+  // findsert .agent/repo=$repo/.gitignore for external repos (not .this)
+  if (input.repo.slug !== '.this') {
+    linkResults.push(findsertRepoGitignore({ repoDir }));
   }
 
   // symlink .agent/repo=$repo/role=$role/readme.md
@@ -72,45 +104,62 @@ export const execRoleLink = (input: {
       sourcePath: input.role.readme.uri,
       targetPath,
     });
-    console.log(
-      `  ${status === 'updated' ? '↻' : '+'} ${relativeTargetPath}${status === 'updated' ? ' (updated)' : ''}`,
-    );
+    linkResults.push({ path: relativeTargetPath, status });
   }
 
   // link briefs
-  const briefsCount = symlinkResourceDirectories({
+  const briefs = symlinkResourceDirectories({
     sourceDirs: input.role.briefs.dirs,
     targetDir: resolve(repoRoleDir, 'briefs'),
     resourceName: 'briefs',
   });
+  linkResults.push(...briefs.results);
 
   // link skills
-  const skillsCount = symlinkResourceDirectories({
+  const skills = symlinkResourceDirectories({
     sourceDirs: input.role.skills.dirs,
     targetDir: resolve(repoRoleDir, 'skills'),
     resourceName: 'skills',
   });
+  linkResults.push(...skills.results);
 
   // link inits if configured
-  const initsCount = input.role.inits?.dirs
+  const inits = input.role.inits?.dirs
     ? symlinkResourceDirectories({
         sourceDirs: input.role.inits.dirs,
         targetDir: resolve(repoRoleDir, 'inits'),
         resourceName: 'inits',
       })
-    : 0;
+    : { fileCount: 0, results: [] };
+  linkResults.push(...inits.results);
 
-  // log tree branches for linked resources
-  const indent = input.indent ?? '   ';
-  const items = [
-    briefsCount > 0 ? `${briefsCount} brief(s)` : null,
-    skillsCount > 0 ? `${skillsCount} skill(s)` : null,
-    initsCount > 0 ? `${initsCount} init(s)` : null,
-  ].filter(Boolean);
-  items.forEach((item, idx) => {
-    const branch = idx === items.length - 1 ? '└──' : '├──';
-    console.log(`${indent}${branch} ${item}`);
+  // build stats items
+  const statsItems = [
+    briefs.fileCount > 0 ? `${briefs.fileCount} brief(s)` : null,
+    skills.fileCount > 0 ? `${skills.fileCount} skill(s)` : null,
+    inits.fileCount > 0 ? `${inits.fileCount} init(s)` : null,
+  ].filter(Boolean) as string[];
+
+  // print tree with two branches: links and stats
+  console.log(`   ├─ links`);
+  linkResults.forEach((result, idx) => {
+    const isLast = idx === linkResults.length - 1;
+    const branch = isLast ? '└──' : '├──';
+    const connector = statsItems.length > 0 ? '│' : ' ';
+    console.log(`   ${connector}  ${branch} ${formatLinkResult(result)}`);
   });
 
-  return { briefsCount, skillsCount, initsCount };
+  if (statsItems.length > 0) {
+    console.log(`   └─ stats`);
+    statsItems.forEach((item, idx) => {
+      const branch = idx === statsItems.length - 1 ? '└──' : '├──';
+      console.log(`       ${branch} ${item}`);
+    });
+  }
+
+  return {
+    briefsCount: briefs.fileCount,
+    skillsCount: skills.fileCount,
+    initsCount: inits.fileCount,
+  };
 };

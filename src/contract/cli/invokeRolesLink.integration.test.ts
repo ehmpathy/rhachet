@@ -307,7 +307,7 @@ describe('invokeRolesLink (integration)', () => {
 
           // Check log output
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('🔗 link role test/mechanic'),
+            expect.stringContaining('📚 link role repo=test/role=mechanic'),
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('2 brief(s)'),
@@ -341,7 +341,7 @@ describe('invokeRolesLink (integration)', () => {
 
             // Check log output mentions the link
             expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('🔗 link role test/mechanic'),
+              expect.stringContaining('📚 link role repo=test/role=mechanic'),
             );
           },
         );

@@ -50,7 +50,7 @@ describe('rhachet init', () => {
       });
 
       then('stdout contains role path in output', () => {
-        expect(result.stdout).toContain('test/tester');
+        expect(result.stdout).toContain('repo=test/role=tester');
       });
 
       then('stdout shows roles linked and initialized', () => {

@@ -32,7 +32,6 @@ export const invokeRolesLink = (
       );
 
       console.log(``);
-      console.log(`🔗 link role ${resolved.repo.slug}/${resolved.role.slug}`);
       execRoleLink({ role: resolved.role, repo: resolved.repo });
       console.log(``);
     });

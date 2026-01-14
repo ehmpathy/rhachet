@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import type { LinkResult } from './findsertFile';
 
 const GITIGNORE_CONTENT = `# .what = tells git to ignore this dir
 # .why = keeps git history clean
@@ -16,7 +17,7 @@ const GITIGNORE_CONTENT = `# .what = tells git to ignore this dir
  */
 export const findsertRepoGitignore = (input: {
   repoDir: string;
-}): { status: 'created' | 'updated' | 'unchanged' } => {
+}): LinkResult => {
   const gitignorePath = resolve(input.repoDir, '.gitignore');
   const relativePath = relative(process.cwd(), gitignorePath);
   const relativeRepoDir = relative(process.cwd(), input.repoDir);
@@ -25,26 +26,23 @@ export const findsertRepoGitignore = (input: {
   if (existsSync(gitignorePath)) {
     const contentBefore = readFileSync(gitignorePath, 'utf8');
     if (contentBefore === GITIGNORE_CONTENT) {
-      return { status: 'unchanged' };
+      return { path: relativePath, status: 'unchanged' };
     }
     // file exists but content differs — update it
     writeFileSync(gitignorePath, GITIGNORE_CONTENT, 'utf8');
-    console.log(`  ↻ ${relativePath} (updated)`);
-    return { status: 'updated' };
+    return { path: relativePath, status: 'updated' };
   }
 
   // gitignore missing — untrack any previously tracked content
   try {
     execSync(`git rm --cached -r "${relativeRepoDir}"`, { stdio: 'ignore' });
-    console.log(`  - ${relativeRepoDir} (detached from git)`);
   } catch {
     // ignore errors — dir may not be tracked
   }
 
   // create the gitignore
   writeFileSync(gitignorePath, GITIGNORE_CONTENT, 'utf8');
-  console.log(`  + ${relativePath} (created)`);
-  return { status: 'created' };
+  return { path: relativePath, status: 'created' };
 };
 
 /**

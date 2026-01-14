@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`execRoleInits (integration) given: a role with init commands that produce output when: [t0] execRoleInits is called then: output format matches snapshot 1`] = `
+"
+💪 init role repo=ehmpathy/role=mechanic
+   └─ test-init.sh
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │    ✓ claude config updated
+      │    ✓ hooks installed
+      │
+      └─
+"
+`;
+
+exports[`execRoleInits (integration) given: a role with init commands that produce output when: [t1] execRoleInits is called with multiple init commands then: all outputs are prefixed and format matches snapshot 1`] = `
+"
+💪 init role repo=ehmpathy/role=mechanic
+   ├─ test-init.sh
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │    ✓ claude config updated
+      │    ✓ hooks installed
+      │
+      └─
+   │
+   └─ second-init.sh
+      ├─
+      │
+      │ setting up additional config...
+      │
+      └─
+"
+`;

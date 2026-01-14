@@ -10,6 +10,7 @@ import {
   unlinkSync,
 } from 'node:fs';
 import { basename, relative, resolve } from 'node:path';
+import type { LinkResult } from './findsertFile';
 
 /**
  * .what = recursively counts all leaf files in a directory
@@ -90,22 +91,16 @@ const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
 };
 
 /**
- * .what = create a symlink from targetPath to sourcePath, clear existing, log action
+ * .what = create a symlink from targetPath to sourcePath, clear existing
  * .why = shared logic for both single-dir and array-dir modes
  */
 const linkSourceToTarget = (input: {
   sourcePath: string;
   targetPath: string;
-}): number => {
+}): { fileCount: number; result: LinkResult } => {
   const { sourcePath, targetPath } = input;
-  // clear existing and log
   const relativeTargetPath = relative(process.cwd(), targetPath);
   const action = clearPath({ targetPath });
-  console.log(
-    action === 'updated'
-      ? `  ↻ ${relativeTargetPath} (updated)`
-      : `  + ${relativeTargetPath}`,
-  );
 
   // create parent directory if needed
   const targetParent = resolve(targetPath, '..');
@@ -115,7 +110,20 @@ const linkSourceToTarget = (input: {
   const relativeSource = relative(targetParent, sourcePath);
   symlinkSync(relativeSource, targetPath, 'dir');
   setDirectoryReadonlyExecutable({ dirPath: sourcePath });
-  return countFilesInDirectory({ dirPath: sourcePath });
+  const fileCount = countFilesInDirectory({ dirPath: sourcePath });
+
+  return {
+    fileCount,
+    result: {
+      path: relativeTargetPath,
+      status: action === 'updated' ? 'updated' : 'created',
+    },
+  };
+};
+
+export type SymlinkResourceResult = {
+  fileCount: number;
+  results: LinkResult[];
 };
 
 /**
@@ -124,20 +132,25 @@ const linkSourceToTarget = (input: {
  * .how =
  *   - single { uri: string }: symlinks the source dir directly as the target dir
  *   - array { uri: string }[]: removes deprecated symlinks, then symlinks each dir within target
- *   - returns count of leaf files
+ *   - returns count of leaf files and link results
  */
 export const symlinkResourceDirectories = (options: {
   sourceDirs: { uri: string } | Array<{ uri: string }>;
   targetDir: string;
   resourceName: string; // e.g., 'briefs', 'skills'
-}): number => {
+}): SymlinkResourceResult => {
   const { sourceDirs, targetDir } = options;
+  const results: LinkResult[] = [];
 
   // single-dir mode: symlink source dir directly as target dir
   if (!Array.isArray(sourceDirs)) {
     const sourcePath = resolve(process.cwd(), sourceDirs.uri);
-    if (!existsSync(sourcePath)) return 0;
-    return linkSourceToTarget({ sourcePath, targetPath: targetDir });
+    if (!existsSync(sourcePath)) return { fileCount: 0, results: [] };
+    const { fileCount, result } = linkSourceToTarget({
+      sourcePath,
+      targetPath: targetDir,
+    });
+    return { fileCount, results: [result] };
   }
 
   // array-dir mode: symlink each source dir within target dir
@@ -148,9 +161,10 @@ export const symlinkResourceDirectories = (options: {
       if (expectedNames.has(entry)) continue;
       const entryPath = resolve(targetDir, entry);
       clearPath({ targetPath: entryPath });
-      console.log(
-        `  - ${relative(process.cwd(), entryPath)} (removed, no longer in role)`,
-      );
+      results.push({
+        path: relative(process.cwd(), entryPath),
+        status: 'removed',
+      });
     }
   }
 
@@ -160,7 +174,12 @@ export const symlinkResourceDirectories = (options: {
     const sourcePath = resolve(process.cwd(), sourceDir.uri);
     if (!existsSync(sourcePath)) continue;
     const targetPath = resolve(targetDir, basename(sourcePath));
-    totalFileCount += linkSourceToTarget({ sourcePath, targetPath });
+    const { fileCount, result } = linkSourceToTarget({
+      sourcePath,
+      targetPath,
+    });
+    totalFileCount += fileCount;
+    results.push(result);
   }
-  return totalFileCount;
+  return { fileCount: totalFileCount, results };
 };
