@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
@@ -95,6 +95,28 @@ describe('rhachet roles link', () => {
       then('outputs linked counts', () => {
         expect(result.stdout).toContain('1 brief(s)');
         expect(result.stdout).toContain('1 skill(s)');
+      });
+
+      then('creates .gitignore inside .agent/repo=test-repo/', () => {
+        const gitignorePath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/.gitignore',
+        );
+        expect(existsSync(gitignorePath)).toBe(true);
+
+        const content = readFileSync(gitignorePath, 'utf-8');
+        expect(content).toContain('.what = tells git to ignore this dir');
+        expect(content).toContain('.why = keeps git history clean');
+        expect(content).toContain('*');
+      });
+
+      then('does not modify root .gitignore', () => {
+        const rootGitignorePath = resolve(repo.path, '.gitignore');
+        // root .gitignore should not exist or not contain .agent entries
+        if (existsSync(rootGitignorePath)) {
+          const content = readFileSync(rootGitignorePath, 'utf-8');
+          expect(content).not.toContain('.agent/');
+        }
       });
     });
 
@@ -193,6 +215,15 @@ describe('rhachet roles link', () => {
         );
         const content = readFileSync(roleReadmePath, 'utf-8');
         expect(content).toContain('Tester Role');
+      });
+
+      then('creates .gitignore inside .agent/repo=test/', () => {
+        const gitignorePath = resolve(repo.path, '.agent/repo=test/.gitignore');
+        expect(existsSync(gitignorePath)).toBe(true);
+
+        const content = readFileSync(gitignorePath, 'utf-8');
+        expect(content).toContain('.what = tells git to ignore this dir');
+        expect(content).toContain('*');
       });
     });
 

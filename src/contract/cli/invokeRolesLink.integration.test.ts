@@ -11,6 +11,7 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -288,6 +289,22 @@ describe('invokeRolesLink (integration)', () => {
           const briefsDirMode = briefsDirStats.mode & 0o777;
           expect(briefsDirMode).toBe(0o555);
 
+          // Check that .gitignore was created for external repo
+          const gitignorePath = resolve(testDir, '.agent/repo=test/.gitignore');
+          expect(existsSync(gitignorePath)).toBe(true);
+          const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
+          expect(gitignoreContent).toContain(
+            '.what = tells git to ignore this dir',
+          );
+          expect(gitignoreContent).toContain('*');
+
+          // Check that .gitignore was NOT created for repo=.this
+          const thisGitignorePath = resolve(
+            testDir,
+            '.agent/repo=.this/.gitignore',
+          );
+          expect(existsSync(thisGitignorePath)).toBe(false);
+
           // Check log output
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('🔗 link role test/mechanic'),
@@ -386,6 +403,14 @@ describe('invokeRolesLink (integration)', () => {
         // Check log output mentions removal
         expect(logSpy).toHaveBeenCalledWith(
           expect.stringContaining('deprecated-briefs (removed'),
+        );
+
+        // Check that .gitignore still exists and is unchanged (idempotent)
+        const gitignorePath = resolve(testDir, '.agent/repo=test/.gitignore');
+        expect(existsSync(gitignorePath)).toBe(true);
+        const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
+        expect(gitignoreContent).toContain(
+          '.what = tells git to ignore this dir',
         );
       });
     });
