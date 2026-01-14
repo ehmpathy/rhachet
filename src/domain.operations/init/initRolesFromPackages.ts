@@ -68,13 +68,12 @@ export const initRolesFromPackages = async (input: {
   };
 
   console.log('');
-  console.log(`🔗 init ${roles.length} role(s)...`);
+  console.log(`🔧 init ${roles.length} role(s)...`);
   console.log('');
 
   for (const resolved of roles) {
     // link phase
     try {
-      console.log(`🔗 link role ${resolved.repo.slug}/${resolved.role.slug}`);
       execRoleLink({ role: resolved.role, repo: resolved.repo });
       result.rolesLinked.push({
         specifier: resolved.specifier,
@@ -96,10 +95,9 @@ export const initRolesFromPackages = async (input: {
 
     // init phase
     try {
-      execRoleInits({
+      await execRoleInits({
         role: resolved.role,
         repo: resolved.repo,
-        indent: '   ',
       });
       result.rolesInitialized.push({
         specifier: resolved.specifier,

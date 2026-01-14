@@ -102,7 +102,7 @@ describe('invokeRolesInit (integration)', () => {
 
         // check log output
         expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('run init repo=test/role=mechanic'),
+          expect.stringContaining('init role repo=test/role=mechanic'),
         );
         expect(logSpy).toHaveBeenCalledWith(
           expect.stringContaining('init complete'),
@@ -124,7 +124,7 @@ describe('invokeRolesInit (integration)', () => {
 
           // check log output mentions the inferred repo
           expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('run init repo=test/role=mechanic'),
+            expect.stringContaining('init role repo=test/role=mechanic'),
           );
         });
       },

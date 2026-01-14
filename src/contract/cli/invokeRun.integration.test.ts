@@ -410,7 +410,7 @@ describe('invokeRun (integration)', () => {
         // check log output
         expect(logSpy).toHaveBeenCalledWith(
           expect.stringContaining(
-            'run init repo=ehmpathy/role=mechanic/init=init.claude',
+            'init role repo=ehmpathy/role=mechanic/init=init.claude',
           ),
         );
       });
@@ -440,7 +440,7 @@ describe('invokeRun (integration)', () => {
           // check log output includes full path slug
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining(
-              'run init repo=ehmpathy/role=mechanic/init=claude.hooks/sessionstart.notify-permissions',
+              'init role repo=ehmpathy/role=mechanic/init=claude.hooks/sessionstart.notify-permissions',
             ),
           );
         });

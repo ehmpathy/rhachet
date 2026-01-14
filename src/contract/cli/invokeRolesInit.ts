@@ -33,7 +33,7 @@ export const invokeRolesInit = (
       );
 
       // execute init commands
-      const result = execRoleInits({
+      const result = await execRoleInits({
         role: resolved.role,
         repo: resolved.repo,
       });

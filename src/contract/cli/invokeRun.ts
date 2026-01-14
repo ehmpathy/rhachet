@@ -40,7 +40,7 @@ const performRunViaInitMode = (input: {
   // log which init will run
   console.log(``);
   console.log(
-    `🔧 run init repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
+    `💪 init role repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
   );
   console.log(``);
 

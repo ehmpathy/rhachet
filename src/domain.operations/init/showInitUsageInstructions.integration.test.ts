@@ -20,26 +20,26 @@ describe('showInitUsageInstructions', () => {
       });
 
       then(
-        'output mentions packages without manifests when they lack rhachet.repo.yml',
+        'output omits manifest error section when packages have rhachet.repo.yml',
         async () => {
           const result = await showInitUsageInstructions({
             from: process.cwd(),
           });
-          // since rhachet-roles packages don't have rhachet.repo.yml yet,
-          // we expect the error section to be shown
-          expect(result.output).toContain('packages without rhachet.repo.yml');
+          // rhachet-roles packages now have rhachet.repo.yml manifests,
+          // so the error section should not be shown
+          expect(result.output).not.toContain(
+            'packages without rhachet.repo.yml',
+          );
         },
       );
 
-      then(
-        'output suggests npx rhachet repo introspect for packages without manifests',
-        async () => {
-          const result = await showInitUsageInstructions({
-            from: process.cwd(),
-          });
-          expect(result.output).toContain('npx rhachet repo introspect');
-        },
-      );
+      then('output lists available roles from packages', async () => {
+        const result = await showInitUsageInstructions({
+          from: process.cwd(),
+        });
+        // verify roles are discovered from the packages
+        expect(result.output).toContain('available roles:');
+      });
     });
   });
 });

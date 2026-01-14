@@ -1,6 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative } from 'node:path';
 
+export type LinkResult = {
+  path: string;
+  status: 'created' | 'unchanged' | 'updated' | 'removed';
+};
+
 /**
  * .what = finds or inserts a file with template content
  * .why = ensures standard readme files exist without overwriting custom changes
@@ -9,21 +14,20 @@ import { relative } from 'node:path';
 export const findsertFile = (options: {
   path: string;
   template: string;
-}): void => {
+}): LinkResult => {
   const { path, template } = options;
   const relativePath = relative(process.cwd(), path);
 
   if (!existsSync(path)) {
-    console.log(`  + ${relativePath} (created)`);
     writeFileSync(path, template, 'utf8');
-    return;
+    return { path: relativePath, status: 'created' };
   }
 
   // File exists - check if it matches template
   const existingContent = readFileSync(path, 'utf8');
   if (existingContent === template) {
-    console.log(`  ✓ ${relativePath} (unchanged)`);
+    return { path: relativePath, status: 'unchanged' };
   } else {
-    console.log(`  ↻ ${relativePath} (preserved with custom changes)`);
+    return { path: relativePath, status: 'unchanged' }; // preserved with custom changes
   }
 };

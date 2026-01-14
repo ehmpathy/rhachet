@@ -1,1 +1,0 @@
-../../node_modules/.pnpm/rhachet-roles-bhrain@0.5.9_@types+node@22.15.21_hono@4.11.3/node_modules/rhachet-roles-bhrain/dist/domain.roles/readme.md
