@@ -3,7 +3,7 @@ import { BadRequestError } from 'helpful-errors';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { getBrainsByConfigExplicit } from '@src/domain.operations/config/getBrainsByConfigExplicit';
-import { getRegistriesByConfigExplicit } from '@src/domain.operations/config/getRegistriesByConfigExplicit';
+import { getRoleRegistriesByConfigExplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigExplicit';
 
 import { assureFindRole } from './assureFindRole';
 import { inferRepoByRole } from './inferRepoByRole';
@@ -23,7 +23,9 @@ export const performInCurrentThreadForActor = async (input: {
   }>;
 }): Promise<void> => {
   // get registries from config
-  const registries = await getRegistriesByConfigExplicit({ opts: input.opts });
+  const registries = await getRoleRegistriesByConfigExplicit({
+    opts: input.opts,
+  });
 
   // get brains from config
   const brains = await getBrainsByConfigExplicit({ opts: input.opts }); // todo: support implicit lookup via rhachet-brains-* pattern

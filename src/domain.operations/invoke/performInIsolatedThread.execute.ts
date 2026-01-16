@@ -8,7 +8,7 @@ import {
 } from 'serde-fns';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
-import { getRegistriesByConfigExplicit } from '@src/domain.operations/config/getRegistriesByConfigExplicit';
+import { getRoleRegistriesByConfigExplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigExplicit';
 
 import { performInCurrentThreadForActor } from './performInCurrentThreadForActor';
 import { performInCurrentThreadForStitch } from './performInCurrentThreadForStitch';
@@ -44,7 +44,7 @@ export const executePerformInIsolatedThread = async (input: {
   // branch based on mode
   if (mode === 'stitch') {
     // grab the registries for the current options
-    const registries = await getRegistriesByConfigExplicit({
+    const registries = await getRoleRegistriesByConfigExplicit({
       opts: input.opts,
     });
 

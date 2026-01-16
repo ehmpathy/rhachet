@@ -1,0 +1,9 @@
+{
+  "name": "test-with-role-hooks",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-test": "file:./node_modules/rhachet-roles-test",
+    "rhachet-brains-test": "file:./node_modules/rhachet-brains-test"
+  }
+}

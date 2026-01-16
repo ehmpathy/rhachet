@@ -6,7 +6,7 @@ import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits'
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
 import { indentLines } from '@src/infra/indentLines';
 
-import { getRegistriesByConfigImplicit } from '../config/getRegistriesByConfigImplicit';
+import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
 import { getRolesFromManifests } from '../manifest/getRolesFromManifests';
 
 /**
@@ -31,7 +31,7 @@ export const initRolesFromPackages = async (
 ): Promise<InitRolesResult> => {
   // discover manifests from packages
   const { manifests, errors: packageErrors } =
-    await getRegistriesByConfigImplicit({
+    await getRoleRegistriesByConfigImplicit({
       from: context.cwd,
     });
 

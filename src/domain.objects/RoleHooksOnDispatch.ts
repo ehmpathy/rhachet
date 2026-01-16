@@ -24,12 +24,12 @@ type AnySkillInputFromRegistry<TRegistry extends RoleSkillRegistry> = {
 }[keyof TRegistry];
 
 /**
- * .what = hooks for customizing invoke behavior
+ * .what = hooks for dispatch customization (middleware over rhachet dispatch)
  * .why = enables input transformation before skill execution
  *
  * .note = generic TRole enables type-safe onInvokeActInput when Role.typed() is used
  */
-export interface InvokeHooks<TRole extends Role = Role> {
+export interface RoleHooksOnDispatch<TRole extends Role = Role> {
   /**
    * .what = transforms ask input before execution
    */
@@ -56,3 +56,10 @@ export interface InvokeHooks<TRole extends Role = Role> {
         input: Record<string, unknown>;
       }) => Record<string, unknown>;
 }
+
+/**
+ * .what = backward-compatible alias for RoleHooksOnDispatch
+ * .why = supports prior code that imports InvokeHooks
+ * @deprecated use RoleHooksOnDispatch instead
+ */
+export type InvokeHooks<TRole extends Role = Role> = RoleHooksOnDispatch<TRole>;

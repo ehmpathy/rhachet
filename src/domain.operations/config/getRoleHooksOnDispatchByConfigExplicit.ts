@@ -1,23 +1,23 @@
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 
 /**
  * .what = get invoke hooks from explicit config (rhachet.use.ts)
  * .why = enables CLI commands to resolve hooks from user-declared config
  * .how =
  *   - lookup the config based on the options
- *   - grab the hooks from the config (supports array of InvokeHooks)
+ *   - grab the hooks from the config (supports array of RoleHooksOnDispatch)
  *   - merge hooks from all sources
  */
-export const getHooksByConfigExplicit = async (input: {
+export const getRoleHooksOnDispatchByConfigExplicit = async (input: {
   opts: InvokeOpts<{ config: string }>;
-}): Promise<InvokeHooks | null> => {
+}): Promise<RoleHooksOnDispatch | null> => {
   // import the config
   const config: {
     getInvokeHooks?: () =>
-      | Promise<InvokeHooks | InvokeHooks[]>
-      | InvokeHooks
-      | InvokeHooks[];
+      | Promise<RoleHooksOnDispatch | RoleHooksOnDispatch[]>
+      | RoleHooksOnDispatch
+      | RoleHooksOnDispatch[];
   } = await import(input.opts.config);
 
   // grab the hooks (may be single or array)

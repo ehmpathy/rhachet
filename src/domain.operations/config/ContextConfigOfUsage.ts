@@ -1,5 +1,5 @@
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 
@@ -75,13 +75,13 @@ export interface ContextConfigOfUsage {
 
         hooks: {
           /**
-           * .what = loads InvokeHooks from rhachet.use.ts
+           * .what = loads RoleHooksOnDispatch from rhachet.use.ts
            * .why = enables input transformation before execution
            *
            * .note = throws BadRequestError if isExplicit() is false
            * .note = returns null if no hooks configured
            */
-          explicit: () => Promise<InvokeHooks | null>;
+          explicit: () => Promise<RoleHooksOnDispatch | null>;
         };
       };
     };

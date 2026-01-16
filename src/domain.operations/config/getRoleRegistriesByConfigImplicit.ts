@@ -16,7 +16,7 @@ import type { HasPackageRoot } from './ContextConfigOfUsage';
  * .note = returns manifests with packageRoot for path resolution
  * .note = packages without rhachet.repo.yml are collected as errors
  */
-export const getRegistriesByConfigImplicit = async (input: {
+export const getRoleRegistriesByConfigImplicit = async (input: {
   from: string;
 }): Promise<{
   manifests: HasPackageRoot<RoleRegistryManifest>[];

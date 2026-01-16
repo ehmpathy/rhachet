@@ -1,6 +1,7 @@
 import { DomainEntity } from 'domain-objects';
 import type { z } from 'zod';
 
+import type { RoleHooks } from './RoleHooks';
 import type { RoleSkill } from './RoleSkill';
 import type { RoleTrait } from './RoleTrait';
 
@@ -121,6 +122,15 @@ export interface Role<
     dirs?: { uri: string } | { uri: string }[];
     exec?: { cmd: string }[];
   };
+
+  /**
+   * .what = hooks declared by this role
+   * .why = enables role authors to register hooks for dispatch and brain events
+   * .how =
+   *   - onDispatch: middleware over rhachet dispatch actions (ask/act input transformation)
+   *   - onBrain: hooks applied to brain repl configs (boot, tool, stop events)
+   */
+  hooks?: RoleHooks;
 }
 export class Role<
     TSolid extends RoleSkillRegistry = RoleSkillRegistry,

@@ -2,7 +2,7 @@ import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 
@@ -13,9 +13,9 @@ import type {
   HasPackageRoot,
 } from './ContextConfigOfUsage';
 import { getBrainsByConfigExplicit } from './getBrainsByConfigExplicit';
-import { getHooksByConfigExplicit } from './getHooksByConfigExplicit';
-import { getRegistriesByConfigExplicit } from './getRegistriesByConfigExplicit';
-import { getRegistriesByConfigImplicit } from './getRegistriesByConfigImplicit';
+import { getRoleHooksOnDispatchByConfigExplicit } from './getRoleHooksOnDispatchByConfigExplicit';
+import { getRoleRegistriesByConfigExplicit } from './getRoleRegistriesByConfigExplicit';
+import { getRoleRegistriesByConfigImplicit } from './getRoleRegistriesByConfigImplicit';
 
 /**
  * .what = extracts config path from cli args
@@ -100,7 +100,7 @@ export const genContextConfigOfUsage = async (input: {
           'explicit config required but not found. create rhachet.use.ts or use --config',
         );
       }
-      const registries = await getRegistriesByConfigExplicit({
+      const registries = await getRoleRegistriesByConfigExplicit({
         opts: { config: explicitConfigPath },
       });
       return { registries };
@@ -112,7 +112,7 @@ export const genContextConfigOfUsage = async (input: {
       manifests: HasPackageRoot<RoleRegistryManifest>[];
       errors: { packageName: string; error: Error }[];
     }> => {
-      return getRegistriesByConfigImplicit({ from: input.cwd });
+      return getRoleRegistriesByConfigImplicit({ from: input.cwd });
     },
   );
 
@@ -125,14 +125,18 @@ export const genContextConfigOfUsage = async (input: {
     return getBrainsByConfigExplicit({ opts: { config: explicitConfigPath } });
   });
 
-  const getHooksExplicit = memoize(async (): Promise<InvokeHooks | null> => {
-    if (!explicitConfigPath) {
-      throw new BadRequestError(
-        'explicit config required but not found. create rhachet.use.ts or use --config',
-      );
-    }
-    return getHooksByConfigExplicit({ opts: { config: explicitConfigPath } });
-  });
+  const getHooksExplicit = memoize(
+    async (): Promise<RoleHooksOnDispatch | null> => {
+      if (!explicitConfigPath) {
+        throw new BadRequestError(
+          'explicit config required but not found. create rhachet.use.ts or use --config',
+        );
+      }
+      return getRoleHooksOnDispatchByConfigExplicit({
+        opts: { config: explicitConfigPath },
+      });
+    },
+  );
 
   return {
     config: {

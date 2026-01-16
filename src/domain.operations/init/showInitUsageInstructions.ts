@@ -1,4 +1,4 @@
-import { getRegistriesByConfigImplicit } from '../config/getRegistriesByConfigImplicit';
+import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
 
 /**
  * .what = shows usage instructions when init called without --roles
@@ -8,7 +8,7 @@ export const showInitUsageInstructions = async (input: {
   from: string;
 }): Promise<{ output: string }> => {
   // discover manifests from packages
-  const { manifests, errors } = await getRegistriesByConfigImplicit({
+  const { manifests, errors } = await getRoleRegistriesByConfigImplicit({
     from: input.from,
   });
 
