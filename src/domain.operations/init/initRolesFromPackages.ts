@@ -1,5 +1,6 @@
 import { BadRequestError } from 'helpful-errors';
 
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
@@ -24,14 +25,14 @@ export interface InitRolesResult {
  *
  * .note = uses getRolesFromManifests which fail-fast on first error
  */
-export const initRolesFromPackages = async (input: {
-  specifiers: RoleSpecifier[];
-  from: string;
-}): Promise<InitRolesResult> => {
+export const initRolesFromPackages = async (
+  input: { specifiers: RoleSpecifier[] },
+  context: ContextCli,
+): Promise<InitRolesResult> => {
   // discover manifests from packages
   const { manifests, errors: packageErrors } =
     await getRegistriesByConfigImplicit({
-      from: input.from,
+      from: context.cwd,
     });
 
   // fail fast if no packages found

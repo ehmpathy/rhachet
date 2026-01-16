@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
 import { genRhachetUseConfig } from '@src/domain.operations/init/genRhachetUseConfig';
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
@@ -113,10 +114,8 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // route: --roles provided => init roles from packages
         if (options.roles && options.roles.length > 0) {
-          await initRolesFromPackages({
-            specifiers: options.roles,
-            from: cwd,
-          });
+          const context = new ContextCli({ cwd });
+          await initRolesFromPackages({ specifiers: options.roles }, context);
           return;
         }
 

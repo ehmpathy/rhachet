@@ -155,6 +155,9 @@ jobs:
         with:
           node-version-file: ".nvmrc"
 
+      - name: set pnpm
+        uses: pnpm/action-setup@v4
+
       - name: get node-modules from cache
         uses: actions/cache/restore@v4
         with:
@@ -192,6 +195,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+
+      - name: set pnpm
+        uses: pnpm/action-setup@v4
 
       - name: get node-modules from cache
         uses: actions/cache/restore@v4

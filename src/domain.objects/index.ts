@@ -18,6 +18,7 @@ export * from './ActorRoleSkill';
 export * from './BrainAtom';
 export * from './BrainRepl';
 export * from './ContextBrain';
+export * from './ContextCli';
 export * from './InvokeHooks';
 export * from './InvokeOpts';
 export * from './Role';
