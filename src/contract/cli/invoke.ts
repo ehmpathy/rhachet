@@ -14,6 +14,8 @@ import { invokeReadme } from './invokeReadme';
 import { invokeRepoIntrospect } from './invokeRepoIntrospect';
 import { invokeRoles } from './invokeRoles';
 import { invokeRun } from './invokeRun';
+import { invokeUpdate } from './invokeUpdate';
+import { invokeUpgrade } from './invokeUpgrade';
 
 /**
  * .what = main entrypoint for CLI execution
@@ -54,6 +56,8 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   invokeChoose({ program }); // no config needed
   invokeAsk({ program }, context);
   invokeAct({ program }, context);
+  invokeUpgrade({ program });
+  invokeUpdate({ program });
 
   // assure unique roles when explicit config is available
   if (context.config.usage.isExplicit()) {

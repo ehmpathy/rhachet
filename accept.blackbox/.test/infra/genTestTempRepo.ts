@@ -26,6 +26,7 @@ export type TestRepoFixture =
   | 'with-published-roles'
   | 'with-scratch-archive'
   | 'with-roles-packages'
+  | 'with-roles-packages-pinned'
   | 'with-roles-package'
   | 'without-roles-packages';
 
