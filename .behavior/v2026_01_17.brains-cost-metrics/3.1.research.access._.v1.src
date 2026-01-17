@@ -1,0 +1,21 @@
+research the remote access required in order to fulfill
+- this wish .behavior/v2026_01_17.brains-cost-metrics/0.wish.md
+- this vision .behavior/v2026_01_17.brains-cost-metrics/1.vision.md (if declared)
+- this criteria .behavior/v2026_01_17.brains-cost-metrics/2.criteria.blackbox.md (if declared)
+- this criteria .behavior/v2026_01_17.brains-cost-metrics/2.criteria.blueprint.md (if declared)
+
+specifically
+- what are the remote repositories (databases, apis, filesystems, etc) that we need to access?
+- what are their contracts? (and via what interfaces? sdks? apis? etc)
+- what are the best practices for how to access them? (industry wide? within this repo?)
+
+---
+
+enumerate each lesson
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+---
+
+emit into .behavior/v2026_01_17.brains-cost-metrics/3.1.research.access._.v1.i1.md
