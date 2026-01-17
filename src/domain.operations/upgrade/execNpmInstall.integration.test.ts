@@ -30,7 +30,10 @@ describe('execNpmInstall', () => {
 
     when('execNpmInstall is called with a valid package', () => {
       then('npm install succeeds and package is added', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
 
         // install a small, fast package
         execNpmInstall({ packages: ['is-odd'] }, context);
@@ -43,7 +46,10 @@ describe('execNpmInstall', () => {
 
     when('execNpmInstall is called with empty packages array', () => {
       then('returns early without error', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
 
         // should not throw
         execNpmInstall({ packages: [] }, context);
@@ -73,7 +79,10 @@ describe('execNpmInstall', () => {
 
     when('execNpmInstall is called with nonexistent package', () => {
       then('throws UpgradeExecutionError', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
 
         expect(() => {
           execNpmInstall(

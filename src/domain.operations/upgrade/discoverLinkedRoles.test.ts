@@ -25,7 +25,10 @@ describe('discoverLinkedRoles', () => {
 
     when('discoverLinkedRoles is called', () => {
       then('returns roles from non-.this repos', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
         const roles = discoverLinkedRoles({}, context);
         expect(roles).toHaveLength(2);
         expect(roles).toContainEqual({ repo: 'ehmpathy', role: 'mechanic' });
@@ -33,7 +36,10 @@ describe('discoverLinkedRoles', () => {
       });
 
       then('excludes .this repo', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
         const roles = discoverLinkedRoles({}, context);
         expect(roles.find((r) => r.repo === '.this')).toBeUndefined();
       });
@@ -43,7 +49,10 @@ describe('discoverLinkedRoles', () => {
   given('a repo without .agent/', () => {
     when('discoverLinkedRoles is called', () => {
       then('returns empty array', () => {
-        const context = new ContextCli({ cwd: '/tmp/nonexistent-dir-12345' });
+        const context = new ContextCli({
+          cwd: '/tmp/nonexistent-dir-12345',
+          gitroot: '/tmp/nonexistent-dir-12345',
+        });
         const roles = discoverLinkedRoles({}, context);
         expect(roles).toEqual([]);
       });
@@ -65,7 +74,10 @@ describe('discoverLinkedRoles', () => {
 
     when('discoverLinkedRoles is called', () => {
       then('returns empty array', () => {
-        const context = new ContextCli({ cwd: testDir.path });
+        const context = new ContextCli({
+          cwd: testDir.path,
+          gitroot: testDir.path,
+        });
         const roles = discoverLinkedRoles({}, context);
         expect(roles).toEqual([]);
       });

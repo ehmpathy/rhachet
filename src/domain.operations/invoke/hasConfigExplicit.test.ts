@@ -1,14 +1,17 @@
-import { given, then, when } from 'test-fns';
+import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { resolve } from 'node:path';
+import { genContextCli } from '@src/domain.objects/ContextCli';
+
 import { hasConfigExplicit } from './hasConfigExplicit';
 
 describe('hasConfigExplicit', () => {
   given('[case1] a directory with rhachet.use.ts', () => {
+    const context = useBeforeAll(() => genContextCli({ cwd: process.cwd() }));
+
     when('[t0] hasConfigExplicit is called', () => {
-      then('it returns true', async () => {
+      then('it returns true', () => {
         // use the current repo root which has rhachet.use.ts
-        const result = await hasConfigExplicit({ from: process.cwd() });
+        const result = hasConfigExplicit(context);
         expect(result).toBe(true);
       });
     });
@@ -16,11 +19,8 @@ describe('hasConfigExplicit', () => {
 
   given('[case2] a directory without rhachet.use.ts', () => {
     when('[t0] hasConfigExplicit is called', () => {
-      then('it returns false', async () => {
-        // use test fixtures directory which lacks rhachet.use.ts
-        const testDir = resolve(__dirname, '../../__test_assets__');
-        // note: this might not work if __test_assets__ doesn't exist or isn't in a git repo
-        // for a proper test we'd need to use a fixture that's a git repo without rhachet.use.ts
+      then('it returns false', () => {
+        // note: for a proper test we'd need a fixture with a git repo without rhachet.use.ts
         // for now we just test the positive case
       });
     });

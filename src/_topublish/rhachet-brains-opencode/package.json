@@ -1,0 +1,27 @@
+{
+  "name": "rhachet-brains-opencode",
+  "version": "0.0.1",
+  "description": "rhachet brain supplier for opencode",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "test": "jest"
+  },
+  "keywords": [
+    "rhachet",
+    "brain",
+    "opencode"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "rhachet": ">=1.20.0"
+  },
+  "dependencies": {
+    "domain-objects": "^1.0.0",
+    "type-fns": "^1.0.0"
+  }
+}

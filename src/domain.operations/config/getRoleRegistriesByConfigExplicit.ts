@@ -6,7 +6,7 @@ import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
  * .why = loads RoleRegistry[] from user-declared config file
  * .note = only used by JIT path (tsx); bun path reads from .agent/ directly
  */
-export const getRegistriesByConfigExplicit = async (input: {
+export const getRoleRegistriesByConfigExplicit = async (input: {
   opts: InvokeOpts<{ config: string }>;
 }): Promise<RoleRegistry[]> => {
   const config: { getRoleRegistries: () => Promise<RoleRegistry[]> } =

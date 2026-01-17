@@ -3,8 +3,8 @@ import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type { InvokeOpts } from '@src/contract/sdk';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { Role } from '@src/domain.objects/Role';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -23,7 +23,7 @@ const performAskViaStitchMode = async (input: {
   opts: { role: string; skill: string; ask?: string; attempts?: string };
   config: { path: string };
   registries: RoleRegistry[];
-  hooks: null | InvokeHooks;
+  hooks: null | RoleHooksOnDispatch;
 }): Promise<void> => {
   // instantiate the composed argv
   const argvWithAsk: InvokeOpts<{

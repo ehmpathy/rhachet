@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
-import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistryManifest } from '@src/domain.objects';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
@@ -16,18 +16,17 @@ import type { HasPackageRoot } from './ContextConfigOfUsage';
  * .note = returns manifests with packageRoot for path resolution
  * .note = packages without rhachet.repo.yml are collected as errors
  */
-export const getRegistriesByConfigImplicit = async (input: {
-  from: string;
-}): Promise<{
+export const getRoleRegistriesByConfigImplicit = async (
+  context: ContextCli,
+): Promise<{
   manifests: HasPackageRoot<RoleRegistryManifest>[];
   errors: { packageName: string; error: Error }[];
 }> => {
   // find rhachet-roles-* packages
-  const packageNames = await discoverRolePackages({ from: input.from });
+  const packageNames = await discoverRolePackages(context);
 
   // create require from repo root for package resolution
-  const repoRoot = await getGitRepoRoot({ from: input.from });
-  const require = createRequire(`${repoRoot}/package.json`);
+  const require = createRequire(`${context.gitroot}/package.json`);
 
   // resolve each package and load manifest
   const manifests: HasPackageRoot<RoleRegistryManifest>[] = [];

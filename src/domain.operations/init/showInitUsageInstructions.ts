@@ -1,16 +1,17 @@
-import { getRegistriesByConfigImplicit } from '../config/getRegistriesByConfigImplicit';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
+
+import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
 
 /**
  * .what = shows usage instructions when init called without --roles
  * .why = guides users on how to use the command
  */
-export const showInitUsageInstructions = async (input: {
-  from: string;
-}): Promise<{ output: string }> => {
+export const showInitUsageInstructions = async (
+  context: ContextCli,
+): Promise<{ output: string }> => {
   // discover manifests from packages
-  const { manifests, errors } = await getRegistriesByConfigImplicit({
-    from: input.from,
-  });
+  const { manifests, errors } =
+    await getRoleRegistriesByConfigImplicit(context);
 
   // build usage output
   const lines: string[] = [];

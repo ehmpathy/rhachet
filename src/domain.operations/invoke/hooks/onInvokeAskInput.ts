@@ -1,12 +1,12 @@
 import type { InvokeOpts } from '@src/domain.objects';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 
 /**
  * .what = hooks to call onInvokeAskInput
  */
 export const onInvokeAskInput = (input: {
   opts: InvokeOpts<{ ask: string; config: string }>;
-  hooks: InvokeHooks;
+  hooks: RoleHooksOnDispatch;
 }): InvokeOpts<{ ask: string; config: string }> => {
   // call each of the opts translators, one at a time
   let after = input.opts;

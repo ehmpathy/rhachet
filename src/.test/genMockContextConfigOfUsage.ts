@@ -1,5 +1,5 @@
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 import type {
@@ -17,7 +17,7 @@ export const genMockContextConfigOfUsage = (input?: {
   registries?: RoleRegistry[];
   manifestsWithRoots?: HasPackageRoot<RoleRegistryManifest>[];
   brains?: BrainRepl[];
-  hooks?: InvokeHooks | null;
+  hooks?: RoleHooksOnDispatch | null;
 }): ContextConfigOfUsage => {
   const isExplicit = input?.isExplicit ?? false;
   const explicitPath = input?.explicitPath ?? '/mock/rhachet.use.ts';

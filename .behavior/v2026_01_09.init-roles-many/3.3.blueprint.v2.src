@@ -19,11 +19,11 @@ lets refine the blueprint found in
 
   e.g.,
 
-  getRegistriesByConfigExplicit
+  getRoleRegistriesByConfigExplicit
 
   vs
 
-  getRegistriesByConfigImplicit
+  getRoleRegistriesByConfigImplicit
 
 
 2. i'd like to eliminate the need to cast RoleRegistryManifest into RoleRegistry

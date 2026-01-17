@@ -1,0 +1,47 @@
+as part of this, we want to better define and distinguish between
+  "suppliers" and "adapters"
+
+  first, "suppliers" like Role suppliers  and Brain suppliers;
+
+  lets add a brief right now to .agent/repo=.this/role=any/briefs which
+  explains the supplier concept
+
+  the rhachet framework dispatches caller invocations across the supplied
+  resources that are configured (implicitly via dependencies, or explicitly
+  via config)
+
+  suppliers supply resources which fulfill domain specific behavior and
+  leverage rhachet for isomorphic and uniform dispatch (similar to what
+  terraform calls "providers"). they supply resources that adhere to the
+  rhachet contract.
+
+  for example
+  - Role suppliers, supply roles for use with rhachet. they supply sets of
+  roles via RoleRegistries (a.k.a. RoleRepos). they also supply
+  RoleHooksOnDispatch, which add middleware to role actions (e.g., transform
+  skill inputs, observe skill outputs, etc)
+
+  - Brain suppliers, supply brains for use with rhachet. they supply sets
+  of BrainRepls and BrainAtoms via BrainRegistries (a.k.a. BrainRepos).
+  they also supply BrainHooksAdapters, which adapt hook requests declared in
+  the rhachet contract into the contract of whatever brain is in use. this
+  enables roles to specify RoleHooksOnBrain which add middleware over brain
+  actions (e.g., onTool, onBoot, onStop) (e.g., to enroll a BrainRepl as a
+  role)
+
+
+
+  next, lets add a separate brief that explains the adapter concept
+
+  an adapter is any mechanism which transforms a payload from one ShapeA to
+  ShapeB, to adapt from ContractA to ContractB
+
+  for example, the BrainHooksAdapters enable rhachet Roles to declare
+  .hooks via a rhachet contract, which we then know will be translated via
+  a BrainHooksAdapter to apply to whatever brain is requested (e.g., add
+  SessionStart, PreToolUse, and onStop) hooks to claude-code
+
+  note that we dont have a DispatchHooksAdapter, because today, the only
+  dispatch interface rhachet supports is the rhachet cli itself.
+  in the future, we may need an DispatchHooksAdapter, when we support
+  remote dispatch, for example.

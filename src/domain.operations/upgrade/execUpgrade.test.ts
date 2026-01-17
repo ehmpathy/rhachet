@@ -37,7 +37,7 @@ const mockInitRolesFromPackages = initRolesFromPackages as jest.MockedFunction<
 >;
 
 describe('execUpgrade', () => {
-  const context = new ContextCli({ cwd: '/test' });
+  const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
 
   beforeEach(() => {
     jest.clearAllMocks();

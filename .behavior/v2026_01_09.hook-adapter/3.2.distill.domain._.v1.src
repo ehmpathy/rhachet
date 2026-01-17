@@ -1,0 +1,22 @@
+distill the declastruct domain.objects and domain.operations that would
+- enable fulfillment of
+  - this wish .behavior/v2026_01_09.hook-adapter/0.wish.md
+  - this vision .behavior/v2026_01_09.hook-adapter/1.vision.md (if declared)
+  - this criteria .behavior/v2026_01_09.hook-adapter/2.criteria.blackbox.md (if declared)
+- given the research declared here
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.access._.v1.i1.md (if declared)
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.claims._.v1.i1.md (if declared)
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.domain._.v1.i1.md (if declared)
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+  - .behavior/v2026_01_09.hook-adapter/3.1.research.templates._.v1.i1.md (if declared)
+- these briefs
+  - .agent/repo=.this/role=any/briefs/define.term.suppliers.md
+  - .agent/repo=.this/role=any/briefs/define.term.adapters.md
+
+procedure
+1. declare the usecases and envision the contract that would be used to fulfill the usecases
+2. declare the domain.objects, domain.operations, and access.daos that would fulfill this, via the declastruct pattern in this repo
+
+emit into
+- .behavior/v2026_01_09.hook-adapter/3.2.distill.domain._.v1.i1.md

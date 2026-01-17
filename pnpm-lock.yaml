@@ -36,8 +36,8 @@ importers:
         specifier: 1.5.3
         version: 1.5.3
       iso-time:
-        specifier: 1.10.1
-        version: 1.10.1
+        specifier: 1.11.1
+        version: 1.11.1
       openai:
         specifier: 5.8.2
         version: 5.8.2(zod@4.3.4)
@@ -3224,6 +3224,10 @@ packages:
 
   iso-time@1.10.1:
     resolution: {integrity: sha512-3BQe0H4ZPM7O1w3TIxwoRSCf9gQ/h+dzcbOEn8Dos3OByQ0mLRV1tqnk0hwzjnXYNgXjWHxF2dHZVq2rdfpnWg==}
+    engines: {node: '>=8.0.0'}
+
+  iso-time@1.11.1:
+    resolution: {integrity: sha512-HQB4BQJyqOpP3c0lxdsXTu36/61c/eTr3pu7kBJfnUEQFLc8+lveNgsTEAA5Pk50WF0tVfEF5WF2xGRPX13mcQ==}
     engines: {node: '>=8.0.0'}
 
   isomorphic-git@1.36.1:
@@ -8612,6 +8616,14 @@ snapshots:
       helpful-errors: 1.5.3
       type-fns: 1.21.0
 
+  iso-time@1.11.1:
+    dependencies:
+      date-fns: 3.6.0
+      domain-glossaries: 1.0.0
+      helpful-errors: 1.5.3
+      simple-log-methods: 0.6.9
+      type-fns: 1.21.0
+
   isomorphic-git@1.36.1:
     dependencies:
       async-lock: 1.4.1
@@ -10263,7 +10275,7 @@ snapshots:
       domain-glossary-procedure: 1.0.0
       domain-objects: 0.31.9
       helpful-errors: 1.5.3
-      iso-time: 1.10.1
+      iso-time: 1.11.1
       type-fns: 1.21.0
 
   simple-on-disk-cache@1.7.3:

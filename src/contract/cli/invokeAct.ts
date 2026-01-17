@@ -2,8 +2,8 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { InvokeHooks } from '@src/domain.objects/InvokeHooks';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
+import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
@@ -84,7 +84,7 @@ const performActInCurrentThread = async (input: {
   };
   registries: RoleRegistry[];
   brains: BrainRepl[];
-  hooks: null | InvokeHooks;
+  hooks: null | RoleHooksOnDispatch;
 }): Promise<void> => {
   // validate brains are available
   if (input.brains.length === 0)
