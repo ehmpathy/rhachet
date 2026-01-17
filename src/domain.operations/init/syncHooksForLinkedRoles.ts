@@ -1,7 +1,7 @@
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
-import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
-import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
+import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 
 /**
  * .what = syncs brain hooks for linked roles
@@ -27,13 +27,18 @@ export const syncHooksForLinkedRoles = async (input: {
   }
 
   if (roles.length === 0) {
-    console.log('   [no roles with hooks found]');
+    console.log('');
+    console.log('🫧 no roles with hooks found');
     console.log('');
     return;
   }
 
-  for (const role of roles) {
-    console.log(`   - [found] ${role.repo}/${role.slug}`);
+  // report found roles with tree structure
+  for (let i = 0; i < roles.length; i++) {
+    const role = roles[i]!;
+    const isLast = i === roles.length - 1;
+    const prefix = isLast ? '└──' : '├──';
+    console.log(`   ${prefix} ${role.repo}/${role.slug}`);
   }
 
   // build set of linked authors for orphan detection
@@ -42,7 +47,7 @@ export const syncHooksForLinkedRoles = async (input: {
   );
 
   console.log('');
-  console.log('🧹 prune orphaned hooks...');
+  console.log('🪝 apply hooks to brains...');
 
   // prune orphans from all brains
   const pruneResult = await pruneOrphanedRoleHooksFromAllBrains({
@@ -51,20 +56,6 @@ export const syncHooksForLinkedRoles = async (input: {
     brains,
   });
 
-  const totalOrphansRemoved = pruneResult.removed.reduce(
-    (sum, r) => sum + r.hooks.length,
-    0,
-  );
-
-  if (totalOrphansRemoved > 0) {
-    console.log(`   ${totalOrphansRemoved} orphaned hook(s) removed`);
-  } else {
-    console.log('   [none found]');
-  }
-
-  console.log('');
-  console.log('🪝 apply hooks to brains...');
-
   // sync all roles to all brains
   const syncResult = await syncAllRoleHooksIntoEachBrainRepl({
     roles,
@@ -72,10 +63,17 @@ export const syncHooksForLinkedRoles = async (input: {
     brains,
   });
 
-  // tally and report results
+  // tally results
+  const totalOrphansRemoved = pruneResult.removed.reduce(
+    (sum, r) => sum + r.hooks.length,
+    0,
+  );
   let totalCreated = 0;
   let totalUpdated = 0;
   let totalDeleted = 0;
+
+  // collect all output lines for tree structure
+  const outputLines: string[] = [];
 
   for (const applied of syncResult.applied) {
     totalCreated += applied.hooks.created.length;
@@ -97,32 +95,48 @@ export const syncHooksForLinkedRoles = async (input: {
       .filter(Boolean)
       .join(', ');
     if (changes) {
-      console.log(
-        `   ${applied.role.repo}/${applied.role.slug} → ${applied.brain}: ${changes}`,
+      outputLines.push(
+        `${applied.role.repo}/${applied.role.slug} → ${applied.brain}: ${changes}`,
       );
     }
   }
 
-  // report errors
+  // collect errors
   for (const err of syncResult.errors) {
-    console.log(
-      `   ⚠️  ${err.role.repo}/${err.role.slug} → ${err.brain}: ${err.error.message}`,
+    outputLines.push(
+      `⚠️  ${err.role.repo}/${err.role.slug} → ${err.brain}: ${err.error.message}`,
     );
   }
 
+  // output with tree structure
+  for (let i = 0; i < outputLines.length; i++) {
+    const isLast = i === outputLines.length - 1;
+    const prefix = isLast ? '└──' : '├──';
+    console.log(`   ${prefix} ${outputLines[i]}`);
+  }
+
   // summary
+  const hasChanges =
+    totalCreated > 0 ||
+    totalUpdated > 0 ||
+    totalDeleted > 0 ||
+    totalOrphansRemoved > 0;
   console.log('');
-  if (totalCreated > 0 || totalUpdated > 0 || totalDeleted > 0) {
-    const parts = [
+  if (hasChanges) {
+    const summaryLines = [
       totalCreated > 0 ? `${totalCreated} created` : null,
       totalUpdated > 0 ? `${totalUpdated} updated` : null,
       totalDeleted > 0 ? `${totalDeleted} deleted` : null,
-    ]
-      .filter(Boolean)
-      .join(', ');
-    console.log(`✨ Hooks: ${parts}`);
+      totalOrphansRemoved > 0 ? `${totalOrphansRemoved} orphans removed` : null,
+    ].filter(Boolean) as string[];
+    console.log('✨ hooks');
+    for (let i = 0; i < summaryLines.length; i++) {
+      const isLast = i === summaryLines.length - 1;
+      const prefix = isLast ? '└──' : '├──';
+      console.log(`   ${prefix} ${summaryLines[i]}`);
+    }
   } else if (syncResult.errors.length === 0) {
-    console.log('✨ Hooks: no changes needed');
+    console.log('✨ hooks: no changes needed');
   }
   if (syncResult.errors.length > 0) {
     console.log(`⚠️  ${syncResult.errors.length} hook error(s) occurred`);

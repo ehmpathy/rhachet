@@ -3,8 +3,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { BrainHook } from '@src/domain.objects/BrainHook';
 import { genBrainHooksAdapterForClaudeCode } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/genBrainHooksAdapterForClaudeCode';
+import { BrainHook } from '@src/domain.objects/BrainHook';
 
 import { pruneOrphanedRoleHooksFromOneBrain } from './pruneOrphanedRoleHooksFromOneBrain';
 
@@ -41,9 +41,7 @@ describe('pruneOrphanedRoleHooksFromOneBrain', () => {
       await adapter.dao.set.upsert({ hook: linkedHook });
 
       // define linked authors (only linked-role is linked)
-      const authorsDesired = new Set([
-        'repo=linked-registry/role=linked-role',
-      ]);
+      const authorsDesired = new Set(['repo=linked-registry/role=linked-role']);
 
       return { repoPath, adapter, orphanHook, linkedHook, authorsDesired };
     });

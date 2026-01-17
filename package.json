@@ -58,7 +58,7 @@
     "postversion": "git push origin HEAD --tags --no-verify",
     "prepare:husky": "husky install && chmod ug+x .husky/*",
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi",
-    "prepare:rhachet": "npx rhachet init --roles behaver mechanic reviewer"
+    "prepare:rhachet": "rhachet init --roles behaver mechanic reviewer"
   },
   "dependencies": {
     "as-procedure": "1.1.11",

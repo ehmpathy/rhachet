@@ -82,8 +82,8 @@ describe('rhachet init --hooks', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('stdout indicates hooks were added', () => {
-        expect(result.stdout).toContain('added');
+      then('stdout indicates hooks were created', () => {
+        expect(result.stdout).toContain('created');
       });
 
       then('claude settings.json has SessionStart hooks', async () => {
@@ -132,7 +132,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('hooks are applied', () => {
-        expect(result.stdout).toContain('added');
+        expect(result.stdout).toContain('created');
       });
 
       then('claude settings.json has hooks', async () => {
@@ -201,7 +201,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('hooks are applied', () => {
-        expect(result.stdout).toContain('added');
+        expect(result.stdout).toContain('created');
       });
     });
   });
@@ -277,8 +277,8 @@ module.exports = { getRoleRegistry };
         expect(result.status).toEqual(0);
       });
 
-      then('stdout indicates hooks were removed', () => {
-        expect(result.stdout).toContain('removed');
+      then('stdout indicates hooks were deleted', () => {
+        expect(result.stdout).toContain('deleted');
       });
 
       then('claude settings.json now has only 1 SessionStart hook', async () => {

@@ -20,13 +20,13 @@ describe('showInitUsageInstructions', () => {
       });
 
       then(
-        'output omits manifest error section when packages have rhachet.repo.yml',
+        'output omits manifest warn when all packages have rhachet.repo.yml',
         async () => {
           const result = await showInitUsageInstructions({
             from: process.cwd(),
           });
-          // rhachet-roles packages now have rhachet.repo.yml manifests,
-          // so the error section should not be shown
+          // all rhachet-roles packages now have rhachet.repo.yml manifests,
+          // so no warn section should be shown
           expect(result.output).not.toContain(
             'packages without rhachet.repo.yml',
           );

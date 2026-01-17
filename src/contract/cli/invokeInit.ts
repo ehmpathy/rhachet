@@ -2,12 +2,10 @@ import type { Command } from 'commander';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { ContextCli } from '@src/domain.objects/ContextCli';
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
-import { genRhachetUseConfig } from '@src/domain.operations/init/genRhachetUseConfig';
-import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
 import { generateRhachetUseTs } from '@src/domain.operations/init/generateRhachetUseTs';
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
 import { showInitUsageInstructions } from '@src/domain.operations/init/showInitUsageInstructions';
+import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
 
 /**
  * .what = adds the "init" command to the CLI
