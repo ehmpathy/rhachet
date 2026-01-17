@@ -1,4 +1,4 @@
-import { getGitRepoRoot } from 'rhachet-artifact-git';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -7,10 +7,7 @@ import { resolve } from 'node:path';
  * .what = checks if rhachet.use.ts config file exists
  * .why = enables fallback to getRoleRegistriesByConfigImplicit when config absent
  */
-export const hasConfigExplicit = async (input: {
-  from: string;
-}): Promise<boolean> => {
-  const gitRoot = await getGitRepoRoot({ from: input.from });
-  const configPath = resolve(gitRoot, 'rhachet.use.ts');
+export const hasConfigExplicit = (context: ContextCli): boolean => {
+  const configPath = resolve(context.gitroot, 'rhachet.use.ts');
   return existsSync(configPath);
 };

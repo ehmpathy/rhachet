@@ -1,4 +1,5 @@
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
@@ -7,19 +8,18 @@ import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains
  * .what = syncs brain hooks for linked roles
  * .why = syncs role hook declarations to brain configs (e.g., .claude/settings.json)
  */
-export const syncHooksForLinkedRoles = async (input: {
-  from: string;
-  brains?: BrainSpecifier[];
-}): Promise<void> => {
-  const { from, brains } = input;
+export const syncHooksForLinkedRoles = async (
+  input: { brains?: BrainSpecifier[] },
+  context: ContextCli,
+): Promise<void> => {
+  const { brains } = input;
 
   console.log('');
   console.log('🔭 search for linked roles with hooks...');
 
   // get linked roles with hooks
-  const { roles, errors: discoverErrors } = await getLinkedRolesWithHooks({
-    from,
-  });
+  const { roles, errors: discoverErrors } =
+    await getLinkedRolesWithHooks(context);
 
   // report discover errors
   for (const err of discoverErrors) {
@@ -50,18 +50,16 @@ export const syncHooksForLinkedRoles = async (input: {
   console.log('🪝 apply hooks to brains...');
 
   // prune orphans from all brains
-  const pruneResult = await pruneOrphanedRoleHooksFromAllBrains({
-    authorsDesired,
-    repoPath: from,
-    brains,
-  });
+  const pruneResult = await pruneOrphanedRoleHooksFromAllBrains(
+    { authorsDesired, brains },
+    context,
+  );
 
   // sync all roles to all brains
-  const syncResult = await syncAllRoleHooksIntoEachBrainRepl({
-    roles,
-    repoPath: from,
-    brains,
-  });
+  const syncResult = await syncAllRoleHooksIntoEachBrainRepl(
+    { roles, brains },
+    context,
+  );
 
   // tally results
   const totalOrphansRemoved = pruneResult.removed.reduce(

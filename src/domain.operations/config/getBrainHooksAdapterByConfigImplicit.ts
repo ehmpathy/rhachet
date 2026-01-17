@@ -1,5 +1,6 @@
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 
 import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -14,17 +15,17 @@ import { discoverBrainPackages } from '../brains/discoverBrainPackages';
  * .note = calls getBrainHooks({ brain, repoPath }) on each
  * .note = throws if multiple adapters match (ambiguous)
  */
-export const getBrainHooksAdapterByConfigImplicit = async (input: {
-  brain: BrainSpecifier;
-  repoPath: string;
-}): Promise<BrainHooksAdapter | null> => {
-  const { brain, repoPath } = input;
-
+export const getBrainHooksAdapterByConfigImplicit = async (
+  input: {
+    brain: BrainSpecifier;
+  },
+  context: ContextCli,
+): Promise<BrainHooksAdapter | null> => {
   // discover brain packages from package.json
-  const brainPackages = await discoverBrainPackages({ from: repoPath });
+  const brainPackages = await discoverBrainPackages(context);
 
   // create require from repo root for package resolution
-  const require = createRequire(`${repoPath}/package.json`);
+  const require = createRequire(`${context.cwd}/package.json`);
 
   // collect adapters that match the requested brain
   const adaptersMatched: BrainHooksAdapter[] = [];
@@ -55,7 +56,10 @@ export const getBrainHooksAdapterByConfigImplicit = async (input: {
       if (!brainModule.getBrainHooks) continue;
 
       // call getBrainHooks to see if it supports this brain
-      const adapter = brainModule.getBrainHooks({ brain, repoPath });
+      const adapter = brainModule.getBrainHooks({
+        brain: input.brain,
+        repoPath: context.cwd,
+      });
       if (adapter) {
         adaptersMatched.push(adapter);
       }
@@ -86,6 +90,6 @@ export const getBrainHooksAdapterByConfigImplicit = async (input: {
 
   // multiple adapters matched - ambiguous
   throw new Error(
-    `multiple brain hooks adapters matched for brain '${brain}': ${adaptersMatched.map((a) => a.slug).join(', ')}. specify explicit adapter.`,
+    `multiple brain hooks adapters matched for brain '${input.brain}': ${adaptersMatched.map((a) => a.slug).join(', ')}. specify explicit adapter.`,
   );
 };

@@ -1,5 +1,6 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 
@@ -11,11 +12,13 @@ import { syncOneRoleHooksIntoOneBrainRepl } from './syncOneRoleHooksIntoOneBrain
  * .what = syncs all role hooks into each detected brain repl
  * .why = orchestrates hook sync across multiple brains and roles
  */
-export const syncAllRoleHooksIntoEachBrainRepl = async (input: {
-  roles: HasRepo<Role>[];
-  repoPath: string;
-  brains?: BrainSpecifier[];
-}): Promise<{
+export const syncAllRoleHooksIntoEachBrainRepl = async (
+  input: {
+    roles: HasRepo<Role>[];
+    brains?: BrainSpecifier[];
+  },
+  context: ContextCli,
+): Promise<{
   applied: Array<{
     role: HasRepo<Role>;
     brain: BrainSpecifier;
@@ -32,10 +35,8 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (input: {
     error: Error;
   }>;
 }> => {
-  const { roles, repoPath, brains } = input;
-
   // resolve brain slugs
-  const brainSlugs = brains ?? (await detectBrainReplsInRepo({ repoPath }));
+  const brainSlugs = input.brains ?? (await detectBrainReplsInRepo(context));
 
   const applied: Array<{
     role: HasRepo<Role>;
@@ -54,14 +55,14 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (input: {
   }> = [];
 
   // sync each role × brain combination
-  for (const role of roles) {
+  for (const role of input.roles) {
     for (const brain of brainSlugs) {
       try {
         // resolve adapter for this brain
-        const adapter = await getBrainHooksAdapterByConfigImplicit({
-          brain,
-          repoPath,
-        });
+        const adapter = await getBrainHooksAdapterByConfigImplicit(
+          { brain },
+          context,
+        );
 
         if (!adapter) {
           errors.push({

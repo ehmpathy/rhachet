@@ -31,9 +31,7 @@ export const initRolesFromPackages = async (
 ): Promise<InitRolesResult> => {
   // discover manifests from packages
   const { manifests, errors: packageErrors } =
-    await getRoleRegistriesByConfigImplicit({
-      from: context.cwd,
-    });
+    await getRoleRegistriesByConfigImplicit(context);
 
   // fail fast if no packages found
   if (manifests.length === 0 && packageErrors.length === 0) {

@@ -1,7 +1,6 @@
 import type { Command } from 'commander';
-import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { ContextCli } from '@src/domain.objects/ContextCli';
+import { genContextCli } from '@src/domain.objects/ContextCli';
 import { generateRhachetUseTs } from '@src/domain.operations/init/generateRhachetUseTs';
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
 import { showInitUsageInstructions } from '@src/domain.operations/init/showInitUsageInstructions';
@@ -33,11 +32,11 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         config?: boolean;
         mode: 'findsert' | 'upsert';
       }) => {
-        const cwd = process.cwd();
+        // build context for operations
+        const context = await genContextCli({ cwd: process.cwd() });
 
         // route: --roles provided => init roles from packages
         if (options.roles && options.roles.length > 0) {
-          const context = new ContextCli({ cwd });
           await initRolesFromPackages({ specifiers: options.roles }, context);
 
           // if --hooks also specified, apply hooks after init
@@ -46,7 +45,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
               Array.isArray(options.hooks) && options.hooks.length > 0
                 ? options.hooks
                 : undefined;
-            await syncHooksForLinkedRoles({ from: cwd, brains });
+            await syncHooksForLinkedRoles({ brains }, context);
           }
           return;
         }
@@ -57,19 +56,18 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
               : undefined;
-          await syncHooksForLinkedRoles({ from: cwd, brains });
+          await syncHooksForLinkedRoles({ brains }, context);
           return;
         }
 
         // route: --config provided => generate rhachet.use.ts
         if (options.config) {
-          const root = await getGitRepoRoot({ from: cwd });
-          await generateRhachetUseTs({ cwd, root, mode: options.mode });
+          await generateRhachetUseTs({ mode: options.mode }, context);
           return;
         }
 
         // route: no flags => show usage instructions
-        await showInitUsageInstructions({ from: cwd });
+        await showInitUsageInstructions(context);
       },
     );
 };

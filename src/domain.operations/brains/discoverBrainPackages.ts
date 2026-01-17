@@ -1,14 +1,16 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+import type { ContextCli } from '@src/domain.objects/ContextCli';
+
 /**
  * .what = scans package.json for rhachet-brains-* dependencies
  * .why = enables implicit discovery of brain supplier packages
  */
-export const discoverBrainPackages = async (input: {
-  from: string;
-}): Promise<string[]> => {
-  const packageJsonPath = path.join(input.from, 'package.json');
+export const discoverBrainPackages = async (
+  context: ContextCli,
+): Promise<string[]> => {
+  const packageJsonPath = path.join(context.cwd, 'package.json');
 
   // read package.json
   let packageJsonContent: string;

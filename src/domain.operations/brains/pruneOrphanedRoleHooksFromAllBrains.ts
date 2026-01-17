@@ -1,5 +1,6 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { getBrainHooksAdapterByConfigImplicit } from '../config/getBrainHooksAdapterByConfigImplicit';
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
@@ -9,20 +10,20 @@ import { pruneOrphanedRoleHooksFromOneBrain } from './pruneOrphanedRoleHooksFrom
  * .what = prunes orphaned role hooks from all detected brain repls
  * .why = orchestrates orphan cleanup across multiple brains
  */
-export const pruneOrphanedRoleHooksFromAllBrains = async (input: {
-  authorsDesired: Set<string>;
-  repoPath: string;
-  brains?: BrainSpecifier[];
-}): Promise<{
+export const pruneOrphanedRoleHooksFromAllBrains = async (
+  input: {
+    authorsDesired: Set<string>;
+    brains?: BrainSpecifier[];
+  },
+  context: ContextCli,
+): Promise<{
   removed: Array<{
     brain: BrainSpecifier;
     hooks: BrainHook[];
   }>;
 }> => {
-  const { authorsDesired, repoPath, brains } = input;
-
   // resolve brain slugs
-  const brainSlugs = brains ?? (await detectBrainReplsInRepo({ repoPath }));
+  const brainSlugs = input.brains ?? (await detectBrainReplsInRepo(context));
 
   const removed: Array<{
     brain: BrainSpecifier;
@@ -31,17 +32,17 @@ export const pruneOrphanedRoleHooksFromAllBrains = async (input: {
 
   // prune from each brain
   for (const brain of brainSlugs) {
-    const adapter = await getBrainHooksAdapterByConfigImplicit({
-      brain,
-      repoPath,
-    });
+    const adapter = await getBrainHooksAdapterByConfigImplicit(
+      { brain },
+      context,
+    );
 
     // skip if no adapter for this brain
     if (!adapter) continue;
 
     const result = await pruneOrphanedRoleHooksFromOneBrain({
       adapter,
-      authorsDesired,
+      authorsDesired: input.authorsDesired,
     });
 
     if (result.removed.length > 0) {

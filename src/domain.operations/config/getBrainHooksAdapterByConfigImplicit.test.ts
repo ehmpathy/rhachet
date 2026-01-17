@@ -1,5 +1,7 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
+
 import * as discoverModule from '../brains/discoverBrainPackages';
 import { getBrainHooksAdapterByConfigImplicit } from './getBrainHooksAdapterByConfigImplicit';
 
@@ -17,10 +19,11 @@ describe('getBrainHooksAdapterByConfigImplicit', () => {
         jest
           .spyOn(discoverModule, 'discoverBrainPackages')
           .mockResolvedValue([]);
-        const result = await getBrainHooksAdapterByConfigImplicit({
-          brain: 'claude-code',
-          repoPath: '/test',
-        });
+        const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
+        const result = await getBrainHooksAdapterByConfigImplicit(
+          { brain: 'claude-code' },
+          context,
+        );
         return { result };
       });
 
@@ -44,10 +47,14 @@ describe('getBrainHooksAdapterByConfigImplicit', () => {
         });
 
         // use a path that doesn't have the package installed
-        const result = await getBrainHooksAdapterByConfigImplicit({
-          brain: 'claude-code',
-          repoPath: '/nonexistent/repo',
+        const context = new ContextCli({
+          cwd: '/nonexistent/repo',
+          gitroot: '/nonexistent/repo',
         });
+        const result = await getBrainHooksAdapterByConfigImplicit(
+          { brain: 'claude-code' },
+          context,
+        );
         return { result, stderrCalls };
       });
 

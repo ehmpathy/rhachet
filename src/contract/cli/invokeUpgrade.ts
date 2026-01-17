@@ -17,7 +17,7 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
       'role specifiers to upgrade (* for all linked)',
     )
     .action(async (options: { self?: boolean; roles?: string[] }) => {
-      const context = genContextCli({ cwd: process.cwd() });
+      const context = await genContextCli({ cwd: process.cwd() });
       const result = await execUpgrade(
         { self: options.self, roleSpecs: options.roles },
         context,

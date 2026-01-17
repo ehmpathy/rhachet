@@ -3,6 +3,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import { Role } from '@src/domain.objects/Role';
 
@@ -94,10 +95,11 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       mockDetectBrains.mockResolvedValue(['claude-code']);
       mockGetAdapter.mockResolvedValue(adapter);
 
-      return syncAllRoleHooksIntoEachBrainRepl({
-        roles: [role],
-        repoPath: '/tmp/test-repo',
+      const context = new ContextCli({
+        cwd: '/tmp/test-repo',
+        gitroot: '/tmp/test-repo',
       });
+      return syncAllRoleHooksIntoEachBrainRepl({ roles: [role] }, context);
     });
 
     when('[t0] sync is executed', () => {
@@ -165,16 +167,20 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
 
     const result = useBeforeAll(async () => {
       mockDetectBrains.mockResolvedValue(['claude-code', 'opencode']);
-      mockGetAdapter.mockImplementation(async ({ brain }) => {
-        if (brain === 'claude-code') return adapterClaude;
-        if (brain === 'opencode') return adapterOpencode;
+      mockGetAdapter.mockImplementation(async (input: { brain: string }) => {
+        if (input.brain === 'claude-code') return adapterClaude;
+        if (input.brain === 'opencode') return adapterOpencode;
         return null;
       });
 
-      return syncAllRoleHooksIntoEachBrainRepl({
-        roles: [roleA, roleB],
-        repoPath: '/tmp/test-repo',
+      const context = new ContextCli({
+        cwd: '/tmp/test-repo',
+        gitroot: '/tmp/test-repo',
       });
+      return syncAllRoleHooksIntoEachBrainRepl(
+        { roles: [roleA, roleB] },
+        context,
+      );
     });
 
     when('[t0] sync is executed', () => {
@@ -211,10 +217,11 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       mockDetectBrains.mockResolvedValue(['unknown-brain']);
       mockGetAdapter.mockResolvedValue(null);
 
-      return syncAllRoleHooksIntoEachBrainRepl({
-        roles: [role],
-        repoPath: '/tmp/test-repo',
+      const context = new ContextCli({
+        cwd: '/tmp/test-repo',
+        gitroot: '/tmp/test-repo',
       });
+      return syncAllRoleHooksIntoEachBrainRepl({ roles: [role] }, context);
     });
 
     when('[t0] sync is executed', () => {
@@ -258,11 +265,14 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       mockDetectBrains.mockResolvedValue(['claude-code', 'opencode']);
       mockGetAdapter.mockResolvedValue(adapter);
 
-      return syncAllRoleHooksIntoEachBrainRepl({
-        roles: [role],
-        repoPath: '/tmp/test-repo',
-        brains: ['claude-code'], // explicit override
+      const context = new ContextCli({
+        cwd: '/tmp/test-repo',
+        gitroot: '/tmp/test-repo',
       });
+      return syncAllRoleHooksIntoEachBrainRepl(
+        { roles: [role], brains: ['claude-code'] },
+        context,
+      );
     });
 
     when('[t0] sync is executed', () => {

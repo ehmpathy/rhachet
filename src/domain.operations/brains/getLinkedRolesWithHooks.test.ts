@@ -1,17 +1,15 @@
 import * as fs from 'fs';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
+
 // mock modules before function import
 jest.mock('fs');
-jest.mock('rhachet-artifact-git');
-
-import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { getLinkedRolesWithHooks } from './getLinkedRolesWithHooks';
 
 const mockExistsSync = fs.existsSync as jest.Mock;
 const mockReaddirSync = fs.readdirSync as jest.Mock;
-const mockGetGitRepoRoot = getGitRepoRoot as jest.Mock;
 
 describe('getLinkedRolesWithHooks', () => {
   beforeEach(() => {
@@ -21,9 +19,12 @@ describe('getLinkedRolesWithHooks', () => {
   given('[case1] no .agent/ directory', () => {
     when('[t0] .agent does not exist', () => {
       const scene = useBeforeAll(async () => {
-        mockGetGitRepoRoot.mockResolvedValue('/test-repo');
         mockExistsSync.mockReturnValue(false);
-        return getLinkedRolesWithHooks({ from: '/test-repo' });
+        const context = new ContextCli({
+          cwd: '/test-repo',
+          gitroot: '/test-repo',
+        });
+        return getLinkedRolesWithHooks(context);
       });
 
       then('returns empty roles array', () => {
@@ -39,10 +40,13 @@ describe('getLinkedRolesWithHooks', () => {
   given('[case2] only repo=.this exists', () => {
     when('[t0] .agent has only repo=.this', () => {
       const scene = useBeforeAll(async () => {
-        mockGetGitRepoRoot.mockResolvedValue('/test-repo');
         mockExistsSync.mockReturnValue(true);
         mockReaddirSync.mockReturnValue(['repo=.this']);
-        return getLinkedRolesWithHooks({ from: '/test-repo' });
+        const context = new ContextCli({
+          cwd: '/test-repo',
+          gitroot: '/test-repo',
+        });
+        return getLinkedRolesWithHooks(context);
       });
 
       then('returns empty roles array', () => {
@@ -58,14 +62,17 @@ describe('getLinkedRolesWithHooks', () => {
   given('[case3] linked role from package that cannot be loaded', () => {
     when('[t0] package does not exist', () => {
       const scene = useBeforeAll(async () => {
-        mockGetGitRepoRoot.mockResolvedValue('/test-repo');
         mockExistsSync.mockReturnValue(true);
         mockReaddirSync
           .mockReturnValueOnce(['repo=.this', 'repo=nonexistent']) // .agent/
           .mockReturnValueOnce(['role=mechanic', 'role=designer']); // .agent/repo=nonexistent/
 
         // package rhachet-roles-nonexistent does not exist, so import will fail
-        return getLinkedRolesWithHooks({ from: '/test-repo' });
+        const context = new ContextCli({
+          cwd: '/test-repo',
+          gitroot: '/test-repo',
+        });
+        return getLinkedRolesWithHooks(context);
       });
 
       then('returns empty roles array', () => {

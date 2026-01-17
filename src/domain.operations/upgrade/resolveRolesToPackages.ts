@@ -2,7 +2,7 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 
-import { getRegistriesByConfigImplicit } from '../config/getRegistriesByConfigImplicit';
+import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
 import type { RoleLinkRef } from './discoverLinkedRoles';
 
 /**
@@ -20,16 +20,16 @@ export const resolveRolesToPackages = async (
   if (input.roles.length === 0) return [];
 
   // discover installed manifests
-  const { manifests } = await getRegistriesByConfigImplicit({
-    from: context.cwd,
-  });
+  const { manifests } = await getRoleRegistriesByConfigImplicit(context);
 
   // resolve each role to its package
   const packages = new Set<string>();
 
   for (const roleRef of input.roles) {
     // find manifest by repo slug
-    const manifest = manifests.find((m) => m.slug === roleRef.repo);
+    const manifest = manifests.find(
+      (manifest) => manifest.slug === roleRef.repo,
+    );
     if (!manifest) {
       throw new BadRequestError(
         `role package not installed: ${roleRef.repo}/${roleRef.role}`,

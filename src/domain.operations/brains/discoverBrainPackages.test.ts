@@ -3,6 +3,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
+
 import { discoverBrainPackages } from './discoverBrainPackages';
 
 describe('discoverBrainPackages', () => {
@@ -24,7 +26,8 @@ describe('discoverBrainPackages', () => {
           },
         }),
       );
-      const result = await discoverBrainPackages({ from: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await discoverBrainPackages(context);
       return { dir, result };
     });
 
@@ -58,7 +61,8 @@ describe('discoverBrainPackages', () => {
           },
         }),
       );
-      const result = await discoverBrainPackages({ from: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await discoverBrainPackages(context);
       return { dir, result };
     });
 
@@ -73,7 +77,8 @@ describe('discoverBrainPackages', () => {
     const scene = useBeforeAll(async () => {
       const dir = path.join(os.tmpdir(), `test-no-pkg-${Date.now()}`);
       await fs.mkdir(dir, { recursive: true });
-      const result = await discoverBrainPackages({ from: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await discoverBrainPackages(context);
       return { dir, result };
     });
 

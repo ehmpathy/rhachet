@@ -4,16 +4,17 @@ import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { resolveRolesToPackages } from './resolveRolesToPackages';
 
-// mock getRegistriesByConfigImplicit
-jest.mock('../config/getRegistriesByConfigImplicit', () => ({
-  getRegistriesByConfigImplicit: jest.fn(),
+// mock getRoleRegistriesByConfigImplicit
+jest.mock('../config/getRoleRegistriesByConfigImplicit', () => ({
+  getRoleRegistriesByConfigImplicit: jest.fn(),
 }));
 
-import { getRegistriesByConfigImplicit } from '../config/getRegistriesByConfigImplicit';
+import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
 
-const mockGetRegistries = getRegistriesByConfigImplicit as jest.MockedFunction<
-  typeof getRegistriesByConfigImplicit
->;
+const mockGetRegistries =
+  getRoleRegistriesByConfigImplicit as jest.MockedFunction<
+    typeof getRoleRegistriesByConfigImplicit
+  >;
 
 describe('resolveRolesToPackages', () => {
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe('resolveRolesToPackages', () => {
   given('empty roles array', () => {
     when('resolveRolesToPackages is called', () => {
       then('returns empty array without manifest lookup', async () => {
-        const context = new ContextCli({ cwd: '/test' });
+        const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
         const result = await resolveRolesToPackages({ roles: [] }, context);
         expect(result).toEqual([]);
         expect(mockGetRegistries).not.toHaveBeenCalled();
@@ -50,7 +51,7 @@ describe('resolveRolesToPackages', () => {
 
     when('resolveRolesToPackages is called with single role', () => {
       then('returns the package name', async () => {
-        const context = new ContextCli({ cwd: '/test' });
+        const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
         const result = await resolveRolesToPackages(
           { roles: [{ repo: 'ehmpathy', role: 'mechanic' }] },
           context,
@@ -63,7 +64,7 @@ describe('resolveRolesToPackages', () => {
       'resolveRolesToPackages is called with multiple roles from same repo',
       () => {
         then('deduplicates to single package', async () => {
-          const context = new ContextCli({ cwd: '/test' });
+          const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
           const result = await resolveRolesToPackages(
             {
               roles: [
@@ -82,7 +83,7 @@ describe('resolveRolesToPackages', () => {
       'resolveRolesToPackages is called with roles from different repos',
       () => {
         then('returns package name for each repo', async () => {
-          const context = new ContextCli({ cwd: '/test' });
+          const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
           const result = await resolveRolesToPackages(
             {
               roles: [
@@ -115,7 +116,7 @@ describe('resolveRolesToPackages', () => {
 
     when('resolveRolesToPackages is called', () => {
       then('throws BadRequestError with suggestion', async () => {
-        const context = new ContextCli({ cwd: '/test' });
+        const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
         await expect(
           resolveRolesToPackages(
             { roles: [{ repo: 'nonexistent', role: 'mechanic' }] },

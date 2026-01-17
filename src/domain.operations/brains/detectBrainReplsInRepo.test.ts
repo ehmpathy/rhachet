@@ -3,6 +3,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
+
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
 
 describe('detectBrainReplsInRepo', () => {
@@ -14,7 +16,8 @@ describe('detectBrainReplsInRepo', () => {
         path.join(dir, '.claude', 'settings.json'),
         JSON.stringify({}),
       );
-      const result = await detectBrainReplsInRepo({ repoPath: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await detectBrainReplsInRepo(context);
       return { dir, result };
     });
 
@@ -33,7 +36,8 @@ describe('detectBrainReplsInRepo', () => {
     const scene = useBeforeAll(async () => {
       const dir = path.join(os.tmpdir(), `test-opencode-${Date.now()}`);
       await fs.mkdir(path.join(dir, '.opencode'), { recursive: true });
-      const result = await detectBrainReplsInRepo({ repoPath: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await detectBrainReplsInRepo(context);
       return { dir, result };
     });
 
@@ -57,7 +61,8 @@ describe('detectBrainReplsInRepo', () => {
         JSON.stringify({}),
       );
       await fs.mkdir(path.join(dir, '.opencode'), { recursive: true });
-      const result = await detectBrainReplsInRepo({ repoPath: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await detectBrainReplsInRepo(context);
       return { dir, result };
     });
 
@@ -77,7 +82,8 @@ describe('detectBrainReplsInRepo', () => {
     const scene = useBeforeAll(async () => {
       const dir = path.join(os.tmpdir(), `test-neither-${Date.now()}`);
       await fs.mkdir(dir, { recursive: true });
-      const result = await detectBrainReplsInRepo({ repoPath: dir });
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const result = await detectBrainReplsInRepo(context);
       return { dir, result };
     });
 

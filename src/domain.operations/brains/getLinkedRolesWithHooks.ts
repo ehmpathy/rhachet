@@ -1,5 +1,4 @@
-import { getGitRepoRoot } from 'rhachet-artifact-git';
-
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -16,14 +15,13 @@ import { dirname, join } from 'node:path';
  * .note = imports packages dynamically to get full Role objects with hooks.onBrain
  * .note = returns HasRepo<Role> so caller knows which repo each role came from
  */
-export const getLinkedRolesWithHooks = async (input: {
-  from: string;
-}): Promise<{
+export const getLinkedRolesWithHooks = async (
+  context: ContextCli,
+): Promise<{
   roles: HasRepo<Role>[];
   errors: Array<{ repoSlug: string; roleSlug: string; error: Error }>;
 }> => {
-  const repoRoot = await getGitRepoRoot({ from: input.from });
-  const agentDir = join(repoRoot, '.agent');
+  const agentDir = join(context.gitroot, '.agent');
 
   // check if .agent/ exists
   if (!existsSync(agentDir)) {
@@ -36,7 +34,7 @@ export const getLinkedRolesWithHooks = async (input: {
   );
 
   // create require from repo root for package resolution
-  const require = createRequire(`${repoRoot}/package.json`);
+  const require = createRequire(`${context.gitroot}/package.json`);
 
   const roles: HasRepo<Role>[] = [];
   const errors: Array<{ repoSlug: string; roleSlug: string; error: Error }> =

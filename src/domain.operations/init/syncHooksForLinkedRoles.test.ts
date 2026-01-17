@@ -1,5 +1,7 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
+
 import { syncHooksForLinkedRoles } from './syncHooksForLinkedRoles';
 
 // mock dependencies
@@ -47,7 +49,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });
@@ -85,7 +90,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });
@@ -154,7 +162,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });
@@ -192,7 +203,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });
@@ -225,7 +239,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });
@@ -269,7 +286,10 @@ describe('syncHooksForLinkedRoles', () => {
       });
 
       const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles({ from: '/tmp/test-repo' }),
+        syncHooksForLinkedRoles(
+          {},
+          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
+        ),
       );
       return { output };
     });

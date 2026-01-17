@@ -58,7 +58,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('role is linked', () => {
-        expect(result.stdout).toContain('test/tester');
+        expect(result.stdout).toContain('repo=test/role=tester');
       });
     });
 
@@ -128,7 +128,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('role is linked', () => {
-        expect(result.stdout).toContain('test/tester');
+        expect(result.stdout).toContain('repo=test/role=tester');
       });
 
       then('hooks are applied', () => {

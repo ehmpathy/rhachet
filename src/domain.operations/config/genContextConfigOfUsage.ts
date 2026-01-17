@@ -1,7 +1,8 @@
 import { BadRequestError } from 'helpful-errors';
-import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { genContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
@@ -41,21 +42,20 @@ const extractConfigPathFromArgs = (input: {
  * .what = resolves explicit config path
  * .why = checks --config arg first, falls back to git root discovery
  */
-const resolveExplicitConfigPath = async (input: {
-  args: string[];
-  cwd: string;
-}): Promise<string | null> => {
+const resolveExplicitConfigPath = (
+  input: { args: string[] },
+  context: ContextCli,
+): string | null => {
   // prefer --config <path> if provided
   const configPathFromArgs = extractConfigPathFromArgs({ args: input.args });
   if (configPathFromArgs) {
-    const resolved = path.resolve(input.cwd, configPathFromArgs);
+    const resolved = path.resolve(context.cwd, configPathFromArgs);
     if (fs.existsSync(resolved)) return resolved;
     return null;
   }
 
   // fall back to git root discovery
-  const gitRoot = await getGitRepoRoot({ from: input.cwd });
-  const configPathFromGitRoot = path.join(gitRoot, 'rhachet.use.ts');
+  const configPathFromGitRoot = path.join(context.gitroot, 'rhachet.use.ts');
   if (fs.existsSync(configPathFromGitRoot)) return configPathFromGitRoot;
 
   return null;
@@ -84,11 +84,14 @@ export const genContextConfigOfUsage = async (input: {
   args: string[];
   cwd: string;
 }): Promise<ContextConfigOfUsage> => {
+  // create context with gitroot resolved
+  const context = await genContextCli({ cwd: input.cwd });
+
   // resolve explicit config path once
-  const explicitConfigPath = await resolveExplicitConfigPath({
-    args: input.args,
-    cwd: input.cwd,
-  });
+  const explicitConfigPath = resolveExplicitConfigPath(
+    { args: input.args },
+    context,
+  );
 
   // create memoized getters
   const getRegistriesExplicit = memoize(
@@ -112,7 +115,7 @@ export const genContextConfigOfUsage = async (input: {
       manifests: HasPackageRoot<RoleRegistryManifest>[];
       errors: { packageName: string; error: Error }[];
     }> => {
-      return getRoleRegistriesByConfigImplicit({ from: input.cwd });
+      return getRoleRegistriesByConfigImplicit(context);
     },
   );
 
