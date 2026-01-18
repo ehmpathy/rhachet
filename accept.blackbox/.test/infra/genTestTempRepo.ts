@@ -30,7 +30,8 @@ export type TestRepoFixture =
   | 'with-roles-package'
   | 'without-roles-packages'
   | 'with-claude-config'
-  | 'with-role-hooks';
+  | 'with-role-hooks'
+  | 'with-file-dot-dep';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

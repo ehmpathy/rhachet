@@ -14,6 +14,9 @@ jest.mock('./resolveRolesToPackages', () => ({
 jest.mock('./execNpmInstall', () => ({
   execNpmInstall: jest.fn(),
 }));
+jest.mock('./getFileDotDependencies', () => ({
+  getFileDotDependencies: jest.fn(),
+}));
 jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
   initRolesFromPackages: jest.fn(),
 }));
@@ -22,6 +25,7 @@ import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFrom
 
 import { discoverLinkedRoles } from './discoverLinkedRoles';
 import { execNpmInstall } from './execNpmInstall';
+import { getFileDotDependencies } from './getFileDotDependencies';
 import { resolveRolesToPackages } from './resolveRolesToPackages';
 
 const mockDiscoverLinkedRoles = discoverLinkedRoles as jest.MockedFunction<
@@ -32,6 +36,8 @@ const mockResolveRolesToPackages =
 const mockExecNpmInstall = execNpmInstall as jest.MockedFunction<
   typeof execNpmInstall
 >;
+const mockGetFileDotDependencies =
+  getFileDotDependencies as jest.MockedFunction<typeof getFileDotDependencies>;
 const mockInitRolesFromPackages = initRolesFromPackages as jest.MockedFunction<
   typeof initRolesFromPackages
 >;
@@ -45,6 +51,7 @@ describe('execUpgrade', () => {
       { repo: 'ehmpathy', role: 'mechanic' },
     ]);
     mockResolveRolesToPackages.mockResolvedValue(['rhachet-roles-ehmpathy']);
+    mockGetFileDotDependencies.mockReturnValue(new Set());
     mockInitRolesFromPackages.mockResolvedValue({
       rolesLinked: [],
       rolesInitialized: [],
@@ -192,6 +199,77 @@ describe('execUpgrade', () => {
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
         expect(mockInitRolesFromPackages).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  given('package has file:. dependency for a role package', () => {
+    beforeEach(() => {
+      mockGetFileDotDependencies.mockReturnValue(
+        new Set(['rhachet-roles-ehmpathy']),
+      );
+    });
+
+    when('execUpgrade is called with --roles *', () => {
+      then('excludes file:. packages from install', async () => {
+        await execUpgrade({ roleSpecs: ['*'] }, context);
+
+        // should NOT include rhachet-roles-ehmpathy
+        expect(mockExecNpmInstall).not.toHaveBeenCalled();
+      });
+
+      then('still re-initializes excluded roles', async () => {
+        await execUpgrade({ roleSpecs: ['*'] }, context);
+
+        // should still link/init the role
+        expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
+          { specifiers: ['ehmpathy/mechanic'] },
+          context,
+        );
+      });
+    });
+  });
+
+  given('rhachet itself has file:. dependency', () => {
+    beforeEach(() => {
+      mockGetFileDotDependencies.mockReturnValue(new Set(['rhachet']));
+      mockResolveRolesToPackages.mockResolvedValue([]);
+    });
+
+    when('execUpgrade is called with --self', () => {
+      then('excludes rhachet from install', async () => {
+        await execUpgrade({ self: true }, context);
+
+        // should NOT call execNpmInstall at all
+        expect(mockExecNpmInstall).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  given('mixed file:. and regular dependencies', () => {
+    beforeEach(() => {
+      mockGetFileDotDependencies.mockReturnValue(
+        new Set(['rhachet-roles-ehmpathy']),
+      );
+      mockDiscoverLinkedRoles.mockReturnValue([
+        { repo: 'ehmpathy', role: 'mechanic' },
+        { repo: 'bhuild', role: 'behaver' },
+      ]);
+      mockResolveRolesToPackages.mockResolvedValue([
+        'rhachet-roles-ehmpathy',
+        'rhachet-roles-bhuild',
+      ]);
+    });
+
+    when('execUpgrade is called with --roles *', () => {
+      then('installs only non-file:. packages', async () => {
+        await execUpgrade({ roleSpecs: ['*'] }, context);
+
+        // should only include rhachet-roles-bhuild
+        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+          { packages: ['rhachet-roles-bhuild'] },
+          context,
+        );
       });
     });
   });
