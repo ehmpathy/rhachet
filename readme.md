@@ -495,14 +495,34 @@ ideally, eject as much work as possible into 🪨 solid skills. use 🔩 rigid w
 
 ---
 
-# vision
+# sophi
 
-build or use digital actors, who work even from your laptop, and work for anyone you choose.
+### vision
 
-distill your skills and roles iteratively, with rhachet. use them, compose them, share them, open source them. the choice is yours.
+digital actors that run from anywhere, for anyone.
 
-- with open source top to bottom, we can raise the floor and prosper collectively.
-- with observable routes of thought, we can not only debug, but align.
-- with composable thought routes, we can build incremental complexity and automate test coverage just like any code.
+distill portable, durable roles with rhachet. compose them, share them, open source them.
 
-here's to a solarpunk future of abundance 🌞🌴
+- open source top to bottom — to raise the floor and spread prosperity.
+- observable thought routes — to not only debug, but align.
+- composable thought routes — for iterative improvement and testable guarantees.
+
+here's to a solarpunk future of distributed abundance 🌞🌴
+
+### why "rhachet"?
+
+the name reflects a dual ratchet metaphor:
+
+1. to **ratchet iterative improvement** — slipless iterative improvement of capabilities via roles, briefs, and skills. each iteration builds on the last, externalized and durable.
+
+2. to **ratchet distributed abundance** — rhachet unlocks the distribution of "brains that build brains". when anyone can enroll any brain to execute any skill, access to postlabor abundance spreads irreversibly.
+
+for the philosophy behind distributed abundance, see the [postlabor briefs](.agent/repo=.this/role=ecologist/briefs/postlabor/).
+
+### how "ratchet"?
+
+1. **externalization** — knowledge systematically externalized in skills and briefs, outside of the internalized knowledge of any single brain
+2. **enrollment** — any brain durably enrolled to execute any skill via roles; portable across brains, composable across roles
+3. **determinism** — thought routes iteratively harden from fluid → rigid → solid; reliability and efficiency compound
+
+each skill published is a click. each brief shared is a click. each thought route hardened is a click. the ratchet only moves forward.
