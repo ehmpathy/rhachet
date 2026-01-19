@@ -4,6 +4,7 @@ import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFrom
 
 import { discoverLinkedRoles, type RoleLinkRef } from './discoverLinkedRoles';
 import { execNpmInstall } from './execNpmInstall';
+import { getFileDotDependencies } from './getFileDotDependencies';
 import { resolveRolesToPackages } from './resolveRolesToPackages';
 
 /**
@@ -57,16 +58,21 @@ const expandRoleSpecs = (
 const buildInstallList = (input: {
   self: boolean;
   packages: string[];
+  exclude: Set<string>;
 }): string[] => {
   const list: string[] = [];
 
-  // add rhachet if self upgrade requested
-  if (input.self) {
+  // add rhachet if self upgrade requested (and not excluded)
+  if (input.self && !input.exclude.has('rhachet')) {
     list.push('rhachet');
   }
 
-  // add role packages
-  list.push(...input.packages);
+  // add role packages (exclude file:. deps)
+  for (const pkg of input.packages) {
+    if (!input.exclude.has(pkg)) {
+      list.push(pkg);
+    }
+  }
 
   return list;
 };
@@ -95,8 +101,25 @@ export const execUpgrade = async (
     context,
   );
 
+  // detect file:. dependencies to exclude
+  const fileDotDeps = getFileDotDependencies({ cwd: context.cwd });
+
+  // log skipped packages
+  if (fileDotDeps.size > 0) {
+    const skipped = [...fileDotDeps].filter(
+      (pkg) => packages.includes(pkg) || (upgradeSelf && pkg === 'rhachet'),
+    );
+    if (skipped.length > 0) {
+      console.log(`🫧 skip (file:. deps): ${skipped.join(', ')}`);
+    }
+  }
+
   // build npm install command
-  const installList = buildInstallList({ self: upgradeSelf, packages });
+  const installList = buildInstallList({
+    self: upgradeSelf,
+    packages,
+    exclude: fileDotDeps,
+  });
 
   // execute npm install (fail fast)
   if (installList.length > 0) {
