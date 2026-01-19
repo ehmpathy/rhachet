@@ -571,6 +571,81 @@ describe('invokeRolesLink (integration)', () => {
       });
     });
 
+    when('source files within gitroot lack execute bit', () => {
+      // create a role with skills that have no execute bit initially
+      const noExecSkillsDir = resolve(testDir, 'noexec-skills');
+
+      beforeAll(() => {
+        mkdirSync(noExecSkillsDir, { recursive: true });
+
+        // create writable skill file WITHOUT execute bit
+        writeFileSync(
+          resolve(noExecSkillsDir, 'writable-skill.sh'),
+          '#!/bin/bash\necho "writable"',
+        );
+        chmodSync(resolve(noExecSkillsDir, 'writable-skill.sh'), 0o644); // rw-r--r--
+
+        // create readonly skill file WITHOUT execute bit
+        writeFileSync(
+          resolve(noExecSkillsDir, 'readonly-skill.sh'),
+          '#!/bin/bash\necho "readonly"',
+        );
+        chmodSync(resolve(noExecSkillsDir, 'readonly-skill.sh'), 0o444); // r--r--r--
+      });
+
+      const noExecRole = new Role({
+        slug: 'noexec',
+        name: 'No Exec Role',
+        purpose: 'Test role with non-executable skills',
+        readme: { uri: '.test/readme.md' },
+        traits: [],
+        skills: {
+          dirs: [{ uri: 'noexec-skills' }],
+          refs: [],
+        },
+        briefs: { dirs: [] },
+      });
+
+      const noExecRegistry = new RoleRegistry({
+        slug: 'noexec-test',
+        readme: { uri: '.test/readme.md' },
+        roles: [noExecRole],
+      });
+
+      const noExecCommand = new Command('roles');
+      const noExecContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        registries: [noExecRegistry],
+      });
+      invokeRolesLink({ command: noExecCommand }, noExecContext);
+
+      then(
+        'files should gain executable bit (write permissions preserved)',
+        async () => {
+          const writablePath = resolve(noExecSkillsDir, 'writable-skill.sh');
+          const readonlyPath = resolve(noExecSkillsDir, 'readonly-skill.sh');
+
+          // verify files do NOT have execute bit before link
+          // eslint-disable-next-line no-bitwise
+          expect(statSync(writablePath).mode & 0o777).toBe(0o644); // rw-r--r--
+          // eslint-disable-next-line no-bitwise
+          expect(statSync(readonlyPath).mode & 0o777).toBe(0o444); // r--r--r--
+
+          // link the role
+          await noExecCommand.parseAsync(
+            ['link', '--repo', 'noexec-test', '--role', 'noexec'],
+            { from: 'user' },
+          );
+
+          // verify files now HAVE execute bit after link (write permissions preserved)
+          // eslint-disable-next-line no-bitwise
+          expect(statSync(writablePath).mode & 0o777).toBe(0o755); // rwxr-xr-x
+          // eslint-disable-next-line no-bitwise
+          expect(statSync(readonlyPath).mode & 0o777).toBe(0o555); // r-xr-xr-x
+        },
+      );
+    });
+
     when('source directories are outside gitroot (external package)', () => {
       // create a role with sources in /tmp (outside gitroot)
       const tmpSourceDir = resolve('/tmp', `rhachet-test-${Date.now()}`);

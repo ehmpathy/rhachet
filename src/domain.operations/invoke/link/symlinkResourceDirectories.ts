@@ -40,7 +40,7 @@ const countFilesInDirectory = (input: { dirPath: string }): number => {
 
 /**
  * .what = recursively sets all files and directories to readonly and executable
- * .why = prevents agents from accidentally or maliciously overwriting linked resources from node_modules, while allowing skills to be executed
+ * .why = prevents agents from accidental or malicious overwrites of linked resources from node_modules, while skills remain executable
  */
 const setDirectoryReadonlyExecutable = (input: { dirPath: string }): void => {
   const { dirPath } = input;
@@ -64,8 +64,42 @@ const setDirectoryReadonlyExecutable = (input: { dirPath: string }): void => {
     }
   }
 
-  // set the root directory itself to readonly after processing contents
+  // set the root directory itself to readonly after contents processed
   chmodSync(dirPath, 0o555);
+};
+
+/**
+ * .what = recursively adds executable bit to all files (other permissions preserved)
+ * .why = enables skills to be executed for sources within gitroot, without change to write permissions
+ */
+const addExecutableBit = (input: { dirPath: string }): void => {
+  const { dirPath } = input;
+  const entries = readdirSync(dirPath);
+
+  for (const entry of entries) {
+    const fullPath = resolve(dirPath, entry);
+    const lstats = lstatSync(fullPath);
+
+    // skip nested symlinks to avoid infinite loops
+    if (lstats.isSymbolicLink()) continue;
+
+    if (lstats.isDirectory()) {
+      // recurse into subdirectories
+      addExecutableBit({ dirPath: fullPath });
+      // add execute bit to directory (need execute to traverse)
+      // eslint-disable-next-line no-bitwise
+      chmodSync(fullPath, (lstats.mode & 0o777) | 0o111);
+    } else if (lstats.isFile()) {
+      // add execute bit to file (for skills)
+      // eslint-disable-next-line no-bitwise
+      chmodSync(fullPath, (lstats.mode & 0o777) | 0o111);
+    }
+  }
+
+  // add execute bit to root directory after contents processed
+  const dirStats = lstatSync(dirPath);
+  // eslint-disable-next-line no-bitwise
+  chmodSync(dirPath, (dirStats.mode & 0o777) | 0o111);
 };
 
 /**
@@ -116,10 +150,15 @@ const linkSourceToTarget = (
   const relativeSource = relative(targetParent, sourcePath);
   symlinkSync(relativeSource, targetPath, 'dir');
 
-  // skip readonly for sources within gitroot (e.g., self-referenced via file:.)
+  // set permissions based on source location
   const sourceIsWithinRepo = isPathWithinGitroot({ path: sourcePath }, context);
   if (!sourceIsWithinRepo) {
+    // readonly + executable for external sources (node_modules)
     setDirectoryReadonlyExecutable({ dirPath: sourcePath });
+  }
+  if (sourceIsWithinRepo) {
+    // add executable bit for internal sources (keep skills executable)
+    addExecutableBit({ dirPath: sourcePath });
   }
 
   const fileCount = countFilesInDirectory({ dirPath: sourcePath });
