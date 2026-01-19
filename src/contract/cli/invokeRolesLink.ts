@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 
+import { genContextCli } from '@src/domain.objects/ContextCli';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { getRoleBySpecifier } from '@src/domain.operations/invoke/getRoleBySpecifier';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
@@ -31,8 +32,11 @@ export const invokeRolesLink = (
         context,
       );
 
+      // construct cli context for link operations
+      const contextCli = await genContextCli({ cwd: process.cwd() });
+
       console.log(``);
-      execRoleLink({ role: resolved.role, repo: resolved.repo });
+      execRoleLink({ role: resolved.role, repo: resolved.repo }, contextCli);
       console.log(``);
     });
 };
