@@ -329,5 +329,158 @@ exports.getRoleRegistry = () => registry;
         expect(packageJson.files).toBeUndefined();
       });
     });
+
+    when('[t7] package.json has exports without ./package.json', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist', 'rhachet.repo.yml'],
+              exports: {
+                '.': './dist/index.js',
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('adds ./package.json to exports', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.exports).toEqual({
+          '.': './dist/index.js',
+          './package.json': './package.json',
+        });
+      });
+
+      then('logs exports update', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logs).toContain('package.json:.exports += "./package.json"');
+      });
+    });
+
+    when('[t8] package.json has exports with ./package.json already', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist', 'rhachet.repo.yml'],
+              exports: {
+                '.': './dist/index.js',
+                './package.json': './package.json',
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('does not duplicate ./package.json in exports', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.exports).toEqual({
+          '.': './dist/index.js',
+          './package.json': './package.json',
+        });
+      });
+
+      then('does not log exports update', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logs).not.toContain('package.json:.exports');
+      });
+    });
+
+    when('[t9] package.json has no exports field', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist', 'rhachet.repo.yml'],
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then('does not add exports field', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const packageJson = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(packageJson.exports).toBeUndefined();
+      });
+    });
+
+    when('[t10] package.json needs both files and exports updates', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+              files: ['dist'],
+              exports: {
+                '.': './dist/index.js',
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      then(
+        'adds rhachet.repo.yml to files and ./package.json to exports',
+        async () => {
+          await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+          const packageJson = JSON.parse(
+            readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+          );
+          expect(packageJson.files).toEqual(['dist', 'rhachet.repo.yml']);
+          expect(packageJson.exports).toEqual({
+            '.': './dist/index.js',
+            './package.json': './package.json',
+          });
+        },
+      );
+
+      then('logs both updates', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logs).toContain('package.json:.files += "rhachet.repo.yml"');
+        expect(logs).toContain('package.json:.exports += "./package.json"');
+      });
+    });
   });
 });

@@ -93,6 +93,9 @@ export const invokeRepoIntrospect = ({
         writeFileSync(outputPath, yaml, 'utf8');
         console.log(`   + ${options.output}`);
 
+        // track package.json changes to write once at end
+        let packageJsonChanged = false;
+
         // findsert rhachet.repo.yml into package.json files array
         const filesArray: string[] = packageJson.files ?? [];
         const manifestFilename = 'rhachet.repo.yml';
@@ -100,12 +103,29 @@ export const invokeRepoIntrospect = ({
           filesArray.includes(manifestFilename);
         if (!filesArrayContainsManifest) {
           packageJson.files = [...filesArray, manifestFilename];
+          packageJsonChanged = true;
+          console.log(`   + package.json:.files += "${manifestFilename}"`);
+        }
+
+        // findsert ./package.json into exports (required for esm compatibility)
+        const exportsField: Record<string, string> | undefined =
+          packageJson.exports;
+        if (exportsField && !exportsField['./package.json']) {
+          packageJson.exports = {
+            ...exportsField,
+            './package.json': './package.json',
+          };
+          packageJsonChanged = true;
+          console.log(`   + package.json:.exports += "./package.json"`);
+        }
+
+        // write package.json if changed
+        if (packageJsonChanged) {
           writeFileSync(
             packageJsonPath,
             JSON.stringify(packageJson, null, 2) + '\n',
             'utf8',
           );
-          console.log(`   + package.json:.files += "${manifestFilename}"`);
         }
 
         console.log(``);
