@@ -1,3 +1,5 @@
+import type { ContextCli } from '@src/domain.objects/ContextCli';
+
 import {
   chmodSync,
   existsSync,
@@ -11,6 +13,7 @@ import {
 } from 'node:fs';
 import { basename, relative, resolve } from 'node:path';
 import type { LinkResult } from './findsertFile';
+import { isPathWithinGitroot } from './isPathWithinGitroot';
 
 /**
  * .what = recursively counts all leaf files in a directory
@@ -94,10 +97,13 @@ const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
  * .what = create a symlink from targetPath to sourcePath, clear existing
  * .why = shared logic for both single-dir and array-dir modes
  */
-const linkSourceToTarget = (input: {
-  sourcePath: string;
-  targetPath: string;
-}): { fileCount: number; result: LinkResult } => {
+const linkSourceToTarget = (
+  input: {
+    sourcePath: string;
+    targetPath: string;
+  },
+  context: ContextCli,
+): { fileCount: number; result: LinkResult } => {
   const { sourcePath, targetPath } = input;
   const relativeTargetPath = relative(process.cwd(), targetPath);
   const action = clearPath({ targetPath });
@@ -109,7 +115,13 @@ const linkSourceToTarget = (input: {
   // create relative symlink
   const relativeSource = relative(targetParent, sourcePath);
   symlinkSync(relativeSource, targetPath, 'dir');
-  setDirectoryReadonlyExecutable({ dirPath: sourcePath });
+
+  // skip readonly for sources within gitroot (e.g., self-referenced via file:.)
+  const sourceIsWithinRepo = isPathWithinGitroot({ path: sourcePath }, context);
+  if (!sourceIsWithinRepo) {
+    setDirectoryReadonlyExecutable({ dirPath: sourcePath });
+  }
+
   const fileCount = countFilesInDirectory({ dirPath: sourcePath });
 
   return {
@@ -134,11 +146,14 @@ export type SymlinkResourceResult = {
  *   - array { uri: string }[]: removes deprecated symlinks, then symlinks each dir within target
  *   - returns count of leaf files and link results
  */
-export const symlinkResourceDirectories = (options: {
-  sourceDirs: { uri: string } | Array<{ uri: string }>;
-  targetDir: string;
-  resourceName: string; // e.g., 'briefs', 'skills'
-}): SymlinkResourceResult => {
+export const symlinkResourceDirectories = (
+  options: {
+    sourceDirs: { uri: string } | Array<{ uri: string }>;
+    targetDir: string;
+    resourceName: string; // e.g., 'briefs', 'skills'
+  },
+  context: ContextCli,
+): SymlinkResourceResult => {
   const { sourceDirs, targetDir } = options;
   const results: LinkResult[] = [];
 
@@ -146,10 +161,13 @@ export const symlinkResourceDirectories = (options: {
   if (!Array.isArray(sourceDirs)) {
     const sourcePath = resolve(process.cwd(), sourceDirs.uri);
     if (!existsSync(sourcePath)) return { fileCount: 0, results: [] };
-    const { fileCount, result } = linkSourceToTarget({
-      sourcePath,
-      targetPath: targetDir,
-    });
+    const { fileCount, result } = linkSourceToTarget(
+      {
+        sourcePath,
+        targetPath: targetDir,
+      },
+      context,
+    );
     return { fileCount, results: [result] };
   }
 
@@ -174,10 +192,13 @@ export const symlinkResourceDirectories = (options: {
     const sourcePath = resolve(process.cwd(), sourceDir.uri);
     if (!existsSync(sourcePath)) continue;
     const targetPath = resolve(targetDir, basename(sourcePath));
-    const { fileCount, result } = linkSourceToTarget({
-      sourcePath,
-      targetPath,
-    });
+    const { fileCount, result } = linkSourceToTarget(
+      {
+        sourcePath,
+        targetPath,
+      },
+      context,
+    );
     totalFileCount += fileCount;
     results.push(result);
   }

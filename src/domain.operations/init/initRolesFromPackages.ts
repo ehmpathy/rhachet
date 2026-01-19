@@ -73,7 +73,7 @@ export const initRolesFromPackages = async (
   for (const resolved of roles) {
     // link phase
     try {
-      execRoleLink({ role: resolved.role, repo: resolved.repo });
+      execRoleLink({ role: resolved.role, repo: resolved.repo }, context);
       result.rolesLinked.push({
         specifier: resolved.specifier,
         repo: resolved.repo.slug,

@@ -1,3 +1,4 @@
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 
@@ -43,10 +44,13 @@ const formatLinkResult = (result: LinkResult): string => {
  * .note = creates .agent/repo=$repo/role=$role structure with symlinks
  * .note = prints tree with two branches: links and stats
  */
-export const execRoleLink = (input: {
-  role: RoleManifest;
-  repo: RoleRegistryManifest;
-}): { briefsCount: number; skillsCount: number; initsCount: number } => {
+export const execRoleLink = (
+  input: {
+    role: RoleManifest;
+    repo: RoleRegistryManifest;
+  },
+  context: ContextCli,
+): { briefsCount: number; skillsCount: number; initsCount: number } => {
   // log which role is being linked
   console.log(`📚 link role repo=${input.repo.slug}/role=${input.role.slug}`);
 
@@ -108,28 +112,37 @@ export const execRoleLink = (input: {
   }
 
   // link briefs
-  const briefs = symlinkResourceDirectories({
-    sourceDirs: input.role.briefs.dirs,
-    targetDir: resolve(repoRoleDir, 'briefs'),
-    resourceName: 'briefs',
-  });
+  const briefs = symlinkResourceDirectories(
+    {
+      sourceDirs: input.role.briefs.dirs,
+      targetDir: resolve(repoRoleDir, 'briefs'),
+      resourceName: 'briefs',
+    },
+    context,
+  );
   linkResults.push(...briefs.results);
 
   // link skills
-  const skills = symlinkResourceDirectories({
-    sourceDirs: input.role.skills.dirs,
-    targetDir: resolve(repoRoleDir, 'skills'),
-    resourceName: 'skills',
-  });
+  const skills = symlinkResourceDirectories(
+    {
+      sourceDirs: input.role.skills.dirs,
+      targetDir: resolve(repoRoleDir, 'skills'),
+      resourceName: 'skills',
+    },
+    context,
+  );
   linkResults.push(...skills.results);
 
   // link inits if configured
   const inits = input.role.inits?.dirs
-    ? symlinkResourceDirectories({
-        sourceDirs: input.role.inits.dirs,
-        targetDir: resolve(repoRoleDir, 'inits'),
-        resourceName: 'inits',
-      })
+    ? symlinkResourceDirectories(
+        {
+          sourceDirs: input.role.inits.dirs,
+          targetDir: resolve(repoRoleDir, 'inits'),
+          resourceName: 'inits',
+        },
+        context,
+      )
     : { fileCount: 0, results: [] };
   linkResults.push(...inits.results);
 

@@ -74,15 +74,17 @@ describe('invokeRolesLink (integration)', () => {
       const skillsDir = resolve(testDir, 'test-skills');
       mkdirSync(skillsDir, { recursive: true });
 
-      // Create mock skill files
+      // Create mock skill files (with execute bit, as git would preserve)
       writeFileSync(
         resolve(skillsDir, 'skill1.sh'),
         '#!/bin/bash\n# Skill 1\necho "test skill 1"',
       );
+      chmodSync(resolve(skillsDir, 'skill1.sh'), 0o755);
       writeFileSync(
         resolve(skillsDir, 'skill2.sh'),
         '#!/bin/bash\n# Skill 2\necho "test skill 2"',
       );
+      chmodSync(resolve(skillsDir, 'skill2.sh'), 0o755);
 
       // Create mock inits directory
       const initsDir = resolve(testDir, 'test-inits');
@@ -263,7 +265,8 @@ describe('invokeRolesLink (integration)', () => {
             ),
           ).toBe(true);
 
-          // Check that linked files are set to readonly (0o444)
+          // sources within gitroot remain writable (not made readonly)
+          // this is intentional: self-referenced repos (file:.) keep original permissions
           const brief1Path = resolve(
             testDir,
             '.agent/repo=test/role=mechanic/briefs/test-briefs/brief1.md',
@@ -271,7 +274,8 @@ describe('invokeRolesLink (integration)', () => {
           const brief1Stats = statSync(brief1Path);
           // eslint-disable-next-line no-bitwise
           const brief1Mode = brief1Stats.mode & 0o777;
-          expect(brief1Mode).toBe(0o555);
+          // files within gitroot stay writable (0o644 or 0o664 per umask)
+          expect(brief1Mode & 0o200).toBe(0o200); // owner write bit set
 
           const skill1Path = resolve(
             testDir,
@@ -280,14 +284,15 @@ describe('invokeRolesLink (integration)', () => {
           const skill1Stats = statSync(skill1Path);
           // eslint-disable-next-line no-bitwise
           const skill1Mode = skill1Stats.mode & 0o777;
-          expect(skill1Mode).toBe(0o555);
+          expect(skill1Mode & 0o200).toBe(0o200); // owner write bit set
+          expect(skill1Mode & 0o111).toBe(0o111); // execute bits set (rwx r-x r-x)
 
-          // Check that linked directories are set to readonly (0o555)
+          // directories within gitroot remain writable
           const briefsDirPath = resolve(testDir, 'test-briefs');
           const briefsDirStats = statSync(briefsDirPath);
           // eslint-disable-next-line no-bitwise
           const briefsDirMode = briefsDirStats.mode & 0o777;
-          expect(briefsDirMode).toBe(0o555);
+          expect(briefsDirMode & 0o200).toBe(0o200); // owner write bit set
 
           // Check that .gitignore was created for external repo
           const gitignorePath = resolve(testDir, '.agent/repo=test/.gitignore');
@@ -563,6 +568,92 @@ describe('invokeRolesLink (integration)', () => {
         expect(error?.message).toContain(
           'role "nonexistent" not found in manifest "test"',
         );
+      });
+    });
+
+    when('source directories are outside gitroot (external package)', () => {
+      // create a role with sources in /tmp (outside gitroot)
+      const tmpSourceDir = resolve('/tmp', `rhachet-test-${Date.now()}`);
+      const externalBriefsDir = resolve(tmpSourceDir, 'external-briefs');
+      const externalSkillsDir = resolve(tmpSourceDir, 'external-skills');
+      const externalReadmePath = resolve(tmpSourceDir, 'readme.md');
+
+      beforeAll(() => {
+        // create external source directories
+        mkdirSync(externalBriefsDir, { recursive: true });
+        mkdirSync(externalSkillsDir, { recursive: true });
+
+        // create readme file
+        writeFileSync(externalReadmePath, '# External Test');
+
+        // create source files
+        writeFileSync(
+          resolve(externalBriefsDir, 'external-brief.md'),
+          '# External Brief',
+        );
+        writeFileSync(
+          resolve(externalSkillsDir, 'external-skill.sh'),
+          '#!/bin/bash\necho "external"',
+        );
+      });
+
+      afterAll(() => {
+        // cleanup: make writable then remove
+        makeDirectoryWritable(tmpSourceDir);
+        rmSync(tmpSourceDir, { recursive: true, force: true });
+      });
+
+      const externalRole = new Role({
+        slug: 'external',
+        name: 'External Role',
+        purpose: 'Test role with external sources',
+        readme: { uri: externalReadmePath },
+        traits: [],
+        skills: {
+          dirs: [{ uri: externalSkillsDir }],
+          refs: [],
+        },
+        briefs: { dirs: [{ uri: externalBriefsDir }] },
+      });
+
+      const externalRegistry = new RoleRegistry({
+        slug: 'external-test',
+        readme: { uri: externalReadmePath },
+        roles: [externalRole],
+      });
+
+      const externalCommand = new Command('roles');
+      const externalContext = genMockContextConfigOfUsage({
+        isExplicit: true,
+        registries: [externalRegistry],
+      });
+      invokeRolesLink({ command: externalCommand }, externalContext);
+
+      then('source files should be made readonly (0o555)', async () => {
+        await externalCommand.parseAsync(
+          ['link', '--repo', 'external-test', '--role', 'external'],
+          { from: 'user' },
+        );
+
+        // verify external brief file is readonly
+        const briefPath = resolve(externalBriefsDir, 'external-brief.md');
+        const briefStats = statSync(briefPath);
+        // eslint-disable-next-line no-bitwise
+        const briefMode = briefStats.mode & 0o777;
+        expect(briefMode).toBe(0o555);
+
+        // verify external skill file is readonly
+        const skillPath = resolve(externalSkillsDir, 'external-skill.sh');
+        const skillStats = statSync(skillPath);
+        // eslint-disable-next-line no-bitwise
+        const skillMode = skillStats.mode & 0o777;
+        expect(skillMode).toBe(0o555);
+
+        // verify external directories are readonly
+        const briefsDirStats = statSync(externalBriefsDir);
+        // eslint-disable-next-line no-bitwise
+        const briefsDirMode = briefsDirStats.mode & 0o777;
+        expect(briefsDirMode).toBe(0o555);
       });
     });
   });
