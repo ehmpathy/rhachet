@@ -362,37 +362,80 @@ runs:
         MAIN_SHA=$(gh api "repos/${REPO}/git/ref/heads/main" --jq '.object.sha')
 
         if [ -n "$FOUND_PR" ] && [ "$FOUND_PR" != "null" ]; then
-          PR_NUMBER=$(echo "$FOUND_PR" | jq -r '.number')
-          BRANCH=$(echo "$FOUND_PR" | jq -r '.headRefName')
-          echo "   ├── found-pr: #$PR_NUMBER ($BRANCH)"
+          FOUND_PR_NUMBER=$(echo "$FOUND_PR" | jq -r '.number')
+          FOUND_PR_BRANCH=$(echo "$FOUND_PR" | jq -r '.headRefName')
+          IDEAL_PR_BRANCH="release/${NEXT_VERSION}"
+          echo "   ├── found-pr: #$FOUND_PR_NUMBER ($FOUND_PR_BRANCH)"
 
-          # upsert rebased commit
-          echo "   ├── upserting rebased commit..."
-          COMMIT_SHA=$(upsert_rebased_commit "$BRANCH" "$MAIN_SHA" "chore(release): ${NEXT_VERSION} 🎉")
-          echo "   ├── commit: ${COMMIT_SHA:0:7}"
+          # check if branch name matches expected version
+          if [ "$FOUND_PR_BRANCH" != "$IDEAL_PR_BRANCH" ]; then
+            echo "   ├── branch mismatch: $FOUND_PR_BRANCH != $IDEAL_PR_BRANCH"
+            echo "   ├── recreate pr with correct branch..."
 
-          # update pr metadata
-          echo "   ├── updating pr metadata..."
-          gh pr edit "$PR_NUMBER" \
-            --title "chore(release): ${NEXT_VERSION} 🎉" \
-            --body "$PR_BODY"
+            # close found pr (with comment explaining why)
+            gh pr comment "$FOUND_PR_NUMBER" --body "🫧 closed: version bumped to ${NEXT_VERSION}, recreated pr with branch \`${IDEAL_PR_BRANCH}\`"
+            gh pr close "$FOUND_PR_NUMBER"
+            echo "   ├── closed: #$FOUND_PR_NUMBER"
 
-          echo "   ├── ✨ pr updated: #$PR_NUMBER"
-          echo "   └── 🌊 action: updated"
-          echo "action=updated" >> $GITHUB_OUTPUT
-          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            # delete found branch (fail fast unless already gone)
+            DELETE_OUTPUT=$(gh api "repos/${REPO}/git/refs/heads/${FOUND_PR_BRANCH}" -X DELETE 2>&1) || {
+              if echo "$DELETE_OUTPUT" | grep -q "Reference does not exist"; then
+                echo "   ├── branch already deleted: $FOUND_PR_BRANCH"
+              else
+                echo "   ├── ⛈️ failed to delete branch: $FOUND_PR_BRANCH"
+                echo "$DELETE_OUTPUT"
+                exit 1
+              fi
+            }
+            echo "   ├── deleted branch: $FOUND_PR_BRANCH"
+
+            # create new branch with correct name
+            echo "   ├── create branch: $IDEAL_PR_BRANCH"
+            COMMIT_SHA=$(upsert_rebased_commit "$IDEAL_PR_BRANCH" "$MAIN_SHA" "chore(release): ${NEXT_VERSION} 🎉")
+            echo "   ├── commit: ${COMMIT_SHA:0:7}"
+
+            # create new pr
+            echo "   ├── create pr..."
+            PR_URL=$(gh pr create \
+              --title "chore(release): ${NEXT_VERSION} 🎉" \
+              --body "$PR_BODY" \
+              --base main \
+              --head "$IDEAL_PR_BRANCH")
+
+            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+            echo "   ├── ✨ pr recreated: #$PR_NUMBER (was #$FOUND_PR_NUMBER)"
+            echo "   └── 🌊 action: recreated"
+            echo "action=recreated" >> $GITHUB_OUTPUT
+            echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            # branch name matches, update in place
+            echo "   ├── upsert rebased commit..."
+            COMMIT_SHA=$(upsert_rebased_commit "$FOUND_PR_BRANCH" "$MAIN_SHA" "chore(release): ${NEXT_VERSION} 🎉")
+            echo "   ├── commit: ${COMMIT_SHA:0:7}"
+
+            # update pr metadata
+            echo "   ├── update pr metadata..."
+            gh pr edit "$FOUND_PR_NUMBER" \
+              --title "chore(release): ${NEXT_VERSION} 🎉" \
+              --body "$PR_BODY"
+
+            echo "   ├── ✨ pr updated: #$FOUND_PR_NUMBER"
+            echo "   └── 🌊 action: updated"
+            echo "action=updated" >> $GITHUB_OUTPUT
+            echo "pr-number=$FOUND_PR_NUMBER" >> $GITHUB_OUTPUT
+          fi
         else
           BRANCH="release/${NEXT_VERSION}"
           echo "   ├── found-pr: (none)"
           echo "   ├── branch: $BRANCH"
 
           # upsert rebased commit (creates branch if missing)
-          echo "   ├── upserting rebased commit..."
+          echo "   ├── upsert rebased commit..."
           COMMIT_SHA=$(upsert_rebased_commit "$BRANCH" "$MAIN_SHA" "chore(release): ${NEXT_VERSION} 🎉")
           echo "   ├── commit: ${COMMIT_SHA:0:7}"
 
           # create pr
-          echo "   ├── creating pr..."
+          echo "   ├── create pr..."
           PR_URL=$(gh pr create \
             --title "chore(release): ${NEXT_VERSION} 🎉" \
             --body "$PR_BODY" \
