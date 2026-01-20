@@ -24,8 +24,8 @@ importers:
         specifier: 0.31.9
         version: 0.31.9
       emoji-space-shim:
-        specifier: 0.1.2
-        version: 0.1.2
+        specifier: 0.1.3
+        version: 0.1.3
       fast-glob:
         specifier: 3.3.3
         version: 3.3.3
@@ -2692,6 +2692,10 @@ packages:
 
   emoji-space-shim@0.1.2:
     resolution: {integrity: sha512-xt2hbs/B5D6aKHn8w0iXwsi8+smE0aJxGp0sjNPlBU3+JDbhGbrugNZdfJ5om3AI+gMvupeFUnVOWG696kjQVA==}
+    engines: {node: '>=8.0.0'}
+
+  emoji-space-shim@0.1.3:
+    resolution: {integrity: sha512-kBblE25OLjkfjLzy5NzeaAmk+4YdB+jWmPZ72l+Wk+cZPpov6w2QI8viICxhNX8s3gNdhiLIfNfnk/NykCBsFw==}
     engines: {node: '>=8.0.0'}
 
   encodeurl@2.0.0:
@@ -8020,6 +8024,11 @@ snapshots:
       type-fns: 1.21.0
 
   emoji-space-shim@0.1.2:
+    dependencies:
+      domain-objects: 0.31.9
+      helpful-errors: 1.5.3
+
+  emoji-space-shim@0.1.3:
     dependencies:
       domain-objects: 0.31.9
       helpful-errors: 1.5.3
