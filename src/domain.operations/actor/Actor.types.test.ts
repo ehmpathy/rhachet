@@ -95,15 +95,15 @@ async () => {
     skill: { summarize: { content: 'hello', maxLength: 100 } },
   });
   // positive: result should have summary property with correct type
-  const _summary: string = result.summary;
+  const _summary: string = result.output.summary;
 
   // negative: wrong property on result
   // @ts-expect-error - 'content' property does not exist on output { summary: string }
-  const _content = result.content;
+  const _content = result.output.content;
 
   // negative: wrong type assignment
   // @ts-expect-error - summary is string, not number
-  const _wrongType: number = result.summary;
+  const _wrongType: number = result.output.summary;
 };
 
 // valid: analyze is a rigid skill
@@ -112,16 +112,16 @@ async () => {
     skill: { analyze: { data: [1, 2, 3] } },
   });
   // positive: result should have mean and median with correct types
-  const _mean: number = result.mean;
-  const _median: number = result.median;
+  const _mean: number = result.output.mean;
+  const _median: number = result.output.median;
 
   // negative: wrong property on result
   // @ts-expect-error - 'data' property does not exist on output { mean, median }
-  const _data = result.data;
+  const _data = result.output.data;
 
   // negative: wrong type assignment
   // @ts-expect-error - mean is number, not string
-  const _wrongType: string = result.mean;
+  const _wrongType: string = result.output.mean;
 };
 
 /**
@@ -171,11 +171,11 @@ async () => {
   });
 
   // positive: answer exists
-  const _answer: string = result.answer;
+  const _answer: string = result.output.answer;
 
   // negative: response does not exist
   // @ts-expect-error - response property does not exist on { answer: string }
-  const _response = result.response;
+  const _response = result.output.response;
 };
 
 /**
@@ -189,12 +189,12 @@ async () => {
   });
 
   // positive: custom properties exist
-  const _score: number = result.score;
-  const _label: string = result.label;
+  const _score: number = result.output.score;
+  const _label: string = result.output.label;
 
   // negative: answer does not exist on custom schema
   // @ts-expect-error - answer property does not exist on { score: number, label: string }
-  const _answer = result.answer;
+  const _answer = result.output.answer;
 };
 
 // verify type tests are used (prevents unused variable errors)

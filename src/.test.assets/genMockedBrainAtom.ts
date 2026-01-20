@@ -1,4 +1,8 @@
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainOutput } from '@src/domain.objects/BrainOutput';
+
+import { genMockedBrainOutputMetrics } from './genMockedBrainOutputMetrics';
+import { genSampleBrainSpec } from './genSampleBrainSpec';
 
 /**
  * .what = generates a mocked BrainAtom for tests
@@ -13,9 +17,13 @@ export const genMockedBrainAtom = (input?: {
   new BrainAtom({
     repo: input?.repo ?? '__mock_repo__',
     slug: input?.slug ?? '__mock_atom__',
-    description: input?.description ?? 'mocked brain atom for testing',
+    description: input?.description ?? 'mocked brain atom for tests',
+    spec: genSampleBrainSpec(),
     ask: async (askInput) =>
-      askInput.schema.output.parse({
-        content: input?.content ?? '__mock_response__',
+      new BrainOutput({
+        output: askInput.schema.output.parse({
+          content: input?.content ?? '__mock_response__',
+        }),
+        metrics: genMockedBrainOutputMetrics(),
       }),
   });

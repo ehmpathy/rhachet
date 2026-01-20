@@ -71,6 +71,7 @@
     "flattie": "1.1.1",
     "helpful-errors": "1.5.3",
     "iso-time": "1.11.1",
+    "iso-price": "1.0.3",
     "openai": "5.8.2",
     "rhachet-artifact": "1.0.3",
     "rhachet-artifact-git": "1.1.5",

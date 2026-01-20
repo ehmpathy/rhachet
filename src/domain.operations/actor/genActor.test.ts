@@ -1,7 +1,10 @@
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
@@ -67,16 +70,38 @@ describe('genActor', () => {
     repo: 'anthropic',
     slug: 'anthropic/claude',
     description: 'mock brain repl 1',
-    act: jest.fn().mockResolvedValue({ summary: 'test summary' }),
-    ask: jest.fn().mockResolvedValue({ response: 'test response' }),
+    spec: genSampleBrainSpec(),
+    act: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { summary: 'test summary' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
+    ask: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { response: 'test response' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
   });
 
   const mockBrainRepl2 = new BrainRepl({
     repo: 'openai',
     slug: 'openai/codex',
     description: 'mock brain repl 2',
-    act: jest.fn().mockResolvedValue({ summary: 'codex summary' }),
-    ask: jest.fn().mockResolvedValue({ response: 'codex response' }),
+    spec: genSampleBrainSpec(),
+    act: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { summary: 'codex summary' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
+    ask: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { response: 'codex response' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
   });
 
   // create mock BrainAtom instance (no .act() method)
@@ -84,7 +109,13 @@ describe('genActor', () => {
     repo: 'xai',
     slug: 'xai/grok',
     description: 'mock brain atom',
-    ask: jest.fn().mockResolvedValue({ response: 'atom response' }),
+    spec: genSampleBrainSpec(),
+    ask: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { response: 'atom response' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
   });
 
   given('[case1] genActor is called with empty brains array', () => {

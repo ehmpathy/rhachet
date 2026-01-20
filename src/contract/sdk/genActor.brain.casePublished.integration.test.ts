@@ -2,6 +2,7 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 
+import type { ActorBrain } from '@src/domain.objects/Actor';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 
@@ -72,7 +73,10 @@ echo '{"content":"drafted content about $1"}'
     });
 
     // create author actor with openai brain
-    const brain = genBrainRepl({ slug: 'openai/codex' });
+    // note: external brains from npm packages don't have spec yet; cast for compatibility
+    const brain = genBrainRepl({
+      slug: 'openai/codex',
+    }) as unknown as ActorBrain;
     const author = genActor({
       role: authorRole,
       brains: [brain],
@@ -134,7 +138,7 @@ echo '{"content":"drafted content about $1"}'
         });
 
         expect(result).toBeDefined();
-        expect(result.answer).toBeDefined();
+        expect(result.output.answer).toBeDefined();
       });
     });
   });

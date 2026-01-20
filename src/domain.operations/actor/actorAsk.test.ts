@@ -1,7 +1,10 @@
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
@@ -28,21 +31,38 @@ describe('actorAsk', () => {
   });
 
   // create mock BrainRepl
-  // note: brain.ask returns schema-validated output
+  // note: brain.ask returns BrainOutput with schema-validated output
   const mockBrainRepl = new BrainRepl({
     repo: 'anthropic',
     slug: 'anthropic/claude',
-    description: 'mock brain repl for testing',
-    act: jest.fn().mockResolvedValue({ summary: 'test summary' }),
-    ask: jest.fn().mockResolvedValue({ answer: 'hello from the repl' }),
+    description: 'mock brain repl for tests',
+    spec: genSampleBrainSpec(),
+    act: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { summary: 'test summary' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
+    ask: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { answer: 'hello from the repl' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
   });
 
   // create mock BrainAtom (no .act() method)
   const mockBrainAtom = new BrainAtom({
     repo: 'xai',
     slug: 'xai/grok',
-    description: 'mock brain atom for testing',
-    ask: jest.fn().mockResolvedValue({ answer: 'hello from the atom' }),
+    description: 'mock brain atom for tests',
+    spec: genSampleBrainSpec(),
+    ask: jest.fn().mockResolvedValue(
+      new BrainOutput({
+        output: { answer: 'hello from the atom' },
+        metrics: genMockedBrainOutputMetrics(),
+      }),
+    ),
   });
 
   beforeEach(() => {
@@ -75,7 +95,7 @@ describe('actorAsk', () => {
           schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
-        expect(result).toEqual({ answer: 'hello from the repl' });
+        expect(result.output).toEqual({ answer: 'hello from the repl' });
       });
     });
   });
@@ -90,8 +110,8 @@ describe('actorAsk', () => {
           schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
-        expect(result).toHaveProperty('answer');
-        expect(typeof result.answer).toEqual('string');
+        expect(result.output).toHaveProperty('answer');
+        expect(typeof result.output.answer).toEqual('string');
       });
     });
   });
@@ -122,7 +142,7 @@ describe('actorAsk', () => {
           schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
-        expect(result).toEqual({ answer: 'hello from the atom' });
+        expect(result.output).toEqual({ answer: 'hello from the atom' });
       });
     });
   });
@@ -134,8 +154,14 @@ describe('actorAsk', () => {
         repo: 'test',
         slug: 'test/custom',
         description: 'mock for custom schema',
+        spec: genSampleBrainSpec(),
         act: jest.fn(),
-        ask: jest.fn().mockResolvedValue({ score: 42, label: 'high' }),
+        ask: jest.fn().mockResolvedValue(
+          new BrainOutput({
+            output: { score: 42, label: 'high' },
+            metrics: genMockedBrainOutputMetrics(),
+          }),
+        ),
       });
 
       then('returns custom schema shape', async () => {
@@ -151,9 +177,9 @@ describe('actorAsk', () => {
           schema: { output: customSchema },
         });
 
-        expect(result).toEqual({ score: 42, label: 'high' });
-        expect(result.score).toEqual(42);
-        expect(result.label).toEqual('high');
+        expect(result.output).toEqual({ score: 42, label: 'high' });
+        expect(result.output.score).toEqual(42);
+        expect(result.output.label).toEqual('high');
       });
     });
   });
@@ -169,12 +195,12 @@ describe('actorAsk', () => {
         });
 
         // positive: answer exists
-        const _answer: string = result.answer;
+        const _answer: string = result.output.answer;
         expect(_answer).toBeDefined();
 
         // negative: response does not exist
         // @ts-expect-error - response property does not exist on { answer: string }
-        const _response = result.response;
+        const _response = result.output.response;
         expect(_response).toBeUndefined();
       });
 
@@ -184,7 +210,13 @@ describe('actorAsk', () => {
           repo: 'test',
           slug: 'test/mock',
           description: 'mock',
-          ask: jest.fn().mockResolvedValue({ count: 5 }),
+          spec: genSampleBrainSpec(),
+          ask: jest.fn().mockResolvedValue(
+            new BrainOutput({
+              output: { count: 5 },
+              metrics: genMockedBrainOutputMetrics(),
+            }),
+          ),
         });
 
         const result = await actorAsk({
@@ -195,12 +227,12 @@ describe('actorAsk', () => {
         });
 
         // positive: count exists as number
-        const _count: number = result.count;
+        const _count: number = result.output.count;
         expect(_count).toEqual(5);
 
         // negative: answer does not exist on custom schema
         // @ts-expect-error - answer property does not exist on { count: number }
-        const _answer = result.answer;
+        const _answer = result.output.answer;
         expect(_answer).toBeUndefined();
       });
     });

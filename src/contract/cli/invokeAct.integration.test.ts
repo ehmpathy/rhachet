@@ -4,6 +4,7 @@ import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -213,7 +214,10 @@ describe('invokeAct (integration)', () => {
       });
 
       // create real brain via genBrainRepl
-      const brain = genBrainRepl({ slug: 'openai/codex' });
+      // note: external brains from npm packages don't have spec yet; cast for compatibility
+      const brain = genBrainRepl({
+        slug: 'openai/codex',
+      }) as unknown as BrainRepl;
 
       const testRegistry: RoleRegistry = {
         slug: '.this',

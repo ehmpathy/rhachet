@@ -16,6 +16,31 @@ enforce thorough test coverage for proof of behavior satisfaction
 
 ---
 
+include a treestruct of filediffs
+
+**legend:**
+- `[+] create` — file to create
+- `[~] update` — file to update
+- `[-] delete` — file to delete
+
+
+---
+
+include a treestruct of codepaths
+
+
+---
+
+remember, the purpose of the blueprint is to declare what the execution will adhere to
+
+we want to see
+- what contracts will be used
+- how domain.objects and domain.operations are decomposed and recomposed
+- what the codepaths are, their ease of maintenance and readability
+
+
+---
+
 reference the below for full context
 - .behavior/v2026_01_17.brains-cost-metrics/0.wish.md
 - .behavior/v2026_01_17.brains-cost-metrics/1.vision.md (if declared)

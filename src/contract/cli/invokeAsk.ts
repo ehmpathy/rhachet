@@ -105,7 +105,7 @@ const performAskViaActorMode = async (input: {
   });
 
   // output response
-  console.log(result.answer);
+  console.log(result.output.answer);
 };
 
 /**

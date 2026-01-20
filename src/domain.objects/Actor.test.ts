@@ -1,7 +1,11 @@
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
+
 import { Actor } from './Actor';
+import { BrainOutput } from './BrainOutput';
 import type { BrainRepl } from './BrainRepl';
 import { Role } from './Role';
 
@@ -46,8 +50,19 @@ describe('Actor', () => {
       repo: 'test',
       slug: 'test-brain',
       description: 'test brain',
-      ask: jest.fn().mockResolvedValue('response'),
-      act: jest.fn().mockResolvedValue({ result: 'done' }),
+      spec: genSampleBrainSpec(),
+      ask: jest.fn().mockResolvedValue(
+        new BrainOutput({
+          output: { response: 'response' },
+          metrics: genMockedBrainOutputMetrics(),
+        }),
+      ),
+      act: jest.fn().mockResolvedValue(
+        new BrainOutput({
+          output: { result: 'done' },
+          metrics: genMockedBrainOutputMetrics(),
+        }),
+      ),
     };
 
     when('[t0] constructed with role and brains', () => {
@@ -126,9 +141,19 @@ describe('Actor', () => {
     const mockActor: Actor<typeof mechanicRole> = {
       role: mechanicRole,
       brains: [],
-      act: jest.fn().mockResolvedValue({ decision: 'approve' }),
+      act: jest.fn().mockResolvedValue(
+        new BrainOutput({
+          output: { decision: 'approve' },
+          metrics: genMockedBrainOutputMetrics(),
+        }),
+      ),
       run: jest.fn().mockResolvedValue({ logs: 'test logs' }),
-      ask: jest.fn().mockResolvedValue({ response: 'test' }),
+      ask: jest.fn().mockResolvedValue(
+        new BrainOutput({
+          output: { response: 'test' },
+          metrics: genMockedBrainOutputMetrics(),
+        }),
+      ),
     };
 
     when('[t0] .act() with valid rigid skill', () => {

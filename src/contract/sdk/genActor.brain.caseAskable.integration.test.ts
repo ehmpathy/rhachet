@@ -5,6 +5,7 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import type { ActorBrain } from '@src/domain.objects/Actor';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -97,8 +98,13 @@ When writing about ocean themes:
     });
 
     // create brains: BrainAtom (xAI) and BrainRepl (OpenAI)
-    const brainAtom = genBrainAtomXAI({ slug: 'xai/grok-3-mini' });
-    const brainRepl = genBrainReplOpenAI({ slug: 'openai/codex' });
+    // note: external brains from npm packages don't have spec yet; cast for compatibility
+    const brainAtom = genBrainAtomXAI({
+      slug: 'xai/grok-3-mini',
+    }) as unknown as ActorBrain;
+    const brainRepl = genBrainReplOpenAI({
+      slug: 'openai/codex',
+    }) as unknown as ActorBrain;
 
     // create actor with mixed brains (BrainAtom first)
     const author = genActor({
@@ -117,11 +123,11 @@ When writing about ocean themes:
           });
 
           expect(result).toBeDefined();
-          expect(result.answer).toBeDefined();
-          expect(result.answer.length).toBeGreaterThan(50);
+          expect(result.output.answer).toBeDefined();
+          expect(result.output.answer.length).toBeGreaterThan(50);
 
           // verify content contains expected themes (case-insensitive)
-          const response = result.answer.toLowerCase();
+          const response = result.output.answer.toLowerCase();
           expect(
             response.includes('sun') ||
               response.includes('ocean') ||
@@ -148,8 +154,8 @@ When writing about ocean themes:
           });
 
           expect(result).toBeDefined();
-          expect(result.answer).toBeDefined();
-          expect(result.answer.length).toBeGreaterThan(10);
+          expect(result.output.answer).toBeDefined();
+          expect(result.output.answer.length).toBeGreaterThan(10);
         },
       );
     });

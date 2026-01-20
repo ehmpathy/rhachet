@@ -1,5 +1,6 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { findActorBrainInAllowlist } from './findActorBrainInAllowlist';
@@ -9,7 +10,8 @@ describe('findActorBrainInAllowlist', () => {
   const brainCodex = new BrainRepl({
     repo: 'openai',
     slug: 'codex',
-    description: 'openai codex for testing',
+    description: 'openai codex for tests',
+    spec: genSampleBrainSpec(),
     ask: jest.fn(),
     act: jest.fn(),
   });
@@ -17,7 +19,8 @@ describe('findActorBrainInAllowlist', () => {
   const brainClaude = new BrainRepl({
     repo: 'anthropic',
     slug: 'claude/code',
-    description: 'anthropic claude for testing',
+    description: 'anthropic claude for tests',
+    spec: genSampleBrainSpec(),
     ask: jest.fn(),
     act: jest.fn(),
   });
@@ -64,7 +67,8 @@ describe('findActorBrainInAllowlist', () => {
       const otherBrain = new BrainRepl({
         repo: 'google',
         slug: 'gemini',
-        description: 'google gemini for testing',
+        description: 'google gemini for tests',
+        spec: genSampleBrainSpec(),
         ask: jest.fn(),
         act: jest.fn(),
       });
