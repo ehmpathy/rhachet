@@ -1,4 +1,8 @@
+import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
+
+import { genMockedBrainOutputMetrics } from './genMockedBrainOutputMetrics';
+import { genSampleBrainSpec } from './genSampleBrainSpec';
 
 /**
  * .what = generates a mocked BrainRepl for tests
@@ -13,13 +17,20 @@ export const genMockedBrainRepl = (input?: {
   new BrainRepl({
     repo: input?.repo ?? '__mock_repo__',
     slug: input?.slug ?? '__mock_repl__',
-    description: input?.description ?? 'mocked brain repl for testing',
+    description: input?.description ?? 'mocked brain repl for tests',
+    spec: genSampleBrainSpec(),
     ask: async (askInput) =>
-      askInput.schema.output.parse({
-        content: input?.content ?? '__mock_response__',
+      new BrainOutput({
+        output: askInput.schema.output.parse({
+          content: input?.content ?? '__mock_response__',
+        }),
+        metrics: genMockedBrainOutputMetrics(),
       }),
     act: async (actInput) =>
-      actInput.schema.output.parse({
-        content: input?.content ?? '__mock_response__',
+      new BrainOutput({
+        output: actInput.schema.output.parse({
+          content: input?.content ?? '__mock_response__',
+        }),
+        metrics: genMockedBrainOutputMetrics(),
       }),
   });

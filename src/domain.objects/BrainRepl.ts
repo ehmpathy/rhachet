@@ -4,7 +4,9 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainOutput } from './BrainOutput';
 import type { BrainReplPlugs } from './BrainReplPlugs';
+import type { BrainSpec } from './BrainSpec';
 
 /**
  * .what = a brain.atom operating behind a REPL (read-execute-print-loop)
@@ -36,11 +38,17 @@ export interface BrainRepl {
   description: string;
 
   /**
+   * .what = static specification that the brain supplier guarantees
+   * .why = enables callers to compare cost/gain before invocation
+   */
+  spec: BrainSpec;
+
+  /**
    * .what = readonly analysis operation (research, queries, code review)
-   * .why = provides safe, non-mutating agent interactions
+   * .why = provides safe, non-mutate agent interactions
    *   with only read access to filesystem and tools
    *
-   * .sdk.mapping =
+   * .sdk.map =
    *   - claude-agent-sdk: disallowedTools=["Edit","Write","Bash","NotebookEdit"]
    *   - codex-sdk: --sandbox read-only
    */
@@ -52,14 +60,14 @@ export interface BrainRepl {
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<TOutput>;
+  ) => Promise<BrainOutput<TOutput>>;
 
   /**
    * .what = read+write action operation (code changes, file edits)
    * .why = provides full agentic capabilities with write access
-   *   for tasks that require modifying the codebase
+   *   for tasks that require to modify the codebase
    *
-   * .sdk.mapping =
+   * .sdk.map =
    *   - claude-agent-sdk: allowedTools=["Read","Edit","Write","Bash","Glob","Grep"]
    *   - codex-sdk: --sandbox workspace-write
    */
@@ -71,7 +79,7 @@ export interface BrainRepl {
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<TOutput>;
+  ) => Promise<BrainOutput<TOutput>>;
 }
 export class BrainRepl extends DomainEntity<BrainRepl> implements BrainRepl {
   public static unique = ['repo', 'slug'] as const;

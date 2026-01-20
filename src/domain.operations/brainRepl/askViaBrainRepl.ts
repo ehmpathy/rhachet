@@ -3,13 +3,14 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { BrainReplPlugs } from '@src/domain.objects/BrainReplPlugs';
 
 /**
  * .what = invoke a brain repl for readonly agentic analysis
- * .why = provides safe, non-mutating agent interactions for research,
- *   code analysis, and information gathering tasks
+ * .why = provides safe, non-mutate agent interactions for research,
+ *   code analysis, and information gather tasks
  *
  * .sdk.implementation =
  *   - claude-agent-sdk: query() with disallowedTools=["Edit","Write","Bash"]
@@ -24,7 +25,7 @@ export const askViaBrainRepl = async <TOutput>(
     schema: { output: z.Schema<TOutput> };
   },
   context?: Empty,
-): Promise<TOutput> => {
+): Promise<BrainOutput<TOutput>> => {
   // delegate to the repl's ask implementation
   return input.repl.ask(
     {

@@ -5,11 +5,12 @@ import type { z } from 'zod';
 
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
 import type { BrainAtomPlugs } from '@src/domain.objects/BrainAtomPlugs';
+import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 
 /**
  * .what = invoke a brain atom for single-turn inference
  * .why = provides the core operation for atom-based imagination
- *   with automatic role brief embedding and schema enforcement
+ *   with automatic role brief embed and schema enforcement
  */
 export const askViaBrainAtom = async <TOutput>(
   input: {
@@ -20,7 +21,7 @@ export const askViaBrainAtom = async <TOutput>(
     schema: { output: z.Schema<TOutput> };
   },
   context?: Empty,
-): Promise<TOutput> => {
+): Promise<BrainOutput<TOutput>> => {
   // delegate to the atom's ask implementation
   return input.atom.ask(
     {

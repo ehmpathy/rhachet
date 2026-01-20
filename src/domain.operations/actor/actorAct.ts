@@ -1,6 +1,8 @@
 import type { ActorRoleSkill } from '@src/domain.objects/ActorRoleSkill';
+import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { Role } from '@src/domain.objects/Role';
+import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
 import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
 
 /**
@@ -15,7 +17,7 @@ export const actorAct = async <TOutput>(input: {
   brain: BrainRepl;
   skill: ActorRoleSkill<TOutput>;
   args: Record<string, unknown>;
-}): Promise<TOutput> => {
+}): Promise<BrainOutput<TOutput>> => {
   // resolve briefs from role
   const briefs = await getRoleBriefs({
     by: {
@@ -33,5 +35,6 @@ export const actorAct = async <TOutput>(input: {
     },
   });
 
-  return result;
+  // normalize for backwards compat with external brains
+  return asBrainOutput(result);
 };

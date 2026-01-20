@@ -3,8 +3,11 @@ import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
+import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { genContextBrain } from './genContextBrain';
@@ -43,7 +46,7 @@ describe('genContextBrain', () => {
           prompt: 'test prompt',
           schema: { output: outputSchema },
         });
-        expect(result).toEqual({ content: 'atom response' });
+        expect(result.output).toEqual({ content: 'atom response' });
       });
     });
 
@@ -59,7 +62,7 @@ describe('genContextBrain', () => {
           prompt: 'test prompt',
           schema: { output: outputSchema },
         });
-        expect(result).toEqual({ content: 'repl response' });
+        expect(result.output).toEqual({ content: 'repl response' });
       });
     });
 
@@ -75,7 +78,7 @@ describe('genContextBrain', () => {
           prompt: 'test action',
           schema: { output: outputSchema },
         });
-        expect(result).toEqual({ content: 'repl response' });
+        expect(result.output).toEqual({ content: 'repl response' });
       });
     });
   });
@@ -197,10 +200,14 @@ describe('genContextBrain', () => {
     const mockAtom = new BrainAtom({
       repo: '__mock_repo__',
       slug: '__mock_atom__',
-      description: 'test atom capturing briefs',
+      description: 'test atom that captures briefs',
+      spec: genSampleBrainSpec(),
       ask: async (input) => {
         capturedInput = input;
-        return input.schema.output.parse({ content: '__mock_response__' });
+        return new BrainOutput({
+          output: input.schema.output.parse({ content: '__mock_response__' }),
+          metrics: genMockedBrainOutputMetrics(),
+        });
       },
     });
     const mockBriefs = [
@@ -228,14 +235,21 @@ describe('genContextBrain', () => {
     const mockRepl = new BrainRepl({
       repo: '__mock_repo__',
       slug: '__mock_repl__',
-      description: 'test repl capturing briefs',
+      description: 'test repl that captures briefs',
+      spec: genSampleBrainSpec(),
       ask: async (input) => {
         capturedAskInput = input;
-        return input.schema.output.parse({ content: '__mock_response__' });
+        return new BrainOutput({
+          output: input.schema.output.parse({ content: '__mock_response__' }),
+          metrics: genMockedBrainOutputMetrics(),
+        });
       },
       act: async (input) => {
         capturedActInput = input;
-        return input.schema.output.parse({ content: '__mock_response__' });
+        return new BrainOutput({
+          output: input.schema.output.parse({ content: '__mock_response__' }),
+          metrics: genMockedBrainOutputMetrics(),
+        });
       },
     });
     const mockBriefs = [

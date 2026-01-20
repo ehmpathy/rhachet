@@ -2,6 +2,7 @@ import { DomainEntity } from 'domain-objects';
 import type { z } from 'zod';
 
 import type { BrainAtom } from './BrainAtom';
+import type { BrainOutput } from './BrainOutput';
 import type { BrainRepl } from './BrainRepl';
 import type { Role, RoleSkillSchema } from './Role';
 
@@ -41,7 +42,9 @@ export type ActorActOp<TRole extends Role> = <
   skill: {
     [K in TSkillSlug]: SkillInput<NonNullable<TRole['skills']['rigid']>[K]>;
   };
-}) => Promise<SkillOutput<NonNullable<TRole['skills']['rigid']>[TSkillSlug]>>;
+}) => Promise<
+  BrainOutput<SkillOutput<NonNullable<TRole['skills']['rigid']>[TSkillSlug]>>
+>;
 
 /**
  * .what = type for actor.run() method
@@ -64,7 +67,7 @@ export type ActorRunOp<TRole extends Role> = <
 export type ActorAskOp = <TOutput>(input: {
   prompt: string;
   schema: { output: z.Schema<TOutput> };
-}) => Promise<TOutput>;
+}) => Promise<BrainOutput<TOutput>>;
 
 /**
  * .what = a role assumed by a brain, ready for invocation

@@ -16,6 +16,12 @@ export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
 
+// export * from './Weave';
+// export * from './Weaver';
+
+// export * from './Weave';
+// export * from './Weaver';
+
 export * from './Actor';
 export * from './ActorRoleSkill';
 export * from './BrainAtom';
@@ -24,7 +30,11 @@ export * from './BrainHookEvent';
 export * from './BrainHookFilter';
 export * from './BrainHooksAdapter';
 export * from './BrainHooksAdapterDao';
+export * from './BrainOutput';
+export * from './BrainOutputMetrics';
 export * from './BrainRepl';
+export * from './BrainRepl';
+export * from './BrainSpec';
 export * from './BrainSpecifier';
 export * from './ContextBrain';
 export * from './ContextCli';

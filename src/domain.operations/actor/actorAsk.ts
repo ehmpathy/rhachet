@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { Role } from '@src/domain.objects/Role';
+import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
 import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
 
 /**
@@ -26,7 +28,7 @@ export const actorAsk = async <TOutput>(input: {
   brain: ActorBrain;
   prompt: string;
   schema: { output: z.Schema<TOutput> };
-}): Promise<TOutput> => {
+}): Promise<BrainOutput<TOutput>> => {
   // resolve briefs from role
   const briefs = await getRoleBriefs({
     by: {
@@ -42,5 +44,6 @@ export const actorAsk = async <TOutput>(input: {
     schema: input.schema,
   });
 
-  return result;
+  // normalize for backwards compat with external brains
+  return asBrainOutput(result);
 };

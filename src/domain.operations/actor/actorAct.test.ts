@@ -81,16 +81,21 @@ describe('actorAct', () => {
         );
       });
 
-      then('returns the result from brain.act', async () => {
-        const result = await actorAct({
-          role: testRole,
-          brain: mockBrain,
-          skill: testSkill,
-          args: { content: 'hello world' },
-        });
+      then(
+        'returns the result from brain.act wrapped in BrainOutput',
+        async () => {
+          const result = await actorAct({
+            role: testRole,
+            brain: mockBrain,
+            skill: testSkill,
+            args: { content: 'hello world' },
+          });
 
-        expect(result).toEqual({ summary: 'test summary' });
-      });
+          // result is normalized to BrainOutput; .output holds the actual data
+          expect(result.output).toEqual({ summary: 'test summary' });
+          expect(result.metrics).toBeDefined();
+        },
+      );
     });
 
     when('[t1] actorAct is called with different args', () => {

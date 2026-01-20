@@ -3,6 +3,7 @@ import { BadRequestError } from 'helpful-errors';
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { ContextBrain } from '@src/domain.objects/ContextBrain';
+import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
 
 import { findBrainAtomByRef } from './findBrainAtomByRef';
 import { findBrainReplByRef } from './findBrainReplByRef';
@@ -40,17 +41,20 @@ export const genContextBrain = (input: {
       atom: {
         ask: async (askInput) => {
           const atom = findBrainAtomByRef({ atoms, ref: askInput.brain });
-          return atom.ask(askInput, {}) as any;
+          const result = await atom.ask(askInput, {});
+          return asBrainOutput(result) as any;
         },
       },
       repl: {
         ask: async (askInput) => {
           const repl = findBrainReplByRef({ repls, ref: askInput.brain });
-          return repl.ask(askInput, {}) as any;
+          const result = await repl.ask(askInput, {});
+          return asBrainOutput(result) as any;
         },
         act: async (actInput) => {
           const repl = findBrainReplByRef({ repls, ref: actInput.brain });
-          return repl.act(actInput, {}) as any;
+          const result = await repl.act(actInput, {});
+          return asBrainOutput(result) as any;
         },
       },
     },

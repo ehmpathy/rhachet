@@ -24,11 +24,11 @@ async () => {
   });
 
   // positive: answer exists and is string
-  const _answer: string = result.answer;
+  const _answer: string = result.output.answer;
 
   // negative: nonexistent property
   // @ts-expect-error - 'wrong' property does not exist on { answer: string }
-  const _wrong = result.wrong;
+  const _wrong = result.output.wrong;
 };
 
 /**
@@ -47,17 +47,17 @@ async () => {
   });
 
   // positive: custom properties exist with correct types
-  const _score: number = result.score;
-  const _label: string = result.label;
-  const _tags: string[] = result.tags;
+  const _score: number = result.output.score;
+  const _label: string = result.output.label;
+  const _tags: string[] = result.output.tags;
 
   // negative: answer does not exist on custom schema
   // @ts-expect-error - 'answer' property does not exist on custom schema
-  const _answer = result.answer;
+  const _answer = result.output.answer;
 
   // negative: wrong type assignment
   // @ts-expect-error - score is number, not string
-  const _wrongType: string = result.score;
+  const _wrongType: string = result.output.score;
 };
 
 /**
@@ -69,7 +69,7 @@ async () => {
       name: z.string(),
       age: z.number(),
     }),
-    metadata: z.object({
+    outputMeta: z.object({
       createdAt: z.string(),
     }),
   });
@@ -80,13 +80,13 @@ async () => {
   });
 
   // positive: nested properties accessible
-  const _name: string = result.user.name;
-  const _age: number = result.user.age;
-  const _createdAt: string = result.metadata.createdAt;
+  const _name: string = result.output.user.name;
+  const _age: number = result.output.user.age;
+  const _createdAt: string = result.output.outputMeta.createdAt;
 
   // negative: wrong nested property
   // @ts-expect-error - 'email' does not exist on user
-  const _email = result.user.email;
+  const _email = result.output.user.email;
 };
 
 /**

@@ -5,19 +5,20 @@ import type { z } from 'zod';
 
 import type { BrainAtom } from './BrainAtom';
 import type { BrainAtomPlugs } from './BrainAtomPlugs';
+import type { BrainOutput } from './BrainOutput';
 import type { BrainRepl } from './BrainRepl';
 import type { BrainReplPlugs } from './BrainReplPlugs';
 
 /**
- * .what = runtime context providing unified access to brain atoms and repls
+ * .what = runtime context for unified access to brain atoms and repls
  * .why =
- *   - provides a clean interface for invoking brains by reference
- *   - handles lookup, role embedding, and delegation transparently
- *   - enables dynamic brain swapping without caller changes
+ *   - provides a clean interface to invoke brains by reference
+ *   - handles lookup, role embed, and delegation transparently
+ *   - enables dynamic brain swap without caller changes
  */
 export interface ContextBrain {
   /**
-   * .what = interface for invoking brain atoms and repls
+   * .what = interface to invoke brain atoms and repls
    */
   brain: {
     atom: {
@@ -31,7 +32,7 @@ export interface ContextBrain {
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
-      }) => Promise<TOutput>;
+      }) => Promise<BrainOutput<TOutput>>;
     };
 
     repl: {
@@ -45,7 +46,7 @@ export interface ContextBrain {
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
-      }) => Promise<TOutput>;
+      }) => Promise<BrainOutput<TOutput>>;
 
       /**
        * .what = lookup and invoke a brain repl for read+write actions
@@ -57,7 +58,7 @@ export interface ContextBrain {
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
-      }) => Promise<TOutput>;
+      }) => Promise<BrainOutput<TOutput>>;
     };
   };
 }

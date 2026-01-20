@@ -5,6 +5,8 @@ import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
 import type { BrainAtomPlugs } from './BrainAtomPlugs';
+import type { BrainOutput } from './BrainOutput';
+import type { BrainSpec } from './BrainSpec';
 
 /**
  * .what = an LLM inference endpoint capable of creative language imagination
@@ -33,6 +35,12 @@ export interface BrainAtom {
   description: string;
 
   /**
+   * .what = static specification that the brain supplier guarantees
+   * .why = enables callers to compare cost/gain before invocation
+   */
+  spec: BrainSpec;
+
+  /**
    * .what = the ask operation contract (renamed from imagine)
    * .why = standardizes how all atoms are invoked, regardless of provider
    *
@@ -51,7 +59,7 @@ export interface BrainAtom {
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<TOutput>;
+  ) => Promise<BrainOutput<TOutput>>;
 }
 export class BrainAtom extends DomainEntity<BrainAtom> implements BrainAtom {
   public static unique = ['repo', 'slug'] as const;

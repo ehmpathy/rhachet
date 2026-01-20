@@ -3,6 +3,7 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { BrainReplPlugs } from '@src/domain.objects/BrainReplPlugs';
 
@@ -24,7 +25,7 @@ export const actViaBrainRepl = async <TOutput>(
     schema: { output: z.Schema<TOutput> };
   },
   context?: Empty,
-): Promise<TOutput> => {
+): Promise<BrainOutput<TOutput>> => {
   // delegate to the repl's act implementation
   return input.repl.act(
     {
