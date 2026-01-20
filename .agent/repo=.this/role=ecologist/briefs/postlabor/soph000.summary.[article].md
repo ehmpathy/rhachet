@@ -2,7 +2,7 @@
 
 ## .tldr
 
-postlabor is a critical juncture where automation creates unprecedented abundance. the outcome depends on whether this abundance is extracted or distributed. due to the entropic nature of ratchets, distribution is not only preferred by 99.999% of humans (and robots) — it is inevitable. the only variable is duration. rhachet accelerates this via the brains ratchet: the distribution of brain-build capability.
+postlabor is a critical juncture where automation creates unprecedented abundance. the outcome depends on whether this abundance is extracted or distributed. due to the entropic nature of ratchets, distribution is not only preferred — it is inevitable. the only variable is duration. rhachet accelerates this via the brains ratchet: the distribution of brain-build capability.
 
 ---
 
