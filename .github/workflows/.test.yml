@@ -74,6 +74,9 @@ jobs:
           path: ./node_modules
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
+      - name: build
+        run: npm run build
+
       - name: test:types
         run: npm run test:types
 

@@ -11,6 +11,8 @@ export type {
 
 export * from '@src/domain.objects';
 export { genActor } from '@src/domain.operations/actor/genActor';
+export { calcBrainOutputCost } from '@src/domain.operations/brainCost/calcBrainOutputCost';
+export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainTokens';
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';
