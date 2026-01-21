@@ -89,19 +89,28 @@ export interface BrainSpec {
      */
     grades: {
       /**
-       * .what = SWE-bench score
+       * .what = SWE-bench score (software task resolution)
+       * @see https://www.swebench.com/
        */
       swe?: number;
 
       /**
-       * .what = MMLU score
+       * .what = MMLU score (massive multitask language test)
+       * @see https://arxiv.org/abs/2009.03300
        */
       mmlu?: number;
 
       /**
-       * .what = HumanEval score
+       * .what = HumanEval score (code synthesis from docstrings)
+       * @see https://arxiv.org/abs/2107.03374
        */
       humaneval?: number;
+
+      /**
+       * .what = GPQA score (graduate-level science Q&A)
+       * @see https://arxiv.org/abs/2311.12022
+       */
+      gpqa?: number;
     };
 
     /**

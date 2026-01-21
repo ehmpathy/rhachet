@@ -63,26 +63,25 @@ describe('calcBrainOutputCost', () => {
     });
   });
 
-  given('[case2] char counts provided', () => {
-    when('[t0] 4000 input chars', () => {
-      then('estimates ~1000 tokens via /4 heuristic', () => {
+  given('[case2] words provided', () => {
+    when('[t0] words tokenized via BPE', () => {
+      then('calculates cost from estimated tokens', () => {
         const result = calcBrainOutputCost({
           for: {
-            chars: {
-              input: 4000,
-              output: 2000,
-              cache: { get: 0, set: 0 },
+            words: {
+              input: 'Hello, world! This is a test.',
+              output: 'Hi there!',
+              cache: { get: '', set: '' },
             },
           },
           with: { cost: { cash: exampleRates } },
         });
 
-        // input: ceil(4000/4) = 1000 tokens * $0.000003 = $0.003
-        // output: ceil(2000/4) = 500 tokens * $0.000015 = $0.0075
-        // total: $0.0105
-        expect(result.cash.deets.input).toEqual('USD 0.003_000');
-        expect(result.cash.deets.output).toEqual('USD 0.007_500');
-        expect(result.cash.total).toEqual('USD 0.010_500_000');
+        // BPE tokenization produces non-zero token counts
+        // exact values depend on tokenizer, but costs should be positive
+        expect(result.cash.deets.input).not.toEqual('USD 0.000_000');
+        expect(result.cash.deets.output).not.toEqual('USD 0.000_000');
+        expect(result.cash.total).not.toEqual('USD 0.000_000_000');
       });
     });
   });

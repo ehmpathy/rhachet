@@ -1,8 +1,10 @@
+import { UnexpectedCodePathError } from 'helpful-errors';
 import { type IsoPrice, multiplyPrice, sumPrices } from 'iso-price';
 import type { PickOne } from 'type-fns';
 
 import type { BrainOutputMetrics } from '../../domain.objects/BrainOutputMetrics';
 import type { BrainSpec } from '../../domain.objects/BrainSpec';
+import { calcBrainTokens } from './calcBrainTokens';
 
 /**
  * .what = calculates the cash cost of a brain invocation
@@ -19,10 +21,14 @@ export const calcBrainOutputCost = (input: {
     tokens: BrainOutputMetrics['size']['tokens'];
 
     /**
-     * .what = character counts to estimate tokens from
-     * .note = uses ~4 chars per token heuristic
+     * .what = word strings to tokenize via BPE
+     * .note = uses gpt-tokenizer with o200k_base encoder for accurate counts
      */
-    chars: BrainOutputMetrics['size']['chars'];
+    words: {
+      input: string;
+      output: string;
+      cache: { get: string; set: string };
+    };
   }>;
   with: {
     cost: {
@@ -39,15 +45,34 @@ export const calcBrainOutputCost = (input: {
     };
   };
 } => {
-  // resolve tokens (use directly or estimate from chars)
-  const tokens = input.for.tokens ?? {
-    input: Math.ceil(input.for.chars!.input / 4),
-    output: Math.ceil(input.for.chars!.output / 4),
-    cache: {
-      get: Math.ceil(input.for.chars!.cache.get / 4),
-      set: Math.ceil(input.for.chars!.cache.set / 4),
-    },
-  };
+  // cast words -> tokens and recurse
+  if (input.for.words)
+    return calcBrainOutputCost({
+      for: {
+        tokens: {
+          input: calcBrainTokens({ of: { words: input.for.words.input } })
+            .tokens,
+          output: calcBrainTokens({ of: { words: input.for.words.output } })
+            .tokens,
+          cache: {
+            get: calcBrainTokens({ of: { words: input.for.words.cache.get } })
+              .tokens,
+            set: calcBrainTokens({ of: { words: input.for.words.cache.set } })
+              .tokens,
+          },
+        },
+      },
+      with: input.with,
+    });
+
+  // resolve tokens with default error
+  const tokens = (() => {
+    if (input.for.tokens) return input.for.tokens;
+    throw new UnexpectedCodePathError(
+      'calcBrainOutputCost requires either tokens or words',
+      { input },
+    );
+  })();
 
   // calculate cost deets (rates are already per-token)
   const deets = {
