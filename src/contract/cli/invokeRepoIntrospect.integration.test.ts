@@ -1,8 +1,9 @@
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { given, then, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -480,6 +481,181 @@ exports.getRoleRegistry = () => registry;
         const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
         expect(logs).toContain('package.json:.files += "rhachet.repo.yml"');
         expect(logs).toContain('package.json:.exports += "./package.json"');
+      });
+    });
+
+    when('[t11] skills dir with executable .sh files', () => {
+      beforeEach(() => {
+        // reset package.json
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+
+        // create executable .sh skill
+        const skillPath = resolve(
+          testDir,
+          'src/roles/mechanic/skills/test-skill.sh',
+        );
+        writeFileSync(skillPath, '#!/bin/bash\necho "test"');
+        chmodSync(skillPath, 0o755);
+      });
+
+      afterEach(() => {
+        // cleanup skill file
+        const skillPath = resolve(
+          testDir,
+          'src/roles/mechanic/skills/test-skill.sh',
+        );
+        if (existsSync(skillPath)) rmSync(skillPath);
+      });
+
+      then('command succeeds and yml generated', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const outputPath = resolve(testDir, 'rhachet.repo.yml');
+        expect(existsSync(outputPath)).toBe(true);
+      });
+    });
+
+    when('[t12] skills dir with non-executable .sh file', () => {
+      const skillPath = resolve(
+        testDir,
+        'src/roles/mechanic/skills/broken-skill.sh',
+      );
+
+      beforeEach(() => {
+        // reset package.json
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+
+        // create non-executable .sh skill
+        writeFileSync(skillPath, '#!/bin/bash\necho "broken"');
+        // intentionally NOT chmod
+      });
+
+      afterEach(() => {
+        if (existsSync(skillPath)) rmSync(skillPath);
+      });
+
+      then('command fails with error that includes path', async () => {
+        const error = await getError(
+          program.parseAsync(['repo', 'introspect'], { from: 'user' }),
+        );
+
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('non-executable skill files detected');
+        expect(error?.message).toContain(skillPath);
+      });
+
+      then('error includes fix hint', async () => {
+        const error = await getError(
+          program.parseAsync(['repo', 'introspect'], { from: 'user' }),
+        );
+
+        expect(error?.message).toContain('chmod +x');
+      });
+    });
+
+    when('[t13] skills dir with multiple non-executable .sh files', () => {
+      const skillPath1 = resolve(
+        testDir,
+        'src/roles/mechanic/skills/broken1.sh',
+      );
+      const skillPath2 = resolve(
+        testDir,
+        'src/roles/mechanic/skills/broken2.sh',
+      );
+
+      beforeEach(() => {
+        // reset package.json
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+
+        // create multiple non-executable .sh skills
+        writeFileSync(skillPath1, '#!/bin/bash\necho "broken1"');
+        writeFileSync(skillPath2, '#!/bin/bash\necho "broken2"');
+        // intentionally NOT chmod
+      });
+
+      afterEach(() => {
+        if (existsSync(skillPath1)) rmSync(skillPath1);
+        if (existsSync(skillPath2)) rmSync(skillPath2);
+      });
+
+      then('error lists all paths', async () => {
+        const error = await getError(
+          program.parseAsync(['repo', 'introspect'], { from: 'user' }),
+        );
+
+        expect(error).toBeDefined();
+        expect(error?.message).toContain(skillPath1);
+        expect(error?.message).toContain(skillPath2);
+      });
+    });
+
+    when('[t14] skills dir with only .ts/.md files', () => {
+      const tsPath = resolve(testDir, 'src/roles/mechanic/skills/helper.ts');
+      const mdPath = resolve(testDir, 'src/roles/mechanic/skills/readme.md');
+
+      beforeEach(() => {
+        // reset package.json
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify(
+            {
+              name: 'rhachet-roles-test',
+              version: '1.0.0',
+              main: 'dist/index.js',
+            },
+            null,
+            2,
+          ),
+        );
+
+        // create .ts and .md files (no .sh files)
+        writeFileSync(tsPath, 'export const x = 1;');
+        writeFileSync(mdPath, '# Skills readme');
+      });
+
+      afterEach(() => {
+        if (existsSync(tsPath)) rmSync(tsPath);
+        if (existsSync(mdPath)) rmSync(mdPath);
+      });
+
+      then('command succeeds', async () => {
+        await program.parseAsync(['repo', 'introspect'], { from: 'user' });
+
+        const outputPath = resolve(testDir, 'rhachet.repo.yml');
+        expect(existsSync(outputPath)).toBe(true);
       });
     });
   });
