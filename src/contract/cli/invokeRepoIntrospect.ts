@@ -3,6 +3,7 @@ import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistry } from '@src/domain.objects';
+import { assertRegistrySkillsExecutable } from '@src/domain.operations/manifest/assertRegistrySkillsExecutable';
 import {
   castIntoRoleRegistryManifest,
   serializeRoleRegistryManifest,
@@ -73,6 +74,9 @@ export const invokeRepoIntrospect = ({
         });
 
       const registry = packageExports.getRoleRegistry();
+
+      // fail fast if any skills are not executable
+      assertRegistrySkillsExecutable({ registry });
 
       // generate manifest
       console.log(``);
