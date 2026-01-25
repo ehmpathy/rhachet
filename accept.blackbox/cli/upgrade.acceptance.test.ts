@@ -103,6 +103,10 @@ describe('rhachet upgrade', () => {
         expect(result.stdout).toContain('--roles');
       });
 
+      then('stdout contains --brains option', () => {
+        expect(result.stdout).toContain('--brains');
+      });
+
       then('stdout contains description', () => {
         expect(result.stdout).toContain('upgrade');
       });
@@ -172,7 +176,95 @@ describe('rhachet upgrade', () => {
     });
   });
 
-  given('[case5] inside rhachet-roles-brain repo with file:. self-reference', () => {
+  given('[case5] upgrade --brains on repo without rhachet-brains packages', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'without-roles-packages' }),
+    );
+
+    when('[t0] rhachet upgrade --brains anthropic', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--brains', 'anthropic'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr contains error about brain package not installed', () => {
+        expect(result.stderr).toContain('brain package not installed');
+      });
+    });
+  });
+
+  given('[case7] repo with rhachet-brains-anthropic@0.1.0 installed', () => {
+    const scene = useBeforeAll(async () => {
+      // create temp repo and install dependencies
+      const repo = genTestTempRepo({
+        fixture: 'with-brains-packages-pinned',
+        install: true,
+      });
+
+      // capture version before upgrade
+      const versionBefore = getInstalledVersion({
+        cwd: repo.path,
+        packageName: 'rhachet-brains-anthropic',
+      });
+
+      return { repo, versionBefore };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('rhachet-brains-anthropic is at 0.1.0', () => {
+        expect(scene.versionBefore).toEqual('0.1.0');
+      });
+    });
+
+    when('[t1] rhachet upgrade --brains anthropic', () => {
+      const result = useBeforeAll(async () => {
+        // run the upgrade command
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--brains', 'anthropic'],
+          cwd: scene.repo.path,
+        });
+
+        // capture version after upgrade
+        const versionAfter = getInstalledVersion({
+          cwd: scene.repo.path,
+          packageName: 'rhachet-brains-anthropic',
+        });
+
+        return { upgradeResult, versionAfter };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('rhachet-brains-anthropic version is at least 0.1.0', () => {
+        // version should be >= 0.1.0 (current latest, may be upgraded in future)
+        const [major, minor, patch] = result.versionAfter.split('.').map(Number);
+        expect(major).toBeGreaterThanOrEqual(0);
+        if (major === 0) {
+          expect(minor).toBeGreaterThanOrEqual(1);
+        }
+      });
+
+      then('stdout contains brain upgrade summary', () => {
+        expect(result.upgradeResult.stdout).toContain('brain(s) upgraded');
+      });
+
+      then('pnpm was used (default package manager)', () => {
+        // stdout should mention pnpm since pnpm is the default
+        expect(result.upgradeResult.stdout).toContain('pnpm');
+      });
+    });
+  });
+
+  given('[case6] inside rhachet-roles-brain repo with file:. self-reference', () => {
     const scene = useBeforeAll(async () => {
       const repo = genTestTempRepo({
         fixture: 'with-file-dot-dep',
