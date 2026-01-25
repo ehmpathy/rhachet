@@ -27,6 +27,7 @@ export type TestRepoFixture =
   | 'with-scratch-archive'
   | 'with-roles-packages'
   | 'with-roles-packages-pinned'
+  | 'with-brains-packages-pinned'
   | 'with-roles-package'
   | 'without-roles-packages'
   | 'with-claude-config'

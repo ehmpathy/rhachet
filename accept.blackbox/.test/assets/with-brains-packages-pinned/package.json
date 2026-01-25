@@ -1,0 +1,8 @@
+{
+  "name": "test-with-brains-packages-pinned",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-brains-anthropic": "0.1.0"
+  }
+}
