@@ -1,0 +1,39 @@
+declare a roadmap,
+
+- checklist style
+- with ordered dependencies
+- with behavioral acceptance criteria
+- with behavioral acceptance verification at each step
+
+for how to execute the blueprint specified in .behavior/v2026_01_23.brain-continue/3.3.blueprint.v1.i1.md
+
+ref:
+- .behavior/v2026_01_23.brain-continue/0.wish.md
+- .behavior/v2026_01_23.brain-continue/1.vision.md (if declared)
+- .behavior/v2026_01_23.brain-continue/2.criteria.blackbox.md (if declared)
+- .behavior/v2026_01_23.brain-continue/2.criteria.blueprint.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.access._.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.claims._.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.domain._.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.patterns._.oss.levers.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.1.research.templates._.v1.i1.md (if declared)
+- .behavior/v2026_01_23.brain-continue/3.2.distill.domain._.v1.i1.md (if declared)
+
+---
+
+be clear as to which briefs should be read before each phase
+
+for example,
+- if the phase includes tests, remind the builder to read
+  - .behavior/v2026_01_23.brain-continue/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+- if the phase includes acceptance tests, remind the builder to read
+  - .behavior/v2026_01_23.brain-continue/2.criteria.blackbox.md (if declared)
+- if the phase includes domain.objects, remind the builder to read
+  - .behavior/v2026_01_23.brain-continue/3.1.research.domain._.v1.i1.md (if declared)
+etc
+
+---
+
+emit into .behavior/v2026_01_23.brain-continue/4.1.roadmap.v1.i1.md
