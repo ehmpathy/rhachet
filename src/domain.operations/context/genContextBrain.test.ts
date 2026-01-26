@@ -9,6 +9,7 @@ import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
+import { isBrainAtom, isBrainRepl } from '@src/domain.objects/ContextBrain';
 
 import { genContextBrain } from './genContextBrain';
 
@@ -280,6 +281,216 @@ describe('genContextBrain', () => {
           schema: { output: outputSchema },
         });
         expect(capturedActInput.role.briefs).toEqual(mockBriefs);
+      });
+    });
+  });
+
+  given('[case8] choice is undefined', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called without choice', () => {
+      then('brain.choice is null', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          repls: [mockRepl],
+        });
+        expect(context.brain.choice).toBeNull();
+      });
+    });
+  });
+
+  given('[case9] choice is { repl: string }', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with valid repl choice', () => {
+      then('brain.choice is the repl', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          repls: [mockRepl],
+          choice: { repl: 'anthropic/claude-code' },
+        });
+        expect(context.brain.choice).toBe(mockRepl);
+      });
+    });
+
+    when('[t1] genContextBrain is called with invalid repl choice', () => {
+      then('it throws BadRequestError', () => {
+        expect(() =>
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: { repl: 'notfound/brain' },
+          }),
+        ).toThrow(BadRequestError);
+      });
+    });
+  });
+
+  given('[case10] choice is { atom: string }', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with valid atom choice', () => {
+      then('brain.choice is the atom', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          repls: [mockRepl],
+          choice: { atom: 'xai/grok-3' },
+        });
+        expect(context.brain.choice).toBe(mockAtom);
+      });
+    });
+
+    when('[t1] genContextBrain is called with invalid atom choice', () => {
+      then('it throws BadRequestError', () => {
+        expect(() =>
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: { atom: 'notfound/brain' },
+          }),
+        ).toThrow(BadRequestError);
+      });
+    });
+  });
+
+  given('[case11] choice is string (unambiguous)', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with string that matches atom', () => {
+      then('brain.choice is the atom', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          repls: [mockRepl],
+          choice: 'xai/grok-3',
+        });
+        expect(context.brain.choice).toBe(mockAtom);
+      });
+    });
+
+    when('[t1] genContextBrain is called with string that matches repl', () => {
+      then('brain.choice is the repl', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          repls: [mockRepl],
+          choice: 'anthropic/claude-code',
+        });
+        expect(context.brain.choice).toBe(mockRepl);
+      });
+    });
+  });
+
+  given('[case12] choice is string with no match', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with unknown slug', () => {
+      then('it throws BadRequestError with "brain not found"', () => {
+        expect(() =>
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: 'notfound/brain',
+          }),
+        ).toThrow(BadRequestError);
+
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: 'notfound/brain',
+          });
+        } catch (error) {
+          expect((error as Error).message).toContain('brain not found');
+        }
+      });
+    });
+  });
+
+  given('[case13] choice is string (ambiguous)', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'same', slug: 'brain' });
+    const mockRepl = genMockedBrainRepl({ repo: 'same', slug: 'brain' });
+
+    when(
+      '[t0] genContextBrain is called with slug that matches multiple',
+      () => {
+        then('it throws BadRequestError with "ambiguous"', () => {
+          expect(() =>
+            genContextBrain({
+              atoms: [mockAtom],
+              repls: [mockRepl],
+              choice: 'same/brain',
+            }),
+          ).toThrow(BadRequestError);
+
+          try {
+            genContextBrain({
+              atoms: [mockAtom],
+              repls: [mockRepl],
+              choice: 'same/brain',
+            });
+          } catch (error) {
+            expect((error as Error).message).toContain('ambiguous');
+          }
+        });
+      },
+    );
+  });
+
+  given('[case14] isBrainAtom type guard', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] isBrainAtom is called with an atom', () => {
+      then('it returns true', () => {
+        expect(isBrainAtom(mockAtom)).toBe(true);
+      });
+    });
+
+    when('[t1] isBrainAtom is called with a repl', () => {
+      then('it returns false', () => {
+        expect(isBrainAtom(mockRepl)).toBe(false);
+      });
+    });
+  });
+
+  given('[case15] isBrainRepl type guard', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] isBrainRepl is called with a repl', () => {
+      then('it returns true', () => {
+        expect(isBrainRepl(mockRepl)).toBe(true);
+      });
+    });
+
+    when('[t1] isBrainRepl is called with an atom', () => {
+      then('it returns false', () => {
+        expect(isBrainRepl(mockAtom)).toBe(false);
       });
     });
   });
