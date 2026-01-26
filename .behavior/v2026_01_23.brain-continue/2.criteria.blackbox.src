@@ -1,0 +1,31 @@
+declare the blackbox criteria (experience bounds) required to fulfill
+- this wish .behavior/v2026_01_23.brain-continue/0.wish.md
+- this vision .behavior/v2026_01_23.brain-continue/1.vision.md (if declared)
+
+via bdd declarations, per your briefs
+
+via the template in .behavior/v2026_01_23.brain-continue/2.criteria.blackbox.md
+
+emit into .behavior/v2026_01_23.brain-continue/2.criteria.blackbox.md
+
+---
+
+blackbox criteria = EXPERIENCE BOUNDS
+- constraints on what users must experience
+- if it's not needed for blackbox, it's not needed at all
+
+declare ONLY:
+- what inputs do users provide?
+- what outputs do users receive?
+- what usecases do users fulfill?
+- what are the critical paths?
+- what are the boundary/edge cases?
+
+DO NOT include:
+- mechanism details (what contracts/components exist)
+- implementation details (how things are built)
+
+note: blackbox is NOT "why to build" — that's the wish
+      blackbox is "what experience must be delivered" to fulfill the wish
+
+ensure to cover all experience bounds required to fulfill the wish and vision

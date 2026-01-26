@@ -1,4 +1,4 @@
-# enrollment vs delegation
+# enrollment vs isolation
 
 ## .what
 
@@ -7,25 +7,25 @@ two orthogonal concepts for agent behavior that systems often conflate:
 | concept        | definition                                                                |
 | -------------- | ------------------------------------------------------------------------- |
 | **enrollment** | *who* executes — the active role, persona, knowledge, or constraints      |
-| **delegation** | *where* execution happens — isolated context, subprocess, separate thread |
+| **isolation**  | *where* execution happens — isolated context, subprocess, separate thread |
 
 ## .why
 
 to conflate these concepts reduces architectural flexibility:
 
-- sometimes you want **delegation without role change** — run a task in the background with the same persona
-- sometimes you want **role change without delegation** — shift persona in-place without a subprocess spawn
+- sometimes you want **isolation without role change** — run a task in the background with the same persona
+- sometimes you want **role change without isolation** — shift persona in-place without a subprocess spawn
 
-systems that couple enrollment and delegation force you into a single quadrant of the possibility space.
+systems that couple enrollment and isolation force you into a single quadrant of the possibility space.
 
 ## .how
 
 ### the full matrix
 
-|                    | same context         | isolated context            |
-| ------------------ | -------------------- | --------------------------- |
-| **same role**      | normal execution     | delegate for isolation only |
-| **different role** | enroll role in-place | delegate + enroll (coupled) |
+|                    | same context         | isolated context           |
+| ------------------ | -------------------- | -------------------------- |
+| **same role**      | normal execution     | isolate only               |
+| **different role** | enroll role in-place | isolate + enroll (coupled) |
 
 ### enrollment (role activation)
 
@@ -43,12 +43,12 @@ effects:
 - no new subprocess spawned
 - conversation continues in same thread
 
-### delegation (execution isolation)
+### isolation (execution context)
 
-delegation changes *where* work happens — a subprocess spawn with its own context window.
+isolation changes *where* work happens — a subprocess spawn with its own context window.
 
 ```bash
-# delegate to a subagent (claude code style)
+# isolate to a subagent (claude code style)
 Task tool → subagent_type: "Explore"
 ```
 
@@ -63,13 +63,13 @@ effects:
 ### 👍 decoupled (flexible)
 
 ```
-# enroll without delegate
+# enroll without isolate
 "think like a security reviewer now" → role shifts, same context
 
-# delegate without enroll
+# isolate without enroll
 "run this in background" → isolation, same persona
 
-# delegate with enroll
+# isolate with enroll
 "have the researcher search for X" → isolation + role
 ```
 
@@ -88,13 +88,13 @@ the coupled pattern often emerges because:
 2. system prompts are easiest to inject at subprocess creation
 3. simpler mental model for users ("subagent = specialized helper")
 
-but the cost is lost flexibility — you cannot mix and match enrollment and delegation independently.
+but the cost is lost flexibility — you cannot mix and match enrollment and isolation independently.
 
 ## .recommendation
 
 design systems where:
 - roles can enroll into any execution context
-- delegation can happen with or without role change
+- isolation can happen with or without role change
 - the two dimensions remain orthogonal choices
 
 this enables all four quadrants of the matrix and maximizes architectural flexibility.
