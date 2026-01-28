@@ -16,7 +16,8 @@
   },
   "types": "dist/index.d.ts",
   "bin": {
-    "rhachet": "./bin/run"
+    "rhachet": "./bin/run",
+    "rhx": "./bin/rhx"
   },
   "files": [
     "/bin",

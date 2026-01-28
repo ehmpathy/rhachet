@@ -24,6 +24,16 @@ use 🧢 roles & add 🧠 brains to produce 🎭 actors who clone thought routes
 npm install rhachet
 ```
 
+for global access (enables `rhachet` and `rhx` commands in PATH):
+
+```sh
+# via npm
+npm install -g rhachet
+
+# via pnpm
+pnpm add -g rhachet
+```
+
 ---
 
 # 🧢 roles.<use>
@@ -113,6 +123,20 @@ deterministic operations, no brain.
 
 ```sh
 npx rhachet run --skill gh.workflow.logs --workflow test
+```
+
+**shorthand: `rhx`**
+
+`rhx` is an alias for `rhachet run --skill`. use it to save keystrokes:
+
+```sh
+# these are equivalent
+npx rhx say-hello
+npx rhachet run --skill say-hello
+
+# args pass through
+npx rhx echo-args foo bar baz
+npx rhachet run --skill echo-args foo bar baz
 ```
 
 #### 🔩 rigid: act
