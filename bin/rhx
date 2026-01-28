@@ -1,0 +1,4 @@
+#!/bin/sh
+# .what = proxy that prepends `run --skill` and delegates to rhachet
+# .why = shorthand for `rhachet run --skill`
+exec rhachet run --skill "$@"
