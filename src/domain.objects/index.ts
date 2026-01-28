@@ -25,6 +25,7 @@ export * from './Threads';
 export * from './Actor';
 export * from './ActorRoleSkill';
 export * from './BrainAtom';
+export * from './BrainChoiceNotFoundError';
 export * from './BrainHook';
 export * from './BrainHookEvent';
 export * from './BrainHookFilter';

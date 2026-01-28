@@ -44,10 +44,11 @@ describe('invokeAct', () => {
   });
 
   // create mock brain
+  // note: slug is the full namespaced identifier (e.g., 'anthropic/claude')
   const mockBrain = {
     repo: 'anthropic',
-    slug: 'claude',
-    description: 'mock brain for testing',
+    slug: 'anthropic/claude',
+    description: 'mock brain for tests',
     act: jest.fn().mockResolvedValue({ summary: 'test summary' }),
     ask: jest.fn().mockResolvedValue('test response'),
   } as unknown as BrainRepl;

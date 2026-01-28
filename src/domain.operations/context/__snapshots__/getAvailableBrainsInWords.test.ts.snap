@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getAvailableBrainsInWords given: [case9] snapshot observability when: [t0] formatted with typo choice then: output matches snapshot 1`] = `
+"🔭 available brains
+   ├── ↻ anthropic/claude-code
+   ├── ↻ openai/codex
+   ├── ○ xai/grok-3-fast
+   └── ○ openai/gpt-4o-mini"
+`;

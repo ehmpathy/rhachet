@@ -20,23 +20,29 @@ use 🧢 roles & add 🧠 brains to produce 🎭 actors who clone thought routes
 
 # install
 
+to install locally, with cli use via `npx rhachet` and `npx rhx`,
+
 ```sh
+# via pnpm
+pnpm add rhachet
+
+# via npm
 npm install rhachet
 ```
 
-for global access (enables `rhachet` and `rhx` commands in PATH):
+to install globally, with cli use via `rhachet` and `rhx`,
 
 ```sh
-# via npm
-npm install -g rhachet
-
 # via pnpm
 pnpm add -g rhachet
+
+# via npm
+npm install -g rhachet
 ```
 
 ---
 
-# 🧢 roles.<use>
+# 🧢 `roles.<use>`
 
 if you want to use rhachet, you want to use roles.
 
@@ -127,16 +133,10 @@ npx rhachet run --skill gh.workflow.logs --workflow test
 
 **shorthand: `rhx`**
 
-`rhx` is an alias for `rhachet run --skill`. use it to save keystrokes:
+`rhx` is an alias for `rhachet run --skill`
 
 ```sh
-# these are equivalent
-npx rhx say-hello
-npx rhachet run --skill say-hello
-
-# args pass through
-npx rhx echo-args foo bar baz
-npx rhachet run --skill echo-args foo bar baz
+npx rhx gh.workflow.logs --workflow test
 ```
 
 #### 🔩 rigid: act
@@ -161,7 +161,7 @@ probabilistic exploration, brain decides the path.
 ```sh
 npx rhachet ask \
   --role skeptic \
-  --ask "are birds real?"
+  --say "are birds real?"
 ```
 
 ---
@@ -269,7 +269,7 @@ await skeptic.ask({
 
 ---
 
-# 🧢 roles.<add>
+# 🧢 `roles.<add>`
 
 ## collocated roles
 
