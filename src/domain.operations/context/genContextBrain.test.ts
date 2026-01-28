@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, HelpfulError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
@@ -7,6 +7,7 @@ import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOut
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
 import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { isBrainAtom, isBrainRepl } from '@src/domain.objects/ContextBrain';
@@ -322,14 +323,14 @@ describe('genContextBrain', () => {
     });
 
     when('[t1] genContextBrain is called with invalid repl choice', () => {
-      then('it throws BadRequestError', () => {
+      then('it throws BrainChoiceNotFoundError', () => {
         expect(() =>
           genContextBrain({
             atoms: [mockAtom],
             repls: [mockRepl],
             choice: { repl: 'notfound/brain' },
           }),
-        ).toThrow(BadRequestError);
+        ).toThrow(BrainChoiceNotFoundError);
       });
     });
   });
@@ -353,14 +354,14 @@ describe('genContextBrain', () => {
     });
 
     when('[t1] genContextBrain is called with invalid atom choice', () => {
-      then('it throws BadRequestError', () => {
+      then('it throws BrainChoiceNotFoundError', () => {
         expect(() =>
           genContextBrain({
             atoms: [mockAtom],
             repls: [mockRepl],
             choice: { atom: 'notfound/brain' },
           }),
-        ).toThrow(BadRequestError);
+        ).toThrow(BrainChoiceNotFoundError);
       });
     });
   });
@@ -403,14 +404,14 @@ describe('genContextBrain', () => {
     });
 
     when('[t0] genContextBrain is called with unknown slug', () => {
-      then('it throws BadRequestError with "brain not found"', () => {
+      then('it throws BrainChoiceNotFoundError with "brain not found"', () => {
         expect(() =>
           genContextBrain({
             atoms: [mockAtom],
             repls: [mockRepl],
             choice: 'notfound/brain',
           }),
-        ).toThrow(BadRequestError);
+        ).toThrow(BrainChoiceNotFoundError);
 
         try {
           genContextBrain({
@@ -491,6 +492,152 @@ describe('genContextBrain', () => {
     when('[t1] isBrainRepl is called with an atom', () => {
       then('it returns false', () => {
         expect(isBrainRepl(mockAtom)).toBe(false);
+      });
+    });
+  });
+
+  given('[case16] generic choice not found', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with unknown slug', () => {
+      then('error message includes formatted available brains', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: 'antrhopic/cloude-code',
+          });
+        } catch (error) {
+          expect((error as Error).message).toContain('🔭 available brains');
+          expect((error as Error).message).toContain('xai/grok-3');
+          expect((error as Error).message).toContain('anthropic/claude-code');
+        }
+      });
+
+      then('most similar brain appears first in list', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: 'antrhopic/cloude-code',
+          });
+        } catch (error) {
+          const message = (error as Error).message;
+          const claudePos = message.indexOf('anthropic/claude-code');
+          const grokPos = message.indexOf('xai/grok-3');
+          expect(claudePos).toBeLessThan(grokPos);
+        }
+      });
+    });
+  });
+
+  given('[case17] repl choice not found', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with invalid repl choice', () => {
+      then('error message includes available repls only', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: { repl: 'notfound/brain' },
+          });
+        } catch (error) {
+          expect((error as Error).message).toContain('🔭 available brains');
+          expect((error as Error).message).toContain('anthropic/claude-code');
+          expect((error as Error).message).not.toContain('xai/grok-3');
+        }
+      });
+    });
+  });
+
+  given('[case18] atom choice not found', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] genContextBrain is called with invalid atom choice', () => {
+      then('error message includes available atoms only', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: { atom: 'notfound/brain' },
+          });
+        } catch (error) {
+          expect((error as Error).message).toContain('🔭 available brains');
+          expect((error as Error).message).toContain('xai/grok-3');
+          expect((error as Error).message).not.toContain(
+            'anthropic/claude-code',
+          );
+        }
+      });
+    });
+  });
+
+  given('[case19] error metadata serialized in message', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+    const mockRepl = genMockedBrainRepl({
+      repo: 'anthropic',
+      slug: 'claude-code',
+    });
+
+    when('[t0] BrainChoiceNotFoundError is thrown', () => {
+      then('message contains choice and available brains in metadata', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            repls: [mockRepl],
+            choice: 'notfound/brain',
+          });
+        } catch (error) {
+          const message = (error as Error).message;
+          expect(message).toContain('"choice": "notfound/brain"');
+          expect(message).toContain('"xai/grok-3"');
+          expect(message).toContain('"anthropic/claude-code"');
+        }
+      });
+    });
+  });
+
+  given('[case20] error type is BrainChoiceNotFoundError', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+
+    when('[t0] choice does not match any brain', () => {
+      then('error is instanceof BrainChoiceNotFoundError', () => {
+        expect(() =>
+          genContextBrain({
+            atoms: [mockAtom],
+            choice: 'notfound/brain',
+          }),
+        ).toThrow(BrainChoiceNotFoundError);
+      });
+    });
+  });
+
+  given('[case21] BrainChoiceNotFoundError extends HelpfulError', () => {
+    const mockAtom = genMockedBrainAtom({ repo: 'xai', slug: 'grok-3' });
+
+    when('[t0] choice does not match any brain', () => {
+      then('error is instanceof HelpfulError', () => {
+        try {
+          genContextBrain({
+            atoms: [mockAtom],
+            choice: 'notfound/brain',
+          });
+        } catch (error) {
+          expect(error).toBeInstanceOf(HelpfulError);
+        }
       });
     });
   });

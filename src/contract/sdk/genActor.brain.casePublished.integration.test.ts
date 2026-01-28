@@ -108,7 +108,7 @@ echo '{"content":"drafted content about $1"}'
     when('[t2] author.act({ brain: { repo, slug }, skill })', () => {
       then('executes with explicit brain from allowlist', async () => {
         const result = await author.act({
-          brain: { repo: 'openai', slug: 'codex' },
+          brain: { repo: 'openai', slug: 'openai/codex' },
           skill: { draft: { topic: 'ocean waves' } },
         });
 

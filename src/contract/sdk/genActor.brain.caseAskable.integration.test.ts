@@ -100,7 +100,7 @@ When writing about ocean themes:
     // create brains: BrainAtom (xAI) and BrainRepl (OpenAI)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
     const brainAtom = genBrainAtomXAI({
-      slug: 'xai/grok-3-mini',
+      slug: 'xai/grok/3-mini',
     }) as unknown as ActorBrain;
     const brainRepl = genBrainReplOpenAI({
       slug: 'openai/codex',

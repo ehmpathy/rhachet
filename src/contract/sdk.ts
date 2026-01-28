@@ -16,6 +16,7 @@ export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainToken
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';
+export { getAvailableBrainsInWords } from '@src/domain.operations/context/getAvailableBrainsInWords';
 export { enrollThread } from '@src/domain.operations/role/enrollThread';
 export { genRoleSkill } from '@src/domain.operations/role/genRoleSkill';
 export { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';

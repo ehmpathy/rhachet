@@ -1,6 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type {
   BrainChoice,
@@ -10,6 +11,7 @@ import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
 
 import { findBrainAtomByRef } from './findBrainAtomByRef';
 import { findBrainReplByRef } from './findBrainReplByRef';
+import { getAvailableBrainsInWords } from './getAvailableBrainsInWords';
 
 /**
  * .what = computes full slug from brain repo and slug
@@ -25,6 +27,24 @@ const getBrainSlugFull = (brain: { repo: string; slug: string }): string =>
  *   - validates no duplicate { repo, slug } identifiers
  *   - composes the context with lookup and delegation logic
  *   - optionally pre-binds a chosen brain to brain.choice
+ *
+ * @throws {BrainChoiceNotFoundError} when choice does not match any available brain.
+ *   the error message includes a formatted list of available brains sorted by
+ *   similarity to the requested choice. consumers can catch this error to display
+ *   the helpful message via stderr:
+ *   ```ts
+ *   try {
+ *     return genContextBrain({ atoms, repls, choice });
+ *   } catch (error) {
+ *     if (error instanceof BrainChoiceNotFoundError) {
+ *       console.error(error.message);
+ *       process.exit(1);
+ *     }
+ *     throw error;
+ *   }
+ *   ```
+ *
+ * @throws {BadRequestError} when choice matches multiple brains (ambiguous)
  */
 export function genContextBrain(input: {
   atoms?: BrainAtom[];
@@ -77,10 +97,15 @@ export function genContextBrain(input: {
       const choiceSlug = input.choice.repl;
       const replMatched = repls.find((r) => getBrainSlugFull(r) === choiceSlug);
       if (!replMatched)
-        throw new BadRequestError(`repl brain not found: ${choiceSlug}`, {
-          choice: input.choice,
-          available: { repls: repls.map(getBrainSlugFull) },
-        });
+        throw new BrainChoiceNotFoundError(
+          `repl brain not found: ${choiceSlug}
+
+${getAvailableBrainsInWords({ atoms: [], repls, choice: choiceSlug })}`,
+          {
+            choice: input.choice,
+            available: { repls: repls.map(getBrainSlugFull) },
+          },
+        );
       return replMatched;
     }
 
@@ -89,10 +114,15 @@ export function genContextBrain(input: {
       const choiceSlug = input.choice.atom;
       const atomMatched = atoms.find((a) => getBrainSlugFull(a) === choiceSlug);
       if (!atomMatched)
-        throw new BadRequestError(`atom brain not found: ${choiceSlug}`, {
-          choice: input.choice,
-          available: { atoms: atoms.map(getBrainSlugFull) },
-        });
+        throw new BrainChoiceNotFoundError(
+          `atom brain not found: ${choiceSlug}
+
+${getAvailableBrainsInWords({ atoms, repls: [], choice: choiceSlug })}`,
+          {
+            choice: input.choice,
+            available: { atoms: atoms.map(getBrainSlugFull) },
+          },
+        );
       return atomMatched;
     }
 
@@ -107,13 +137,18 @@ export function genContextBrain(input: {
 
     // not found
     if (allMatched.length === 0)
-      throw new BadRequestError(`brain not found: ${input.choice}`, {
-        choice: input.choice,
-        available: {
-          atoms: atoms.map(getBrainSlugFull),
-          repls: repls.map(getBrainSlugFull),
+      throw new BrainChoiceNotFoundError(
+        `brain not found: ${input.choice}
+
+${getAvailableBrainsInWords({ atoms, repls, choice: input.choice })}`,
+        {
+          choice: input.choice,
+          available: {
+            atoms: atoms.map(getBrainSlugFull),
+            repls: repls.map(getBrainSlugFull),
+          },
         },
-      });
+      );
 
     // ambiguous
     if (allMatched.length > 1)

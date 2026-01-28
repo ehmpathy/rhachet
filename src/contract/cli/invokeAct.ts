@@ -103,6 +103,8 @@ const performActInCurrentThread = async (input: {
     });
 
   // resolve brain reference if provided
+  // note: slug is the full namespaced identifier (e.g., 'openai/codex')
+  // repo is extracted from the first part of the slug
   let brainRef: { repo: string; slug: string } | undefined;
   if (input.opts.brain) {
     const firstSlashIndex = input.opts.brain.indexOf('/');
@@ -111,11 +113,7 @@ const performActInCurrentThread = async (input: {
         `invalid brain format "${input.opts.brain}". expected: repo/slug`,
       );
     const repo = input.opts.brain.slice(0, firstSlashIndex);
-    const slug = input.opts.brain.slice(firstSlashIndex + 1);
-    if (!repo || !slug)
-      throw new BadRequestError(
-        `invalid brain format "${input.opts.brain}". expected: repo/slug`,
-      );
+    const slug = input.opts.brain;
     brainRef = { repo, slug };
   }
 
