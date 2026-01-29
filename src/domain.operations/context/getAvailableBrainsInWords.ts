@@ -2,6 +2,7 @@ import { distance } from 'fastest-levenshtein';
 
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import { getBrainSlugFull } from '@src/domain.operations/brains/getBrainSlugFull';
 
 const MAX_BRAINS_SHOWN = 21;
 
@@ -24,11 +25,11 @@ export const getAvailableBrainsInWords = (input: {
   // compute brains list with slugs and types
   const brains: { slug: string; type: 'atom' | 'repl' }[] = [
     ...atoms.map((atom) => ({
-      slug: `${atom.repo}/${atom.slug}`,
+      slug: getBrainSlugFull(atom),
       type: 'atom' as const,
     })),
     ...repls.map((repl) => ({
-      slug: `${repl.repo}/${repl.slug}`,
+      slug: getBrainSlugFull(repl),
       type: 'repl' as const,
     })),
   ];
