@@ -1,6 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
 import type { ActorBrain } from '@src/domain.objects/Actor';
+import { getBrainSlugFull } from '@src/domain.operations/brains/getBrainSlugFull';
 
 /**
  * .what = finds a brain in the actor's allowlist
@@ -9,30 +10,27 @@ import type { ActorBrain } from '@src/domain.objects/Actor';
  * .note = accepts either:
  *   - ref: { repo, slug } for lookup by unique key
  *   - direct ActorBrain instance for validation against allowlist
+ *
+ * .note = uses getBrainSlugFull for comparison to handle both normal and
+ *   buggy brain conventions (where slug may or may not include repo prefix)
  */
 export const findActorBrainInAllowlist = (input: {
   brain: { repo: string; slug: string } | ActorBrain;
   allowlist: ActorBrain[];
 }): ActorBrain => {
-  // extract repo and slug from brain (whether ref or instance)
-  const brainRef = {
-    repo: input.brain.repo,
-    slug: input.brain.slug,
-  };
+  // compute full slug for input brain ref
+  const brainSlugFull = getBrainSlugFull(input.brain);
 
-  // lookup brain in allowlist by unique key
+  // lookup brain in allowlist by full slug comparison
   const brainFound = input.allowlist.find(
-    (b) => b.repo === brainRef.repo && b.slug === brainRef.slug,
+    (b) => getBrainSlugFull(b) === brainSlugFull,
   );
 
   // fail if brain not in allowlist
   if (!brainFound)
     throw new BadRequestError('brain not in actor allowlist', {
-      brainRef,
-      allowlistRefs: input.allowlist.map((b) => ({
-        repo: b.repo,
-        slug: b.slug,
-      })),
+      brainSlugFull,
+      allowlistSlugs: input.allowlist.map(getBrainSlugFull),
     });
 
   return brainFound;

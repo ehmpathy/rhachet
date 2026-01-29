@@ -8,17 +8,11 @@ import type {
   ContextBrain,
 } from '@src/domain.objects/ContextBrain';
 import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
+import { getBrainSlugFull } from '@src/domain.operations/brains/getBrainSlugFull';
 
 import { findBrainAtomByRef } from './findBrainAtomByRef';
 import { findBrainReplByRef } from './findBrainReplByRef';
 import { getAvailableBrainsInWords } from './getAvailableBrainsInWords';
-
-/**
- * .what = computes full slug from brain repo and slug
- * .why = enables match against user-friendly choice strings like 'xai/grok-3-fast'
- */
-const getBrainSlugFull = (brain: { repo: string; slug: string }): string =>
-  `${brain.repo}/${brain.slug}`;
 
 /**
  * .what = factory to create a brain context from plugin-provided atoms and repls

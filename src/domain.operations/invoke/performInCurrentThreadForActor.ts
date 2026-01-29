@@ -2,6 +2,7 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { getBrainSlugParts } from '@src/domain.operations/brains/getBrainSlugParts';
 import { getBrainsByConfigExplicit } from '@src/domain.operations/config/getBrainsByConfigExplicit';
 import { getRoleRegistriesByConfigExplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigExplicit';
 
@@ -42,21 +43,9 @@ export const performInCurrentThreadForActor = async (input: {
     });
 
   // resolve brain reference if provided
-  let brainRef: { repo: string; slug: string } | undefined;
-  if (input.opts.brain) {
-    const firstSlashIndex = input.opts.brain.indexOf('/');
-    if (firstSlashIndex === -1)
-      BadRequestError.throw(
-        `invalid brain format "${input.opts.brain}". expected: repo/slug`,
-      );
-    const repo = input.opts.brain.slice(0, firstSlashIndex);
-    const slug = input.opts.brain.slice(firstSlashIndex + 1);
-    if (!repo || !slug)
-      BadRequestError.throw(
-        `invalid brain format "${input.opts.brain}". expected: repo/slug`,
-      );
-    brainRef = { repo, slug };
-  }
+  const brainRef = input.opts.brain
+    ? getBrainSlugParts(input.opts.brain)
+    : undefined;
 
   // create actor
   const actor = genActor({ role, brains });

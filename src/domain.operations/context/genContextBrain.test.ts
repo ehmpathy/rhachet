@@ -641,4 +641,34 @@ describe('genContextBrain', () => {
       });
     });
   });
+
+  given('[case22] slug already includes repo prefix (defensive)', () => {
+    // some brain packages define slugs with the provider prefix included
+    // e.g., rhachet-brains-xai uses slug: 'xai/grok/code-fast-1' with repo: 'xai'
+    // this would result in 'xai/xai/grok/code-fast-1' without defensive logic
+    const mockAtom = genMockedBrainAtom({
+      repo: 'xai',
+      slug: 'xai/grok/code-fast-1',
+    });
+
+    when('[t0] choice matches the full slug (no double prefix)', () => {
+      then('brain.choice is the atom', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          choice: 'xai/grok/code-fast-1',
+        });
+        expect(context.brain.choice).toBe(mockAtom);
+      });
+    });
+
+    when('[t1] choice is provided as typed atom choice', () => {
+      then('brain.choice is the atom', () => {
+        const context = genContextBrain({
+          atoms: [mockAtom],
+          choice: { atom: 'xai/grok/code-fast-1' },
+        });
+        expect(context.brain.choice).toBe(mockAtom);
+      });
+    });
+  });
 });
