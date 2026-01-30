@@ -2,7 +2,9 @@
 
 ## .what
 
-thought routes describe the determinism profile of an execution path
+skills prescribe thought routes
+
+a thought route distills a reusable path of thought, along a categorizable level of determinism
 
 three archetypes:
 - 🪨 **solid** = deterministic throughout
@@ -14,6 +16,46 @@ three archetypes:
 - clarifies reliability, reproducibility, and testability tradeoffs
 - guides architectural decisions on where to introduce probabilistic operations
 - clarifies expectations for outputs and retry semantics
+
+## .harden
+
+to harden a thought route = to move it toward 🪨 solid on the determinism spectrum
+
+```
+💧 fluid → 🔩 rigid → 🪨 solid
+   less hardened → more hardened
+```
+
+the more hardened a route, the greater the gains:
+
+| gain            | mechanism                        | why                                           |
+| --------------- | -------------------------------- | --------------------------------------------- |
+| **trust**       | repeatability via determinism    | same input → same output, every time          |
+| **efficiency**  | compute cost vs imagine cost     | deterministic ops are instant; llm calls cost |
+| **testability** | assertions via reproducibility   | deterministic behavior can be fully tested    |
+
+### trust via repeatability
+
+- 🪨 solid routes produce identical output for identical input
+- 🔩 rigid routes produce bounded variance within deterministic harness
+- 💧 fluid routes produce unbounded variance — brain decides
+
+repeatability enables trust: you know what you'll get.
+
+### efficiency via compute
+
+- **imagine cost** = time + tokens to have brain figure out what to do
+- **compute cost** = cpu cycles to execute deterministic logic
+
+```
+💧 fluid:  high imagine cost, low compute cost
+🔩 rigid:  mixed imagine + compute cost
+🪨 solid:  zero imagine cost, pure compute cost
+```
+
+to harden a route = to shift work from imagine-cost to compute-cost.
+
+the ideal path: start 💧 fluid (explore), then harden to 🔩 rigid (control), then harden to 🪨 solid (optimize).
 
 ---
 
