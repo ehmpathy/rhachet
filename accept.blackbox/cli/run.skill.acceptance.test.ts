@@ -70,6 +70,25 @@ describe('rhachet run', () => {
         expect(result.status).not.toEqual(0);
       });
     });
+
+    when('[t4] run --skill echo-args --help (help flag passthrough)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'echo-args', '--help'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('--help is passed through to skill (not intercepted by rhachet)', () => {
+        // skill outputs "args: $@" so --help should appear after "args:"
+        expect(result.stdout).toMatch(/args:.*--help/);
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
   });
 
   given('[case2] repo with registry', () => {

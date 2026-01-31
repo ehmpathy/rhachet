@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet run given: [case1] repo with skills when: [t4] run --skill echo-args --help (help flag passthrough) then: --help is passed through to skill (not intercepted by rhachet) 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=echo-args
+
+args: --skill echo-args --help
+"
+`;

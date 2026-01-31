@@ -126,6 +126,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
     .option('--repo <slug>', 'filter to specific repo')
     .option('-r, --role <slug>', 'filter to specific role')
     .option('--attempts <int>', 'not supported for run command')
+    .helpOption(false) // disable built-in --help so it passes through to skills
     .allowUnknownOption(true)
     .allowExcessArguments(true)
     .action(
