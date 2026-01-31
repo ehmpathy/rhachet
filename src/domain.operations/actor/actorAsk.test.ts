@@ -1,10 +1,9 @@
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
-import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
@@ -38,15 +37,15 @@ describe('actorAsk', () => {
     description: 'mock brain repl for tests',
     spec: genSampleBrainSpec(),
     act: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { summary: 'test summary' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
     ask: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { answer: 'hello from the repl' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
   });
@@ -58,9 +57,9 @@ describe('actorAsk', () => {
     description: 'mock brain atom for tests',
     spec: genSampleBrainSpec(),
     ask: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { answer: 'hello from the atom' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'atom',
       }),
     ),
   });
@@ -157,9 +156,9 @@ describe('actorAsk', () => {
         spec: genSampleBrainSpec(),
         act: jest.fn(),
         ask: jest.fn().mockResolvedValue(
-          new BrainOutput({
+          genMockedBrainOutput({
             output: { score: 42, label: 'high' },
-            metrics: genMockedBrainOutputMetrics(),
+            brainChoice: 'repl',
           }),
         ),
       });
@@ -212,9 +211,9 @@ describe('actorAsk', () => {
           description: 'mock',
           spec: genSampleBrainSpec(),
           ask: jest.fn().mockResolvedValue(
-            new BrainOutput({
+            genMockedBrainOutput({
               output: { count: 5 },
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'atom',
             }),
           ),
         });

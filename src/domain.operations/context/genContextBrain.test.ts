@@ -3,12 +3,11 @@ import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
-import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
-import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { isBrainAtom, isBrainRepl } from '@src/domain.objects/ContextBrain';
 
@@ -206,9 +205,9 @@ describe('genContextBrain', () => {
       spec: genSampleBrainSpec(),
       ask: async (input) => {
         capturedInput = input;
-        return new BrainOutput({
+        return genMockedBrainOutput({
           output: input.schema.output.parse({ content: '__mock_response__' }),
-          metrics: genMockedBrainOutputMetrics(),
+          brainChoice: 'atom',
         });
       },
     });
@@ -241,16 +240,16 @@ describe('genContextBrain', () => {
       spec: genSampleBrainSpec(),
       ask: async (input) => {
         capturedAskInput = input;
-        return new BrainOutput({
+        return genMockedBrainOutput({
           output: input.schema.output.parse({ content: '__mock_response__' }),
-          metrics: genMockedBrainOutputMetrics(),
+          brainChoice: 'repl',
         });
       },
       act: async (input) => {
         capturedActInput = input;
-        return new BrainOutput({
+        return genMockedBrainOutput({
           output: input.schema.output.parse({ content: '__mock_response__' }),
-          metrics: genMockedBrainOutputMetrics(),
+          brainChoice: 'repl',
         });
       },
     });

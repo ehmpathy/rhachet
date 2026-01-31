@@ -9,10 +9,9 @@ import {
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
-import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { genContextBrain } from './genContextBrain';
@@ -51,11 +50,11 @@ describe('genContextBrain.integration', () => {
           ask: async (input) => {
             askWasCalled = true;
             expect(input.prompt).toEqual('test prompt');
-            return new BrainOutput({
+            return genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'atom',
             });
           },
         });
@@ -87,19 +86,19 @@ describe('genContextBrain.integration', () => {
           ask: async (input) => {
             askWasCalled = true;
             expect(input.prompt).toEqual('test task');
-            return new BrainOutput({
+            return genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'repl',
             });
           },
           act: async (input) =>
-            new BrainOutput({
+            genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'repl',
             }),
         });
 
@@ -128,20 +127,20 @@ describe('genContextBrain.integration', () => {
           description: 'test repl that verifies act invocation',
           spec: genSampleBrainSpec(),
           ask: async (input) =>
-            new BrainOutput({
+            genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'repl',
             }),
           act: async (input) => {
             actWasCalled = true;
             expect(input.prompt).toEqual('test action');
-            return new BrainOutput({
+            return genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'repl',
             });
           },
         });
@@ -174,11 +173,11 @@ describe('genContextBrain.integration', () => {
           spec: genSampleBrainSpec(),
           ask: async (input) => {
             receivedBriefs = input.role.briefs;
-            return new BrainOutput({
+            return genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
-              metrics: genMockedBrainOutputMetrics(),
+              brainChoice: 'atom',
             });
           },
         });

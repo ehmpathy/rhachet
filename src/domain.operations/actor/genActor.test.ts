@@ -1,10 +1,9 @@
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { genMockedBrainOutputMetrics } from '@src/.test.assets/genMockedBrainOutputMetrics';
+import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
-import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 
@@ -72,15 +71,15 @@ describe('genActor', () => {
     description: 'mock brain repl 1',
     spec: genSampleBrainSpec(),
     act: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { summary: 'test summary' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
     ask: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { response: 'test response' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
   });
@@ -91,15 +90,15 @@ describe('genActor', () => {
     description: 'mock brain repl 2',
     spec: genSampleBrainSpec(),
     act: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { summary: 'codex summary' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
     ask: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { response: 'codex response' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'repl',
       }),
     ),
   });
@@ -111,9 +110,9 @@ describe('genActor', () => {
     description: 'mock brain atom',
     spec: genSampleBrainSpec(),
     ask: jest.fn().mockResolvedValue(
-      new BrainOutput({
+      genMockedBrainOutput({
         output: { response: 'atom response' },
-        metrics: genMockedBrainOutputMetrics(),
+        brainChoice: 'atom',
       }),
     ),
   });

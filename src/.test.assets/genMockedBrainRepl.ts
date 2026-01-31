@@ -1,5 +1,6 @@
 import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
+import { genBrainContinuables } from '@src/domain.operations/brainContinuation/genBrainContinuables';
 
 import { genMockedBrainOutputMetrics } from './genMockedBrainOutputMetrics';
 import { genSampleBrainSpec } from './genSampleBrainSpec';
@@ -19,18 +20,48 @@ export const genMockedBrainRepl = (input?: {
     slug: input?.slug ?? '__mock_repl__',
     description: input?.description ?? 'mocked brain repl for tests',
     spec: genSampleBrainSpec(),
-    ask: async (askInput) =>
-      new BrainOutput({
-        output: askInput.schema.output.parse({
-          content: input?.content ?? '__mock_response__',
-        }),
+    ask: async (askInput) => {
+      const outputParsed = askInput.schema.output.parse({
+        content: input?.content ?? '__mock_response__',
+      });
+      const { episode, series } = await genBrainContinuables({
+        for: { grain: 'repl' },
+        on: { episode: askInput.on?.episode, series: askInput.on?.series },
+        with: {
+          exchange: {
+            input: askInput.prompt,
+            output: JSON.stringify(outputParsed),
+            exid: null,
+          },
+        },
+      });
+      return new BrainOutput<typeof outputParsed, 'repl'>({
+        output: outputParsed,
         metrics: genMockedBrainOutputMetrics(),
-      }),
-    act: async (actInput) =>
-      new BrainOutput({
-        output: actInput.schema.output.parse({
-          content: input?.content ?? '__mock_response__',
-        }),
+        episode,
+        series,
+      });
+    },
+    act: async (actInput) => {
+      const outputParsed = actInput.schema.output.parse({
+        content: input?.content ?? '__mock_response__',
+      });
+      const { episode, series } = await genBrainContinuables({
+        for: { grain: 'repl' },
+        on: { episode: actInput.on?.episode, series: actInput.on?.series },
+        with: {
+          exchange: {
+            input: actInput.prompt,
+            output: JSON.stringify(outputParsed),
+            exid: null,
+          },
+        },
+      });
+      return new BrainOutput<typeof outputParsed, 'repl'>({
+        output: outputParsed,
         metrics: genMockedBrainOutputMetrics(),
-      }),
+        episode,
+        series,
+      });
+    },
   });

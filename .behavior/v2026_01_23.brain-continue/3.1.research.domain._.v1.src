@@ -1,0 +1,35 @@
+research the domain available in order to fulfill
+- this wish .behavior/v2026_01_23.brain-continue/0.wish.md
+- this vision .behavior/v2026_01_23.brain-continue/1.vision.md (if declared)
+- this criteria .behavior/v2026_01_23.brain-continue/2.criteria.blackbox.md (if declared)
+
+specifically
+- what are the domain objects that are involved with this wish
+  - entities
+  - events
+  - literals
+- what are the domain operations
+  - getOne
+  - getAll
+  - setCreate
+  - setUpdate
+  - setDelete
+- what are the relationships between the domain objects?
+  - is there a treestruct of decoration?
+  - is there a treestruct of common subdomains?
+  - are there dependencies?
+- how do the domain objects and operations compose to support wish?
+
+---
+
+use web search to discover and research
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+focus on these sdk's for reference, if provided
+-
+
+---
+
+emit into .behavior/v2026_01_23.brain-continue/3.1.research.domain._.v1.i1.md

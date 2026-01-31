@@ -2,6 +2,8 @@ import { asIsoPrice } from 'iso-price';
 
 import { BrainOutput } from '@src/domain.objects/BrainOutput';
 import { BrainOutputMetrics } from '@src/domain.objects/BrainOutputMetrics';
+import { genBrainEpisode } from '@src/domain.operations/brainContinuation/genBrainEpisode';
+import { genBrainExchange } from '@src/domain.operations/brainContinuation/genBrainExchange';
 
 /**
  * .what = placeholder metrics for external brains that don't return BrainOutput yet
@@ -31,9 +33,9 @@ const metricsPlaceholder = new BrainOutputMetrics({
  * .why = external brains may return TOutput directly instead of BrainOutput<TOutput>
  * .todo = remove after all brain suppliers return BrainOutput
  */
-export const asBrainOutput = <TOutput>(
+export const asBrainOutput = async <TOutput>(
   result: TOutput | BrainOutput<TOutput>,
-): BrainOutput<TOutput> => {
+): Promise<BrainOutput<TOutput>> => {
   // check if result is already a BrainOutput (has .output and .metrics properties)
   const isBrainOutput =
     result !== null &&
@@ -43,9 +45,22 @@ export const asBrainOutput = <TOutput>(
 
   if (isBrainOutput) return result as BrainOutput<TOutput>;
 
-  // wrap raw output in BrainOutput with placeholder metrics
+  // wrap raw output in BrainOutput with placeholder metrics and episode
+  const exchange = await genBrainExchange({
+    with: {
+      input: '__placeholder_input__',
+      output: JSON.stringify(result),
+      exid: null,
+    },
+  });
+  const episode = await genBrainEpisode({
+    on: { episode: null },
+    with: { exchange, exid: null },
+  });
   return new BrainOutput<TOutput>({
     output: result as TOutput,
     metrics: metricsPlaceholder,
+    episode,
+    series: null,
   });
 };

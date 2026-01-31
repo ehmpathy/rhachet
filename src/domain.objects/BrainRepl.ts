@@ -1,11 +1,13 @@
 import { DomainEntity } from 'domain-objects';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
-import type { Empty } from 'type-fns';
+import type { Empty, PickOne } from 'type-fns';
 import type { z } from 'zod';
 
+import type { BrainEpisode } from './BrainEpisode';
 import type { BrainOutput } from './BrainOutput';
 import type { BrainReplPlugs } from './BrainReplPlugs';
+import type { BrainSeries } from './BrainSeries';
 import type { BrainSpec } from './BrainSpec';
 
 /**
@@ -51,16 +53,19 @@ export interface BrainRepl {
    * .sdk.map =
    *   - claude-agent-sdk: disallowedTools=["Edit","Write","Bash","NotebookEdit"]
    *   - codex-sdk: --sandbox read-only
+   *
+   * .note = `on.episode` or `on.series` enables continuation from prior state
    */
   ask: <TOutput>(
     input: {
+      on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: BrainReplPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<BrainOutput<TOutput>>;
+  ) => Promise<BrainOutput<TOutput, 'repl'>>;
 
   /**
    * .what = read+write action operation (code changes, file edits)
@@ -70,16 +75,19 @@ export interface BrainRepl {
    * .sdk.map =
    *   - claude-agent-sdk: allowedTools=["Read","Edit","Write","Bash","Glob","Grep"]
    *   - codex-sdk: --sandbox workspace-write
+   *
+   * .note = `on.episode` or `on.series` enables continuation from prior state
    */
   act: <TOutput>(
     input: {
+      on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: BrainReplPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<BrainOutput<TOutput>>;
+  ) => Promise<BrainOutput<TOutput, 'repl'>>;
 }
 export class BrainRepl extends DomainEntity<BrainRepl> implements BrainRepl {
   public static unique = ['repo', 'slug'] as const;
