@@ -2,7 +2,7 @@
   "name": "rhachet",
   "author": "ehmpathy",
   "description": "A framework for reliable, thorough thought. Weave threads of thought via stitches.",
-  "version": "1.29.2",
+  "version": "1.29.3",
   "repository": "ehmpathy/rhachet",
   "homepage": "https://github.com/ehmpathy/rhachet",
   "keywords": [
@@ -29,8 +29,12 @@
   },
   "typesVersions": {
     "*": {
-      "brains": ["dist/contract/sdk.brains.d.ts"],
-      "actors": ["dist/contract/sdk.actors.d.ts"]
+      "brains": [
+        "dist/contract/sdk.brains.d.ts"
+      ],
+      "actors": [
+        "dist/contract/sdk.actors.d.ts"
+      ]
     }
   },
   "engines": {
