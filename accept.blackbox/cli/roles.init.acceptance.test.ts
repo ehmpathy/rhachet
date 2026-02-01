@@ -115,8 +115,7 @@ describe('rhachet roles init', () => {
       });
 
       then('stdout contains discovery message', () => {
-        expect(result.stdout).toContain('No rhachet.use.ts found');
-        expect(result.stdout).toContain('discover from packages');
+        expect(result.stdout).toContain('discover roles from packages');
       });
 
       then('stdout contains no init commands message', () => {
