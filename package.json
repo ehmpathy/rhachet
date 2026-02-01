@@ -11,10 +11,31 @@
   "bugs": "https://github.com/ehmpathy/rhachet/issues",
   "license": "MIT",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./brains": {
+      "types": "./dist/contract/sdk.brains.d.ts",
+      "default": "./dist/contract/sdk.brains.js"
+    },
+    "./actors": {
+      "types": "./dist/contract/sdk.actors.d.ts",
+      "default": "./dist/contract/sdk.actors.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "brains": ["dist/contract/sdk.brains.d.ts"],
+      "actors": ["dist/contract/sdk.actors.d.ts"]
+    }
+  },
   "engines": {
     "node": ">=22.0.0"
   },
-  "types": "dist/index.d.ts",
   "bin": {
     "rhachet": "./bin/run",
     "rhx": "./bin/rhx"
@@ -22,7 +43,8 @@
   "files": [
     "/bin",
     "/bin/*.bc",
-    "/dist"
+    "/dist",
+    "readme.md"
   ],
   "scripts": {
     "build:ts": "tsc -p ./tsconfig.build.json",
