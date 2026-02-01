@@ -1,0 +1,2 @@
+# keep node_modules for fixture
+!node_modules/

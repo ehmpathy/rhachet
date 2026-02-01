@@ -37,7 +37,10 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // route: --roles provided => init roles from packages
         if (options.roles && options.roles.length > 0) {
-          await initRolesFromPackages({ specifiers: options.roles }, context);
+          const result = await initRolesFromPackages(
+            { specifiers: options.roles },
+            context,
+          );
 
           // if --hooks also specified, apply hooks after init
           if (options.hooks !== undefined) {
@@ -47,6 +50,9 @@ export const invokeInit = ({ program }: { program: Command }): void => {
                 : undefined;
             await syncHooksForLinkedRoles({ brains }, context);
           }
+
+          // exit with failure if any errors occurred
+          if (result.errors.length) process.exit(1);
           return;
         }
 

@@ -1,5 +1,3 @@
-import { BadRequestError } from 'helpful-errors';
-
 import type { RoleRegistryManifest } from '@src/domain.objects';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 
@@ -44,14 +42,8 @@ export const getRoleRegistriesByConfigImplicit = async (
     } catch (error) {
       if (!(error instanceof Error)) throw error;
 
-      // collect error for packages that lack manifest
-      if (error instanceof BadRequestError) {
-        errors.push({ packageName, error });
-        continue;
-      }
-
-      // rethrow unexpected errors
-      throw error;
+      // collect error and continue — broken packages shouldn't halt init
+      errors.push({ packageName, error });
     }
   }
 

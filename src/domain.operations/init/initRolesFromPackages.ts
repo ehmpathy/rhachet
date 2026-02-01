@@ -16,7 +16,11 @@ import { getRolesFromManifests } from '../manifest/getRolesFromManifests';
 export interface InitRolesResult {
   rolesLinked: { specifier: RoleSpecifier; repo: string; role: string }[];
   rolesInitialized: { specifier: RoleSpecifier; repo: string; role: string }[];
-  errors: { specifier: RoleSpecifier; phase: 'link' | 'init'; error: Error }[];
+  errors: {
+    phase: 'discover' | 'link' | 'init';
+    specifier: RoleSpecifier;
+    error: Error;
+  }[];
 }
 
 /**
@@ -63,8 +67,23 @@ export const initRolesFromPackages = async (
   const result: InitRolesResult = {
     rolesLinked: [],
     rolesInitialized: [],
-    errors: [],
+    errors: packageErrors.map(({ packageName, error }) => ({
+      phase: 'discover' as const,
+      specifier: packageName.replace('rhachet-roles-', ''),
+      error,
+    })),
   };
+
+  // report package errors (broken packages that couldn't be loaded)
+  if (packageErrors.length > 0) {
+    console.log('');
+    console.log(`⚠️  ${packageErrors.length} package(s) failed to load:`);
+    for (const { packageName, error } of packageErrors) {
+      console.log(
+        `   ⛈️ ${packageName}:\n${indentLines({ text: error.message, prefix: '      > ' })}`,
+      );
+    }
+  }
 
   console.log('');
   console.log(`🔧 init ${roles.length} role(s)...`);

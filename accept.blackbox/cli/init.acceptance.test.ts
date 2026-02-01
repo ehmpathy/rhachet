@@ -28,7 +28,45 @@ describe('rhachet init', () => {
     });
   });
 
-  given('[case2] repo with rhachet-roles packages installed', () => {
+  given('[case2] repo with broken roles package and valid roles package', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-broken-roles-package' }),
+    );
+
+    when('[t0] init --roles tester (skips broken package)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'tester'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status (package error)', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stdout reports broken package error', () => {
+        expect(result.stdout).toContain('package(s) failed to load');
+        expect(result.stdout).toContain('broken');
+        expect(result.stdout).toContain('rhachet.repo.yml not found');
+      });
+
+      then('stdout contains role link message for tester', () => {
+        expect(result.stdout).toContain('repo=test/role=tester');
+      });
+
+      then('stdout shows 1 role linked', () => {
+        expect(result.stdout).toContain('1 role(s) linked');
+      });
+
+      then('stdout shows total errors', () => {
+        expect(result.stdout).toContain('error(s) occurred');
+      });
+    });
+  });
+
+  given('[case3] repo with rhachet-roles packages installed', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-roles-packages' }),
     );

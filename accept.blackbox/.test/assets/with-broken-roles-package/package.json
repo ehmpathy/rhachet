@@ -1,0 +1,9 @@
+{
+  "name": "test-with-broken-roles-package",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-test": "file:./node_modules/rhachet-roles-test",
+    "rhachet-roles-broken": "file:./node_modules/rhachet-roles-broken"
+  }
+}
