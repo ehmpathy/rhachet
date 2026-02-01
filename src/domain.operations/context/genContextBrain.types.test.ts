@@ -19,7 +19,7 @@ declare const repls: BrainRepl[];
  * test: no choice → brain.choice is null
  */
 () => {
-  const context = genContextBrain({ atoms, repls });
+  const context = genContextBrain({ brains: { atoms, repls } });
 
   // positive: brain.choice is null
   const _choice: null = context.brain.choice;
@@ -37,7 +37,10 @@ declare const repls: BrainRepl[];
  * test: choice: undefined → brain.choice is null
  */
 () => {
-  const context = genContextBrain({ atoms, repls, choice: undefined });
+  const context = genContextBrain({
+    brains: { atoms, repls },
+    choice: undefined,
+  });
 
   // positive: brain.choice is null
   const _choice: null = context.brain.choice;
@@ -48,8 +51,7 @@ declare const repls: BrainRepl[];
  */
 () => {
   const context = genContextBrain({
-    atoms,
-    repls,
+    brains: { atoms, repls },
     choice: { repl: 'anthropic/claude-code' },
   });
 
@@ -73,8 +75,7 @@ declare const repls: BrainRepl[];
  */
 () => {
   const context = genContextBrain({
-    atoms,
-    repls,
+    brains: { atoms, repls },
     choice: { atom: 'xai/grok-3' },
   });
 
@@ -98,8 +99,7 @@ declare const repls: BrainRepl[];
  */
 () => {
   const context = genContextBrain({
-    atoms,
-    repls,
+    brains: { atoms, repls },
     choice: 'xai/grok-3',
   });
 
@@ -125,8 +125,7 @@ declare const repls: BrainRepl[];
  */
 () => {
   const context = genContextBrain({
-    atoms,
-    repls,
+    brains: { atoms, repls },
     choice: 'xai/grok-3',
   });
 
@@ -146,8 +145,7 @@ declare const repls: BrainRepl[];
  */
 () => {
   const context = genContextBrain({
-    atoms,
-    repls,
+    brains: { atoms, repls },
     choice: 'anthropic/claude-code',
   });
 

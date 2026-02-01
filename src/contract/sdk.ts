@@ -14,6 +14,7 @@ export { genActor } from '@src/domain.operations/actor/genActor';
 export { genBrainContinuables } from '@src/domain.operations/brainContinuation/genBrainContinuables';
 export { calcBrainOutputCost } from '@src/domain.operations/brainCost/calcBrainOutputCost';
 export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainTokens';
+export { getAvailableBrains } from '@src/domain.operations/brains/getAvailableBrains';
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';

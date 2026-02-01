@@ -24,14 +24,16 @@ describe('genContextBrain.integration', () => {
       then('context is created successfully', () => {
         // note: external brains from npm packages don't have spec yet; cast for compatibility
         const context = genContextBrain({
-          atoms: [
-            ...getBrainAtomsByAnthropic(),
-            ...getBrainAtomsByOpenAI(),
-          ] as unknown as BrainAtom[],
-          repls: [
-            ...getBrainReplsByAnthropic(),
-            ...getBrainReplsByOpenAI(),
-          ] as unknown as BrainRepl[],
+          brains: {
+            atoms: [
+              ...getBrainAtomsByAnthropic(),
+              ...getBrainAtomsByOpenAI(),
+            ] as unknown as BrainAtom[],
+            repls: [
+              ...getBrainReplsByAnthropic(),
+              ...getBrainReplsByOpenAI(),
+            ] as unknown as BrainRepl[],
+          },
         });
         expect(context.brain).toBeDefined();
         expect(context.brain.atom).toBeDefined();
@@ -60,8 +62,7 @@ describe('genContextBrain.integration', () => {
         });
 
         const context = genContextBrain({
-          atoms: [testAtom],
-          repls: [],
+          brains: { atoms: [testAtom], repls: [] },
         });
 
         await context.brain.atom.ask({
@@ -103,8 +104,7 @@ describe('genContextBrain.integration', () => {
         });
 
         const context = genContextBrain({
-          atoms: [],
-          repls: [testRepl],
+          brains: { atoms: [], repls: [testRepl] },
         });
 
         await context.brain.repl.ask({
@@ -146,8 +146,7 @@ describe('genContextBrain.integration', () => {
         });
 
         const context = genContextBrain({
-          atoms: [],
-          repls: [testRepl],
+          brains: { atoms: [], repls: [testRepl] },
         });
 
         await context.brain.repl.act({
@@ -183,7 +182,7 @@ describe('genContextBrain.integration', () => {
         });
 
         const mockBriefs = [{ content: 'brief 1' }, { content: 'brief 2' }];
-        const context = genContextBrain({ atoms: [testAtom] });
+        const context = genContextBrain({ brains: { atoms: [testAtom] } });
 
         await context.brain.atom.ask({
           brain: testAtom,
