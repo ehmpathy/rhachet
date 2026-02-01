@@ -57,16 +57,18 @@ exports[`syncHooksForLinkedRoles given: [case5] errors on sync when: [t0] sync i
    └── ehmpathy/mechanic
 
 🪝 apply hooks to brains...
-   └── ⚠️  ehmpathy/mechanic → unknown-brain: no adapter found
+   └── ⛈️  ehmpathy/mechanic → unknown-brain: no adapter found
 
-⚠️  1 hook error(s) occurred
+⛈️  1 hook sync error(s) occurred
 "
 `;
 
 exports[`syncHooksForLinkedRoles given: [case6] discovery errors when: [t0] sync is executed then: output matches snapshot 1`] = `
 "
 🔭 search for linked roles with hooks...
-   ⚠️  broken-repo/broken-role: failed to parse role config
+
+⛈️  1 hook discovery error(s):
+   └── broken-repo/broken-role: failed to parse role config
    └── ehmpathy/mechanic
 
 🪝 apply hooks to brains...

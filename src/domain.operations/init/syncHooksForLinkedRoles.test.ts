@@ -23,7 +23,7 @@ const mockSyncAllRoleHooksIntoEachBrainRepl =
  * .what = captures console.log output for snapshot test
  */
 const captureConsoleOutput = async (
-  fn: () => Promise<void>,
+  fn: () => Promise<unknown>,
 ): Promise<string> => {
   const logs: string[] = [];
   const originalLog = console.log;

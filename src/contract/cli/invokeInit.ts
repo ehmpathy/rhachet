@@ -43,16 +43,21 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           );
 
           // if --hooks also specified, apply hooks after init
+          let hookErrors: Array<{ source: string; error: Error }> = [];
           if (options.hooks !== undefined) {
             const brains =
               Array.isArray(options.hooks) && options.hooks.length > 0
                 ? options.hooks
                 : undefined;
-            await syncHooksForLinkedRoles({ brains }, context);
+            const hookResult = await syncHooksForLinkedRoles(
+              { brains },
+              context,
+            );
+            hookErrors = hookResult.errors;
           }
 
           // exit with failure if any errors occurred
-          if (result.errors.length) process.exit(1);
+          if (result.errors.length || hookErrors.length) process.exit(1);
           return;
         }
 
@@ -62,7 +67,8 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
               : undefined;
-          await syncHooksForLinkedRoles({ brains }, context);
+          const hookResult = await syncHooksForLinkedRoles({ brains }, context);
+          if (hookResult.errors.length) process.exit(1);
           return;
         }
 

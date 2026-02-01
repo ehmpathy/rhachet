@@ -30,6 +30,7 @@ export type TestRepoFixture =
   | 'with-brains-packages-pinned'
   | 'with-roles-package'
   | 'with-broken-roles-package'
+  | 'with-broken-import-package'
   | 'without-roles-packages'
   | 'with-claude-config'
   | 'with-role-hooks'
