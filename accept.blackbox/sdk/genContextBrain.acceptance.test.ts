@@ -22,8 +22,7 @@ describe('genContextBrain', () => {
     when('[t0] choice matches an atom', () => {
       then('brain.choice is that atom', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: 'xai/grok-3',
         });
         expect(context.brain.choice).toBe(atom);
@@ -33,8 +32,7 @@ describe('genContextBrain', () => {
     when('[t1] choice matches a repl', () => {
       then('brain.choice is that repl', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: 'anthropic/claude-code',
         });
         expect(context.brain.choice).toBe(repl);
@@ -49,8 +47,7 @@ describe('genContextBrain', () => {
     when('[t0] typed repl choice provided', () => {
       then('brain.choice is the repl with correct type', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: { repl: 'anthropic/claude-code' },
         });
         // typed choice gives precise type: BrainRepl
@@ -68,8 +65,7 @@ describe('genContextBrain', () => {
     when('[t0] typed atom choice provided', () => {
       then('brain.choice is the atom with correct type', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: { atom: 'xai/grok-3' },
         });
         // typed choice gives precise type: BrainAtom
@@ -87,8 +83,7 @@ describe('genContextBrain', () => {
     when('[t0] context is created without choice', () => {
       then('brain.choice is null', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
         });
         // no choice gives type: null
         const choice: null = context.brain.choice;
@@ -104,8 +99,7 @@ describe('genContextBrain', () => {
     when('[t0] isBrainAtom guard is used', () => {
       then('it correctly identifies atoms', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: 'xai/grok-3',
         });
 
@@ -121,8 +115,7 @@ describe('genContextBrain', () => {
     when('[t1] isBrainRepl guard is used', () => {
       then('it correctly identifies repls', () => {
         const context = genContextBrain({
-          atoms: [atom],
-          repls: [repl],
+          brains: { atoms: [atom], repls: [repl] },
           choice: 'anthropic/claude-code',
         });
 
