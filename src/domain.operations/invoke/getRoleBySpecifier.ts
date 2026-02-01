@@ -26,17 +26,28 @@ export const getRoleBySpecifier = async (
   const isExplicit = context.config.usage.isExplicit();
   const registries: RoleRegistryManifest[] = await (async () => {
     if (isExplicit) {
-      const registries = (await context.config.usage.get.registries.explicit())
-        .registries;
-      if (registries.length === 0) {
-        BadRequestError.throw('No registries found in rhachet.use.ts');
+      console.log(``);
+      console.log(`🔭 rhachet.use.ts found, import roles from config...`);
+      try {
+        const registries = (
+          await context.config.usage.get.registries.explicit()
+        ).registries;
+        if (registries.length === 0) {
+          BadRequestError.throw('No registries found in rhachet.use.ts');
+        }
+        return registries;
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        console.log(``);
+        console.log(`⛈️  failed to load rhachet.use.ts:`);
+        console.log(`   └── ${error.message}`);
+        throw error;
       }
-      return registries;
     }
 
     // implicit discovery
     console.log(``);
-    console.log(`🔭 No rhachet.use.ts found, discover from packages...`);
+    console.log(`🔭 discover roles from packages...`);
     const implicit = await context.config.usage.get.registries.implicit();
 
     // warn about packages that lack rhachet.repo.yml

@@ -198,8 +198,7 @@ describe('rhachet roles link', () => {
       });
 
       then('stdout contains discovery message', () => {
-        expect(result.stdout).toContain('No rhachet.use.ts found');
-        expect(result.stdout).toContain('discover from packages');
+        expect(result.stdout).toContain('discover roles from packages');
       });
 
       then('creates .agent directory structure', () => {
