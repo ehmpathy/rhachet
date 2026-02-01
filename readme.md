@@ -42,6 +42,33 @@ npm install -g rhachet
 
 ---
 
+# entry points
+
+rhachet provides multiple entry points for optimal load times:
+
+| entry point        | what                                | when to use                              |
+| ------------------ | ----------------------------------- | ---------------------------------------- |
+| `rhachet`          | full SDK                            | need stitchers, templates, full features |
+| `rhachet/brains`   | brain objects + operations          | brain discovery, context creation        |
+| `rhachet/actors`   | actor + role objects + operations   | actor creation, role operations          |
+
+## lightweight imports
+
+```ts
+// full SDK — loads all modules
+import { genActor, genContextBrain, Stitcher } from 'rhachet';
+
+// brain-focused — loads only brain-related code
+import { genContextBrain, BrainAtom, BrainRepl } from 'rhachet/brains';
+
+// actor-focused — loads only actor + role code
+import { genActor, Actor, Role } from 'rhachet/actors';
+```
+
+use the lightweight entry points when you only need a subset of rhachet functionality. this significantly improves import time for applications that don't need stitchers, templates, or weave composition.
+
+---
+
 # 🧢 `roles.<use>`
 
 if you want to use rhachet, you want to use roles.
