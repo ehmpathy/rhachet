@@ -11,26 +11,41 @@ import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains
 export const syncHooksForLinkedRoles = async (
   input: { brains?: BrainSpecifier[] },
   context: ContextCli,
-): Promise<void> => {
+): Promise<{
+  errors: Array<{ source: string; error: Error }>;
+}> => {
   const { brains } = input;
 
   console.log('');
   console.log('🔭 search for linked roles with hooks...');
 
+  // track all errors for return
+  const errors: Array<{ source: string; error: Error }> = [];
+
   // get linked roles with hooks
   const { roles, errors: discoverErrors } =
     await getLinkedRolesWithHooks(context);
 
-  // report discover errors
-  for (const err of discoverErrors) {
-    console.log(`   ⚠️  ${err.repoSlug}/${err.roleSlug}: ${err.error.message}`);
+  // report discover errors loud and proud
+  if (discoverErrors.length > 0) {
+    console.log('');
+    console.log(`⛈️  ${discoverErrors.length} hook discovery error(s):`);
+    for (const err of discoverErrors) {
+      console.log(
+        `   └── ${err.repoSlug}/${err.roleSlug}: ${err.error.message}`,
+      );
+      errors.push({
+        source: `discover:${err.repoSlug}/${err.roleSlug}`,
+        error: err.error,
+      });
+    }
   }
 
   if (roles.length === 0) {
     console.log('');
     console.log('🫧 no roles with hooks found');
     console.log('');
-    return;
+    return { errors };
   }
 
   // report found roles with tree structure
@@ -99,11 +114,15 @@ export const syncHooksForLinkedRoles = async (
     }
   }
 
-  // collect errors
+  // collect sync errors
   for (const err of syncResult.errors) {
     outputLines.push(
-      `⚠️  ${err.role.repo}/${err.role.slug} → ${err.brain}: ${err.error.message}`,
+      `⛈️  ${err.role.repo}/${err.role.slug} → ${err.brain}: ${err.error.message}`,
     );
+    errors.push({
+      source: `sync:${err.role.repo}/${err.role.slug}→${err.brain}`,
+      error: err.error,
+    });
   }
 
   // output with tree structure
@@ -137,7 +156,9 @@ export const syncHooksForLinkedRoles = async (
     console.log('✨ hooks: no changes needed');
   }
   if (syncResult.errors.length > 0) {
-    console.log(`⚠️  ${syncResult.errors.length} hook error(s) occurred`);
+    console.log(`⛈️  ${syncResult.errors.length} hook sync error(s) occurred`);
   }
   console.log('');
+
+  return { errors };
 };

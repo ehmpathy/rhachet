@@ -1,0 +1,8 @@
+{
+  "name": "test-with-broken-import-package",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-broken-import": "file:./node_modules/rhachet-roles-broken-import"
+  }
+}
