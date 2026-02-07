@@ -1,0 +1,21 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "ALLOWED_KEY": {
+      "slug": "ALLOWED_KEY",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "SECRET_KEY": {
+      "slug": "SECRET_KEY",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

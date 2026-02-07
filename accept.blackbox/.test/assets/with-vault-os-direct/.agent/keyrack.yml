@@ -1,0 +1,4 @@
+keys:
+  DIRECT_TEST_KEY:
+    slug: DIRECT_TEST_KEY
+    mech: REPLICA

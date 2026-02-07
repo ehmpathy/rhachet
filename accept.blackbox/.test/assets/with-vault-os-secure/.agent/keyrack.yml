@@ -1,0 +1,4 @@
+keys:
+  SECURE_API_KEY:
+    slug: SECURE_API_KEY
+    mech: REPLICA

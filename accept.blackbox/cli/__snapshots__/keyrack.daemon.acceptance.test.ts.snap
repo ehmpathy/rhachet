@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack daemon cache given: [case1] repo with os.secure vault, after unlock when: [t0] keyrack get --key SECURE_API_KEY --json (no passphrase) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack daemon cache given: [case6] interactive unlock via stdin when: [t0] unlock via stdin then: unlock stdout matches snapshot 1`] = `
+"
+🔓 rhachet/keyrack unlock
+   └─ SECURE_API_KEY
+      ├─ vault: os.secure
+      └─ expires in: 540m
+done. 1 keys unlocked.
+
+"
+`;
+
+exports[`keyrack daemon cache given: [case6] interactive unlock via stdin when: [t1] get after interactive unlock (human readable) then: get stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ SECURE_API_KEY
+      ├─ vault: os.daemon
+      ├─ mech: REPLICA
+      └─ status: granted 🔑
+done. 1 granted.
+
+"
+`;

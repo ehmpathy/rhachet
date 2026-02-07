@@ -9,6 +9,7 @@ import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
 import { invokeInit } from './invokeInit';
+import { invokeKeyrack } from './invokeKeyrack';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
 import { invokeRepoIntrospect } from './invokeRepoIntrospect';
@@ -58,6 +59,7 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   invokeAct({ program }, context);
   invokeUpgrade({ program });
   invokeUpdate({ program });
+  invokeKeyrack({ program }); // filesystem only, no context needed
 
   // assure unique roles when explicit config is available
   if (context.config.usage.isExplicit()) {

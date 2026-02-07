@@ -1,0 +1,10 @@
+keys:
+  SAFE_API_KEY:
+    slug: SAFE_API_KEY
+    mech: REPLICA
+  GHP_TOKEN:
+    slug: GHP_TOKEN
+    mech: REPLICA
+  AKIA_TOKEN:
+    slug: AKIA_TOKEN
+    mech: REPLICA

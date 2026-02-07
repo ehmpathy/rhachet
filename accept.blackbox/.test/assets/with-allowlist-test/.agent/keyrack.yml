@@ -1,0 +1,4 @@
+keys:
+  ALLOWED_KEY:
+    slug: ALLOWED_KEY
+    mech: REPLICA

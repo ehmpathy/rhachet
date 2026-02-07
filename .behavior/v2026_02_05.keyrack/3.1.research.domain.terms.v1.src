@@ -1,0 +1,48 @@
+research the domain available in order to fulfill
+- this wish .behavior/v2026_02_05.keyrack/0.wish.md
+- this vision .behavior/v2026_02_05.keyrack/1.vision.md (if declared)
+- this criteria .behavior/v2026_02_05.keyrack/2.1.criteria.blackbox.md (if declared)
+
+specifically
+- what are the terms that we need to coin for the new domain.objects required to fulfill the above?
+  - entities
+  - events
+  - literals
+- what are the relationships between the domain objects?
+  - is there a treestruct of decoration?
+  - is there a treestruct of common subdomains?
+  - are there dependencies?
+- how do folks commonly talk about these domain.objects?
+  - use citations from websearch
+
+
+ultimatelly,
+- propose options for each of the new domain.objects, what should we call them?
+
+our objective is to
+- maximize specificity => eliminate ambiguity & minimize confusion
+- maximize intuition => eliminate friction & maximize adoption
+
+to create a ubiquitous language
+
+---
+
+use web search to discover and research
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+---
+
+explicitly consider parallel concepts from other domains
+- bluecollar
+- healthcare
+- recreation
+- cullinary
+etc
+
+the older the domain, the deeper the words
+
+---
+
+emit into .behavior/v2026_02_05.keyrack/3.1.research.domain.terms.v1.i1.md

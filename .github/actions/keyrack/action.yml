@@ -1,0 +1,151 @@
+name: keyrack
+description: resolve credentials via rhachet keyrack — short-lived tokens only
+
+inputs:
+  keys:
+    description: |
+      space-separated list of key slugs to grant
+      leave empty to grant all keys from repo manifest
+    required: false
+    default: ''
+  vault:
+    description: |
+      vault type to use for resolution
+      options: os.direct, os.secure, 1password
+    required: false
+    default: 'os.direct'
+  passphrase:
+    description: |
+      passphrase for encrypted vaults (os.secure)
+      required if vault is os.secure
+    required: false
+    default: ''
+
+outputs:
+  granted:
+    description: json array of successfully granted key slugs
+    value: ${{ steps.grant.outputs.granted }}
+  failed:
+    description: json array of failed key slugs with reasons
+    value: ${{ steps.grant.outputs.failed }}
+
+runs:
+  using: "composite"
+  steps:
+    # step 1: install rhachet if needed
+    - name: ensure rhachet available
+      id: setup
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "🔭 keyrack setup"
+
+        # check if rhachet is available
+        if command -v rhx &> /dev/null; then
+          echo "   └── rhachet already available"
+        else
+          echo "   ├── install rhachet..."
+          npm install -g rhachet
+          echo "   └── rhachet installed"
+        fi
+
+    # step 2: unlock vault if passphrase provided
+    - name: unlock vault
+      id: unlock
+      if: ${{ inputs.passphrase != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "🔭 keyrack unlock"
+
+        rhx keyrack unlock --for repo --passphrase "${{ inputs.passphrase }}" --json > /tmp/keyrack-unlock.json
+
+        UNLOCKED=$(jq -r '.unlocked | length' /tmp/keyrack-unlock.json)
+        echo "   └── unlocked $UNLOCKED vault(s)"
+
+    # step 3: grant credentials
+    - name: grant credentials
+      id: grant
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "🔭 keyrack grant"
+
+        KEYS="${{ inputs.keys }}"
+        GRANTED_SLUGS="[]"
+        FAILED_SLUGS="[]"
+
+        grant_key() {
+          local key="$1"
+          echo "   ├── grant: $key"
+
+          # run keyrack get for specific key
+          if rhx keyrack get --key "$key" --json > /tmp/keyrack-grant-${key}.json 2>&1; then
+            STATUS=$(jq -r '.status' /tmp/keyrack-grant-${key}.json)
+
+            if [ "$STATUS" = "granted" ]; then
+              # extract grant value and export to GITHUB_ENV
+              VALUE=$(jq -r '.grant.value' /tmp/keyrack-grant-${key}.json)
+              echo "${key}=${VALUE}" >> $GITHUB_ENV
+              echo "::add-mask::${VALUE}"
+              echo "   │   └── ✨ granted, exported to \$GITHUB_ENV"
+              GRANTED_SLUGS=$(echo "$GRANTED_SLUGS" | jq --arg k "$key" '. + [$k]')
+            else
+              MESSAGE=$(jq -r '.message // "unknown error"' /tmp/keyrack-grant-${key}.json)
+              echo "   │   └── ⛈️ $STATUS: $MESSAGE"
+              FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$key" --arg m "$MESSAGE" '. + [{slug: $k, reason: $m}]')
+            fi
+          else
+            echo "   │   └── ⛈️ command failed"
+            FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$key" '. + [{slug: $k, reason: "command failed"}]')
+          fi
+        }
+
+        if [ -z "$KEYS" ]; then
+          # grant all keys from repo manifest
+          echo "   ├── mode: all keys from repo manifest"
+
+          if rhx keyrack get --for repo --json > /tmp/keyrack-grant-all.json 2>&1; then
+            # iterate through each attempt
+            ATTEMPTS=$(jq -c '.[]' /tmp/keyrack-grant-all.json)
+            while IFS= read -r attempt; do
+              STATUS=$(echo "$attempt" | jq -r '.status')
+              if [ "$STATUS" = "granted" ]; then
+                SLUG=$(echo "$attempt" | jq -r '.grant.slug')
+                VALUE=$(echo "$attempt" | jq -r '.grant.value')
+                echo "${SLUG}=${VALUE}" >> $GITHUB_ENV
+                echo "::add-mask::${VALUE}"
+                echo "   ├── ✨ $SLUG granted"
+                GRANTED_SLUGS=$(echo "$GRANTED_SLUGS" | jq --arg k "$SLUG" '. + [$k]')
+              else
+                SLUG=$(echo "$attempt" | jq -r '.slug')
+                MESSAGE=$(echo "$attempt" | jq -r '.message // "unknown error"')
+                echo "   ├── ⛈️ $SLUG: $MESSAGE"
+                FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$SLUG" --arg m "$MESSAGE" '. + [{slug: $k, reason: $m}]')
+              fi
+            done <<< "$ATTEMPTS"
+          else
+            echo "   └── ⛈️ command failed"
+            exit 1
+          fi
+        else
+          # grant specific keys
+          echo "   ├── mode: specific keys"
+          for key in $KEYS; do
+            grant_key "$key"
+          done
+        fi
+
+        GRANTED_COUNT=$(echo "$GRANTED_SLUGS" | jq 'length')
+        FAILED_COUNT=$(echo "$FAILED_SLUGS" | jq 'length')
+        echo "   ├── granted: $GRANTED_COUNT"
+        echo "   └── failed: $FAILED_COUNT"
+
+        echo "granted=$GRANTED_SLUGS" >> $GITHUB_OUTPUT
+        echo "failed=$FAILED_SLUGS" >> $GITHUB_OUTPUT
+
+        # fail if any keys failed
+        if [ "$FAILED_COUNT" -gt 0 ]; then
+          echo "::error::$FAILED_COUNT key(s) failed to grant"
+          exit 1
+        fi

@@ -1,0 +1,18 @@
+then, start or continue to execute
+- phase0 to phaseN
+of blueprint
+- .behavior/v2026_02_05.keyrack/7.3.blueprint.v2.i1.md
+
+ref:
+- .behavior/v2026_02_05.keyrack/0.wish.md
+- .behavior/v2026_02_05.keyrack/1.vision.md (if declared)
+- .behavior/v2026_02_05.keyrack/2.1.criteria.blackbox.md (if declared)
+- .behavior/v2026_02_05.keyrack/7.3.blueprint.v2.i1.md
+
+
+---
+
+track your progress
+
+emit todos and check them off into
+- .behavior/v2026_02_05.keyrack/8.1.execution.phase0_to_phaseN.v1.i1.md
