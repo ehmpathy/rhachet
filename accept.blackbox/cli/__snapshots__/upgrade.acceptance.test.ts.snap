@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet upgrade given: [case3] upgrade --help when: [t0] rhachet upgrade --help then: stdout matches snapshot 1`] = `
+"Usage: rhachet upgrade [options]
+
+upgrade rhachet, role, and/or brain packages to latest versions
+
+Options:
+  --self                upgrade rhachet itself
+  --roles <roles...>    role specifiers to upgrade (* for all installed)
+  --brains <brains...>  brain specifiers to upgrade (* for all installed)
+  -h, --help            display help for command
+"
+`;
+
+exports[`rhachet upgrade given: [case4] repo with rhachet-roles-ehmpathy@1.17.20 installed when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: stdout.header matches snapshot 1`] = `
+"📦 upgrade (pnpm)
+   └── rhachet-roles-ehmpathy@latest"
+`;
+
+exports[`rhachet upgrade given: [case4] repo with rhachet-roles-ehmpathy@1.17.20 installed when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: stdout.summary matches snapshot 1`] = `"✨ 1 role(s) upgraded: ehmpathy/mechanic"`;
+
+exports[`rhachet upgrade given: [case7] repo with rhachet-brains-anthropic@0.1.0 installed when: [t1] rhachet upgrade --brains anthropic then: stdout.header matches snapshot 1`] = `
+"📦 upgrade (pnpm)
+   └── rhachet-brains-anthropic@latest"
+`;
+
+exports[`rhachet upgrade given: [case7] repo with rhachet-brains-anthropic@0.1.0 installed when: [t1] rhachet upgrade --brains anthropic then: stdout.summary matches snapshot 1`] = `"✨ 1 brain(s) upgraded: anthropic"`;
+
+exports[`rhachet upgrade given: [case8] repo with rhachet-roles-ehmpathy in package.json but not linked when: [t1] rhachet upgrade --roles * then: stdout.header matches snapshot 1`] = `
+"📦 upgrade (pnpm)
+   └── rhachet-roles-ehmpathy@latest"
+`;
+
+exports[`rhachet upgrade given: [case8] repo with rhachet-roles-ehmpathy in package.json but not linked when: [t1] rhachet upgrade --roles * then: stdout.summary matches snapshot 1`] = `"✨ 1 role(s) upgraded: ehmpathy/*"`;
+
+exports[`rhachet upgrade given: [case10] --roles ehmpathy/* with unlinked package when: [t1] rhachet upgrade --roles ehmpathy/* then: stdout.summary matches snapshot 1`] = `"✨ 1 role(s) upgraded: ehmpathy/*"`;
+
+exports[`rhachet upgrade given: [case11] --roles ehmpathy/* with linked role when: [t1] rhachet upgrade --roles ehmpathy/* then: stdout.summary matches snapshot 1`] = `
+"│ ✨ permissions applied:
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+✨ 1 role(s) upgraded: ehmpathy/*"
+`;
+
+exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked role when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: stdout.summary matches snapshot 1`] = `
+"│ ✨ permissions applied:
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+✨ 1 role(s) upgraded: ehmpathy/mechanic"
+`;
+
+exports[`rhachet upgrade given: [case13] --roles ehmpathy/designer with unlinked role (mechanic is linked) when: [t1] rhachet upgrade --roles ehmpathy/designer then: stdout.summary matches snapshot 1`] = `"✨ 1 role(s) upgraded: ehmpathy/designer"`;

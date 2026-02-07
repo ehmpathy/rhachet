@@ -1,11 +1,47 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+
+/**
+ * .what = extracts rhachet-controlled output from upgrade stdout
+ * .why = omits pnpm/npm output which varies between runs
+ *
+ * .note = returns { header, summary } for snapshot assertions
+ */
+const extractRhachetOutput = (input: {
+  stdout: string;
+}): { header: string; summary: string } => {
+  const lines = input.stdout.split('\n');
+
+  // header = lines before first pnpm/npm output line
+  const headerLines: string[] = [];
+  let headerEnded = false;
+  for (const line of lines) {
+    if (
+      !headerEnded &&
+      (line.includes('WARN') ||
+        line.includes('Progress:') ||
+        line.includes('Packages:') ||
+        line.includes('dependencies:'))
+    ) {
+      headerEnded = true;
+    }
+    if (!headerEnded) headerLines.push(line);
+  }
+
+  // summary = lines that start with ✨
+  const summaryLines = lines.filter((line) => line.includes('✨'));
+
+  return {
+    header: headerLines.join('\n').trim(),
+    summary: summaryLines.join('\n').trim(),
+  };
+};
 
 /**
  * .what = reads the installed version of a package from package.json
@@ -72,8 +108,8 @@ describe('rhachet upgrade', () => {
         expect(result.status).not.toEqual(0);
       });
 
-      then('stderr contains error about package not installed', () => {
-        expect(result.stderr).toContain('not installed');
+      then('stderr contains error about install failure', () => {
+        expect(result.stderr).toContain('install failed');
       });
     });
   });
@@ -109,6 +145,10 @@ describe('rhachet upgrade', () => {
 
       then('stdout contains description', () => {
         expect(result.stdout).toContain('upgrade');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
   });
@@ -172,6 +212,25 @@ describe('rhachet upgrade', () => {
       then('pnpm was used (default package manager)', () => {
         // stdout should mention pnpm since pnpm is the default
         expect(result.upgradeResult.stdout).toContain('pnpm');
+      });
+
+      then('reinit does NOT run (role not linked)', () => {
+        // reinit outputs "🔧 init" when it runs - should NOT be present
+        expect(result.upgradeResult.stdout).not.toContain('🔧 init');
+      });
+
+      then('stdout.header matches snapshot', () => {
+        const { header } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(header).toMatchSnapshot();
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
       });
     });
   });
@@ -260,6 +319,387 @@ describe('rhachet upgrade', () => {
       then('pnpm was used (default package manager)', () => {
         // stdout should mention pnpm since pnpm is the default
         expect(result.upgradeResult.stdout).toContain('pnpm');
+      });
+
+      then('stdout.header matches snapshot', () => {
+        const { header } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(header).toMatchSnapshot();
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case8] repo with rhachet-roles-ehmpathy in package.json but not linked', () => {
+    const scene = useBeforeAll(async () => {
+      // create temp repo and install dependencies
+      // note: fixture has NO .agent/ directory - roles are not linked
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-packages-pinned',
+        install: true,
+      });
+
+      // capture version before upgrade
+      const versionBefore = getInstalledVersion({
+        cwd: repo.path,
+        packageName: 'rhachet-roles-ehmpathy',
+      });
+
+      return { repo, versionBefore };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ has no linked roles', () => {
+        // verify the fixture has no .agent directory
+        const agentDirExists = existsSync(join(scene.repo.path, '.agent'));
+        expect(agentDirExists).toEqual(false);
+      });
+
+      then('rhachet-roles-ehmpathy is at 1.17.20', () => {
+        expect(scene.versionBefore).toEqual('1.17.20');
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles *', () => {
+      const result = useBeforeAll(async () => {
+        // run the upgrade command with wildcard
+        // note: quote the * to prevent shell glob expansion
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', "'*'"],
+          cwd: scene.repo.path,
+        });
+
+        // capture version after upgrade
+        const versionAfter = getInstalledVersion({
+          cwd: scene.repo.path,
+          packageName: 'rhachet-roles-ehmpathy',
+        });
+
+        return { upgradeResult, versionAfter };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('upgrades rhachet-roles-ehmpathy', () => {
+        // version should be >= 1.17.20 (package.json discovery works without link)
+        const [major, minor, patch] = result.versionAfter.split('.').map(Number);
+        expect(major).toBeGreaterThanOrEqual(1);
+        if (major === 1) {
+          expect(minor).toBeGreaterThanOrEqual(17);
+          if (minor === 17) {
+            expect(patch).toBeGreaterThanOrEqual(20);
+          }
+        }
+      });
+
+      then('stdout contains role upgrade summary', () => {
+        expect(result.upgradeResult.stdout).toContain('role(s) upgraded');
+      });
+
+      then('reinit does NOT run (no linked roles)', () => {
+        // reinit outputs "🔧 init" when it runs - should NOT be present
+        expect(result.upgradeResult.stdout).not.toContain('🔧 init');
+      });
+
+      then('stdout.header matches snapshot', () => {
+        const { header } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(header).toMatchSnapshot();
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * upgrade vs reinit guarantee tests:
+   * - package upgrade happens regardless of link status (via package.json discovery)
+   * - reinit happens ONLY for linked roles (via .agent/ discovery)
+   */
+
+  given('[case9] --roles * with linked role', () => {
+    const scene = useBeforeAll(async () => {
+      // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+
+      const versionBefore = getInstalledVersion({
+        cwd: repo.path,
+        packageName: 'rhachet-roles-ehmpathy',
+      });
+
+      return { repo, versionBefore };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ has linked mechanic role', () => {
+        const agentDirExists = existsSync(
+          join(scene.repo.path, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+        );
+        expect(agentDirExists).toEqual(true);
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles *', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', "'*'"],
+          cwd: scene.repo.path,
+        });
+
+        const versionAfter = getInstalledVersion({
+          cwd: scene.repo.path,
+          packageName: 'rhachet-roles-ehmpathy',
+        });
+
+        return { upgradeResult, versionAfter };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('upgrades the package', () => {
+        const [major, minor, patch] = result.versionAfter.split('.').map(Number);
+        expect(major).toBeGreaterThanOrEqual(1);
+        if (major === 1) {
+          expect(minor).toBeGreaterThanOrEqual(17);
+          if (minor === 17) {
+            expect(patch).toBeGreaterThanOrEqual(20);
+          }
+        }
+      });
+
+      then('reinit runs for linked roles', () => {
+        // reinit outputs "🔧 init" when it runs
+        expect(result.upgradeResult.stdout).toContain('🔧 init');
+      });
+
+      then('reinit links the role', () => {
+        expect(result.upgradeResult.stdout).toContain('role(s) linked');
+      });
+    });
+  });
+
+  given('[case10] --roles ehmpathy/* with unlinked package', () => {
+    const scene = useBeforeAll(async () => {
+      // fixture has NO .agent/ directory (not linked)
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-packages-pinned',
+        install: true,
+      });
+
+      return { repo };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ does not exist', () => {
+        const agentDirExists = existsSync(join(scene.repo.path, '.agent'));
+        expect(agentDirExists).toEqual(false);
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles ehmpathy/*', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/*'],
+          cwd: scene.repo.path,
+        });
+
+        const versionAfter = getInstalledVersion({
+          cwd: scene.repo.path,
+          packageName: 'rhachet-roles-ehmpathy',
+        });
+
+        return { upgradeResult, versionAfter };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('upgrades the package', () => {
+        const [major, minor, patch] = result.versionAfter.split('.').map(Number);
+        expect(major).toBeGreaterThanOrEqual(1);
+      });
+
+      then('reinit does NOT run (no linked roles)', () => {
+        // reinit outputs "🔧 init" when it runs - should NOT be present
+        expect(result.upgradeResult.stdout).not.toContain('🔧 init');
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case11] --roles ehmpathy/* with linked role', () => {
+    const scene = useBeforeAll(async () => {
+      // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+
+      return { repo };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ has linked mechanic role', () => {
+        const agentDirExists = existsSync(
+          join(scene.repo.path, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+        );
+        expect(agentDirExists).toEqual(true);
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles ehmpathy/*', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/*'],
+          cwd: scene.repo.path,
+        });
+
+        return { upgradeResult };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('reinit runs for linked roles', () => {
+        expect(result.upgradeResult.stdout).toContain('🔧 init');
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case12] --roles ehmpathy/mechanic with linked role', () => {
+    const scene = useBeforeAll(async () => {
+      // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+
+      return { repo };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ has linked mechanic role', () => {
+        const agentDirExists = existsSync(
+          join(scene.repo.path, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+        );
+        expect(agentDirExists).toEqual(true);
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles ehmpathy/mechanic', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
+          cwd: scene.repo.path,
+        });
+
+        return { upgradeResult };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('reinit runs for the linked role', () => {
+        expect(result.upgradeResult.stdout).toContain('🔧 init');
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case13] --roles ehmpathy/designer with unlinked role (mechanic is linked)', () => {
+    const scene = useBeforeAll(async () => {
+      // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
+      // but designer is NOT linked
+      const repo = genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+
+      return { repo };
+    });
+
+    when('[t0] before upgrade', () => {
+      then('.agent/ has linked mechanic role', () => {
+        const agentDirExists = existsSync(
+          join(scene.repo.path, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+        );
+        expect(agentDirExists).toEqual(true);
+      });
+
+      then('.agent/ does NOT have designer role', () => {
+        const agentDirExists = existsSync(
+          join(scene.repo.path, '.agent', 'repo=ehmpathy', 'role=designer'),
+        );
+        expect(agentDirExists).toEqual(false);
+      });
+    });
+
+    when('[t1] rhachet upgrade --roles ehmpathy/designer', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/designer'],
+          cwd: scene.repo.path,
+        });
+
+        return { upgradeResult };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('reinit does NOT run (designer is not linked)', () => {
+        // reinit outputs "🔧 init" when it runs - should NOT be present
+        expect(result.upgradeResult.stdout).not.toContain('🔧 init');
+      });
+
+      then('stdout.summary matches snapshot', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(summary).toMatchSnapshot();
       });
     });
   });

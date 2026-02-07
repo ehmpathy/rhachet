@@ -16,7 +16,7 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
     .option('--self', 'upgrade rhachet itself')
     .option(
       '--roles <roles...>',
-      'role specifiers to upgrade (* for all linked)',
+      'role specifiers to upgrade (* for all installed)',
     )
     .option(
       '--brains <brains...>',
@@ -45,7 +45,7 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
         }
         if (result.upgradedRoles.length > 0) {
           console.log(
-            `✨ ${result.upgradedRoles.length} role(s) upgraded: ${result.upgradedRoles.map((r) => `${r.repo}/${r.role}`).join(', ')}`,
+            `✨ ${result.upgradedRoles.length} role(s) upgraded: ${result.upgradedRoles.join(', ')}`,
           );
         }
         if (result.upgradedBrains.length > 0) {

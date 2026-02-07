@@ -1,0 +1,8 @@
+{
+  "name": "test-with-roles-linked",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-ehmpathy": "1.17.20"
+  }
+}
