@@ -5,11 +5,8 @@ import { ContextCli } from '@src/domain.objects/ContextCli';
 import { execUpgrade } from './execUpgrade';
 
 // mock dependencies
-jest.mock('./discoverLinkedRoles', () => ({
-  discoverLinkedRoles: jest.fn(),
-}));
-jest.mock('./resolveRolesToPackages', () => ({
-  resolveRolesToPackages: jest.fn(),
+jest.mock('./expandRoleSupplierSlugs', () => ({
+  expandRoleSupplierSlugs: jest.fn(),
 }));
 jest.mock('./resolveBrainsToPackages', () => ({
   resolveBrainsToPackages: jest.fn(),
@@ -26,17 +23,15 @@ jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
 
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
 
-import { discoverLinkedRoles } from './discoverLinkedRoles';
 import { execNpmInstall } from './execNpmInstall';
+import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
 import { getFileDotDependencies } from './getFileDotDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
-import { resolveRolesToPackages } from './resolveRolesToPackages';
 
-const mockDiscoverLinkedRoles = discoverLinkedRoles as jest.MockedFunction<
-  typeof discoverLinkedRoles
->;
-const mockResolveRolesToPackages =
-  resolveRolesToPackages as jest.MockedFunction<typeof resolveRolesToPackages>;
+const mockExpandRoleSupplierSlugs =
+  expandRoleSupplierSlugs as jest.MockedFunction<
+    typeof expandRoleSupplierSlugs
+  >;
 const mockResolveBrainsToPackages =
   resolveBrainsToPackages as jest.MockedFunction<
     typeof resolveBrainsToPackages
@@ -55,10 +50,11 @@ describe('execUpgrade', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockDiscoverLinkedRoles.mockReturnValue([
-      { repo: 'ehmpathy', role: 'mechanic' },
-    ]);
-    mockResolveRolesToPackages.mockResolvedValue(['rhachet-roles-ehmpathy']);
+    mockExpandRoleSupplierSlugs.mockResolvedValue({
+      packages: ['rhachet-roles-ehmpathy'],
+      linkedRoles: [{ repo: 'ehmpathy', role: 'mechanic' }],
+      slugs: ['ehmpathy/*'] as any,
+    });
     mockResolveBrainsToPackages.mockResolvedValue(['rhachet-brains-anthropic']);
     mockGetFileDotDependencies.mockReturnValue(new Set());
     mockInitRolesFromPackages.mockResolvedValue({
@@ -86,7 +82,10 @@ describe('execUpgrade', () => {
             },
             context,
           );
-          expect(mockDiscoverLinkedRoles).toHaveBeenCalled();
+          expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+            { specs: ['*'] },
+            context,
+          );
           expect(mockResolveBrainsToPackages).toHaveBeenCalledWith(
             { specs: ['*'] },
             context,
@@ -105,7 +104,11 @@ describe('execUpgrade', () => {
   given('--self flag only', () => {
     beforeEach(() => {
       // reset mocks for this case: no roles or brains to resolve
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([]);
     });
 
@@ -117,7 +120,6 @@ describe('execUpgrade', () => {
           { packages: ['rhachet'] },
           context,
         );
-        expect(mockDiscoverLinkedRoles).not.toHaveBeenCalled();
         expect(mockInitRolesFromPackages).not.toHaveBeenCalled();
         expect(mockResolveBrainsToPackages).toHaveBeenCalledWith(
           { specs: [] },
@@ -134,17 +136,20 @@ describe('execUpgrade', () => {
     });
 
     when('execUpgrade is called', () => {
-      then('expands wildcard via discoverLinkedRoles', async () => {
+      then('resolves wildcard via expandRoleSupplierSlugs', async () => {
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
-        expect(mockDiscoverLinkedRoles).toHaveBeenCalled();
+        expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+          { specs: ['*'] },
+          context,
+        );
         expect(mockExecNpmInstall).toHaveBeenCalledWith(
           { packages: ['rhachet-roles-ehmpathy'] },
           context,
         );
       });
 
-      then('re-initializes roles after upgrade', async () => {
+      then('re-initializes only linked roles after upgrade', async () => {
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
         expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
@@ -174,13 +179,13 @@ describe('execUpgrade', () => {
     });
   });
 
-  given('--roles mechanic flag (explicit role)', () => {
+  given('--roles ehmpathy flag (explicit repo slug)', () => {
     when('execUpgrade is called', () => {
-      then('parses role specifier correctly', async () => {
-        await execUpgrade({ roleSpecs: ['mechanic'] }, context);
+      then('passes spec to expandRoleSupplierSlugs', async () => {
+        await execUpgrade({ roleSpecs: ['ehmpathy'] }, context);
 
-        expect(mockResolveRolesToPackages).toHaveBeenCalledWith(
-          { roles: [{ repo: 'mechanic', role: 'mechanic' }] },
+        expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+          { specs: ['ehmpathy'] },
           context,
         );
       });
@@ -189,11 +194,24 @@ describe('execUpgrade', () => {
 
   given('--roles ehmpathy/mechanic flag (explicit repo/role)', () => {
     when('execUpgrade is called', () => {
-      then('parses repo/role format correctly', async () => {
+      then('passes repo/role format to expandRoleSupplierSlugs', async () => {
         await execUpgrade({ roleSpecs: ['ehmpathy/mechanic'] }, context);
 
-        expect(mockResolveRolesToPackages).toHaveBeenCalledWith(
-          { roles: [{ repo: 'ehmpathy', role: 'mechanic' }] },
+        expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+          { specs: ['ehmpathy/mechanic'] },
+          context,
+        );
+      });
+    });
+  });
+
+  given('--roles rhachet-roles-ehmpathy flag (full package name)', () => {
+    when('execUpgrade is called', () => {
+      then('passes full package name to expander', async () => {
+        await execUpgrade({ roleSpecs: ['rhachet-roles-ehmpathy'] }, context);
+
+        expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+          { specs: ['rhachet-roles-ehmpathy'] },
           context,
         );
       });
@@ -218,44 +236,39 @@ describe('execUpgrade', () => {
     });
   });
 
-  given('duplicate roles specified', () => {
+  given('multiple role specs provided', () => {
     beforeEach(() => {
       mockResolveBrainsToPackages.mockResolvedValue([]);
     });
 
     when('execUpgrade is called', () => {
-      then('deduplicates roles', async () => {
-        mockDiscoverLinkedRoles.mockReturnValue([
-          { repo: 'ehmpathy', role: 'mechanic' },
-          { repo: 'ehmpathy', role: 'tuner' },
-        ]);
+      then(
+        'passes all specs to expander (deduplication happens in expander)',
+        async () => {
+          await execUpgrade({ roleSpecs: ['ehmpathy', '*'] }, context);
 
-        await execUpgrade({ roleSpecs: ['ehmpathy/mechanic', '*'] }, context);
-
-        // mechanic should only appear once
-        expect(mockResolveRolesToPackages).toHaveBeenCalledWith(
-          {
-            roles: [
-              { repo: 'ehmpathy', role: 'mechanic' },
-              { repo: 'ehmpathy', role: 'tuner' },
-            ],
-          },
-          context,
-        );
-      });
+          // specs are passed through; deduplication is expander responsibility
+          expect(mockExpandRoleSupplierSlugs).toHaveBeenCalledWith(
+            { specs: ['ehmpathy', '*'] },
+            context,
+          );
+        },
+      );
     });
   });
 
-  given('no roles to upgrade', () => {
+  given('no linked roles to reinit', () => {
     beforeEach(() => {
       mockResolveBrainsToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: ['rhachet-roles-ehmpathy'],
+        linkedRoles: [], // no linked roles
+        slugs: ['ehmpathy/*'] as any,
+      });
     });
 
-    when('execUpgrade is called with empty roles', () => {
+    when('execUpgrade is called with --roles *', () => {
       then('skips initRolesFromPackages', async () => {
-        mockDiscoverLinkedRoles.mockReturnValue([]);
-        mockResolveRolesToPackages.mockResolvedValue([]);
-
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
         expect(mockInitRolesFromPackages).not.toHaveBeenCalled();
@@ -279,22 +292,29 @@ describe('execUpgrade', () => {
         expect(mockExecNpmInstall).not.toHaveBeenCalled();
       });
 
-      then('still re-initializes excluded roles', async () => {
-        await execUpgrade({ roleSpecs: ['*'] }, context);
+      then(
+        'still re-initializes linked roles from excluded packages',
+        async () => {
+          await execUpgrade({ roleSpecs: ['*'] }, context);
 
-        // should still link/init the role
-        expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
-          { specifiers: ['ehmpathy/mechanic'] },
-          context,
-        );
-      });
+          // should still link/init the role
+          expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
+            { specifiers: ['ehmpathy/mechanic'] },
+            context,
+          );
+        },
+      );
     });
   });
 
   given('rhachet itself has file:. dependency', () => {
     beforeEach(() => {
       mockGetFileDotDependencies.mockReturnValue(new Set(['rhachet']));
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([]);
     });
 
@@ -313,14 +333,14 @@ describe('execUpgrade', () => {
       mockGetFileDotDependencies.mockReturnValue(
         new Set(['rhachet-roles-ehmpathy']),
       );
-      mockDiscoverLinkedRoles.mockReturnValue([
-        { repo: 'ehmpathy', role: 'mechanic' },
-        { repo: 'bhuild', role: 'behaver' },
-      ]);
-      mockResolveRolesToPackages.mockResolvedValue([
-        'rhachet-roles-ehmpathy',
-        'rhachet-roles-bhuild',
-      ]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: ['rhachet-roles-ehmpathy', 'rhachet-roles-bhuild'],
+        linkedRoles: [
+          { repo: 'ehmpathy', role: 'mechanic' },
+          { repo: 'bhuild', role: 'behaver' },
+        ],
+        slugs: ['ehmpathy/*', 'bhuild/*'] as any,
+      });
       mockResolveBrainsToPackages.mockResolvedValue([]);
     });
 
@@ -339,8 +359,11 @@ describe('execUpgrade', () => {
 
   given('--brains * flag', () => {
     beforeEach(() => {
-      mockDiscoverLinkedRoles.mockReturnValue([]);
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([
         'rhachet-brains-anthropic',
         'rhachet-brains-opencode',
@@ -372,15 +395,17 @@ describe('execUpgrade', () => {
 
         expect(result.upgradedSelf).toBe(false);
         expect(result.upgradedRoles).toEqual([]);
-        expect(mockDiscoverLinkedRoles).not.toHaveBeenCalled();
       });
     });
   });
 
   given('--brains anthropic flag (explicit brain)', () => {
     beforeEach(() => {
-      mockDiscoverLinkedRoles.mockReturnValue([]);
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([
         'rhachet-brains-anthropic',
       ]);
@@ -437,9 +462,7 @@ describe('execUpgrade', () => {
         );
 
         expect(result.upgradedSelf).toBe(false);
-        expect(result.upgradedRoles).toEqual([
-          { repo: 'ehmpathy', role: 'mechanic' },
-        ]);
+        expect(result.upgradedRoles).toEqual(['ehmpathy/*']);
         expect(result.upgradedBrains).toEqual(['anthropic']);
       });
     });
@@ -450,8 +473,11 @@ describe('execUpgrade', () => {
       mockGetFileDotDependencies.mockReturnValue(
         new Set(['rhachet-brains-anthropic']),
       );
-      mockDiscoverLinkedRoles.mockReturnValue([]);
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([
         'rhachet-brains-anthropic',
       ]);
@@ -479,8 +505,11 @@ describe('execUpgrade', () => {
       mockGetFileDotDependencies.mockReturnValue(
         new Set(['rhachet-brains-anthropic']),
       );
-      mockDiscoverLinkedRoles.mockReturnValue([]);
-      mockResolveRolesToPackages.mockResolvedValue([]);
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
       mockResolveBrainsToPackages.mockResolvedValue([
         'rhachet-brains-anthropic',
         'rhachet-brains-opencode',

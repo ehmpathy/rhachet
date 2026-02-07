@@ -48,8 +48,15 @@ export const execNpmInstall = (
   // build package list with @latest
   const packagesLatest = input.packages.map((p) => `${p}@latest`);
 
-  // log what we're about to do
-  console.log(`📦 upgrade (${pm}): ${packagesLatest.join(', ')}`);
+  // log what we're about to do with treestruct format
+  console.log('');
+  console.log(`📦 upgrade (${pm})`);
+  packagesLatest.forEach((pkg, i) => {
+    const isLast = i === packagesLatest.length - 1;
+    const prefix = isLast ? '└──' : '├──';
+    console.log(`   ${prefix} ${pkg}`);
+  });
+  console.log('');
 
   // execute install
   const result = spawnSync(pm, ['install', ...packagesLatest], {

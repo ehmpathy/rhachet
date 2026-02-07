@@ -21,6 +21,12 @@
             "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/sessionstart.notify-permissions",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo bhuild --role behaver --init claude.hooks/sessionstart.boot-behavior",
+            "timeout": 10,
+            "author": "repo=bhuild/role=behaver"
           }
         ]
       }
@@ -44,24 +50,29 @@
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "EnterPlanMode",
         "hooks": [
           {
             "type": "command",
-            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-terms.gerunds",
-            "timeout": 5,
-            "author": "repo=ehmpathy/role=mechanic"
-          },
-          {
-            "type": "command",
-            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-terms.blocklist",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-planmode",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
       },
       {
-        "matcher": "Edit",
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/posttooluse.guardBorder.onWebfetch",
+            "timeout": 60,
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -77,17 +88,28 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm run --if-present fix",
+            "timeout": 30,
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
     "allow": [
+      "Write(.agent/.notes/**)",
+      "Edit(.agent/.notes/**)",
       "mcp__ide__getDiagnostics",
       "WebSearch",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:hub.docker.com)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:biomejs.dev)",
+      "WebFetch",
       "Bash(ls:*)",
       "Bash(tree:*)",
       "Bash(cat:*)",
@@ -121,16 +143,33 @@
       "Bash(npx rhachet run --skill mvsafe:*)",
       "Bash(npx rhachet run --skill rmsafe:*)",
       "Bash(npx rhachet run --skill symlink:*)",
+      "Bash(npx rhachet run --skill git.commit.uses:*)",
+      "Bash(npx rhachet run --skill git.commit.uses -- get)",
+      "Bash(npx rhachet run --skill git.commit.set:*)",
+      "Bash(npx rhachet run --skill git.commit.set -- --message 'fix(api): validate input')",
+      "Bash(npx rhachet run --skill git.commit.set -- --message 'fix(api): validate input' --push)",
+      "Bash(npx rhachet run --skill git.commit.set -- --message 'fix(api): validate input' --unstaged ignore)",
+      "Bash(npx rhachet run --skill git.commit.set -- --message 'fix(api): validate input' --unstaged include)",
       "Bash(npx rhachet run --skill show.gh.action.logs:*)",
       "Bash(npx rhachet run --skill show.gh.test.errors:*)",
       "Bash(npx rhachet run --skill show.gh.test.errors --scope test-integration)",
+      "Bash(npx rhachet run --skill get.package.docs:*)",
+      "Bash(npx rhachet run --skill get.package.docs readme --of iso-price)",
+      "Bash(npx rhachet run --skill get.package.docs filetree --of iso-price)",
       "Bash(npx rhachet run:*)",
       "Bash(npx rhachet:*)",
       "Bash(npm view:*)",
       "Bash(npm list:*)",
       "Bash(npm remove:*)",
       "Bash(npm help:*)",
+      "Bash(npm why:*)",
+      "Bash(pnpm view:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm remove:*)",
       "Bash(pnpm help:*)",
+      "Bash(pnpm why:*)",
+      "Bash(npm ci)",
+      "Bash(pnpm install --frozen-lockfile)",
       "Bash(npx tsx ./bin/run:*)",
       "Bash(npm run build:*)",
       "Bash(npm run build:compile)",
@@ -195,6 +234,7 @@
     ],
     "deny": [
       "Bash(bash:*)",
+      "Bash(cd:*)",
       "Bash(find:*)",
       "Bash(gh api --method DELETE:*)",
       "Bash(gh api --method PATCH:*)",
@@ -256,8 +296,14 @@
       "Bash(mv:*)",
       "Bash(npx biome:*)",
       "Bash(npx jest:*)",
+      "Bash(npx rhachet run --skill git.commit.uses -- set:*)",
+      "Bash(npx rhachet run --skill git.commit.uses set:*)",
       "Bash(sed:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Edit(.meter/*)",
+      "EnterPlanMode",
+      "Read(.quarantine/*)",
+      "Write(.meter/*)"
     ],
     "ask": [
       "Bash(bash:*)",
