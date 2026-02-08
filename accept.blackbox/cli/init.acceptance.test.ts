@@ -143,6 +143,10 @@ describe('rhachet init', () => {
         expect(result.stdout).toContain('1 role(s) linked');
         expect(result.stdout).toContain('1 role(s) initialized');
       });
+
+      then('full stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
     });
 
     when('[t1] init without --roles flag', () => {

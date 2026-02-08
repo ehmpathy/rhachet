@@ -136,7 +136,6 @@ export const initRolesFromPackages = async (
   }
 
   // summary
-  console.log('');
   if (result.rolesLinked.length > 0) {
     console.log(`✨ ${result.rolesLinked.length} role(s) linked`);
   }

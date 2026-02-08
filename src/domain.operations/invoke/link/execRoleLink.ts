@@ -170,6 +170,9 @@ export const execRoleLink = (
     });
   }
 
+  // blank line after link block for visual separation
+  console.log('');
+
   return {
     briefsCount: briefs.fileCount,
     skillsCount: skills.fileCount,

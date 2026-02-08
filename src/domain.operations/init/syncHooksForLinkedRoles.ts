@@ -16,7 +16,6 @@ export const syncHooksForLinkedRoles = async (
 }> => {
   const { brains } = input;
 
-  console.log('');
   console.log('🔭 search for linked roles with hooks...');
 
   // track all errors for return

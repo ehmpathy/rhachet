@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`execRoleLink (integration) given: a role with briefs, skills, and inits when: [t0] execRoleLink is called then: stdout matches snapshot 1`] = `
+"📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├── + .agent/readme.md
+   │  ├── + .agent/repo=.this/readme.md
+   │  ├── + .agent/repo=ehmpathy/readme.md
+   │  ├── + .agent/repo=ehmpathy/.gitignore
+   │  ├── + .agent/repo=ehmpathy/role=mechanic/readme.md
+   │  ├── + .agent/repo=ehmpathy/role=mechanic/briefs/test-briefs
+   │  ├── + .agent/repo=ehmpathy/role=mechanic/skills/test-skills
+   │  └── + .agent/repo=ehmpathy/role=mechanic/inits/test-inits
+   └─ stats
+       ├── 2 brief(s)
+       ├── 1 skill(s)
+       └── 1 init(s)
+"
+`;

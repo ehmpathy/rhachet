@@ -35,6 +35,7 @@ export type TestRepoFixture =
   | 'without-roles-packages'
   | 'with-claude-config'
   | 'with-role-hooks'
+  | 'with-roles-full'
   | 'with-file-dot-dep';
 
 /**
