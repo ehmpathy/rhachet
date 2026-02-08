@@ -1,16 +1,14 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`syncHooksForLinkedRoles given: [case1] no roles with hooks found when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
 
 🫧 no roles with hooks found
 "
 `;
 
 exports[`syncHooksForLinkedRoles given: [case2] one role, one brain, one hook created when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
    └── ehmpathy/mechanic
 
 🪝 apply hooks to brains...
@@ -22,8 +20,7 @@ exports[`syncHooksForLinkedRoles given: [case2] one role, one brain, one hook cr
 `;
 
 exports[`syncHooksForLinkedRoles given: [case3] multiple roles, multiple brains, mixed changes when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
    ├── ehmpathy/mechanic
    └── ehmpathy/designer
 
@@ -41,8 +38,7 @@ exports[`syncHooksForLinkedRoles given: [case3] multiple roles, multiple brains,
 `;
 
 exports[`syncHooksForLinkedRoles given: [case4] no changes needed when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
    └── ehmpathy/mechanic
 
 🪝 apply hooks to brains...
@@ -52,8 +48,7 @@ exports[`syncHooksForLinkedRoles given: [case4] no changes needed when: [t0] syn
 `;
 
 exports[`syncHooksForLinkedRoles given: [case5] errors on sync when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
    └── ehmpathy/mechanic
 
 🪝 apply hooks to brains...
@@ -64,8 +59,7 @@ exports[`syncHooksForLinkedRoles given: [case5] errors on sync when: [t0] sync i
 `;
 
 exports[`syncHooksForLinkedRoles given: [case6] discovery errors when: [t0] sync is executed then: output matches snapshot 1`] = `
-"
-🔭 search for linked roles with hooks...
+"🔭 search for linked roles with hooks...
 
 ⛈️  1 hook discovery error(s):
    └── broken-repo/broken-role: failed to parse role config

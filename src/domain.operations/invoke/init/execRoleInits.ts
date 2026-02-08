@@ -23,7 +23,6 @@ export const execRoleInits = async (input: {
     return { commandsExecuted: 0, commandsTotal: 0 };
   }
 
-  console.log('');
   console.log(`💪 init role repo=${input.repo.slug}/role=${input.role.slug}`);
 
   // execute each command sequentially
