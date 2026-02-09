@@ -15,6 +15,7 @@ export interface RoleManifest {
     dirs?: { uri: string } | { uri: string }[];
     exec?: { cmd: string }[];
   };
+  boot?: { uri: string };
 }
 export class RoleManifest
   extends DomainEntity<RoleManifest>

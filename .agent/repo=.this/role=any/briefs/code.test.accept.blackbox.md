@@ -22,7 +22,7 @@ these tests exercise the same code paths users experience, without access to int
 accept.blackbox/                      # @/accept.blackbox
   .test/
     assets/                           # fixture templates copied into temp repos
-      minimal/                        # bare rhachet.use.ts
+      minimal/                        # bare .agent/ structure
       with-skills/                    # includes sample skills
       with-briefs/                    # includes sample briefs
       with-registry/                  # complete role registry
@@ -83,14 +83,14 @@ fixture templates live in `.test/assets/` and are copied into temp repos by `gen
 
 | fixture         | contents                                                       |
 | --------------- | -------------------------------------------------------------- |
-| `minimal`       | bare `rhachet.use.ts` with empty registries                    |
+| `minimal`       | bare `.agent/` structure                                       |
 | `with-skills`   | sample skills in `.agent/repo=.this/role=any/skills/`          |
 | `with-briefs`   | sample briefs + readme in `.agent/repo=.this/role=any/briefs/` |
 | `with-registry` | complete role registry with skills + briefs                    |
 
 to add a new fixture:
 1. create a new directory under `.test/assets/`
-2. add the fixture files (rhachet.use.ts, .agent/ structure, etc)
+2. add the fixture files (`.agent/` structure, boot.yml, etc)
 3. add the fixture name to `TestRepoFixture` type in `genTestTempRepo.ts`
 
 ## .coverage

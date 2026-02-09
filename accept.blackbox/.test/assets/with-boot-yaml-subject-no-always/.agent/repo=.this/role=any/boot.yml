@@ -1,0 +1,7 @@
+subject.test:
+  briefs:
+    say:
+      - briefs/test-only.md
+  skills:
+    say:
+      - skills/test-tool.sh

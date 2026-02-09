@@ -19,8 +19,17 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
       '--if-present',
       'exit silently if role directory does not exist (no error)',
     )
+    .option(
+      '--subject <slugs>',
+      'boot specific subjects (comma-separated, subject mode only)',
+    )
     .action(
-      async (opts: { repo?: string; role?: string; ifPresent?: boolean }) => {
+      async (opts: {
+        repo?: string;
+        role?: string;
+        ifPresent?: boolean;
+        subject?: string;
+      }) => {
         // require --role for all cases
         if (!opts.role)
           BadRequestError.throw('--role is required (e.g., --role mechanic)');
@@ -45,11 +54,17 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
           return;
         }
 
+        // parse subject option
+        const subjects = opts.subject
+          ? opts.subject.split(',').map((s) => s.trim())
+          : undefined;
+
         // boot the role resources
         await bootRoleResources({
           slugRepo: roleDir.slugRepo,
           slugRole: roleDir.slugRole,
           ifPresent: opts.ifPresent ?? false,
+          subjects,
         });
       },
     );

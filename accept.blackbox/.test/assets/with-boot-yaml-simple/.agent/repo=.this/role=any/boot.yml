@@ -1,0 +1,7 @@
+briefs:
+  say:
+    - briefs/always-say.md
+    - briefs/subdir/**/*.md
+skills:
+  say:
+    - skills/say-me.sh

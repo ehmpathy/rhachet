@@ -1,0 +1,4 @@
+briefs:
+  say:
+    - briefs/full-brief.md
+    - briefs/minified-brief.md

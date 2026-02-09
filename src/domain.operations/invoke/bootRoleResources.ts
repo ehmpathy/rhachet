@@ -1,3 +1,7 @@
+import { BadRequestError } from 'helpful-errors';
+
+import { computeBootPlan } from '@src/domain.operations/boot/computeBootPlan';
+import { parseRoleBootYaml } from '@src/domain.operations/boot/parseRoleBootYaml';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { extractSkillDocumentation } from '@src/domain.operations/role/extractSkillDocumentation';
@@ -15,15 +19,19 @@ export const bootRoleResources = async ({
   slugRepo,
   slugRole,
   ifPresent,
+  subjects,
+  cwd = process.cwd(),
 }: {
   slugRepo: string;
   slugRole: string;
   ifPresent: boolean;
+  subjects?: string[];
+  cwd?: string;
 }): Promise<void> => {
   const isRepoThis = slugRepo === '.this';
 
   const roleDir = resolve(
-    process.cwd(),
+    cwd,
     '.agent',
     `repo=${slugRepo}`,
     `role=${slugRole}`,
@@ -45,6 +53,7 @@ export const bootRoleResources = async ({
   const briefsDir = resolve(roleDir, 'briefs');
   const skillsDir = resolve(roleDir, 'skills');
   const readmePath = resolve(roleDir, 'readme.md');
+  const bootYamlPath = resolve(roleDir, 'boot.yml');
 
   // blocklisted brief directories (work-in-progress and deprecated content)
   const blocklist = ['.scratch', '.archive'];
@@ -62,10 +71,45 @@ export const bootRoleResources = async ({
   assertZeroOrphanMinifiedBriefs({ orphans });
 
   const skillFiles = allFiles.filter((f) => f.startsWith(skillsDir));
+
+  // load and parse boot.yml if present
+  const bootConfig = existsSync(bootYamlPath)
+    ? parseRoleBootYaml({
+        content: readFileSync(bootYamlPath, 'utf-8'),
+        path: bootYamlPath,
+      })
+    : null;
+
+  // validate: --subject requires subject mode
+  if (subjects && subjects.length > 0) {
+    if (!bootConfig || bootConfig.mode !== 'subject') {
+      throw new BadRequestError('--subject requires boot.yml in subject mode', {
+        subjects,
+        mode: bootConfig?.mode ?? 'none',
+      });
+    }
+  }
+
+  // compute which resources to say vs ref
+  // briefRefs carry pathToOriginal (for glob match) and pathToMinified (for content)
+  const bootPlan = await computeBootPlan({
+    config: bootConfig,
+    briefRefs,
+    skillPaths: skillFiles,
+    cwd: roleDir,
+    subjects,
+  });
+
+  // combine all relevant files (readme is always say)
+  // for briefs, use pathToOriginal for file count (content path is resolved separately)
   const relevantFiles = [
     ...(readmeFile ? [readmeFile] : []),
-    ...briefRefs.map((ref) => ref.pathToMinified ?? ref.pathToOriginal),
-    ...skillFiles,
+    ...bootPlan.briefs.say.map((ref) => ref.pathToOriginal),
+    ...bootPlan.briefs.ref.map((ref) => ref.pathToOriginal),
+    ...bootPlan.skills.say,
+    ...bootPlan.skills.ref,
+    ...bootPlan.also.briefs.map((ref) => ref.pathToOriginal),
+    ...bootPlan.also.skills,
   ];
 
   // handle empty case
@@ -79,17 +123,26 @@ export const bootRoleResources = async ({
     return;
   }
 
-  // calculate stats
+  // calculate stats (only count chars for "say" resources, which consume tokens)
   let totalChars = 0;
-  for (const filepath of relevantFiles) {
-    const isSkill = filepath.startsWith(skillsDir);
-    if (isSkill) {
-      const doc = extractSkillDocumentation(filepath);
-      totalChars += doc.length;
-    } else {
-      const content = readFileSync(filepath, 'utf-8');
-      totalChars += content.length;
-    }
+
+  // count readme if present
+  if (readmeFile) {
+    const content = readFileSync(readmeFile, 'utf-8');
+    totalChars += content.length;
+  }
+
+  // count say briefs (use .md.min content when available)
+  for (const ref of bootPlan.briefs.say) {
+    const contentPath = ref.pathToMinified ?? ref.pathToOriginal;
+    const content = readFileSync(contentPath, 'utf-8');
+    totalChars += content.length;
+  }
+
+  // count say skills
+  for (const filepath of bootPlan.skills.say) {
+    const doc = extractSkillDocumentation(filepath);
+    totalChars += doc.length;
   }
 
   const approxTokens = Math.ceil(totalChars / 4);
@@ -100,13 +153,32 @@ export const bootRoleResources = async ({
       ? `< $0.01`
       : `$${approxCost.toFixed(2).replace(/\.?0+$/, '')}`;
 
+  // compute counts for stats
+  const briefsSayCount = bootPlan.briefs.say.length;
+  const briefsRefCount = bootPlan.briefs.ref.length;
+  const skillsSayCount = bootPlan.skills.say.length;
+  const skillsRefCount = bootPlan.skills.ref.length;
+  const hasRefResources = briefsRefCount > 0 || skillsRefCount > 0;
+
   // print stats helper
   const printStats = (): void => {
     console.log('<stats>');
     console.log('quant');
     console.log(`  ├── files = ${relevantFiles.length}`);
-    console.log(`  │   ├── briefs = ${briefRefs.length}`);
-    console.log(`  │   └── skills = ${skillFiles.length}`);
+
+    // show say/ref breakdown if any resources are ref'd
+    if (hasRefResources) {
+      console.log(`  │   ├── briefs = ${briefsSayCount + briefsRefCount}`);
+      console.log(`  │   │   ├── say = ${briefsSayCount}`);
+      console.log(`  │   │   └── ref = ${briefsRefCount}`);
+      console.log(`  │   └── skills = ${skillsSayCount + skillsRefCount}`);
+      console.log(`  │       ├── say = ${skillsSayCount}`);
+      console.log(`  │       └── ref = ${skillsRefCount}`);
+    } else {
+      console.log(`  │   ├── briefs = ${briefsSayCount}`);
+      console.log(`  │   └── skills = ${skillsSayCount}`);
+    }
+
     console.log(`  ├── chars = ${totalChars}`);
     console.log(`  └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`);
     console.log('</stats>');
@@ -116,32 +188,66 @@ export const bootRoleResources = async ({
   // print stats header
   printStats();
 
-  // print readme
+  // helper to get relative path for output
+  const getRelativePath = (filepath: string): string =>
+    `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`;
+
+  // print readme (always say with full content)
   if (readmeFile) {
-    const relativePath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, readmeFile)}`;
+    const relativePath = getRelativePath(readmeFile);
     console.log(`<readme path="${relativePath}">`);
     console.log(readFileSync(readmeFile, 'utf-8'));
-    console.log(`</readme>`);
+    console.log('</readme>');
     console.log('');
   }
 
-  // print briefs (use pathToOriginal for tag identity, content from pathToMinified ?? pathToOriginal)
-  for (const ref of briefRefs) {
-    const identityPath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, ref.pathToOriginal)}`;
+  // print say briefs (full content, use .md.min when available)
+  for (const ref of bootPlan.briefs.say) {
     const contentPath = ref.pathToMinified ?? ref.pathToOriginal;
-
-    console.log(`<brief path="${identityPath}">`);
+    const relativePath = getRelativePath(contentPath);
+    console.log(`<brief.say path="${relativePath}">`);
     console.log(readFileSync(contentPath, 'utf-8'));
-    console.log(`</brief>`);
+    console.log('</brief.say>');
     console.log('');
   }
 
-  // print skills
-  for (const filepath of skillFiles) {
-    const relativePath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`;
-    console.log(`<skill path="${relativePath}">`);
+  // print ref briefs (path only)
+  for (const ref of bootPlan.briefs.ref) {
+    const relativePath = getRelativePath(ref.pathToOriginal);
+    console.log(`<brief.ref path="${relativePath}"/>`);
+    console.log('');
+  }
+
+  // print say skills (full content)
+  for (const filepath of bootPlan.skills.say) {
+    const relativePath = getRelativePath(filepath);
+    console.log(`<skill.say path="${relativePath}">`);
     console.log(extractSkillDocumentation(filepath));
-    console.log(`</skill>`);
+    console.log('</skill.say>');
+    console.log('');
+  }
+
+  // print ref skills (path only)
+  for (const filepath of bootPlan.skills.ref) {
+    const relativePath = getRelativePath(filepath);
+    console.log(`<skill.ref path="${relativePath}"/>`);
+    console.log('');
+  }
+
+  // print also section (unclaimed resources in subject mode)
+  const hasAlsoResources =
+    bootPlan.also.briefs.length > 0 || bootPlan.also.skills.length > 0;
+  if (hasAlsoResources) {
+    console.log('<also>');
+    for (const ref of bootPlan.also.briefs) {
+      const relativePath = getRelativePath(ref.pathToOriginal);
+      console.log(`  <brief.ref path="${relativePath}"/>`);
+    }
+    for (const filepath of bootPlan.also.skills) {
+      const relativePath = getRelativePath(filepath);
+      console.log(`  <skill.ref path="${relativePath}"/>`);
+    }
+    console.log('</also>');
     console.log('');
   }
 

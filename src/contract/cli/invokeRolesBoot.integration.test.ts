@@ -167,13 +167,13 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief file contents were printed
           expect(logSpy).toHaveBeenCalledWith(
-            '<brief path=".agent/repo=test/role=mechanic/briefs/.briefs/brief1.md">',
+            '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief1.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('This is test brief 1'),
           );
           expect(logSpy).toHaveBeenCalledWith(
-            '<brief path=".agent/repo=test/role=mechanic/briefs/.briefs/brief2.md">',
+            '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief2.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('This is test brief 2'),
@@ -181,7 +181,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that skill documentation was extracted (not full implementation)
           expect(logSpy).toHaveBeenCalledWith(
-            '<skill path=".agent/repo=test/role=mechanic/skills/.skills/skill1.sh">',
+            '<skill.say path=".agent/repo=test/role=mechanic/skills/.skills/skill1.sh">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Skill 1 - Test skill'),
@@ -497,7 +497,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that brief file was printed with correct path
             expect(logSpy).toHaveBeenCalledWith(
-              '<brief path=".agent/repo=.this/role=any/briefs/local-brief.md">',
+              '<brief.say path=".agent/repo=.this/role=any/briefs/local-brief.md">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('This is a local brief for the any role'),
@@ -505,7 +505,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that skill documentation was extracted
             expect(logSpy).toHaveBeenCalledWith(
-              '<skill path=".agent/repo=.this/role=any/skills/local-skill.sh">',
+              '<skill.say path=".agent/repo=.this/role=any/skills/local-skill.sh">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('Local Skill'),
@@ -554,7 +554,7 @@ describe('invokeRolesBoot (integration)', () => {
 
             // Check that brief file was printed with correct path
             expect(logSpy).toHaveBeenCalledWith(
-              '<brief path=".agent/repo=.this/role=robot/briefs/robot-brief.md">',
+              '<brief.say path=".agent/repo=.this/role=robot/briefs/robot-brief.md">',
             );
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining('This is a brief for the robot role'),
@@ -725,7 +725,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief was printed
           expect(logSpy).toHaveBeenCalledWith(
-            '<brief path=".agent/repo=.this/role=any/briefs/uppercase-test.md">',
+            '<brief.say path=".agent/repo=.this/role=any/briefs/uppercase-test.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Testing case insensitivity'),
@@ -765,7 +765,7 @@ describe('invokeRolesBoot (integration)', () => {
 
           // Check that brief was printed
           expect(logSpy).toHaveBeenCalledWith(
-            '<brief path=".agent/repo=.this/role=robot/briefs/dotprefix-test.md">',
+            '<brief.say path=".agent/repo=.this/role=robot/briefs/dotprefix-test.md">',
           );
           expect(logSpy).toHaveBeenCalledWith(
             expect.stringContaining('Testing .this syntax with robot role'),
