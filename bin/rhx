@@ -80,10 +80,16 @@ if [ "$1" = "keyrack" ] && [ "$2" = "unlock" ]; then
   fi
 fi
 
-# short-circuit other keyrack commands (via jit path, not bun binary)
+# short-circuit keyrack commands (via jit path, not bun binary)
 if [ "$1" = "keyrack" ]; then
   shift
   exec "$SCRIPT_DIR/run.jit" keyrack "$@"
+fi
+
+# short-circuit upgrade command (top-level rhachet command, not a skill)
+if [ "$1" = "upgrade" ]; then
+  shift
+  exec "$SCRIPT_DIR/run.jit" upgrade "$@"
 fi
 
 # default: proxy to run --skill
