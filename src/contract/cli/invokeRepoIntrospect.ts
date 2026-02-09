@@ -8,6 +8,9 @@ import {
   castIntoRoleRegistryManifest,
   serializeRoleRegistryManifest,
 } from '@src/domain.operations/manifest/castIntoRoleRegistryManifest';
+import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
+import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
+import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -77,6 +80,21 @@ export const invokeRepoIntrospect = ({
 
       // fail fast if any skills are not executable
       assertRegistrySkillsExecutable({ registry });
+
+      // fail fast if any role has orphan .md.min briefs
+      for (const role of registry.roles) {
+        const briefsDirs = Array.isArray(role.briefs.dirs)
+          ? role.briefs.dirs
+          : [role.briefs.dirs];
+        for (const briefsDir of briefsDirs) {
+          const briefFiles = getAllFilesFromDir(briefsDir.uri).sort();
+          const { orphans } = getRoleBriefRefs({
+            briefFiles,
+            briefsDir: briefsDir.uri,
+          });
+          assertZeroOrphanMinifiedBriefs({ orphans });
+        }
+      }
 
       // generate manifest
       console.log(``);

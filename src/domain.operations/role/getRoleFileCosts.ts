@@ -1,3 +1,5 @@
+import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
+import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { readFileSync } from 'node:fs';
@@ -43,43 +45,84 @@ export const getRoleFileCosts = (input: {
   // collect all files
   const allFiles = getAllFiles(roleDir).sort();
 
+  // blocklisted brief directories (work-in-progress and deprecated content)
+  const blocklist = ['.scratch', '.archive'];
+
+  // partition brief files and resolve .md.min preference
+  const briefFilesRaw = allFiles
+    .filter((f) => f.startsWith(briefsDir))
+    .filter((f) => !blocklist.some((dir) => f.includes(`/${dir}/`)));
+  const { refs: briefRefs, orphans } = getRoleBriefRefs({
+    briefFiles: briefFilesRaw,
+    briefsDir,
+  });
+  assertZeroOrphanMinifiedBriefs({ orphans });
+
+  // collect non-brief files
+  const skillFiles = allFiles.filter((f) => f.startsWith(skillsDir));
+  const otherFiles = allFiles.filter(
+    (f) => !f.startsWith(briefsDir) && !f.startsWith(skillsDir),
+  );
+
   // calculate cost per million tokens ($3/mil)
   const costPerMillionTokens = 3;
 
-  // compute costs for each file
-  const fileCosts: FileCost[] = allFiles.map((filepath) => {
-    const isSkill = filepath.startsWith(skillsDir);
-    const isBrief = filepath.startsWith(briefsDir);
-
-    // determine content to count
-    const contentToCount = isSkill
-      ? extractSkillDocumentation(filepath)
-      : readFileSync(filepath, 'utf-8');
-
-    // calculate metrics
+  // helper to compute cost for a single file
+  const computeFileCost = (input: {
+    filepath: string;
+    relativePath: string;
+    type: FileCost['type'];
+    isSkill: boolean;
+  }): FileCost => {
+    const contentToCount = input.isSkill
+      ? extractSkillDocumentation(input.filepath)
+      : readFileSync(input.filepath, 'utf-8');
     const chars = contentToCount.length;
     const tokens = Math.ceil(chars / 4);
     const cost = (tokens / 1_000_000) * costPerMillionTokens;
-
-    // determine file type
-    const type: FileCost['type'] = isSkill
-      ? 'skill'
-      : isBrief
-        ? 'brief'
-        : 'other';
-
     return {
-      path: filepath,
-      relativePath: `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`,
+      path: input.filepath,
+      relativePath: input.relativePath,
       chars,
       tokens,
       cost,
-      type,
-      isDocsOnly: isSkill,
+      type: input.type,
+      isDocsOnly: input.isSkill,
     };
+  };
+
+  // compute costs for briefs (pathToOriginal for identity, pathToMinified ?? pathToOriginal for content)
+  const briefCosts: FileCost[] = briefRefs.map((ref) => {
+    const contentPath = ref.pathToMinified ?? ref.pathToOriginal;
+    return computeFileCost({
+      filepath: contentPath,
+      relativePath: `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, ref.pathToOriginal)}`,
+      type: 'brief',
+      isSkill: false,
+    });
   });
 
-  return fileCosts;
+  // compute costs for skills
+  const skillCosts: FileCost[] = skillFiles.map((filepath) =>
+    computeFileCost({
+      filepath,
+      relativePath: `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`,
+      type: 'skill',
+      isSkill: true,
+    }),
+  );
+
+  // compute costs for other files
+  const otherCosts: FileCost[] = otherFiles.map((filepath) =>
+    computeFileCost({
+      filepath,
+      relativePath: `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`,
+      type: 'other',
+      isSkill: false,
+    }),
+  );
+
+  return [...otherCosts, ...briefCosts, ...skillCosts];
 };
 
 /**

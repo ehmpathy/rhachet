@@ -1,3 +1,5 @@
+import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
+import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { extractSkillDocumentation } from '@src/domain.operations/role/extractSkillDocumentation';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
@@ -48,13 +50,21 @@ export const bootRoleResources = async ({
   const blocklist = ['.scratch', '.archive'];
 
   const readmeFile = allFiles.find((f) => f === readmePath);
-  const briefFiles = allFiles
+  const briefFilesRaw = allFiles
     .filter((f) => f.startsWith(briefsDir))
     .filter((f) => !blocklist.some((dir) => f.includes(`/${dir}/`)));
+
+  // resolve .md.min preference and detect orphans
+  const { refs: briefRefs, orphans } = getRoleBriefRefs({
+    briefFiles: briefFilesRaw,
+    briefsDir,
+  });
+  assertZeroOrphanMinifiedBriefs({ orphans });
+
   const skillFiles = allFiles.filter((f) => f.startsWith(skillsDir));
   const relevantFiles = [
     ...(readmeFile ? [readmeFile] : []),
-    ...briefFiles,
+    ...briefRefs.map((ref) => ref.pathToMinified ?? ref.pathToOriginal),
     ...skillFiles,
   ];
 
@@ -95,7 +105,7 @@ export const bootRoleResources = async ({
     console.log('<stats>');
     console.log('quant');
     console.log(`  ├── files = ${relevantFiles.length}`);
-    console.log(`  │   ├── briefs = ${briefFiles.length}`);
+    console.log(`  │   ├── briefs = ${briefRefs.length}`);
     console.log(`  │   └── skills = ${skillFiles.length}`);
     console.log(`  ├── chars = ${totalChars}`);
     console.log(`  └── tokens ≈ ${approxTokens} (${costFormatted} at $3/mil)`);
@@ -106,21 +116,32 @@ export const bootRoleResources = async ({
   // print stats header
   printStats();
 
-  // print each file
-  for (const filepath of relevantFiles) {
+  // print readme
+  if (readmeFile) {
+    const relativePath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, readmeFile)}`;
+    console.log(`<readme path="${relativePath}">`);
+    console.log(readFileSync(readmeFile, 'utf-8'));
+    console.log(`</readme>`);
+    console.log('');
+  }
+
+  // print briefs (use pathToOriginal for tag identity, content from pathToMinified ?? pathToOriginal)
+  for (const ref of briefRefs) {
+    const identityPath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, ref.pathToOriginal)}`;
+    const contentPath = ref.pathToMinified ?? ref.pathToOriginal;
+
+    console.log(`<brief path="${identityPath}">`);
+    console.log(readFileSync(contentPath, 'utf-8'));
+    console.log(`</brief>`);
+    console.log('');
+  }
+
+  // print skills
+  for (const filepath of skillFiles) {
     const relativePath = `.agent/repo=${slugRepo}/role=${slugRole}/${relative(roleDir, filepath)}`;
-    const isSkill = filepath.startsWith(skillsDir);
-    const isReadme = filepath === readmePath;
-    const tagName = isSkill ? 'skill' : isReadme ? 'readme' : 'brief';
-
-    console.log(`<${tagName} path="${relativePath}">`);
-
-    const content = isSkill
-      ? extractSkillDocumentation(filepath)
-      : readFileSync(filepath, 'utf-8');
-
-    console.log(content);
-    console.log(`</${tagName}>`);
+    console.log(`<skill path="${relativePath}">`);
+    console.log(extractSkillDocumentation(filepath));
+    console.log(`</skill>`);
     console.log('');
   }
 

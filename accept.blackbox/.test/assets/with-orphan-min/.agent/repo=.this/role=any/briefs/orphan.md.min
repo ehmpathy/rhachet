@@ -1,0 +1,2 @@
+# orphan brief
+this .md.min file has no .md source => triggers orphan failfast.

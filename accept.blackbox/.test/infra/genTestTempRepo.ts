@@ -36,7 +36,11 @@ export type TestRepoFixture =
   | 'with-claude-config'
   | 'with-role-hooks'
   | 'with-roles-full'
-  | 'with-file-dot-dep';
+  | 'with-file-dot-dep'
+  | 'with-min-briefs'
+  | 'with-orphan-min'
+  | 'with-mixed-min'
+  | 'with-scratch-archive-min';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

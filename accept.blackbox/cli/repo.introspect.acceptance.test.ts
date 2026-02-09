@@ -204,7 +204,41 @@ describe('rhachet repo introspect', () => {
     });
   });
 
-  given('[case6] rhachet-roles package with only .ts/.md files in skills', () => {
+  given('[case6] rhachet-roles package with orphan .md.min in briefs', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+
+      // create briefs directory and add orphan .md.min (no .md source)
+      const briefsDir = resolve(tempRepo.path, 'roles/mechanic/briefs');
+      mkdirSync(briefsDir, { recursive: true });
+      writeFileSync(
+        resolve(briefsDir, 'orphan.md.min'),
+        'orphan brief without source',
+      );
+
+      return tempRepo;
+    });
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr names the orphan file', () => {
+        expect(result.stderr).toContain('orphan.md.min');
+      });
+    });
+  });
+
+  given('[case7] rhachet-roles package with only .ts/.md files in skills', () => {
     const repo = useBeforeAll(async () => {
       const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
 
