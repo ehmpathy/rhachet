@@ -1,4 +1,90 @@
 #!/bin/sh
 # .what = proxy that prepends `run --skill` and delegates to rhachet
 # .why = shorthand for `rhachet run --skill`
-exec rhachet run --skill "$@"
+#
+# .note = keyrack is short-circuited to avoid skill proxy overhead
+# .note = keyrack unlock is sourceable to persist KEYRACK_PASSPHRASE in parent shell
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# detect if being sourced (for keyrack unlock)
+# when sourced, $0 is the shell (bash, zsh, sh) not the executable path
+_rhx_is_sourced() {
+  case "$0" in
+    *rhx*) return 1 ;;  # executed
+    *) return 0 ;;      # sourced
+  esac
+}
+
+# handle keyrack unlock specially
+if [ "$1" = "keyrack" ] && [ "$2" = "unlock" ]; then
+  # extract passphrase from args
+  _rhx_passphrase=""
+  _rhx_args=""
+  _rhx_skip_next=""
+  shift 2  # remove "keyrack unlock"
+  for _rhx_arg in "$@"; do
+    if [ -n "$_rhx_skip_next" ]; then
+      _rhx_passphrase="$_rhx_arg"
+      _rhx_skip_next=""
+    elif [ "$_rhx_arg" = "--passphrase" ]; then
+      _rhx_skip_next="1"
+    else
+      _rhx_args="$_rhx_args $_rhx_arg"
+    fi
+  done
+
+  if _rhx_is_sourced; then
+    # sourced: verify passphrase via unlock command, then export to parent shell
+    if [ -n "$_rhx_passphrase" ]; then
+      # call unlock with --json to verify passphrase works
+      _rhx_result=$("$SCRIPT_DIR/run.jit" keyrack unlock --for repo --passphrase "$_rhx_passphrase" --json $_rhx_args)
+      _rhx_status=$?
+      if [ $_rhx_status -eq 0 ]; then
+        export KEYRACK_PASSPHRASE="$_rhx_passphrase"
+        echo ""
+        echo "🔓 rhachet/keyrack unlock"
+        echo "└─ KEYRACK_PASSPHRASE: ✨ exported to shell"
+        echo "done. vault unlocked for this session."
+        echo ""
+      else
+        echo ""
+        echo "🔓 rhachet/keyrack unlock"
+        echo "└─ status: ⛈️ failed"
+        echo "   └─ $_rhx_result"
+        echo ""
+      fi
+    else
+      echo ""
+      echo "🔓 rhachet/keyrack unlock"
+      echo "└─ status: ⛈️ error"
+      echo "   └─ --passphrase required when sourced"
+      echo ""
+    fi
+    # cleanup temp vars (don't pollute parent shell)
+    unset _rhx_passphrase _rhx_args _rhx_skip_next _rhx_arg _rhx_result _rhx_status
+    return 0 2>/dev/null || exit 0
+  else
+    # executed: print instructions to source instead
+    echo ""
+    echo "🔓 rhachet/keyrack unlock"
+    echo "└─ status: 📋 source required"
+    echo ""
+    echo "to unlock the vault, source this command:"
+    echo ""
+    echo "  . rhx keyrack unlock --passphrase \"your-passphrase\""
+    echo ""
+    echo "this exports KEYRACK_PASSPHRASE to your shell for subsequent rhx keyrack get calls."
+    echo ""
+    exit 0
+  fi
+fi
+
+# short-circuit other keyrack commands (via jit path, not bun binary)
+if [ "$1" = "keyrack" ]; then
+  shift
+  exec "$SCRIPT_DIR/run.jit" keyrack "$@"
+fi
+
+# default: proxy to run --skill
+exec "$SCRIPT_DIR/run" run --skill "$@"

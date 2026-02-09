@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t0] rhx keyrack list then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ (no keys configured)
+done. 0 keys configured.
+
+"
+`;

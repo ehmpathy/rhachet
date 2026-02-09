@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack set given: [case1] repo without host manifest when: [t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.direct --json then: stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "exid": null,
+  "mech": "REPLICA",
+  "slug": "NEW_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.direct",
+}
+`;

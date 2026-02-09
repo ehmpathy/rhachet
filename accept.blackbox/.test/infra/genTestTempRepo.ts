@@ -40,7 +40,12 @@ export type TestRepoFixture =
   | 'with-min-briefs'
   | 'with-orphan-min'
   | 'with-mixed-min'
-  | 'with-scratch-archive-min';
+  | 'with-scratch-archive-min'
+  | 'with-keyrack-manifest'
+  | 'with-vault-os-direct'
+  | 'with-allowlist-test'
+  | 'with-firewall-test'
+  | 'with-vault-os-secure';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

@@ -25,6 +25,10 @@
       "types": "./dist/contract/sdk.actors.d.ts",
       "default": "./dist/contract/sdk.actors.js"
     },
+    "./keyrack": {
+      "types": "./dist/contract/sdk.keyrack.d.ts",
+      "default": "./dist/contract/sdk.keyrack.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -34,6 +38,9 @@
       ],
       "actors": [
         "dist/contract/sdk.actors.d.ts"
+      ],
+      "keyrack": [
+        "dist/contract/sdk.keyrack.d.ts"
       ]
     }
   },
@@ -88,6 +95,8 @@
     "prepare:rhachet": "rhachet init --roles behaver mechanic reviewer"
   },
   "dependencies": {
+    "@octokit/auth-app": "8.2.0",
+    "age-encryption": "0.3.0",
     "as-procedure": "1.1.11",
     "bottleneck": "2.19.5",
     "chalk": "4.1.2",

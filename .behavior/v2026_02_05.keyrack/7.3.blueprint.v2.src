@@ -1,0 +1,70 @@
+review this blueprint draft on a zoomin that adresses a few gaps from the original execution
+- .behavior/v2026_02_05.keyrack/7.3.blueprint.v1.i1.md
+
+against how well it will satisfy the specifically discussed scope as it relates to this wish
+- in .behavior/v2026_02_05.keyrack/0.wish.md
+
+follow the patterns already present in this repo
+
+and write a new blueprint that leverages the decisions made in the one above, refines them, and makes them more cohesive and coherent
+
+---
+
+enforce thorough test coverage for proof of behavior satisfaction
+- unit tests for all domain logic
+- integration tests for all repo <-> access boundaries (os, apis, sdks, daos, etc)
+- integration tests for all end <-> end flows
+- acceptance tests for core blackbox behaviors
+
+---
+
+include a treestruct of filediffs
+
+**legend:**
+- `[+] create` — file to create
+- `[~] update` — file to update
+- `[-] delete` — file to delete
+
+
+---
+
+include a treestruct of codepaths
+
+**legend:**
+- `[+]` create — codepath to create
+- `[~]` update — codepath to update
+- `[○]` retain — codepath to retain
+- `[-]` delete — codepath to delete
+- `[←]` reuse — codepath to reuse from elsewhere
+- `[→]` eject — codepath to decompose for reuse
+
+
+---
+
+remember, the purpose of the blueprint is to declare what the execution will adhere to
+
+we want to see
+- what contracts will be used
+- how domain.objects and domain.operations are decomposed and recomposed
+- what the codepaths are, their ease of maintenance and readability
+
+---
+
+reference the below for full context
+- .behavior/v2026_02_05.keyrack/0.wish.md
+- .behavior/v2026_02_05.keyrack/1.vision.md (if declared)
+- .behavior/v2026_02_05.keyrack/2.1.criteria.blackbox.md (if declared)
+- .behavior/v2026_02_05.keyrack/2.3.criteria.blueprint.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.access._.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.claims._.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.domain._.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.domain.terms.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.patterns._.oss.levers.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.1.research.templates._.v1.i1.md (if declared)
+- .behavior/v2026_02_05.keyrack/3.2.distill.domain._.v1.i1.md (if declared)
+
+---
+
+emit to .behavior/v2026_02_05.keyrack/7.3.blueprint.v2.i1.md 

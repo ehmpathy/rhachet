@@ -1,0 +1,7 @@
+keys:
+  XAI_API_KEY:
+    slug: XAI_API_KEY
+    mech: REPLICA
+  GITHUB_APP_CREDS:
+    slug: GITHUB_APP_CREDS
+    mech: GITHUB_APP

@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.secure",
+    },
+  },
+  "status": "granted",
+}
+`;

@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0.1] get --key SAFE_API_KEY (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ SAFE_API_KEY
+      ├─ vault: os.direct
+      ├─ mech: REPLICA
+      └─ status: granted 🔑
+done. 1 granted.
+
+"
+`;
+
+exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0] get --key SAFE_API_KEY (valid api key) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "sk-safe-api-key-abc123",
+    },
+    "slug": "SAFE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.direct",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1.1] get --key GHP_TOKEN (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ GHP_TOKEN
+      └─ status: blocked 🚫
+         └─ replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)
+done. 1 blocked.
+
+"
+`;
+
+exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1] get --key GHP_TOKEN (github classic pat) then: stdout matches snapshot 1`] = `
+{
+  "fix": "update cached credential or run: rhx keyrack unlock",
+  "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
+  "slug": "GHP_TOKEN",
+  "status": "blocked",
+}
+`;
+
+exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t2] get --key AKIA_TOKEN (aws long-lived access key) then: stdout matches snapshot 1`] = `
+{
+  "fix": "update cached credential or run: rhx keyrack unlock",
+  "message": "replica mechanism rejects long-lived tokens: detected aws long-lived access key (AKIA*)",
+  "slug": "AKIA_TOKEN",
+  "status": "blocked",
+}
+`;

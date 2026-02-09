@@ -25,7 +25,7 @@ const config: Config = {
   transformIgnorePatterns: [
     // transform ESM packages that jest needs to handle
     // pattern handles both direct node_modules and pnpm's .pnpm structure
-    '/node_modules/(?!(\\.pnpm/(@anthropic-ai|@openai))|(@anthropic-ai|@openai)/)',
+    '/node_modules/(?!(\\.pnpm/(age-encryption|@noble|@scure|@octokit|universal-|@anthropic-ai|@openai))|(age-encryption|@noble|@scure|@octokit|universal-|@anthropic-ai|@openai))',
   ],
   // resolve ESM modules from node_modules
   extensionsToTreatAsEsm: ['.ts'],

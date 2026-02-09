@@ -1,0 +1,8 @@
+{
+  "ALLOWED_KEY": {
+    "value": "allowed-key-value-123"
+  },
+  "SECRET_KEY": {
+    "value": "secret-key-value-456"
+  }
+}
