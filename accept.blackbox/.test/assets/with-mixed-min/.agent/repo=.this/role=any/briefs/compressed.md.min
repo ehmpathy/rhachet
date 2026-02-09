@@ -1,0 +1,3 @@
+# compressed brief
+has .md.min counterpart => loader prefers minified variant.
+validates mixed-mode: briefs w/ .md.min load minified; briefs w/o load .md.
