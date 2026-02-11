@@ -1,0 +1,35 @@
+always:
+  briefs:
+    say:
+      - briefs/core.md
+    ref:
+      - briefs/glossary.md
+      - briefs/precedence.md
+  skills:
+    say:
+      - skills/commit.sh
+    ref:
+      - skills/lint.sh
+      - skills/skill-precedence.sh
+
+subject.test:
+  briefs:
+    say:
+      - briefs/test-rules.md
+      - briefs/shared.md
+      - briefs/precedence.md
+  skills:
+    say:
+      - skills/test-runner.sh
+      - skills/shared-tool.sh
+      - skills/skill-precedence.sh
+
+subject.prod:
+  briefs:
+    say:
+      - briefs/prod-rules.md
+      - briefs/shared.md
+  skills:
+    say:
+      - skills/deploy.sh
+      - skills/shared-tool.sh

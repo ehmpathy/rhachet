@@ -1,0 +1,9 @@
+# invalid: mixed mode - has both top-level briefs AND always
+briefs:
+  say:
+    - briefs/sample.md
+
+always:
+  briefs:
+    say:
+      - briefs/sample.md

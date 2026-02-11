@@ -1,0 +1,3 @@
+# minified brief
+test brief; validates boot.yml prefers minified content.
+.md.min counterpart exists => loader prefers minified variant; .md path = stable identity.

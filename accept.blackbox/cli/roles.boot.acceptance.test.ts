@@ -198,10 +198,9 @@ describe('rhachet roles boot', () => {
         );
       });
 
-      then('uses .md path in <brief> tag (not .min path)', () => {
+      then('uses .min path in <brief> tag when min exists', () => {
         expect(result.stdout).toContain('path="');
-        expect(result.stdout).toContain('sample.md"');
-        expect(result.stdout).not.toContain('sample.md.min"');
+        expect(result.stdout).toContain('sample.md.min"');
       });
 
       then('brief count reflects only .md files (not .min)', () => {

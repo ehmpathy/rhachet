@@ -10,44 +10,11 @@ import { join, resolve } from 'node:path';
 const ASSETS_DIR = resolve(__dirname, '../assets');
 
 /**
- * .what = fixture types for test repos
- * .why = provides reusable repo configurations for different test scenarios
+ * .what = fixture slug for test repos
+ * .why = references a directory in accept.blackbox/.test/assets/
+ * .note = validated at runtime to fail fast if fixture dne
  */
-export type TestRepoFixture =
-  | 'minimal'
-  | 'with-skills'
-  | 'with-briefs'
-  | 'with-registry'
-  | 'with-inits'
-  | 'with-link-sources'
-  | 'with-perf-skills'
-  | 'with-perf-test'
-  | 'with-perf-collocated'
-  | 'with-published-roles'
-  | 'with-scratch-archive'
-  | 'with-roles-packages'
-  | 'with-roles-packages-pinned'
-  | 'with-roles-linked'
-  | 'with-brains-packages-pinned'
-  | 'with-roles-package'
-  | 'with-broken-roles-package'
-  | 'with-broken-import-package'
-  | 'without-roles-packages'
-  | 'with-claude-config'
-  | 'with-role-hooks'
-  | 'with-roles-full'
-  | 'with-file-dot-dep'
-  | 'with-min-briefs'
-  | 'with-orphan-min'
-  | 'with-mixed-min'
-  | 'with-scratch-archive-min'
-  | 'with-keyrack-manifest'
-  | 'with-vault-os-direct'
-  | 'with-allowlist-test'
-  | 'with-firewall-test'
-  | 'with-vault-os-secure'
-  | 'with-keyrack-multi-env'
-  | 'with-keyrack-flat-keys';
+export type TestRepoFixture = string;
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()
@@ -72,8 +39,12 @@ export const genTestTempRepo = (input: {
   const suffix = input.suffix ? `-${input.suffix}` : '';
   const repoPath = join(tmpdir(), `rhachet-test-${uniqueId}${suffix}`);
 
-  // copy fixture assets into temp repo
+  // fail fast if fixture dne
   const fixturePath = join(ASSETS_DIR, input.fixture);
+  if (!existsSync(fixturePath))
+    throw new Error(`fixture not found: ${input.fixture} (${fixturePath})`);
+
+  // copy fixture assets into temp repo
   cpSync(fixturePath, repoPath, { recursive: true });
 
   // make shell skills executable

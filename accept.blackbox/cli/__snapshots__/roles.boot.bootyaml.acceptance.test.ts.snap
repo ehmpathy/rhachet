@@ -1,0 +1,359 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles boot with boot.yml given: [case1] repo with boot.yml simple mode when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 2
+  │       ├── say = 1
+  │       └── ref = 1
+  ├── chars = 549
+  └── tokens ≈ 138 (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# test role for boot.yml simple mode
+
+this role tests simple mode boot.yml curation
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/always-say.md">
+# always say brief
+
+this brief is matched by the say glob and should have full content injected
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/subdir/deep.md">
+# deep brief
+
+this brief is in a subdirectory and matched by the recursive glob
+
+</brief.say>
+
+<brief.ref path=".agent/repo=.this/role=any/briefs/not-matched.md"/>
+
+<skill.say path=".agent/repo=.this/role=any/skills/say-me.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = test skill that should be said
+# .why = matched by skills.say glob
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.ref path=".agent/repo=.this/role=any/skills/ref-me.sh"/>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 2
+  │       ├── say = 1
+  │       └── ref = 1
+  ├── chars = 549
+  └── tokens ≈ 138 (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case2] repo with boot.yml but no boot.yml present when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 189
+  └── tokens ≈ 48 (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/sample.md">
+# sample brief
+
+this is a sample brief for testing.
+
+## .what
+
+a test brief
+
+## .why
+
+validates brief discovery in acceptance tests
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 189
+  └── tokens ≈ 48 (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case4] repo with boot.yml subject mode when: [t0] roles boot --repo .this --role any (all subjects) then: output matches snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 19
+  │   ├── briefs = 8
+  │   │   ├── say = 5
+  │   │   └── ref = 3
+  │   └── skills = 8
+  │       ├── say = 5
+  │       └── ref = 3
+  ├── chars = 1984
+  └── tokens ≈ 496 (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# test role for boot.yml subject mode
+
+this role tests subject mode boot.yml curation with always section
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core brief
+
+this brief is in always.briefs.say and should always be said
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/precedence.md">
+# precedence brief
+
+this brief is in always.briefs.ref AND subject.test.briefs.say
+say should win over ref
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/shared.md">
+# shared brief
+
+this brief is in both subject.test.briefs.say AND subject.prod.briefs.say
+tests overlap dedupe behavior
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/test-rules.md">
+# test rules brief
+
+this brief is in subject.test.briefs.say only
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/prod-rules.md">
+# prod rules brief
+
+this brief is in subject.prod.briefs.say only
+
+</brief.say>
+
+<brief.ref path=".agent/repo=.this/role=any/briefs/glossary.md"/>
+
+<brief.ref path=".agent/repo=.this/role=any/briefs/precedence.md"/>
+
+<brief.ref path=".agent/repo=.this/role=any/briefs/shared.md"/>
+
+<skill.say path=".agent/repo=.this/role=any/skills/commit.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = commit skill
+# .why = in always.skills.say
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/shared-tool.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = shared tool skill
+# .why = in both subject.test.skills.say AND subject.prod.skills.say
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/skill-precedence.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = skill precedence test
+# .why = in always.skills.ref AND subject.test.skills.say (say wins)
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/test-runner.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = test runner skill
+# .why = in subject.test.skills.say only
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/deploy.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = deploy skill
+# .why = in subject.prod.skills.say only
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.ref path=".agent/repo=.this/role=any/skills/lint.sh"/>
+
+<skill.ref path=".agent/repo=.this/role=any/skills/skill-precedence.sh"/>
+
+<skill.ref path=".agent/repo=.this/role=any/skills/shared-tool.sh"/>
+
+<also>
+  <brief.ref path=".agent/repo=.this/role=any/briefs/misc.md"/>
+  <skill.ref path=".agent/repo=.this/role=any/skills/orphan-skill.sh"/>
+</also>
+
+<stats>
+quant
+  ├── files = 19
+  │   ├── briefs = 8
+  │   │   ├── say = 5
+  │   │   └── ref = 3
+  │   └── skills = 8
+  │       ├── say = 5
+  │       └── ref = 3
+  ├── chars = 1984
+  └── tokens ≈ 496 (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case5] repo with boot.yml subject mode without always when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 458
+  └── tokens ≈ 115 (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# test role for boot.yml subject mode without always
+
+this role tests subject mode boot.yml curation without always section
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/test-only.md">
+# test only brief
+
+this brief is in subject.test.briefs.say
+
+</brief.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/test-tool.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = test tool skill
+# .why = in subject.test.skills.say
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<also>
+  <brief.ref path=".agent/repo=.this/role=any/briefs/orphan.md"/>
+</also>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 458
+  └── tokens ≈ 115 (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case6] repo with boot.yml and minified briefs when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── chars = 472
+  └── tokens ≈ 118 (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role tests boot.yml integration with minified briefs.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/full-brief.md">
+# full brief
+
+this is a brief without a minified counterpart.
+
+## .what
+
+a test brief that validates boot.yml works with non-minified briefs.
+
+## .why
+
+when no \`.md.min\` counterpart exists, the loader should use the full \`.md\` content.
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/minified-brief.md.min">
+# minified brief
+test brief; validates boot.yml prefers minified content.
+.md.min counterpart exists => loader prefers minified variant; .md path = stable identity.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── chars = 472
+  └── tokens ≈ 118 (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
