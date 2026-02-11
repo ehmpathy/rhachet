@@ -32,8 +32,20 @@ describe('keyrack vault os.secure', () => {
 
       then('json contains SECURE_API_KEY with os.secure vault', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.SECURE_API_KEY).toBeDefined();
-        expect(parsed.SECURE_API_KEY.vault).toEqual('os.secure');
+        expect(parsed['testorg.test.SECURE_API_KEY']).toBeDefined();
+        expect(parsed['testorg.test.SECURE_API_KEY'].vault).toEqual('os.secure');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
 
@@ -57,6 +69,10 @@ describe('keyrack vault os.secure', () => {
       then('output contains os.secure', () => {
         expect(result.stdout).toContain('os.secure');
       });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
     });
   });
 
@@ -76,6 +92,8 @@ describe('keyrack vault os.secure', () => {
             'set',
             '--key',
             'NEW_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -93,9 +111,20 @@ describe('keyrack vault os.secure', () => {
 
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.slug).toEqual('NEW_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
-        expect(parsed.vault).toEqual('os.secure');
+        expect(parsed[0].slug).toEqual('testorg.test.NEW_KEY');
+        expect(parsed[0].mech).toEqual('REPLICA');
+        expect(parsed[0].vault).toEqual('os.secure');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        }));
+        expect(snapped).toMatchSnapshot();
       });
     });
 
@@ -108,6 +137,8 @@ describe('keyrack vault os.secure', () => {
             'set',
             '--key',
             'ANOTHER_SECURE_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -128,8 +159,20 @@ describe('keyrack vault os.secure', () => {
 
       then('list shows the new key', () => {
         const parsed = JSON.parse(listResult.stdout);
-        expect(parsed.ANOTHER_SECURE_KEY).toBeDefined();
-        expect(parsed.ANOTHER_SECURE_KEY.vault).toEqual('os.secure');
+        expect(parsed['testorg.test.ANOTHER_SECURE_KEY']).toBeDefined();
+        expect(parsed['testorg.test.ANOTHER_SECURE_KEY'].vault).toEqual('os.secure');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(listResult.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });
@@ -146,7 +189,7 @@ describe('keyrack vault os.secure', () => {
     when('[t0] keyrack unlock --passphrase', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock', '--passphrase', 'test-passphrase-123'],
+          args: ['keyrack', 'unlock', '--env', 'test', '--passphrase', 'test-passphrase-123'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -185,7 +228,7 @@ describe('keyrack vault os.secure', () => {
     when('[t0] keyrack get --key SECURE_API_KEY without unlock', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -201,6 +244,11 @@ describe('keyrack vault os.secure', () => {
       then('fix mentions unlock', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.fix).toContain('unlock');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -222,6 +270,8 @@ describe('keyrack vault os.secure', () => {
             'set',
             '--key',
             'SECURE_API_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -239,9 +289,20 @@ describe('keyrack vault os.secure', () => {
 
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.slug).toEqual('SECURE_API_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
-        expect(parsed.vault).toEqual('os.secure');
+        expect(parsed[0].slug).toEqual('testorg.test.SECURE_API_KEY');
+        expect(parsed[0].mech).toEqual('REPLICA');
+        expect(parsed[0].vault).toEqual('os.secure');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        }));
+        expect(snapped).toMatchSnapshot();
       });
     });
   });
@@ -250,7 +311,7 @@ describe('keyrack vault os.secure', () => {
    * [uc6] portability: pre-encrypted .age file can be read
    * proves that age encryption is portable across systems
    *
-   * the pre-encrypted fixture exists at .rhachet/keyrack.secure/8ff6529b98db9873.age
+   * the pre-encrypted fixture exists at .rhachet/keyrack.secure/949203795e1e45ae.age
    * passphrase: test-passphrase-123, value: portable-secure-value-xyz789
    */
   given('[case6] repo with pre-encrypted .age fixture', () => {
@@ -261,7 +322,7 @@ describe('keyrack vault os.secure', () => {
     when('[t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: {
             HOME: repo.path,

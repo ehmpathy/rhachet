@@ -16,7 +16,7 @@ describe('keyrack vault os.direct', () => {
     when('[t0] keyrack get --for repo --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--for', 'repo', '--json'],
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -34,7 +34,8 @@ describe('keyrack vault os.direct', () => {
       then('contains granted status for DIRECT_TEST_KEY', () => {
         const parsed = JSON.parse(result.stdout);
         const attempt = parsed.find(
-          (a: { grant?: { slug: string } }) => a.grant?.slug === 'DIRECT_TEST_KEY',
+          (a: { grant?: { slug: string } }) =>
+            a.grant?.slug === 'testorg.test.DIRECT_TEST_KEY',
         );
         expect(attempt).toBeDefined();
         expect(attempt.status).toEqual('granted');
@@ -43,9 +44,15 @@ describe('keyrack vault os.direct', () => {
       then('grant value matches stored value', () => {
         const parsed = JSON.parse(result.stdout);
         const attempt = parsed.find(
-          (a: { grant?: { slug: string } }) => a.grant?.slug === 'DIRECT_TEST_KEY',
+          (a: { grant?: { slug: string } }) =>
+            a.grant?.slug === 'testorg.test.DIRECT_TEST_KEY',
         );
         expect(attempt.grant.key.secret).toEqual('direct-test-key-abc123');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
 
@@ -53,7 +60,7 @@ describe('keyrack vault os.direct', () => {
       const rhxResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           binary: 'rhx',
-          args: ['keyrack', 'get', '--for', 'repo', '--json'],
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -66,6 +73,11 @@ describe('keyrack vault os.direct', () => {
       then('rhx returns granted status', () => {
         const parsed = JSON.parse(rhxResult.stdout);
         expect(parsed[0].status).toEqual('granted');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(rhxResult.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -82,7 +94,7 @@ describe('keyrack vault os.direct', () => {
     when('[t0] keyrack get --key DIRECT_TEST_KEY --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'DIRECT_TEST_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -105,7 +117,7 @@ describe('keyrack vault os.direct', () => {
 
       then('grant.slug matches requested key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.slug).toEqual('DIRECT_TEST_KEY');
+        expect(parsed.grant.slug).toEqual('testorg.test.DIRECT_TEST_KEY');
       });
 
       then('stdout matches snapshot', () => {
@@ -117,7 +129,7 @@ describe('keyrack vault os.direct', () => {
     when('[t1] keyrack get --key DIRECT_TEST_KEY (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'DIRECT_TEST_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -150,7 +162,7 @@ describe('keyrack vault os.direct', () => {
     when('[t0] keyrack unlock', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock'],
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -216,8 +228,20 @@ describe('keyrack vault os.direct', () => {
 
       then('json contains DIRECT_TEST_KEY host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.DIRECT_TEST_KEY).toBeDefined();
-        expect(parsed.DIRECT_TEST_KEY.vault).toEqual('os.direct');
+        expect(parsed['testorg.test.DIRECT_TEST_KEY']).toBeDefined();
+        expect(parsed['testorg.test.DIRECT_TEST_KEY'].vault).toEqual('os.direct');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });
@@ -256,9 +280,9 @@ describe('keyrack vault os.direct', () => {
 
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.slug).toEqual('DIRECT_TEST_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
-        expect(parsed.vault).toEqual('os.direct');
+        expect(parsed[0].slug).toEqual('testorg.test.DIRECT_TEST_KEY');
+        expect(parsed[0].mech).toEqual('REPLICA');
+        expect(parsed[0].vault).toEqual('os.direct');
       });
 
       then('stdout matches snapshot', () => {

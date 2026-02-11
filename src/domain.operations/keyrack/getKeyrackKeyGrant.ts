@@ -7,8 +7,10 @@ import {
   type KeyrackKey,
   KeyrackKeyGrant,
 } from '../../domain.objects/keyrack';
+import { assertKeyrackEnvIsSpecified } from './assertKeyrackEnvIsSpecified';
 import { daemonAccessGet } from './daemon/sdk';
 import type { KeyrackGrantContext } from './genKeyrackGrantContext';
+import { getAllKeyrackSlugsForEnv } from './getAllKeyrackSlugsForEnv';
 
 /**
  * .what = construct KeyrackKey from secret and source info
@@ -259,9 +261,10 @@ const attemptGrantKey = async (
  * .why = main entry point for credential resolution
  *
  * .note = uses all-or-none semantics for repo grants
+ * .note = env filter scopes which keys are resolved
  */
 export async function getKeyrackKeyGrant(
-  input: { for: { repo: true } },
+  input: { for: { repo: true }; env?: string },
   context: KeyrackGrantContext,
 ): Promise<KeyrackGrantAttempt[]>;
 export async function getKeyrackKeyGrant(
@@ -269,7 +272,7 @@ export async function getKeyrackKeyGrant(
   context: KeyrackGrantContext,
 ): Promise<KeyrackGrantAttempt>;
 export async function getKeyrackKeyGrant(
-  input: { for: { repo: true } | { key: string } },
+  input: { for: { repo: true }; env?: string } | { for: { key: string } },
   context: KeyrackGrantContext,
 ): Promise<KeyrackGrantAttempt | KeyrackGrantAttempt[]> {
   // handle single key grant
@@ -285,7 +288,15 @@ export async function getKeyrackKeyGrant(
     );
   }
 
-  const slugs = Object.keys(context.repoManifest.keys);
+  // resolve env and filter slugs
+  const env = assertKeyrackEnvIsSpecified({
+    manifest: context.repoManifest,
+    env: ('env' in input ? input.env : null) ?? null,
+  });
+  const slugs = getAllKeyrackSlugsForEnv({
+    manifest: context.repoManifest,
+    env,
+  });
   const attempts: KeyrackGrantAttempt[] = [];
 
   for (const slug of slugs) {

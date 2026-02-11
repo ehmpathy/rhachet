@@ -21,6 +21,8 @@ describe('keyrack set', () => {
             'set',
             '--key',
             'NEW_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -38,20 +40,20 @@ describe('keyrack set', () => {
 
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.slug).toEqual('NEW_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
-        expect(parsed.vault).toEqual('os.direct');
+        expect(parsed[0].slug).toEqual('testorg.test.NEW_KEY');
+        expect(parsed[0].mech).toEqual('REPLICA');
+        expect(parsed[0].vault).toEqual('os.direct');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
-        // normalize timestamps for stable snapshots
-        const normalized = {
-          ...parsed,
+        // redact timestamps for stable snapshots
+        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+          ...entry,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        };
-        expect(normalized).toMatchSnapshot();
+        }));
+        expect(snapped).toMatchSnapshot();
       });
     });
 
@@ -64,6 +66,8 @@ describe('keyrack set', () => {
             'set',
             '--key',
             'ANOTHER_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -84,8 +88,20 @@ describe('keyrack set', () => {
 
       then('list shows configured key', () => {
         const parsed = JSON.parse(listResult.stdout);
-        expect(parsed.ANOTHER_KEY).toBeDefined();
-        expect(parsed.ANOTHER_KEY.mech).toEqual('REPLICA');
+        expect(parsed['testorg.test.ANOTHER_KEY']).toBeDefined();
+        expect(parsed['testorg.test.ANOTHER_KEY'].mech).toEqual('REPLICA');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(listResult.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });

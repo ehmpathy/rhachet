@@ -1,0 +1,20 @@
+research the templates available in order to fulfill
+- this wish .behavior/v2026_02_09.rhachet-envs/0.wish.md
+- this vision .behavior/v2026_02_09.rhachet-envs/1.vision.md (if declared)
+- this criteria .behavior/v2026_02_09.rhachet-envs/2.1.criteria.blackbox.md (if declared)
+- this criteria .behavior/v2026_02_09.rhachet-envs/2.3.criteria.blueprint.md (if declared)
+
+specifically
+- what are the key patterns from each template?
+- how do they relate to the wish
+
+---
+
+use web search or the gh api to enumerate the contents of the templates
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+---
+
+emit into .behavior/v2026_02_09.rhachet-envs/3.1.research.templates._.v1.i1.md

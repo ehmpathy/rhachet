@@ -12,6 +12,9 @@ import {
   getKeyrackKeyGrant,
   setKeyrackKeyHost,
 } from '@src/domain.operations/keyrack';
+import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
+import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrack } from '@src/domain.operations/keyrack/session/unlockKeyrack';
@@ -35,116 +38,127 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('grant credentials from keyrack')
     .option('--for <scope>', 'grant scope: "repo" for all keys')
     .option('--key <slug>', 'grant specific key by slug')
+    .option('--env <env>', 'target env: prod, prep, test, or all')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { for?: string; key?: string; json?: boolean }) => {
-      // validate: must specify either --for repo or --key
-      if (!opts.for && !opts.key) {
-        throw new BadRequestError('must specify --for repo or --key <slug>');
-      }
-      if (opts.for && opts.for !== 'repo') {
-        throw new BadRequestError('--for must be "repo"');
-      }
+    .action(
+      async (opts: {
+        for?: string;
+        key?: string;
+        env?: string;
+        json?: boolean;
+      }) => {
+        // validate: must specify either --for repo or --key
+        if (!opts.for && !opts.key) {
+          throw new BadRequestError('must specify --for repo or --key <slug>');
+        }
+        if (opts.for && opts.for !== 'repo') {
+          throw new BadRequestError('--for must be "repo"');
+        }
 
-      // get gitroot for repo manifest
-      const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        // get gitroot for repo manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
-      // generate context
-      const context = await genKeyrackGrantContext({ gitroot });
+        // generate context
+        const context = await genKeyrackGrantContext({ gitroot });
 
-      // handle grant
-      if (opts.for === 'repo') {
-        const attempts = await getKeyrackKeyGrant(
-          { for: { repo: true } },
-          context,
-        );
+        // handle grant
+        if (opts.for === 'repo') {
+          const attempts = await getKeyrackKeyGrant(
+            { for: { repo: true }, env: opts.env },
+            context,
+          );
 
-        // output results
-        if (opts.json) {
-          console.log(JSON.stringify(attempts, null, 2));
-        } else {
-          // count stats
-          const granted = attempts.filter((a) => a.status === 'granted');
-          const blocked = attempts.filter((a) => a.status === 'blocked');
-          const absent = attempts.filter((a) => a.status === 'absent');
+          // output results
+          if (opts.json) {
+            console.log(JSON.stringify(attempts, null, 2));
+          } else {
+            // count stats
+            const granted = attempts.filter((a) => a.status === 'granted');
+            const blocked = attempts.filter((a) => a.status === 'blocked');
+            const absent = attempts.filter((a) => a.status === 'absent');
 
-          console.log('');
-          console.log('🔐 rhachet/keyrack');
-          for (let i = 0; i < attempts.length; i++) {
-            const attempt = attempts[i]!;
-            const isLast = i === attempts.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
+            console.log('');
+            console.log('🔐 rhachet/keyrack');
+            for (let i = 0; i < attempts.length; i++) {
+              const attempt = attempts[i]!;
+              const isLast = i === attempts.length - 1;
+              const prefix = isLast ? '   └─' : '   ├─';
+              const indent = isLast ? '      ' : '   │  ';
 
-            if (attempt.status === 'granted') {
-              console.log(`${prefix} ${attempt.grant.slug}`);
-              console.log(`${indent}├─ vault: ${attempt.grant.source.vault}`);
-              console.log(`${indent}├─ mech: ${attempt.grant.source.mech}`);
-              console.log(`${indent}└─ status: granted 🔑`);
-            } else if (attempt.status === 'blocked') {
-              console.log(`${prefix} ${attempt.slug}`);
-              console.log(`${indent}└─ status: blocked 🚫`);
-              console.log(`${indent}   └─ ${attempt.message}`);
-            } else {
-              console.log(`${prefix} ${attempt.slug}`);
-              console.log(`${indent}└─ status: absent 🫧`);
-              if (attempt.fix) {
-                console.log(`${indent}   └─ fix: ${attempt.fix}`);
+              if (attempt.status === 'granted') {
+                console.log(`${prefix} ${attempt.grant.slug}`);
+                console.log(`${indent}├─ vault: ${attempt.grant.source.vault}`);
+                console.log(`${indent}├─ mech: ${attempt.grant.source.mech}`);
+                console.log(`${indent}└─ status: granted 🔑`);
+              } else if (attempt.status === 'blocked') {
+                console.log(`${prefix} ${attempt.slug}`);
+                console.log(`${indent}└─ status: blocked 🚫`);
+                console.log(`${indent}   └─ ${attempt.message}`);
+              } else {
+                console.log(`${prefix} ${attempt.slug}`);
+                console.log(`${indent}└─ status: absent 🫧`);
+                if (attempt.fix) {
+                  console.log(`${indent}   └─ fix: ${attempt.fix}`);
+                }
               }
             }
+            console.log(
+              `done. ${granted.length} granted, ${blocked.length} blocked, ${absent.length} absent.`,
+            );
+            console.log('');
           }
-          console.log(
-            `done. ${granted.length} granted, ${blocked.length} blocked, ${absent.length} absent.`,
+        } else if (opts.key) {
+          const attempt = await getKeyrackKeyGrant(
+            { for: { key: opts.key } },
+            context,
           );
-          console.log('');
-        }
-      } else if (opts.key) {
-        const attempt = await getKeyrackKeyGrant(
-          { for: { key: opts.key } },
-          context,
-        );
 
-        // output results
-        if (opts.json) {
-          console.log(JSON.stringify(attempt, null, 2));
-        } else {
-          console.log('');
-          console.log('🔐 rhachet/keyrack');
-          if (attempt.status === 'granted') {
-            console.log(`   └─ ${attempt.grant.slug}`);
-            console.log(`      ├─ vault: ${attempt.grant.source.vault}`);
-            console.log(`      ├─ mech: ${attempt.grant.source.mech}`);
-            console.log(`      └─ status: granted 🔑`);
-            console.log('done. 1 granted.');
-          } else if (attempt.status === 'blocked') {
-            console.log(`   └─ ${attempt.slug}`);
-            console.log(`      └─ status: blocked 🚫`);
-            console.log(`         └─ ${attempt.message}`);
-            console.log('done. 1 blocked.');
-          } else if (attempt.status === 'locked') {
-            console.log(`   └─ ${attempt.slug}`);
-            console.log(`      └─ status: locked 🔒`);
-            if (attempt.fix) {
-              console.log(`         └─ fix: ${attempt.fix}`);
-            }
-            console.log('done. 1 locked.');
+          // output results
+          if (opts.json) {
+            console.log(JSON.stringify(attempt, null, 2));
           } else {
-            console.log(`   └─ ${attempt.slug}`);
-            console.log(`      └─ status: absent 🫧`);
-            if (attempt.fix) {
-              console.log(`         └─ fix: ${attempt.fix}`);
+            console.log('');
+            console.log('🔐 rhachet/keyrack');
+            if (attempt.status === 'granted') {
+              console.log(`   └─ ${attempt.grant.slug}`);
+              console.log(`      ├─ vault: ${attempt.grant.source.vault}`);
+              console.log(`      ├─ mech: ${attempt.grant.source.mech}`);
+              console.log(`      └─ status: granted 🔑`);
+              console.log('done. 1 granted.');
+            } else if (attempt.status === 'blocked') {
+              console.log(`   └─ ${attempt.slug}`);
+              console.log(`      └─ status: blocked 🚫`);
+              console.log(`         └─ ${attempt.message}`);
+              console.log('done. 1 blocked.');
+            } else if (attempt.status === 'locked') {
+              console.log(`   └─ ${attempt.slug}`);
+              console.log(`      └─ status: locked 🔒`);
+              if (attempt.fix) {
+                console.log(`         └─ fix: ${attempt.fix}`);
+              }
+              console.log('done. 1 locked.');
+            } else {
+              console.log(`   └─ ${attempt.slug}`);
+              console.log(`      └─ status: absent 🫧`);
+              if (attempt.fix) {
+                console.log(`         └─ fix: ${attempt.fix}`);
+              }
+              console.log('done. 1 absent.');
             }
-            console.log('done. 1 absent.');
+            console.log('');
           }
-          console.log('');
         }
-      }
-    });
+      },
+    );
 
   // keyrack set --key $key --mech $mech --vault $vault
   keyrack
     .command('set')
     .description('configure storage for a credential key')
-    .requiredOption('--key <slug>', 'key slug to configure')
+    .requiredOption(
+      '--key <keyname>',
+      'raw key name to configure (e.g., AWS_PROFILE)',
+    )
     .requiredOption(
       '--mech <mechanism>',
       'grant mechanism: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO',
@@ -153,6 +167,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '--vault <vault>',
       'storage vault: os.direct, os.secure, 1password',
     )
+    .option('--env <env>', 'target env (default: all)', 'all')
+    .option('--org <org>', 'target org (default: @this)', '@this')
     .option('--exid <exid>', 'external id (vault-specific reference)')
     .option('--json', 'output as json (robot mode)')
     .action(
@@ -160,6 +176,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         key: string;
         mech: string;
         vault: string;
+        env: string;
+        org: string;
         exid?: string;
         json?: boolean;
       }) => {
@@ -193,34 +211,64 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           );
         }
 
-        // generate context
+        // get gitroot to resolve org from manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        const grantContext = await genKeyrackGrantContext({ gitroot });
         const context = await genKeyrackHostContext();
 
-        // set the key host
-        const keyHost = await setKeyrackKeyHost(
-          {
-            slug: opts.key,
-            mech: opts.mech as KeyrackGrantMechanism,
-            vault: opts.vault as KeyrackHostVault,
-            exid: opts.exid,
-          },
-          context,
-        );
+        // resolve org from manifest
+        if (!grantContext.repoManifest) {
+          throw new BadRequestError('no keyrack.yml found in repo');
+        }
+        const org = assertKeyrackOrgMatchesManifest({
+          manifest: grantContext.repoManifest,
+          org: opts.org,
+        });
+
+        // compute target slugs based on --env
+        const targetSlugs: string[] = (() => {
+          if (opts.env === 'all') {
+            // expand to all envs that declare this key
+            return getAllKeyrackSlugsForEnv({
+              manifest: grantContext.repoManifest!,
+              env: 'all',
+            }).filter((s) => asKeyrackKeyName({ slug: s }) === opts.key);
+          }
+          return [`${org}.${opts.env}.${opts.key}`];
+        })();
+
+        // set host config for each target slug
+        const results: Array<{ slug: string; vault: string; mech: string }> =
+          [];
+        for (const slug of targetSlugs) {
+          const keyHost = await setKeyrackKeyHost(
+            {
+              slug,
+              mech: opts.mech as KeyrackGrantMechanism,
+              vault: opts.vault as KeyrackHostVault,
+              exid: opts.exid,
+            },
+            context,
+          );
+          results.push({ slug, vault: keyHost.vault, mech: keyHost.mech });
+        }
 
         // output results
         if (opts.json) {
-          console.log(JSON.stringify(keyHost, null, 2));
+          console.log(JSON.stringify(results, null, 2));
         } else {
           console.log('');
-          console.log('🔐 rhachet/keyrack set');
-          console.log(`   └─ ${opts.key}`);
-          console.log(`      ├─ mech: ${keyHost.mech}`);
-          console.log(`      ├─ vault: ${keyHost.vault}`);
-          if (keyHost.exid) {
-            console.log(`      ├─ exid: ${keyHost.exid}`);
+          console.log(`🔐 rhachet/keyrack set (org: ${org}, env: ${opts.env})`);
+          for (let i = 0; i < results.length; i++) {
+            const r = results[i]!;
+            const isLast = i === results.length - 1;
+            const prefix = isLast ? '   └─' : '   ├─';
+            const indent = isLast ? '      ' : '   │  ';
+            console.log(`${prefix} ${r.slug}`);
+            console.log(`${indent}├─ mech: ${r.mech}`);
+            console.log(`${indent}└─ vault: ${r.vault}`);
           }
-          console.log(`      └─ status: configured ✨`);
-          console.log('done.');
+          console.log(`done. ${results.length} key(s) configured ✨`);
           console.log('');
         }
       },
@@ -230,6 +278,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
   keyrack
     .command('unlock')
     .description('unlock keys and send them to daemon for session access')
+    .option('--env <env>', 'target env: prod, prep, test, or all')
     .option(
       '--duration <duration>',
       'TTL for unlocked keys (e.g., 9h, 30m)',
@@ -239,6 +288,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
+        env?: string;
         duration?: string;
         passphrase?: string;
         json?: boolean;
@@ -251,7 +301,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // unlock keys and send to daemon
         const { unlocked } = await unlockKeyrack(
-          { duration: opts.duration, passphrase: opts.passphrase },
+          {
+            env: opts.env,
+            duration: opts.duration,
+            passphrase: opts.passphrase,
+          },
           context,
         );
 

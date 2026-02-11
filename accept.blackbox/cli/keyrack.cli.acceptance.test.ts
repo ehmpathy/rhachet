@@ -64,6 +64,18 @@ describe('keyrack cli', () => {
       then('rhx output is valid json', () => {
         expect(() => JSON.parse(rhxResult.stdout)).not.toThrow();
       });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(rhxResult.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
+      });
     });
   });
 });

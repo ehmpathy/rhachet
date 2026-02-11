@@ -19,22 +19,26 @@ describe('vaultAdapterOsEnvvar', () => {
   });
 
   given('[case2] env var is present', () => {
-    const testKey = '__TEST_VAULT_OS_ENVVAR_KEY__';
+    const testRawKey = '__TEST_VAULT_OS_ENVVAR_KEY__';
+    const testSlug = `testorg.test.${testRawKey}`;
     const testValue = 'test-value-12345';
 
     beforeEach(() => {
-      process.env[testKey] = testValue;
+      process.env[testRawKey] = testValue;
     });
 
     afterEach(() => {
-      delete process.env[testKey];
+      delete process.env[testRawKey];
     });
 
     when('[t0] get called with slug', () => {
-      then('returns env value', async () => {
-        const result = await vaultAdapterOsEnvvar.get({ slug: testKey });
-        expect(result).toEqual(testValue);
-      });
+      then(
+        'returns env value via raw key name extracted from slug',
+        async () => {
+          const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
+          expect(result).toEqual(testValue);
+        },
+      );
     });
   });
 

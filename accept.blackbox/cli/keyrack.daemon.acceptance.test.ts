@@ -29,7 +29,7 @@ describe('keyrack daemon cache', () => {
     // unlock first (simulates human unlock via env var — secure, no shell history exposure)
     useBeforeAll(async () =>
       invokeRhachetCliBinary({
-        args: ['keyrack', 'unlock'],
+        args: ['keyrack', 'unlock', '--env', 'test'],
         cwd: repo.path,
         env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
       }),
@@ -38,7 +38,7 @@ describe('keyrack daemon cache', () => {
     when('[t0] keyrack get --key SECURE_API_KEY --json (no passphrase)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -92,7 +92,7 @@ describe('keyrack daemon cache', () => {
     when('[t0] keyrack get --key SECURE_API_KEY --json (no passphrase)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -108,6 +108,11 @@ describe('keyrack daemon cache', () => {
       then('fix instructions mention unlock', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.fix).toContain('unlock');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -134,7 +139,7 @@ describe('keyrack daemon cache', () => {
     when('[t0] keyrack get with KEYRACK_PASSPHRASE env', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: {
             HOME: repo.path,
@@ -160,6 +165,11 @@ describe('keyrack daemon cache', () => {
       then('grant source vault is os.secure', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant.source.vault).toEqual('os.secure');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -188,7 +198,7 @@ describe('keyrack daemon cache', () => {
     when('[t0] get before unlock (should be locked)', () => {
       const resultBefore = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -204,13 +214,18 @@ describe('keyrack daemon cache', () => {
         const parsed = JSON.parse(resultBefore.stdout);
         expect(parsed.fix).toContain('unlock');
       });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(resultBefore.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
     });
 
     when('[t1] unlock then get (should succeed)', () => {
       // human unlocks mid-session (via env var — secure, no shell history exposure)
       const unlockResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock'],
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: repo.path,
           env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
         }),
@@ -219,7 +234,7 @@ describe('keyrack daemon cache', () => {
       // robot retries get
       const resultAfter = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -237,6 +252,11 @@ describe('keyrack daemon cache', () => {
       then('key comes from daemon', () => {
         const parsed = JSON.parse(resultAfter.stdout);
         expect(parsed.grant.source.vault).toEqual('os.daemon');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(resultAfter.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -267,7 +287,7 @@ describe('keyrack daemon cache', () => {
       // human unlocks via interactive prompt (simulated via stdin pipe)
       const unlockResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock'],
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: repo.path,
           env: { HOME: repo.path },
           stdin: 'test-passphrase-123\n',
@@ -287,7 +307,7 @@ describe('keyrack daemon cache', () => {
       // robot gets key (should come from daemon)
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -306,7 +326,7 @@ describe('keyrack daemon cache', () => {
       // robot gets key in json mode
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -353,7 +373,7 @@ describe('keyrack daemon cache', () => {
     // unlock to populate daemon cache (via env var — secure, no shell history exposure)
     useBeforeAll(async () =>
       invokeRhachetCliBinary({
-        args: ['keyrack', 'unlock'],
+        args: ['keyrack', 'unlock', '--env', 'test'],
         cwd: repo.path,
         env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
       }),
@@ -362,7 +382,7 @@ describe('keyrack daemon cache', () => {
     when('[t0] keyrack get with KEYRACK_PASSPHRASE (daemon should still win)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: {
             HOME: repo.path,
@@ -385,6 +405,11 @@ describe('keyrack daemon cache', () => {
       then('source is os.daemon (not os.secure)', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant.source.vault).toEqual('os.daemon');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });

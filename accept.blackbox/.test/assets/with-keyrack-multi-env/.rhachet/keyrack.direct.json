@@ -1,0 +1,14 @@
+{
+  "testorg.prod.SHARED_API_KEY": {
+    "value": "sk-shared-prod-abc123"
+  },
+  "testorg.prep.SHARED_API_KEY": {
+    "value": "sk-shared-prep-xyz789"
+  },
+  "testorg.prod.AWS_PROFILE": {
+    "value": "testorg.prod"
+  },
+  "testorg.prep.AWS_PROFILE": {
+    "value": "testorg.prep"
+  }
+}

@@ -1,11 +1,11 @@
 {
-  "SAFE_API_KEY": {
+  "testorg.test.SAFE_API_KEY": {
     "value": "sk-safe-api-key-abc123"
   },
-  "GHP_TOKEN": {
+  "testorg.test.GHP_TOKEN": {
     "value": "ghp_abcdefghijklmnopqrstuvwxyz1234567890"
   },
-  "AKIA_TOKEN": {
+  "testorg.test.AKIA_TOKEN": {
     "value": "AKIAIOSFODNN7EXAMPLE"
   }
 }

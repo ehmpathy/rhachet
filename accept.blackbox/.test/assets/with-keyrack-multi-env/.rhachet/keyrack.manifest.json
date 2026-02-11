@@ -1,0 +1,37 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.prod.SHARED_API_KEY": {
+      "slug": "testorg.prod.SHARED_API_KEY",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.prep.SHARED_API_KEY": {
+      "slug": "testorg.prep.SHARED_API_KEY",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.prod.AWS_PROFILE": {
+      "slug": "testorg.prod.AWS_PROFILE",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.prep.AWS_PROFILE": {
+      "slug": "testorg.prep.AWS_PROFILE",
+      "mech": "REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

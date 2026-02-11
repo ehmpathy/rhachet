@@ -36,13 +36,14 @@ describe('daoKeyrackRepoManifest', () => {
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  XAI_API_KEY:
-    mech: REPLICA
-  GITHUB_TOKEN:
-    mech: GITHUB_APP
-  AWS_PROFILE:
-    mech: AWS_SSO
+        `org: testorg
+
+env.all:
+  - XAI_API_KEY: encrypted
+  - GITHUB_TOKEN
+  - AWS_PROFILE: ephemeral
+
+env.test: []
 `,
       );
     });
@@ -52,20 +53,28 @@ describe('daoKeyrackRepoManifest', () => {
         const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
 
         expect(result).not.toBeNull();
+        // 3 keys in env.all expanded to env.test = 3 keys total
         expect(Object.keys(result!.keys)).toHaveLength(3);
       });
 
       then('hydrates KeyrackKeySpec domain objects', async () => {
         const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
 
-        expect(result!.keys.XAI_API_KEY).toBeDefined();
-        expect(result!.keys.XAI_API_KEY?.mech).toEqual('REPLICA');
+        // keys are now slugged with org.env.name format (env.all expands to test)
+        expect(result!.keys['testorg.test.XAI_API_KEY']).toBeDefined();
+        expect(result!.keys['testorg.test.XAI_API_KEY']?.name).toEqual(
+          'XAI_API_KEY',
+        );
 
-        expect(result!.keys.GITHUB_TOKEN).toBeDefined();
-        expect(result!.keys.GITHUB_TOKEN?.mech).toEqual('GITHUB_APP');
+        expect(result!.keys['testorg.test.GITHUB_TOKEN']).toBeDefined();
+        expect(result!.keys['testorg.test.GITHUB_TOKEN']?.name).toEqual(
+          'GITHUB_TOKEN',
+        );
 
-        expect(result!.keys.AWS_PROFILE).toBeDefined();
-        expect(result!.keys.AWS_PROFILE?.mech).toEqual('AWS_SSO');
+        expect(result!.keys['testorg.test.AWS_PROFILE']).toBeDefined();
+        expect(result!.keys['testorg.test.AWS_PROFILE']?.name).toEqual(
+          'AWS_PROFILE',
+        );
       });
     });
   });
@@ -94,15 +103,14 @@ describe('daoKeyrackRepoManifest', () => {
     });
   });
 
-  given('[case4] keyrack.yml has invalid schema', () => {
+  given('[case4] keyrack.yml has invalid schema (org absent)', () => {
     beforeEach(() => {
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  XAI_API_KEY:
-    mech: INVALID_MECH_TYPE
+        `env.all:
+  - XAI_API_KEY
 `,
       );
     });
@@ -118,19 +126,29 @@ describe('daoKeyrackRepoManifest', () => {
     });
   });
 
-  given('[case5] keyrack.yml with empty keys', () => {
+  given('[case5] keyrack.yml with empty env.all but env-specific keys', () => {
     beforeEach(() => {
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
-      writeFileSync(join(agentDir, 'keyrack.yml'), 'keys: {}\n');
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+
+env.all: []
+
+env.test:
+  - TEST_KEY
+`,
+      );
     });
 
     when('[t0] get called', () => {
-      then('returns manifest with empty keys', async () => {
+      then('returns manifest with only env-specific keys', async () => {
         const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
 
         expect(result).not.toBeNull();
-        expect(Object.keys(result!.keys)).toHaveLength(0);
+        expect(Object.keys(result!.keys)).toHaveLength(1);
+        expect(result!.keys['testorg.test.TEST_KEY']).toBeDefined();
       });
     });
   });

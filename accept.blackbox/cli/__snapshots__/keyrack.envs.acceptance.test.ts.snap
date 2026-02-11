@@ -1,0 +1,276 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack envs given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t0] unlock without --env then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t1] get --for repo without --env then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t2] get --for repo --json without --env then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t0] get --for repo --env prep --json then: stdout matches snapshot 1`] = `
+[
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "sk-shared-prep-xyz789",
+      },
+      "slug": "testorg.prep.SHARED_API_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "testorg.prep",
+      },
+      "slug": "testorg.prep.AWS_PROFILE",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+]
+`;
+
+exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t1] get --for repo --env prod --json then: stdout matches snapshot 1`] = `
+[
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "sk-shared-prod-abc123",
+      },
+      "slug": "testorg.prod.SHARED_API_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "testorg.prod",
+      },
+      "slug": "testorg.prod.AWS_PROFILE",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+]
+`;
+
+exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t2] get --for repo --env all --json then: stdout matches snapshot 1`] = `
+[
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "sk-shared-prod-abc123",
+      },
+      "slug": "testorg.prod.SHARED_API_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "testorg.prod",
+      },
+      "slug": "testorg.prod.AWS_PROFILE",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "sk-shared-prep-xyz789",
+      },
+      "slug": "testorg.prep.SHARED_API_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "testorg.prep",
+      },
+      "slug": "testorg.prep.AWS_PROFILE",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+]
+`;
+
+exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t3] get --for repo --env prep (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   ├─ testorg.prep.SHARED_API_KEY
+   │  ├─ vault: os.direct
+   │  ├─ mech: REPLICA
+   │  └─ status: granted 🔑
+   └─ testorg.prep.AWS_PROFILE
+      ├─ vault: os.direct
+      ├─ mech: REPLICA
+      └─ status: granted 🔑
+done. 2 granted, 0 blocked, 0 absent.
+
+"
+`;
+
+exports[`keyrack envs given: [case3] raw key name export via single key get when: [t0] get --key testorg.prep.AWS_PROFILE --json then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "testorg.prep",
+    },
+    "slug": "testorg.prep.AWS_PROFILE",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.direct",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack envs given: [case3] raw key name export via single key get when: [t1] get --key testorg.prep.AWS_PROFILE (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ testorg.prep.AWS_PROFILE
+      ├─ vault: os.direct
+      ├─ mech: REPLICA
+      └─ status: granted 🔑
+done. 1 granted.
+
+"
+`;
+
+exports[`keyrack envs given: [case5] unlock with env filter when: [t0] unlock --env prep then: stdout matches snapshot 1`] = `
+"
+🔓 rhachet/keyrack unlock
+   ├─ testorg.prep.SHARED_API_KEY
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   └─ testorg.prep.AWS_PROFILE
+      ├─ vault: os.direct
+      └─ expires in: 540m
+done. 2 keys unlocked.
+
+"
+`;
+
+exports[`keyrack envs given: [case5] unlock with env filter when: [t1] unlock --env all then: stdout matches snapshot 1`] = `
+"
+🔓 rhachet/keyrack unlock
+   ├─ testorg.prod.SHARED_API_KEY
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   ├─ testorg.prod.AWS_PROFILE
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   ├─ testorg.prep.SHARED_API_KEY
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   └─ testorg.prep.AWS_PROFILE
+      ├─ vault: os.direct
+      └─ expires in: 540m
+done. 4 keys unlocked.
+
+"
+`;
+
+exports[`keyrack envs given: [case6] set with org mismatch when: [t0] set --key AWS_PROFILE --org foreign-org --json then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case6] set with org mismatch when: [t1] set --key AWS_PROFILE --org testorg (valid match) then: stdout matches snapshot 1`] = `
+[
+  {
+    "mech": "REPLICA",
+    "slug": "testorg.prod.AWS_PROFILE",
+    "vault": "os.direct",
+  },
+]
+`;
+
+exports[`keyrack envs given: [case7] repo with old flat keys: format when: [t0] get --for repo --json then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case7] repo with old flat keys: format when: [t1] unlock then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack envs given: [case8] list with multi-env repo when: [t0] keyrack list then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   ├─ testorg.prod.SHARED_API_KEY
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.prep.SHARED_API_KEY
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.prod.AWS_PROFILE
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.prep.AWS_PROFILE
+      ├─ mech: REPLICA
+      └─ vault: os.direct
+done. 4 keys configured.
+
+"
+`;

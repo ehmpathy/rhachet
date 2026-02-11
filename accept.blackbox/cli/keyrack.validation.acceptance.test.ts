@@ -1,7 +1,10 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('keyrack validation', () => {
   /**
@@ -31,6 +34,10 @@ describe('keyrack validation', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/repo manifest.*none found|keyrack\.yml/i);
       });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
     });
 
     when('[t1] keyrack unlock', () => {
@@ -51,6 +58,10 @@ describe('keyrack validation', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/repo manifest|keyrack\.yml|no.*found/i);
       });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
@@ -66,7 +77,7 @@ describe('keyrack validation', () => {
     when('[t0] keyrack get --key XAI_API_KEY --json (key not configured)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'XAI_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.XAI_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path, XAI_API_KEY: undefined },
           logOnError: false,
@@ -98,7 +109,7 @@ describe('keyrack validation', () => {
     when('[t1] keyrack get --key XAI_API_KEY (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'XAI_API_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.XAI_API_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path, XAI_API_KEY: undefined },
           logOnError: false,
@@ -128,7 +139,7 @@ describe('keyrack validation', () => {
     when('[t0] keyrack get --for repo --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--for', 'repo', '--json'],
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path, XAI_API_KEY: undefined, GITHUB_APP_CREDS: undefined },
           logOnError: false,
@@ -146,6 +157,11 @@ describe('keyrack validation', () => {
         for (const attempt of parsed) {
           expect(attempt.status).toEqual('absent');
         }
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -185,6 +201,10 @@ describe('keyrack validation', () => {
       then('stderr contains error about invalid mech', () => {
         expect(result.stderr).toContain('invalid --mech');
       });
+
+      then('stderr matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
+      });
     });
 
     when('[t1] keyrack set with invalid --vault', () => {
@@ -213,6 +233,10 @@ describe('keyrack validation', () => {
       then('stderr contains error about invalid vault', () => {
         expect(result.stderr).toContain('invalid --vault');
       });
+
+      then('stderr matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
+      });
     });
 
     when('[t2] keyrack get without --for or --key', () => {
@@ -231,6 +255,10 @@ describe('keyrack validation', () => {
 
       then('stderr contains error about required options', () => {
         expect(result.stderr).toContain('must specify');
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
       });
     });
   });

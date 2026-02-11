@@ -1,0 +1,10 @@
+org: testorg
+
+env.all:
+  - SHARED_API_KEY
+
+env.prod:
+  - AWS_PROFILE: ephemeral
+
+env.prep:
+  - AWS_PROFILE: ephemeral

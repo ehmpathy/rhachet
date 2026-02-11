@@ -292,20 +292,21 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case6] key is present in process.env', () => {
-    const envKey = '__TEST_KEYRACK_ENV_VAR__';
+    const rawKey = '__TEST_KEYRACK_ENV_VAR__';
+    const envSlug = `testorg.test.${rawKey}`;
     const envValue = 'test-env-value-from-os';
 
     beforeEach(() => {
-      process.env[envKey] = envValue;
+      process.env[rawKey] = envValue;
     });
 
     afterEach(() => {
-      delete process.env[envKey];
+      delete process.env[rawKey];
     });
 
     const context: KeyrackGrantContext = {
       repoManifest: genMockKeyrackRepoManifest({
-        keys: { [envKey]: { mech: 'REPLICA' } },
+        keys: { [envSlug]: { mech: 'REPLICA' } },
       }),
       // no host manifest entry for this key
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
@@ -330,7 +331,7 @@ describe('getKeyrackKeyGrant', () => {
     when('[t0] get called for key that exists in env', () => {
       then('status is granted', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         expect(result.status).toEqual('granted');
@@ -338,7 +339,7 @@ describe('getKeyrackKeyGrant', () => {
 
       then('grant source vault is os.envvar', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         if (result.status === 'granted') {
@@ -348,7 +349,7 @@ describe('getKeyrackKeyGrant', () => {
 
       then('grant value matches env value', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         if (result.status === 'granted') {
@@ -359,30 +360,31 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case7] key is present in both env and host manifest', () => {
-    const envKey = '__TEST_KEYRACK_ENV_VAR_PRIORITY__';
+    const rawKey = '__TEST_KEYRACK_ENV_VAR_PRIORITY__';
+    const envSlug = `testorg.test.${rawKey}`;
     const envValue = 'value-from-env';
     const hostValue = 'value-from-host';
 
     beforeEach(() => {
-      process.env[envKey] = envValue;
+      process.env[rawKey] = envValue;
     });
 
     afterEach(() => {
-      delete process.env[envKey];
+      delete process.env[rawKey];
     });
 
     const context: KeyrackGrantContext = {
       repoManifest: genMockKeyrackRepoManifest({
-        keys: { [envKey]: { mech: 'REPLICA' } },
+        keys: { [envSlug]: { mech: 'REPLICA' } },
       }),
       hostManifest: genMockKeyrackHostManifest({
-        hosts: { [envKey]: { mech: 'REPLICA', vault: 'os.direct' } },
+        hosts: { [envSlug]: { mech: 'REPLICA', vault: 'os.direct' } },
       }),
       vaultAdapters: {
         'os.envvar': vaultAdapterOsEnvvar, // real adapter reads from process.env
         'os.direct': genMockVaultAdapter({
           isUnlocked: true,
-          storage: { [envKey]: hostValue },
+          storage: { [envSlug]: hostValue },
         }),
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
@@ -402,7 +404,7 @@ describe('getKeyrackKeyGrant', () => {
     when('[t0] get called for key', () => {
       then('env takes precedence (os.envvar wins)', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         expect(result.status).toEqual('granted');
@@ -415,20 +417,21 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case8] key in env fails mechanism validation', () => {
-    const envKey = '__TEST_KEYRACK_ENV_VAR_BLOCKED__';
+    const rawKey = '__TEST_KEYRACK_ENV_VAR_BLOCKED__';
+    const envSlug = `testorg.test.${rawKey}`;
     const envValue = 'invalid-value-that-fails-firewall';
 
     beforeEach(() => {
-      process.env[envKey] = envValue;
+      process.env[rawKey] = envValue;
     });
 
     afterEach(() => {
-      delete process.env[envKey];
+      delete process.env[rawKey];
     });
 
     const context: KeyrackGrantContext = {
       repoManifest: genMockKeyrackRepoManifest({
-        keys: { [envKey]: { mech: 'REPLICA' } },
+        keys: { [envSlug]: { mech: 'REPLICA' } },
       }),
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       vaultAdapters: {
@@ -458,7 +461,7 @@ describe('getKeyrackKeyGrant', () => {
     when('[t0] get called for key with invalid env value', () => {
       then('status is blocked', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         expect(result.status).toEqual('blocked');
@@ -466,7 +469,7 @@ describe('getKeyrackKeyGrant', () => {
 
       then('does not fall through to host manifest', async () => {
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: envSlug } },
           context,
         );
         if (result.status === 'blocked') {
