@@ -1,8 +1,8 @@
 {
-  "ALLOWED_KEY": {
+  "testorg.test.ALLOWED_KEY": {
     "value": "allowed-key-value-123"
   },
-  "SECRET_KEY": {
+  "testorg.test.SECRET_KEY": {
     "value": "secret-key-value-456"
   }
 }

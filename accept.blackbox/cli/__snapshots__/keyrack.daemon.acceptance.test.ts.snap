@@ -10,7 +10,85 @@ exports[`keyrack daemon cache given: [case1] repo with os.secure vault, after un
       },
       "secret": "portable-secure-value-xyz789",
     },
-    "slug": "SECURE_API_KEY",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack daemon cache given: [case2] repo with os.secure vault, daemon empty when: [t0] keyrack get --key SECURE_API_KEY --json (no passphrase) then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack get --key testorg.test.SECURE_API_KEY --unlock",
+  "message": "vault 'os.secure' is locked",
+  "slug": "testorg.test.SECURE_API_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack daemon cache given: [case3] repo with os.secure vault when: [t0] keyrack get with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.secure",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack daemon cache given: [case4] repo with daemon cache and source vault when: [t0] keyrack get with KEYRACK_PASSPHRASE (daemon should still win) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t0] get before unlock (should be locked) then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack get --key testorg.test.SECURE_API_KEY --unlock",
+  "message": "vault 'os.secure' is locked",
+  "slug": "testorg.test.SECURE_API_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t1] unlock then get (should succeed) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
       "vault": "os.daemon",
@@ -23,7 +101,7 @@ exports[`keyrack daemon cache given: [case1] repo with os.secure vault, after un
 exports[`keyrack daemon cache given: [case6] interactive unlock via stdin when: [t0] unlock via stdin then: unlock stdout matches snapshot 1`] = `
 "
 🔓 rhachet/keyrack unlock
-   └─ SECURE_API_KEY
+   └─ testorg.test.SECURE_API_KEY
       ├─ vault: os.secure
       └─ expires in: 540m
 done. 1 keys unlocked.
@@ -34,7 +112,7 @@ done. 1 keys unlocked.
 exports[`keyrack daemon cache given: [case6] interactive unlock via stdin when: [t1] get after interactive unlock (human readable) then: get stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   └─ SECURE_API_KEY
+   └─ testorg.test.SECURE_API_KEY
       ├─ vault: os.daemon
       ├─ mech: REPLICA
       └─ status: granted 🔑

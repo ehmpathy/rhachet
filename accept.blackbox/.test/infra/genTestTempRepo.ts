@@ -45,7 +45,9 @@ export type TestRepoFixture =
   | 'with-vault-os-direct'
   | 'with-allowlist-test'
   | 'with-firewall-test'
-  | 'with-vault-os-secure';
+  | 'with-vault-os-secure'
+  | 'with-keyrack-multi-env'
+  | 'with-keyrack-flat-keys';
 
 /**
  * .what = creates an isolated test repo in os.tmpdir()

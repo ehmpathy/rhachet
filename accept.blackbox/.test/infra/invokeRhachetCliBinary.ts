@@ -2,6 +2,23 @@ import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { resolve } from 'node:path';
 
 /**
+ * .what = strip machine-specific content from CLI output for snapshots
+ * .why = paths and pids vary by machine — strip them so snapshots work across environments
+ */
+export const asSnapshotSafe = (output: string): string => {
+  return (
+    output
+      // strip daemon spawn messages (pids vary)
+      .replace(/\[keyrack-daemon\] spawned background daemon \(pid: \d+\)\n?/g, '')
+      // strip absolute file paths in stack traces (vary by machine)
+      .replace(
+        /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s]+/g,
+        '/PATH_STRIPPED',
+      )
+  );
+};
+
+/**
  * .what = paths to CLI binaries
  * .why = acceptance tests invoke compiled binaries for black-box test
  */

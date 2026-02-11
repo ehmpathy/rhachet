@@ -16,7 +16,7 @@ describe('keyrack allowlist', () => {
     when('[t0] get --key ALLOWED_KEY (in allowlist, on host)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'ALLOWED_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -41,7 +41,7 @@ describe('keyrack allowlist', () => {
     when('[t0.1] get --key ALLOWED_KEY (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'ALLOWED_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -60,7 +60,7 @@ describe('keyrack allowlist', () => {
     when('[t1] get --key SECRET_KEY (on host but NOT in allowlist)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECRET_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECRET_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -98,7 +98,7 @@ describe('keyrack allowlist', () => {
     when('[t1.1] get --key SECRET_KEY (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECRET_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECRET_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -118,7 +118,7 @@ describe('keyrack allowlist', () => {
     when('[t2] get --key NONEXISTENT_KEY (not in allowlist, not on host)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'NONEXISTENT_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.NONEXISTENT_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -145,7 +145,7 @@ describe('keyrack allowlist', () => {
     when('[t3] get --for repo', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--for', 'repo', '--json'],
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -155,15 +155,21 @@ describe('keyrack allowlist', () => {
         const parsed = JSON.parse(result.stdout);
         expect(Array.isArray(parsed)).toBe(true);
         expect(parsed.length).toEqual(1);
-        expect(parsed[0].grant?.slug).toEqual('ALLOWED_KEY');
+        expect(parsed[0].grant?.slug).toEqual('testorg.test.ALLOWED_KEY');
       });
 
       then('SECRET_KEY is not exposed even though it is on host', () => {
         const parsed = JSON.parse(result.stdout);
         const secretKey = parsed.find(
-          (a: { grant?: { slug: string } }) => a.grant?.slug === 'SECRET_KEY',
+          (a: { grant?: { slug: string } }) =>
+            a.grant?.slug === 'testorg.test.SECRET_KEY',
         );
         expect(secretKey).toBeUndefined();
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -180,7 +186,7 @@ describe('keyrack allowlist', () => {
     when('[t0] get --key SECRET_FROM_ENV with env var set', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECRET_FROM_ENV', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECRET_FROM_ENV', '--json'],
           cwd: repo.path,
           env: {
             HOME: repo.path,
@@ -204,6 +210,11 @@ describe('keyrack allowlist', () => {
         const parsed = JSON.parse(result.stdout);
         // the value should not appear anywhere in the response
         expect(JSON.stringify(parsed)).not.toContain('secret-env-value-789');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });

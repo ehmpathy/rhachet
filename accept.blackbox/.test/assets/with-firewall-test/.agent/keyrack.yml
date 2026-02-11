@@ -1,10 +1,6 @@
-keys:
-  SAFE_API_KEY:
-    slug: SAFE_API_KEY
-    mech: REPLICA
-  GHP_TOKEN:
-    slug: GHP_TOKEN
-    mech: REPLICA
-  AKIA_TOKEN:
-    slug: AKIA_TOKEN
-    mech: REPLICA
+org: testorg
+
+env.test:
+  - SAFE_API_KEY
+  - GHP_TOKEN
+  - AKIA_TOKEN

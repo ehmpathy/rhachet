@@ -34,15 +34,20 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case1] key configured in repo and host with value in vault', () => {
+    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
+
     beforeEach(async () => {
       // setup repo manifest
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  __TEST_HOST_API_KEY__:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - __TEST_HOST_API_KEY__
+
+env.test: []
 `,
       );
 
@@ -51,8 +56,8 @@ describe('getKeyrackKeyGrant', () => {
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
           hosts: {
-            __TEST_HOST_API_KEY__: new KeyrackKeyHost({
-              slug: '__TEST_HOST_API_KEY__',
+            [slug]: new KeyrackKeyHost({
+              slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
@@ -65,7 +70,7 @@ describe('getKeyrackKeyGrant', () => {
 
       // store value in vault
       await vaultAdapterOsDirect.set({
-        slug: '__TEST_HOST_API_KEY__',
+        slug,
         value: 'xai-test-key-123',
       });
     });
@@ -74,7 +79,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is granted', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -84,7 +89,7 @@ describe('getKeyrackKeyGrant', () => {
       then('grant value matches stored value', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -98,7 +103,7 @@ describe('getKeyrackKeyGrant', () => {
       then('returns array with granted status', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { repo: true } },
+          { for: { repo: true }, env: 'test' },
           context,
         );
 
@@ -110,19 +115,29 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case2] key not in repo manifest', () => {
+    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
+
     beforeEach(async () => {
       // setup repo manifest without the key
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
-      writeFileSync(join(agentDir, 'keyrack.yml'), 'keys: {}\n');
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+
+env.all: []
+
+env.test: []
+`,
+      );
 
       // setup host manifest with the key
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
           hosts: {
-            __TEST_HOST_API_KEY__: new KeyrackKeyHost({
-              slug: '__TEST_HOST_API_KEY__',
+            [slug]: new KeyrackKeyHost({
+              slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
@@ -138,7 +153,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is absent', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -148,7 +163,7 @@ describe('getKeyrackKeyGrant', () => {
       then('message mentions repo manifest', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -160,15 +175,20 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case3] key not configured on host', () => {
+    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
+
     beforeEach(async () => {
       // setup repo manifest with the key
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  __TEST_HOST_API_KEY__:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - __TEST_HOST_API_KEY__
+
+env.test: []
 `,
       );
 
@@ -185,7 +205,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is absent', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -195,7 +215,7 @@ describe('getKeyrackKeyGrant', () => {
       then('message mentions host', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -207,7 +227,7 @@ describe('getKeyrackKeyGrant', () => {
       then('fix instructions mention keyrack set', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -219,15 +239,20 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case4] value not in vault', () => {
+    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
+
     beforeEach(async () => {
       // setup repo manifest
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  __TEST_HOST_API_KEY__:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - __TEST_HOST_API_KEY__
+
+env.test: []
 `,
       );
 
@@ -236,8 +261,8 @@ describe('getKeyrackKeyGrant', () => {
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
           hosts: {
-            __TEST_HOST_API_KEY__: new KeyrackKeyHost({
-              slug: '__TEST_HOST_API_KEY__',
+            [slug]: new KeyrackKeyHost({
+              slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
@@ -255,7 +280,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is absent', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: '__TEST_HOST_API_KEY__' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -265,15 +290,20 @@ describe('getKeyrackKeyGrant', () => {
   });
 
   given('[case5] invalid credential value', () => {
+    const slug = 'testorg.test.GITHUB_TOKEN';
+
     beforeEach(async () => {
       // setup repo manifest
       const agentDir = join(testDir, '.agent');
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  GITHUB_TOKEN:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - GITHUB_TOKEN
+
+env.test: []
 `,
       );
 
@@ -282,8 +312,8 @@ describe('getKeyrackKeyGrant', () => {
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
           hosts: {
-            GITHUB_TOKEN: new KeyrackKeyHost({
-              slug: 'GITHUB_TOKEN',
+            [slug]: new KeyrackKeyHost({
+              slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
@@ -296,7 +326,7 @@ describe('getKeyrackKeyGrant', () => {
 
       // store a long-lived github pat (should be blocked by REPLICA mech)
       await vaultAdapterOsDirect.set({
-        slug: 'GITHUB_TOKEN',
+        slug,
         value: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
     });
@@ -305,7 +335,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is blocked', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: 'GITHUB_TOKEN' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -315,7 +345,7 @@ describe('getKeyrackKeyGrant', () => {
       then('message mentions validation failure', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: 'GITHUB_TOKEN' } },
+          { for: { key: slug } },
           context,
         );
 
@@ -328,10 +358,11 @@ describe('getKeyrackKeyGrant', () => {
 
   given('[case6] key present in process.env (ci passthrough)', () => {
     const envKey = '__TEST_KEYRACK_INTEG_ENV_VAR__';
+    const slug = `testorg.test.${envKey}`;
     const envValue = 'ci-passthrough-value-123';
 
     beforeEach(async () => {
-      // set env var
+      // set env var (uses raw key name for passthrough lookup)
       process.env[envKey] = envValue;
 
       // setup repo manifest with the key
@@ -339,9 +370,12 @@ describe('getKeyrackKeyGrant', () => {
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  ${envKey}:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - ${envKey}
+
+env.test: []
 `,
       );
 
@@ -362,7 +396,7 @@ describe('getKeyrackKeyGrant', () => {
       then('status is granted', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: slug } },
           context,
         );
 
@@ -372,7 +406,7 @@ describe('getKeyrackKeyGrant', () => {
       then('grant source vault is os.envvar', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: slug } },
           context,
         );
 
@@ -384,7 +418,7 @@ describe('getKeyrackKeyGrant', () => {
       then('grant value matches env value', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: slug } },
           context,
         );
 
@@ -397,11 +431,12 @@ describe('getKeyrackKeyGrant', () => {
 
   given('[case7] key in both env and host manifest (env wins)', () => {
     const envKey = '__TEST_KEYRACK_INTEG_ENV_PRIORITY__';
+    const slug = `testorg.test.${envKey}`;
     const envValue = 'value-from-env';
     const hostValue = 'value-from-host';
 
     beforeEach(async () => {
-      // set env var
+      // set env var (uses raw key name for passthrough lookup)
       process.env[envKey] = envValue;
 
       // setup repo manifest
@@ -409,9 +444,12 @@ describe('getKeyrackKeyGrant', () => {
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(
         join(agentDir, 'keyrack.yml'),
-        `keys:
-  ${envKey}:
-    mech: REPLICA
+        `org: testorg
+
+env.all:
+  - ${envKey}
+
+env.test: []
 `,
       );
 
@@ -420,8 +458,8 @@ describe('getKeyrackKeyGrant', () => {
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
           hosts: {
-            [envKey]: new KeyrackKeyHost({
-              slug: envKey,
+            [slug]: new KeyrackKeyHost({
+              slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
@@ -434,7 +472,7 @@ describe('getKeyrackKeyGrant', () => {
 
       // store different value in vault
       await vaultAdapterOsDirect.set({
-        slug: envKey,
+        slug,
         value: hostValue,
       });
     });
@@ -447,7 +485,7 @@ describe('getKeyrackKeyGrant', () => {
       then('env takes precedence over host', async () => {
         const context = await genKeyrackGrantContext({ gitroot: testDir });
         const result = await getKeyrackKeyGrant(
-          { for: { key: envKey } },
+          { for: { key: slug } },
           context,
         );
 

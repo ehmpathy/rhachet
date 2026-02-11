@@ -1,6 +1,7 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
+import { asKeyrackKeyName } from '../../asKeyrackKeyName';
 
 /**
  * .what = vault adapter that reads from process.env
@@ -24,12 +25,16 @@ export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter = {
   unlock: async () => {},
 
   /**
-   * .what = read value from process.env
+   * .what = read value from process.env via raw key name
    * .why = core operation for passthrough grant flow
    *
-   * .note = exid is ignored for os.envvar; slug is the env var name
+   * .note = exid is ignored for os.envvar
+   * .note = extracts raw key name from slug (e.g., testorg.test.AWS_PROFILE -> AWS_PROFILE)
    */
-  get: async (input: { slug: string }) => process.env[input.slug] ?? null,
+  get: async (input: { slug: string }) => {
+    const keyName = asKeyrackKeyName({ slug: input.slug });
+    return process.env[keyName] ?? null;
+  },
 
   /**
    * .what = set is forbidden for os.envvar

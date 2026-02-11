@@ -1,10 +1,50 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t0] keyrack get --for repo then: stderr matches snapshot 1`] = `
+"/PATH_STRIPPED
+    throw new UnexpectedCodePathError(
+          ^
+
+UnexpectedCodePathError: UnexpectedCodePathError: repo grant requires repo manifest; none found
+
+{
+  "gitroot": "unknown"
+}
+    at getKeyrackKeyGrant (/PATH_STRIPPED)
+    at Command.<anonymous> (/PATH_STRIPPED)
+    at async Command.parseAsync (/PATH_STRIPPED)
+    at async _invoke (/PATH_STRIPPED)
+    at async withEmojiSpaceShim (/PATH_STRIPPED)
+
+Node.js v22.21.0
+"
+`;
+
+exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t1] keyrack unlock then: stderr matches snapshot 1`] = `
+"/PATH_STRIPPED
+    throw new UnexpectedCodePathError('no keyrack.yml found in repo', {
+          ^
+
+UnexpectedCodePathError: UnexpectedCodePathError: no keyrack.yml found in repo
+
+{
+  "note": "keyrack.yml declares which keys are required"
+}
+    at unlockKeyrack (/PATH_STRIPPED)
+    at async Command.<anonymous> (/PATH_STRIPPED)
+    at async Command.parseAsync (/PATH_STRIPPED)
+    at async _invoke (/PATH_STRIPPED)
+    at async withEmojiSpaceShim (/PATH_STRIPPED)
+
+Node.js v22.21.0
+"
+`;
+
 exports[`keyrack validation given: [case1] repo with manifest but no host config when: [t0] keyrack get --key XAI_API_KEY --json (key not configured) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack set --key XAI_API_KEY --mech REPLICA --vault <vault>",
-  "message": "key 'XAI_API_KEY' not configured on this host",
-  "slug": "XAI_API_KEY",
+  "fix": "run: rhx keyrack set --key testorg.test.XAI_API_KEY --mech REPLICA --vault <vault>",
+  "message": "key 'testorg.test.XAI_API_KEY' not configured on this host",
+  "slug": "testorg.test.XAI_API_KEY",
   "status": "absent",
 }
 `;
@@ -12,10 +52,54 @@ exports[`keyrack validation given: [case1] repo with manifest but no host config
 exports[`keyrack validation given: [case1] repo with manifest but no host config when: [t1] keyrack get --key XAI_API_KEY (human readable) then: stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   └─ XAI_API_KEY
+   └─ testorg.test.XAI_API_KEY
       └─ status: absent 🫧
-         └─ fix: run: rhx keyrack set --key XAI_API_KEY --mech REPLICA --vault <vault>
+         └─ fix: run: rhx keyrack set --key testorg.test.XAI_API_KEY --mech REPLICA --vault <vault>
 done. 1 absent.
+
+"
+`;
+
+exports[`keyrack validation given: [case2] repo with multiple keys, one absent when: [t0] keyrack get --for repo --json then: stdout matches snapshot 1`] = `
+[
+  {
+    "fix": "run: rhx keyrack set --key testorg.test.XAI_API_KEY --mech REPLICA --vault <vault>",
+    "message": "key 'testorg.test.XAI_API_KEY' not configured on this host",
+    "slug": "testorg.test.XAI_API_KEY",
+    "status": "absent",
+  },
+  {
+    "fix": "run: rhx keyrack set --key testorg.test.GITHUB_APP_CREDS --mech REPLICA --vault <vault>",
+    "message": "key 'testorg.test.GITHUB_APP_CREDS' not configured on this host",
+    "slug": "testorg.test.GITHUB_APP_CREDS",
+    "status": "absent",
+  },
+]
+`;
+
+exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack set with invalid --mech then: stderr matches snapshot 1`] = `
+"
+⛈️ BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO
+
+[args] keyrack,set,--key,TEST,--mech,INVALID_MECH,--vault,os.direct
+
+"
+`;
+
+exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack set with invalid --vault then: stderr matches snapshot 1`] = `
+"
+⛈️ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, 1password
+
+[args] keyrack,set,--key,TEST,--mech,REPLICA,--vault,invalid_vault
+
+"
+`;
+
+exports[`keyrack validation given: [case3] validation errors when: [t2] keyrack get without --for or --key then: stderr matches snapshot 1`] = `
+"
+⛈️ BadRequestError: must specify --for repo or --key <slug>
+
+[args] keyrack,get
 
 "
 `;

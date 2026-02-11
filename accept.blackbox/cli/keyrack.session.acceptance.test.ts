@@ -87,7 +87,7 @@ describe('keyrack session commands', () => {
       const result = useThen('it completes', () =>
         invokeRhachetCliBinary({
           binary: 'rhx',
-          args: ['keyrack', 'unlock', '--duration', '1h'],
+          args: ['keyrack', 'unlock', '--env', 'test', '--duration', '1h'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,

@@ -1,8 +1,10 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import type { KeyrackKey } from '../../../domain.objects/keyrack/KeyrackKey';
+import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
 import { daemonAccessUnlock, findsertKeyrackDaemon } from '../daemon/sdk';
 import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import { getAllKeyrackSlugsForEnv } from '../getAllKeyrackSlugsForEnv';
 import { inferKeyGrade } from '../grades/inferKeyGrade';
 
 /**
@@ -14,6 +16,7 @@ import { inferKeyGrade } from '../grades/inferKeyGrade';
  */
 export const unlockKeyrack = async (
   input: {
+    env?: string;
     duration?: string;
     passphrase?: string;
   },
@@ -40,6 +43,16 @@ export const unlockKeyrack = async (
     });
   }
 
+  // resolve env and filter slugs
+  const env = assertKeyrackEnvIsSpecified({
+    manifest: repoManifest,
+    env: input.env ?? null,
+  });
+  const slugsForEnv = getAllKeyrackSlugsForEnv({
+    manifest: repoManifest,
+    env,
+  });
+
   // collect keys to unlock
   const keysToUnlock: Array<{
     slug: string;
@@ -48,7 +61,9 @@ export const unlockKeyrack = async (
     vault: string;
   }> = [];
 
-  for (const [slug, spec] of Object.entries(repoManifest.keys)) {
+  for (const slug of slugsForEnv) {
+    const spec = repoManifest.keys[slug];
+    if (!spec) continue;
     // find host config for this key
     const hostConfig = context.hostManifest.hosts[slug];
     if (!hostConfig) {

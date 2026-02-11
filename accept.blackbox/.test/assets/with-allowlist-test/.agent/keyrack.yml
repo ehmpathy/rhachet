@@ -1,4 +1,4 @@
-keys:
-  ALLOWED_KEY:
-    slug: ALLOWED_KEY
-    mech: REPLICA
+org: testorg
+
+env.test:
+  - ALLOWED_KEY

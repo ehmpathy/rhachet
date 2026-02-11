@@ -2,6 +2,10 @@ name: keyrack
 description: resolve credentials via rhachet keyrack — short-lived tokens only
 
 inputs:
+  env:
+    description: |
+      target env: prod, prep, test, or all (required, no default)
+    required: true
   keys:
     description: |
       space-separated list of key slugs to grant
@@ -58,7 +62,7 @@ runs:
         set -euo pipefail
         echo "🔭 keyrack unlock"
 
-        rhx keyrack unlock --for repo --passphrase "${{ inputs.passphrase }}" --json > /tmp/keyrack-unlock.json
+        rhx keyrack unlock --env "${{ inputs.env }}" --passphrase "${{ inputs.passphrase }}" --json > /tmp/keyrack-unlock.json
 
         UNLOCKED=$(jq -r '.unlocked | length' /tmp/keyrack-unlock.json)
         echo "   └── unlocked $UNLOCKED vault(s)"
@@ -84,9 +88,10 @@ runs:
             STATUS=$(jq -r '.status' /tmp/keyrack-grant-${key}.json)
 
             if [ "$STATUS" = "granted" ]; then
-              # extract grant value and export to GITHUB_ENV
+              # extract grant value and export to GITHUB_ENV with raw key name
               VALUE=$(jq -r '.grant.value' /tmp/keyrack-grant-${key}.json)
-              echo "${key}=${VALUE}" >> $GITHUB_ENV
+              KEY_NAME=$(extract_key_name "$key")
+              echo "${KEY_NAME}=${VALUE}" >> $GITHUB_ENV
               echo "::add-mask::${VALUE}"
               echo "   │   └── ✨ granted, exported to \$GITHUB_ENV"
               GRANTED_SLUGS=$(echo "$GRANTED_SLUGS" | jq --arg k "$key" '. + [$k]')
@@ -101,11 +106,17 @@ runs:
           fi
         }
 
+        # extract raw key name from slug ($org.$env.$key -> $key)
+        extract_key_name() {
+          local slug="$1"
+          echo "$slug" | cut -d'.' -f3-
+        }
+
         if [ -z "$KEYS" ]; then
           # grant all keys from repo manifest
-          echo "   ├── mode: all keys from repo manifest"
+          echo "   ├── mode: all keys from repo manifest (env: ${{ inputs.env }})"
 
-          if rhx keyrack get --for repo --json > /tmp/keyrack-grant-all.json 2>&1; then
+          if rhx keyrack get --for repo --env "${{ inputs.env }}" --json > /tmp/keyrack-grant-all.json 2>&1; then
             # iterate through each attempt
             ATTEMPTS=$(jq -c '.[]' /tmp/keyrack-grant-all.json)
             while IFS= read -r attempt; do
@@ -113,9 +124,10 @@ runs:
               if [ "$STATUS" = "granted" ]; then
                 SLUG=$(echo "$attempt" | jq -r '.grant.slug')
                 VALUE=$(echo "$attempt" | jq -r '.grant.value')
-                echo "${SLUG}=${VALUE}" >> $GITHUB_ENV
+                KEY_NAME=$(extract_key_name "$SLUG")
+                echo "${KEY_NAME}=${VALUE}" >> $GITHUB_ENV
                 echo "::add-mask::${VALUE}"
-                echo "   ├── ✨ $SLUG granted"
+                echo "   ├── ✨ $SLUG -> $KEY_NAME granted"
                 GRANTED_SLUGS=$(echo "$GRANTED_SLUGS" | jq --arg k "$SLUG" '. + [$k]')
               else
                 SLUG=$(echo "$attempt" | jq -r '.slug')

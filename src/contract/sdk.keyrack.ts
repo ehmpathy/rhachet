@@ -55,12 +55,18 @@ export const keyrack = {
    * .what = get credentials from keyrack
    * .why = resolves keys from vault via configured mechanism
    */
-  get: async (input: { for: { repo: true } | { key: string } }) => {
+  get: async (input: {
+    for: { repo: true } | { key: string };
+    env?: string;
+  }) => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
     const context = await genKeyrackGrantContext({ gitroot });
 
     if ('repo' in input.for) {
-      return getKeyrackKeyGrant({ for: { repo: true } }, context);
+      return getKeyrackKeyGrant(
+        { for: { repo: true }, env: input.env },
+        context,
+      );
     }
     return getKeyrackKeyGrant({ for: { key: input.for.key } }, context);
   },

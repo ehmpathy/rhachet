@@ -1,24 +1,24 @@
 {
   "uri": "file://~/.rhachet/keyrack.manifest.json",
   "hosts": {
-    "SAFE_API_KEY": {
-      "slug": "SAFE_API_KEY",
+    "testorg.test.SAFE_API_KEY": {
+      "slug": "testorg.test.SAFE_API_KEY",
       "mech": "REPLICA",
       "vault": "os.direct",
       "exid": null,
       "createdAt": "2026-01-01T00:00:00.000Z",
       "updatedAt": "2026-01-01T00:00:00.000Z"
     },
-    "GHP_TOKEN": {
-      "slug": "GHP_TOKEN",
+    "testorg.test.GHP_TOKEN": {
+      "slug": "testorg.test.GHP_TOKEN",
       "mech": "REPLICA",
       "vault": "os.direct",
       "exid": null,
       "createdAt": "2026-01-01T00:00:00.000Z",
       "updatedAt": "2026-01-01T00:00:00.000Z"
     },
-    "AKIA_TOKEN": {
-      "slug": "AKIA_TOKEN",
+    "testorg.test.AKIA_TOKEN": {
+      "slug": "testorg.test.AKIA_TOKEN",
       "mech": "REPLICA",
       "vault": "os.direct",
       "exid": null,

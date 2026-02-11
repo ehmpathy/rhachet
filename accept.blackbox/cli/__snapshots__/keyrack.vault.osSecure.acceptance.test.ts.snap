@@ -1,5 +1,91 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`keyrack vault os.secure given: [case1] repo with os.secure vault configured when: [t0] keyrack list --json then: stdout matches snapshot 1`] = `
+{
+  "testorg.test.SECURE_API_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+}
+`;
+
+exports[`keyrack vault os.secure given: [case1] repo with os.secure vault configured when: [t1] keyrack list (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack
+   └─ testorg.test.SECURE_API_KEY
+      ├─ mech: REPLICA
+      └─ vault: os.secure
+done. 1 keys configured.
+
+"
+`;
+
+exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.secure then: stdout matches snapshot 1`] = `
+[
+  {
+    "createdAt": "__TIMESTAMP__",
+    "mech": "REPLICA",
+    "slug": "testorg.test.NEW_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+]
+`;
+
+exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t1] keyrack list after set then: stdout matches snapshot 1`] = `
+{
+  "testorg.test.ANOTHER_SECURE_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.ANOTHER_SECURE_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+  "testorg.test.NEW_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.NEW_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+  "testorg.test.SECURE_API_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+}
+`;
+
+exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (daemon empty) when: [t0] keyrack get --key SECURE_API_KEY without unlock then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack get --key testorg.test.SECURE_API_KEY --unlock",
+  "message": "vault 'os.secure' is locked",
+  "slug": "testorg.test.SECURE_API_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] set key that already has same attrs then: stdout matches snapshot 1`] = `
+[
+  {
+    "createdAt": "__TIMESTAMP__",
+    "mech": "REPLICA",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+]
+`;
+
 exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
 {
   "grant": {
@@ -10,7 +96,7 @@ exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fix
       },
       "secret": "portable-secure-value-xyz789",
     },
-    "slug": "SECURE_API_KEY",
+    "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
       "vault": "os.secure",

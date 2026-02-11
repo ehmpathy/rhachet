@@ -16,7 +16,7 @@ describe('keyrack firewall', () => {
     when('[t0] get --key SAFE_API_KEY (valid api key)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SAFE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SAFE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -41,7 +41,7 @@ describe('keyrack firewall', () => {
     when('[t0.1] get --key SAFE_API_KEY (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SAFE_API_KEY'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.SAFE_API_KEY'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -60,7 +60,7 @@ describe('keyrack firewall', () => {
     when('[t1] get --key GHP_TOKEN (github classic pat)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'GHP_TOKEN', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.GHP_TOKEN', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -94,7 +94,7 @@ describe('keyrack firewall', () => {
     when('[t1.1] get --key GHP_TOKEN (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'GHP_TOKEN'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.GHP_TOKEN'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -114,7 +114,7 @@ describe('keyrack firewall', () => {
     when('[t2] get --key AKIA_TOKEN (aws long-lived access key)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'AKIA_TOKEN', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.AKIA_TOKEN', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
           logOnError: false,
@@ -146,7 +146,7 @@ describe('keyrack firewall', () => {
     when('[t3] get --for repo', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--for', 'repo', '--json'],
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -162,7 +162,7 @@ describe('keyrack firewall', () => {
         const parsed = JSON.parse(result.stdout);
         const safeKey = parsed.find(
           (a: { status: string; grant?: { slug: string } }) =>
-            a.grant?.slug === 'SAFE_API_KEY',
+            a.grant?.slug === 'testorg.test.SAFE_API_KEY',
         );
         expect(safeKey).toBeDefined();
         expect(safeKey.status).toEqual('granted');
@@ -171,7 +171,8 @@ describe('keyrack firewall', () => {
       then('GHP_TOKEN is blocked', () => {
         const parsed = JSON.parse(result.stdout);
         const ghpToken = parsed.find(
-          (a: { status: string; slug: string }) => a.slug === 'GHP_TOKEN',
+          (a: { status: string; slug: string }) =>
+            a.slug === 'testorg.test.GHP_TOKEN',
         );
         expect(ghpToken).toBeDefined();
         expect(ghpToken.status).toEqual('blocked');
@@ -180,10 +181,16 @@ describe('keyrack firewall', () => {
       then('AKIA_TOKEN is blocked', () => {
         const parsed = JSON.parse(result.stdout);
         const akiaToken = parsed.find(
-          (a: { status: string; slug: string }) => a.slug === 'AKIA_TOKEN',
+          (a: { status: string; slug: string }) =>
+            a.slug === 'testorg.test.AKIA_TOKEN',
         );
         expect(akiaToken).toBeDefined();
         expect(akiaToken.status).toEqual('blocked');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -200,7 +207,7 @@ describe('keyrack firewall', () => {
     when('[t0] get --key ALLOWED_KEY with ghp_* env var', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'ALLOWED_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY', '--json'],
           cwd: repo.path,
           env: {
             HOME: repo.path,
@@ -219,6 +226,11 @@ describe('keyrack firewall', () => {
       then('message mentions firewall', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.message.toLowerCase()).toContain('ghp_');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });

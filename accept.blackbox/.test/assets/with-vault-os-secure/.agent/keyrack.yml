@@ -1,4 +1,4 @@
-keys:
-  SECURE_API_KEY:
-    slug: SECURE_API_KEY
-    mech: REPLICA
+org: testorg
+
+env.test:
+  - SECURE_API_KEY

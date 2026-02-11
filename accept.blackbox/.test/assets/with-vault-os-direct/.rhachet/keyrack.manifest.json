@@ -1,8 +1,8 @@
 {
   "uri": "file://~/.rhachet/keyrack.manifest.json",
   "hosts": {
-    "DIRECT_TEST_KEY": {
-      "slug": "DIRECT_TEST_KEY",
+    "testorg.test.DIRECT_TEST_KEY": {
+      "slug": "testorg.test.DIRECT_TEST_KEY",
       "mech": "REPLICA",
       "vault": "os.direct",
       "exid": null,

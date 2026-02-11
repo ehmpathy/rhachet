@@ -1,5 +1,49 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t0] keyrack get --for repo --json then: stdout matches snapshot 1`] = `
+[
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "direct-test-key-abc123",
+      },
+      "slug": "testorg.test.DIRECT_TEST_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+]
+`;
+
+exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t1] rhx keyrack get --for repo --json (short-circuit) then: stdout matches snapshot 1`] = `
+[
+  {
+    "grant": {
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "plaintext",
+        },
+        "secret": "direct-test-key-abc123",
+      },
+      "slug": "testorg.test.DIRECT_TEST_KEY",
+      "source": {
+        "mech": "REPLICA",
+        "vault": "os.direct",
+      },
+    },
+    "status": "granted",
+  },
+]
+`;
+
 exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t0] keyrack get --key DIRECT_TEST_KEY --json then: stdout matches snapshot 1`] = `
 {
   "grant": {
@@ -10,7 +54,7 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
       },
       "secret": "direct-test-key-abc123",
     },
-    "slug": "DIRECT_TEST_KEY",
+    "slug": "testorg.test.DIRECT_TEST_KEY",
     "source": {
       "mech": "REPLICA",
       "vault": "os.direct",
@@ -23,7 +67,7 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
 exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t1] keyrack get --key DIRECT_TEST_KEY (human readable) then: stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   └─ DIRECT_TEST_KEY
+   └─ testorg.test.DIRECT_TEST_KEY
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
@@ -35,7 +79,7 @@ done. 1 granted.
 exports[`keyrack vault os.direct given: [case4] keyrack list when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   └─ DIRECT_TEST_KEY
+   └─ testorg.test.DIRECT_TEST_KEY
       ├─ mech: REPLICA
       └─ vault: os.direct
 done. 1 keys configured.
@@ -43,13 +87,25 @@ done. 1 keys configured.
 "
 `;
 
-exports[`keyrack vault os.direct given: [case5] findsert semantics when: [t0] set key that already exists with same attrs then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.direct given: [case4] keyrack list when: [t1] keyrack list --json then: stdout matches snapshot 1`] = `
 {
-  "createdAt": "2026-01-01T00:00:00.000Z",
-  "exid": null,
-  "mech": "REPLICA",
-  "slug": "DIRECT_TEST_KEY",
-  "updatedAt": "2026-01-01T00:00:00.000Z",
-  "vault": "os.direct",
+  "testorg.test.DIRECT_TEST_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.DIRECT_TEST_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.direct",
+  },
 }
+`;
+
+exports[`keyrack vault os.direct given: [case5] findsert semantics when: [t0] set key that already exists with same attrs then: stdout matches snapshot 1`] = `
+[
+  {
+    "mech": "REPLICA",
+    "slug": "testorg.test.DIRECT_TEST_KEY",
+    "vault": "os.direct",
+  },
+]
 `;
