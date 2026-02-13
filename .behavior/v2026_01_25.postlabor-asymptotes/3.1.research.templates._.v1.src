@@ -15,6 +15,9 @@ use web search or the gh api to enumerate the contents of the templates
 - number each citation
 - clone exact quotes from each citation
 
+
+specifically, this template: https://github.com/ehmpathy/rhachet-roles-bhrain/tree/main/src/domain.roles/thinker/briefs/knowledge
+
 ---
 
 emit into .behavior/v2026_01_25.postlabor-asymptotes/3.1.research.templates._.v1.i1.md
