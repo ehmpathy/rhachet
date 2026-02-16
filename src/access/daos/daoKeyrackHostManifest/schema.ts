@@ -7,8 +7,24 @@ import { z } from 'zod';
 export const schemaKeyrackKeyHost = z.object({
   slug: z.string(),
   exid: z.string().nullable(),
-  vault: z.enum(['os.direct', 'os.secure', '1password']),
-  mech: z.enum(['REPLICA', 'GITHUB_APP', 'AWS_SSO']),
+  vault: z.enum([
+    'os.envvar',
+    'os.direct',
+    'os.secure',
+    'os.daemon',
+    '1password',
+    'aws.iam.sso',
+  ]),
+  mech: z.enum([
+    'PERMANENT_VIA_REPLICA',
+    'EPHEMERAL_VIA_GITHUB_APP',
+    'EPHEMERAL_VIA_AWS_SSO',
+    'EPHEMERAL_VIA_GITHUB_OIDC',
+    // deprecated aliases (backwards compat)
+    'REPLICA',
+    'GITHUB_APP',
+    'AWS_SSO',
+  ]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

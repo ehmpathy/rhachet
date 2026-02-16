@@ -173,6 +173,26 @@ done. 2 granted, 0 blocked, 0 absent.
 "
 `;
 
+exports[`keyrack envs given: [case3.5] raw key name resolution with --key when: [t1] get --key AWS_PROFILE --env prep (raw name + explicit env) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "testorg.prep",
+    },
+    "slug": "testorg.prep.AWS_PROFILE",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.direct",
+    },
+  },
+  "status": "granted",
+}
+`;
+
 exports[`keyrack envs given: [case3] raw key name export via single key get when: [t0] get --key testorg.prep.AWS_PROFILE --json then: stdout matches snapshot 1`] = `
 {
   "grant": {
@@ -203,6 +223,26 @@ exports[`keyrack envs given: [case3] raw key name export via single key get when
 done. 1 granted.
 
 "
+`;
+
+exports[`keyrack envs given: [case4.5] set+get roundtrip with os.secure vault when: [t2] get SECURE_API_KEY with passphrase (full roundtrip) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.secure",
+    },
+  },
+  "status": "granted",
+}
 `;
 
 exports[`keyrack envs given: [case5] unlock with env filter when: [t0] unlock --env prep then: stdout matches snapshot 1`] = `

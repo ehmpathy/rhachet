@@ -152,4 +152,100 @@ env.test:
       });
     });
   });
+
+  given('[case6] set() with valid keyrack.yml', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+
+env.prod: []
+
+env.test:
+  - OLD_KEY
+`,
+      );
+    });
+
+    when('[t0] set called with new key', () => {
+      then('adds key and returns status "added"', async () => {
+        const result = await daoKeyrackRepoManifest.set({
+          gitroot: testDir,
+          env: 'test',
+          keyName: 'NEW_KEY',
+        });
+
+        expect(result.status).toEqual('added');
+
+        // verify key was written
+        const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+        expect(manifest!.keys['testorg.test.NEW_KEY']).toBeDefined();
+        expect(manifest!.keys['testorg.test.OLD_KEY']).toBeDefined();
+      });
+    });
+
+    when('[t1] set called with key that already found', () => {
+      then('returns status "found" without duplicate', async () => {
+        const result = await daoKeyrackRepoManifest.set({
+          gitroot: testDir,
+          env: 'test',
+          keyName: 'OLD_KEY',
+        });
+
+        expect(result.status).toEqual('found');
+
+        // verify no duplicate
+        const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+        const testKeys = Object.keys(manifest!.keys).filter((k) =>
+          k.includes('test'),
+        );
+        expect(testKeys).toHaveLength(1);
+      });
+    });
+
+    when('[t2] set called for new env section', () => {
+      then('creates env section and adds key', async () => {
+        const result = await daoKeyrackRepoManifest.set({
+          gitroot: testDir,
+          env: 'prod',
+          keyName: 'PROD_KEY',
+        });
+
+        expect(result.status).toEqual('added');
+
+        // verify key was written in prod env
+        const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+        expect(manifest!.keys['testorg.prod.PROD_KEY']).toBeDefined();
+      });
+    });
+  });
+
+  given('[case7] set() without org in manifest', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `env.test:
+  - OLD_KEY
+`,
+      );
+    });
+
+    when('[t0] set called', () => {
+      then('throws error about org absent', async () => {
+        const error = await getError(
+          daoKeyrackRepoManifest.set({
+            gitroot: testDir,
+            env: 'test',
+            keyName: 'NEW_KEY',
+          }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('org');
+      });
+    });
+  });
 });

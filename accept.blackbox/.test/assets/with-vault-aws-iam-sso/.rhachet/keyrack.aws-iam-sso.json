@@ -1,0 +1,12 @@
+{
+  "testorg.prod.AWS_PROFILE": {
+    "profileName": "testorg-prod",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "testorg.test.AWS_PROFILE": {
+    "profileName": "testorg-test",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}

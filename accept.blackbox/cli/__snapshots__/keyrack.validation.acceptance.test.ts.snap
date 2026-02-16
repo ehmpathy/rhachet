@@ -88,7 +88,7 @@ exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack 
 
 exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack set with invalid --vault then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, 1password
+⛈️ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, 1password, aws.iam.sso
 
 [args] keyrack,set,--key,TEST,--mech,REPLICA,--vault,invalid_vault
 

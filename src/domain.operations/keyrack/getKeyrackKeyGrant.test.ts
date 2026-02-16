@@ -27,6 +27,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -100,6 +101,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -145,6 +147,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -202,6 +205,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -252,6 +256,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter({
@@ -316,6 +321,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -389,6 +395,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter(),
@@ -440,6 +447,7 @@ describe('getKeyrackKeyGrant', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {
         PERMANENT_VIA_REPLICA: genMockMechAdapter({
@@ -475,6 +483,125 @@ describe('getKeyrackKeyGrant', () => {
         if (result.status === 'blocked') {
           // message should mention env/firewall, not host
           expect(result.message).toContain('long-lived credential blocked');
+        }
+      });
+    });
+  });
+
+  given('[case9] key stored in aws.iam.sso vault with valid session', () => {
+    const context: KeyrackGrantContext = {
+      repoManifest: genMockKeyrackRepoManifest({
+        keys: { 'acme.prod.AWS_PROFILE': { mech: 'EPHEMERAL_VIA_AWS_SSO' } },
+      }),
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'acme.prod.AWS_PROFILE': {
+            mech: 'EPHEMERAL_VIA_AWS_SSO',
+            vault: 'aws.iam.sso',
+          },
+        },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter({
+          isUnlocked: true,
+          storage: { 'acme.prod.AWS_PROFILE': 'acme-prod' },
+        }),
+      },
+      mechAdapters: {
+        PERMANENT_VIA_REPLICA: genMockMechAdapter(),
+        EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
+        EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter({ valid: true }),
+        EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
+        REPLICA: genMockMechAdapter(),
+        GITHUB_APP: genMockMechAdapter(),
+        AWS_SSO: genMockMechAdapter({ valid: true }),
+      },
+    };
+
+    when('[t0] get called for aws sso key', () => {
+      then('status is granted', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'acme.prod.AWS_PROFILE' } },
+          context,
+        );
+        expect(result.status).toEqual('granted');
+      });
+
+      then('grant source vault is aws.iam.sso', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'acme.prod.AWS_PROFILE' } },
+          context,
+        );
+        if (result.status === 'granted') {
+          expect(result.grant.source.vault).toEqual('aws.iam.sso');
+        }
+      });
+
+      then('grant value is the profile name', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'acme.prod.AWS_PROFILE' } },
+          context,
+        );
+        if (result.status === 'granted') {
+          expect(result.grant.key.secret).toEqual('acme-prod');
+        }
+      });
+    });
+  });
+
+  given('[case10] aws.iam.sso vault locked (sso session expired)', () => {
+    const context: KeyrackGrantContext = {
+      repoManifest: genMockKeyrackRepoManifest({
+        keys: { 'acme.prod.AWS_PROFILE': { mech: 'EPHEMERAL_VIA_AWS_SSO' } },
+      }),
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'acme.prod.AWS_PROFILE': {
+            mech: 'EPHEMERAL_VIA_AWS_SSO',
+            vault: 'aws.iam.sso',
+          },
+        },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter({ isUnlocked: false }),
+      },
+      mechAdapters: {
+        PERMANENT_VIA_REPLICA: genMockMechAdapter(),
+        EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
+        EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter(),
+        EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
+        REPLICA: genMockMechAdapter(),
+        GITHUB_APP: genMockMechAdapter(),
+        AWS_SSO: genMockMechAdapter(),
+      },
+    };
+
+    when('[t0] get called with expired sso session', () => {
+      then('status is locked', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'acme.prod.AWS_PROFILE' } },
+          context,
+        );
+        expect(result.status).toEqual('locked');
+      });
+
+      then('fix mentions unlock', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'acme.prod.AWS_PROFILE' } },
+          context,
+        );
+        if (result.status === 'locked') {
+          expect(result.fix).toContain('unlock');
         }
       });
     });

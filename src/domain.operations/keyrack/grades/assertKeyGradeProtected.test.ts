@@ -49,6 +49,42 @@ describe('assertKeyGradeProtected', () => {
         expect(error?.message).toContain('duration downgrade');
       });
     });
+
+    when('[t2] reference → encrypted', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(async () =>
+          assertKeyGradeProtected({
+            source: { protection: 'reference', duration: 'ephemeral' },
+            target: { protection: 'encrypted', duration: 'ephemeral' },
+          }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('grade degradation forbidden');
+      });
+
+      then('error message mentions protection downgrade', async () => {
+        const error = await getError(async () =>
+          assertKeyGradeProtected({
+            source: { protection: 'reference', duration: 'ephemeral' },
+            target: { protection: 'encrypted', duration: 'ephemeral' },
+          }),
+        );
+        expect(error?.message).toContain('protection downgrade');
+      });
+    });
+
+    when('[t3] reference → plaintext', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(async () =>
+          assertKeyGradeProtected({
+            source: { protection: 'reference', duration: 'ephemeral' },
+            target: { protection: 'plaintext', duration: 'ephemeral' },
+          }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('grade degradation forbidden');
+      });
+    });
   });
 
   given('[case2] grade upgrades', () => {
@@ -80,6 +116,28 @@ describe('assertKeyGradeProtected', () => {
           assertKeyGradeProtected({
             source: { protection: 'encrypted', duration: 'permanent' },
             target: { protection: 'encrypted', duration: 'transient' },
+          }),
+        ).not.toThrow();
+      });
+    });
+
+    when('[t3] encrypted → reference', () => {
+      then('does not throw', () => {
+        expect(() =>
+          assertKeyGradeProtected({
+            source: { protection: 'encrypted', duration: 'ephemeral' },
+            target: { protection: 'reference', duration: 'ephemeral' },
+          }),
+        ).not.toThrow();
+      });
+    });
+
+    when('[t4] plaintext → reference', () => {
+      then('does not throw', () => {
+        expect(() =>
+          assertKeyGradeProtected({
+            source: { protection: 'plaintext', duration: 'ephemeral' },
+            target: { protection: 'reference', duration: 'ephemeral' },
           }),
         ).not.toThrow();
       });

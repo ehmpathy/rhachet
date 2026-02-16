@@ -53,6 +53,16 @@ describe('inferKeyGrade', () => {
         expect(grade.protection).toEqual('encrypted');
       });
     });
+
+    when('[t5] vault is aws.iam.sso', () => {
+      then('protection is reference', () => {
+        const grade = inferKeyGrade({
+          vault: 'aws.iam.sso',
+          mech: 'EPHEMERAL_VIA_AWS_SSO',
+        });
+        expect(grade.protection).toEqual('reference');
+      });
+    });
   });
 
   given('[case2] mechanism determines duration', () => {
@@ -187,6 +197,19 @@ describe('inferKeyGrade', () => {
         expect(grade).toEqual({
           protection: 'encrypted',
           duration: 'transient',
+        });
+      });
+    });
+
+    when('[t3] aws.iam.sso with EPHEMERAL_VIA_AWS_SSO', () => {
+      then('grade is reference + ephemeral', () => {
+        const grade = inferKeyGrade({
+          vault: 'aws.iam.sso',
+          mech: 'EPHEMERAL_VIA_AWS_SSO',
+        });
+        expect(grade).toEqual({
+          protection: 'reference',
+          duration: 'ephemeral',
         });
       });
     });

@@ -1,7 +1,7 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
 
-import { exec } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { KeyrackGrantMechanismAdapter } from '../../../../domain.objects/keyrack';
 
@@ -58,6 +58,7 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
    *
    * .note = source expects profile name (alphanumeric with dashes/underscores)
    * .note = cached expects json with AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+   * .note = source validation includes sso session check via sts get-caller-identity
    */
   validate: (input) => {
     // validate cached ephemeral (credentials json)
@@ -67,13 +68,23 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
 
     // validate source credential (profile name)
     if (input.source) {
+      // check profile name format
       if (!isValidProfileName(input.source)) {
         return {
           valid: false,
           reason: 'aws_sso: value is not a valid aws profile name format',
         };
       }
-      return { valid: true };
+
+      // validate sso session via sts get-caller-identity
+      try {
+        execSync(`aws sts get-caller-identity --profile "${input.source}"`, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        return { valid: true };
+      } catch {
+        return { valid: false, reason: 'aws_sso: sso session expired' };
+      }
     }
 
     return { valid: false, reason: 'no value to validate' };
@@ -83,15 +94,13 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
    * .what = translate aws sso profile to session credentials
    * .why = generates short-lived credentials from sso profile
    *
+   * .note = assumes sso session is valid (vault unlock handles login)
    * .note = uses AWS_CREDENTIAL_EXPIRATION if available, else 55 min buffer
    */
   translate: async (input) => {
     const profile = input.value;
 
     try {
-      // refresh sso session (may trigger browser auth if expired)
-      await execAsync(`aws sso login --profile "${profile}"`);
-
       // export credentials as json
       const { stdout } = await execAsync(
         `aws configure export-credentials --profile "${profile}" --format env-no-export`,

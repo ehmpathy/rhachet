@@ -99,6 +99,16 @@ describe('keyrack envs', () => {
       genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
     );
 
+    // ensure daemon cache is cleared before each test for consistent vault source
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
     when('[t0] get --for repo --env prep --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -272,6 +282,16 @@ describe('keyrack envs', () => {
       genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
     );
 
+    // ensure daemon cache is cleared before each test for consistent vault source
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
     when('[t0] get --key testorg.prep.AWS_PROFILE --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -325,6 +345,116 @@ describe('keyrack envs', () => {
   });
 
   /**
+   * [uc10] raw key name resolution
+   * when user passes just the raw key name (not full slug),
+   * keyrack should resolve it based on env context
+   */
+  given('[case3.5] raw key name resolution with --key', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
+    );
+
+    // ensure daemon cache is cleared before each test
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
+    when('[t0] get --key AWS_PROFILE without --env (exists in multiple envs)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions found in multiple envs', () => {
+        const output = result.stdout + result.stderr;
+        expect(output.toLowerCase()).toContain('multiple');
+      });
+
+      then('error mentions --env to disambiguate', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('--env');
+      });
+
+      then('error lists available envs', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('prod');
+        expect(output).toContain('prep');
+      });
+    });
+
+    when('[t1] get --key AWS_PROFILE --env prep (raw name + explicit env)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--env', 'prep', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('resolves to full slug testorg.prep.AWS_PROFILE', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.slug).toEqual('testorg.prep.AWS_PROFILE');
+      });
+
+      then('returns prep value', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('testorg.prep');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] get --key SHARED_API_KEY --env prod (raw name + explicit env)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'SHARED_API_KEY', '--env', 'prod', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('resolves to full slug testorg.prod.SHARED_API_KEY', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.slug).toEqual('testorg.prod.SHARED_API_KEY');
+      });
+
+      then('returns prod value', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('sk-shared-prod-abc123');
+      });
+    });
+  });
+
+  /**
    * [uc8] env isolation security
    * os.envvar vault takes precedence, but here we test that
    * env-scoped get only returns keys for the requested env
@@ -333,6 +463,16 @@ describe('keyrack envs', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
     );
+
+    // ensure daemon cache is cleared before each test for consistent vault source
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
 
     when('[t0] get --for repo --env prep --json (prep only)', () => {
       const result = useBeforeAll(async () =>
@@ -355,6 +495,176 @@ describe('keyrack envs', () => {
       then('no prod keys leak into prep response', () => {
         const raw = result.stdout;
         expect(raw).not.toContain('"testorg.prod.');
+      });
+    });
+  });
+
+  /**
+   * [uc12] set+get roundtrip journey with os.secure vault
+   * critical path: set a key, then get it back
+   */
+  given('[case4.5] set+get roundtrip with os.secure vault', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
+    );
+
+    // ensure daemon cache is cleared before test
+    beforeAll(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
+    when('[t0] set NEW_ROUNDTRIP_KEY to os.secure, then get it back', () => {
+      // set the key
+      const setResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'NEW_ROUNDTRIP_KEY',
+            '--env',
+            'test',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.secure',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('set exits with status 0', () => {
+        expect(setResult.status).toEqual(0);
+      });
+
+      then('set returns configured host', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        expect(parsed[0].slug).toEqual('testorg.test.NEW_ROUNDTRIP_KEY');
+        expect(parsed[0].vault).toEqual('os.secure');
+      });
+    });
+
+    when('[t1] get NEW_ROUNDTRIP_KEY after set (without unlock)', () => {
+      // first set the key
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'KEY_FOR_LOCKED_TEST',
+            '--env',
+            'test',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.secure',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      // relock to clear daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'relock'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.KEY_FOR_LOCKED_TEST', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('get returns locked status (vault not unlocked)', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+
+      then('fix mentions unlock', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.fix).toContain('unlock');
+      });
+    });
+
+    when('[t2] get SECURE_API_KEY with passphrase (full roundtrip)', () => {
+      // use the fixture's SECURE_API_KEY (from with-vault-os-secure fixture)
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            KEYRACK_PASSPHRASE: 'test-passphrase-123',
+          },
+        }),
+      );
+
+      then('get exits with status 0', () => {
+        expect(getResult.status).toEqual(0);
+      });
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value matches stored value', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] get SECURE_API_KEY using raw key name with env inference', () => {
+      // SECURE_API_KEY only in test env, so env should be inferred
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            KEYRACK_PASSPHRASE: 'test-passphrase-123',
+          },
+        }),
+      );
+
+      then('get exits with status 0', () => {
+        expect(getResult.status).toEqual(0);
+      });
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('resolves to full slug testorg.test.SECURE_API_KEY', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.slug).toEqual('testorg.test.SECURE_API_KEY');
+      });
+
+      then('value is correct', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
     });
   });
