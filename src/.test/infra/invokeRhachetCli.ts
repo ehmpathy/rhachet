@@ -26,6 +26,7 @@ export const invokeRhachetCli = (input: {
     input: input.stdin,
     encoding: 'utf-8',
     shell: '/bin/bash',
+    env: process.env, // explicitly pass current env (includes modified HOME)
   });
 
   // log output for debug on failure

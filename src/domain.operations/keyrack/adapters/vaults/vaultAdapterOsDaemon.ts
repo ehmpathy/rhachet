@@ -58,6 +58,8 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
   set: async (input: {
     slug: string;
     value: string;
+    env: string;
+    org: string;
     expiresAt?: string | null;
   }) => {
     // infer grade for os.daemon (always encrypted + transient)
@@ -77,6 +79,9 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
         {
           slug: input.slug,
           key: { secret: input.value, grade },
+          source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
+          env: input.env,
+          org: input.org,
           expiresAt,
         },
       ],

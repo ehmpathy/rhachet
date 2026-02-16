@@ -1,0 +1,1 @@
+check the current diffs against the blueprint; what blueprint details are not adhered to ? emit a report into the behavior dir as 6.review.blueprint.gaps.v1.i1.md

@@ -95,6 +95,9 @@
     "prepare:rhachet": "rhachet init --roles behaver mechanic reviewer"
   },
   "dependencies": {
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
+    "@scure/base": "2.0.0",
     "@octokit/auth-app": "8.2.0",
     "age-encryption": "0.3.0",
     "as-procedure": "1.1.11",

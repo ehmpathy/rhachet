@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`sshPrikeyToAgeIdentity.integration given: [case1] a passphrase-protected ed25519 key when: [t1] age CLI is NOT on PATH then: error message matches snapshot 1`] = `
+"BadRequestError: 🔐 your ssh key is passphrase-protected (cipher: aes256-ctr).
+keyrack uses the \`age\` cli to decrypt via ssh-agent — no passphrase prompt needed.
+
+install age:
+  ├─ brew install age          # macos
+  └─ apt install age           # ubuntu/debian
+
+then retry: rhx keyrack init
+
+note: passphrase-less keys (-N "") do not need age installed.
+
+{
+  "cipher": "aes256-ctr",
+  "keyPath": "<redacted>"
+}"
+`;

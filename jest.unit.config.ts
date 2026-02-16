@@ -17,13 +17,21 @@ const config: Config = {
   moduleFileExtensions: ['js', 'ts'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    // map esm subpath exports for noble/scure packages
+    // handle imports with .js extension (from age-encryption)
+    '^@noble/hashes/(.*)\\.js$': '<rootDir>/node_modules/@noble/hashes/$1.js',
+    '^@noble/curves/(.*)\\.js$': '<rootDir>/node_modules/@noble/curves/$1.js',
+    // handle imports without .js extension
+    '^@noble/hashes/([^.]+)$': '<rootDir>/node_modules/@noble/hashes/$1.js',
+    '^@noble/curves/([^.]+)$': '<rootDir>/node_modules/@noble/curves/$1.js',
+    '^@scure/base$': '<rootDir>/node_modules/@scure/base/index.js',
   },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
   },
   transformIgnorePatterns: [
-    // here's an example of how to ignore esm module transformation, when needed
-    // 'node_modules/(?!(@octokit|universal-user-agent|before-after-hook)/)',
+    // transform esm modules that jest needs to handle (supports both npm and pnpm layouts)
+    'node_modules/(?!(\\.pnpm/(age-encryption|@noble|@scure|@octokit|universal-user-agent)[^/]*/node_modules/(age-encryption|@noble|@scure|@octokit|universal-user-agent)/|(age-encryption|@noble|@scure|@octokit|universal-user-agent)/))',
   ],
   testMatch: [
     // note: order matters

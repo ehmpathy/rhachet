@@ -71,6 +71,8 @@ describe('vaultAdapterOsSecure', () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
           value: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
@@ -85,6 +87,8 @@ describe('vaultAdapterOsSecure', () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
           value: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'XAI_API_KEY' });
@@ -96,8 +100,18 @@ describe('vaultAdapterOsSecure', () => {
   given('[case3] vault has stored keys', () => {
     beforeEach(async () => {
       await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
-      await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsSecure.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsSecure.set({
+        slug: 'KEY_A',
+        value: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsSecure.set({
+        slug: 'KEY_B',
+        value: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] get called for stored key', () => {
@@ -112,14 +126,24 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t1] set called to update key', () => {
       then('updates encrypted value', async () => {
-        await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsSecure.set({
+          slug: 'KEY_A',
+          value: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
         expect(result).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsSecure.set({
+          slug: 'KEY_A',
+          value: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
         expect(resultB).toEqual('value-b');
@@ -149,6 +173,8 @@ describe('vaultAdapterOsSecure', () => {
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',
         value: 'super-secret-value',
+        env: 'test',
+        org: 'testorg',
       });
     });
 

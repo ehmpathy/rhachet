@@ -146,7 +146,7 @@ describe('rhachet init --hooks', () => {
 
   given('[case3] repo with role hooks - idempotency test', () => {
     const repo = useBeforeAll(async () => {
-      const r = genTestTempRepo({ fixture: 'with-role-hooks' });
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
       // link role and apply hooks
       invokeRhachetCliBinary({
         args: ['init', '--roles', 'tester', '--hooks'],
@@ -179,7 +179,7 @@ describe('rhachet init --hooks', () => {
 
   given('[case4] repo with role hooks - explicit brain slug', () => {
     const repo = useBeforeAll(async () => {
-      const r = genTestTempRepo({ fixture: 'with-role-hooks' });
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
       // link role first
       invokeRhachetCliBinary({
         args: ['init', '--roles', 'tester'],
@@ -208,7 +208,7 @@ describe('rhachet init --hooks', () => {
 
   given('[case5] repo with role hooks - declarative removal', () => {
     const repo = useBeforeAll(async () => {
-      const r = genTestTempRepo({ fixture: 'with-role-hooks' });
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
 
       // link role and apply hooks
       invokeRhachetCliBinary({

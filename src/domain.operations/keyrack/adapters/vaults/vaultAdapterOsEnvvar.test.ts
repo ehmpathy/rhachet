@@ -60,6 +60,8 @@ describe('vaultAdapterOsEnvvar', () => {
           vaultAdapterOsEnvvar.set({
             slug: 'ANY_KEY',
             value: 'any-value',
+            env: 'test',
+            org: 'testorg',
           }),
         );
         expect(error).toBeDefined();

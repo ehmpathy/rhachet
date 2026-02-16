@@ -59,9 +59,8 @@ const toKeyrackKey = (input: {
  * .what = attempt to grant a single key
  * .why = core logic for credential resolution
  *
- * .note = os.envvar is always checked first (ci passthrough)
- * .note = os.direct is checked second (ephemeral cache)
- * .note = --unlock triggers vault unlock and caches result to os.direct if ephemeral
+ * .note = resolution order: os.envvar (ci passthrough) → os.daemon (session cache) → host manifest vault
+ * .note = --unlock triggers vault unlock and stores result in daemon with TTL
  */
 const attemptGrantKey = async (
   input: { slug: string; unlock?: boolean },
@@ -69,31 +68,25 @@ const attemptGrantKey = async (
 ): Promise<KeyrackGrantAttempt> => {
   const { slug } = input;
 
-  // find key spec in repo manifest
-  const keySpec = context.repoManifest?.keys[slug];
-  if (!keySpec) {
-    const keyName = asKeyrackKeyName({ slug });
-    const env = asKeyrackKeyEnv({ slug });
-    return {
-      status: 'absent',
-      slug,
-      message: `key '${slug}' not found in repo manifest`,
-      fix: `add '${keyName}' to env.${env} in .agent/keyrack.yml`,
-    };
-  }
-
-  // get mechanism adapter (needed for both os.envvar and host manifest paths)
-  const mechAdapter = context.mechAdapters[keySpec.mech];
-  if (!mechAdapter) {
-    throw new UnexpectedCodePathError('mechanism adapter not found', {
-      mech: keySpec.mech,
-    });
-  }
+  // extract env from slug (format: $org.$env.$key)
+  const envFromSlug = slug.split('.')[1] ?? 'all';
+  const isSudoKey = envFromSlug === 'sudo';
 
   // check os.envvar first — passthrough for ci and local env
+  // note: envvar check needs mech for validation, but we can infer from slug or use default
   const envValue = await context.vaultAdapters['os.envvar'].get({ slug });
   if (envValue !== null) {
-    // value found in env — skip host manifest, skip vault unlock
+    // value found in env — resolve mech for validation
+    const keySpec = isSudoKey ? null : context.repoManifest?.keys[slug];
+    const keyHost = context.hostManifest.hosts[slug];
+    const mech = keySpec?.mech ?? keyHost?.mech ?? 'PERMANENT_VIA_REPLICA';
+    const mechAdapter = context.mechAdapters[mech];
+    if (!mechAdapter) {
+      throw new UnexpectedCodePathError('mechanism adapter not found', {
+        mech,
+      });
+    }
+
     // apply mechanism validation (this is the firewall)
     const validation = mechAdapter.validate({ source: envValue });
     if (!validation.valid) {
@@ -109,83 +102,98 @@ const attemptGrantKey = async (
     // translate value via mechanism
     const translated = await mechAdapter.translate({ value: envValue });
 
+    // extract org from slug (format: $org.$env.$key)
+    const orgFromSlug = slug.split('.')[0] ?? 'unknown';
+
     // construct grant from os.envvar
     const grant = new KeyrackKeyGrant({
       slug,
       key: toKeyrackKey({
         secret: translated.value,
         vault: 'os.envvar',
-        mech: keySpec.mech,
+        mech,
       }),
       source: {
         vault: 'os.envvar',
-        mech: keySpec.mech,
+        mech,
       },
+      env: envFromSlug,
+      org: orgFromSlug,
     });
 
     return { status: 'granted', grant };
   }
 
   // check os.daemon second — session cache (in-memory daemon)
+  // note: daemon check happens BEFORE host manifest check
+  // this allows cached keys to work even when manifest decryption fails
   const daemonResult = await daemonAccessGet({ slugs: [slug] });
   if (daemonResult) {
     const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
     if (keyEntry) {
       // key found in daemon with valid TTL — use directly
       // note: already translated when stored, grade already attached
-      // source is os.daemon: indicates key was retrieved from daemon cache
-      // (the human unlocked, daemon cached, robot reuses)
+      // note: daemon stores env, org, and original source with the key (from unlockKeyrack)
+      // note: source.vault is set to 'os.daemon' to indicate where the grant came FROM for this request
+      //       (the original vault is preserved in daemon storage for audit, but not exposed here)
       const grant = new KeyrackKeyGrant({
         slug,
         key: keyEntry.key,
         source: {
           vault: 'os.daemon',
-          mech: keySpec.mech,
+          mech: keyEntry.source.mech,
         },
+        env: keyEntry.env,
+        org: keyEntry.org,
       });
 
       return { status: 'granted', grant };
     }
   }
 
-  // check os.direct third — backwards compat for cached ephemeral values
-  // deprecated: will be removed once os.daemon is fully adopted
-  const directValue = await context.vaultAdapters['os.direct'].get({ slug });
-  if (directValue !== null) {
-    // validate cached value against mechanism (defense in depth)
-    const validation = mechAdapter.validate({ cached: directValue });
-    if (!validation.valid) {
-      return {
-        status: 'blocked',
-        slug,
-        message:
-          validation.reason ??
-          'cached credential blocked by mechanism firewall',
-        fix: `update cached credential or run: rhx keyrack unlock`,
-      };
-    }
+  // daemon miss — now check repo manifest and host manifest
+  // note: manifest checks happen AFTER daemon check so cached keys work without decryption
 
-    // construct grant from cached ephemeral (already translated, use directly)
-    const grant = new KeyrackKeyGrant({
+  // find key spec in repo manifest (not for sudo keys — they're host-only)
+  const keySpec = isSudoKey ? null : context.repoManifest?.keys[slug];
+  if (!isSudoKey && !keySpec) {
+    return {
+      status: 'absent',
       slug,
-      key: toKeyrackKey({
-        secret: directValue,
-        vault: 'os.direct',
-        mech: keySpec.mech,
-      }),
-      source: {
-        vault: 'os.direct',
-        mech: keySpec.mech,
-      },
-    });
+      message: `key '${slug}' not found in repo manifest`,
+      fix: `add '${slug}' to .agent/keyrack.yml`,
+    };
+  }
 
-    return { status: 'granted', grant };
+  // for sudo keys: lookup host manifest to get mech
+  const keyHostForMech = isSudoKey ? context.hostManifest.hosts[slug] : null;
+  if (isSudoKey && !keyHostForMech) {
+    return {
+      status: 'locked',
+      slug,
+      message: `sudo key '${slug}' not in daemon cache and host manifest is locked`,
+      fix: `run: rhx keyrack unlock --env sudo --key ${slug}`,
+    };
+  }
+
+  // get mechanism from keySpec (regular) or keyHost (sudo)
+  const mech = keySpec?.mech ?? keyHostForMech?.mech;
+  if (!mech) {
+    throw new UnexpectedCodePathError('no mechanism found for key', { slug });
+  }
+
+  // get mechanism adapter (needed for host manifest vault path)
+  const mechAdapter = context.mechAdapters[mech];
+  if (!mechAdapter) {
+    throw new UnexpectedCodePathError('mechanism adapter not found', {
+      mech,
+    });
   }
 
   // fall through to host manifest vault (requires unlock)
 
-  // find key host in host manifest
-  const keyHost = context.hostManifest.hosts[slug];
+  // find key host in host manifest (note: for sudo keys, already checked above via keyHostForMech)
+  const keyHost = isSudoKey ? keyHostForMech : context.hostManifest.hosts[slug];
   if (!keyHost) {
     const keyName = asKeyrackKeyName({ slug });
     const env = asKeyrackKeyEnv({ slug });
@@ -193,7 +201,7 @@ const attemptGrantKey = async (
       status: 'absent',
       slug,
       message: `key '${slug}' not configured on this host`,
-      fix: `run: rhx keyrack set --key ${keyName} --env ${env} --mech ${keySpec.mech} --vault <vault>`,
+      fix: `run: rhx keyrack set --key ${slug} --mech ${mech} --vault <vault>`,
     };
   }
 
@@ -233,7 +241,7 @@ const attemptGrantKey = async (
       status: 'absent',
       slug,
       message: `credential not found in vault '${keyHost.vault}'`,
-      fix: `store credential via: rhx keyrack set --key ${keyName} --env ${env} --mech ${keySpec.mech} --vault ${keyHost.vault}`,
+      fix: `store credential via: rhx keyrack set --key ${slug} --mech ${mech} --vault ${keyHost.vault}`,
     };
   }
 
@@ -257,12 +265,14 @@ const attemptGrantKey = async (
     key: toKeyrackKey({
       secret: translated.value,
       vault: keyHost.vault,
-      mech: keySpec.mech,
+      mech,
     }),
     source: {
       vault: keyHost.vault,
-      mech: keySpec.mech,
+      mech,
     },
+    env: keyHost.env,
+    org: keyHost.org,
   });
 
   return { status: 'granted', grant };

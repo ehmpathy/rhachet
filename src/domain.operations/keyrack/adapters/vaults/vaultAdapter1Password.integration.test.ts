@@ -63,6 +63,8 @@ describe('vaultAdapter1Password', () => {
           vaultAdapter1Password.set({
             slug: 'TEST_KEY',
             value: 'test-value',
+            env: 'test',
+            org: 'testorg',
           }),
         );
         expect(error).toBeDefined();

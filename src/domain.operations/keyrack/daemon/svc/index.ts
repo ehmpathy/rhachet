@@ -7,8 +7,8 @@ export {
   startKeyrackDaemon,
 } from './src/contract/startKeyrackDaemon';
 export {
+  type CachedGrant,
   createDaemonKeyStore,
   type DaemonKeyStore,
-  type UnlockedKey,
 } from './src/domain.objects/daemonKeyStore';
 export { createKeyrackDaemonServer } from './src/infra/createKeyrackDaemonServer';

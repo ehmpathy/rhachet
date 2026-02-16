@@ -1,7 +1,10 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
+import type { KeyrackGrantMechanism } from '../../../domain.objects/keyrack/KeyrackGrantMechanism';
+import type { KeyrackHostVault } from '../../../domain.objects/keyrack/KeyrackHostVault';
 import type { KeyrackKey } from '../../../domain.objects/keyrack/KeyrackKey';
 import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
+import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessUnlock, findsertKeyrackDaemon } from '../daemon/sdk';
 import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
 import { getAllKeyrackSlugsForEnv } from '../getAllKeyrackSlugsForEnv';
@@ -16,7 +19,9 @@ import { inferKeyGrade } from '../grades/inferKeyGrade';
  */
 export const unlockKeyrack = async (
   input: {
+    owner?: string | null;
     env?: string;
+    key?: string;
     duration?: string;
     passphrase?: string;
   },
@@ -25,51 +30,115 @@ export const unlockKeyrack = async (
   unlocked: Array<{
     slug: string;
     vault: string;
+    env: string;
+    org: string;
     expiresAt: number;
   }>;
 }> => {
-  // ensure daemon is alive
-  await findsertKeyrackDaemon({});
+  // resolve socket path based on owner
+  const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
 
-  // parse duration (default 9 hours)
-  const durationMs = parseDuration(input.duration ?? '9h');
-  const expiresAt = Date.now() + durationMs;
+  // ensure daemon is alive
+  await findsertKeyrackDaemon({ socketPath });
+
+  // parse duration (default: 30min for sudo, 9h for others)
+  const defaultDuration = input.env === 'sudo' ? '30m' : '9h';
+  const requestedDurationMs = parseDuration(input.duration ?? defaultDuration);
 
   // determine which keys to unlock
   const repoManifest = context.repoManifest;
-  if (!repoManifest) {
-    throw new BadRequestError(
-      "no keyrack.yml found in this repo\n   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
-    );
-  }
 
-  // resolve env and filter slugs
-  const env = assertKeyrackEnvIsSpecified({
-    manifest: repoManifest,
-    env: input.env ?? null,
-  });
-  const slugsForEnv = getAllKeyrackSlugsForEnv({
-    manifest: repoManifest,
-    env,
-  });
+  // resolve env (default 'all')
+  const env = input.env ?? 'all';
+
+  // for sudo keys, find matched keys in hostManifest by key name suffix
+  // for regular keys, use repoManifest + hostManifest intersection
+  let slugsForEnv: string[];
+
+  if (env === 'sudo') {
+    // sudo keys: search hostManifest for keys that match the key name and env=sudo
+    if (!input.key) {
+      throw new BadRequestError('sudo credentials require --key flag', {
+        note: 'run: rhx keyrack unlock --env sudo --key X',
+      });
+    }
+
+    // find all slugs in hostManifest that match the key and have env=sudo
+    const keyInput = input.key;
+
+    // detect if keyInput is a full slug (org.env.key format) or just key name
+    const isFullSlug =
+      keyInput.includes('.') && context.hostManifest.hosts[keyInput];
+
+    slugsForEnv = Object.entries(context.hostManifest.hosts)
+      .filter(([slug, hostConfig]) => {
+        // slug format: $org.$env.$key (key may contain dots)
+        const parts = slug.split('.');
+        const slugEnv = parts[1];
+        const slugKey = parts.slice(2).join('.');
+
+        // if full slug provided, match exactly
+        if (isFullSlug) {
+          return slug === keyInput && slugEnv === 'sudo';
+        }
+
+        // otherwise match by key name suffix
+        return slugEnv === 'sudo' && slugKey === keyInput;
+      })
+      .map(([slug]) => slug);
+
+    if (slugsForEnv.length === 0) {
+      throw new BadRequestError(`sudo key not found: ${keyInput}`, {
+        note: 'run: rhx keyrack set --key X --env sudo --vault ... to configure',
+      });
+    }
+  } else {
+    // regular keys: require repoManifest
+    if (!repoManifest) {
+      throw new UnexpectedCodePathError('no keyrack.yml found in repo', {
+        note: 'keyrack.yml declares which keys are required',
+      });
+    }
+
+    // resolve env via assertion
+    const resolvedEnv = assertKeyrackEnvIsSpecified({
+      manifest: repoManifest,
+      env: env,
+    });
+
+    // get slugs from repoManifest
+    slugsForEnv = input.key
+      ? [input.key]
+      : getAllKeyrackSlugsForEnv({
+          manifest: repoManifest,
+          env: resolvedEnv,
+        });
+  }
 
   // collect keys to unlock
   const keysToUnlock: Array<{
     slug: string;
     key: KeyrackKey;
+    source: {
+      vault: KeyrackHostVault;
+      mech: KeyrackGrantMechanism;
+    };
+    env: string;
+    org: string;
     expiresAt: number;
-    vault: string;
   }> = [];
 
   for (const slug of slugsForEnv) {
-    const spec = repoManifest.keys[slug];
-    if (!spec) continue;
     // find host config for this key
     const hostConfig = context.hostManifest.hosts[slug];
     if (!hostConfig) {
       // key not configured on this host — skip
       continue;
     }
+
+    // for non-sudo keys, verify key exists in repoManifest
+    const spec = repoManifest?.keys[slug];
+    if (env !== 'sudo' && !spec) continue;
 
     // get vault adapter
     const vault = hostConfig.vault;
@@ -95,21 +164,50 @@ export const unlockKeyrack = async (
     const mech = hostConfig.mech;
     const grade = inferKeyGrade({ vault, mech });
 
+    // calculate expiresAt with maxDuration cap
+    let effectiveDurationMs = requestedDurationMs;
+    if (hostConfig.maxDuration) {
+      const maxDurationMs = parseDuration(hostConfig.maxDuration);
+      if (requestedDurationMs > maxDurationMs) {
+        // cap to maxDuration and warn
+        effectiveDurationMs = maxDurationMs;
+        console.warn(
+          `⚠️ duration capped to ${hostConfig.maxDuration} for key ${slug} (maxDuration limit)`,
+        );
+      }
+    }
+    const expiresAt = Date.now() + effectiveDurationMs;
+
+    // derive env and org for daemon storage
+    // for sudo keys: use hostConfig (has env/org set)
+    // for regular keys: derive from slug or input.env (hostConfig may not have them)
+    const slugParts = slug.split('.');
+    const slugOrg = slugParts[0]!;
+    const slugEnv = slugParts[1]!;
+    const keyEnv = hostConfig.env ?? slugEnv ?? env;
+    const keyOrg = hostConfig.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
+
     // collect key for daemon
     keysToUnlock.push({
       slug,
       key: { secret, grade },
+      source: { vault, mech },
+      env: keyEnv,
+      org: keyOrg,
       expiresAt,
-      vault,
     });
   }
 
   // send keys to daemon
   if (keysToUnlock.length > 0) {
     await daemonAccessUnlock({
+      socketPath,
       keys: keysToUnlock.map((k) => ({
         slug: k.slug,
         key: k.key,
+        source: k.source,
+        env: k.env,
+        org: k.org,
         expiresAt: k.expiresAt,
       })),
     });
@@ -118,7 +216,9 @@ export const unlockKeyrack = async (
   return {
     unlocked: keysToUnlock.map((k) => ({
       slug: k.slug,
-      vault: k.vault,
+      vault: k.source.vault,
+      env: k.env,
+      org: k.org,
       expiresAt: k.expiresAt,
     })),
   };

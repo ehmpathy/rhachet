@@ -28,6 +28,9 @@ describe('daemonKeyStore', () => {
           secret: 'test-secret-123',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prep',
+        org: 'ehmpathy',
         expiresAt,
       });
     });
@@ -48,6 +51,12 @@ describe('daemonKeyStore', () => {
       then('has correct expiration', () => {
         const result = store.get({ slug: 'AWS_SSO_PREP' });
         expect(result?.expiresAt).toBe(expiresAt);
+      });
+
+      then('has correct env and org', () => {
+        const result = store.get({ slug: 'AWS_SSO_PREP' });
+        expect(result?.env).toBe('prep');
+        expect(result?.org).toBe('ehmpathy');
       });
     });
 
@@ -78,6 +87,9 @@ describe('daemonKeyStore', () => {
           secret: 'expired-secret',
           grade: { protection: 'plaintext', duration: 'permanent' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'all',
+        org: 'ehmpathy',
         expiresAt,
       });
     });
@@ -113,6 +125,9 @@ describe('daemonKeyStore', () => {
           secret: 'delete-me',
           grade: { protection: 'encrypted', duration: 'transient' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt: Date.now() + 60000,
       });
     });
@@ -148,6 +163,9 @@ describe('daemonKeyStore', () => {
           secret: 'secret-1',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt: Date.now() + 60000,
       });
       store.set({
@@ -156,6 +174,9 @@ describe('daemonKeyStore', () => {
           secret: 'secret-2',
           grade: { protection: 'plaintext', duration: 'permanent' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prep',
+        org: 'ehmpathy',
         expiresAt: Date.now() + 60000,
       });
     });
@@ -185,6 +206,9 @@ describe('daemonKeyStore', () => {
           secret: 'original-secret',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'all',
+        org: 'ehmpathy',
         expiresAt: Date.now() + 60000,
       });
     });
@@ -197,12 +221,150 @@ describe('daemonKeyStore', () => {
             secret: 'updated-secret',
             grade: { protection: 'encrypted', duration: 'transient' },
           },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: 'ehmpathy',
           expiresAt: Date.now() + 120000,
         });
 
         const result = store.get({ slug: 'UPDATABLE_KEY' });
         expect(result?.key.secret).toBe('updated-secret');
         expect(result?.key.grade.duration).toBe('transient');
+        expect(result?.env).toBe('sudo');
+      });
+    });
+  });
+
+  given('[case7] multiple keys with different envs', () => {
+    const store = createDaemonKeyStore();
+    const expiresAt = Date.now() + 60000;
+
+    beforeEach(() => {
+      store.set({
+        slug: 'SUDO_KEY',
+        key: {
+          secret: 'sudo-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+      store.set({
+        slug: 'PROD_KEY',
+        key: {
+          secret: 'prod-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+      store.set({
+        slug: 'ALL_KEY',
+        key: {
+          secret: 'all-secret',
+          grade: { protection: 'plaintext', duration: 'permanent' },
+        },
+        source: { vault: 'os.envvar', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'all',
+        org: '@all',
+        expiresAt,
+      });
+    });
+
+    when('[t0] entries() called without filter', () => {
+      then('returns all keys', () => {
+        const entries = store.entries();
+        expect(entries.length).toBe(3);
+      });
+    });
+
+    when('[t1] entries({ env: "sudo" }) called', () => {
+      then('returns only sudo keys', () => {
+        const entries = store.entries({ env: 'sudo' });
+        expect(entries.length).toBe(1);
+        expect(entries[0]?.slug).toBe('SUDO_KEY');
+        expect(entries[0]?.env).toBe('sudo');
+      });
+    });
+
+    when('[t2] entries({ env: "prod" }) called', () => {
+      then('returns only prod keys', () => {
+        const entries = store.entries({ env: 'prod' });
+        expect(entries.length).toBe(1);
+        expect(entries[0]?.slug).toBe('PROD_KEY');
+        expect(entries[0]?.env).toBe('prod');
+      });
+    });
+
+    when('[t3] entries({ env: "all" }) called', () => {
+      then('returns only all-env keys', () => {
+        const entries = store.entries({ env: 'all' });
+        expect(entries.length).toBe(1);
+        expect(entries[0]?.slug).toBe('ALL_KEY');
+        expect(entries[0]?.env).toBe('all');
+      });
+    });
+
+    when('[t4] entries({ env: "nonexistent" }) called', () => {
+      then('returns empty array', () => {
+        const entries = store.entries({ env: 'nonexistent' });
+        expect(entries.length).toBe(0);
+      });
+    });
+  });
+
+  given('[case8] keys with cross-org access', () => {
+    const store = createDaemonKeyStore();
+    const expiresAt = Date.now() + 60000;
+
+    beforeEach(() => {
+      store.set({
+        slug: 'ORG_SPECIFIC',
+        key: {
+          secret: 'org-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+      store.set({
+        slug: 'CROSS_ORG',
+        key: {
+          secret: 'cross-org-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: '@all',
+        expiresAt,
+      });
+    });
+
+    when('[t0] get by slug', () => {
+      then('org-specific key has correct org', () => {
+        const result = store.get({ slug: 'ORG_SPECIFIC' });
+        expect(result?.org).toBe('ehmpathy');
+      });
+
+      then('cross-org key has @all org', () => {
+        const result = store.get({ slug: 'CROSS_ORG' });
+        expect(result?.org).toBe('@all');
+      });
+    });
+
+    when('[t1] entries filtered by env', () => {
+      then('returns both sudo keys regardless of org', () => {
+        const entries = store.entries({ env: 'sudo' });
+        expect(entries.length).toBe(2);
+        const orgs = entries.map((e) => e.org);
+        expect(orgs).toContain('ehmpathy');
+        expect(orgs).toContain('@all');
       });
     });
   });

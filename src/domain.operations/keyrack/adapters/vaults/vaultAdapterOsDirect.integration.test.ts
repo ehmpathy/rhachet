@@ -37,6 +37,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
           value: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const storePath = join(
@@ -51,6 +53,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
           value: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'XAI_API_KEY' });
@@ -61,8 +65,18 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case2] store has keys', () => {
     beforeEach(async () => {
-      await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsDirect.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_A',
+        value: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_B',
+        value: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] get called for stored key', () => {
@@ -77,14 +91,24 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t1] set called to update key', () => {
       then('updates value', async () => {
-        await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsDirect.set({
+          slug: 'KEY_A',
+          value: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
         expect(result).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsDirect.set({
+          slug: 'KEY_A',
+          value: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
         expect(resultB).toEqual('value-b');
@@ -120,8 +144,18 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case3] store file format', () => {
     beforeEach(async () => {
-      await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsDirect.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_A',
+        value: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_B',
+        value: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] store file read directly', () => {
@@ -159,6 +193,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
           value: 'ghs_token123',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -181,6 +217,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
           value: 'ghs_token123',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -197,6 +235,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
           value: 'expired_token',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -209,6 +249,8 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
           value: 'expired_token',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 

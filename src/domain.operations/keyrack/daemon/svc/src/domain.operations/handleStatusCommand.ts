@@ -12,6 +12,8 @@ export const handleStatusCommand = (
 ): {
   keys: Array<{
     slug: string;
+    env: string;
+    org: string;
     expiresAt: number;
     ttlLeftMs: number;
   }>;
@@ -21,6 +23,8 @@ export const handleStatusCommand = (
 
   const keys = allKeys.map((unlockedKey) => ({
     slug: unlockedKey.slug,
+    env: unlockedKey.env,
+    org: unlockedKey.org,
     expiresAt: unlockedKey.expiresAt,
     ttlLeftMs: Math.max(0, unlockedKey.expiresAt - now),
   }));

@@ -72,6 +72,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'secret-1',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'prod',
+              org: 'testorg',
               expiresAt: Date.now() + 60000,
             },
             {
@@ -80,6 +83,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'secret-2',
                 grade: { protection: 'encrypted', duration: 'transient' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'sudo',
+              org: 'testorg',
               expiresAt: Date.now() + 60000,
             },
           ],
@@ -165,6 +171,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'secret-3',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: Date.now() + 60000,
             },
           ],
@@ -236,6 +245,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'expired-secret',
                 grade: { protection: 'encrypted', duration: 'transient' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: Date.now() - 1000, // already expired
             },
           ],
@@ -259,7 +271,84 @@ describe('keyrack daemon integration', () => {
     });
   });
 
-  given('[case5] TTL extension on re-unlock', () => {
+  given('[case5] relock with env filter', () => {
+    const scene = useBeforeAll(async () => {
+      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+    });
+
+    afterAll(() => {
+      scene.server.close();
+    });
+
+    when('[t0] keys with different envs are unlocked', () => {
+      then('relock --env sudo purges only sudo keys', async () => {
+        // unlock keys with different envs
+        await daemonAccessUnlock({
+          keys: [
+            {
+              slug: 'PROD_KEY',
+              key: {
+                secret: 'prod-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'prod',
+              org: 'testorg',
+              expiresAt: Date.now() + 60000,
+            },
+            {
+              slug: 'SUDO_KEY',
+              key: {
+                secret: 'sudo-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'sudo',
+              org: 'testorg',
+              expiresAt: Date.now() + 60000,
+            },
+            {
+              slug: 'ALL_KEY',
+              key: {
+                secret: 'all-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
+              expiresAt: Date.now() + 60000,
+            },
+          ],
+          socketPath: testSocketPath,
+        });
+
+        // verify all 3 keys are present
+        const statusBefore = await daemonAccessStatus({
+          socketPath: testSocketPath,
+        });
+        expect(statusBefore!.keys.length).toBe(3);
+
+        // relock only sudo keys
+        const result = await daemonAccessRelock({
+          env: 'sudo',
+          socketPath: testSocketPath,
+        });
+
+        expect(result).not.toBeNull();
+        expect(result!.relocked).toEqual(['SUDO_KEY']);
+
+        // verify only prod and all keys remain
+        const statusAfter = await daemonAccessStatus({
+          socketPath: testSocketPath,
+        });
+        expect(statusAfter!.keys.length).toBe(2);
+        const slugs = statusAfter!.keys.map((k) => k.slug).sort();
+        expect(slugs).toEqual(['ALL_KEY', 'PROD_KEY']);
+      });
+    });
+  });
+
+  given('[case6] TTL extension on re-unlock', () => {
     const scene = useBeforeAll(async () => {
       return createKeyrackDaemonServer({ socketPath: testSocketPath });
     });
@@ -282,6 +371,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'ttl-secret',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: originalExpiresAt,
             },
           ],
@@ -297,6 +389,9 @@ describe('keyrack daemon integration', () => {
                 secret: 'ttl-secret',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: newExpiresAt,
             },
           ],

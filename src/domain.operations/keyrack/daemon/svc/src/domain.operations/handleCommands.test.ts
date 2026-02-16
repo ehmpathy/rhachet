@@ -22,6 +22,9 @@ describe('handleUnlockCommand', () => {
                   secret: 'secret-1',
                   grade: { protection: 'encrypted', duration: 'ephemeral' },
                 },
+                source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+                env: 'prep',
+                org: 'ehmpathy',
                 expiresAt,
               },
               {
@@ -30,6 +33,9 @@ describe('handleUnlockCommand', () => {
                   secret: 'secret-2',
                   grade: { protection: 'encrypted', duration: 'permanent' },
                 },
+                source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+                env: 'all',
+                org: 'ehmpathy',
                 expiresAt,
               },
             ],
@@ -44,6 +50,31 @@ describe('handleUnlockCommand', () => {
         expect(keyStore.get({ slug: 'XAI_API_KEY' })?.key.secret).toBe(
           'secret-2',
         );
+      });
+
+      then('env and org are stored with keys', () => {
+        handleUnlockCommand(
+          {
+            keys: [
+              {
+                slug: 'SUDO_KEY',
+                key: {
+                  secret: 'sudo-secret',
+                  grade: { protection: 'encrypted', duration: 'ephemeral' },
+                },
+                source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+                env: 'sudo',
+                org: '@all',
+                expiresAt,
+              },
+            ],
+          },
+          { keyStore },
+        );
+
+        const key = keyStore.get({ slug: 'SUDO_KEY' });
+        expect(key?.env).toBe('sudo');
+        expect(key?.org).toBe('@all');
       });
     });
   });
@@ -61,6 +92,9 @@ describe('handleGetCommand', () => {
           secret: 'secret-a',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt,
       });
       keyStore.set({
@@ -69,6 +103,9 @@ describe('handleGetCommand', () => {
           secret: 'secret-b',
           grade: { protection: 'plaintext', duration: 'permanent' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: '@all',
         expiresAt,
       });
     });
@@ -83,6 +120,21 @@ describe('handleGetCommand', () => {
         expect(result.keys.length).toBe(1);
         expect(result.keys[0]?.slug).toBe('KEY_A');
         expect(result.keys[0]?.key.secret).toBe('secret-a');
+      });
+
+      then('returns env and org with keys', () => {
+        const result = handleGetCommand(
+          { slugs: ['KEY_A', 'KEY_B'] },
+          { keyStore },
+        );
+
+        const keyA = result.keys.find((k) => k.slug === 'KEY_A');
+        const keyB = result.keys.find((k) => k.slug === 'KEY_B');
+
+        expect(keyA?.env).toBe('prod');
+        expect(keyA?.org).toBe('ehmpathy');
+        expect(keyB?.env).toBe('sudo');
+        expect(keyB?.org).toBe('@all');
       });
     });
 
@@ -113,6 +165,9 @@ describe('handleStatusCommand', () => {
           secret: 'secret-1',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt: expiresAt1,
       });
       keyStore.set({
@@ -121,6 +176,9 @@ describe('handleStatusCommand', () => {
           secret: 'secret-2',
           grade: { protection: 'encrypted', duration: 'transient' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: '@all',
         expiresAt: expiresAt2,
       });
     });
@@ -140,6 +198,18 @@ describe('handleStatusCommand', () => {
         // ttlLeftMs should be approximately correct (allow 100ms margin)
         expect(key1?.ttlLeftMs).toBeGreaterThan(59000);
         expect(key1?.ttlLeftMs).toBeLessThanOrEqual(60000);
+      });
+
+      then('returns env and org with keys', () => {
+        const result = handleStatusCommand({}, { keyStore });
+
+        const key1 = result.keys.find((k) => k.slug === 'KEY_1');
+        const key2 = result.keys.find((k) => k.slug === 'KEY_2');
+
+        expect(key1?.env).toBe('prod');
+        expect(key1?.org).toBe('ehmpathy');
+        expect(key2?.env).toBe('sudo');
+        expect(key2?.org).toBe('@all');
       });
     });
   });
@@ -168,6 +238,9 @@ describe('handleRelockCommand', () => {
           secret: 'secret-a',
           grade: { protection: 'encrypted', duration: 'ephemeral' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt,
       });
       keyStore.set({
@@ -176,6 +249,9 @@ describe('handleRelockCommand', () => {
           secret: 'secret-b',
           grade: { protection: 'encrypted', duration: 'transient' },
         },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
         expiresAt,
       });
     });
@@ -205,6 +281,83 @@ describe('handleRelockCommand', () => {
 
         expect(result.relocked.sort()).toEqual(['KEY_A', 'KEY_B']);
         expect(keyStore.size()).toBe(0);
+      });
+    });
+  });
+
+  given('[case2] keys with different envs', () => {
+    const keyStore = createDaemonKeyStore();
+    const expiresAt = Date.now() + 60000;
+
+    beforeEach(() => {
+      keyStore.set({
+        slug: 'SUDO_KEY',
+        key: {
+          secret: 'sudo-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'sudo',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+      keyStore.set({
+        slug: 'PROD_KEY',
+        key: {
+          secret: 'prod-secret',
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prod',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+      keyStore.set({
+        slug: 'ALL_KEY',
+        key: {
+          secret: 'all-secret',
+          grade: { protection: 'plaintext', duration: 'permanent' },
+        },
+        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'all',
+        org: 'ehmpathy',
+        expiresAt,
+      });
+    });
+
+    when('[t0] relock command with env filter', () => {
+      then('deletes only keys with matched env', () => {
+        const result = handleRelockCommand({ env: 'sudo' }, { keyStore });
+
+        expect(result.relocked).toEqual(['SUDO_KEY']);
+        expect(keyStore.get({ slug: 'SUDO_KEY' })).toBeNull();
+        expect(keyStore.get({ slug: 'PROD_KEY' })).not.toBeNull();
+        expect(keyStore.get({ slug: 'ALL_KEY' })).not.toBeNull();
+        expect(keyStore.size()).toBe(2);
+      });
+    });
+
+    when('[t1] relock command with env filter and no matched keys', () => {
+      then('returns empty relocked array', () => {
+        const result = handleRelockCommand({ env: 'prep' }, { keyStore });
+
+        expect(result.relocked).toEqual([]);
+        expect(keyStore.size()).toBe(3);
+      });
+    });
+
+    when('[t2] relock command with slugs takes priority over env', () => {
+      then('deletes only specified slugs', () => {
+        // slugs should take priority over env filter
+        const result = handleRelockCommand(
+          { slugs: ['PROD_KEY'], env: 'sudo' },
+          { keyStore },
+        );
+
+        expect(result.relocked).toEqual(['PROD_KEY']);
+        expect(keyStore.get({ slug: 'SUDO_KEY' })).not.toBeNull();
+        expect(keyStore.get({ slug: 'PROD_KEY' })).toBeNull();
+        expect(keyStore.get({ slug: 'ALL_KEY' })).not.toBeNull();
       });
     });
   });

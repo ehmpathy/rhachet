@@ -1,3 +1,5 @@
+import type { KeyrackKeyRecipient } from './KeyrackKeyRecipient';
+
 /**
  * .what = interface for vault-specific operations
  * .why = adapter pattern enables support for multiple storage backends
@@ -23,24 +25,33 @@ export interface KeyrackHostVaultAdapter {
    * .why = core operation for grant flow
    *
    * .note = exid is optional; only 1password requires it
+   * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
    */
   get: (input: {
     slug: string;
     exid?: string | null;
+    vaultRecipient?: string | null;
   }) => Promise<string | null>;
 
   /**
    * .what = store a credential in the vault
    * .why = enables set flow for credential storage
    *
+   * .note = env and org are required; callers must resolve them before the vault adapter call
    * .note = exid is optional; only 1password requires it
    * .note = expiresAt is optional; enables ephemeral grant cache (os.direct only)
+   * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
+   * .note = recipients is optional; os.secure uses it when no vaultRecipient (uses manifest recipients)
    */
   set: (input: {
     slug: string;
     value: string;
+    env: string;
+    org: string;
     exid?: string | null;
     expiresAt?: string | null;
+    vaultRecipient?: string | null;
+    recipients?: KeyrackKeyRecipient[];
   }) => Promise<void>;
 
   /**

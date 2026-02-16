@@ -764,7 +764,7 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t1] set --key AWS_PROFILE --org testorg (valid match)', () => {
+    when('[t1] set --key AWS_PROFILE --org @this (valid match)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -773,7 +773,7 @@ describe('keyrack envs', () => {
             '--key',
             'AWS_PROFILE',
             '--org',
-            'testorg',
+            '@this',
             '--env',
             'prod',
             '--mech',
@@ -794,10 +794,8 @@ describe('keyrack envs', () => {
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         // redact timestamps for stable snapshots
-        for (const entry of parsed) {
-          if (entry.createdAt) entry.createdAt = '__TIMESTAMP__';
-          if (entry.updatedAt) entry.updatedAt = '__TIMESTAMP__';
-        }
+        if (parsed.createdAt) parsed.createdAt = '__TIMESTAMP__';
+        if (parsed.updatedAt) parsed.updatedAt = '__TIMESTAMP__';
         expect(parsed).toMatchSnapshot();
       });
     });

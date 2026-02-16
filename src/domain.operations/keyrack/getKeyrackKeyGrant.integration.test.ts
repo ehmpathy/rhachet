@@ -7,19 +7,37 @@ import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
+  KeyrackKeyRecipient,
 } from '../../domain.objects/keyrack';
+import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
 import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
 import { genKeyrackGrantContext } from './genKeyrackGrantContext';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
+
+/**
+ * .what = generate test key pair for age encryption
+ * .why = integration tests need identity for manifest encryption/decryption
+ */
+let testKeyPair: { identity: string; recipient: string };
+let TEST_RECIPIENT: KeyrackKeyRecipient;
 
 describe('getKeyrackKeyGrant', () => {
   const tempHome = withTempHome({ name: 'getKeyrackKeyGrant' });
   const testDir = resolve(__dirname, './.temp/getKeyrackKeyGrant');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     tempHome.setup();
     rmSync(testDir, { recursive: true, force: true });
     mkdirSync(testDir, { recursive: true });
+
+    // generate key pair for test encryption/decryption
+    testKeyPair = await generateAgeKeyPair();
+    TEST_RECIPIENT = new KeyrackKeyRecipient({
+      mech: 'age',
+      pubkey: testKeyPair.recipient,
+      label: 'test',
+      addedAt: new Date().toISOString(),
+    });
   });
 
   afterAll(() => {
@@ -31,6 +49,9 @@ describe('getKeyrackKeyGrant', () => {
     // clean up between tests
     rmSync(join(tempHome.path, '.rhachet'), { recursive: true, force: true });
     rmSync(join(testDir, '.agent'), { recursive: true, force: true });
+
+    // set session identity for manifest encryption/decryption
+    daoKeyrackHostManifest.setSessionIdentity(testKeyPair.identity);
   });
 
   given('[case1] key configured in repo and host with value in vault', () => {
@@ -55,12 +76,18 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {
             [slug]: new KeyrackKeyHost({
               slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
+              env: 'all',
+              org: 'testorg',
+              vaultRecipient: null,
+              maxDuration: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }),
@@ -72,12 +99,17 @@ env.test: []
       await vaultAdapterOsDirect.set({
         slug,
         value: 'xai-test-key-123',
+        env: 'test',
+        org: 'testorg',
       });
     });
 
     when('[t0] get called for single key', () => {
       then('status is granted', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -87,7 +119,10 @@ env.test: []
       });
 
       then('grant value matches stored value', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -101,7 +136,10 @@ env.test: []
 
     when('[t1] get called for repo', () => {
       then('returns array with granted status', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { repo: true }, env: 'test' },
           context,
@@ -135,12 +173,18 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {
             [slug]: new KeyrackKeyHost({
               slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
+              env: 'all',
+              org: 'testorg',
+              vaultRecipient: null,
+              maxDuration: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }),
@@ -151,7 +195,10 @@ env.test: []
 
     when('[t0] get called for key not in repo', () => {
       then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -161,7 +208,10 @@ env.test: []
       });
 
       then('message mentions repo manifest', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -196,6 +246,8 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {},
         }),
       });
@@ -203,7 +255,10 @@ env.test: []
 
     when('[t0] get called for unconfigured key', () => {
       then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -213,7 +268,10 @@ env.test: []
       });
 
       then('message mentions host', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -225,7 +283,10 @@ env.test: []
       });
 
       then('fix instructions mention keyrack set', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -260,12 +321,18 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {
             [slug]: new KeyrackKeyHost({
               slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
+              env: 'all',
+              org: 'testorg',
+              vaultRecipient: null,
+              maxDuration: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }),
@@ -278,7 +345,10 @@ env.test: []
 
     when('[t0] get called for key without value', () => {
       then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -311,12 +381,18 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {
             [slug]: new KeyrackKeyHost({
               slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
+              env: 'all',
+              org: 'testorg',
+              vaultRecipient: null,
+              maxDuration: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }),
@@ -328,12 +404,17 @@ env.test: []
       await vaultAdapterOsDirect.set({
         slug,
         value: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        env: 'test',
+        org: 'testorg',
       });
     });
 
     when('[t0] get called for invalid value', () => {
       then('status is blocked', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -343,7 +424,10 @@ env.test: []
       });
 
       then('message mentions validation failure', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -383,6 +467,8 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {},
         }),
       });
@@ -394,7 +480,10 @@ env.test: []
 
     when('[t0] get called for key that exists in env', () => {
       then('status is granted', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -404,7 +493,10 @@ env.test: []
       });
 
       then('grant source vault is os.envvar', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -416,7 +508,10 @@ env.test: []
       });
 
       then('grant value matches env value', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -457,12 +552,18 @@ env.test: []
       await daoKeyrackHostManifest.set({
         upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack.manifest.json',
+          owner: null,
+          recipients: [TEST_RECIPIENT],
           hosts: {
             [slug]: new KeyrackKeyHost({
               slug,
               mech: 'REPLICA',
               vault: 'os.direct',
               exid: null,
+              env: 'all',
+              org: 'testorg',
+              vaultRecipient: null,
+              maxDuration: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }),
@@ -474,6 +575,8 @@ env.test: []
       await vaultAdapterOsDirect.set({
         slug,
         value: hostValue,
+        env: 'test',
+        org: 'testorg',
       });
     });
 
@@ -483,7 +586,10 @@ env.test: []
 
     when('[t0] get called for key', () => {
       then('env takes precedence over host', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genKeyrackGrantContext({
+          owner: null,
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,

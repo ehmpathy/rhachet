@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
@@ -31,6 +33,7 @@ describe('keyrack set', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'new-key-test-value\n',
         }),
       );
 
@@ -40,19 +43,19 @@ describe('keyrack set', () => {
 
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.NEW_KEY');
-        expect(parsed[0].mech).toEqual('REPLICA');
-        expect(parsed[0].vault).toEqual('os.direct');
+        expect(parsed.slug).toEqual('testorg.test.NEW_KEY');
+        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.vault).toEqual('os.direct');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         // redact timestamps for stable snapshots
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
-          ...entry,
+        const snapped = {
+          ...parsed,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -75,6 +78,7 @@ describe('keyrack set', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'another-key-test-value\n',
         }),
       );
 
@@ -102,6 +106,62 @@ describe('keyrack set', () => {
           ]),
         );
         expect(snapped).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * [uc4] regular credential dual storage
+   * non-sudo set stores in BOTH encrypted host manifest AND keyrack.yml
+   */
+  given('[case2] regular credential dual storage (non-sudo)', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
+    );
+
+    when('[t0] set --key with --env test (non-sudo)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'DUAL_STORE_KEY',
+            '--env',
+            'test',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'dual-store-value\n',
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('key appears in keyrack.yml', () => {
+        const keyrackYmlPath = join(repo.path, '.agent', 'keyrack.yml');
+        expect(existsSync(keyrackYmlPath)).toBe(true);
+        const content = readFileSync(keyrackYmlPath, 'utf8');
+        expect(content).toContain('DUAL_STORE_KEY');
+      });
+
+      then('host manifest is also updated (encrypted)', () => {
+        const manifestPath = join(
+          repo.path,
+          '.rhachet',
+          'keyrack',
+          'keyrack.host.age',
+        );
+        expect(existsSync(manifestPath)).toBe(true);
+        const stats = statSync(manifestPath);
+        expect(stats.size).toBeGreaterThan(0);
       });
     });
   });

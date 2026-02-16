@@ -60,7 +60,7 @@ export const keyrack = {
     env?: string;
   }) => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
-    const context = await genKeyrackGrantContext({ gitroot });
+    const context = await genKeyrackGrantContext({ owner: null, gitroot });
 
     if ('repo' in input.for) {
       return getKeyrackKeyGrant(
@@ -81,7 +81,7 @@ export const keyrack = {
     vault: KeyrackHostVault;
     exid?: string;
   }) => {
-    const context = await genKeyrackHostContext();
+    const context = await genKeyrackHostContext({ owner: null });
     return setKeyrackKeyHost(
       {
         slug: input.slug,
@@ -101,7 +101,7 @@ export const keyrack = {
     for: { repo: true } | { key: string };
     passphrase?: string;
   }) => {
-    const context = await genKeyrackHostContext();
+    const context = await genKeyrackHostContext({ owner: null });
 
     if ('repo' in input.for) {
       return unlockKeyrackVault(

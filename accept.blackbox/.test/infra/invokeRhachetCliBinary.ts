@@ -15,6 +15,8 @@ export const asSnapshotSafe = (output: string): string => {
         /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s]+/g,
         '/PATH_STRIPPED',
       )
+      // strip temp test repo paths (vary by run)
+      .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
   );
 };
 
@@ -49,7 +51,7 @@ export const invokeRhachetCliBinary = (input: {
     input: input.stdin,
     encoding: 'utf-8',
     shell: '/bin/bash',
-    env: input.env ? { ...process.env, ...input.env } : undefined,
+    env: { ...process.env, ...input.env }, // always pass env so subprocess inherits modified HOME
   });
 
   // log output for debug on failure
@@ -93,7 +95,7 @@ export const invokeRhachetCliBinaryChain = (input: {
   const result = spawnSync('bash', ['-c', chainedCommand], {
     cwd: input.cwd,
     encoding: 'utf-8',
-    env: input.env ? { ...process.env, ...input.env } : undefined,
+    env: { ...process.env, ...input.env }, // always pass env so subprocess inherits modified HOME
   });
 
   // log output for debug on failure

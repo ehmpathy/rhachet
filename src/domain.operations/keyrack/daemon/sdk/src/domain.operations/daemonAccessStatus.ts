@@ -15,6 +15,8 @@ export const daemonAccessStatus = async (input?: {
 }): Promise<{
   keys: Array<{
     slug: string;
+    env: string;
+    org: string;
     expiresAt: number;
     ttlLeftMs: number;
   }>;
@@ -32,6 +34,8 @@ export const daemonAccessStatus = async (input?: {
   const response = await sendKeyrackDaemonCommand<{
     keys: Array<{
       slug: string;
+      env: string;
+      org: string;
       expiresAt: number;
       ttlLeftMs: number;
     }>;

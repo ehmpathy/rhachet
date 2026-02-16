@@ -1,4 +1,5 @@
 org: ehmpathy
-env.prod: null
-env.test:
-  - AWS_PROFILE
+env.prod: []
+env.all:
+  - RELOCK_REGULAR_KEY
+  - REGULAR_KEY

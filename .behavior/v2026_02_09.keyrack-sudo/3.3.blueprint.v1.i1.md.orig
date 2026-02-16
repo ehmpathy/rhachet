@@ -1,0 +1,1870 @@
+# blueprint: keyrack sudo credentials
+
+## summary
+
+implement elevated credential support for keyrack with env-based classification, org-scoped access, and per-owner isolation.
+
+**builds on commit 24dd6e6**: the keyrack envs feature already implemented:
+- `KeyrackKeySpec` has `env` field (for prod, prep, test deployment environments)
+- `KeyrackRepoManifest` has `envs: string[]` array
+- keyrack.yml uses `org` + `env.*` sections format (e.g., env.prod, env.prep)
+- `unlockKeyrack` accepts `env?: string` parameter
+- `getAllKeyrackSlugsForEnv` filters by env, treats 'all' as special case
+- slug format is `$org.$env.$key` (e.g., `ehmpathy.prod.AWS_PROFILE`)
+
+**key change**: `env=sudo` is a special env value with elevated semantics:
+- `env=sudo`: stored in encrypted host manifest ONLY (invisible to codebase)
+- `env=$other` (prod, prep, etc): stored in encrypted host manifest AND listed in `keyrack.yml` (visible to codebase)
+
+**recipient-key-based locks**: the host manifest is encrypted to recipient keys (ssh, yubikey, etc) — no passphrases:
+- `rhx keyrack init` initializes with default ssh key (or `--pubkey` for explicit key)
+- manifest decryption via ssh-agent or yubikey (automatic, no prompt)
+- multi-recipient support for backup keys and multi-machine access
+
+**per-owner isolation**: each robot/agent can have its own isolated keyrack:
+- `--for mechanic`: uses `keyrack.host.mechanic.age` and `/tmp/keyrack.daemon.mechanic.sock`
+- no `--for` flag: uses `keyrack.host.age` and `/tmp/keyrack.daemon.sock` (default)
+- full process isolation — each owner has separate daemon, separate manifest
+- mechanic cannot access foreman's credentials, even on the same machine
+
+**org scope**: `org` at CLI uses special tokens:
+- `@this`: resolves to the org declared in keyrack.yml (default)
+- `@all`: cross-org credential (stored as-is)
+- any other value is invalid at CLI
+
+at storage time: `@this` is resolved to actual org name (e.g., `ehmpathy`); `@all` stored as-is.
+
+---
+
+## treestruct: filediffs
+
+legend: [○] = already exists, [~] = modify, [+] = add new
+
+```
+src/
+  domain.objects/keyrack/
+    [○] KeyrackKeySpec.ts                           # already has env, name fields (from 24dd6e6)
+    [○] KeyrackRepoManifest.ts                      # already has org, envs array (from 24dd6e6)
+    [~] KeyrackKeyHost.ts                           # add env, org, vaultRecipient fields
+    [~] KeyrackKeyGrant.ts                          # add env, org fields
+    [+] KeyrackKeyRecipient.ts                      # new: recipient key for manifest decryption
+    [+] KeyrackHostManifest.ts                      # new: manifest with recipients array
+
+  domain.operations/keyrack/
+    [○] getAllKeyrackSlugsForEnv.ts                 # already filters by env (from 24dd6e6)
+    [○] assertKeyrackEnvIsSpecified.ts              # already validates env (from 24dd6e6)
+    [○] getAllKeyrackEnvsFromRepoManifest.ts        # already extracts envs (from 24dd6e6)
+    [~] setKeyrackKeyHost.ts                        # add owner, env, org params; route to owner's manifest
+    [~] setKeyrackKeyHost.test.ts                   # add owner/env/org test cases
+    [+] initKeyrack.ts                              # new: initialize with owner + recipient key (NO identity file)
+    [+] initKeyrack.test.ts                         # new: unit tests
+    [+] getKeyrackHostManifestPath.ts               # new: resolve path based on owner
+    [+] discoverIdentityForRecipient.ts             # new: runtime identity discovery (replaces identity file)
+    [+] discoverIdentityForRecipient.test.ts        # new: unit tests
+
+    recipient/
+      [+] setKeyrackRecipient.ts                    # new: add recipient to owner's manifest
+      [+] getKeyrackRecipients.ts                   # new: list recipients from owner's manifest
+      [+] delKeyrackRecipient.ts                    # new: remove recipient from owner's manifest
+      [+] recipient.test.ts                         # new: unit tests
+
+    session/
+      [○] unlockKeyrack.ts                          # already accepts env param (from 24dd6e6)
+      [~] unlockKeyrack.ts                          # add owner, --key required for sudo, 30min TTL
+      [~] unlockKeyrack.test.ts                     # add owner/sudo-specific unit tests
+      [+] unlockKeyrack.integration.test.ts         # integration tests for owner/sudo flow
+      [~] relockKeyrack.ts                          # add owner, --env filter
+      [~] getKeyrackStatus.ts                       # add owner, env/org, recipient info to response
+
+    daemon/
+      [+] getKeyrackDaemonSocketPath.ts             # new: resolve socket path based on owner
+      svc/src/
+        infra/
+          [~] createKeyrackDaemonServer.ts          # add owner param; chmod 0600 after listen
+        domain.objects/
+          [~] daemonKeyStore.ts                     # add env, org to stored keys; add env filter to entries()
+          [~] daemonKeyStore.test.ts                # add env filter tests
+        domain.operations/
+          [~] handleUnlockCommand.ts                # add env, org to stored keys
+          [~] handleGetCommand.ts                   # add env, org to response
+          [~] handleRelockCommand.ts                # add env filter
+          [~] handleStatusCommand.ts                # add env, org to status
+          [~] handleCommands.test.ts                # add sudo-specific test cases
+
+      sdk/src/
+        domain.operations/
+          [~] daemonAccessUnlock.ts                 # add owner (socket select), env, org to payload
+          [~] daemonAccessGet.ts                    # add owner (socket select), env, org to response
+          [~] daemonAccessRelock.ts                 # add owner (socket select), env filter
+          [~] daemonAccessStatus.ts                 # add owner (socket select), env, org to status
+
+      [~] daemon.integration.test.ts                # add owner/sudo lifecycle tests
+
+  access/daos/
+    daoKeyrackRepoManifest/
+      [○] schema.ts                                 # already has env.* section format (from 24dd6e6)
+      [○] index.ts                                  # already parses env-scoped keys (from 24dd6e6)
+    daoKeyrackHostManifest/
+      [~] schema.ts                                 # add owner, env, org, recipients, vaultRecipient fields
+      [~] index.ts                                  # age encryption; runtime identity discovery (no identity file)
+      [~] index.integration.test.ts                 # add owner/recipient-key tests
+
+  infra/ssh/
+    [+] listSshAgentKeys.ts                         # new: list keys from ssh-agent with pubkeys
+    [+] sshPrikeyToAgeIdentity.ts                   # new: convert ssh private key to age identity
+
+  .test/
+    assets/
+      [~] genMockKeyrackHostManifest.ts             # add owner, env, org, recipients defaults
+      [○] genMockVaultAdapter.ts                    # retain (no changes)
+    infra/
+      [○] withTempHome.ts                           # retain (reuse for tests)
+      [+] withTestOwnerKeyrack.ts                   # new: setup isolated owner manifest for tests
+
+  contract/commands/keyrack/
+    [+] init.ts                                     # new: rhx keyrack init --for, --pubkey, --via yubikey
+    [+] recipient.ts                                # new: rhx keyrack recipient set|get|del --for
+    [○] unlock.ts                                   # already has --env flag (from 24dd6e6)
+    [~] unlock.ts                                   # add --for, --key (required for sudo), --duration, --prikey flags
+    [~] set.ts                                      # add --for, --env, --org, --vault-recipient flags
+    [~] get.ts                                      # add --for, --env, --org flags
+    [~] relock.ts                                   # add --for, --env, --key flags
+    [~] status.ts                                   # add --for; show owner, env/org, recipient info in output
+```
+
+---
+
+## treestruct: codepaths
+
+### domain.objects
+
+```
+KeyrackKeySpec (already implemented in 24dd6e6)
+  [○] slug: string                                  # format: $org.$env.$key
+  [○] mech: KeyrackGrantMechanism                   # retain
+  [○] env: string                                   # 'prod', 'prep', 'test', 'all' — now also 'sudo'
+  [○] name: string                                  # raw key name without org/env prefix
+  [○] grade: { protection, duration } | null        # retain
+
+KeyrackRepoManifest (already implemented in 24dd6e6)
+  [○] org: string                                   # org that owns this keyrack
+  [○] envs: string[]                                # declared env names from env.* sections
+  [○] keys: Record<string, KeyrackKeySpec>          # map of slug to spec
+
+KeyrackKeyRecipient (new)
+  [+] mech: KeyrackKeyRecipientMech                 # 'ssh' | 'age' | 'yubikey' | 'passkey'
+  [+] pubkey: string                                # e.g., "ssh-ed25519 AAAA..."
+  [+] label: string                                 # e.g., "macbook", "yubikey-backup"
+  [+] addedAt: string                               # iso timestamp
+
+KeyrackHostManifest (new structure)
+  [+] owner: string | null                          # null for default, or explicit owner name (e.g., 'mechanic')
+  [+] recipients: KeyrackKeyRecipient[]             # who can decrypt this manifest
+  [+] keys: Record<string, KeyrackKeyHost>          # map of slug to host config
+
+KeyrackKeyHost (needs sudo fields)
+  [○] slug: string                                  # retain
+  [○] exid: string | null                           # retain
+  [○] vault: KeyrackHostVault                       # retain
+  [○] mech: KeyrackGrantMechanism                   # retain
+  [+] env: string                                   # 'sudo' | 'prod' | 'prep' | etc
+  [+] org: string                                   # resolved org name (e.g., 'ehmpathy') or '@all' for cross-org
+  [+] vaultRecipient?: string                       # optional: pubkey for os.secure vault if different from manifest
+  [+] maxDuration?: string                          # optional: max TTL for this key (e.g., "5m")
+  [○] createdAt: string                             # retain
+  [○] updatedAt: string                             # retain
+
+KeyrackKeyGrant (needs sudo fields)
+  [○] slug: string                                  # retain
+  [○] key: KeyrackKey                               # retain
+  [○] source: { vault, mech }                       # retain
+  [○] expiresAt?: IsoTimeStamp                      # retain
+  [+] env: string                                   # 'sudo' | 'prod' | 'prep' | etc
+  [+] org: string                                   # resolved org name (e.g., 'ehmpathy') or '@all' for cross-org
+
+daemonKeyStore (needs sudo fields)
+  [○] UnlockedKey interface                         # retain but add env, org
+  [+] env: string in UnlockedKey                    # for env-based filter
+  [+] org: string in UnlockedKey                    # for org-based filter
+  [+] entries({ env? }): add optional env filter    # for relock --env sudo
+```
+
+### domain.operations
+
+```
+initKeyrack (new)
+  [+] accept owner?: string | null (optional; null for default, explicit name for robot)
+  [+] accept pubkey?: string (optional)
+  [+] accept recipientMech?: 'yubikey' (only needed for discovery modes)
+  [+] if pubkey provided: resolve (value, .pub file, or private key path)
+  [+] if no pubkey && no recipientMech: find default ssh key (~/.ssh/id_ed25519, etc)
+  [+] if recipientMech === 'yubikey': run age-plugin-yubikey to get pubkey
+  [+] determine manifest path: keyrack.host.age (null) or keyrack.host.${owner}.age
+  [+] create encrypted manifest at path
+  [+] store owner and recipient in manifest
+  [+] NOTE: does NOT write identity file — identity is discovered at runtime
+
+setKeyrackRecipient (new)
+  [+] accept owner?: string | null (routes to correct manifest)
+  [+] accept pubkey, label, stanza?: 'ssh' (optional override)
+  [+] cipher-aware by default: detect key cipher, convert to age1... if passwordless
+  [+] if stanza === 'ssh': force raw ssh-ed25519 format (skip cipher-aware conversion)
+  [+] decrypt manifest with current recipient
+  [+] add new recipient to manifest.recipients
+  [+] re-encrypt manifest to all recipients
+
+getKeyrackRecipients (new)
+  [+] accept owner?: string | null (routes to correct manifest)
+  [+] decrypt manifest
+  [+] return manifest.recipients
+
+delKeyrackRecipient (new)
+  [+] accept owner?: string | null (routes to correct manifest)
+  [+] accept label
+  [+] decrypt manifest with current recipient
+  [+] remove recipient by label
+  [+] re-encrypt manifest to rest of recipients
+
+getAllKeyrackSlugsForEnv (already implemented in 24dd6e6)
+  [○] filter manifest keys to slugs for a specific env
+  [○] env=all returns all slugs
+  [○] filters to slugs where spec.env matches
+
+assertKeyrackEnvIsSpecified (already implemented in 24dd6e6)
+  [○] fail fast if --env omitted when env-specific sections exist
+  [○] default to 'all' if no env-specific sections
+
+setKeyrackKeyHost
+  [○] findsert key host to manifest                 # retain
+  [+] accept owner?: string | null (routes to correct manifest)
+  [+] accept env, org, vaultRecipient params
+  [+] always store in daoKeyrackHostManifest (encrypted to recipient keys)
+  [+] if env !== 'sudo': also store in keyrack.yml (repo manifest)
+  [+] resolve @this to actual org; validate org is known org or '@all'
+  [+] if vault === 'os.secure' && vaultRecipient: store vaultRecipient pubkey
+
+unlockKeyrack (already accepts env param from 24dd6e6)
+  [○] accepts env?: string param                    # from 24dd6e6
+  [○] uses getAllKeyrackSlugsForEnv to filter       # from 24dd6e6
+  [○] default TTL = 9h                              # retain for non-sudo
+  [+] accept owner?: string | null (routes to correct manifest and daemon)
+  [+] decrypt manifest via recipient key (ssh-agent, yubikey)
+  [+] if env === 'sudo' && !key: throw "sudo requires --key"
+  [+] if env === 'sudo': default TTL = 30min
+  [+] if env === 'sudo': unlock single key from encrypted host manifest
+  [+] if vault === 'os.secure' && vaultRecipient: decrypt with that recipient
+  [+] if vault === 'os.secure' && no vaultRecipient: use same recipient as manifest
+  [+] respect maxDuration from KeyrackKeyHost
+  [+] pass env, org to daemonAccessUnlock (via owner's daemon socket)
+
+relockKeyrack
+  [+] accept owner?: string | null (routes to correct daemon)
+  [+] default: purge all keys (--all is most extreme, safest default)
+  [+] if env filter: only purge keys with matched env
+  [+] if key filter: only purge specific key
+
+getKeyrackStatus
+  [+] accept owner?: string | null (routes to correct manifest and daemon)
+  [+] include env, org in status response
+  [+] include recipient key info
+  [+] include owner info
+```
+
+### daemon
+
+```
+getKeyrackDaemonSocketPath (new)
+  [+] accept owner?: string | null
+  [+] if owner: return /tmp/keyrack.daemon.${owner}.sock
+  [+] if null: return /tmp/keyrack.daemon.sock
+
+createKeyrackDaemonServer
+  [○] create key store                              # retain
+  [○] cleanup stale socket                          # retain
+  [○] create server                                 # retain
+  [+] accept owner?: string | null (determines socket path)
+  [+] use getKeyrackDaemonSocketPath(owner) for socket path
+  [○] listen on socket                              # retain
+  [+] chmod 0600 after listen (owner-only)
+
+daemonKeyStore
+  [~] set: accept KeyrackKeyGrant (with env, org)
+  [~] get: return KeyrackKeyGrant (with env, org)
+  [+] entries: add optional env filter param
+  [○] del, clear, size: retain
+  [-] UnlockedKey interface: delete — replaced by KeyrackKeyGrant
+
+handleUnlockCommand
+  [+] accept env, org in payload
+  [+] store env, org in key store
+
+handleGetCommand
+  [+] return env, org in response
+  [+] validate org matches request (or @all)
+
+handleRelockCommand
+  [+] accept env filter
+  [+] filter keys by env before purge
+
+handleStatusCommand
+  [+] return env, org for each key
+```
+
+### access layer
+
+```
+daoKeyrackHostManifest (now encrypted to recipient keys)
+  [~] get: decrypt ~/.rhachet/keyrack.host.age (or keyrack.host.${owner}.age) via recipient key
+  [~] set.findsert: encrypt to all recipients and write
+  [~] set.upsert: encrypt to all recipients and write
+  [←] reuse age encryption pattern from vaultAdapterOsSecure
+  [+] accept owner?: string | null to route to correct manifest path
+  [+] recipient key input: ssh-agent (automatic) > yubikey (touch prompt)
+  [~] schema: add owner, env, org, recipients, vaultRecipient fields
+  [-] plaintext keyrack.manifest.json: migrate to encrypted format
+
+daoKeyrackRepoManifest (keyrack.yml)
+  [○] get: read keyrack.yml from repo               # retain
+  [○] set: write keyrack.yml to repo                # retain
+  [~] only includes keys where env !== 'sudo'
+```
+
+---
+
+## contracts
+
+### initKeyrack contract
+
+```typescript
+initKeyrack(
+  input: {
+    owner?: string | null;            // optional: null for default, explicit name for robot
+    pubkey?: string;                  // optional: pubkey value, pubkey file path, or private key path
+    recipientMech?: 'yubikey';        // optional: only needed for discovery modes
+  },
+  context: KeyrackHostContext,
+): Promise<{
+  owner: string | null;
+  recipient: KeyrackKeyRecipient;
+  manifestPath: string;
+}>
+
+// behavior:
+// - if pubkey provided:
+//   - if looks like pubkey value (starts with "ssh-" or "age"): use directly
+//   - if path to pubkey file (.pub): read and use
+//   - if path to private key: extract pubkey from it
+// - if no pubkey && no recipientMech: find default ssh key (~/.ssh/id_ed25519, etc)
+// - if recipientMech === 'yubikey': run age-plugin-yubikey to discover pubkey
+// - manifest path: keyrack.host.age (null) or keyrack.host.${owner}.age
+// - creates encrypted manifest at path
+// - stores owner and recipient in manifest
+// - semantically equivalent to `recipient set --pubkey` for first recipient
+```
+
+### setKeyrackRecipient contract
+
+```typescript
+setKeyrackRecipient(
+  input: {
+    owner?: string | null;            // optional: routes to correct manifest
+    pubkey: string;                   // pubkey value, pubkey file path, or private key path
+    label: string;                    // e.g., "macbook-backup"
+    stanza?: 'ssh';                   // optional: force ssh-ed25519 stanza (skip cipher-aware conversion)
+  },
+  context: KeyrackHostContext,
+): Promise<KeyrackKeyRecipient>
+
+// behavior:
+// - resolves pubkey (value, .pub file, or private key path → extract pubkey)
+// - cipher-aware by default: detect key cipher, convert to age1... if passwordless
+// - if stanza === 'ssh': skip cipher-aware conversion, store raw ssh-ed25519 pubkey
+//   (needed for ssh-keygen -p prevention flow: add ssh stanza while key is still passwordless)
+// - decrypts manifest (keyrack.host.age or keyrack.host.${owner}.age)
+// - adds new recipient to manifest.recipients
+// - re-encrypts manifest to all recipients
+```
+
+### getKeyrackRecipients contract
+
+```typescript
+getKeyrackRecipients(
+  input: {
+    owner?: string | null;            // optional: routes to correct manifest
+  },
+  context: KeyrackHostContext,
+): Promise<KeyrackKeyRecipient[]>
+
+// behavior:
+// - decrypts manifest (keyrack.host.age or keyrack.host.${owner}.age)
+// - returns manifest.recipients
+```
+
+### delKeyrackRecipient contract
+
+```typescript
+delKeyrackRecipient(
+  input: {
+    owner?: string | null;            // optional: routes to correct manifest
+    label: string;                    // label of recipient to remove
+  },
+  context: KeyrackHostContext,
+): Promise<void>
+
+// behavior:
+// - decrypts manifest (keyrack.host.age or keyrack.host.${owner}.age)
+// - removes recipient by label
+// - re-encrypts manifest to rest of recipients
+```
+
+### setKeyrackKeyHost contract
+
+```typescript
+setKeyrackKeyHost(
+  input: {
+    owner?: string | null;            // optional: routes to correct manifest
+    slug: string;
+    mech: KeyrackGrantMechanism;
+    vault: KeyrackHostVault;
+    exid?: string | null;
+    env: string;                      // 'sudo' | 'all' | future values
+    org: string;                      // '@this' or '@all' at CLI; resolved before storage
+    vaultRecipient?: string;          // optional: pubkey for os.secure vault if different
+    maxDuration?: string;             // optional: max TTL (e.g., "5m")
+  },
+  context: KeyrackHostContext,
+): Promise<KeyrackKeyHost>
+
+// behavior:
+// - always store in encrypted host manifest (keyrack.host.age or keyrack.host.${owner}.age)
+// - if env !== 'sudo': also store in keyrack.yml (repo manifest)
+// - resolve @this to actual org name; only @all stored as-is
+// - if vault === 'os.secure' && vaultRecipient: store for separate decryption
+```
+
+### unlockKeyrack contract
+
+```typescript
+unlockKeyrack(
+  input: {
+    owner?: string | null;            // optional: routes to correct manifest and daemon
+    env?: string;                     // already exists (from 24dd6e6), default 'all'
+    key?: string;                     // required if env === 'sudo'
+    duration?: string;                // default: 30m for sudo, 9h for others; capped by maxDuration
+    prikey?: string;                  // optional: explicit ssh private key path for edge cases
+  },
+  context: KeyrackGrantContext,
+): Promise<{
+  unlocked: Array<{
+    slug: string;
+    vault: string;
+    env: string;
+    org: string;
+    expiresAt: number;
+  }>;
+}>
+
+// behavior:
+// - if prikey provided: use explicit path to decrypt manifest (edge case fallback)
+// - else: discover identity via recipient match (see amendment: recipient-based identity discovery)
+// - connect to owner's daemon (/tmp/keyrack.daemon.sock or /tmp/keyrack.daemon.${owner}.sock)
+// - if duration > maxDuration: warn and cap to maxDuration
+// - BadRequestError if env === 'sudo' && !key
+```
+
+### daemonAccessUnlock contract
+
+```typescript
+daemonAccessUnlock(input: {
+  owner?: string | null;              // determines which daemon socket to connect to
+  keys: Array<{
+    slug: string;
+    key: KeyrackKey;
+    expiresAt: number;
+    env: string;
+    org: string;
+  }>;
+}): Promise<{ unlocked: string[] }>
+```
+
+### daemonAccessGet contract
+
+```typescript
+daemonAccessGet(input: {
+  owner?: string | null;              // determines which daemon socket to connect to
+  slugs: string[];
+  env?: string;                       // filter by env
+  org?: string;                       // filter by org
+}): Promise<{
+  keys: Array<{
+    slug: string;
+    key: KeyrackKey;
+    expiresAt: number;
+    env: string;
+    org: string;
+  }>;
+} | null>
+```
+
+### daemonAccessRelock contract
+
+```typescript
+daemonAccessRelock(input: {
+  owner?: string | null;              // determines which daemon socket to connect to
+  slugs?: string[];                   // specific keys
+  env?: string;                       // filter by env
+}): Promise<{ relocked: string[] }>
+```
+
+### daemonAccessStatus contract
+
+```typescript
+daemonAccessStatus(input: {
+  owner?: string | null;              // determines which daemon socket to connect to
+}): Promise<{
+  keys: Array<{
+    slug: string;
+    expiresAt: number;
+    env: string;
+    org: string;
+  }>;
+}>
+```
+
+### daoKeyrackHostManifest contract (encrypted to recipient keys)
+
+```typescript
+interface DaoKeyrackHostManifest {
+  get(input: { owner?: string | null }): Promise<KeyrackHostManifest | null>;
+  // path: keyrack.host.age (null) or keyrack.host.${owner}.age
+  // decrypts via recipient key in ssh-agent or yubikey (automatic)
+
+  set: {
+    findsert(manifest: KeyrackHostManifest): Promise<KeyrackHostManifest>;
+    upsert(manifest: KeyrackHostManifest): Promise<void>;
+  };
+  // uses manifest.owner to determine path
+  // encrypts to all recipients in manifest.recipients
+}
+
+// note: ALL credentials stored here (encrypted)
+// keyrack.yml only includes keys where env !== 'sudo'
+// each owner has separate manifest file
+```
+
+---
+
+## composition
+
+### init keyrack flow (default)
+
+```
+user: rhx keyrack init
+
+contract/commands/keyrack/init.ts
+  └─> initKeyrack({ owner: null })
+        ├─> find default ssh key (~/.ssh/id_ed25519)
+        ├─> extract pubkey
+        ├─> create KeyrackHostManifest with owner: null, recipient
+        └─> daoKeyrackHostManifest.set.findsert(manifest)
+              └─> age encrypt keyrack.host.age to recipient
+```
+
+### init keyrack flow (per-owner)
+
+```
+user: rhx keyrack init --for mechanic --via ssh --pubkey ~/.ssh/id_ed25519_mechanic
+
+contract/commands/keyrack/init.ts
+  └─> initKeyrack({ owner: 'mechanic', pubkey: '~/.ssh/id_ed25519_mechanic' })
+        ├─> extract pubkey from ~/.ssh/id_ed25519_mechanic
+        ├─> create KeyrackHostManifest with owner: 'mechanic', recipient
+        └─> daoKeyrackHostManifest.set.findsert(manifest)
+              └─> age encrypt keyrack.host.mechanic.age to recipient
+```
+
+### add recipient flow (default)
+
+```
+user: rhx keyrack recipient set --pubkey "ssh-ed25519 AAAA... backup"
+
+contract/commands/keyrack/recipient.ts
+  └─> setKeyrackRecipient({ owner: null, pubkey, label: 'backup' })
+        ├─> daoKeyrackHostManifest.get({ owner: null })
+        │     └─> decrypt keyrack.host.age via current recipient in ssh-agent
+        ├─> add new recipient to manifest.recipients
+        └─> daoKeyrackHostManifest.set.upsert(manifest)
+              └─> re-encrypt keyrack.host.age to ALL recipients
+```
+
+### add recipient flow (per-owner)
+
+```
+user: rhx keyrack recipient set --for mechanic --pubkey "ssh-ed25519 AAAA... backup"
+
+contract/commands/keyrack/recipient.ts
+  └─> setKeyrackRecipient({ owner: 'mechanic', pubkey, label: 'backup' })
+        ├─> daoKeyrackHostManifest.get({ owner: 'mechanic' })
+        │     └─> decrypt keyrack.host.mechanic.age via mechanic's recipient in ssh-agent
+        ├─> add new recipient to manifest.recipients
+        └─> daoKeyrackHostManifest.set.upsert(manifest)
+              └─> re-encrypt keyrack.host.mechanic.age to ALL recipients
+```
+
+### set sudo credential flow (default)
+
+```
+user: rhx keyrack set --key X --env sudo --org @this --vault 1password
+
+contract/commands/keyrack/set.ts
+  └─> setKeyrackKeyHost({ owner: null, slug, env: 'sudo', org: '@this', vault, exid })
+        ├─> daoKeyrackHostManifest.get({ owner: null })
+        │     └─> decrypt keyrack.host.age via recipient key in ssh-agent
+        ├─> construct KeyrackKeyHost with env, org
+        └─> daoKeyrackHostManifest.set.upsert(manifest)
+              └─> encrypt keyrack.host.age to all recipients
+              # note: NOT added to keyrack.yml (env=sudo)
+```
+
+### set sudo credential flow (per-owner)
+
+```
+user: rhx keyrack set --for mechanic --key GITHUB_TOKEN --env sudo --vault 1password
+
+contract/commands/keyrack/set.ts
+  └─> setKeyrackKeyHost({ owner: 'mechanic', slug, env: 'sudo', org: '@this', vault, exid })
+        ├─> daoKeyrackHostManifest.get({ owner: 'mechanic' })
+        │     └─> decrypt keyrack.host.mechanic.age via mechanic's recipient key
+        ├─> construct KeyrackKeyHost with env, org
+        └─> daoKeyrackHostManifest.set.upsert(manifest)
+              └─> encrypt keyrack.host.mechanic.age to mechanic's recipients
+              # note: foreman cannot access mechanic's manifest
+```
+
+### set regular credential flow
+
+```
+user: rhx keyrack set --key X --env all --org @this --vault 1password
+
+contract/commands/keyrack/set.ts
+  └─> setKeyrackKeyHost({ owner: null, slug, env: 'all', org: '@this', vault, exid })
+        ├─> daoKeyrackHostManifest.set.upsert(manifest)  # store in encrypted
+        └─> daoKeyrackRepoManifest.set.upsert(...)       # also store in keyrack.yml
+```
+
+### set os.secure credential (default — uses host manifest recipients)
+
+```
+user: rhx keyrack set --key X --env sudo --vault os.secure
+
+contract/commands/keyrack/set.ts
+  └─> setKeyrackKeyHost({ owner: null, slug, env: 'sudo', vault: 'os.secure' })
+        ├─> daoKeyrackHostManifest.set.upsert(manifest)
+        │     └─> no vaultRecipient stored — will use manifest recipients
+        └─> vaultAdapterOsSecure encrypts credential to manifest recipients
+        # note: unlock is seamless — same key decrypts both manifest and vault
+```
+
+### set os.secure credential (explicit — uses different recipient)
+
+```
+user: rhx keyrack set --key X --env sudo --vault os.secure --vault-recipient "ssh-ed25519 AAAA..."
+
+contract/commands/keyrack/set.ts
+  └─> setKeyrackKeyHost({ owner: null, slug, env: 'sudo', vault: 'os.secure', vaultRecipient: pubkey })
+        ├─> daoKeyrackHostManifest.set.upsert(manifest)
+        │     └─> stores vaultRecipient alongside vault config
+        └─> vaultAdapterOsSecure encrypts credential to vaultRecipient
+        # note: unlock requires both keys — manifest recipient AND vault recipient
+```
+
+### unlock sudo credential flow (default)
+
+```
+user: rhx keyrack unlock --env sudo --key X
+
+contract/commands/keyrack/unlock.ts
+  └─> unlockKeyrack({ owner: null, env: 'sudo', key: 'X' })
+        ├─> daoKeyrackHostManifest.get({ owner: null })
+        │     └─> decrypt keyrack.host.age via recipient key in ssh-agent
+        ├─> find key by slug in manifest
+        ├─> vaultAdapter.get({ key })
+        │     └─> os.secure: decrypts via keyHost.vaultRecipient or manifest recipients
+        │     └─> 1password: fetches via op cli
+        │     └─> etc
+        ├─> daemonAccessUnlock({ owner: null, keys: [...] })
+        │     └─> connect to /tmp/keyrack.daemon.sock
+        │     └─> daemon stores key with 30min TTL
+        └─> return { unlocked: [...] }
+```
+
+### unlock sudo credential flow (per-owner)
+
+```
+user: rhx keyrack unlock --for mechanic --env sudo --key GITHUB_TOKEN
+
+contract/commands/keyrack/unlock.ts
+  └─> unlockKeyrack({ owner: 'mechanic', env: 'sudo', key: 'GITHUB_TOKEN' })
+        ├─> daoKeyrackHostManifest.get({ owner: 'mechanic' })
+        │     └─> decrypt keyrack.host.mechanic.age via mechanic's recipient key
+        ├─> find key by slug in manifest
+        ├─> vaultAdapter.get({ key })
+        │     └─> vault adapter handles its own decryption internally
+        ├─> daemonAccessUnlock({ owner: 'mechanic', keys: [...] })
+        │     └─> connect to /tmp/keyrack.daemon.mechanic.sock
+        │     └─> daemon stores key with 30min TTL
+        └─> return { unlocked: [...] }
+```
+
+### unlock regular credentials flow (already works from 24dd6e6)
+
+```
+user: rhx keyrack unlock --env prod
+
+contract/commands/keyrack/unlock.ts
+  └─> unlockKeyrack({ owner: null, env: 'prod' })   # owner null = default, env from flag
+        ├─> daoKeyrackHostManifest.get({ owner: null })
+        │     └─> decrypt keyrack.host.age via recipient key
+        ├─> assertKeyrackEnvIsSpecified()   # validates env (already implemented)
+        ├─> getAllKeyrackSlugsForEnv()      # filters slugs (already implemented)
+        ├─> for each key: vaultAdapter.get({ key })
+        │     └─> vault adapter handles its own decryption internally
+        ├─> daemonAccessUnlock({ owner: null, keys: [...] })
+        │     └─> connect to /tmp/keyrack.daemon.sock
+        │     └─> daemon stores keys with 9h TTL
+        └─> return { unlocked: [...] }
+```
+
+### get sudo credential flow (default)
+
+```
+user: rhx keyrack get --key X --env sudo
+
+contract/commands/keyrack/get.ts
+  └─> daemonAccessGet({ owner: null, slugs: ['X'], env: 'sudo' })
+        ├─> connect to /tmp/keyrack.daemon.sock
+        ├─> daemon checks key exists with env === 'sudo'
+        ├─> daemon checks TTL not expired
+        └─> return { keys: [{ slug, key, env, org, expiresAt }] }
+```
+
+### get sudo credential flow (per-owner)
+
+```
+user: rhx keyrack get --for mechanic --key GITHUB_TOKEN --env sudo
+
+contract/commands/keyrack/get.ts
+  └─> daemonAccessGet({ owner: 'mechanic', slugs: ['GITHUB_TOKEN'], env: 'sudo' })
+        ├─> connect to /tmp/keyrack.daemon.mechanic.sock
+        ├─> daemon checks key exists with env === 'sudo'
+        ├─> daemon checks TTL not expired
+        └─> return { keys: [{ slug, key, env, org, expiresAt }] }
+        # note: mechanic's daemon is isolated from default daemon
+```
+
+### cross-owner access attempt (blocked)
+
+```
+user: mechanic tries rhx keyrack get --for foreman --key GITHUB_TOKEN --env sudo
+
+contract/commands/keyrack/get.ts
+  └─> daemonAccessGet({ owner: 'foreman', slugs: ['GITHUB_TOKEN'], env: 'sudo' })
+        ├─> connect to /tmp/keyrack.daemon.foreman.sock
+        └─> fails: mechanic cannot decrypt foreman's manifest (wrong key)
+        # isolation enforced at manifest decryption layer
+```
+
+---
+
+## test infrastructure
+
+> see `.refs/test-infrastructure.portable-ssh-key.ref.md` for full rationale
+
+### test assets
+
+```
+.test/
+  assets/
+    keyrack/
+      ssh/
+        test_key_ed25519        # committed test key (no passphrase)
+        test_key_ed25519.pub    # committed test pubkey
+      manifest/
+        empty.age               # empty manifest encrypted to test key
+        with-keys.age           # manifest with sample keys
+```
+
+### test helpers
+
+```ts
+// .test/infra/withTestSshKey.ts
+export const TEST_SSH_KEY_PATH = path.join(__dirname, '../assets/keyrack/ssh/test_key_ed25519');
+export const TEST_SSH_PUBKEY_PATH = `${TEST_SSH_KEY_PATH}.pub`;
+
+// .test/infra/withTestSshAgent.ts
+export const withTestSshAgent = async <T>(fn: () => Promise<T>): Promise<T> => {
+  // spawns isolated agent, loads test key, runs fn, cleans up
+};
+
+// .test/infra/withTestHome.ts
+export const withTestHome = async <T>(fn: (home: string) => Promise<T>): Promise<T> => {
+  // creates temp HOME with test key in .ssh/, runs fn, cleans up
+};
+```
+
+### test patterns
+
+| test type | pattern |
+|-----------|---------|
+| explicit `--pubkey` | `initKeyrack({ pubkey: TEST_SSH_KEY_PATH }, context)` |
+| default discovery | `withTestHome(async (home) => { process.env.HOME = home; ... })` |
+| ssh-agent flow | `withTestSshAgent(async () => { ... })` |
+
+all tests use the committed test key → portable, deterministic, same behavior everywhere.
+
+---
+
+## test coverage
+
+### unit tests
+
+```
+initKeyrack.test.ts
+  given('[case1] no pubkey provided (default owner)')
+    then('finds default ssh key (~/.ssh/id_ed25519)')
+    then('creates encrypted manifest at keyrack.host.age')
+    then('manifest.owner is null')
+  given('[case2] pubkey is explicit value')
+    then('uses pubkey value directly')
+    then('creates encrypted manifest')
+  given('[case3] pubkey is private key path')
+    then('extracts pubkey from private key')
+    then('creates encrypted manifest')
+  given('[case4] pubkey is .pub file path')
+    then('reads pubkey from .pub file')
+    then('creates encrypted manifest')
+  given('[case5] recipient mech is yubikey')
+    then('invokes age-plugin-yubikey')
+  given('[case6] no ssh key found')
+    then('throws helpful error with instructions')
+  given('[case7] explicit owner (mechanic)')
+    then('creates encrypted manifest at keyrack.host.mechanic.age')
+    then('manifest.owner is "mechanic"')
+
+setKeyrackRecipient.test.ts
+  given('[case1] valid pubkey (cipher-aware default)')
+    then('detects key cipher and converts accordingly')
+    then('adds to manifest.recipients')
+    then('re-encrypts to all recipients')
+  given('[case2] duplicate label')
+    then('throws error')
+  given('[case3] --stanza ssh override on passwordless key')
+    then('stores raw ssh-ed25519 pubkey despite cipher: none')
+    then('produces ssh-ed25519 stanza')
+  given('[case4] --stanza ssh on passphrase-protected key')
+    then('stores raw ssh-ed25519 pubkey (same as cipher-aware default)')
+    then('produces ssh-ed25519 stanza')
+
+daemonKeyStore.test.ts
+  given('[case1] entries with env filter')
+    then('returns only matched env')
+  given('[case2] sudo key stored')
+    then('env and org tracked')
+
+unlockKeyrack.test.ts
+  given('[case1] env=sudo without key')
+    then('throws BadRequestError')
+  given('[case2] env=sudo with key')
+    then('uses 30min TTL')
+  given('[case3] env=all (default)')
+    then('uses 9h TTL')
+  given('[case4] duration exceeds maxDuration')
+    then('warns and caps to maxDuration')
+  given('[case5] --prikey provided')
+    then('uses explicit path instead of discovery')
+  given('[case6] discovery finds key in ssh-agent')
+    then('uses agent-backed identity')
+  given('[case7] discovery finds key in standard path')
+    then('uses standard path identity')
+  given('[case8] discovery fails + no --prikey')
+    then('throws helpful error with --prikey suggestion')
+
+setKeyrackKeyHost.test.ts
+  given('[case1] org is @this')
+    then('accepted')
+  given('[case2] org is @all')
+    then('accepted')
+  given('[case3] org is invalid value')
+    then('throws BadRequestError')
+  given('[case4] vault is os.secure with vaultRecipient')
+    then('vaultRecipient stored in KeyrackKeyHost')
+  given('[case5] vault is os.secure without vaultRecipient')
+    then('uses manifest recipient')
+
+relockKeyrack.test.ts
+  given('[case1] no filter (bare relock)')
+    then('purges ALL keys (--all is default)')
+  given('[case2] explicit --all')
+    then('purges ALL keys')
+  given('[case3] --env sudo filter')
+    then('purges only sudo keys')
+    then('retains regular keys')
+  given('[case4] --key X filter')
+    then('purges only key X')
+
+discoverIdentityForRecipient.test.ts
+  given('[case1] recipient matches ssh-agent key')
+    then('returns SSH_KEY_PATH marker with agent key path')
+  given('[case2] recipient matches standard ssh path')
+    then('returns identity from sshPrikeyToAgeIdentity')
+  given('[case3] recipient matches native age key in standard location')
+    then('returns AGE-SECRET-KEY identity')
+  given('[case4] recipient matches native age key via $AGE_IDENTITY_FILE')
+    then('returns AGE-SECRET-KEY identity')
+  given('[case5] recipient matches no available key')
+    then('returns null')
+  given('[case6] multiple keys in agent, one matches')
+    then('returns matched key only')
+
+listSshAgentKeys.test.ts
+  given('[case1] ssh-agent has keys')
+    then('returns array of {pubkey, path, fingerprint}')
+  given('[case2] ssh-agent has no keys')
+    then('returns empty array')
+  given('[case3] ssh-agent not available')
+    then('returns empty array (no throw)')
+```
+
+### integration tests
+
+```
+daoKeyrackHostManifest.integration.test.ts
+  given('[case1] manifest absent')
+    when('[t0] init with ssh recipient')
+      then('creates encrypted file')
+      then('decrypts via ssh-agent')
+  given('[case2] manifest present')
+    when('[t0] get with correct recipient')
+      then('decrypts and returns manifest')
+    when('[t1] get with wrong recipient')
+      then('throws error')
+  given('[case3] multi-recipient')
+    when('[t0] add second recipient')
+      then('both recipients can decrypt')
+    when('[t1] remove first recipient')
+      then('only second recipient can decrypt')
+  given('[case4] env/org fields')
+    then('round-trips correctly')
+
+daemon.integration.test.ts
+  given('[case1] sudo credential lifecycle')
+    when('[t0] UNLOCK with env=sudo')
+      then('stores key with env, org')
+    when('[t1] GET with env=sudo')
+      then('returns key with env, org')
+    when('[t2] GET with --output json')
+      then('returns {"value": "...", "env": "sudo", "org": "..."}')
+    when('[t3] RELOCK with env=sudo')
+      then('purges only sudo keys')
+  given('[case2] relock behavior')
+    when('[t0] bare RELOCK (no filter)')
+      then('purges ALL keys')
+    when('[t1] RELOCK --all')
+      then('purges ALL keys')
+
+unlockKeyrack.integration.test.ts
+  given('[case1] sudo unlock with --key')
+    then('unlocks single key')
+    then('uses 30min TTL')
+  given('[case2] bulk unlock (env=all)')
+    then('unlocks all repo keys')
+    then('uses 9h TTL')
+  given('[case3] os.secure vault with same recipient')
+    then('decrypts seamlessly')
+  given('[case4] os.secure vault with different recipient')
+    then('decrypts with vault recipient')
+  given('[case5] os.secure vault recipient not available')
+    then('returns helpful error')
+  given('[case6] duration exceeds maxDuration')
+    then('warns and caps to maxDuration')
+  given('[case7] recipient-based identity discovery')
+    when('[t0] key in ssh-agent')
+      then('discovers identity via agent pubkey match')
+    when('[t1] key in standard path (~/.ssh/id_ed25519)')
+      then('discovers identity via standard path')
+    when('[t2] key in non-standard path + in agent')
+      then('discovers identity via agent (path not needed)')
+    when('[t3] key in non-standard path + not in agent')
+      then('discovery fails with helpful error')
+  given('[case8] --prikey fallback')
+    when('[t0] prikey provided with valid path')
+      then('uses explicit path')
+      then('bypasses discovery')
+    when('[t1] prikey provided with invalid path')
+      then('returns helpful error')
+
+setKeyrackKeyHost.integration.test.ts
+  given('[case1] set --env sudo')
+    then('stores only in encrypted manifest')
+    then('does NOT appear in keyrack.yml')
+  given('[case2] set --env all')
+    then('stores in encrypted manifest')
+    then('also appears in keyrack.yml')
+  given('[case3] set --org @all')
+    then('stores with org: @all')
+  given('[case4] get cross-org without --org')
+    then('returns error: key not found for org @this')
+  given('[case5] get cross-org with --org @all')
+    then('returns credential')
+
+initKeyrack.integration.test.ts
+  given('[case1] default ssh key (null owner)')
+    then('finds ~/.ssh/id_ed25519')
+    then('creates keyrack.host.age')
+    then('manifest.owner is null')
+  given('[case2] explicit pubkey value')
+    then('uses pubkey directly')
+  given('[case3] pubkey from private key path')
+    then('extracts pubkey')
+  given('[case4] pubkey from .pub file')
+    then('reads pubkey from file')
+  given('[case5] no ssh key found')
+    then('returns helpful error')
+  given('[case6] explicit owner (mechanic)')
+    then('creates keyrack.host.mechanic.age')
+    then('manifest.owner is "mechanic"')
+  given('[case7] multiple owners on same machine')
+    when('[t0] init for mechanic')
+      then('creates keyrack.host.mechanic.age')
+    when('[t1] init for foreman')
+      then('creates keyrack.host.foreman.age')
+    when('[t2] both manifests exist')
+      then('mechanic cannot decrypt foreman manifest')
+      then('foreman cannot decrypt mechanic manifest')
+```
+
+### acceptance tests
+
+```
+keyrack-sudo.acceptance.test.ts
+  given('[case1] rhx keyrack init')
+    when('[t0] with default ssh key')
+      then('creates encrypted manifest')
+      then('recipient recorded')
+      then.snap('output matches init success message')
+    when('[t1] with --pubkey value')
+      then('uses explicit pubkey')
+    when('[t2] with --pubkey .pub file path')
+      then('reads pubkey from file')
+    when('[t3] with --pubkey private key path')
+      then('extracts pubkey from private key')
+    when('[t4] with --recipient yubikey')
+      then('invokes age-plugin-yubikey')
+    when('[t5] no ssh key found')
+      then.snap('error message matches no-ssh-key error')
+
+  given('[case2] sudo credential set')
+    when('[t0] rhx keyrack set --key X --env sudo --vault 1password')
+      then('stored in keyrack.host.age')
+      then('keyrack.yml unchanged')
+      then.snap('output matches sudo set success message')
+    when('[t1] with --exid')
+      then('skips vault-specific prompt')
+    when('[t2] duplicate set')
+      then('returns prior config (findsert)')
+    when('[t3] invalid org')
+      then.snap('error message matches invalid-org error')
+
+  given('[case3] sudo unlock')
+    when('[t0] without --key')
+      then.snap('error message matches sudo-requires-key error')
+    when('[t1] with --key')
+      then('unlocks single key with 30min TTL')
+      then.snap('output matches unlock success message')
+    when('[t2] with --duration 1h')
+      then('uses custom TTL')
+    when('[t3] with --duration that exceeds maxDuration')
+      then.snap('warning message matches duration-capped warning')
+    when('[t4] key not configured')
+      then.snap('error message matches key-not-found error')
+    when('[t5] with --prikey (explicit path)')
+      then('uses explicit path instead of discovery')
+      then('unlocks successfully')
+    when('[t6] discovery fails + no --prikey')
+      then.snap('error message includes --prikey suggestion')
+
+  given('[case4] sudo get')
+    when('[t0] key unlocked')
+      then('returns credential with env')
+    when('[t1] with --output json')
+      then('returns {"value": "...", "env": "sudo", "org": "..."}')
+    when('[t2] key not unlocked')
+      then.snap('error message matches locked-credential error')
+    when('[t3] key TTL expired')
+      then.snap('error message matches expired-credential error')
+
+  given('[case5] regular credentials unchanged')
+    when('[t0] set --env all')
+      then('stored in both manifest and keyrack.yml')
+      then.snap('output matches regular set success message')
+    when('[t1] bulk unlock')
+      then('9h TTL applied')
+      then.snap('output matches bulk unlock success message')
+
+  given('[case6] cross-org credentials')
+    when('[t0] set --org @all')
+      then('stored with org: @all')
+    when('[t1] get without --org')
+      then.snap('error message matches cross-org-requires-flag error')
+    when('[t2] get --org @all')
+      then('returns credential')
+
+  given('[case7] relock')
+    when('[t0] bare relock')
+      then('purges ALL keys (default is --all)')
+      then.snap('output matches relock-all success message')
+    when('[t1] relock --all')
+      then('purges ALL keys')
+    when('[t2] relock --env sudo')
+      then('purges only sudo keys')
+      then('retains regular keys')
+      then.snap('output matches relock-env success message')
+    when('[t3] relock --key X')
+      then('purges only key X')
+
+  given('[case8] multi-recipient')
+    when('[t0] recipient set --pubkey')
+      then('re-encrypts to both recipients')
+      then.snap('output matches recipient-added success message')
+    when('[t1] recipient get')
+      then.snap('output matches recipient-list format')
+    when('[t2] recipient del')
+      then('re-encrypts without removed recipient')
+      then.snap('output matches recipient-removed success message')
+
+  given('[case9] os.secure vault')
+    when('[t0] set with same recipient as manifest')
+      then('unlocks seamlessly')
+    when('[t1] set with --vault-recipient')
+      then('stores vault recipient')
+    when('[t2] unlock with different vault recipient')
+      then('decrypts with vault recipient')
+    when('[t3] vault recipient not available')
+      then.snap('error message matches vault-recipient-unavailable error')
+
+  given('[case10] status output')
+    when('[t0] keys unlocked')
+      then.snap('status output matches expected format')
+    when('[t1] no keys unlocked')
+      then.snap('status output matches empty state')
+
+  given('[case11] attack surface')
+    when('[t0] daemon creates socket')
+      then('permissions are 0600')
+
+  given('[case12] per-owner isolation')
+    when('[t0] rhx keyrack init --for mechanic --via ssh --pubkey ...')
+      then('creates keyrack.host.mechanic.age')
+      then('daemon socket at /tmp/keyrack.daemon.mechanic.sock')
+      then.snap('output matches owner init success message')
+    when('[t1] rhx keyrack init --for foreman --via ssh --pubkey ...')
+      then('creates keyrack.host.foreman.age')
+      then('daemon socket at /tmp/keyrack.daemon.foreman.sock')
+    when('[t2] rhx keyrack set --for mechanic --key GITHUB_TOKEN --env sudo')
+      then('stored in keyrack.host.mechanic.age only')
+      then('foreman cannot access mechanic credential')
+    when('[t3] rhx keyrack get --for mechanic --key GITHUB_TOKEN --env sudo')
+      then('returns mechanic GITHUB_TOKEN')
+    when('[t4] mechanic tries --for foreman')
+      then.snap('error message matches cross-owner-denied error')
+    when('[t5] rhx keyrack init (no --for flag)')
+      then('creates keyrack.host.age (no suffix)')
+      then('daemon socket at /tmp/keyrack.daemon.sock (no suffix)')
+```
+
+---
+
+## security measures
+
+| measure | implementation |
+|---------|----------------|
+| socket permissions | `chmodSync(socketPath, 0o600)` after `server.listen` |
+| recipient key access | ssh-agent (automatic), yubikey (touch required) |
+| no passphrases | recipient-key-based locks eliminate passphrase input |
+| encrypted at rest | `keyrack.host.age` (or `keyrack.host.${owner}.age`) via age recipient encryption |
+| multi-recipient | backup keys and multi-machine support |
+| per-key max TTL | `maxDuration` in KeyrackKeyHost caps unlock duration |
+| os.secure isolation | optional `vaultRecipient` for separate key |
+| per-owner isolation | separate manifest and daemon per owner; mechanic cannot access foreman |
+
+---
+
+## open questions resolved
+
+| question | resolution |
+|----------|------------|
+| optimal TTL for sudo? | 30min default (balance of security and usability) |
+| verify caller UID? | not in v1; socket 0600 permissions sufficient |
+| recipient key source? | ssh-agent (automatic), yubikey (touch) |
+| org values? | string with special tokens `@this` and `@all` only |
+| os.secure with different key? | optional `vaultRecipient` pubkey in KeyrackKeyHost |
+| per-key TTL? | `maxDuration` in KeyrackKeyHost caps unlock duration |
+| default owner? | `null` (no suffix in filenames); explicit name only when specified via `--for` |
+| per-owner isolation? | v1 requirement; separate manifest (`keyrack.host.${owner}.age`) and daemon socket per owner |
+
+---
+
+## citations
+
+### already implemented (from 24dd6e6)
+- `src/domain.objects/keyrack/KeyrackKeySpec.ts` — has env, name fields
+- `src/domain.objects/keyrack/KeyrackRepoManifest.ts` — has org, envs array
+- `src/domain.operations/keyrack/getAllKeyrackSlugsForEnv.ts` — filters by env
+- `src/domain.operations/keyrack/assertKeyrackEnvIsSpecified.ts` — validates env
+- `src/domain.operations/keyrack/session/unlockKeyrack.ts` — accepts env param
+- `src/access/daos/daoKeyrackRepoManifest/schema.ts` — env.* section format
+
+### needs sudo-specific changes
+- `src/domain.objects/keyrack/KeyrackKeyHost.ts` — needs env, org, vaultRecipient fields
+- `src/domain.objects/keyrack/KeyrackKeyGrant.ts` — needs env, org fields
+- `src/domain.operations/keyrack/adapters/vaults/vaultAdapterOsSecure.ts` — age encryption pattern to reuse
+- `src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore.ts` — needs env, org
+- `src/domain.operations/keyrack/daemon/svc/src/infra/createKeyrackDaemonServer.ts` — needs chmod 0600
+- `src/access/daos/daoKeyrackHostManifest/index.ts` — needs age recipient encryption
+
+---
+
+## amendment: hybrid ssh identity resolution (from 6.3 gap review)
+
+> added post-implementation, based on gap.4 findings in `6.3.review.blueprint.gaps.v1.i1.md`
+
+### context
+
+`sshPrikeyToAgeIdentity` converts ed25519 ssh private keys to age identities (`AGE-SECRET-KEY-...`) for manifest decryption. the `age-encryption` npm library only accepts native age identities — not ssh keys directly. so the code reads the raw openssh binary format, extracts the ed25519 seed, and converts via SHA-512 → x25519 scalar → bech32.
+
+this fails on passphrase-protected ssh keys: openssh encrypts the private section with aes256-ctr, and the code cannot decrypt it. since we require users to create keys WITH passphrases (ssh-agent caches the unlocked key per session), this breaks the default init flow.
+
+### prior art: sops-age
+
+sops delegates to the age Go library (`filippo.io/age/agessh`), which uses Go's `x/crypto/ssh` for openssh format parse + passphrase decryption. the age library never does manual binary format parse — it delegates to a battle-tested library, then applies the same ed25519 → x25519 math. for passphrase-protected keys, sops prompts for the passphrase (does not leverage ssh-agent for seed extraction).
+
+### decision: hybrid identity resolution
+
+`sshPrikeyToAgeIdentity` uses two code paths based on the ssh key's cipher field:
+
+| cipher | path | dependency | passphrase prompt |
+|--------|------|------------|-------------------|
+| `none` (unencrypted) | in-process: extant ed25519 seed extraction + age identity conversion | none (pure node.js) | no |
+| `aes256-ctr` or other (passphrase-protected) | subprocess: shell out to `age` CLI binary for decryption | `age` binary on PATH | no (ssh-agent) |
+
+### behavior
+
+```
+sshPrikeyToAgeIdentity({ keyPath })
+  ├─> read openssh binary format header
+  ├─> extract cipher field
+  │
+  ├─> if cipher === 'none':
+  │     └─> in-process: extract ed25519 seed → SHA-512 → x25519 → bech32
+  │         (extant code, no change)
+  │
+  └─> if cipher !== 'none':
+        ├─> check `age` binary on PATH
+        │     └─> if absent: BadRequestError with install instructions:
+        │           "age CLI required for passphrase-protected ssh keys. install with:
+        │             brew install age        # macos
+        │             apt install age         # ubuntu/debian"
+        └─> shell out to `age` CLI for decryption
+              └─> age handles ssh-agent integration natively (zero passphrase prompts)
+```
+
+### who needs what
+
+| user type | ssh key | code path | `age` CLI required |
+|-----------|---------|-----------|-------------------|
+| robot / ci | passphrase-less (`-N ""`) | in-process | no |
+| human (default) | passphrase-protected | `age` CLI subprocess | yes |
+| human (explicit `--via age`) | native age key | in-process | no |
+
+### when the `age` CLI is invoked
+
+the `age` CLI subprocess overhead only applies on the **cold path** — operations that decrypt the manifest:
+
+| operation | decrypts manifest | `age` CLI needed (if passphrase key) |
+|-----------|-------------------|--------------------------------------|
+| `keyrack init` | no (creates manifest) | yes (proactive pre-flight check) |
+| `keyrack unlock` | yes | yes |
+| `keyrack set` | yes | yes |
+| `keyrack recipient set/del` | yes | yes |
+| `keyrack get` | no (daemon serves from memory) | no |
+| `keyrack status` | no (daemon serves from memory) | no |
+| `keyrack relock` | no (daemon purge) | no |
+
+the **hot path** (`get`) never touches the manifest — the daemon already has the decrypted credential in memory from the prior `unlock`. the grant resolution order in `getKeyrackKeyGrant` is:
+
+1. `os.envvar` — direct env var lookup, no manifest, no `age` CLI
+2. `os.daemon` — daemon serves from memory, no manifest, no `age` CLI
+3. host manifest vault — the only path that decrypts (only reached via `unlock`)
+
+the ~50-100ms subprocess overhead is negligible on cold paths that already do vault roundtrips (1password cli, etc).
+
+### graceful guidance for `age` CLI install
+
+the `age` CLI check triggers at two points:
+
+**1. proactive at `keyrack init`** (first interaction — best UX):
+
+after ssh key discovery, `initKeyrack` reads the openssh header to detect the cipher field. if cipher !== 'none', it checks for `age` on PATH before manifest creation. this ensures the user knows what to install at the very first interaction — not later when they're mid-workflow with credentials already configured.
+
+**2. reactive at `sshPrikeyToAgeIdentity`** (catch-all):
+
+any operation that decrypts the manifest calls `sshPrikeyToAgeIdentity`. if cipher !== 'none' and `age` is absent, it fails fast with the install guide. this catches cases where `age` was uninstalled after init, or init used a passphrase-less key and a passphrase-protected key is used later.
+
+**error message format**:
+
+```
+your ssh key is passphrase-protected (cipher: aes256-ctr).
+keyrack uses the `age` cli to decrypt via ssh-agent — no passphrase prompt needed.
+
+install age:
+  brew install age          # macos
+  apt install age           # ubuntu/debian
+  pacman -S age             # arch
+  nix-env -i age            # nix
+
+then retry: rhx keyrack init
+
+note: robots and ci with passphrase-less keys (-N "") do not need age installed.
+```
+
+**error type**: `BadRequestError` (user-actionable fix, not a bug). metadata includes `{ cipher, keyPath }` for observability.
+
+### tradeoffs
+
+- (+) no external dependency for the common case (robots, ci)
+- (+) preserves zero-passphrase-prompt goal for humans via `age` CLI's ssh-agent integration
+- (+) encryption stays pure node.js (npm `age-encryption` library, pinned at 0.3.0)
+- (+) hot path (`get`) never invokes `age` CLI — zero overhead in normal operation
+- (-) two code paths for identity resolution (in-process vs cli subprocess)
+- (-) humans with passphrase-protected keys must install `age` CLI (~50-100ms subprocess overhead per unlock)
+- (-) potential version drift between npm library (encryption) and Go binary (decryption)
+
+### impact on treestruct
+
+```
+src/infra/ssh/
+  [~] sshPrikeyToAgeIdentity.ts       # add cipher detection + age CLI fallback
+  [~] sshPrikeyToAgeIdentity.test.ts   # add passphrase-protected key test cases
+```
+
+no other files are affected — the hybrid resolution is encapsulated within `sshPrikeyToAgeIdentity`.
+
+---
+
+## amendment: recipient-based identity discovery (from 6.4 review)
+
+> **STATUS: IMPLEMENTED** — this is the current approach. the main treestruct above reflects this.
+
+> added post-implementation, based on `6.4.review.identity-file-vuln.v1.i1.md`
+
+### context (historical — the old pattern that was deprecated)
+
+the OLD implementation wrote `~/.rhachet/keyrack/keyrack.identity` to remember which ssh key to use for manifest decryption. this file contained `SSH_KEY_PATH:/home/user/.ssh/id_ed25519` — metadata that revealed which key the user chose.
+
+### problem (why the identity file was deprecated)
+
+the identity file introduced:
+1. **metadata leakage** — revealed which ssh key the user chose for keyrack
+2. **redundancy** — the manifest already contains recipient pubkeys
+3. **stale risk** — if user changed keys, the file became stale
+
+### decision: recipient-based identity discovery (CURRENT APPROACH)
+
+the identity file pattern was deleted. identity is now discovered at runtime by match of manifest recipients against available keys.
+
+#### discovery flow
+
+```
+manifest decrypt:
+  ├─> read age recipients from encrypted file header (no decrypt needed)
+  ├─> for each recipient:
+  │     ├─> check ssh-agent for matched key (pubkey → age recipient comparison)
+  │     └─> check standard paths (~/.ssh/id_ed25519, id_rsa, id_ecdsa)
+  │     └─> check age standard locations (~/.config/age/keys.txt, $AGE_IDENTITY_FILE)
+  ├─> if match found: use that identity for decrypt
+  └─> if no match: error with helpful message (or use --prikey fallback)
+```
+
+#### edge case coverage
+
+| case | discovery works? | notes |
+|------|-----------------|-------|
+| standard ssh path | ✅ yes | most common case |
+| non-standard path + in agent | ✅ yes | agent match works |
+| non-standard path + not in agent | ❌ no | use `--prikey` fallback |
+| native age key in standard location | ✅ yes | check age paths |
+| native age key in custom location | ❌ no | need `$AGE_IDENTITY_FILE` env var |
+| yubikey / hardware token | ✅ yes | agent knows pubkey |
+| pubkey file absent + in agent | ✅ yes | agent has pubkey |
+| pubkey file absent + not in agent | ❌ no | use `--prikey` fallback |
+| remote agent forward | ✅ yes | agent-backed decrypt |
+
+discovery covers **~95%+ of real-world cases**. the only failure case (non-standard path + not in agent + no pubkey) is rare.
+
+#### fallback: `--prikey <path>`
+
+for users who hit the unavoidable failure case:
+
+```bash
+# normal flow (discovery)
+rhx keyrack unlock --env sudo --key X
+
+# edge case fallback (explicit path)
+rhx keyrack unlock --env sudo --key X --prikey ~/.ssh/work/special_key
+```
+
+the fallback re-introduces path exposure at cli level (shell history), but only for users who explicitly opt into it for their non-standard setup.
+
+### implementation
+
+```typescript
+/**
+ * .what = discover identity that matches a manifest recipient
+ * .why = eliminates need for identity file; reduces metadata leakage
+ */
+const discoverIdentityForRecipient = async (input: {
+  recipient: string;  // age recipient (age1...)
+}): Promise<string | null> => {
+  // check ssh-agent first (most likely to have the unlocked key)
+  const agentKeys = await listSshAgentKeys();
+  for (const agentKey of agentKeys) {
+    const agentRecipient = sshPubkeyToAgeRecipient({ pubkey: agentKey.pubkey });
+    if (agentRecipient === input.recipient) {
+      // found match — return identity marker for age CLI fallback
+      return `SSH_KEY_PATH:${agentKey.path}`;
+    }
+  }
+
+  // check standard ssh paths
+  for (const stdPath of ['~/.ssh/id_ed25519', '~/.ssh/id_rsa', '~/.ssh/id_ecdsa']) {
+    const expanded = expandPath(stdPath);
+    if (!existsSync(expanded)) continue;
+    const pubkey = readSshPubkey({ keyPath: expanded });
+    const stdRecipient = sshPubkeyToAgeRecipient({ pubkey });
+    if (stdRecipient === input.recipient) {
+      return sshPrikeyToAgeIdentity({ keyPath: expanded });
+    }
+  }
+
+  // check native age key locations
+  const ageIdentityFile = process.env.AGE_IDENTITY_FILE ?? expandPath('~/.config/age/keys.txt');
+  if (existsSync(ageIdentityFile)) {
+    const identities = parseAgeIdentityFile({ path: ageIdentityFile });
+    for (const identity of identities) {
+      const identityRecipient = ageIdentityToRecipient({ identity });
+      if (identityRecipient === input.recipient) {
+        return identity;
+      }
+    }
+  }
+
+  return null;
+};
+```
+
+### impact on treestruct (APPLIED — see main treestruct above)
+
+> **note**: these changes have been applied to the main treestruct section. the identity file pattern (`getKeyrackIdentityPath.ts`) was never implemented — runtime discovery was used from the start.
+
+```
+src/
+  domain.operations/keyrack/
+    [+] discoverIdentityForRecipient.ts       # recipient-based discovery (in main treestruct)
+    [+] discoverIdentityForRecipient.test.ts  # unit tests (in main treestruct)
+    [+] initKeyrack.ts                        # does NOT write identity file (in main treestruct)
+    [-] getKeyrackIdentityPath.ts             # NEVER EXISTED — deprecated before implementation
+
+  infra/ssh/
+    [+] listSshAgentKeys.ts                   # list keys from ssh-agent (in main treestruct)
+
+  access/daos/daoKeyrackHostManifest/
+    [~] index.ts                              # uses runtime discovery, no identity file (in main treestruct)
+
+  contract/commands/keyrack/
+    [~] unlock.ts                             # --prikey flag for edge case fallback (in main treestruct)
+```
+
+### tradeoffs
+
+| aspect | identity file | recipient discovery |
+|--------|--------------|---------------------|
+| metadata leakage | exposes key path | no leakage |
+| stale risk | yes (key change) | no (always discovers) |
+| latency | ~0ms (file read) | ~10-50ms (agent query) |
+| complexity | simple file read | recipient match logic |
+| edge case support | all cases | 95%+ (fallback for rest) |
+
+the latency increase is negligible — manifest decrypt already takes ~50-100ms for passphrase-protected keys via age CLI.
+
+### migration (COMPLETED)
+
+> **note**: this migration was completed. identity files were never written — the deprecation happened before implementation.
+
+1. ✅ implement `discoverIdentityForRecipient`
+2. ✅ update `daoKeyrackHostManifest.get` to use discovery (or explicit `--prikey` if provided)
+3. ✅ `initKeyrack` does NOT write identity file
+4. ✅ `getKeyrackIdentityPath.ts` was never created
+5. ✅ `--prikey` flag added to unlock command as fallback
+6. ✅ no stale identity files exist (pattern was never implemented)
+
+---
+
+## amendment: cipher-aware encrypt path (from 6.5 gap review)
+
+> added post-implementation, based on gap.stanza-mismatch findings in `6.5.review.blueprint.gaps.v1.i1.md`
+
+### context
+
+`encryptToRecipients` in `ageRecipientCrypto.ts` converts all SSH pubkeys to native `age1...` recipients via `sshPubkeyToAgeRecipient()` and encrypts via the npm `age-encryption` library. this always produces `-> X25519` stanzas in the encrypted file header.
+
+`decryptWithIdentity` detects passphrase-protected SSH keys (via `sshPrikeyToAgeIdentity`), returns an `SSH_KEY_PATH:` marker, and delegates to `decryptWithAgeCLI()` — which shells out to `age -d -i <sshKeyPath>`. the `age` CLI with an SSH key identity only matches `-> ssh-ed25519` stanzas.
+
+**result**: passphrase-protected SSH keys cannot decrypt files encrypted via the npm library. the stanza types are incompatible.
+
+### the hard constraint
+
+**CI machines with passwordless SSH keys must NEVER require the `age` CLI binary.** this eliminates any approach that forces age CLI usage for all SSH key encryption.
+
+### decision: cipher-aware recipient format at init time
+
+at `keyrack init` time, detect the SSH key's cipher field. store the recipient pubkey in the format that matches the decrypt path:
+
+| ssh key cipher at init | stored recipient pubkey | stored mech | encrypt path | decrypt path | age CLI needed |
+|---|---|---|---|---|---|
+| `none` (passwordless) | `age1...` (converted from ssh pubkey) | `age` | npm library (X25519 stanza) | npm library (AGE-SECRET-KEY) | **no** |
+| `aes256-ctr` (passphrase) | `ssh-ed25519 AAAA...` (raw ssh pubkey) | `ssh` | age CLI (ssh-ed25519 stanza) | age CLI (-i ssh_key via ssh-agent) | **yes** |
+
+the stored recipient pubkey format IS the signal for which encrypt/decrypt path to use. no separate flag or config needed.
+
+### behavior
+
+#### at init time (`initKeyrack.ts`)
+
+```
+initKeyrack({ keyPath })
+  └─ extractSshKeyCipher(keyPath) → cipher field
+  │
+  ├─ if cipher === 'none' (passwordless):
+  │     └─ readSshPubkey() → "ssh-ed25519 AAAA..."
+  │     └─ sshPubkeyToAgeRecipient() → "age1..."
+  │     └─ new KeyrackKeyRecipient({ mech: 'age', pubkey: 'age1...' })
+  │     └─ npm library encrypts → X25519 stanza
+  │     └─ npm library decrypts via AGE-SECRET-KEY ✅
+  │
+  └─ if cipher !== 'none' (passphrase-protected):
+        └─ readSshPubkey() → "ssh-ed25519 AAAA..."
+        └─ new KeyrackKeyRecipient({ mech: 'ssh', pubkey: 'ssh-ed25519 AAAA...' })
+        └─ age CLI encrypts → ssh-ed25519 stanza
+        └─ age CLI decrypts via -i ssh_key (ssh-agent) ✅
+```
+
+#### at encrypt time (`encryptToRecipients`)
+
+```
+encryptToRecipients({ plaintext, recipients })
+  └─ for each recipient:
+       ├─ if recipient.pubkey starts with 'age1':
+       │     └─ npm library encrypter.addRecipient("age1...")
+       │     └─ produces: -> X25519 stanza
+       └─ if recipient.pubkey starts with 'ssh-':
+             └─ shell out to age CLI:
+             └─ age -e -R <(echo "ssh-ed25519 AAAA...") -o output.age input
+             └─ produces: -> ssh-ed25519 stanza
+```
+
+### the `ssh-keygen -p` edge case
+
+`ssh-keygen -p` re-encrypts the same ed25519 keypair with a passphrase. it does NOT produce a new key — the pubkey stays identical.
+
+- init with passwordless key → stores `age1...` → encrypts to X25519 stanza
+- user runs `ssh-keygen -p` → key is now passphrase-protected
+- next decrypt → `sshPrikeyToAgeIdentity` detects `aes256-ctr` → returns `SSH_KEY_PATH:...`
+- `decryptWithAgeCLI` → age CLI scans for `ssh-ed25519` stanza → NOT FOUND
+- **error: stanza mismatch**
+
+### why `--stanza ssh` is needed
+
+both `init` and `recipient set` are cipher-aware by default — they detect the ssh key's cipher field and choose the stanza format accordingly. if the key is passwordless (cipher: none), both commands convert the ssh pubkey to `age1...` and produce X25519 stanzas.
+
+this means `recipient set --pubkey ~/.ssh/id_ed25519.pub` on a passwordless key would produce ANOTHER `age1...` recipient — useless for prevention. the `--stanza ssh` flag overrides cipher-aware conversion and forces the raw `ssh-ed25519 AAAA...` format, which produces ssh-ed25519 stanzas.
+
+**prevention (recommended)**: add the ssh-ed25519 recipient BEFORE the passphrase change, while the old key still works:
+
+```
+before you run ssh-keygen -p, add your ssh pubkey as a second recipient:
+
+  1. add ssh recipient:    rhx keyrack recipient set --pubkey ~/.ssh/id_ed25519.pub --stanza ssh
+     (--stanza ssh forces ssh-ed25519 format despite passwordless key)
+     (re-encrypts manifest to BOTH age1... AND ssh-ed25519 stanzas)
+  2. add passphrase:       ssh-keygen -p -f ~/.ssh/id_ed25519
+     (key is now passphrase-protected — age CLI matches ssh-ed25519 stanza)
+  3. remove stale recipient: rhx keyrack recipient del --label "default"
+     (re-encrypts manifest with only the ssh-ed25519 recipient)
+```
+
+the manifest is decryptable at every step. no re-init needed — `recipient set` and `recipient del` handle the transition.
+
+**recovery (if they forgot to add the recipient first)**: remove the passphrase temporarily to regain access:
+
+```
+recipient stanza mismatch: manifest was encrypted to age1... but your key now requires ssh-ed25519 stanzas.
+this typically happens after ssh-keygen -p (add passphrase to key).
+
+to fix (preserves all manifest data):
+  1. remove passphrase:    ssh-keygen -p -f ~/.ssh/id_ed25519
+     (enter current passphrase, leave new passphrase empty)
+  2. add ssh recipient:    rhx keyrack recipient set --pubkey ~/.ssh/id_ed25519.pub --stanza ssh
+     (--stanza ssh forces ssh-ed25519 format; key is temporarily passwordless)
+     (re-encrypts manifest to BOTH age1... AND ssh-ed25519 stanzas)
+  3. restore passphrase:   ssh-keygen -p -f ~/.ssh/id_ed25519
+     (leave old passphrase empty, enter new passphrase)
+  4. remove stale recipient: rhx keyrack recipient del --label "default"
+     (re-encrypts manifest with only the ssh-ed25519 recipient)
+```
+
+this is acceptable because `ssh-keygen -p` is a rare, deliberate action — not an accident. the error message should guide to the prevention flow first (with `--stanza ssh`), and fall back to the recovery flow if already locked out.
+
+### impact on treestruct
+
+```
+src/
+  domain.operations/keyrack/
+    [~] initKeyrack.ts                              # add cipher detection; set mech to 'age' or 'ssh'
+
+  domain.operations/keyrack/adapters/
+    [~] ageRecipientCrypto.ts                       # encryptToRecipients: dispatch by pubkey prefix
+                                                    #   age1... → npm library (X25519)
+                                                    #   ssh-... → age CLI (ssh-ed25519)
+
+  domain.objects/keyrack/
+    [~] KeyrackKeyRecipient.ts                      # mech field: 'age' (converted) or 'ssh' (raw)
+```
+
+### impact on test coverage
+
+```
+initKeyrack.test.ts
+  given('[case8] passwordless ssh key')
+    then('stores recipient with mech: age, pubkey: age1...')
+  given('[case9] passphrase-protected ssh key')
+    then('stores recipient with mech: ssh, pubkey: ssh-ed25519...')
+
+ageRecipientCrypto.test.ts
+  given('[case1] recipient pubkey starts with age1')
+    then('encrypts via npm library (X25519 stanza)')
+  given('[case2] recipient pubkey starts with ssh-')
+    then('encrypts via age CLI (ssh-ed25519 stanza)')
+
+daoKeyrackHostManifest.integration.test.ts
+  given('[case5] passwordless key roundtrip')
+    then('encrypt via npm → decrypt via npm → success')
+  given('[case6] passphrase-protected key roundtrip')
+    then('encrypt via age CLI → decrypt via age CLI → success')
+```
+
+### tradeoffs
+
+| aspect | before (always X25519) | after (cipher-aware dispatch) |
+|--------|----------------------|------------------------------|
+| passwordless keys | works (npm → npm) | works (npm → npm, unchanged) |
+| passphrase keys | BROKEN (npm → age CLI mismatch) | works (age CLI → age CLI) |
+| age CLI dependency | required only for decrypt | required for encrypt AND decrypt (passphrase keys only) |
+| CI compatibility | works (passwordless) | works (passwordless, age CLI never needed) |
+| code complexity | single path | two paths (dispatched by pubkey prefix) |
+| ssh-keygen -p | fails silently | fails with helpful recovery message |
+
+---
+
+## amendment: secure value input and mech inference (from playtest)
+
+> added post-playtest, based on security review of CLI UX
+
+### context
+
+the original CLI design had two issues:
+
+1. **`--value` as CLI argument**: secrets passed via command line are a security hazard
+   - shell history records the value
+   - `ps aux` shows command arguments to all users
+   - process monitors capture arguments
+
+2. **`--mech` required even when inferrable**: most vaults have only one valid mechanism
+   - `os.secure`, `os.direct`, `1password` all imply `PERMANENT_VIA_REPLICA`
+   - only ephemeral vaults (github app, aws sso) need explicit mechanism
+
+### decision: secure stdin for values, inferred mech
+
+#### value input via secure stdin
+
+credential values are NEVER passed as CLI arguments. instead:
+
+```bash
+# interactive: prompts with hidden input
+./bin/run keyrack set --key MY_TOKEN --vault os.secure --env sudo
+# expect: "enter value for MY_TOKEN: " (input hidden)
+
+# piped: reads from stdin
+echo "secret" | ./bin/run keyrack set --key MY_TOKEN --vault os.secure --env sudo
+
+# from file: also piped
+cat /path/to/secret.txt | ./bin/run keyrack set --key MY_TOKEN --vault os.secure --env sudo
+```
+
+the CLI detects if stdin is a TTY:
+- **TTY**: prompt interactively with hidden input (like `read -s` in bash)
+- **pipe**: read value from stdin (single line, trimmed)
+
+#### mech inference from vault
+
+`--mech` is optional. when omitted, it's inferred from `--vault`:
+
+| vault | inferred mech | rationale |
+|-------|--------------|-----------|
+| `os.secure` | `PERMANENT_VIA_REPLICA` | age-encrypted local storage |
+| `os.direct` | `PERMANENT_VIA_REPLICA` | plaintext local storage |
+| `os.envvar` | `PERMANENT_VIA_REPLICA` | env var lookup |
+| `1password` | `PERMANENT_VIA_REPLICA` | 1password cli lookup |
+| `os.daemon` | error: `--mech required` | daemon can serve any mech |
+
+`--mech` can still be provided explicitly to override inference.
+
+### implementation
+
+```typescript
+// in invokeKeyrack.ts, keyrack set command
+
+// change --mech from requiredOption to option
+.option(
+  '--mech <mechanism>',
+  'grant mechanism (inferred from vault when omitted)',
+)
+
+// add value read in action handler
+const value = await readValueFromStdin({ keyName: opts.key });
+
+// infer mech from vault
+const mech = opts.mech ?? inferMechFromVault(opts.vault);
+if (!mech) {
+  throw new BadRequestError(
+    `--mech required for vault ${opts.vault}`,
+  );
+}
+```
+
+```typescript
+// new: readValueFromStdin utility
+
+import { createInterface } from 'readline';
+
+const readValueFromStdin = async (input: { keyName: string }): Promise<string> => {
+  // if stdin is a TTY, prompt interactively with hidden input
+  if (process.stdin.isTTY) {
+    return new Promise((resolve) => {
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      // hide input by write to raw stderr
+      process.stdout.write(`enter value for ${input.keyName}: `);
+      process.stdin.setRawMode(true);
+      let value = '';
+      process.stdin.on('data', (char) => {
+        const c = char.toString();
+        if (c === '\n' || c === '\r') {
+          process.stdin.setRawMode(false);
+          process.stdout.write('\n');
+          rl.close();
+          resolve(value);
+        } else if (c === '\x7f') { // backspace
+          value = value.slice(0, -1);
+        } else {
+          value += c;
+        }
+      });
+    });
+  }
+
+  // if stdin is piped, read the entire input
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString().trim();
+};
+```
+
+```typescript
+// new: inferMechFromVault utility
+
+const inferMechFromVault = (vault: KeyrackHostVault): KeyrackGrantMechanism | null => {
+  const permanentVaults: KeyrackHostVault[] = [
+    'os.secure',
+    'os.direct',
+    'os.envvar',
+    '1password',
+  ];
+  if (permanentVaults.includes(vault)) {
+    return 'PERMANENT_VIA_REPLICA';
+  }
+  // os.daemon requires explicit mech
+  return null;
+};
+```
+
+### impact on treestruct
+
+```
+src/
+  contract/cli/
+    [~] invokeKeyrack.ts                # --mech optional; value via stdin
+
+  infra/cli/
+    [+] readValueFromStdin.ts           # secure value input utility
+    [+] inferMechFromVault.ts           # mech inference utility
+```
+
+### impact on test coverage
+
+```
+invokeKeyrack.integration.test.ts
+  given('[caseN] keyrack set with os.secure vault')
+    when('[t0] --mech omitted')
+      then('infers PERMANENT_VIA_REPLICA')
+    when('[t1] value piped from stdin')
+      then('reads value correctly')
+    when('[t2] TTY input')
+      then('prompts with hidden input')
+
+readValueFromStdin.test.ts
+  given('[case1] stdin is TTY')
+    then('prompts interactively')
+    then('hides input')
+  given('[case2] stdin is pipe')
+    then('reads entire input')
+    then('trims whitespace')
+
+inferMechFromVault.test.ts
+  given('[case1] os.secure')
+    then('returns PERMANENT_VIA_REPLICA')
+  given('[case2] os.daemon')
+    then('returns null (requires explicit)')
+```
+
+### security benefits
+
+| before | after |
+|--------|-------|
+| `--value "secret"` visible in shell history | value never in shell history |
+| `ps aux` shows secret | `ps aux` shows no secret |
+| process monitors capture secret | secret only in process memory |
+| secret may be logged by shell | no accidental log exposure |

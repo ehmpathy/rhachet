@@ -11,8 +11,8 @@ import { createKeyrackDaemonServer } from '../infra/createKeyrackDaemonServer';
  * .note = writes pid file for lifecycle management
  * .note = this function is called by the daemon subprocess itself
  */
-export const startKeyrackDaemon = (): void => {
-  const socketPath = getKeyrackDaemonSocketPath();
+export const startKeyrackDaemon = (input?: { socketPath?: string }): void => {
+  const socketPath = input?.socketPath ?? getKeyrackDaemonSocketPath();
 
   // start the server
   const { server } = createKeyrackDaemonServer({ socketPath });
@@ -49,15 +49,36 @@ export const startKeyrackDaemon = (): void => {
  * .why = parent process can exit while daemon continues to run
  *
  * .note = spawns a new node process that runs startKeyrackDaemon
+ * .note = detects ts vs js environment and uses tsx loader for typescript
  */
-export const spawnKeyrackDaemonBackground = (): void => {
+export const spawnKeyrackDaemonBackground = (input?: {
+  socketPath?: string;
+}): void => {
+  // serialize socketPath to pass to subprocess
+  const socketPathArg = input?.socketPath
+    ? JSON.stringify(input.socketPath)
+    : 'undefined';
+
+  // detect if in typescript environment
+  const isTypeScriptEnv = __filename.endsWith('.ts');
+
+  // determine the module path to require
+  const modulePath = isTypeScriptEnv
+    ? __filename
+    : __filename.replace(/\.ts$/, '.js');
+
   const daemonScript = `
-    const { startKeyrackDaemon } = require('${__filename.replace(/\.ts$/, '.js')}');
-    startKeyrackDaemon();
+    const { startKeyrackDaemon } = require('${modulePath}');
+    startKeyrackDaemon({ socketPath: ${socketPathArg} });
   `;
 
-  // spawn a detached node process
-  const child = spawn(process.execPath, ['-e', daemonScript], {
+  // use tsx for typescript, node for compiled javascript
+  const execPath = isTypeScriptEnv
+    ? require.resolve('tsx/cli')
+    : process.execPath;
+
+  // spawn a detached process
+  const child = spawn(execPath, ['-e', daemonScript], {
     detached: true,
     stdio: 'ignore',
   });

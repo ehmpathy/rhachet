@@ -34,6 +34,20 @@ export interface KeyrackKeyGrant {
   };
 
   /**
+   * .what = which env this grant belongs to
+   * .why = enables env-based filter (e.g., relock --env sudo)
+   * .example = 'sudo', 'prod', 'prep', 'all'
+   */
+  env: string;
+
+  /**
+   * .what = which org this grant belongs to
+   * .why = enables org-scoped access and cross-org credentials
+   * .example = 'ehmpathy', '@all' (for cross-org)
+   */
+  org: string;
+
+  /**
    * .what = when this grant expires
    * .why = enables TTL enforcement in daemon
    * .note = optional; if absent, does not expire

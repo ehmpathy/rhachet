@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack recipient given: [case1] recipient lifecycle when: [t1] recipient set --pubkey --label then: stdout matches snapshot 1`] = `
+{
+  "addedAt": "__TIMESTAMP__",
+  "label": "backup-key",
+  "mech": "age",
+  "pubkey": "age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p",
+}
+`;
+
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t0] recipient get (human readable) then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t1] recipient set (human readable) then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t2] recipient del (human readable) then: stdout matches snapshot 1`] = `""`;

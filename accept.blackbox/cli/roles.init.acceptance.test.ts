@@ -6,7 +6,7 @@ import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhac
 describe('rhachet roles init', () => {
   given('[case1] repo with role that has no exec commands', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-inits' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-inits' });
 
       // link role to create .agent/ directory (like a real project would)
       const linkResult = invokeRhachetCliBinary({
@@ -85,7 +85,7 @@ describe('rhachet roles init', () => {
 
   given('[case3] repo without rhachet.use.ts but with rhachet-roles packages', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-packages' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-packages' });
 
       // link role first to create .agent/ directory
       const linkResult = invokeRhachetCliBinary({

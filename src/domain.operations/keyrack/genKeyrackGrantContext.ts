@@ -16,7 +16,10 @@ import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
 import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
-import { vaultAdapterOsSecure } from './adapters/vaults/vaultAdapterOsSecure';
+import {
+  setOsSecureSessionIdentity,
+  vaultAdapterOsSecure,
+} from './adapters/vaults/vaultAdapterOsSecure';
 
 /**
  * .what = context for grant-scoped keyrack operations
@@ -32,17 +35,32 @@ export interface KeyrackGrantContext {
 /**
  * .what = generate context for grant-scoped keyrack operations
  * .why = constructs runtime context with manifests and adapters
+ *
+ * .note = prikey is optional; when provided, uses it directly for manifest decryption
  */
 export const genKeyrackGrantContext = async (input: {
+  owner: string | null;
   gitroot: string;
+  prikey?: string;
 }): Promise<KeyrackGrantContext> => {
-  // load host manifest (create empty one if none exists)
+  const { owner, prikey } = input;
+
+  // load host manifest (create empty one if file absent)
   const hostManifest =
-    (await daoKeyrackHostManifest.get({})) ??
+    (await daoKeyrackHostManifest.get({ owner, prikey })) ??
     new KeyrackHostManifest({
-      uri: '~/.rhachet/keyrack.manifest.json',
+      uri: `~/.rhachet/keyrack/keyrack.host${owner ? `.${owner}` : ''}.age`,
+      owner,
+      recipients: [],
       hosts: {},
     });
+
+  // sync identity from manifest DAO to os.secure vault adapter
+  // this enables vault decryption with the same identity used for manifest decryption
+  const manifestIdentity = daoKeyrackHostManifest.getSessionIdentity();
+  if (manifestIdentity) {
+    setOsSecureSessionIdentity(manifestIdentity);
+  }
 
   // load repo manifest (may not exist)
   const repoManifest = await daoKeyrackRepoManifest.get({
