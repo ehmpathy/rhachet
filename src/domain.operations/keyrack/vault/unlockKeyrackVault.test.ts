@@ -19,6 +19,7 @@ describe('unlockKeyrackVault', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 
@@ -48,6 +49,7 @@ describe('unlockKeyrackVault', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 
@@ -78,6 +80,7 @@ describe('unlockKeyrackVault', () => {
         'os.secure': osSecure,
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 
@@ -111,6 +114,7 @@ describe('unlockKeyrackVault', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 

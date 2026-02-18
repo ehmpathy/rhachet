@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   KeyrackKeySpec,
@@ -16,6 +16,66 @@ import { schemaKeyrackRepoManifest } from './schema';
  * .note = phase 1 will rewrite hydration for env-scoped format
  */
 export const daoKeyrackRepoManifest = {
+  /**
+   * .what = add a key to the repo manifest
+   * .why = registers a key requirement for the repo after keyrack set
+   */
+  set: async (input: {
+    gitroot: string;
+    env: string;
+    keyName: string;
+  }): Promise<{ status: 'added' | 'found' }> => {
+    const path = join(input.gitroot, '.agent', 'keyrack.yml');
+
+    // read current manifest or create new one
+    let parsed: Record<string, unknown> = {};
+    if (existsSync(path)) {
+      const content = readFileSync(path, 'utf8');
+      try {
+        parsed = parseYaml(content) ?? {};
+      } catch {
+        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      }
+    }
+
+    // ensure org is set (required field)
+    if (!parsed.org) {
+      throw new BadRequestError(
+        'keyrack.yml missing org field. please set org first.',
+        { path },
+      );
+    }
+
+    // get or create the env section
+    const envKey = `env.${input.env}`;
+    const envEntries: unknown[] = Array.isArray(parsed[envKey])
+      ? (parsed[envKey] as unknown[])
+      : [];
+
+    // check if key already found in this env section
+    const keyFound = envEntries.some((entry) => {
+      if (typeof entry === 'string') return entry === input.keyName;
+      if (typeof entry === 'object' && entry !== null) {
+        const keys = Object.keys(entry);
+        return keys.includes(input.keyName);
+      }
+      return false;
+    });
+
+    // if already found, return early (findsert semantics)
+    if (keyFound) return { status: 'found' };
+
+    // add the key to the env section
+    envEntries.push(input.keyName);
+    parsed[envKey] = envEntries;
+
+    // write back to disk
+    const yamlContent = stringifyYaml(parsed);
+    writeFileSync(path, yamlContent, 'utf8');
+
+    return { status: 'added' };
+  },
+
   /**
    * .what = read the repo manifest from disk
    * .why = discovers which keys this repo requires

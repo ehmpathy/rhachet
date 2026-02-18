@@ -22,6 +22,14 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
   },
+  "testorg.test.GITHUB_APP_CREDS": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.GITHUB_APP_CREDS",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": null,
+  },
   "testorg.test.NEW_KEY": {
     "createdAt": "__TIMESTAMP__",
     "exid": null,
@@ -29,6 +37,14 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
+  },
+  "testorg.test.XAI_API_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.XAI_API_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": null,
   },
 }
 `;

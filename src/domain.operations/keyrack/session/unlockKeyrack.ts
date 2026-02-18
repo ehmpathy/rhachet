@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type { KeyrackKey } from '../../../domain.objects/keyrack/KeyrackKey';
 import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
@@ -38,9 +38,9 @@ export const unlockKeyrack = async (
   // determine which keys to unlock
   const repoManifest = context.repoManifest;
   if (!repoManifest) {
-    throw new UnexpectedCodePathError('no keyrack.yml found in repo', {
-      note: 'keyrack.yml declares which keys are required',
-    });
+    throw new BadRequestError(
+      "no keyrack.yml found in this repo\n   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
+    );
   }
 
   // resolve env and filter slugs

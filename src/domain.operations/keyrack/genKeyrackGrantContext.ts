@@ -12,6 +12,7 @@ import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';
 import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
+import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
 import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
@@ -55,6 +56,7 @@ export const genKeyrackGrantContext = async (input: {
     'os.secure': vaultAdapterOsSecure,
     'os.daemon': vaultAdapterOsDaemon,
     '1password': vaultAdapter1Password,
+    'aws.iam.sso': vaultAdapterAwsIamSso,
   };
 
   // assemble mechanism adapters

@@ -1,0 +1,7 @@
+org: testorg
+
+env.prod:
+  - AWS_PROFILE
+
+env.test:
+  - AWS_PROFILE

@@ -21,6 +21,7 @@ export const inferKeyGrade = (input: {
     if (input.vault === 'os.secure') return 'encrypted' as const;
     if (input.vault === 'os.daemon') return 'encrypted' as const;
     if (input.vault === '1password') return 'encrypted' as const;
+    if (input.vault === 'aws.iam.sso') return 'reference' as const;
     return 'plaintext' as const; // fallback for unknown vaults
   })();
 

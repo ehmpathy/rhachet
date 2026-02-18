@@ -7,6 +7,8 @@ import {
   type KeyrackKey,
   KeyrackKeyGrant,
 } from '../../domain.objects/keyrack';
+import { asKeyrackKeyEnv } from './asKeyrackKeyEnv';
+import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { assertKeyrackEnvIsSpecified } from './assertKeyrackEnvIsSpecified';
 import { daemonAccessGet } from './daemon/sdk';
 import type { KeyrackGrantContext } from './genKeyrackGrantContext';
@@ -70,11 +72,13 @@ const attemptGrantKey = async (
   // find key spec in repo manifest
   const keySpec = context.repoManifest?.keys[slug];
   if (!keySpec) {
+    const keyName = asKeyrackKeyName({ slug });
+    const env = asKeyrackKeyEnv({ slug });
     return {
       status: 'absent',
       slug,
       message: `key '${slug}' not found in repo manifest`,
-      fix: `add '${slug}' to .agent/keyrack.yml`,
+      fix: `add '${keyName}' to env.${env} in .agent/keyrack.yml`,
     };
   }
 
@@ -129,6 +133,8 @@ const attemptGrantKey = async (
     if (keyEntry) {
       // key found in daemon with valid TTL — use directly
       // note: already translated when stored, grade already attached
+      // source is os.daemon: indicates key was retrieved from daemon cache
+      // (the human unlocked, daemon cached, robot reuses)
       const grant = new KeyrackKeyGrant({
         slug,
         key: keyEntry.key,
@@ -181,11 +187,13 @@ const attemptGrantKey = async (
   // find key host in host manifest
   const keyHost = context.hostManifest.hosts[slug];
   if (!keyHost) {
+    const keyName = asKeyrackKeyName({ slug });
+    const env = asKeyrackKeyEnv({ slug });
     return {
       status: 'absent',
       slug,
       message: `key '${slug}' not configured on this host`,
-      fix: `run: rhx keyrack set --key ${slug} --mech ${keySpec.mech} --vault <vault>`,
+      fix: `run: rhx keyrack set --key ${keyName} --env ${env} --mech ${keySpec.mech} --vault <vault>`,
     };
   }
 
@@ -202,11 +210,13 @@ const attemptGrantKey = async (
   if (!isUnlocked) {
     // if --unlock was not specified, return locked status
     if (!input.unlock) {
+      const keyName = asKeyrackKeyName({ slug });
+      const env = asKeyrackKeyEnv({ slug });
       return {
         status: 'locked',
         slug,
         message: `vault '${keyHost.vault}' is locked`,
-        fix: `run: rhx keyrack get --key ${slug} --unlock`,
+        fix: `run: rhx keyrack get --key ${keyName} --env ${env} --unlock`,
       };
     }
 
@@ -217,11 +227,13 @@ const attemptGrantKey = async (
   // retrieve raw value from vault
   const rawValue = await vaultAdapter.get({ exid: keyHost.exid, slug });
   if (rawValue === null) {
+    const keyName = asKeyrackKeyName({ slug });
+    const env = asKeyrackKeyEnv({ slug });
     return {
       status: 'absent',
       slug,
       message: `credential not found in vault '${keyHost.vault}'`,
-      fix: `store credential via: rhx keyrack set --key ${slug} --mech ${keySpec.mech} --vault ${keyHost.vault}`,
+      fix: `store credential via: rhx keyrack set --key ${keyName} --env ${env} --mech ${keySpec.mech} --vault ${keyHost.vault}`,
     };
   }
 

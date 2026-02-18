@@ -167,4 +167,64 @@ describe('detectKeyGradeChange', () => {
       });
     });
   });
+
+  given('[case5] reference protection changes', () => {
+    when('[t0] reference → encrypted', () => {
+      then('degrades is true', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'reference', duration: 'ephemeral' },
+          target: { protection: 'encrypted', duration: 'ephemeral' },
+        });
+        expect(result.degrades).toBe(true);
+      });
+
+      then('reason mentions protection downgrade', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'reference', duration: 'ephemeral' },
+          target: { protection: 'encrypted', duration: 'ephemeral' },
+        });
+        expect(result.reason).toContain('protection downgrade');
+        expect(result.reason).toContain('reference → encrypted');
+      });
+    });
+
+    when('[t1] reference → plaintext', () => {
+      then('degrades is true', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'reference', duration: 'ephemeral' },
+          target: { protection: 'plaintext', duration: 'ephemeral' },
+        });
+        expect(result.degrades).toBe(true);
+      });
+
+      then('reason mentions protection downgrade', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'reference', duration: 'ephemeral' },
+          target: { protection: 'plaintext', duration: 'ephemeral' },
+        });
+        expect(result.reason).toContain('protection downgrade');
+        expect(result.reason).toContain('reference → plaintext');
+      });
+    });
+
+    when('[t2] encrypted → reference', () => {
+      then('degrades is false (upgrade ok)', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'encrypted', duration: 'ephemeral' },
+          target: { protection: 'reference', duration: 'ephemeral' },
+        });
+        expect(result.degrades).toBe(false);
+      });
+    });
+
+    when('[t3] plaintext → reference', () => {
+      then('degrades is false (upgrade ok)', () => {
+        const result = detectKeyGradeChange({
+          source: { protection: 'plaintext', duration: 'ephemeral' },
+          target: { protection: 'reference', duration: 'ephemeral' },
+        });
+        expect(result.degrades).toBe(false);
+      });
+    });
+  });
 });

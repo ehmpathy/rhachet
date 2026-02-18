@@ -5,6 +5,7 @@ import {
   type KeyrackHostVaultAdapter,
 } from '../../domain.objects/keyrack';
 import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
+import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
 import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
@@ -39,6 +40,7 @@ export const genKeyrackHostContext = async (): Promise<KeyrackHostContext> => {
     'os.secure': vaultAdapterOsSecure,
     'os.daemon': vaultAdapterOsDaemon,
     '1password': vaultAdapter1Password,
+    'aws.iam.sso': vaultAdapterAwsIamSso,
   };
 
   return {

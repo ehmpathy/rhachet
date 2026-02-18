@@ -10,7 +10,17 @@ export interface KeyGradeChangeResult {
 }
 
 /**
- * grade hierarchy for duration (lower index = more secure)
+ * grade hierarchy for protection (lower rank = more secure)
+ * reference (most secure) > encrypted > plaintext (least secure)
+ */
+const PROTECTION_RANK: Record<KeyrackKeyGrade['protection'], number> = {
+  reference: 0,
+  encrypted: 1,
+  plaintext: 2,
+};
+
+/**
+ * grade hierarchy for duration (lower rank = more secure)
  * transient (most restrictive) > ephemeral > permanent (least restrictive)
  */
 const DURATION_RANK: Record<KeyrackKeyGrade['duration'], number> = {
@@ -32,8 +42,10 @@ export const detectKeyGradeChange = (input: {
 }): KeyGradeChangeResult => {
   const { source, target } = input;
 
-  // check protection degradation (encrypted → plaintext is forbidden)
-  if (source.protection === 'encrypted' && target.protection === 'plaintext') {
+  // check protection degradation (more secure → less secure is forbidden)
+  const sourceProtectionRank = PROTECTION_RANK[source.protection];
+  const targetProtectionRank = PROTECTION_RANK[target.protection];
+  if (targetProtectionRank > sourceProtectionRank) {
     return {
       degrades: true,
       reason: `protection downgrade: ${source.protection} → ${target.protection}`,

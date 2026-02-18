@@ -6,8 +6,11 @@ export interface KeyrackHostVaultAdapter {
   /**
    * .what = unlock the vault for the current session
    * .why = enables subsequent get operations without re-authentication
+   *
+   * .note = passphrase is for os.secure vault (keychain unlock)
+   * .note = silent mode for aws.iam.sso vault (suppress cli output)
    */
-  unlock: (input: {}) => Promise<void>;
+  unlock: (input: { passphrase?: string; silent?: boolean }) => Promise<void>;
 
   /**
    * .what = check if the vault is unlocked
@@ -47,4 +50,13 @@ export interface KeyrackHostVaultAdapter {
    * .note = exid is optional; only 1password requires it
    */
   del: (input: { slug: string; exid?: string | null }) => Promise<void>;
+
+  /**
+   * .what = clear cached credentials for a key (optional)
+   * .why = enables relock flow for vaults with external caches
+   *
+   * .note = optional; only vaults with external caches need this
+   * .note = aws.iam.sso uses this to clear ~/.aws/sso/cache and ~/.aws/cli/cache
+   */
+  relock?: (input: { slug: string; exid?: string | null }) => Promise<void>;
 }

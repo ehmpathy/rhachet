@@ -7,7 +7,6 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
-done. 1 granted.
 
 "
 `;
@@ -38,7 +37,6 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
    └─ testorg.test.GHP_TOKEN
       └─ status: blocked 🚫
          └─ replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)
-done. 1 blocked.
 
 "
 `;
