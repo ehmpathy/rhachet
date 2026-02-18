@@ -71,7 +71,6 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
-done. 1 granted.
 
 "
 `;
@@ -82,8 +81,6 @@ exports[`keyrack vault os.direct given: [case4] keyrack list when: [t0] keyrack 
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ mech: REPLICA
       └─ vault: os.direct
-done. 1 keys configured.
-
 "
 `;
 

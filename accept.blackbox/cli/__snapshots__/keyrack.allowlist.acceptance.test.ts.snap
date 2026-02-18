@@ -7,7 +7,6 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
-done. 1 granted.
 
 "
 `;
@@ -37,15 +36,14 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 🔐 rhachet/keyrack
    └─ testorg.test.SECRET_KEY
       └─ status: absent 🫧
-         └─ fix: add 'testorg.test.SECRET_KEY' to .agent/keyrack.yml
-done. 1 absent.
+         └─ fix: add 'SECRET_KEY' to env.test in .agent/keyrack.yml
 
 "
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1] get --key SECRET_KEY (on host but NOT in allowlist) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'testorg.test.SECRET_KEY' to .agent/keyrack.yml",
+  "fix": "add 'SECRET_KEY' to env.test in .agent/keyrack.yml",
   "message": "key 'testorg.test.SECRET_KEY' not found in repo manifest",
   "slug": "testorg.test.SECRET_KEY",
   "status": "absent",
@@ -54,7 +52,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t2] get --key NONEXISTENT_KEY (not in allowlist, not on host) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'testorg.test.NONEXISTENT_KEY' to .agent/keyrack.yml",
+  "fix": "add 'NONEXISTENT_KEY' to env.test in .agent/keyrack.yml",
   "message": "key 'testorg.test.NONEXISTENT_KEY' not found in repo manifest",
   "slug": "testorg.test.NONEXISTENT_KEY",
   "status": "absent",
@@ -85,7 +83,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 
 exports[`keyrack allowlist given: [case2] env var exists but key not in allowlist when: [t0] get --key SECRET_FROM_ENV with env var set then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'testorg.test.SECRET_FROM_ENV' to .agent/keyrack.yml",
+  "fix": "add 'SECRET_FROM_ENV' to env.test in .agent/keyrack.yml",
   "message": "key 'testorg.test.SECRET_FROM_ENV' not found in repo manifest",
   "slug": "testorg.test.SECRET_FROM_ENV",
   "status": "absent",

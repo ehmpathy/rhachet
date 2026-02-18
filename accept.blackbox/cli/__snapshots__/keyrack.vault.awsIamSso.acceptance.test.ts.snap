@@ -30,8 +30,6 @@ exports[`keyrack vault aws.iam.sso given: [case1] repo with aws.iam.sso vault co
    └─ testorg.test.AWS_PROFILE
       ├─ mech: EPHEMERAL_VIA_AWS_SSO
       └─ vault: aws.iam.sso
-done. 2 keys configured.
-
 "
 `;
 

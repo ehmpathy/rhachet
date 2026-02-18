@@ -1,10 +1,10 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import fs from 'fs/promises';
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import os from 'os';
 import path from 'path';
 
-import { getTempDir } from '../../infra/getTempDir';
+import { getTempDir } from '@src/infra/getTempDir';
 
 /**
  * .what = sets up an AWS SSO profile in ~/.aws/config
@@ -304,27 +304,65 @@ sso_region = ${input.ssoRegion}
   await fs.writeFile(tempConfigPath, tempConfig, 'utf-8');
 
   try {
-    // trigger sso login with temp config, capture output
-    const output = execSync(`aws sso login --profile "${tempProfileName}"`, {
-      encoding: 'utf-8',
-      env: { ...process.env, AWS_CONFIG_FILE: tempConfigPath },
-      stdio: ['inherit', 'pipe', 'pipe'],
+    // trigger sso login with temp config, stream output for real-time feedback
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        'aws',
+        ['sso', 'login', '--profile', tempProfileName],
+        {
+          env: { ...process.env, AWS_CONFIG_FILE: tempConfigPath },
+          stdio: ['inherit', 'pipe', 'pipe'],
+        },
+      );
+
+      let outputBuffer = '';
+      let urlShown = false;
+
+      const processOutput = (data: Buffer) => {
+        outputBuffer += data.toString();
+
+        // show url and code immediately when detected (before auth completes)
+        if (!urlShown) {
+          const urlMatch = outputBuffer.match(
+            /open the following URL:\s*(https:\/\/[^\s]+)/,
+          );
+          const codeMatch = outputBuffer.match(
+            /enter the code:\s*([A-Z0-9-]+)/i,
+          );
+
+          if (urlMatch && codeMatch) {
+            console.log('   │  ├─ authorize in browser');
+            console.log(`   │  │  ├─ 🔗 ${urlMatch[1]}`);
+            console.log(`   │  │  └─ 🔑 ${codeMatch[1]}`);
+            urlShown = true;
+          }
+        }
+      };
+
+      child.stdout?.on('data', processOutput);
+      child.stderr?.on('data', processOutput);
+
+      child.on('close', (code) => {
+        // show success after auth completes
+        const successMatch = outputBuffer.match(/Successfully logged into/);
+        if (successMatch) {
+          console.log('   │  └─ ✓ authenticated');
+        }
+
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(
+            new UnexpectedCodePathError('aws sso login failed', {
+              code,
+              output: outputBuffer,
+            }),
+          );
+        }
+      });
+
+      child.on('error', reject);
     });
-
-    // parse and display clean summary
-    const urlMatch = output.match(
-      /open the following URL:\s*(https:\/\/[^\s]+)/,
-    );
-    const codeMatch = output.match(/enter the code:\s*([A-Z0-9-]+)/i);
-    const successMatch = output.match(/Successfully logged into/);
-
-    if (urlMatch && codeMatch) {
-      console.log(`\n  🔗 ${urlMatch[1]}`);
-      console.log(`  🔑 code: ${codeMatch[1]}\n`);
-    }
-    if (successMatch) {
-      console.log('  ✓ authenticated\n');
-    }
   } finally {
     // cleanup temp config
     await fs.rm(tempDir, { recursive: true, force: true });

@@ -168,7 +168,6 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
-done. 2 granted, 0 blocked, 0 absent.
 
 "
 `;
@@ -220,7 +219,6 @@ exports[`keyrack envs given: [case3] raw key name export via single key get when
       ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
-done. 1 granted.
 
 "
 `;
@@ -254,7 +252,6 @@ exports[`keyrack envs given: [case5] unlock with env filter when: [t0] unlock --
    └─ testorg.prep.AWS_PROFILE
       ├─ vault: os.direct
       └─ expires in: 540m
-done. 2 keys unlocked.
 
 "
 `;
@@ -274,7 +271,6 @@ exports[`keyrack envs given: [case5] unlock with env filter when: [t1] unlock --
    └─ testorg.prep.AWS_PROFILE
       ├─ vault: os.direct
       └─ expires in: 540m
-done. 4 keys unlocked.
 
 "
 `;
@@ -298,7 +294,7 @@ exports[`keyrack envs given: [case7] repo with old flat keys: format when: [t1] 
 exports[`keyrack envs given: [case8] list with multi-env repo when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   ├─ testorg.prod.SHARED_API_KEY
+   ├─ testorg.prep.AWS_PROFILE
    │  ├─ mech: REPLICA
    │  └─ vault: os.direct
    ├─ testorg.prep.SHARED_API_KEY
@@ -307,10 +303,8 @@ exports[`keyrack envs given: [case8] list with multi-env repo when: [t0] keyrack
    ├─ testorg.prod.AWS_PROFILE
    │  ├─ mech: REPLICA
    │  └─ vault: os.direct
-   └─ testorg.prep.AWS_PROFILE
+   └─ testorg.prod.SHARED_API_KEY
       ├─ mech: REPLICA
       └─ vault: os.direct
-done. 4 keys configured.
-
 "
 `;

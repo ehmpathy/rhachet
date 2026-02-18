@@ -283,17 +283,17 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] unlock via stdin', () => {
-      // human unlocks via interactive prompt (simulated via stdin pipe)
-      const unlockResult = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock', '--env', 'test'],
-          cwd: repo.path,
-          env: { HOME: repo.path },
-          stdin: 'test-passphrase-123\n',
-        }),
-      );
+    // unlock via stdin at given level so it runs before all when blocks
+    const unlockResult = useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'unlock', '--env', 'test'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        stdin: 'test-passphrase-123\n',
+      }),
+    );
 
+    when('[t0] unlock via stdin', () => {
       then('unlock exits with status 0', () => {
         expect(unlockResult.status).toEqual(0);
       });

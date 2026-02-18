@@ -200,8 +200,8 @@ describe('keyrack vault os.direct', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output contains configured keys header', () => {
-        expect(result.stdout).toContain('keys configured');
+      then('output contains keyrack header', () => {
+        expect(result.stdout).toContain('rhachet/keyrack');
       });
 
       then('output contains DIRECT_TEST_KEY', () => {

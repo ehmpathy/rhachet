@@ -1,4 +1,5 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { EventEmitter } from 'events';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import { given, then, when } from 'test-fns';
@@ -14,7 +15,29 @@ import {
 // mock child_process, fs, and os for controlled tests
 jest.mock('child_process', () => ({
   execSync: jest.fn(),
+  spawn: jest.fn(),
 }));
+
+/**
+ * .what = creates a mock child process for spawn tests
+ * .why = spawn returns an event emitter with stdout/stderr streams
+ */
+const createMockChildProcess = (input: {
+  exitCode: number;
+  stdout?: string;
+}) => {
+  const child = new EventEmitter() as any;
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+
+  // emit close event on next tick so event handlers can be attached first
+  process.nextTick(() => {
+    if (input.stdout) child.stdout.emit('data', Buffer.from(input.stdout));
+    child.emit('close', input.exitCode);
+  });
+
+  return child;
+};
 
 jest.mock('fs/promises', () => ({
   mkdir: jest.fn(),
@@ -39,6 +62,7 @@ jest.mock('@src/infra/getTempDir', () => ({
 }));
 
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
+const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
 const mockFspMkdir = fsp.mkdir as jest.MockedFunction<typeof fsp.mkdir>;
 const mockFspReadFile = fsp.readFile as jest.MockedFunction<
   typeof fsp.readFile
@@ -111,18 +135,17 @@ describe('setupAwsSsoProfile interactive journey', () => {
 
     when('[t0] initiateAwsSsoAuth called', () => {
       beforeEach(() => {
-        // mock execSync for aws sso login - returns device code output
-        const ssoOutput = `Attempting to automatically open the SSO authorization page in your default browser.
-If the browser does not open or you wish to use a different device, open the following URL:
-
-https://device.sso.us-east-1.amazonaws.com/
-
-Then enter the code:
-
-ABCD-EFGH
-
-Successfully logged into Start URL: https://test.awsapps.com/start`;
-        mockExecSync.mockImplementation(() => ssoOutput);
+        // mock spawn for aws sso login - succeeds with device code output
+        const ssoOutput = [
+          'open the following URL:',
+          'https://device.sso.us-east-1.amazonaws.com/',
+          'enter the code:',
+          'ABCD-EFGH',
+          'Successfully logged into Start URL: https://test.awsapps.com/start',
+        ].join('\n');
+        mockSpawn.mockReturnValue(
+          createMockChildProcess({ exitCode: 0, stdout: ssoOutput }) as any,
+        );
       });
 
       then('creates temp config in temp dir and triggers login', async () => {
@@ -151,21 +174,16 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
         expect(writtenContent).not.toContain('sso_account_id');
         expect(writtenContent).not.toContain('sso_role_name');
 
-        // verify aws sso login was called with AWS_CONFIG_FILE env var
-        const ssoLoginCall = mockExecSync.mock.calls.find(
-          (call) =>
-            typeof call[0] === 'string' &&
-            call[0].includes('aws sso login --profile'),
-        );
-        expect(ssoLoginCall).toBeDefined();
-        expect(ssoLoginCall?.[0]).toContain(
-          'aws sso login --profile "keyrack-auth"',
-        );
-        expect(ssoLoginCall?.[1]).toMatchObject({
-          encoding: 'utf-8',
-          stdio: ['inherit', 'pipe', 'pipe'],
-        });
-        expect(ssoLoginCall?.[1]?.env?.AWS_CONFIG_FILE).toMatch(
+        // verify spawn was called with --profile flag and AWS_CONFIG_FILE env var
+        const spawnCall = mockSpawn.mock.calls[0];
+        expect(spawnCall?.[0]).toEqual('aws');
+        expect(spawnCall?.[1]).toEqual([
+          'sso',
+          'login',
+          '--profile',
+          'keyrack-auth',
+        ]);
+        expect(spawnCall?.[2]?.env?.AWS_CONFIG_FILE).toMatch(
           /^\/mock\/tmp\/keyrack-sso-\d+\/config$/,
         );
 
@@ -178,13 +196,10 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
 
     when('[t1] sso login fails', () => {
       beforeEach(() => {
-        // mock execSync to throw error for sso login
-        mockExecSync.mockImplementation((cmd) => {
-          if (typeof cmd === 'string' && cmd.includes('aws sso login')) {
-            throw new Error('sso login failed');
-          }
-          return Buffer.from('');
-        });
+        // mock spawn to exit with non-zero code (simulates user cancel)
+        mockSpawn.mockReturnValue(
+          createMockChildProcess({ exitCode: 1 }) as any,
+        );
       });
 
       then('still cleans up temp dir', async () => {
@@ -193,7 +208,7 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
             ssoStartUrl: 'https://test.awsapps.com/start',
             ssoRegion: 'us-east-1',
           }),
-        ).rejects.toThrow('sso login failed');
+        ).rejects.toThrow();
 
         // verify temp dir was cleaned up even after failure
         const rmCall = mockFspRm.mock.calls[0];
@@ -204,10 +219,10 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
 
     when('[t2] user home config is not touched', () => {
       beforeEach(() => {
-        // mock execSync for aws sso login
-        const ssoOutput =
-          'Successfully logged into Start URL: https://test.awsapps.com/start';
-        mockExecSync.mockImplementation(() => ssoOutput);
+        // mock spawn for aws sso login - succeeds
+        mockSpawn.mockReturnValue(
+          createMockChildProcess({ exitCode: 0 }) as any,
+        );
       });
 
       then('does not read or write to ~/.aws/config', async () => {
@@ -447,7 +462,7 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
           'sso_registration_scopes = sso:account:access',
         );
 
-        // verify sso login was triggered
+        // verify sso login was triggered with --profile (portal flow)
         expect(mockExecSync).toHaveBeenCalledWith(
           'aws sso login --profile "test-profile"',
           { stdio: 'inherit' },
@@ -589,6 +604,11 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
         mockFsReaddirSync.mockReturnValue(['cache.json'] as any);
         mockFsReadFileSync.mockReturnValue(JSON.stringify(validToken));
 
+        // spawn mock for initiateAwsSsoAuth (step 2)
+        mockSpawn.mockReturnValue(
+          createMockChildProcess({ exitCode: 0 }) as any,
+        );
+
         // exec mocks - track call order via flags
         let listAccountsCalled = false;
         let listRolesCalled = false;
@@ -599,11 +619,6 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
           // step 1: aws cli version check
           if (cmd.includes('aws --version')) {
             return Buffer.from('aws-cli/2.15.0');
-          }
-
-          // step 2: sso login for temp profile (initiateAwsSsoAuth with keyrack-auth)
-          if (cmd.includes('aws sso login --profile "keyrack-auth"')) {
-            return 'Successfully logged into Start URL: https://company.awsapps.com/start';
           }
 
           // step 3: list accounts
@@ -623,7 +638,7 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
             return JSON.stringify(rolesResponse);
           }
 
-          // step 5: sso login for final profile
+          // step 5: sso login for final profile (portal flow with --profile)
           if (cmd.includes('aws sso login --profile "company.prod"')) {
             if (!listRolesCalled) {
               throw new Error(
@@ -653,21 +668,19 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
         const installed = isAwsCliInstalled();
         expect(installed).toBe(true);
 
-        // step 2: browser auth is initiated (uses temp dir, captures output)
+        // step 2: browser auth is initiated (uses spawn, temp dir, captures output)
         await initiateAwsSsoAuth({
           ssoStartUrl: 'https://company.awsapps.com/start',
           ssoRegion: 'us-east-1',
         });
-        const initSsoLoginCall = mockExecSync.mock.calls.find(
-          (call) =>
-            typeof call[0] === 'string' &&
-            call[0].includes('aws sso login --profile "keyrack-auth"'),
-        );
-        expect(initSsoLoginCall).toBeDefined();
-        expect(initSsoLoginCall?.[1]).toMatchObject({
-          encoding: 'utf-8',
-          stdio: ['inherit', 'pipe', 'pipe'],
-        });
+        const spawnCall = mockSpawn.mock.calls[0];
+        expect(spawnCall?.[0]).toEqual('aws');
+        expect(spawnCall?.[1]).toEqual([
+          'sso',
+          'login',
+          '--profile',
+          'keyrack-auth',
+        ]);
 
         // step 3: accounts are listed
         const accounts = listAwsSsoAccounts({ ssoRegion: 'us-east-1' });
@@ -744,13 +757,10 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
         mockFspMkdir.mockResolvedValue(undefined);
         mockFspWriteFile.mockResolvedValue(undefined);
         mockFspRm.mockResolvedValue(undefined);
-        // mock execSync to throw error for sso login (simulates user cancel)
-        mockExecSync.mockImplementation((cmd) => {
-          if (typeof cmd === 'string' && cmd.includes('aws sso login')) {
-            throw new Error('sso login failed');
-          }
-          return Buffer.from('');
-        });
+        // mock spawn to exit with non-zero code (simulates user cancel)
+        mockSpawn.mockReturnValue(
+          createMockChildProcess({ exitCode: 1 }) as any,
+        );
       });
 
       then('throws error from sso login', async () => {
@@ -759,7 +769,7 @@ Successfully logged into Start URL: https://test.awsapps.com/start`;
             ssoStartUrl: 'https://test.awsapps.com/start',
             ssoRegion: 'us-east-1',
           }),
-        ).rejects.toThrow('sso login failed');
+        ).rejects.toThrow();
       });
     });
 

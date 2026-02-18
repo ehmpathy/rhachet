@@ -307,7 +307,7 @@ const mechAdapterAwsOidc = async (
     new AssumeRoleWithWebIdentityCommand({
       RoleArn: input.config.roleArn,
       WebIdentityToken: jwt,
-      RoleSessionName: 'rhachet-keyrack',
+      RoleSessionName: 'keyrack',
       DurationSeconds: input.config.sessionDuration ?? 3600,
     }),
   );

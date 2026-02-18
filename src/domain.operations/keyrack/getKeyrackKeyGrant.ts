@@ -133,15 +133,13 @@ const attemptGrantKey = async (
     if (keyEntry) {
       // key found in daemon with valid TTL — use directly
       // note: already translated when stored, grade already attached
-      // look up original vault from host manifest to report accurate source
-      const keyHost = context.hostManifest.hosts[slug];
-      const sourceVault = keyHost?.vault ?? 'os.daemon';
-
+      // source is os.daemon: indicates key was retrieved from daemon cache
+      // (the human unlocked, daemon cached, robot reuses)
       const grant = new KeyrackKeyGrant({
         slug,
         key: keyEntry.key,
         source: {
-          vault: sourceVault,
+          vault: 'os.daemon',
           mech: keySpec.mech,
         },
       });

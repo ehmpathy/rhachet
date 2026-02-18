@@ -1,0 +1,29 @@
+research the prod codepath patterns available in order to fulfill
+- this wish .behavior/v2026_02_16.keyrack-aws-noboto/0.wish.md
+- this vision .behavior/v2026_02_16.keyrack-aws-noboto/1.vision.md (if declared)
+- this criteria .behavior/v2026_02_16.keyrack-aws-noboto/2.1.criteria.blackbox.md (if declared)
+- this criteria .behavior/v2026_02_16.keyrack-aws-noboto/2.3.criteria.blueprint.md (if declared)
+
+specifically
+- what are the open source tools that we can leverage to solve this?
+- how can we use them? examples?
+- are they maintained? are there examples of frontier dev shops who use them?
+- which ones should we consider?
+- pros and cons of each?
+
+---
+
+focus exclusively on the production codepaths. ignore test codepaths
+
+note, this includes any infra that production codepaths depend on
+
+---
+
+enumerate each pattern
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+---
+
+emit into .behavior/v2026_02_16.keyrack-aws-noboto/3.1.research.patterns._.oss.levers.v1.i1.md

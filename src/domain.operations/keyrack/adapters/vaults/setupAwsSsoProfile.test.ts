@@ -1,4 +1,5 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { EventEmitter } from 'events';
 import fsSync from 'fs';
 import fs from 'fs/promises';
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
@@ -19,7 +20,29 @@ import {
 // mock child_process
 jest.mock('child_process', () => ({
   execSync: jest.fn(),
+  spawn: jest.fn(),
 }));
+
+/**
+ * .what = creates a mock child process for spawn tests
+ * .why = spawn returns an event emitter with stdout/stderr streams
+ */
+const createMockChildProcess = (input: {
+  exitCode: number;
+  stdout?: string;
+}) => {
+  const child = new EventEmitter() as any;
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+
+  // emit close event on next tick so event handlers can be attached first
+  process.nextTick(() => {
+    if (input.stdout) child.stdout.emit('data', Buffer.from(input.stdout));
+    child.emit('close', input.exitCode);
+  });
+
+  return child;
+};
 
 // mock fs/promises
 jest.mock('fs/promises', () => ({
@@ -46,6 +69,7 @@ jest.mock('os', () => ({
 }));
 
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
+const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
 const mockMkdir = fs.mkdir as jest.MockedFunction<typeof fs.mkdir>;
 const mockReadFile = fs.readFile as jest.MockedFunction<typeof fs.readFile>;
 const mockWriteFile = fs.writeFile as jest.MockedFunction<typeof fs.writeFile>;
@@ -602,8 +626,10 @@ sso_registration_scopes = sso:account:access`);
           async () => {
             mockMkdir.mockResolvedValueOnce(undefined);
             mockWriteFile.mockResolvedValue(undefined);
-            // execSync for sso login succeeds
-            mockExecSync.mockReturnValueOnce('');
+            // spawn for sso login succeeds (exit code 0)
+            mockSpawn.mockReturnValueOnce(
+              createMockChildProcess({ exitCode: 0 }) as any,
+            );
 
             await initiateAwsSsoAuth({
               ssoStartUrl: 'https://acme.awsapps.com/start',
@@ -625,15 +651,16 @@ sso_registration_scopes = sso:account:access`);
             );
             expect(writtenContent).toContain('sso_region = us-east-1');
 
-            // verify sso login was called with AWS_CONFIG_FILE env var
-            const ssoLoginCall = mockExecSync.mock.calls.find(
-              (call) =>
-                typeof call[0] === 'string' &&
-                call[0].includes('aws sso login --profile'),
-            );
-            expect(ssoLoginCall).toBeDefined();
-            expect(ssoLoginCall?.[0]).toContain('--profile "keyrack-auth"');
-            expect(ssoLoginCall?.[1]).toMatchObject({
+            // verify spawn was called with --profile flag and AWS_CONFIG_FILE env var
+            const spawnCall = mockSpawn.mock.calls[0];
+            expect(spawnCall?.[0]).toEqual('aws');
+            expect(spawnCall?.[1]).toEqual([
+              'sso',
+              'login',
+              '--profile',
+              'keyrack-auth',
+            ]);
+            expect(spawnCall?.[2]).toMatchObject({
               env: expect.objectContaining({
                 AWS_CONFIG_FILE: expect.stringMatching(tempConfigPattern),
               }),
@@ -649,8 +676,10 @@ sso_registration_scopes = sso:account:access`);
         then('completes without error', async () => {
           mockMkdir.mockResolvedValueOnce(undefined);
           mockWriteFile.mockResolvedValue(undefined);
-          // execSync for sso login succeeds
-          mockExecSync.mockReturnValueOnce('');
+          // spawn for sso login succeeds (exit code 0)
+          mockSpawn.mockReturnValueOnce(
+            createMockChildProcess({ exitCode: 0 }) as any,
+          );
 
           // should complete without error
           await expect(
@@ -668,10 +697,10 @@ sso_registration_scopes = sso:account:access`);
         then('rejects with error', async () => {
           mockMkdir.mockResolvedValueOnce(undefined);
           mockWriteFile.mockResolvedValue(undefined);
-          // execSync for sso login fails
-          mockExecSync.mockImplementationOnce(() => {
-            throw new Error('sso login failed');
-          });
+          // spawn for sso login fails (exit code 1)
+          mockSpawn.mockReturnValueOnce(
+            createMockChildProcess({ exitCode: 1 }) as any,
+          );
 
           await expect(
             initiateAwsSsoAuth({

@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -86,20 +86,41 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
 };
 
 /**
- * .what = trigger sso login for a profile
+ * .what = trigger sso login for a profile via portal flow
  * .why = refreshes the sso session via browser auth
  *
- * .note = this will open a browser for authentication
+ * .note = uses --profile flag for portal flow (standard "Sign in" / "Allow")
+ * .note = portal flow is the same experience as direct visit to aws sso portal
+ * .note = always silent (pipe) - browser popup is the feedback, not cli noise
  */
 const triggerSsoLogin = async (profileName: string): Promise<void> => {
-  try {
-    await execAsync(`aws sso login --profile "${profileName}"`);
-  } catch (error) {
-    throw new UnexpectedCodePathError('aws sso login failed', {
-      profileName,
-      error,
+  return new Promise((resolve, reject) => {
+    const child = spawn('aws', ['sso', 'login', '--profile', profileName], {
+      stdio: 'pipe',
     });
-  }
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(
+          new UnexpectedCodePathError('aws sso login failed', {
+            profileName,
+            exitCode: code,
+          }),
+        );
+      }
+    });
+
+    child.on('error', (error) => {
+      reject(
+        new UnexpectedCodePathError('aws sso login failed', {
+          profileName,
+          error,
+        }),
+      );
+    });
+  });
 };
 
 /**
@@ -139,18 +160,27 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
    * .why = ensures all stored profiles have valid sessions
    *
    * .note = passphrase is ignored (sso uses browser auth)
-   * .note = triggers aws sso login for each expired session
+   * .note = triggers aws sso login --profile for each expired profile
+   * .note = uses portal flow (standard "Sign in" / "Allow" browser prompt)
+   * .note = always silent - browser popup is the feedback, not cli noise
    */
-  unlock: async (_input: {}) => {
+  unlock: async (_input: { passphrase?: string; silent?: boolean }) => {
     const store = readSsoStore();
     const entries = Object.values(store);
 
+    // track which profiles we've refreshed (avoid duplicate logins for shared sso-session)
+    const refreshedProfiles = new Set<string>();
+
     // validate and refresh each profile
     for (const entry of entries) {
+      // skip if we already refreshed this profile
+      if (refreshedProfiles.has(entry.profileName)) continue;
+
       const isValid = await validateSsoSession(entry.profileName);
       if (!isValid) {
-        // session expired, trigger login
+        // trigger login for the profile (portal flow)
         await triggerSsoLogin(entry.profileName);
+        refreshedProfiles.add(entry.profileName);
       }
     }
   },
@@ -208,5 +238,27 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
     const store = readSsoStore();
     delete store[input.slug];
     writeSsoStore(store);
+  },
+
+  /**
+   * .what = clear aws sso cached credentials for a profile
+   * .why = enables true relock by clearing both sso token and cli credential caches
+   *
+   * .note = uses `aws sso logout --profile` to clear caches
+   * .note = clears ~/.aws/sso/cache (sso tokens) and ~/.aws/cli/cache (credentials)
+   */
+  relock: async (input) => {
+    const store = readSsoStore();
+    const entry = store[input.slug];
+
+    // entry not found = no profile to relock
+    if (!entry) return;
+
+    // aws sso logout clears both cache locations
+    try {
+      await execAsync(`aws sso logout --profile "${entry.profileName}"`);
+    } catch {
+      // logout may fail if already logged out — that's fine
+    }
   },
 };

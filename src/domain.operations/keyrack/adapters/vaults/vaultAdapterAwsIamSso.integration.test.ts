@@ -32,4 +32,26 @@ describe('vaultAdapterAwsIamSso integration', () => {
     // a configured aws profile and human present to approve.
     expect(true).toBe(true);
   });
+
+  it('roundtrip validation at keyrack set: manual verification only', () => {
+    // keyrack set orchestrates roundtrip for pit-of-success guarantee:
+    //   1. vault.set(slug, value)  → store the key
+    //   2. vault.unlock({})        → triggers one-time OAuth registration
+    //   3. vault.get({ slug })     → prove get works, verify value matches
+    //   4. vault.relock({ slug })  → clear session, leave locked
+    //
+    // manual verification:
+    //   $ rhx keyrack set --key AWS_PROFILE --env test --vault aws.iam.sso
+    //   - expect: OAuth prompt at setup (one-time botocore-client registration)
+    //   - expect: roundtrip completes (unlock → get → relock)
+    //
+    //   $ rhx keyrack relock --env test && rhx keyrack unlock --env test
+    //   - expect: portal flow (no botocore-client prompt)
+    //
+    // unit tests in vaultAdapterAwsIamSso.test.ts cover:
+    //   - unlock() triggers aws sso login with --profile flag
+    //   - get() returns stored profile name
+    //   - relock() calls aws sso logout
+    expect(true).toBe(true);
+  });
 });

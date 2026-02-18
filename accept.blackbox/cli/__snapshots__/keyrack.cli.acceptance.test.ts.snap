@@ -3,10 +3,32 @@
 exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t0] rhx keyrack list then: stdout matches snapshot 1`] = `
 "
 🔐 rhachet/keyrack
-   └─ (no keys configured)
-done. 0 keys configured.
-
+   ├─ testorg.test.GITHUB_APP_CREDS
+   │  ├─ mech: REPLICA
+   │  └─ vault: (not configured on host)
+   └─ testorg.test.XAI_API_KEY
+      ├─ mech: REPLICA
+      └─ vault: (not configured on host)
 "
 `;
 
-exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t1] rhx keyrack list --json then: stdout matches snapshot 1`] = `{}`;
+exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t1] rhx keyrack list --json then: stdout matches snapshot 1`] = `
+{
+  "testorg.test.GITHUB_APP_CREDS": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.GITHUB_APP_CREDS",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": null,
+  },
+  "testorg.test.XAI_API_KEY": {
+    "createdAt": "__TIMESTAMP__",
+    "exid": null,
+    "mech": "REPLICA",
+    "slug": "testorg.test.XAI_API_KEY",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": null,
+  },
+}
+`;

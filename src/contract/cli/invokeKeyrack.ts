@@ -3,7 +3,6 @@ import { BadRequestError } from 'helpful-errors';
 import readline from 'readline';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type {
   KeyrackGrantMechanism,
   KeyrackHostVault,
@@ -13,8 +12,17 @@ import {
   genKeyrackHostContext,
   getKeyrackKeyGrant,
   initKeyrackRepoManifest,
-  setKeyrackKeyHost,
+  setKeyrackKey,
 } from '@src/domain.operations/keyrack';
+import {
+  doesAwsProfileExist,
+  getAwsSsoProfileConfig,
+  initiateAwsSsoAuth,
+  listAwsSsoAccounts,
+  listAwsSsoRoles,
+  listAwsSsoStartUrls,
+  setupAwsSsoProfile,
+} from '@src/domain.operations/keyrack/adapters/vaults/setupAwsSsoProfile';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
@@ -22,16 +30,6 @@ import { resolveKeyrackSlug } from '@src/domain.operations/keyrack/resolveKeyrac
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrack } from '@src/domain.operations/keyrack/session/unlockKeyrack';
-import {
-  doesAwsProfileExist,
-  getAwsSsoProfileConfig,
-  initiateAwsSsoAuth,
-  isAwsCliInstalled,
-  listAwsSsoAccounts,
-  listAwsSsoRoles,
-  listAwsSsoStartUrls,
-  setupAwsSsoProfile,
-} from '@src/domain.operations/keyrack/setupAwsSsoProfile';
 
 /**
  * .what = prompts user for input via readline
@@ -151,9 +149,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 }
               }
             }
-            console.log(
-              `done. ${granted.length} granted, ${blocked.length} blocked, ${absent.length} absent.`,
-            );
             console.log('');
           }
         } else if (opts.key) {
@@ -180,26 +175,22 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               console.log(`      ├─ vault: ${attempt.grant.source.vault}`);
               console.log(`      ├─ mech: ${attempt.grant.source.mech}`);
               console.log(`      └─ status: granted 🔑`);
-              console.log('done. 1 granted.');
             } else if (attempt.status === 'blocked') {
               console.log(`   └─ ${attempt.slug}`);
               console.log(`      └─ status: blocked 🚫`);
               console.log(`         └─ ${attempt.message}`);
-              console.log('done. 1 blocked.');
             } else if (attempt.status === 'locked') {
               console.log(`   └─ ${attempt.slug}`);
               console.log(`      └─ status: locked 🔒`);
               if (attempt.fix) {
                 console.log(`         └─ fix: ${attempt.fix}`);
               }
-              console.log('done. 1 locked.');
             } else {
               console.log(`   └─ ${attempt.slug}`);
               console.log(`      └─ status: absent 🫧`);
               if (attempt.fix) {
                 console.log(`         └─ fix: ${attempt.fix}`);
               }
-              console.log('done. 1 absent.');
             }
             console.log('');
           }
@@ -237,6 +228,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         exid?: string;
         json?: boolean;
       }) => {
+        // helper to write inline and clear line
+        const write = (text: string) => process.stdout.write(text);
+        const clearLine = () => write('\x1b[2K\r');
+
         // infer mechanism from vault if not provided
         const inferredMech: string | undefined = (() => {
           if (opts.mech) return opts.mech;
@@ -326,83 +321,55 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           process.stdin.isTTY;
 
         if (shouldRunInteractiveSsoSetup) {
-          // helper to write inline and clear line
-          const write = (text: string) => process.stdout.write(text);
-          const clearLine = () => write('\x1b[2K\r');
-
           console.log('');
           console.log('🔐 keyrack set AWS_PROFILE');
-          console.log('');
 
-          // show spinner immediately while we check prerequisites
-          write('   ├─ check prerequisites ⏳');
-
-          // check aws cli
-          if (!isAwsCliInstalled()) {
-            clearLine();
-            console.log('   ├─ ✗ aws cli is not installed');
-            console.log('   │');
-            console.log('   │  install via: brew install awscli (macos)');
-            console.log('   │  or see https://aws.amazon.com/cli/');
-            console.log('   │');
-            console.log('   └─ (setup blocked)');
-            console.log('');
-            process.exit(1);
-          }
-
-          clearLine();
-          console.log('   ├─ ✓ aws cli installed');
-          console.log('   │');
-
-          // lookup sso portals from config
-          write('   ├─ lookup sso portals from ~/.aws/config ⏳');
+          // lookup sso portals from config (silent)
           const portalsFound = await listAwsSsoStartUrls();
-          clearLine();
-          if (portalsFound.length > 0) {
-            console.log(
-              `   ├─ ✓ found ${portalsFound.length} sso portal${portalsFound.length > 1 ? 's' : ''} in ~/.aws/config`,
-            );
-          } else {
-            console.log('   ├─ ✓ checked ~/.aws/config (no portals found)');
-          }
-          console.log('   │');
 
           let ssoStartUrl: string;
           let ssoRegion: string;
 
-          console.log('   ├─ which sso domain?');
           console.log('   │');
+          console.log('   ├─ which sso domain?');
 
           if (portalsFound.length > 0) {
-            // show options found
-            console.log('   │  options found:');
+            // show options
+            console.log('   │  ├─ options');
             portalsFound.forEach((p, i) => {
+              const isLastOption = i === portalsFound.length - 1;
+              const optPrefix = isLastOption ? '└─' : '├─';
               console.log(
-                `   │    ${i + 1}. ${p.ssoStartUrl} (${p.ssoRegion})`,
+                `   │  │  ${optPrefix} ${i + 1}. ${p.ssoStartUrl} (${p.ssoRegion})`,
               );
             });
-            console.log('   │');
-            console.log(
-              '   │  reuse one? enter the number. otherwise, enter a custom url.',
-            );
-            console.log('   │');
 
-            const answer = await promptUser('   │  choice: ');
+            // get choice
+            console.log('   │  └─ choice');
+            const answer = await promptUser('   │     └─ ');
             const index = parseInt(answer, 10) - 1;
 
             if (!isNaN(index) && index >= 0 && index < portalsFound.length) {
               // user picked option
               ssoStartUrl = portalsFound[index]!.ssoStartUrl;
               ssoRegion = portalsFound[index]!.ssoRegion;
+              // rewrite the choice line with confirmation
+              process.stdout.write('\x1b[1A\x1b[2K'); // move up and clear
+              console.log(`   │     └─ ${index + 1} ✓`);
             } else if (answer.startsWith('http')) {
               // user entered new url
               ssoStartUrl = answer;
-              ssoRegion = await promptUser(
-                '   │  sso region (e.g., us-east-1): ',
-              );
+              // rewrite the choice line with confirmation
+              process.stdout.write('\x1b[1A\x1b[2K');
+              console.log(`   │     └─ ${answer} ✓`);
+              // prompt for region
+              console.log('   │  └─ sso region');
+              ssoRegion = await promptUser('   │     └─ ');
               if (!ssoRegion) {
                 throw new BadRequestError('sso region is required');
               }
+              process.stdout.write('\x1b[1A\x1b[2K');
+              console.log(`   │     └─ ${ssoRegion} ✓`);
             } else {
               throw new BadRequestError(
                 `invalid selection: enter 1-${portalsFound.length} or a url`,
@@ -410,61 +377,54 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             }
           } else {
             // no portals found, prompt for new
-            ssoStartUrl = await promptUser(
-              '   │  sso start url (e.g., https://acme.awsapps.com/start): ',
-            );
+            console.log('   │  ├─ sso start url');
+            ssoStartUrl = await promptUser('   │  │  └─ ');
             if (!ssoStartUrl) {
               throw new BadRequestError('sso start url is required');
             }
+            process.stdout.write('\x1b[1A\x1b[2K');
+            console.log(`   │  │  └─ ${ssoStartUrl} ✓`);
 
-            ssoRegion = await promptUser(
-              '   │  sso region (e.g., us-east-1): ',
-            );
+            console.log('   │  └─ sso region');
+            ssoRegion = await promptUser('   │     └─ ');
             if (!ssoRegion) {
               throw new BadRequestError('sso region is required');
             }
+            process.stdout.write('\x1b[1A\x1b[2K');
+            console.log(`   │     └─ ${ssoRegion} ✓`);
           }
 
-          console.log('   │');
-          console.log(`   │  ✓ sso_start_url = ${ssoStartUrl}`);
-          console.log(`   │  ✓ sso_region = ${ssoRegion}`);
-          console.log('   │');
-
           // browser auth
+          console.log('   │');
           console.log('   ├─ which sso login?');
-          console.log('   │');
-          console.log('   │  ⏳ open browser for device auth...');
-          console.log('   │');
 
           // aws cli outputs directly to terminal (stdio: 'inherit')
+          // initiateAwsSsoAuth prints 🔗 and 🔑 lines
           await initiateAwsSsoAuth({
             ssoStartUrl,
             ssoRegion,
           });
 
-          console.log('   │');
-          console.log('   │  ✓ browser auth approved');
-          console.log('   │');
-
-          // list accounts
-          write('   │  ⏳ fetch accounts...');
+          // list accounts (silent fetch)
           const accounts = listAwsSsoAccounts({ ssoRegion });
-          clearLine();
           if (accounts.length === 0) {
             throw new BadRequestError(
               'no accounts found for this sso configuration',
             );
           }
 
-          console.log('   ├─ which account?');
           console.log('   │');
+          console.log('   ├─ which account?');
+          console.log('   │  ├─ options');
           accounts.forEach((a, i) => {
+            const isLastOption = i === accounts.length - 1;
+            const optPrefix = isLastOption ? '└─' : '├─';
             console.log(
-              `   │    ${i + 1}. ${a.accountId} · ${a.accountName} · ${a.emailAddress}`,
+              `   │  │  ${optPrefix} ${i + 1}. ${a.accountId} · ${a.accountName}`,
             );
           });
-          console.log('   │');
-          const accountAnswer = await promptUser('   │  choice: ');
+          console.log('   │  └─ choice');
+          const accountAnswer = await promptUser('   │     └─ ');
           const accountIndex = parseInt(accountAnswer, 10) - 1;
           if (
             isNaN(accountIndex) ||
@@ -474,36 +434,37 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             throw new BadRequestError(`invalid selection: ${accountAnswer}`);
           }
           const selectedAccount = accounts[accountIndex]!;
-          console.log('   │');
-          console.log(`   │  ✓ sso_account_id = ${selectedAccount.accountId}`);
-          console.log('   │');
+          // rewrite the choice line with confirmation
+          process.stdout.write('\x1b[1A\x1b[2K');
+          console.log(`   │     └─ ${accountIndex + 1} ✓`);
 
-          // list roles
-          write('   │  ⏳ fetch roles...');
+          // list roles (silent fetch)
           const roles = listAwsSsoRoles({
             ssoRegion,
             accountId: selectedAccount.accountId,
           });
-          clearLine();
           if (roles.length === 0) {
             throw new BadRequestError('no roles found for this account');
           }
 
+          console.log('   │');
           console.log('   ├─ which role?');
-          console.log('   │');
+          console.log('   │  ├─ options');
           roles.forEach((r, i) => {
-            console.log(`   │    ${i + 1}. ${r.roleName}`);
+            const isLastOption = i === roles.length - 1;
+            const optPrefix = isLastOption ? '└─' : '├─';
+            console.log(`   │  │  ${optPrefix} ${i + 1}. ${r.roleName}`);
           });
-          console.log('   │');
-          const roleAnswer = await promptUser('   │  choice: ');
+          console.log('   │  └─ choice');
+          const roleAnswer = await promptUser('   │     └─ ');
           const roleIndex = parseInt(roleAnswer, 10) - 1;
           if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= roles.length) {
             throw new BadRequestError(`invalid selection: ${roleAnswer}`);
           }
           const selectedRole = roles[roleIndex]!;
-          console.log('   │');
-          console.log(`   │  ✓ sso_role_name = ${selectedRole.roleName}`);
-          console.log('   │');
+          // rewrite the choice line with confirmation
+          process.stdout.write('\x1b[1A\x1b[2K');
+          console.log(`   │     └─ ${roleIndex + 1} ✓`);
 
           // profile name with smart suggestion
           // strip redundant prefix: if account name starts with org, use just the suffix
@@ -516,16 +477,16 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             : accountSlug;
           const suggestedName = `${org}.${accountSuffix || accountSlug}`;
 
+          console.log('   │');
           console.log('   ├─ what should we call it?');
-          console.log('   │');
-          console.log(`   │  suggested: ${suggestedName}`);
-          const profileNameInput = await promptUser(
-            '   │  accept or enter custom: ',
-          );
+          console.log('   │  ├─ suggested');
+          console.log(`   │  │  └─ ${suggestedName}`);
+          console.log('   │  └─ choice');
+          const profileNameInput = await promptUser('   │     └─ ');
           const profileName = profileNameInput || suggestedName;
-          console.log('   │');
-          console.log(`   │  ✓ profile = ${profileName}`);
-          console.log('   │');
+          // rewrite the choice line with confirmation
+          process.stdout.write('\x1b[1A\x1b[2K');
+          console.log(`   │     └─ ${profileName} ✓`);
 
           // check if profile already exists
           const profileExists = await doesAwsProfileExist({ profileName });
@@ -544,47 +505,53 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 profileSsoConfig.ssoAccountId === selectedAccount.accountId &&
                 profileSsoConfig.ssoRoleName === selectedRole.roleName;
 
-              if (isEquivalent) {
-                console.log(
-                  '   ├─ ✓ profile found in ~/.aws/config (equivalent)',
-                );
-                console.log('   │');
-              } else {
-                console.log(
-                  '   ├─ ⚠ profile found in ~/.aws/config (different)',
-                );
-                console.log('   │');
-                console.log('   │  differences:');
+              if (!isEquivalent) {
+                // collect differences
+                const diffs: string[] = [];
                 if (profileSsoConfig.ssoStartUrl !== ssoStartUrl) {
-                  console.log(
-                    `   │    sso_start_url: ${profileSsoConfig.ssoStartUrl} → ${ssoStartUrl}`,
+                  diffs.push(
+                    `sso_start_url: ${profileSsoConfig.ssoStartUrl} → ${ssoStartUrl}`,
                   );
                 }
                 if (profileSsoConfig.ssoRegion !== ssoRegion) {
-                  console.log(
-                    `   │    sso_region: ${profileSsoConfig.ssoRegion} → ${ssoRegion}`,
+                  diffs.push(
+                    `sso_region: ${profileSsoConfig.ssoRegion} → ${ssoRegion}`,
                   );
                 }
                 if (
                   profileSsoConfig.ssoAccountId !== selectedAccount.accountId
                 ) {
-                  console.log(
-                    `   │    sso_account_id: ${profileSsoConfig.ssoAccountId} → ${selectedAccount.accountId}`,
+                  diffs.push(
+                    `sso_account_id: ${profileSsoConfig.ssoAccountId} → ${selectedAccount.accountId}`,
                   );
                 }
                 if (profileSsoConfig.ssoRoleName !== selectedRole.roleName) {
-                  console.log(
-                    `   │    sso_role_name: ${profileSsoConfig.ssoRoleName} → ${selectedRole.roleName}`,
+                  diffs.push(
+                    `sso_role_name: ${profileSsoConfig.ssoRoleName} → ${selectedRole.roleName}`,
                   );
                 }
+
                 console.log('   │');
+                console.log(
+                  '   ├─ ⚠ profile found in ~/.aws/config (different)',
+                );
+                console.log('   │  ├─ differences');
+                diffs.forEach((diff, i) => {
+                  const isLastDiff = i === diffs.length - 1;
+                  const diffPrefix = isLastDiff ? '└─' : '├─';
+                  console.log(`   │  │  ${diffPrefix} ${diff}`);
+                });
+                console.log('   │  └─ choice');
                 const overwriteAnswer = await promptUser(
-                  '   │  overwrite? (y/n): ',
+                  '   │     └─ overwrite? (y/n): ',
                 );
                 shouldOverwrite = overwriteAnswer.toLowerCase() === 'y';
-                console.log('   │');
+                // rewrite the choice line with confirmation
+                process.stdout.write('\x1b[1A\x1b[2K');
+                console.log(`   │     └─ ${shouldOverwrite ? 'y ✓' : 'n ✗'}`);
 
                 if (!shouldOverwrite) {
+                  console.log('   │');
                   console.log('   └─ (setup cancelled)');
                   console.log('');
                   process.exit(0);
@@ -592,21 +559,25 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               }
             } else {
               // profile exists but is NOT an sso profile
+              console.log('   │');
               console.log(
                 '   ├─ ⚠ profile found in ~/.aws/config (not an sso profile)',
               );
-              console.log('   │');
+              console.log('   │  ├─ note');
               console.log(
-                '   │  this profile exists but was not set up for sso.',
+                '   │  │  └─ this profile exists but was not set up for sso',
               );
-              console.log('   │');
+              console.log('   │  └─ choice');
               const overwriteAnswer = await promptUser(
-                '   │  overwrite? (y/n): ',
+                '   │     └─ overwrite? (y/n): ',
               );
               shouldOverwrite = overwriteAnswer.toLowerCase() === 'y';
-              console.log('   │');
+              // rewrite the choice line with confirmation
+              process.stdout.write('\x1b[1A\x1b[2K');
+              console.log(`   │     └─ ${shouldOverwrite ? 'y ✓' : 'n ✗'}`);
 
               if (!shouldOverwrite) {
+                console.log('   │');
                 console.log('   └─ (setup cancelled)');
                 console.log('');
                 process.exit(0);
@@ -615,9 +586,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           }
 
           // setup profile (skip if equivalent)
+          console.log('   │');
+          console.log('   ├─ lovely, lets vault it now...');
           if (!profileExists || shouldOverwrite) {
-            const verb = profileExists ? 'update' : 'write';
-            write(`   └─ ⏳ ${verb} ~/.aws/config...`);
             await setupAwsSsoProfile({
               profileName,
               ssoStartUrl,
@@ -626,58 +597,43 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               ssoRoleName: selectedRole.roleName,
               overwrite: true, // always safe: harmless if new, required if exists
             });
-            clearLine();
-            console.log('   └─ done');
-            console.log('');
-            console.log(
-              `      ✓ ${verb === 'update' ? 'updated' : 'wrote'} ~/.aws/config`,
-            );
-            console.log('      ✓ validated via aws sts get-caller-identity');
-            console.log('');
+            console.log('   │  └─ ✓ written to ~/.aws/config');
           } else if (isEquivalent) {
             // equivalent profile found, just use it
-            console.log('   └─ done');
-            console.log('');
+            console.log('   │  └─ ✓ profile already in ~/.aws/config');
           }
 
           awsSsoProfileName = profileName;
         }
 
-        // set host config for each target slug
-        const results: Array<{ slug: string; vault: string; mech: string }> =
-          [];
-        for (const slug of targetSlugs) {
-          const keyHost = await setKeyrackKeyHost(
-            {
-              slug,
-              mech: opts.mech as KeyrackGrantMechanism,
-              vault: opts.vault as KeyrackHostVault,
-              exid: awsSsoProfileName ?? opts.exid,
-            },
-            context,
-          );
+        // domain operation orchestrates set (vault ops, manifest updates, roundtrip)
+        const profileNameToStore = awsSsoProfileName ?? opts.exid;
 
-          // store value in vault (for vaults that store values, not just references)
-          // aws.iam.sso vault needs the profile name stored so get() can retrieve it
-          const profileNameToStore = awsSsoProfileName ?? opts.exid;
-          if (opts.vault === 'aws.iam.sso' && profileNameToStore) {
-            await context.vaultAdapters['aws.iam.sso'].set({
-              slug,
-              value: profileNameToStore,
-            });
-          }
-
-          results.push({ slug, vault: keyHost.vault, mech: keyHost.mech });
+        // show roundtrip progress in CLI (before domain operation)
+        if (opts.vault === 'aws.iam.sso' && profileNameToStore && !opts.json) {
+          console.log('   │');
+          console.log('   └─ perfect, now lets verify...');
         }
 
-        // register key in repo manifest (findsert: adds if not present)
-        // note: only register for specific env (skip when env='all')
-        if (opts.env !== 'all') {
-          await daoKeyrackRepoManifest.set({
-            gitroot,
+        const { results, roundtripValidated } = await setKeyrackKey(
+          {
+            key: opts.key,
             env: opts.env,
-            keyName: opts.key,
-          });
+            org,
+            vault: opts.vault as KeyrackHostVault,
+            mech: opts.mech as KeyrackGrantMechanism,
+            exid: profileNameToStore,
+            repoManifest: grantContext.repoManifest,
+            gitroot,
+          },
+          context,
+        );
+
+        // show roundtrip success (after domain operation completes)
+        if (roundtripValidated && !opts.json) {
+          console.log('      ├─ ✓ unlock');
+          console.log('      ├─ ✓ get');
+          console.log('      └─ ✓ relock');
         }
 
         // output results
@@ -685,7 +641,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           console.log(JSON.stringify(results, null, 2));
         } else {
           console.log('');
-          console.log(`🔐 rhachet/keyrack set (org: ${org}, env: ${opts.env})`);
+          console.log(`🔐 keyrack set (org: ${org}, env: ${opts.env})`);
           for (let i = 0; i < results.length; i++) {
             const r = results[i]!;
             const isLast = i === results.length - 1;
@@ -695,8 +651,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             console.log(`${indent}├─ mech: ${r.mech}`);
             console.log(`${indent}└─ vault: ${r.vault}`);
           }
-          console.log(`done. ${results.length} key(s) configured ✨`);
-          console.log('');
         }
       },
     );
@@ -754,7 +708,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             console.log(`${indent}├─ vault: ${key.vault}`);
             console.log(`${indent}└─ expires in: ${expiresIn}m`);
           }
-          console.log(`done. ${unlocked.length} keys unlocked.`);
           console.log('');
         }
       },
@@ -763,13 +716,19 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
   // keyrack relock [--key <slug>]
   keyrack
     .command('relock')
-    .description('purge keys from daemon memory')
+    .description('prune keys from daemon memory and clear vault caches')
     .option('--key <slug>', 'relock specific key (default: all keys)')
     .option('--json', 'output as json (robot mode)')
     .action(async (opts: { key?: string; json?: boolean }) => {
-      // relock keys
+      // get gitroot for repo manifest
+      const gitroot = await getGitRepoRoot({ from: process.cwd() });
+
+      // generate context for vault adapter access
+      const context = await genKeyrackGrantContext({ gitroot });
+
+      // relock keys from daemon and clear vault caches
       const slugs = opts.key ? [opts.key] : undefined;
-      const { relocked } = await relockKeyrack({ slugs });
+      const { relocked } = await relockKeyrack({ slugs }, context);
 
       // output results
       if (opts.json) {
@@ -778,16 +737,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         console.log('');
         console.log('🔒 rhachet/keyrack relock');
         if (relocked.length === 0) {
-          console.log('   └─ (no keys to purge)');
+          console.log('   └─ (no keys to prune)');
         } else {
           for (let i = 0; i < relocked.length; i++) {
             const slug = relocked[i]!;
             const isLast = i === relocked.length - 1;
             const prefix = isLast ? '   └─' : '   ├─';
-            console.log(`${prefix} ${slug}: purged 🔒`);
+            console.log(`${prefix} ${slug}: pruned 🔒`);
           }
         }
-        console.log(`done. ${relocked.length} keys purged.`);
         console.log('');
       }
     });
@@ -847,7 +805,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       if (opts.from === 'host') {
         const context = await genKeyrackHostContext();
         const hosts = context.hostManifest.hosts;
-        const slugs = Object.keys(hosts);
+        const slugs = Object.keys(hosts).sort();
 
         if (opts.json) {
           console.log(JSON.stringify(hosts, null, 2));
@@ -868,7 +826,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               console.log(`${indent}└─ vault: ${host.vault}`);
             }
           }
-          console.log(`done. ${slugs.length} keys configured.`);
           console.log('');
         }
         return;
@@ -889,9 +846,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         process.exit(1);
       }
 
-      // get all slugs from repo manifest
+      // get all slugs from repo manifest, sorted for deterministic output
       const repoKeys = grantContext.repoManifest.keys;
-      const slugs = Object.keys(repoKeys);
+      const slugs = Object.keys(repoKeys).sort();
 
       // enrich with host config if available
       const enriched: Record<
@@ -941,8 +898,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             );
           }
         }
-        console.log(`done. ${slugs.length} keys configured.`);
-        console.log('');
       }
     });
 
@@ -972,6 +927,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           console.log(`   └─ manifest already exists: ${relativePath}`);
         } else {
           console.log(`   └─ created: ${relativePath}`);
+          console.log('');
+          console.log('   next steps:');
+          console.log(
+            '   └─ run `rhx keyrack set --key <KEY_NAME> --env <ENV> --vault <VAULT>` to configure keys',
+          );
         }
         console.log('');
       }
