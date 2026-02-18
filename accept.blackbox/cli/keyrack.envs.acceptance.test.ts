@@ -5,8 +5,11 @@ import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack envs', () => {
+  // kill any stale daemon to ensure fresh daemon with current code
+  beforeAll(() => killKeyrackDaemonForTests());
   /**
    * [uc9] --env required when env-specific sections exist
    */
@@ -784,6 +787,7 @@ describe('keyrack envs', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'test-aws-profile-value\n',
         }),
       );
 

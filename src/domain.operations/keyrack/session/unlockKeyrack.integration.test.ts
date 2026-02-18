@@ -10,7 +10,7 @@ import {
 import { generateAgeKeyPair } from '../adapters/ageRecipientCrypto';
 import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessGet } from '../daemon/sdk';
-import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 import { unlockKeyrack } from './unlockKeyrack';
 
 describe('unlockKeyrack.integration', () => {
@@ -68,7 +68,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -78,7 +78,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrack(
@@ -106,7 +106,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -116,7 +116,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrack({ env: 'sudo', key: 'ADMIN_TOKEN' }, context);
@@ -181,7 +181,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.all.API_KEY': secretValue },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifest,
           repoManifest: {
             org: 'ehmpathy',
@@ -203,7 +203,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrack({ owner: 'case2' }, context);
@@ -264,7 +264,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.SENSITIVE_KEY': secretValue },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -274,7 +274,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         // capture console.warn
@@ -351,7 +351,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.SHORT_LIVED_KEY': secretValue },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -361,7 +361,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrack(
@@ -466,7 +466,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.TOKEN_A': secretValueA },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifestA,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -476,7 +476,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrack(
@@ -512,7 +512,7 @@ describe('unlockKeyrack.integration', () => {
           storage: { 'ehmpathy.sudo.TOKEN_B': secretValueB },
         });
 
-        const context: KeyrackGrantContext = {
+        const context: ContextKeyrackGrantUnlock = {
           hostManifest: manifestB,
           repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
           vaultAdapters: {
@@ -522,7 +522,7 @@ describe('unlockKeyrack.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
           },
-          mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrack(

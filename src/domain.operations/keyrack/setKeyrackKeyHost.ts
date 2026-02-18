@@ -67,7 +67,33 @@ export const setKeyrackKeyHost = async (
     updatedAt: now,
   });
 
-  // check if key already exists
+  // always store value in vault first (ensures file exists even on findsert match)
+  if (input.value) {
+    const envValue = input.env ?? 'all';
+    if (input.vault === 'os.secure') {
+      await vaultAdapterOsSecure.set({
+        slug: input.slug,
+        value: input.value,
+        env: envValue,
+        org: resolvedOrg,
+        vaultRecipient: input.vaultRecipient ?? null,
+        // when no explicit vaultRecipient, use manifest recipients
+        recipients: input.vaultRecipient
+          ? undefined
+          : context.hostManifest.recipients,
+      });
+    }
+    if (input.vault === 'os.direct') {
+      await vaultAdapterOsDirect.set({
+        slug: input.slug,
+        value: input.value,
+        env: envValue,
+        org: resolvedOrg,
+      });
+    }
+  }
+
+  // check if key already exists in manifest
   const hostFound = context.hostManifest.hosts[input.slug];
   if (hostFound) {
     // if found with same attrs, return found (findsert semantics)
@@ -96,32 +122,6 @@ export const setKeyrackKeyHost = async (
 
   // persist host manifest
   await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
-
-  // store value in vault (if provided)
-  if (input.value) {
-    const envValue = input.env ?? 'all';
-    if (input.vault === 'os.secure') {
-      await vaultAdapterOsSecure.set({
-        slug: input.slug,
-        value: input.value,
-        env: envValue,
-        org: resolvedOrg,
-        vaultRecipient: input.vaultRecipient ?? null,
-        // when no explicit vaultRecipient, use manifest recipients
-        recipients: input.vaultRecipient
-          ? undefined
-          : context.hostManifest.recipients,
-      });
-    }
-    if (input.vault === 'os.direct') {
-      await vaultAdapterOsDirect.set({
-        slug: input.slug,
-        value: input.value,
-        env: envValue,
-        org: resolvedOrg,
-      });
-    }
-  }
 
   // for non-sudo keys: also write to keyrack.yml (if gitroot available)
   const envValue = input.env ?? 'all';

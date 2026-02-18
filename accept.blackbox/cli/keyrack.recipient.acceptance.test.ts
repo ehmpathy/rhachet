@@ -39,7 +39,7 @@ describe('keyrack recipient', () => {
       then('shows one recipient (default from init)', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toHaveLength(1);
-        expect(parsed[0].label).toEqual('default');
+        expect(parsed[0].label).toEqual('test-key');
         expect(parsed[0].mech).toEqual('age');
       });
     });
@@ -101,7 +101,7 @@ describe('keyrack recipient', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toHaveLength(2);
         const labels = parsed.map((r: { label: string }) => r.label);
-        expect(labels).toContain('default');
+        expect(labels).toContain('test-key');
         expect(labels).toContain('backup-key');
       });
     });
@@ -148,7 +148,7 @@ describe('keyrack recipient', () => {
       then('shows one recipient again', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toHaveLength(1);
-        expect(parsed[0].label).toEqual('default');
+        expect(parsed[0].label).toEqual('test-key');
       });
     });
   });
@@ -180,7 +180,7 @@ describe('keyrack recipient', () => {
             '--pubkey',
             testPubkey,
             '--label',
-            'default', // duplicate label
+            'test-key', // duplicate label
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
@@ -199,7 +199,7 @@ describe('keyrack recipient', () => {
     when('[t1] recipient del last recipient', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'recipient', 'del', '--label', 'default'],
+          args: ['keyrack', 'recipient', 'del', '--label', 'test-key'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -344,7 +344,7 @@ describe('keyrack recipient', () => {
 
       then('output contains recipient info', () => {
         expect(result.stdout).toContain('recipient');
-        expect(result.stdout).toContain('default');
+        expect(result.stdout).toContain('test-key');
         expect(result.stdout).toContain('age');
       });
 
@@ -408,6 +408,73 @@ describe('keyrack recipient', () => {
       then('stdout matches snapshot', () => {
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
+    });
+  });
+
+  /**
+   * [gap.4] --stanza ssh prevention flow (full CLI round-trip)
+   *
+   * .what = test the full prevention path for users who plan to add a passphrase
+   *         to a key that was passwordless at init time.
+   *
+   *         at init, a passwordless key gets `mech: 'age'` with an `age1...` pubkey.
+   *         if the user later runs `ssh-keygen -p` to add a passphrase, the manifest
+   *         has an X25519 stanza but the key now needs an ssh-ed25519 stanza — mismatch.
+   *
+   *         the prevention flow is:
+   *           1. `rhx keyrack recipient set --pubkey ~/.ssh/id_ed25519.pub --stanza ssh`
+   *              (adds ssh-ed25519 recipient BEFORE passphrase change)
+   *           2. user runs `ssh-keygen -p` (adds passphrase)
+   *           3. manifest already has ssh-ed25519 stanza — no mismatch
+   *           4. `rhx keyrack recipient del --label "default"` (clean up stale age1... recipient)
+   *
+   * .why = this is the only way to safely transition a passwordless key to passphrase-protected
+   *        without loss of access to the manifest. without this flow, the user must do a
+   *        4-step recovery (temporarily remove passphrase, add ssh recipient, restore passphrase,
+   *        remove old recipient). the prevention path avoids that friction entirely.
+   *
+   * .what we'd test:
+   *   t0: init with passwordless key produces mech: 'age' recipient
+   *       - baseline: confirms cipher-aware detection works
+   *   t1: recipient set --stanza ssh adds ssh-ed25519 recipient alongside age1...
+   *       - verifies --stanza ssh overrides cipher-aware conversion
+   *       - verifies manifest now has two recipients of different types
+   *   t2: after simulated passphrase addition, unlock still works via ssh-ed25519 stanza
+   *       - the critical assertion: manifest is decryptable despite key change
+   *   t3: recipient del removes stale age1... recipient, manifest still decryptable
+   *       - verifies cleanup path works
+   *
+   * .why deferred:
+   *   requires passphrase-protected test keys and age CLI in the test environment.
+   *   to simulate `ssh-keygen -p` (add passphrase to a key mid-test) is complex:
+   *   - must generate a fresh key pair per test run
+   *   - must invoke ssh-keygen non-interactively to add passphrase
+   *   - must verify age CLI can decrypt the ssh-ed25519 stanza with the now-protected key
+   *   - age CLI must be installed in the test env (not guaranteed in CI)
+   *   unit tests cover `sshPubkeyToAgeRecipient` and `sshPrikeyToAgeIdentity` — this gap
+   *   is the full CLI round-trip only.
+   */
+  given.skip('[case5] --stanza ssh prevention flow (gap.4: deferred)', () => {
+    when('[t0] init with passwordless key', () => {
+      then('recipient mech is age', () => {});
+      then('recipient pubkey starts with age1', () => {});
+    });
+
+    when('[t1] recipient set --stanza ssh (add ssh-ed25519 recipient)', () => {
+      then('exits with status 0', () => {});
+      then('manifest now has two recipients', () => {});
+      then('one recipient is age, one is ssh', () => {});
+    });
+
+    when('[t2] unlock after passphrase added to key', () => {
+      then('exits with status 0 (ssh-ed25519 stanza matches)', () => {});
+      then('credential is accessible via get', () => {});
+    });
+
+    when('[t3] recipient del removes stale age1... recipient', () => {
+      then('exits with status 0', () => {});
+      then('manifest has one recipient (ssh only)', () => {});
+      then('unlock still works', () => {});
     });
   });
 });

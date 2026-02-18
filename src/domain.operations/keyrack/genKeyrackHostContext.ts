@@ -1,8 +1,10 @@
+import { UnexpectedCodePathError } from 'helpful-errors';
+
 import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
-import {
+import type {
   KeyrackHostManifest,
-  type KeyrackHostVault,
-  type KeyrackHostVaultAdapter,
+  KeyrackHostVault,
+  KeyrackHostVaultAdapter,
 } from '../../domain.objects/keyrack';
 import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
 import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
@@ -37,15 +39,13 @@ export const genKeyrackHostContext = async (input: {
 }): Promise<KeyrackHostContext> => {
   const { owner } = input;
 
-  // load host manifest (create empty one if none exists)
-  const hostManifest =
-    (await daoKeyrackHostManifest.get({ owner })) ??
-    new KeyrackHostManifest({
-      uri: `~/.rhachet/keyrack/keyrack.host${owner ? `.${owner}` : ''}.age`,
-      owner,
-      recipients: [],
-      hosts: {},
-    });
+  // load host manifest (fail fast if not found)
+  const hostManifest = await daoKeyrackHostManifest.get({ owner });
+  if (!hostManifest)
+    throw new UnexpectedCodePathError(
+      'host manifest not found. run: rhx keyrack init',
+      { owner },
+    );
 
   // sync identity from manifest DAO to os.secure vault adapter
   // this enables vault decryption with the same identity used for manifest decryption

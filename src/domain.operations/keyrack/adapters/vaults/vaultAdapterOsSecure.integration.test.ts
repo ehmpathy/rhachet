@@ -14,7 +14,13 @@ describe('vaultAdapterOsSecure', () => {
 
   beforeEach(async () => {
     // clean up vault directory before each test
-    const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+    const vaultDir = join(
+      tempHome.path,
+      '.rhachet',
+      'keyrack',
+      'vault',
+      'os.secure',
+    );
     rmSync(vaultDir, { recursive: true, force: true });
 
     // reset session state by lock then unlock
@@ -75,7 +81,13 @@ describe('vaultAdapterOsSecure', () => {
           org: 'testorg',
         });
 
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         expect(existsSync(vaultDir)).toBe(true);
 
         const files = readdirSync(vaultDir);
@@ -180,7 +192,13 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t0] encrypted file read directly', () => {
       then('does not contain plaintext value', async () => {
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);
         const { readFileSync } = await import('node:fs');
@@ -191,7 +209,13 @@ describe('vaultAdapterOsSecure', () => {
       });
 
       then('contains age header', async () => {
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);
         const { readFileSync } = await import('node:fs');

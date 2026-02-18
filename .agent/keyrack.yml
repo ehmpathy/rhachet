@@ -3,3 +3,4 @@ env.prod: []
 env.all:
   - RELOCK_REGULAR_KEY
   - REGULAR_KEY
+  - MY_API_KEY

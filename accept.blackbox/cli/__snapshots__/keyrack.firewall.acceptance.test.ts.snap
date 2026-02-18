@@ -14,6 +14,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0] get --key SAFE_API_KEY (valid api key) then: stdout matches snapshot 1`] = `
 {
   "grant": {
+    "env": "test",
     "key": {
       "grade": {
         "duration": "permanent",
@@ -21,6 +22,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
       },
       "secret": "sk-safe-api-key-abc123",
     },
+    "org": "testorg",
     "slug": "testorg.test.SAFE_API_KEY",
     "source": {
       "mech": "REPLICA",
@@ -43,7 +45,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1] get --key GHP_TOKEN (github classic pat) then: stdout matches snapshot 1`] = `
 {
-  "fix": "update cached credential or run: rhx keyrack unlock",
+  "fix": "update stored credential to use a short-lived or properly-formatted value",
   "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
   "slug": "testorg.test.GHP_TOKEN",
   "status": "blocked",
@@ -52,7 +54,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t2] get --key AKIA_TOKEN (aws long-lived access key) then: stdout matches snapshot 1`] = `
 {
-  "fix": "update cached credential or run: rhx keyrack unlock",
+  "fix": "update stored credential to use a short-lived or properly-formatted value",
   "message": "replica mechanism rejects long-lived tokens: detected aws long-lived access key (AKIA*)",
   "slug": "testorg.test.AKIA_TOKEN",
   "status": "blocked",
@@ -63,6 +65,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 [
   {
     "grant": {
+      "env": "test",
       "key": {
         "grade": {
           "duration": "permanent",
@@ -70,6 +73,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
         },
         "secret": "sk-safe-api-key-abc123",
       },
+      "org": "testorg",
       "slug": "testorg.test.SAFE_API_KEY",
       "source": {
         "mech": "REPLICA",
@@ -79,13 +83,13 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
     "status": "granted",
   },
   {
-    "fix": "update cached credential or run: rhx keyrack unlock",
+    "fix": "update stored credential to use a short-lived or properly-formatted value",
     "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
     "slug": "testorg.test.GHP_TOKEN",
     "status": "blocked",
   },
   {
-    "fix": "update cached credential or run: rhx keyrack unlock",
+    "fix": "update stored credential to use a short-lived or properly-formatted value",
     "message": "replica mechanism rejects long-lived tokens: detected aws long-lived access key (AKIA*)",
     "slug": "testorg.test.AKIA_TOKEN",
     "status": "blocked",

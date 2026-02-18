@@ -1,5 +1,7 @@
-export type { KeyrackGrantContext } from './genKeyrackGrantContext';
-export { genKeyrackGrantContext } from './genKeyrackGrantContext';
+export type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
+export { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
+export type { ContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';
+export { genContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';
 export type { KeyrackHostContext } from './genKeyrackHostContext';
 export { genKeyrackHostContext } from './genKeyrackHostContext';
 export { getKeyrackKeyGrant } from './getKeyrackKeyGrant';

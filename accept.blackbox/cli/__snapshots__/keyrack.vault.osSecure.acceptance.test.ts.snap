@@ -4,89 +4,92 @@ exports[`keyrack vault os.secure given: [case1] repo with os.secure vault config
 {
   "testorg.test.SECURE_API_KEY": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
+    "vaultRecipient": null,
   },
 }
 `;
 
 exports[`keyrack vault os.secure given: [case1] repo with os.secure vault configured when: [t1] keyrack list (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack
+🔐 rhachet/keyrack list
    └─ testorg.test.SECURE_API_KEY
+      ├─ env: test
+      ├─ org: testorg
       ├─ mech: REPLICA
       └─ vault: os.secure
+done. 1 keys configured.
+
 "
 `;
 
 exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.secure then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "REPLICA",
-    "slug": "testorg.test.NEW_KEY",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "os.secure",
-  },
-]
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "REPLICA",
+  "org": "testorg",
+  "slug": "testorg.test.NEW_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+  "vaultRecipient": null,
+}
 `;
 
 exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t1] keyrack list after set then: stdout matches snapshot 1`] = `
 {
   "testorg.test.ANOTHER_SECURE_KEY": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.ANOTHER_SECURE_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
+    "vaultRecipient": null,
   },
   "testorg.test.NEW_KEY": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
+    "vaultRecipient": null,
   },
   "testorg.test.SECURE_API_KEY": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
+    "vaultRecipient": null,
   },
 }
 `;
 
-exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (daemon empty) when: [t0] keyrack get --key SECURE_API_KEY without unlock then: stdout matches snapshot 1`] = `
-{
-  "fix": "run: rhx keyrack get --key SECURE_API_KEY --env test --unlock",
-  "message": "vault 'os.secure' is locked",
-  "slug": "testorg.test.SECURE_API_KEY",
-  "status": "locked",
-}
-`;
-
-exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] set key that already has same attrs then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "REPLICA",
-    "slug": "testorg.test.SECURE_API_KEY",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "os.secure",
-  },
-]
-`;
-
-exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recipient key available) when: [t0] keyrack get --key SECURE_API_KEY (recipient key auto-decrypts) then: stdout matches snapshot 1`] = `
 {
   "grant": {
+    "env": "test",
     "key": {
       "grade": {
         "duration": "permanent",
@@ -94,6 +97,44 @@ exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fix
       },
       "secret": "portable-secure-value-xyz789",
     },
+    "org": "testorg",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.secure",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] set key that already has same attrs then: stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "REPLICA",
+  "org": "testorg",
+  "slug": "testorg.test.SECURE_API_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+  "vaultRecipient": null,
+}
+`;
+
+exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "test",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",

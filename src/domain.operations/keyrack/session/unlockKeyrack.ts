@@ -6,7 +6,7 @@ import type { KeyrackKey } from '../../../domain.objects/keyrack/KeyrackKey';
 import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
 import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessUnlock, findsertKeyrackDaemon } from '../daemon/sdk';
-import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 import { getAllKeyrackSlugsForEnv } from '../getAllKeyrackSlugsForEnv';
 import { inferKeyGrade } from '../grades/inferKeyGrade';
 
@@ -25,7 +25,7 @@ export const unlockKeyrack = async (
     duration?: string;
     passphrase?: string;
   },
-  context: KeyrackGrantContext,
+  context: ContextKeyrackGrantUnlock,
 ): Promise<{
   unlocked: Array<{
     slug: string;
@@ -48,8 +48,8 @@ export const unlockKeyrack = async (
   // determine which keys to unlock
   const repoManifest = context.repoManifest;
 
-  // resolve env (default 'all')
-  const env = input.env ?? 'all';
+  // resolve env (null if not provided; assertKeyrackEnvIsSpecified will validate)
+  const env = input.env ?? null;
 
   // for sudo keys, find matched keys in hostManifest by key name suffix
   // for regular keys, use repoManifest + hostManifest intersection
@@ -156,8 +156,15 @@ export const unlockKeyrack = async (
     // get secret from vault
     const secret = await adapter.get({ slug, exid: hostConfig.exid });
     if (!secret) {
-      // key not found in vault — skip
-      continue;
+      throw new UnexpectedCodePathError(
+        'vault file absent for key that exists in manifest',
+        {
+          slug,
+          vault,
+          env: hostConfig.env,
+          fix: `re-run: keyrack set --key ... --env ${hostConfig.env} --vault ${vault}`,
+        },
+      );
     }
 
     // infer grade from vault and mechanism

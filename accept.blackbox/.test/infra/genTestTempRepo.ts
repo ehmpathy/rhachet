@@ -211,7 +211,7 @@ const convertOsSecureCredentials = async (input: {
   recipient: KeyrackKeyRecipient;
 }): Promise<void> => {
   const { asHashSha256Sync } = await import('hash-fns');
-  const secureDir = join(input.repoPath, '.rhachet', 'keyrack.secure');
+  const secureDir = join(input.repoPath, '.rhachet', 'keyrack', 'vault', 'os.secure');
 
   // skip if os.secure directory dne
   if (!existsSync(secureDir)) return;

@@ -263,6 +263,8 @@ describe('keyrack vault os.direct', () => {
             'set',
             '--key',
             'DIRECT_TEST_KEY',
+            '--env',
+            'test',
             '--mech',
             'REPLICA',
             '--vault',
@@ -271,6 +273,7 @@ describe('keyrack vault os.direct', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'unused-findsert-value\n',
         }),
       );
 
@@ -280,9 +283,9 @@ describe('keyrack vault os.direct', () => {
 
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.DIRECT_TEST_KEY');
-        expect(parsed[0].mech).toEqual('REPLICA');
-        expect(parsed[0].vault).toEqual('os.direct');
+        expect(parsed.slug).toEqual('testorg.test.DIRECT_TEST_KEY');
+        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.vault).toEqual('os.direct');
       });
 
       then('stdout matches snapshot', () => {

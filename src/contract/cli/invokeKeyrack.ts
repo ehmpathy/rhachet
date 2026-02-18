@@ -8,13 +8,16 @@ import type {
   KeyrackHostVault,
 } from '@src/domain.objects/keyrack';
 import {
-  genKeyrackGrantContext,
+  genContextKeyrackGrantGet,
+  genContextKeyrackGrantUnlock,
   genKeyrackHostContext,
   getKeyrackKeyGrant,
   initKeyrackRepoManifest,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
+import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
 import { getKeyrackRecipients } from '@src/domain.operations/keyrack/recipient/getKeyrackRecipients';
@@ -317,16 +320,28 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // get gitroot for repo manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
-        // generate context (use owner from --owner flag)
-        const context = await genKeyrackGrantContext({
-          owner: opts.owner ?? null,
-          gitroot,
-        });
+        // generate lightweight context (no manifest decryption, no passphrase prompt)
+        const context = await genContextKeyrackGrantGet({ gitroot });
 
         // handle grant
         if (opts.for === 'repo') {
+          // resolve slugs from repo manifest
+          if (!context.repoManifest) {
+            throw new BadRequestError(
+              'no keyrack.yml found in repo. --for repo requires keyrack.yml',
+            );
+          }
+          const resolvedEnv = assertKeyrackEnvIsSpecified({
+            manifest: context.repoManifest,
+            env: opts.env ?? null,
+          });
+          const slugs = getAllKeyrackSlugsForEnv({
+            manifest: context.repoManifest,
+            env: resolvedEnv,
+          });
+
           const attempts = await getKeyrackKeyGrant(
-            { for: { repo: true }, env: opts.env },
+            { for: { repo: true }, env: opts.env, slugs },
             context,
           );
 
@@ -559,10 +574,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // get gitroot to resolve org from manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const grantContext = await genKeyrackGrantContext({
-          owner: opts.for ?? null,
-          gitroot,
-        });
+        const getContext = await genContextKeyrackGrantGet({ gitroot });
         const hostContext = await genKeyrackHostContext({
           owner: opts.for ?? null,
         });
@@ -570,7 +582,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
         const context = {
           ...hostContext,
-          repoManifest: grantContext.repoManifest,
+          repoManifest: getContext.repoManifest,
           gitroot,
         };
 
@@ -579,7 +591,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         if (opts.org === '@all') {
           resolvedOrg = '@all';
         } else {
-          if (!grantContext.repoManifest) {
+          if (!getContext.repoManifest) {
             // for sudo keys, we don't need keyrack.yml — guide user to use @all
             if (opts.env === 'sudo') {
               console.log('');
@@ -599,7 +611,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             process.exit(1);
           }
           resolvedOrg = assertKeyrackOrgMatchesManifest({
-            manifest: grantContext.repoManifest,
+            manifest: getContext.repoManifest,
             org: opts.org,
           });
         }
@@ -696,8 +708,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // get gitroot for repo manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
-        // generate context (use owner from --for flag, prikey for fallback)
-        const context = await genKeyrackGrantContext({
+        // generate full context (decrypts host manifest — may prompt for passphrase)
+        const context = await genContextKeyrackGrantUnlock({
           owner: opts.for ?? null,
           gitroot,
           prikey: opts.prikey,
@@ -743,7 +755,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
   // keyrack relock [--for owner] [--env env] [--key slug]
   keyrack
     .command('relock')
-    .description('purge keys from daemon memory (default: all keys)')
+    .description('prune keys from daemon memory (default: all keys)')
     .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--env <env>', 'filter by env (e.g., sudo)')
     .option('--key <slug>', 'relock specific key')
@@ -773,16 +785,16 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           console.log('');
           console.log('🔒 rhachet/keyrack relock');
           if (sorted.length === 0) {
-            console.log('   └─ (no keys to purge)');
+            console.log('   └─ (no keys to prune)');
           } else {
             for (let i = 0; i < sorted.length; i++) {
               const slug = sorted[i]!;
               const isLast = i === sorted.length - 1;
               const prefix = isLast ? '   └─' : '   ├─';
-              console.log(`${prefix} ${slug}: purged 🔒`);
+              console.log(`${prefix} ${slug}: pruned 🔒`);
             }
           }
-          console.log(`done. ${sorted.length} keys purged.`);
+          console.log(`done. ${sorted.length} keys pruned.`);
           console.log('');
         }
       },

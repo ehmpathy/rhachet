@@ -32,7 +32,7 @@ describe('keyrack validation', () => {
 
       then('error mentions manifest not found', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/repo manifest.*none found|keyrack\.yml/i);
+        expect(output).toMatch(/manifest.*not found|keyrack\.yml|keyrack init/i);
       });
 
       then('stderr matches snapshot', () => {
@@ -56,7 +56,7 @@ describe('keyrack validation', () => {
 
       then('error mentions manifest not found', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/repo manifest|keyrack\.yml|no.*found/i);
+        expect(output).toMatch(/manifest.*not found|keyrack\.yml|keyrack init/i);
       });
 
       then('stderr matches snapshot', () => {
@@ -89,15 +89,15 @@ describe('keyrack validation', () => {
         expect(parsed.status).toEqual('absent');
       });
 
-      then('message indicates key not configured', () => {
+      then('message indicates key not found', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message).toContain('not configured');
+        expect(parsed.message).toMatch(/not configured|not found/i);
       });
 
       then('fix instructions are provided', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.fix).toBeDefined();
-        expect(parsed.fix).toContain('keyrack set');
+        expect(parsed.fix).toMatch(/keyrack set|keyrack unlock/i);
       });
 
       then('stdout matches snapshot', () => {

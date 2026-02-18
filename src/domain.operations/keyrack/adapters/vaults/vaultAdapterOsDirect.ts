@@ -33,11 +33,18 @@ const getHomeDir = (): string => {
 
 /**
  * .what = path to the plaintext credential store
- * .why = stores credentials in ~/.rhachet/keyrack.direct.json
+ * .why = stores credentials in ~/.rhachet/keyrack/vault/os.direct/keyrack.direct.json
  */
 const getDirectStorePath = (): string => {
   const home = getHomeDir();
-  return join(home, '.rhachet', 'keyrack.direct.json');
+  return join(
+    home,
+    '.rhachet',
+    'keyrack',
+    'vault',
+    'os.direct',
+    'keyrack.direct.json',
+  );
 };
 
 /**

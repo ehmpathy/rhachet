@@ -102,6 +102,7 @@ describe('keyrack vault os.secure', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'test-new-key-value\n',
         }),
       );
 
@@ -111,19 +112,19 @@ describe('keyrack vault os.secure', () => {
 
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.NEW_KEY');
-        expect(parsed[0].mech).toEqual('REPLICA');
-        expect(parsed[0].vault).toEqual('os.secure');
+        expect(parsed.slug).toEqual('testorg.test.NEW_KEY');
+        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         // redact timestamps for stable snapshots
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
-          ...entry,
+        const snapped = {
+          ...parsed,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -146,6 +147,7 @@ describe('keyrack vault os.secure', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'test-another-secure-value\n',
         }),
       );
 
@@ -207,10 +209,10 @@ describe('keyrack vault os.secure', () => {
   });
 
   /**
-   * [uc4] get without unlock shows key absent
-   * credential cannot be retrieved when daemon is empty and no passphrase provided
+   * [uc4] get with recipient key available grants via os.secure
+   * recipient-based encryption means os.secure can decrypt when recipient key is present
    */
-  given('[case4] repo with os.secure vault (daemon empty)', () => {
+  given('[case4] repo with os.secure vault (recipient key available)', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
@@ -225,25 +227,24 @@ describe('keyrack vault os.secure', () => {
       }),
     );
 
-    when('[t0] keyrack get --key SECURE_API_KEY without unlock', () => {
+    when('[t0] keyrack get --key SECURE_API_KEY (recipient key auto-decrypts)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
-          logOnError: false,
         }),
       );
 
-      then('returns locked status', () => {
+      then('returns granted status', () => {
         const parsed = JSON.parse(result.stdout);
-        // key exists in os.secure but vault is locked (daemon empty, no passphrase)
-        expect(parsed.status).toEqual('locked');
+        // recipient key is available so os.secure can decrypt directly
+        expect(parsed.status).toEqual('granted');
       });
 
-      then('fix mentions unlock', () => {
+      then('grant contains the credential value', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.fix).toContain('unlock');
+        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -280,6 +281,7 @@ describe('keyrack vault os.secure', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'unused-findsert-value\n',
         }),
       );
 
@@ -289,19 +291,19 @@ describe('keyrack vault os.secure', () => {
 
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.SECURE_API_KEY');
-        expect(parsed[0].mech).toEqual('REPLICA');
-        expect(parsed[0].vault).toEqual('os.secure');
+        expect(parsed.slug).toEqual('testorg.test.SECURE_API_KEY');
+        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         // redact timestamps for stable snapshots
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
-          ...entry,
+        const snapped = {
+          ...parsed,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -311,7 +313,7 @@ describe('keyrack vault os.secure', () => {
    * [uc6] portability: pre-encrypted .age file can be read
    * proves that age encryption is portable across systems
    *
-   * the pre-encrypted fixture exists at .rhachet/keyrack.secure/949203795e1e45ae.age
+   * the pre-encrypted fixture exists at .rhachet/keyrack/vault/os.secure/949203795e1e45ae.age
    * passphrase: test-passphrase-123, value: portable-secure-value-xyz789
    */
   given('[case6] repo with pre-encrypted .age fixture', () => {

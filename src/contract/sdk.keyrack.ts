@@ -16,8 +16,10 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
 import type { KeyrackHostVault } from '@src/domain.objects/keyrack/KeyrackHostVault';
-import { genKeyrackGrantContext } from '@src/domain.operations/keyrack/genKeyrackGrantContext';
+import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
+import { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
 import { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
+import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
 import { unlockKeyrackVault } from '@src/domain.operations/keyrack/vault/unlockKeyrackVault';
@@ -37,9 +39,11 @@ export { KeyrackKeyHost } from '@src/domain.objects/keyrack/KeyrackKeyHost';
 export { KeyrackKeySpec } from '@src/domain.objects/keyrack/KeyrackKeySpec';
 export { KeyrackRepoManifest } from '@src/domain.objects/keyrack/KeyrackRepoManifest';
 // context types
-export type { KeyrackGrantContext } from '@src/domain.operations/keyrack/genKeyrackGrantContext';
+export type { ContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
 // low-level operations (for advanced usage)
-export { genKeyrackGrantContext } from '@src/domain.operations/keyrack/genKeyrackGrantContext';
+export { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
+export type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+export { genContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
 export type { KeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
 export { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
 export { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
@@ -60,11 +64,25 @@ export const keyrack = {
     env?: string;
   }) => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
-    const context = await genKeyrackGrantContext({ owner: null, gitroot });
+    const context = await genContextKeyrackGrantGet({ gitroot });
 
     if ('repo' in input.for) {
+      // resolve slugs from repo manifest
+      if (!context.repoManifest) {
+        throw new Error(
+          'no keyrack.yml found in repo. --for repo requires keyrack.yml',
+        );
+      }
+      const resolvedEnv = assertKeyrackEnvIsSpecified({
+        manifest: context.repoManifest,
+        env: input.env ?? null,
+      });
+      const slugs = getAllKeyrackSlugsForEnv({
+        manifest: context.repoManifest,
+        env: resolvedEnv,
+      });
       return getKeyrackKeyGrant(
-        { for: { repo: true }, env: input.env },
+        { for: { repo: true }, env: input.env, slugs },
         context,
       );
     }

@@ -1,12 +1,14 @@
+import { UnexpectedCodePathError } from 'helpful-errors';
+
 import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '../../access/daos/daoKeyrackRepoManifest';
-import {
-  type KeyrackGrantMechanism,
-  type KeyrackGrantMechanismAdapter,
+import type {
+  KeyrackGrantMechanism,
+  KeyrackGrantMechanismAdapter,
   KeyrackHostManifest,
-  type KeyrackHostVault,
-  type KeyrackHostVaultAdapter,
-  type KeyrackRepoManifest,
+  KeyrackHostVault,
+  KeyrackHostVaultAdapter,
+  KeyrackRepoManifest,
 } from '../../domain.objects/keyrack';
 import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
@@ -22,10 +24,12 @@ import {
 } from './adapters/vaults/vaultAdapterOsSecure';
 
 /**
- * .what = context for grant-scoped keyrack operations
- * .why = provides access to manifests and all adapters
+ * .what = full context for keyrack unlock operations
+ * .why = unlock reads from vaults and needs manifest decryption + vault adapters
+ *
+ * .note = this is the heavy context that may prompt for passphrase
  */
-export interface KeyrackGrantContext {
+export interface ContextKeyrackGrantUnlock {
   hostManifest: KeyrackHostManifest;
   repoManifest: KeyrackRepoManifest | null;
   vaultAdapters: Record<KeyrackHostVault, KeyrackHostVaultAdapter>;
@@ -33,27 +37,26 @@ export interface KeyrackGrantContext {
 }
 
 /**
- * .what = generate context for grant-scoped keyrack operations
- * .why = constructs runtime context with manifests and adapters
+ * .what = generate full context for keyrack unlock operations
+ * .why = constructs runtime context with manifests and all adapters
  *
  * .note = prikey is optional; when provided, uses it directly for manifest decryption
+ * .note = may prompt for passphrase on manifest decryption
  */
-export const genKeyrackGrantContext = async (input: {
+export const genContextKeyrackGrantUnlock = async (input: {
   owner: string | null;
   gitroot: string;
   prikey?: string;
-}): Promise<KeyrackGrantContext> => {
+}): Promise<ContextKeyrackGrantUnlock> => {
   const { owner, prikey } = input;
 
-  // load host manifest (create empty one if file absent)
-  const hostManifest =
-    (await daoKeyrackHostManifest.get({ owner, prikey })) ??
-    new KeyrackHostManifest({
-      uri: `~/.rhachet/keyrack/keyrack.host${owner ? `.${owner}` : ''}.age`,
-      owner,
-      recipients: [],
-      hosts: {},
-    });
+  // load host manifest (fail fast if not found)
+  const hostManifest = await daoKeyrackHostManifest.get({ owner, prikey });
+  if (!hostManifest)
+    throw new UnexpectedCodePathError(
+      'host manifest not found. run: rhx keyrack init',
+      { owner },
+    );
 
   // sync identity from manifest DAO to os.secure vault adapter
   // this enables vault decryption with the same identity used for manifest decryption

@@ -17,6 +17,8 @@ export const asSnapshotSafe = (output: string): string => {
       )
       // strip temp test repo paths (vary by run)
       .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip ISO timestamps (vary by run)
+      .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '__TIMESTAMP__')
   );
 };
 

@@ -13,7 +13,14 @@ describe('vaultAdapterOsDirect', () => {
 
   beforeEach(() => {
     // clean up store before each test
-    const storePath = join(tempHome.path, '.rhachet', 'keyrack.direct.json');
+    const storePath = join(
+      tempHome.path,
+      '.rhachet',
+      'keyrack',
+      'vault',
+      'os.direct',
+      'keyrack.direct.json',
+    );
     rmSync(storePath, { force: true });
   });
 
@@ -44,6 +51,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         expect(existsSync(storePath)).toBe(true);
@@ -163,6 +173,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -176,6 +189,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -201,6 +217,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -261,6 +280,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');

@@ -34,11 +34,11 @@ const getHomeDir = (): string => {
 
 /**
  * .what = directory for encrypted credential files
- * .why = stores age-encrypted files at ~/.rhachet/keyrack.secure/
+ * .why = stores age-encrypted files at ~/.rhachet/keyrack/vault/os.secure/
  */
 const getSecureVaultDir = (): string => {
   const home = getHomeDir();
-  return join(home, '.rhachet', 'keyrack.secure');
+  return join(home, '.rhachet', 'keyrack', 'vault', 'os.secure');
 };
 
 /**

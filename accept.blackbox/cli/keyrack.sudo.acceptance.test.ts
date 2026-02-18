@@ -369,6 +369,9 @@ describe('keyrack sudo', () => {
    * [uc4] relock behavior
    */
   given('[case4] relock behavior', () => {
+    // kill daemon to isolate from case3 sudo key state
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
       // unlock all keys first so relock has keys to purge
@@ -393,12 +396,12 @@ describe('keyrack sudo', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output mentions purge/relock', () => {
-        expect(result.stdout).toContain('purge');
+      then('output mentions prune/relock', () => {
+        expect(result.stdout).toContain('prune');
       });
 
-      then('output shows correct count of purged keys', () => {
-        expect(result.stdout).toContain('done. 4 keys purged.');
+      then('output shows correct count of pruned keys', () => {
+        expect(result.stdout).toContain('done. 4 keys pruned.');
         expect(result.stdout).toContain('testorg.prod.AWS_PROFILE');
         expect(result.stdout).toContain('testorg.prod.SHARED_API_KEY');
         expect(result.stdout).toContain('testorg.prep.AWS_PROFILE');
@@ -827,7 +830,7 @@ describe('keyrack sudo', () => {
       return r;
     });
 
-    when('[t0] get --key without unlock (shows granted - gap: should show locked)', () => {
+    when('[t0] get --key without unlock (returns locked)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -844,11 +847,13 @@ describe('keyrack sudo', () => {
         }),
       );
 
-      then('returns granted status (gap: should return locked per blueprint)', () => {
-        // gap: sudo keys should show as "locked" when not unlocked in daemon
-        // actual behavior: fetches directly from vault and shows "granted"
-        // blueprint says: "keyrack returns error: sudo credential X is locked..."
-        expect(result.stdout).toContain('granted');
+      then('returns locked status', () => {
+        // sudo keys require explicit unlock via daemon — direct vault access is denied
+        expect(result.stdout).toContain('locked');
+      });
+
+      then('output contains unlock instructions', () => {
+        expect(result.stdout).toContain('rhx keyrack unlock --env sudo');
       });
     });
 
@@ -1124,7 +1129,7 @@ describe('keyrack sudo', () => {
         value: 'sudo-relock-test-secret',
       });
       // set a sudo key
-      await invokeRhachetCliBinary({
+      const setResult = await invokeRhachetCliBinary({
         args: [
           'keyrack',
           'set',
@@ -1142,12 +1147,12 @@ describe('keyrack sudo', () => {
         stdin: 'sudo-relock-test-value\n',
       });
       // unlock both regular and sudo keys
-      await invokeRhachetCliBinary({
+      const unlockAllResult = await invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'all'],
         cwd: r.path,
         env: { HOME: r.path },
       });
-      await invokeRhachetCliBinary({
+      const unlockSudoResult = await invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'sudo', '--key', 'SUDO_RELOCK_TEST'],
         cwd: r.path,
         env: { HOME: r.path },
@@ -1156,13 +1161,14 @@ describe('keyrack sudo', () => {
     });
 
     when('[t0] status shows both regular and sudo keys unlocked', () => {
-      const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+      const result = useBeforeAll(async () => {
+        const r = await invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
-        }),
-      );
+        });
+        return r;
+      });
 
       then('shows regular key with env=prod', () => {
         const parsed = JSON.parse(result.stdout);
@@ -1170,7 +1176,7 @@ describe('keyrack sudo', () => {
           k.slug.includes('AWS_PROFILE'),
         );
         expect(awsKey).toBeDefined();
-        // DEBUG: show actual env value in assertion error if wrong
+        // verify env field matches expected tier
         expect(awsKey?.env).toEqual('prod');
       });
 
@@ -1180,7 +1186,7 @@ describe('keyrack sudo', () => {
           k.slug.includes('SUDO_RELOCK_TEST'),
         );
         expect(sudoKey).toBeDefined();
-        // DEBUG: show actual env value in assertion error if wrong
+        // verify env field matches expected tier
         expect(sudoKey?.env).toEqual('sudo');
       });
     });
@@ -1415,6 +1421,170 @@ describe('keyrack sudo', () => {
         // mask to permission bits only (sockets have type bits too)
         const permBits = stats.mode & 0o777;
         expect(permBits).toEqual(0o600);
+      });
+    });
+  });
+
+  /**
+   * [gap.3] --prikey fallback for unlock
+   *
+   * .what = test that `keyrack unlock --env sudo --key X --prikey ~/.ssh/id_ed25519`
+   *         works when the ssh-agent has no keys loaded
+   *
+   * .why = the --prikey flag is the escape hatch for environments where ssh-agent
+   *        is unavailable or empty (e.g., minimal CI containers, recovery scenarios).
+   *        without this flag, keyrack cannot discover an identity to decrypt the manifest.
+   *        the flag bypasses agent discovery and reads the private key directly from disk.
+   *
+   * .what we'd test:
+   *   t0: unlock --env sudo --key X --prikey <path> succeeds when agent is empty
+   *       - verifies the flag is wired end-to-end through CLI -> unlockKeyrack -> identity discovery
+   *       - verifies the credential is available via `get` afterward
+   *   t1: unlock --env sudo --key X --prikey <nonexistent> returns clear error
+   *       - verifies bad path fails fast with helpful message
+   *   t2: unlock --env sudo --key X (no --prikey, no agent keys) returns clear error
+   *       - verifies the error message mentions --prikey as the recovery path
+   *
+   * .why deferred:
+   *   requires test infrastructure to spawn an isolated ssh-agent with zero keys loaded,
+   *   then override SSH_AUTH_SOCK for the child process. this is complex to set up without
+   *   side effects on the host agent, and risks flakiness if agent cleanup fails.
+   *   unit tests already cover `sshPrikeyToAgeIdentity` — this gap is blackbox-only.
+   */
+  given.skip('[case16] --prikey fallback for unlock (gap.3: deferred)', () => {
+    when('[t0] unlock --env sudo --key X --prikey <path> (agent empty)', () => {
+      then('exits with status 0', () => {});
+      then('credential is available via get', () => {});
+    });
+
+    when('[t1] unlock --prikey <nonexistent path>', () => {
+      then('exits with non-zero status', () => {});
+      then('error mentions file not found', () => {});
+    });
+
+    when('[t2] unlock without --prikey and no agent keys', () => {
+      then('exits with non-zero status', () => {});
+      then('error mentions --prikey as recovery', () => {});
+    });
+  });
+
+  /**
+   * [gap.i1] get never requires manifest decryption
+   *
+   * .what = prove that `keyrack get` completes without passphrase prompt
+   * .why = get reads only from unlocked sources (os.envvar, os.daemon).
+   *        manifest decryption is exclusive to unlock and set.
+   *        if get triggered manifest decryption, it would block or fail
+   *        when SSH_AUTH_SOCK is empty and no stdin is provided.
+   */
+  given('[case17] get never requires manifest decryption', () => {
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
+      // pre-populate the direct store with the sudo key's secret value
+      writeDirectStoreEntry({
+        home: r.path,
+        slug: 'testorg.sudo.NO_PASSPHRASE_KEY',
+        value: 'no-passphrase-secret',
+      });
+      // set a sudo key (with normal env — agent is available)
+      await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'NO_PASSPHRASE_KEY',
+          '--env',
+          'sudo',
+          '--mech',
+          'REPLICA',
+          '--vault',
+          'os.direct',
+        ],
+        cwd: r.path,
+        env: { HOME: r.path },
+        stdin: 'no-passphrase-secret\n',
+      });
+      return r;
+    });
+
+    when('[t0] get --key without unlock and without ssh agent', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.sudo.NO_PASSPHRASE_KEY',
+            '--env',
+            'sudo',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            SSH_AUTH_SOCK: '', // disable ssh agent — if manifest decryption fires, this would fail
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('returns locked status (no manifest decryption needed)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t1] get --key after unlock and without ssh agent', () => {
+      const result = useBeforeAll(async () => {
+        // unlock with normal env (agent available)
+        await invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'sudo',
+            '--key',
+            'testorg.sudo.NO_PASSPHRASE_KEY',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        });
+        // get with empty agent — should still work via daemon
+        return invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.sudo.NO_PASSPHRASE_KEY',
+            '--env',
+            'sudo',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            SSH_AUTH_SOCK: '', // disable ssh agent — get should resolve from daemon without manifest
+          },
+          logOnError: false,
+        });
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('returns granted status from daemon (no manifest needed)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value matches what was set', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('no-passphrase-secret');
       });
     });
   });

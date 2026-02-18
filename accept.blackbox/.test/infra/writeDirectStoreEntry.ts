@@ -12,7 +12,7 @@ export const writeDirectStoreEntry = (input: {
   slug: string;
   value: string;
 }): void => {
-  const path = join(input.home, '.rhachet', 'keyrack.direct.json');
+  const path = join(input.home, '.rhachet', 'keyrack', 'vault', 'os.direct', 'keyrack.direct.json');
   const dir = dirname(path);
 
   // ensure directory exists

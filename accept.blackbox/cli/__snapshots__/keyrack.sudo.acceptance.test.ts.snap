@@ -38,8 +38,11 @@ exports[`keyrack sudo given: [case3] org validation when: [t0] set --org invalid
 exports[`keyrack sudo given: [case4] relock behavior when: [t0] relock (bare, no flags) then: stdout matches snapshot 1`] = `
 "
 🔒 rhachet/keyrack relock
-   └─ (no keys to purge)
-done. 0 keys purged.
+   ├─ testorg.prep.AWS_PROFILE: pruned 🔒
+   ├─ testorg.prep.SHARED_API_KEY: pruned 🔒
+   ├─ testorg.prod.AWS_PROFILE: pruned 🔒
+   └─ testorg.prod.SHARED_API_KEY: pruned 🔒
+done. 4 keys pruned.
 
 "
 `;

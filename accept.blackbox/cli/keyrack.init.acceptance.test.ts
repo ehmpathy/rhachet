@@ -1,3 +1,8 @@
+import { execSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
@@ -287,6 +292,45 @@ describe('keyrack init', () => {
 
       then('stdout matches snapshot', () => {
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * [uc6] keyrack init without ssh key (graceful error)
+   * tests that init fails with helpful error when no ssh key present
+   */
+  given('[case6] keyrack init without ssh key', () => {
+    const scene = useBeforeAll(async () => {
+      // create a temp dir with NO .ssh/ directory at all
+      const dir = mkdtempSync(join(tmpdir(), 'rhachet-test-nokey-'));
+      mkdirSync(join(dir, '.rhachet', 'keyrack'), { recursive: true });
+      execSync('git init', { cwd: dir, stdio: 'ignore' });
+      execSync('git config user.email "test@example.com"', {
+        cwd: dir,
+        stdio: 'ignore',
+      });
+      execSync('git config user.name "Test"', { cwd: dir, stdio: 'ignore' });
+      return { path: dir };
+    });
+
+    when('[t0] init (no ssh key available)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'init', '--json'],
+          cwd: scene.path,
+          env: { HOME: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions ssh-keygen', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('ssh-keygen');
       });
     });
   });

@@ -3,7 +3,7 @@ import { getError, given, then, when } from 'test-fns';
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
-import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 import { unlockKeyrack } from './unlockKeyrack';
 
 // mock the daemon interactions to avoid socket access in unit tests
@@ -21,7 +21,7 @@ jest.mock('../daemon/infra/getKeyrackDaemonSocketPath', () => ({
 
 describe('unlockKeyrack', () => {
   given('[case1] env=sudo without key', () => {
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SECRET_KEY': {
@@ -40,7 +40,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called without --key', () => {
@@ -55,7 +55,7 @@ describe('unlockKeyrack', () => {
     const vaultAdapter = genMockVaultAdapter({
       storage: { 'ehmpathy.sudo.SECRET_KEY': 'test-secret-value' },
     });
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SECRET_KEY': {
@@ -74,7 +74,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with --key', () => {
@@ -101,7 +101,7 @@ describe('unlockKeyrack', () => {
     const vaultAdapter = genMockVaultAdapter({
       storage: { 'ehmpathy.all.API_KEY': 'test-api-key' },
     });
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.all.API_KEY': {
@@ -132,7 +132,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called without --env (defaults to all)', () => {
@@ -155,7 +155,7 @@ describe('unlockKeyrack', () => {
     const vaultAdapter = genMockVaultAdapter({
       storage: { 'ehmpathy.sudo.SENSITIVE_KEY': 'sensitive-value' },
     });
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SENSITIVE_KEY': {
@@ -175,7 +175,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with duration=1h (exceeds 5m maxDuration)', () => {
@@ -209,7 +209,7 @@ describe('unlockKeyrack', () => {
   });
 
   given('[case5] repoManifest absent and env != sudo', () => {
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: null,
       vaultAdapters: {
@@ -219,7 +219,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with env=prod (not sudo)', () => {
@@ -231,7 +231,7 @@ describe('unlockKeyrack', () => {
   });
 
   given('[case6] sudo key not found', () => {
-    const context: KeyrackGrantContext = {
+    const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
       vaultAdapters: {
@@ -241,7 +241,7 @@ describe('unlockKeyrack', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
       },
-      mechAdapters: {} as KeyrackGrantContext['mechAdapters'],
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with --key that does not exist', () => {

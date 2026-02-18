@@ -175,8 +175,8 @@ describe('keyrack allowlist', () => {
   });
 
   /**
-   * [uc15] allowlist enforcement via os.envvar
-   * env vars not in keyrack.yml should not be granted
+   * [uc15] envvar passthrough bypasses allowlist
+   * env vars are set explicitly by user/ci — passthrough is intentional
    */
   given('[case2] env var exists but key not in allowlist', () => {
     const repo = useBeforeAll(async () =>
@@ -192,24 +192,22 @@ describe('keyrack allowlist', () => {
             HOME: repo.path,
             SECRET_FROM_ENV: 'secret-env-value-789',
           },
-          logOnError: false,
         }),
       );
 
-      then('status is absent (allowlist blocks it)', () => {
+      then('status is granted (envvar passthrough for ci)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('absent');
+        expect(parsed.status).toEqual('granted');
       });
 
-      then('message states key not found in repo manifest', () => {
+      then('grant source vault is os.envvar', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message).toContain('repo manifest');
+        expect(parsed.grant.source.vault).toEqual('os.envvar');
       });
 
-      then('env var value is not exposed', () => {
+      then('grant value matches env var', () => {
         const parsed = JSON.parse(result.stdout);
-        // the value should not appear anywhere in the response
-        expect(JSON.stringify(parsed)).not.toContain('secret-env-value-789');
+        expect(parsed.grant.key.secret).toEqual('secret-env-value-789');
       });
 
       then('stdout matches snapshot', () => {

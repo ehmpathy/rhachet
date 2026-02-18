@@ -9,8 +9,35 @@ exports[`keyrack recipient given: [case1] recipient lifecycle when: [t1] recipie
 }
 `;
 
-exports[`keyrack recipient given: [case4] recipient human-readable output when: [t0] recipient get (human readable) then: stdout matches snapshot 1`] = `""`;
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t0] recipient get (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack recipient get
+   └─ test-key
+      ├─ mech: age
+      ├─ pubkey: age1qzd7j8sdwzn8a75l...
+      └─ added: __TIMESTAMP__
+done. 1 recipients.
 
-exports[`keyrack recipient given: [case4] recipient human-readable output when: [t1] recipient set (human readable) then: stdout matches snapshot 1`] = `""`;
+"
+`;
 
-exports[`keyrack recipient given: [case4] recipient human-readable output when: [t2] recipient del (human readable) then: stdout matches snapshot 1`] = `""`;
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t1] recipient set (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack recipient set
+   └─ added recipient
+      ├─ label: backup
+      ├─ mech: age
+      └─ pubkey: age1ql3z7hjy54pw3hyw...
+done. recipient added ✨
+
+"
+`;
+
+exports[`keyrack recipient given: [case4] recipient human-readable output when: [t2] recipient del (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 rhachet/keyrack recipient del
+   └─ removed recipient: backup
+done. recipient removed ✨
+
+"
+`;

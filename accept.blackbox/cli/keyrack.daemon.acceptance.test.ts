@@ -2,9 +2,12 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 
 describe('keyrack daemon cache', () => {
+  // kill any stale daemon to ensure fresh daemon with current code
+  beforeAll(() => killKeyrackDaemonForTests());
   /**
    * [uc1] daemon cache hit: robot uses cached value without passphrase
    * proves that after human unlocks once, robot can reuse cached credentials from daemon
