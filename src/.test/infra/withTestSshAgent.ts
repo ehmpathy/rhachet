@@ -1,5 +1,5 @@
 import { execSync, spawn } from 'node:child_process';
-import { existsSync, unlinkSync } from 'node:fs';
+import { chmodSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -47,6 +47,9 @@ export const withTestSshAgent = async <T>(
     // set agent env vars
     process.env.SSH_AUTH_SOCK = agentEnv.SSH_AUTH_SOCK;
     process.env.SSH_AGENT_PID = agentEnv.SSH_AGENT_PID;
+
+    // ensure key has restrictive permissions (git does not preserve 0600)
+    chmodSync(TEST_SSH_KEY_PATH, 0o600);
 
     // add the test key to the agent
     execSync(`ssh-add ${TEST_SSH_KEY_PATH}`, {
