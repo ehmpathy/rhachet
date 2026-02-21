@@ -252,7 +252,79 @@ describe('getKeyrackKeyGrant', () => {
     });
   });
 
-  given('[case5] key in env fails mechanism validation', () => {
+  given('[case5] key in daemon fails mechanism validation (firewall)', () => {
+    const context: ContextKeyrackGrantGet = {
+      repoManifest: null,
+      envvarAdapter: vaultAdapterOsEnvvar,
+      mechAdapters: {
+        PERMANENT_VIA_REPLICA: genMockMechAdapter({
+          valid: false,
+          invalidReason: 'ghp_ token blocked by firewall',
+        }),
+        EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
+        EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter(),
+        EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
+        REPLICA: genMockMechAdapter({
+          valid: false,
+          invalidReason: 'ghp_ token blocked by firewall',
+        }),
+        GITHUB_APP: genMockMechAdapter(),
+        AWS_SSO: genMockMechAdapter(),
+      },
+    };
+
+    when('[t0] get called for key cached in daemon with bad value', () => {
+      then('status is blocked', async () => {
+        (daemonAccessGet as jest.Mock).mockResolvedValue({
+          keys: [
+            {
+              slug: 'testorg.test.GHP_TOKEN',
+              key: {
+                secret: 'ghp_abcdefghijklmnopqrstuvwxyz1234567890',
+                grade: { protection: 'encrypted', duration: 'permanent' },
+              },
+              source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'test',
+              org: 'testorg',
+            },
+          ],
+        });
+
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'testorg.test.GHP_TOKEN' } },
+          context,
+        );
+        expect(result.status).toEqual('blocked');
+      });
+
+      then('message mentions firewall reason', async () => {
+        (daemonAccessGet as jest.Mock).mockResolvedValue({
+          keys: [
+            {
+              slug: 'testorg.test.GHP_TOKEN',
+              key: {
+                secret: 'ghp_abcdefghijklmnopqrstuvwxyz1234567890',
+                grade: { protection: 'encrypted', duration: 'permanent' },
+              },
+              source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'test',
+              org: 'testorg',
+            },
+          ],
+        });
+
+        const result = await getKeyrackKeyGrant(
+          { for: { key: 'testorg.test.GHP_TOKEN' } },
+          context,
+        );
+        if (result.status === 'blocked') {
+          expect(result.message).toContain('ghp_ token blocked by firewall');
+        }
+      });
+    });
+  });
+
+  given('[case6] key in env fails mechanism validation', () => {
     const rawKey = '__TEST_KEYRACK_ENV_VAR_BLOCKED__';
     const envSlug = `testorg.test.${rawKey}`;
     const envValue = 'invalid-value-that-fails-firewall';

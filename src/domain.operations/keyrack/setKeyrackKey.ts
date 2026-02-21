@@ -1,9 +1,7 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
-
-import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type {
   KeyrackGrantMechanism,
   KeyrackHostVault,
+  KeyrackKeyHost,
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
@@ -16,9 +14,8 @@ import { setKeyrackKeyHost } from './setKeyrackKeyHost';
  * .what = orchestrates the full keyrack set flow
  * .why = single domain operation for CLI to call (layer separation)
  *
- * .note = roundtrip validation ensures pit of success:
- *   - if setKeyrackKey succeeds, the key is guaranteed to work
- *   - for aws.iam.sso: triggers one-time OAuth registration at setup
+ * .note = delegates vault storage and roundtrip validation to vault adapters
+ * .note = handles env=all expansion into per-env slugs
  */
 export const setKeyrackKey = async (
   input: {
@@ -27,14 +24,15 @@ export const setKeyrackKey = async (
     org: string;
     vault: KeyrackHostVault;
     mech: KeyrackGrantMechanism;
-    exid?: string;
+    secret?: string | null;
+    exid?: string | null;
+    vaultRecipient?: string | null;
+    maxDuration?: string | null;
     repoManifest?: KeyrackRepoManifest;
-    gitroot?: string;
   },
   context: KeyrackHostContext,
 ): Promise<{
-  results: Array<{ slug: string; vault: string; mech: string }>;
-  roundtripValidated: boolean;
+  results: KeyrackKeyHost[];
 }> => {
   // compute target slugs based on env
   const targetSlugs: string[] = (() => {
@@ -49,66 +47,27 @@ export const setKeyrackKey = async (
   })();
 
   // set host config for each target slug
-  const results: Array<{ slug: string; vault: string; mech: string }> = [];
-  let roundtripValidated = false;
+  const results: KeyrackKeyHost[] = [];
 
   for (const slug of targetSlugs) {
-    // update host manifest
+    // delegate to setKeyrackKeyHost (manifest write + vault write + repo manifest write)
     const keyHost = await setKeyrackKeyHost(
       {
         slug,
         mech: input.mech,
         vault: input.vault,
-        exid: input.exid,
+        secret: input.secret ?? null,
+        exid: input.exid ?? null,
+        env: input.env,
+        org: input.org,
+        vaultRecipient: input.vaultRecipient ?? null,
+        maxDuration: input.maxDuration ?? null,
       },
       context,
     );
 
-    // store value in vault (for vaults that store values, not just references)
-    // aws.iam.sso vault needs the profile name stored so get() can retrieve it
-    if (input.vault === 'aws.iam.sso' && input.exid) {
-      await context.vaultAdapters['aws.iam.sso'].set({
-        slug,
-        value: input.exid,
-      });
-
-      // roundtrip validation: pit of success guarantee
-      // 1. unlock - prove unlock works (triggers OAuth registration for aws.iam.sso)
-      await context.vaultAdapters['aws.iam.sso'].unlock({});
-
-      // 2. get - prove get works, verify value matches what we set
-      const valueRead = await context.vaultAdapters['aws.iam.sso'].get({
-        slug,
-      });
-      if (valueRead !== input.exid) {
-        throw new UnexpectedCodePathError(
-          'roundtrip failed: get returned different value',
-          {
-            slug,
-            expected: input.exid,
-            actual: valueRead,
-          },
-        );
-      }
-
-      // 3. relock - clear session, leave vault in locked state after setup
-      await context.vaultAdapters['aws.iam.sso'].relock?.({ slug });
-
-      roundtripValidated = true;
-    }
-
-    results.push({ slug, vault: keyHost.vault, mech: keyHost.mech });
+    results.push(keyHost);
   }
 
-  // register key in repo manifest (findsert: adds if not present)
-  // note: only register for specific env (skip when env='all')
-  if (input.env !== 'all' && input.gitroot) {
-    await daoKeyrackRepoManifest.set({
-      gitroot: input.gitroot,
-      env: input.env,
-      keyName: input.key,
-    });
-  }
-
-  return { results, roundtripValidated };
+  return { results };
 };

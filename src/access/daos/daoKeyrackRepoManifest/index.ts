@@ -215,6 +215,67 @@ export const daoKeyrackRepoManifest = {
       writeFileSync(path, stringifyYaml(parsed), 'utf8');
     },
   },
+
+  /**
+   * .what = remove a key from a specific env section in keyrack.yml
+   * .why = regular credentials removed from repo manifest on del
+   *
+   * .note = sudo keys are never in keyrack.yml so this is a no-op for them
+   * .note = idempotent: no-op if key not present
+   */
+  del: {
+    keyFromEnv: async (input: {
+      gitroot: string;
+      key: string;
+      env: string;
+    }): Promise<void> => {
+      // sudo keys never in keyrack.yml
+      if (input.env === 'sudo') return;
+
+      const path = join(input.gitroot, '.agent', 'keyrack.yml');
+
+      // if file doesn't exist, no key to remove
+      if (!existsSync(path)) return;
+
+      // read and parse current yaml
+      const content = readFileSync(path, 'utf8');
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseYaml(content) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      }
+
+      // determine section name
+      const sectionName = `env.${input.env}`;
+
+      // get current section
+      const section = parsed[sectionName];
+      if (!Array.isArray(section)) return; // no section, no key to remove
+
+      // filter out the key
+      const keysUpdated = section.filter((entry) => {
+        if (typeof entry === 'string') return entry !== input.key;
+        if (typeof entry === 'object' && entry !== null) {
+          return !Object.keys(entry).includes(input.key);
+        }
+        return true;
+      });
+
+      // if count unchanged, key was not present — no-op
+      if (keysUpdated.length === section.length) return;
+
+      // update section (remove section entirely if empty)
+      if (keysUpdated.length === 0) {
+        delete parsed[sectionName];
+      } else {
+        parsed[sectionName] = keysUpdated;
+      }
+
+      // write updated yaml
+      writeFileSync(path, stringifyYaml(parsed), 'utf8');
+    },
+  },
 };
 
 /**

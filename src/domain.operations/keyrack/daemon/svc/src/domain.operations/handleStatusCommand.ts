@@ -1,3 +1,5 @@
+import type { IsoTimeStamp } from 'iso-time';
+
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 
 /**
@@ -14,7 +16,7 @@ export const handleStatusCommand = (
     slug: string;
     env: string;
     org: string;
-    expiresAt: number;
+    expiresAt: IsoTimeStamp | null;
     ttlLeftMs: number;
   }>;
 } => {
@@ -25,8 +27,10 @@ export const handleStatusCommand = (
     slug: unlockedKey.slug,
     env: unlockedKey.env,
     org: unlockedKey.org,
-    expiresAt: unlockedKey.expiresAt,
-    ttlLeftMs: Math.max(0, unlockedKey.expiresAt - now),
+    expiresAt: unlockedKey.expiresAt ?? null,
+    ttlLeftMs: unlockedKey.expiresAt
+      ? Math.max(0, new Date(unlockedKey.expiresAt).getTime() - now)
+      : Infinity,
   }));
 
   return { keys };

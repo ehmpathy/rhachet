@@ -1,6 +1,6 @@
 import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessRelock } from '../daemon/sdk';
-import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 
 /**
  * .what = relock keyrack keys by prune from daemon memory and clear vault caches
@@ -18,7 +18,7 @@ export const relockKeyrack = async (
     slugs?: string[];
     env?: string;
   },
-  context?: KeyrackGrantContext,
+  context?: ContextKeyrackGrantUnlock,
 ): Promise<{
   relocked: string[];
 }> => {

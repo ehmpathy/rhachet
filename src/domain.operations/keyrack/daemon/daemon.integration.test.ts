@@ -1,6 +1,8 @@
+import { asIsoTimeStamp } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { existsSync, unlinkSync } from 'node:fs';
+import { KeyrackKeyGrant } from '../../../domain.objects/keyrack/KeyrackKeyGrant';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -66,7 +68,7 @@ describe('keyrack daemon integration', () => {
       then('stores keys in daemon', async () => {
         const result = await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_1',
               key: {
                 secret: 'secret-1',
@@ -75,9 +77,9 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'prod',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
-            {
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_2',
               key: {
                 secret: 'secret-2',
@@ -86,8 +88,8 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'sudo',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -165,7 +167,7 @@ describe('keyrack daemon integration', () => {
         // first add a key back
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_3',
               key: {
                 secret: 'secret-3',
@@ -174,8 +176,8 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'all',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -239,7 +241,7 @@ describe('keyrack daemon integration', () => {
         // unlock with already-expired TTL
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'EXPIRED_KEY',
               key: {
                 secret: 'expired-secret',
@@ -248,8 +250,8 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'all',
               org: 'testorg',
-              expiresAt: Date.now() - 1000, // already expired
-            },
+              expiresAt: asIsoTimeStamp(new Date(Date.now() - 1000)), // already expired
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -285,7 +287,7 @@ describe('keyrack daemon integration', () => {
         // unlock keys with different envs
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'PROD_KEY',
               key: {
                 secret: 'prod-secret',
@@ -294,9 +296,9 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'prod',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
-            {
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
               slug: 'SUDO_KEY',
               key: {
                 secret: 'sudo-secret',
@@ -305,9 +307,9 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'sudo',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
-            {
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
               slug: 'ALL_KEY',
               key: {
                 secret: 'all-secret',
@@ -316,8 +318,8 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'all',
               org: 'testorg',
-              expiresAt: Date.now() + 60000,
-            },
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -359,13 +361,13 @@ describe('keyrack daemon integration', () => {
 
     when('[t0] key is re-unlocked with new TTL', () => {
       then('TTL is updated', async () => {
-        const originalExpiresAt = Date.now() + 30000; // 30 seconds
-        const newExpiresAt = Date.now() + 120000; // 2 minutes
+        const originalExpiresAt = asIsoTimeStamp(new Date(Date.now() + 30000)); // 30 seconds
+        const newExpiresAt = asIsoTimeStamp(new Date(Date.now() + 120000)); // 2 minutes
 
         // initial unlock
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
               key: {
                 secret: 'ttl-secret',
@@ -375,7 +377,7 @@ describe('keyrack daemon integration', () => {
               env: 'all',
               org: 'testorg',
               expiresAt: originalExpiresAt,
-            },
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -383,7 +385,7 @@ describe('keyrack daemon integration', () => {
         // re-unlock with longer TTL
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
               key: {
                 secret: 'ttl-secret',
@@ -393,7 +395,7 @@ describe('keyrack daemon integration', () => {
               env: 'all',
               org: 'testorg',
               expiresAt: newExpiresAt,
-            },
+            }),
           ],
           socketPath: testSocketPath,
         });

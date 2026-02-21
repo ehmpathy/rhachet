@@ -2,8 +2,11 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack allowlist', () => {
+  // kill daemon from prior test runs to prevent state leakage
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
   /**
    * [uc15] allowlist enforcement
    * keyrack.yml is the allowlist that bounds credential access
@@ -13,7 +16,7 @@ describe('keyrack allowlist', () => {
       genTestTempRepo({ fixture: 'with-allowlist-test' }),
     );
 
-    when('[t0] get --key ALLOWED_KEY (in allowlist, on host)', () => {
+    when('[t0] get --key ALLOWED_KEY without unlock (in allowlist, on host)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY', '--json'],
@@ -22,7 +25,40 @@ describe('keyrack allowlist', () => {
         }),
       );
 
-      then('status is granted', () => {
+      then('status is locked (vault keys require unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+
+      then('secret is not exposed', () => {
+        expect(result.stdout).not.toContain('allowed-key-value-123');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t0.5] unlock then get --key ALLOWED_KEY (roundtrip)', () => {
+      // unlock vault keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted after unlock', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.status).toEqual('granted');
       });
@@ -38,7 +74,17 @@ describe('keyrack allowlist', () => {
       });
     });
 
-    when('[t0.1] get --key ALLOWED_KEY (human readable)', () => {
+    when('[t0.6] get --key ALLOWED_KEY (human readable, without unlock)', () => {
+      // relock to test human readable locked output
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'relock'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.ALLOWED_KEY'],
@@ -47,8 +93,8 @@ describe('keyrack allowlist', () => {
         }),
       );
 
-      then('output contains granted indicator', () => {
-        expect(result.stdout).toContain('granted');
+      then('output contains locked indicator', () => {
+        expect(result.stdout).toContain('locked');
         expect(result.stdout).toContain('ALLOWED_KEY');
       });
 
@@ -142,7 +188,43 @@ describe('keyrack allowlist', () => {
       });
     });
 
-    when('[t3] get --for repo', () => {
+    when('[t3] get --for repo without unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('ALLOWED_KEY is locked (vault keys require unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed.length).toEqual(1);
+        expect(parsed[0].status).toEqual('locked');
+      });
+
+      then('SECRET_KEY is not exposed even though it is on host', () => {
+        const raw = result.stdout;
+        expect(raw).not.toContain('SECRET_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t3.5] unlock then get --for repo', () => {
+      // unlock vault keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],

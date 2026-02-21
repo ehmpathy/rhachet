@@ -1,6 +1,4 @@
-import type { KeyrackGrantMechanism } from '../../../../../../domain.objects/keyrack/KeyrackGrantMechanism';
-import type { KeyrackHostVault } from '../../../../../../domain.objects/keyrack/KeyrackHostVault';
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 
 /**
@@ -9,17 +7,7 @@ import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
  */
 export const handleUnlockCommand = (
   input: {
-    keys: Array<{
-      slug: string;
-      key: KeyrackKey;
-      source: {
-        vault: KeyrackHostVault;
-        mech: KeyrackGrantMechanism;
-      };
-      env: string;
-      org: string;
-      expiresAt: number;
-    }>;
+    keys: KeyrackKeyGrant[];
   },
   context: {
     keyStore: DaemonKeyStore;
@@ -27,16 +15,9 @@ export const handleUnlockCommand = (
 ): { unlocked: string[] } => {
   const unlockedSlugs: string[] = [];
 
-  for (const keyEntry of input.keys) {
-    context.keyStore.set({
-      slug: keyEntry.slug,
-      key: keyEntry.key,
-      source: keyEntry.source,
-      env: keyEntry.env,
-      org: keyEntry.org,
-      expiresAt: keyEntry.expiresAt,
-    });
-    unlockedSlugs.push(keyEntry.slug);
+  for (const grant of input.keys) {
+    context.keyStore.set({ grant });
+    unlockedSlugs.push(grant.slug);
   }
 
   return { unlocked: unlockedSlugs };

@@ -4,3 +4,5 @@ env.all:
   - RELOCK_REGULAR_KEY
   - REGULAR_KEY
   - MY_API_KEY
+env.test:
+  - AWS_PROFILE

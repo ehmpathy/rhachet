@@ -4,7 +4,7 @@ import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHost
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
 import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
-import { unlockKeyrack } from './unlockKeyrack';
+import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 // mock the daemon interactions to avoid socket access in unit tests
 jest.mock('../daemon/sdk', () => ({
@@ -19,7 +19,7 @@ jest.mock('../daemon/infra/getKeyrackDaemonSocketPath', () => ({
     .mockReturnValue('/tmp/keyrack.test.sock'),
 }));
 
-describe('unlockKeyrack', () => {
+describe('unlockKeyrackKeys', () => {
   given('[case1] env=sudo without key', () => {
     const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({
@@ -39,13 +39,16 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called without --key', () => {
       then('throws BadRequestError', async () => {
-        const error = await getError(unlockKeyrack({ env: 'sudo' }, context));
+        const error = await getError(
+          unlockKeyrackKeys({ env: 'sudo' }, context),
+        );
         expect(error.message).toContain('sudo credentials require --key flag');
       });
     });
@@ -73,13 +76,14 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with --key', () => {
       then('uses 30min default TTL', async () => {
-        const result = await unlockKeyrack(
+        const result = await unlockKeyrackKeys(
           { env: 'sudo', key: 'SECRET_KEY' },
           context,
         );
@@ -90,7 +94,11 @@ describe('unlockKeyrack', () => {
 
         // verify TTL is approximately 30 minutes (allow 5s tolerance)
         const thirtyMinMs = 30 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(thirtyMinMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(thirtyMinMs);
       });
@@ -131,20 +139,25 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called without --env (defaults to all)', () => {
       then('uses 9h default TTL', async () => {
-        const result = await unlockKeyrack({}, context);
+        const result = await unlockKeyrackKeys({}, context);
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
         expect(key.slug).toEqual('ehmpathy.all.API_KEY');
 
         // verify TTL is approximately 9 hours (allow 5s tolerance)
         const nineHoursMs = 9 * 60 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(nineHoursMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(nineHoursMs);
       });
@@ -174,6 +187,7 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
@@ -183,7 +197,7 @@ describe('unlockKeyrack', () => {
         // capture console.warn
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        const result = await unlockKeyrack(
+        const result = await unlockKeyrackKeys(
           { env: 'sudo', key: 'SENSITIVE_KEY', duration: '1h' },
           context,
         );
@@ -193,7 +207,11 @@ describe('unlockKeyrack', () => {
         // verify TTL is approximately 5 minutes (capped), not 1 hour
         const fiveMinMs = 5 * 60 * 1000;
         const oneHourMs = 60 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(fiveMinMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(fiveMinMs);
         expect(expiresIn).toBeLessThan(oneHourMs);
@@ -218,13 +236,16 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
 
     when('[t0] unlock called with env=prod (not sudo)', () => {
       then('throws error about absent keyrack.yml', async () => {
-        const error = await getError(unlockKeyrack({ env: 'prod' }, context));
+        const error = await getError(
+          unlockKeyrackKeys({ env: 'prod' }, context),
+        );
         expect(error.message).toContain('no keyrack.yml found in repo');
       });
     });
@@ -240,6 +261,7 @@ describe('unlockKeyrack', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
       mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
     };
@@ -247,7 +269,7 @@ describe('unlockKeyrack', () => {
     when('[t0] unlock called with --key that does not exist', () => {
       then('throws BadRequestError', async () => {
         const error = await getError(
-          unlockKeyrack({ env: 'sudo', key: 'NONEXISTENT_KEY' }, context),
+          unlockKeyrackKeys({ env: 'sudo', key: 'NONEXISTENT_KEY' }, context),
         );
         expect(error.message).toContain('sudo key not found: NONEXISTENT_KEY');
       });

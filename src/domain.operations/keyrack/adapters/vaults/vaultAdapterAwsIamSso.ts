@@ -1,73 +1,11 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import { exec, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
+import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
 
 const execAsync = promisify(exec);
-
-/**
- * .what = entry stored in aws.iam.sso vault
- * .why = stores profile name with metadata
- */
-interface SsoStoreEntry {
-  profileName: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * .what = store format
- * .why = maps slug to entry
- */
-type SsoStore = Record<string, SsoStoreEntry>;
-
-/**
- * .what = resolves the home directory
- * .why = uses HOME env var to support test isolation
- *
- * .note = os.homedir() caches at module load; we read process.env.HOME directly
- */
-const getHomeDir = (): string => {
-  const home = process.env.HOME;
-  if (!home) throw new UnexpectedCodePathError('HOME not set', {});
-  return home;
-};
-
-/**
- * .what = path to the sso profile store
- * .why = stores profiles in ~/.rhachet/keyrack.aws-iam-sso.json
- */
-const getSsoStorePath = (): string => {
-  const home = getHomeDir();
-  return join(home, '.rhachet', 'keyrack.aws-iam-sso.json');
-};
-
-/**
- * .what = reads the sso store from disk
- * .why = loads the profile name store
- */
-const readSsoStore = (): SsoStore => {
-  const path = getSsoStorePath();
-  if (!existsSync(path)) return {};
-  const content = readFileSync(path, 'utf8');
-  return JSON.parse(content) as SsoStore;
-};
-
-/**
- * .what = writes the sso store to disk
- * .why = persists the profile name store
- */
-const writeSsoStore = (store: SsoStore): void => {
-  const path = getSsoStorePath();
-  const dir = dirname(path);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  writeFileSync(path, JSON.stringify(store, null, 2), 'utf8');
-};
 
 /**
  * .what = validate sso session for a profile via sts get-caller-identity
@@ -94,14 +32,14 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
  * .note = always silent (pipe) - browser popup is the feedback, not cli noise
  */
 const triggerSsoLogin = async (profileName: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((accept, reject) => {
     const child = spawn('aws', ['sso', 'login', '--profile', profileName], {
       stdio: 'pipe',
     });
 
     child.on('close', (code) => {
       if (code === 0) {
-        resolve();
+        accept();
       } else {
         reject(
           new UnexpectedCodePathError('aws sso login failed', {
@@ -124,139 +62,146 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
 };
 
 /**
- * .what = vault adapter for aws sso profile storage
- * .why = stores profile names (not secrets) and handles sso unlock flow
+ * .what = vault adapter for aws sso profile references
+ * .why = handles sso unlock/relock flow; profile names stored as exid in host manifest
  *
- * .note = stores at ~/.rhachet/keyrack.aws-iam-sso.json
+ * .note = no separate storage file — exid from the encrypted host manifest is the source of truth
  * .note = unlock validates sso sessions, triggers login for expired
  * .note = profile names are 'reference' protection (no secrets touch keyrack)
  */
 export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
   /**
-   * .what = check if all stored sso sessions are valid
-   * .why = validates via aws sts get-caller-identity for each profile
+   * .what = check if sso session is valid for the given profile
+   * .why = validates via aws sts get-caller-identity
    *
-   * .note = returns true if all profiles have valid sessions
-   * .note = returns true if no profiles are stored (empty store = unlocked)
+   * .note = uses exid (profile name) from the host manifest
+   * .note = returns true if no exid provided (no profile = unlocked)
    */
-  isUnlocked: async () => {
-    const store = readSsoStore();
-    const entries = Object.values(store);
-
-    // no profiles stored = empty store = unlocked
-    if (entries.length === 0) return true;
-
-    // validate all profiles
-    for (const entry of entries) {
-      const isValid = await validateSsoSession(entry.profileName);
-      if (!isValid) return false;
-    }
-
-    return true;
+  isUnlocked: async (input) => {
+    const profileName = input?.exid;
+    if (!profileName) return true;
+    return validateSsoSession(profileName);
   },
 
   /**
-   * .what = validate sso sessions and trigger login for expired
-   * .why = ensures all stored profiles have valid sessions
+   * .what = validate sso session and trigger login if expired
+   * .why = ensures the profile has a valid session
    *
    * .note = passphrase is ignored (sso uses browser auth)
-   * .note = triggers aws sso login --profile for each expired profile
+   * .note = uses exid (profile name) from the host manifest
+   * .note = triggers aws sso login --profile for expired sessions
    * .note = uses portal flow (standard "Sign in" / "Allow" browser prompt)
    * .note = always silent - browser popup is the feedback, not cli noise
    */
-  unlock: async (_input: { passphrase?: string; silent?: boolean }) => {
-    const store = readSsoStore();
-    const entries = Object.values(store);
+  unlock: async (input: {
+    passphrase?: string;
+    silent?: boolean;
+    exid?: string | null;
+  }) => {
+    const profileName = input.exid;
+    if (!profileName) return;
 
-    // track which profiles we've refreshed (avoid duplicate logins for shared sso-session)
-    const refreshedProfiles = new Set<string>();
-
-    // validate and refresh each profile
-    for (const entry of entries) {
-      // skip if we already refreshed this profile
-      if (refreshedProfiles.has(entry.profileName)) continue;
-
-      const isValid = await validateSsoSession(entry.profileName);
-      if (!isValid) {
-        // trigger login for the profile (portal flow)
-        await triggerSsoLogin(entry.profileName);
-        refreshedProfiles.add(entry.profileName);
-      }
+    const isValid = await validateSsoSession(profileName);
+    if (!isValid) {
+      await triggerSsoLogin(profileName);
     }
   },
 
   /**
-   * .what = read profile name from storage file
-   * .why = returns the aws profile name for a given slug
+   * .what = return profile name from host manifest exid
+   * .why = profile name is the "secret" for aws.iam.sso vault
    *
-   * .note = slug is env-scoped (e.g., 'acme.prod.AWS_PROFILE')
+   * .note = exid is passed from the host manifest via the caller
    */
   get: async (input) => {
-    const store = readSsoStore();
-    const entry = store[input.slug];
-
-    // not found
-    if (!entry) return null;
-
-    return entry.profileName;
+    return input.exid ?? null;
   },
 
   /**
-   * .what = write profile name to storage file
-   * .why = stores the aws profile name for a given slug
+   * .what = derive profile name for storage in host manifest
+   * .why = derives profile name from secret, exid, or guided setup
    *
-   * .note = slug is env-scoped (e.g., 'acme.prod.AWS_PROFILE')
-   * .note = value is the aws profile name (e.g., 'acme-prod')
+   * .note = the caller (setKeyrackKeyHost) persists the exid to the encrypted host manifest
+   * .note = if secret is empty, falls back to exid; if both empty and stdin is TTY, runs guided setup
    * .note = expiresAt is ignored (sso tokens self-expire)
    */
   set: async (input) => {
-    const store = readSsoStore();
-    const now = new Date().toISOString();
-
-    const entryFound = store[input.slug];
-    if (entryFound) {
-      // update found entry
-      entryFound.profileName = input.value;
-      entryFound.updatedAt = now;
-    } else {
-      // create new entry
-      store[input.slug] = {
-        profileName: input.value,
-        createdAt: now,
-        updatedAt: now,
-      };
+    // derive profile name: from secret, exid, or guided setup
+    let profileName = input.secret ?? input.exid ?? null;
+    if (!profileName && process.stdin.isTTY) {
+      const result = await setupAwsSsoWithGuide({ org: input.org });
+      profileName = result.profileName;
+    }
+    if (!profileName) {
+      throw new UnexpectedCodePathError(
+        'aws.iam.sso set requires a profile name (--exid or guided setup)',
+        { slug: input.slug },
+      );
     }
 
-    writeSsoStore(store);
+    // validate the profile exists in aws config (fail-fast on typos or absent profiles)
+    const profileValid = await validateSsoSession(profileName);
+    if (!profileValid) {
+      throw new UnexpectedCodePathError(
+        `aws profile '${profileName}' is not valid or has no active sso session. check ~/.aws/config for the profile name.`,
+        { slug: input.slug, profileName },
+      );
+    }
+
+    // extended roundtrip validation for guided setup (interactive TTY)
+    // proves unlock + get + relock work; triggers one-time OAuth registration
+    const cameFromGuide = !input.secret && !input.exid;
+    if (cameFromGuide) {
+      console.log('   │');
+      console.log('   └─ perfect, now lets verify...');
+
+      // 1. get — prove stored profile name matches
+      const profileRead = await vaultAdapterAwsIamSso.get({
+        slug: input.slug,
+        exid: profileName,
+      });
+      if (profileRead !== profileName) {
+        throw new UnexpectedCodePathError(
+          'roundtrip failed: get returned different profile',
+          { slug: input.slug, expected: profileName, actual: profileRead },
+        );
+      }
+      console.log('      ├─ ✓ get');
+
+      // 2. relock — clear session, leave vault locked after setup
+      await vaultAdapterAwsIamSso.relock?.({
+        slug: input.slug,
+        exid: profileName,
+      });
+      console.log('      └─ ✓ relock');
+    }
+
+    // return derived exid so caller can persist it to the host manifest
+    return { exid: profileName };
   },
 
   /**
-   * .what = remove profile from storage file
-   * .why = deletes the aws profile name for a given slug
+   * .what = no-op for aws.iam.sso
+   * .why = profile names live in the encrypted host manifest, not a separate store
    */
-  del: async (input) => {
-    const store = readSsoStore();
-    delete store[input.slug];
-    writeSsoStore(store);
+  del: async () => {
+    // no-op — host manifest handles deletion
   },
 
   /**
    * .what = clear aws sso cached credentials for a profile
-   * .why = enables true relock by clearing both sso token and cli credential caches
+   * .why = enables true relock by clearing sso token and cli credential caches
    *
+   * .note = uses exid (profile name) from the host manifest
    * .note = uses `aws sso logout --profile` to clear caches
-   * .note = clears ~/.aws/sso/cache (sso tokens) and ~/.aws/cli/cache (credentials)
    */
   relock: async (input) => {
-    const store = readSsoStore();
-    const entry = store[input.slug];
-
-    // entry not found = no profile to relock
-    if (!entry) return;
+    const profileName = input.exid;
+    if (!profileName) return;
 
     // aws sso logout clears both cache locations
     try {
-      await execAsync(`aws sso logout --profile "${entry.profileName}"`);
+      await execAsync(`aws sso logout --profile "${profileName}"`);
     } catch {
       // logout may fail if already logged out — that's fine
     }

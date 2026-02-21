@@ -23,6 +23,11 @@ export const inferMechFromVault = (input: {
     return 'PERMANENT_VIA_REPLICA';
   }
 
+  // vaults that imply EPHEMERAL_VIA_AWS_SSO
+  if (input.vault === 'aws.iam.sso') {
+    return 'EPHEMERAL_VIA_AWS_SSO';
+  }
+
   // os.daemon can serve any mech — requires explicit --mech
   return null;
 };

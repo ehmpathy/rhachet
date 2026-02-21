@@ -3,7 +3,7 @@
   "hosts": {
     "testorg.prod.AWS_PROFILE": {
       "slug": "testorg.prod.AWS_PROFILE",
-      "exid": null,
+      "exid": "testorg-prod",
       "vault": "aws.iam.sso",
       "mech": "EPHEMERAL_VIA_AWS_SSO",
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -11,7 +11,7 @@
     },
     "testorg.test.AWS_PROFILE": {
       "slug": "testorg.test.AWS_PROFILE",
-      "exid": null,
+      "exid": "testorg-test",
       "vault": "aws.iam.sso",
       "mech": "EPHEMERAL_VIA_AWS_SSO",
       "createdAt": "2024-01-01T00:00:00.000Z",

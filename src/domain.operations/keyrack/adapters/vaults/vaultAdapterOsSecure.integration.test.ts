@@ -76,7 +76,7 @@ describe('vaultAdapterOsSecure', () => {
       then('creates encrypted file', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -98,7 +98,7 @@ describe('vaultAdapterOsSecure', () => {
       then('round-trips correctly', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -114,13 +114,13 @@ describe('vaultAdapterOsSecure', () => {
       await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
       await vaultAdapterOsSecure.set({
         slug: 'KEY_A',
-        value: 'value-a',
+        secret: 'value-a',
         env: 'test',
         org: 'testorg',
       });
       await vaultAdapterOsSecure.set({
         slug: 'KEY_B',
-        value: 'value-b',
+        secret: 'value-b',
         env: 'test',
         org: 'testorg',
       });
@@ -140,7 +140,7 @@ describe('vaultAdapterOsSecure', () => {
       then('updates encrypted value', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'KEY_A',
-          value: 'new-value-a',
+          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -152,7 +152,7 @@ describe('vaultAdapterOsSecure', () => {
       then('does not affect other keys', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'KEY_A',
-          value: 'new-value-a',
+          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -184,7 +184,7 @@ describe('vaultAdapterOsSecure', () => {
       await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',
-        value: 'super-secret-value',
+        secret: 'super-secret-value',
         env: 'test',
         org: 'testorg',
       });

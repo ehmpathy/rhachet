@@ -1,7 +1,7 @@
 import { getError, given, then, when } from 'test-fns';
 
 import type { KeyrackRepoManifest } from '../../domain.objects/keyrack';
-import { resolveKeyrackSlug } from './resolveKeyrackSlug';
+import { asKeyrackKeySlug } from './asKeyrackKeySlug';
 
 /**
  * .what = mock manifest for test slug resolution
@@ -34,11 +34,11 @@ const genMockManifest = (): KeyrackRepoManifest => ({
   },
 });
 
-describe('resolveKeyrackSlug', () => {
+describe('asKeyrackKeySlug', () => {
   given('[case1] no manifest provided', () => {
     when('[t0] key is passed', () => {
       then('returns key as-is', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'AWS_PROFILE',
           env: null,
           manifest: null,
@@ -54,7 +54,7 @@ describe('resolveKeyrackSlug', () => {
 
     when('[t0] slug exists in manifest', () => {
       then('returns slug as-is', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'ehmpathy.test.AWS_PROFILE',
           env: null,
           manifest,
@@ -65,7 +65,7 @@ describe('resolveKeyrackSlug', () => {
 
     when('[t1] slug has org.env.key pattern', () => {
       then('returns slug as-is', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'ehmpathy.prep.SOME_KEY',
           env: null,
           manifest,
@@ -80,7 +80,7 @@ describe('resolveKeyrackSlug', () => {
 
     when('[t0] env is specified', () => {
       then('constructs full slug from org.env.key', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'AWS_PROFILE',
           env: 'test',
           manifest,
@@ -96,7 +96,7 @@ describe('resolveKeyrackSlug', () => {
 
     when('[t0] GITHUB_TOKEN only exists in test env', () => {
       then('infers env and constructs full slug', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'GITHUB_TOKEN',
           env: null,
           manifest,
@@ -114,7 +114,7 @@ describe('resolveKeyrackSlug', () => {
       then('throws BadRequestError that asks for --env', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
-            resolveKeyrackSlug({
+            asKeyrackKeySlug({
               key: 'AWS_PROFILE',
               env: null,
               manifest,
@@ -135,7 +135,7 @@ describe('resolveKeyrackSlug', () => {
 
     when('[t0] UNKNOWN_KEY does not exist', () => {
       then('returns key as-is (let downstream fail)', () => {
-        const result = resolveKeyrackSlug({
+        const result = asKeyrackKeySlug({
           key: 'UNKNOWN_KEY',
           env: null,
           manifest,

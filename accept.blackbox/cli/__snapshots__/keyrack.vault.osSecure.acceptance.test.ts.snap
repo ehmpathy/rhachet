@@ -19,14 +19,12 @@ exports[`keyrack vault os.secure given: [case1] repo with os.secure vault config
 
 exports[`keyrack vault os.secure given: [case1] repo with os.secure vault configured when: [t1] keyrack list (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack list
+🔐 keyrack list
    └─ testorg.test.SECURE_API_KEY
       ├─ env: test
       ├─ org: testorg
       ├─ mech: REPLICA
       └─ vault: os.secure
-done. 1 keys configured.
-
 "
 `;
 
@@ -86,7 +84,16 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
 }
 `;
 
-exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recipient key available) when: [t0] keyrack get --key SECURE_API_KEY (recipient key auto-decrypts) then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recipient key available) when: [t0] keyrack get --key SECURE_API_KEY without unlock then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack unlock --env test --key testorg.test.SECURE_API_KEY",
+  "message": "credential 'testorg.test.SECURE_API_KEY' is locked. unlock it first.",
+  "slug": "testorg.test.SECURE_API_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recipient key available) when: [t1] unlock then get --key SECURE_API_KEY (roundtrip) then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",
@@ -101,7 +108,7 @@ exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recip
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.secure",
+      "vault": "os.daemon",
     },
   },
   "status": "granted",
@@ -123,7 +130,7 @@ exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] se
 }
 `;
 
-exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t1] unlock with KEYRACK_PASSPHRASE then get then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",
@@ -138,7 +145,7 @@ exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fix
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.secure",
+      "vault": "os.daemon",
     },
   },
   "status": "granted",

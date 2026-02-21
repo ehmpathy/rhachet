@@ -43,7 +43,7 @@ describe('vaultAdapterOsDirect', () => {
       then('creates store file', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -62,7 +62,7 @@ describe('vaultAdapterOsDirect', () => {
       then('stores key value', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -77,13 +77,13 @@ describe('vaultAdapterOsDirect', () => {
     beforeEach(async () => {
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        value: 'value-a',
+        secret: 'value-a',
         env: 'test',
         org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        value: 'value-b',
+        secret: 'value-b',
         env: 'test',
         org: 'testorg',
       });
@@ -103,7 +103,7 @@ describe('vaultAdapterOsDirect', () => {
       then('updates value', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          value: 'new-value-a',
+          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -115,7 +115,7 @@ describe('vaultAdapterOsDirect', () => {
       then('does not affect other keys', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          value: 'new-value-a',
+          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -156,13 +156,13 @@ describe('vaultAdapterOsDirect', () => {
     beforeEach(async () => {
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        value: 'value-a',
+        secret: 'value-a',
         env: 'test',
         org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        value: 'value-b',
+        secret: 'value-b',
         env: 'test',
         org: 'testorg',
       });
@@ -208,7 +208,7 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          value: 'ghs_token123',
+          secret: 'ghs_token123',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -235,7 +235,7 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          value: 'ghs_token123',
+          secret: 'ghs_token123',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -253,7 +253,7 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          value: 'expired_token',
+          secret: 'expired_token',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -267,7 +267,7 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          value: 'expired_token',
+          secret: 'expired_token',
           env: 'test',
           org: 'testorg',
           expiresAt,

@@ -73,6 +73,7 @@ describe('setKeyrackKeyHost.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
         };
 
@@ -171,6 +172,7 @@ describe('setKeyrackKeyHost.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
         };
 
@@ -247,6 +249,7 @@ describe('setKeyrackKeyHost.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
         };
 
@@ -313,6 +316,7 @@ describe('setKeyrackKeyHost.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
         };
 
@@ -377,6 +381,7 @@ describe('setKeyrackKeyHost.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
         };
 

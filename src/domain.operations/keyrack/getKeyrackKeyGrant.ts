@@ -10,6 +10,9 @@ import {
 import { daemonAccessGet } from './daemon/sdk';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 
+// note: os.direct is intentionally NOT checked here — all vault keys require explicit unlock first
+// this ensures firewall validation and allowlist checks are never bypassed
+
 /**
  * .what = construct KeyrackKey from secret and source info
  * .why = bundles secret with grade inferred from vault and mechanism
@@ -57,6 +60,7 @@ const toKeyrackKey = (input: {
  *
  * .note = resolution order: os.envvar (ci passthrough) -> os.daemon (session cache) -> locked
  * .note = never reads from vault — vault access is exclusively via unlock
+ * .note = firewall validation applies uniformly to all granted keys, regardless of source
  */
 const attemptGrantKey = async (
   input: { slug: string },
@@ -64,86 +68,83 @@ const attemptGrantKey = async (
 ): Promise<KeyrackGrantAttempt> => {
   const { slug } = input;
 
-  // extract env from slug (format: $org.$env.$key)
+  // extract env and org from slug (format: $org.$env.$key)
+  const orgFromSlug = slug.split('.')[0] ?? 'unknown';
   const envFromSlug = slug.split('.')[1] ?? 'all';
 
-  // check os.envvar first — passthrough for ci and local env
-  const envValue = await context.envvarAdapter.get({ slug });
-  if (envValue !== null) {
-    // value found in env — resolve mech for validation
-    const mech: KeyrackGrantMechanism = 'PERMANENT_VIA_REPLICA';
-    const mechAdapter = context.mechAdapters[mech];
-    if (!mechAdapter) {
-      throw new UnexpectedCodePathError('mechanism adapter not found', {
-        mech,
+  // attempt to locate the key from available sources (envvar, daemon)
+  const grantFound = await (async (): Promise<KeyrackKeyGrant | null> => {
+    // check os.envvar first — passthrough for ci and local env
+    const envValue = await context.envvarAdapter.get({ slug });
+    if (envValue !== null) {
+      const mech: KeyrackGrantMechanism = 'PERMANENT_VIA_REPLICA';
+      const mechAdapter = context.mechAdapters[mech];
+      if (!mechAdapter)
+        throw new UnexpectedCodePathError('mechanism adapter not found', {
+          mech,
+        });
+
+      // translate value via mechanism
+      const translated = await mechAdapter.translate({ secret: envValue });
+
+      return new KeyrackKeyGrant({
+        slug,
+        key: toKeyrackKey({
+          secret: translated.secret,
+          vault: 'os.envvar',
+          mech,
+        }),
+        source: { vault: 'os.envvar', mech },
+        env: envFromSlug,
+        org: orgFromSlug,
       });
     }
 
-    // apply mechanism validation (this is the firewall)
-    const validation = mechAdapter.validate({ source: envValue });
-    if (!validation.valid) {
-      return {
-        status: 'blocked',
-        slug,
-        message:
-          validation.reason ?? 'credential blocked by mechanism firewall',
-        fix: `update env var to use a short-lived or properly-formatted value`,
-      };
+    // check os.daemon — session cache (in-memory daemon)
+    const daemonResult = await daemonAccessGet({ slugs: [slug] });
+    if (daemonResult) {
+      const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
+      if (keyEntry) {
+        return new KeyrackKeyGrant({
+          slug,
+          key: keyEntry.key,
+          source: { vault: 'os.daemon', mech: keyEntry.source.mech },
+          env: keyEntry.env,
+          org: keyEntry.org,
+        });
+      }
     }
 
-    // translate value via mechanism
-    const translated = await mechAdapter.translate({ value: envValue });
+    // not found in any source
+    return null;
+  })();
 
-    // extract org from slug (format: $org.$env.$key)
-    const orgFromSlug = slug.split('.')[0] ?? 'unknown';
-
-    // construct grant from os.envvar
-    const grant = new KeyrackKeyGrant({
+  // if no grant found — return locked
+  if (!grantFound) {
+    return {
+      status: 'locked',
       slug,
-      key: toKeyrackKey({
-        secret: translated.value,
-        vault: 'os.envvar',
-        mech,
-      }),
-      source: {
-        vault: 'os.envvar',
-        mech,
-      },
-      env: envFromSlug,
-      org: orgFromSlug,
-    });
-
-    return { status: 'granted', grant };
+      message: `credential '${slug}' is locked. unlock it first.`,
+      fix: `rhx keyrack unlock --env ${envFromSlug} --key ${slug.split('.').slice(2).join('.')}`,
+    };
   }
 
-  // check os.daemon — session cache (in-memory daemon)
-  const daemonResult = await daemonAccessGet({ slugs: [slug] });
-  if (daemonResult) {
-    const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
-    if (keyEntry) {
-      // key found in daemon with valid TTL — use directly
-      const grant = new KeyrackKeyGrant({
-        slug,
-        key: keyEntry.key,
-        source: {
-          vault: 'os.daemon',
-          mech: keyEntry.source.mech,
-        },
-        env: keyEntry.env,
-        org: keyEntry.org,
-      });
-
-      return { status: 'granted', grant };
-    }
+  // apply firewall validation uniformly to all granted keys
+  const mech = grantFound.source.mech;
+  const mechAdapter = context.mechAdapters[mech];
+  if (!mechAdapter)
+    throw new UnexpectedCodePathError('mechanism adapter not found', { mech });
+  const validation = mechAdapter.validate({ source: grantFound.key.secret });
+  if (!validation.valid) {
+    return {
+      status: 'blocked',
+      slug,
+      message: validation.reason ?? 'credential blocked by mechanism firewall',
+      fix: `update the stored value to use a short-lived or properly-formatted credential`,
+    };
   }
 
-  // not in envvar, not in daemon — return locked
-  return {
-    status: 'locked',
-    slug,
-    message: `credential '${slug}' is locked. unlock it first.`,
-    fix: `run: rhx keyrack unlock --env ${envFromSlug} --key ${slug}`,
-  };
+  return { status: 'granted', grant: grantFound };
 };
 
 /**

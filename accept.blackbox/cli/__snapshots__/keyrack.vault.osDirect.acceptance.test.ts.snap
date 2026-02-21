@@ -1,54 +1,47 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t0] keyrack get --for repo --json then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t0] keyrack get --for repo --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "grant": {
-      "env": "test",
-      "key": {
-        "grade": {
-          "duration": "permanent",
-          "protection": "plaintext",
-        },
-        "secret": "direct-test-key-abc123",
-      },
-      "org": "testorg",
-      "slug": "testorg.test.DIRECT_TEST_KEY",
-      "source": {
-        "mech": "REPLICA",
-        "vault": "os.direct",
-      },
-    },
-    "status": "granted",
+    "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+    "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
+    "slug": "testorg.test.DIRECT_TEST_KEY",
+    "status": "locked",
   },
 ]
 `;
 
-exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t1] rhx keyrack get --for repo --json (short-circuit) then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t1] rhx keyrack get --for repo --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "grant": {
-      "env": "test",
-      "key": {
-        "grade": {
-          "duration": "permanent",
-          "protection": "plaintext",
-        },
-        "secret": "direct-test-key-abc123",
-      },
-      "org": "testorg",
-      "slug": "testorg.test.DIRECT_TEST_KEY",
-      "source": {
-        "mech": "REPLICA",
-        "vault": "os.direct",
-      },
-    },
-    "status": "granted",
+    "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+    "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
+    "slug": "testorg.test.DIRECT_TEST_KEY",
+    "status": "locked",
   },
 ]
 `;
 
-exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t0] keyrack get --key DIRECT_TEST_KEY --json then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t0] keyrack get --key DIRECT_TEST_KEY --json (without unlock) then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+  "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
+  "slug": "testorg.test.DIRECT_TEST_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t1] keyrack get --key DIRECT_TEST_KEY (human readable, without unlock) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.DIRECT_TEST_KEY
+      └─ status: locked 🔒
+         └─ fix: run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY
+
+"
+`;
+
+exports[`keyrack vault os.direct given: [case3] repo with vault configured when: [t1] get --key DIRECT_TEST_KEY after unlock then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",
@@ -63,27 +56,16 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.direct",
+      "vault": "os.daemon",
     },
   },
   "status": "granted",
 }
 `;
 
-exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t1] keyrack get --key DIRECT_TEST_KEY (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 rhachet/keyrack
-   └─ testorg.test.DIRECT_TEST_KEY
-      ├─ vault: os.direct
-      ├─ mech: REPLICA
-      └─ status: granted 🔑
-
-"
-`;
-
 exports[`keyrack vault os.direct given: [case4] keyrack list when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack list
+🔐 keyrack list
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ env: test
       ├─ org: testorg

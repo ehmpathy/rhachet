@@ -4,127 +4,152 @@ exports[`keyrack vault aws.iam.sso given: [case1] repo with aws.iam.sso vault co
 {
   "testorg.prod.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "prod",
+    "exid": "testorg-prod",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
   "testorg.test.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "test",
+    "exid": "testorg-test",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
 }
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case1] repo with aws.iam.sso vault configured when: [t1] keyrack list (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack
+🔐 keyrack list
    ├─ testorg.prod.AWS_PROFILE
+   │  ├─ env: prod
+   │  ├─ org: testorg
    │  ├─ mech: EPHEMERAL_VIA_AWS_SSO
    │  └─ vault: aws.iam.sso
    └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
       ├─ mech: EPHEMERAL_VIA_AWS_SSO
       └─ vault: aws.iam.sso
 "
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case2] repo without host entry for a key when: [t0] keyrack set --key NEW_AWS_KEY --mech EPHEMERAL_VIA_AWS_SSO --vault aws.iam.sso then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "EPHEMERAL_VIA_AWS_SSO",
-    "slug": "testorg.test.NEW_AWS_KEY",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "aws.iam.sso",
-  },
-]
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.NEW_AWS_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.iam.sso",
+  "vaultRecipient": null,
+}
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case2] repo without host entry for a key when: [t1] keyrack list after set then: stdout matches snapshot 1`] = `
 {
   "testorg.prod.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "prod",
+    "exid": "testorg-prod",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
   "testorg.test.ANOTHER_AWS_KEY": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "test",
+    "exid": "testorg-test",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.test.ANOTHER_AWS_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
   "testorg.test.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "test",
+    "exid": "testorg-test",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
   "testorg.test.NEW_AWS_KEY": {
     "createdAt": "__TIMESTAMP__",
-    "exid": null,
+    "env": "test",
+    "exid": "testorg-test",
+    "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
     "slug": "testorg.test.NEW_AWS_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.iam.sso",
+    "vaultRecipient": null,
   },
 }
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case3] repo with aws.iam.sso vault when: [t0] keyrack get --key AWS_PROFILE --json (no valid sso session) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack get --key AWS_PROFILE --env test --unlock",
-  "message": "vault 'aws.iam.sso' is locked",
+  "fix": "run: rhx keyrack unlock --env test --key testorg.test.AWS_PROFILE",
+  "message": "credential 'testorg.test.AWS_PROFILE' is locked. unlock it first.",
   "slug": "testorg.test.AWS_PROFILE",
   "status": "locked",
 }
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case4] findsert semantics when: [t0] set key that already has same attrs then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "EPHEMERAL_VIA_AWS_SSO",
-    "slug": "testorg.test.AWS_PROFILE",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "aws.iam.sso",
-  },
-]
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.AWS_PROFILE",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.iam.sso",
+  "vaultRecipient": null,
+}
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case6] mech inference from aws.iam.sso vault when: [t0] keyrack set --key INFERRED_KEY --vault aws.iam.sso (no --mech) then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "EPHEMERAL_VIA_AWS_SSO",
-    "slug": "testorg.test.INFERRED_KEY",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "aws.iam.sso",
-  },
-]
-`;
-
-exports[`keyrack vault aws.iam.sso given: [case7] profile storage with --exid when: [t0] keyrack set with --exid stores profile name then: stdout matches snapshot 1`] = `
-[
-  {
-    "createdAt": "__TIMESTAMP__",
-    "mech": "EPHEMERAL_VIA_AWS_SSO",
-    "slug": "testorg.test.AWS_PROFILE_EXID",
-    "updatedAt": "__TIMESTAMP__",
-    "vault": "aws.iam.sso",
-  },
-]
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.INFERRED_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.iam.sso",
+  "vaultRecipient": null,
+}
 `;
 
 exports[`keyrack vault aws.iam.sso given: [case9] repo manifest auto-update on set when: [t0] keyrack set adds NEW_MANIFEST_KEY then: repo manifest snapshot 1`] = `
@@ -148,13 +173,104 @@ env.test:
 "
 `;
 
-exports[`keyrack vault aws.iam.sso given: [case11] repo manifest creates env section if absent when: [t0] keyrack set for new env (dev) then: repo manifest snapshot 1`] = `
+exports[`keyrack vault aws.iam.sso given: [case11] repo manifest creates env section if absent when: [t0] keyrack set for new env (prep) then: repo manifest snapshot 1`] = `
 "org: testorg
 env.prod:
   - AWS_PROFILE
 env.test:
   - AWS_PROFILE
-env.dev:
-  - DEV_KEY
+env.prep:
+  - PREP_KEY
 "
+`;
+
+exports[`keyrack vault aws.iam.sso given: [case13] guided setup with mock aws CLI when: [t0] keyrack set --vault aws.iam.sso via guided wizard (pseudo-TTY) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set AWS_PROFILE
+   │
+   ├─ which sso domain?
+   │  ├─ options
+   │  │  └─ 1. https://mock-portal.awsapps.com/start (us-east-1)
+   │  └─ choice
+   │     └─ 1
+   │     └─ 1 ✓
+   │
+   ├─ which sso login?
+   │  ├─ authorize in browser
+   │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
+   │  │  └─ 🔑 MOCK-CODE
+   │  └─ ✓ authenticated
+   │
+   ├─ which account?
+   │  ├─ options
+   │  │  ├─ 1. 123456789012  testorg-dev
+   │  │  └─ 2. 987654321098  testorg-prod
+   │  └─ choice
+   │     └─ 1
+   │     └─ 1 ✓
+   │
+   ├─ which role?
+   │  ├─ options
+   │  │  ├─ 1. AdministratorAccess
+   │  │  └─ 2. ReadOnlyAccess
+   │  └─ choice
+   │     └─ 1
+   │     └─ 1 ✓
+   │
+   ├─ what should we call it?
+   │  ├─ suggested
+   │  │  └─ testorg.dev
+   │  └─ choice
+   │     └─
+   │     └─ testorg.dev ✓
+   │
+   ├─ lovely, lets vault it now...
+   │  └─ ✓ written to ~/.aws/config
+   │
+   └─ perfect, now lets verify...
+      ├─ ✓ unlock
+      ├─ ✓ get
+      └─ ✓ relock
+🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.AWS_PROFILE
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      └─ vault: aws.iam.sso"
+`;
+
+exports[`keyrack vault aws.iam.sso given: [case13] guided setup with mock aws CLI when: [t1] keyrack list --json after guided set then: stdout matches snapshot 1`] = `
+{
+  "testorg.test.AWS_PROFILE": {
+    "createdAt": "__TIMESTAMP__",
+    "env": "test",
+    "exid": "testorg.dev",
+    "maxDuration": null,
+    "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "org": "testorg",
+    "slug": "testorg.test.AWS_PROFILE",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "aws.iam.sso",
+    "vaultRecipient": null,
+  },
+}
+`;
+
+exports[`keyrack vault aws.iam.sso given: [case13] guided setup with mock aws CLI when: [t4] keyrack get after unlock then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "test",
+    "key": {
+      "grade": {
+        "duration": "ephemeral",
+        "protection": "reference",
+      },
+      "secret": "testorg.dev",
+    },
+    "org": "testorg",
+    "slug": "testorg.test.AWS_PROFILE",
+    "source": {
+      "mech": "EPHEMERAL_VIA_AWS_SSO",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
 `;

@@ -53,7 +53,7 @@ const findEnvsForKey = (input: {
  * - if input is a raw key name and key in multiple envs, fail fast
  * - if input is a raw key name and key not in any env, return as-is (let downstream fail)
  */
-export const resolveKeyrackSlug = (input: {
+export const asKeyrackKeySlug = (input: {
   key: string;
   env: string | null;
   manifest: KeyrackRepoManifest | null;

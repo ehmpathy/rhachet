@@ -75,12 +75,11 @@ describe('keyrack daemon cache', () => {
   });
 
   /**
-   * [uc2] daemon cache miss with auto-discovery: robot resolves via os.secure directly
-   * proves keyrack auto-discovers identity and decrypts os.secure without daemon
+   * [uc2] daemon cache miss: vault keys require explicit unlock
+   * proves that even with identity auto-discoverable, get returns locked without unlock
    *
-   * note: with recipient-key-based identity discovery, the test SSH key at
-   * $HOME/.ssh/id_ed25519 is auto-discovered and used to decrypt both the
-   * manifest and os.secure vault — no daemon cache needed.
+   * note: all vault keys require explicit unlock before get — no auto-discovery fallback.
+   * the get flow is: envvar → daemon → locked. vault is never accessed directly by get.
    */
   given('[case2] repo with os.secure vault, daemon empty', () => {
     const repo = useBeforeAll(async () =>
@@ -97,7 +96,7 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] keyrack get --key SECURE_API_KEY --json (no passphrase)', () => {
+    when('[t0] keyrack get --key SECURE_API_KEY --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
@@ -107,15 +106,14 @@ describe('keyrack daemon cache', () => {
         }),
       );
 
-      then('status is granted via auto-discovery', () => {
+      then('status is locked (vault keys require explicit unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        // auto-discovered identity decrypts os.secure directly (no daemon needed)
-        expect(parsed.status).toEqual('granted');
+        // all vault keys require explicit unlock — no auto-discovery fallback
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('grant source vault is os.secure (not daemon)', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.secure');
+      then('no secret is exposed', () => {
+        expect(result.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -126,10 +124,10 @@ describe('keyrack daemon cache', () => {
   });
 
   /**
-   * [uc3] passphrase env var unlocks vault directly
-   * proves passphrase env var can be used to unlock vault on-the-fly
+   * [uc3] KEYRACK_PASSPHRASE env does not bypass unlock requirement
+   * proves that vault keys always require explicit unlock, even with passphrase available
    */
-  given('[case3] repo with os.secure vault', () => {
+  given('[case3] repo with os.secure vault, KEYRACK_PASSPHRASE available', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
@@ -144,12 +142,13 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] keyrack get with KEYRACK_PASSPHRASE env', () => {
+    when('[t0] keyrack get with KEYRACK_PASSPHRASE env (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
+          logOnError: false,
         }),
       );
 
@@ -157,19 +156,13 @@ describe('keyrack daemon cache', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is locked (passphrase does not bypass unlock requirement)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('grant value matches pre-encrypted fixture', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
-      });
-
-      then('grant source vault is os.secure', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.secure');
+      then('no secret is exposed', () => {
+        expect(result.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -181,9 +174,9 @@ describe('keyrack daemon cache', () => {
 
   /**
    * [uc5] mid-session unlock: robot can access keys after human unlocks mid-session
-   * proves that robot doesn't need restart after human unlocks
+   * proves that get returns locked before unlock and granted after
    *
-   * flow: get fails (locked) → human unlocks → get succeeds
+   * flow: get returns locked → human unlocks → get returns granted
    */
   given('[case5] mid-session unlock flow', () => {
     const repo = useBeforeAll(async () =>
@@ -200,7 +193,7 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] get before unlock (auto-discovers identity)', () => {
+    when('[t0] get before unlock (daemon empty)', () => {
       const resultBefore = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
@@ -210,15 +203,14 @@ describe('keyrack daemon cache', () => {
         }),
       );
 
-      then('status is granted via auto-discovery (no daemon needed)', () => {
+      then('status is locked (vault keys require explicit unlock)', () => {
         const parsed = JSON.parse(resultBefore.stdout);
-        // auto-discovered identity decrypts os.secure directly
-        expect(parsed.status).toEqual('granted');
+        // all vault keys require explicit unlock — no auto-discovery fallback
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('grant source vault is os.secure', () => {
-        const parsed = JSON.parse(resultBefore.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.secure');
+      then('no secret is exposed', () => {
+        expect(resultBefore.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {

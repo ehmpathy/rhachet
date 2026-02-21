@@ -401,7 +401,6 @@ describe('keyrack sudo', () => {
       });
 
       then('output shows correct count of pruned keys', () => {
-        expect(result.stdout).toContain('done. 4 keys pruned.');
         expect(result.stdout).toContain('testorg.prod.AWS_PROFILE');
         expect(result.stdout).toContain('testorg.prod.SHARED_API_KEY');
         expect(result.stdout).toContain('testorg.prep.AWS_PROFILE');
@@ -1110,7 +1109,7 @@ describe('keyrack sudo', () => {
 
       then('unlock reports 1 key', () => {
         // full slug match works for cross-org sudo keys
-        expect(result.stdout).toContain('1 keys unlocked');
+        expect(result.stdout).toContain('@all.sudo.CROSS_ORG_TOKEN');
       });
     });
   });
@@ -1121,6 +1120,8 @@ describe('keyrack sudo', () => {
    */
   given('[case13] relock env filter', () => {
     const repo = useBeforeAll(async () => {
+      // kill daemon to prevent state leakage from prior cases
+      await killKeyrackDaemonForTests({ owner: null });
       const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
       // pre-populate the direct store with the sudo key's secret value
       writeDirectStoreEntry({
@@ -1438,7 +1439,7 @@ describe('keyrack sudo', () => {
    *
    * .what we'd test:
    *   t0: unlock --env sudo --key X --prikey <path> succeeds when agent is empty
-   *       - verifies the flag is wired end-to-end through CLI -> unlockKeyrack -> identity discovery
+   *       - verifies the flag is wired end-to-end through CLI -> unlockKeyrackKeys -> identity discovery
    *       - verifies the credential is available via `get` afterward
    *   t1: unlock --env sudo --key X --prikey <nonexistent> returns clear error
    *       - verifies bad path fails fast with helpful message

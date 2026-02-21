@@ -205,6 +205,12 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
    * .note = if no vaultRecipient, encrypts with passphrase (legacy behavior)
    */
   set: async (input) => {
+    // secret is required for os.secure vault
+    if (!input.secret)
+      throw new UnexpectedCodePathError('secret required for os.secure vault', {
+        slug: input.slug,
+      });
+
     // ensure directory exists
     const dir = getSecureVaultDir();
     if (!existsSync(dir)) {
@@ -217,7 +223,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     if (input.vaultRecipient) {
       const mech = input.vaultRecipient.startsWith('ssh-') ? 'ssh' : 'age';
       const ciphertext = await encryptToRecipients({
-        plaintext: input.value,
+        plaintext: input.secret,
         recipients: [
           new KeyrackKeyRecipient({
             mech,
@@ -234,7 +240,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     // if recipients array provided (from manifest), use those
     if (input.recipients && input.recipients.length > 0) {
       const ciphertext = await encryptToRecipients({
-        plaintext: input.value,
+        plaintext: input.secret,
         recipients: input.recipients,
       });
       writeFileSync(path, ciphertext, 'utf8');
@@ -251,7 +257,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
 
     const encrypter = new age.Encrypter();
     encrypter.setPassphrase(passphrase);
-    const ciphertext = await encrypter.encrypt(input.value);
+    const ciphertext = await encrypter.encrypt(input.secret);
     writeFileSync(path, Buffer.from(ciphertext));
   },
 

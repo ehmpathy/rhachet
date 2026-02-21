@@ -84,14 +84,14 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('status is absent', () => {
+      then('status is locked (key in manifest but not on host)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('absent');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('message indicates key not found', () => {
+      then('message indicates key is locked', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message).toMatch(/not configured|not found/i);
+        expect(parsed.message).toMatch(/locked|unlock/i);
       });
 
       then('fix instructions are provided', () => {
@@ -116,8 +116,8 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('output contains absent indicator', () => {
-        expect(result.stdout).toContain('absent');
+      then('output contains locked indicator', () => {
+        expect(result.stdout).toContain('locked');
         expect(result.stdout).toContain('XAI_API_KEY');
       });
 
@@ -152,10 +152,10 @@ describe('keyrack validation', () => {
         expect(parsed.length).toEqual(2);
       });
 
-      then('all attempts have absent status', () => {
+      then('all attempts have locked status (keys in manifest but not on host)', () => {
         const parsed = JSON.parse(result.stdout);
         for (const attempt of parsed) {
-          expect(attempt.status).toEqual('absent');
+          expect(attempt.status).toEqual('locked');
         }
       });
 

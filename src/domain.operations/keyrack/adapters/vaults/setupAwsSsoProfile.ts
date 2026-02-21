@@ -87,10 +87,10 @@ sso_registration_scopes = sso:account:access
   const configNew = configCurrent.trimEnd() + '\n' + profileConfig;
   await fs.writeFile(configPath, configNew, 'utf-8');
 
-  // trigger sso login to validate
+  // trigger sso login to validate (suppress output — guide already showed auth info)
   try {
     execSync(`aws sso login --profile "${input.profileName}"`, {
-      stdio: 'inherit',
+      stdio: 'pipe',
     });
   } catch {
     throw new UnexpectedCodePathError('aws sso login failed', {

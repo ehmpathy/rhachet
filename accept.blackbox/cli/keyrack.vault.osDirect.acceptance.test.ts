@@ -2,8 +2,11 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack vault os.direct', () => {
+  // kill daemon from prior test runs to prevent state leakage
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
   /**
    * [uc1] get --for repo
    * reads keyrack.yml, resolves all keys, mounts grants
@@ -13,7 +16,17 @@ describe('keyrack vault os.direct', () => {
       genTestTempRepo({ fixture: 'with-vault-os-direct' }),
     );
 
-    when('[t0] keyrack get --for repo --json', () => {
+    // relock to clear daemon keys from prior test runs
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      }),
+    );
+
+    when('[t0] keyrack get --for repo --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'test', '--json'],
@@ -31,23 +44,16 @@ describe('keyrack vault os.direct', () => {
         expect(Array.isArray(parsed)).toBe(true);
       });
 
-      then('contains granted status for DIRECT_TEST_KEY', () => {
+      then('all keys are locked (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        const attempt = parsed.find(
-          (a: { grant?: { slug: string } }) =>
-            a.grant?.slug === 'testorg.test.DIRECT_TEST_KEY',
+        const locked = parsed.filter(
+          (a: { status: string }) => a.status === 'locked',
         );
-        expect(attempt).toBeDefined();
-        expect(attempt.status).toEqual('granted');
+        expect(locked.length).toBeGreaterThan(0);
       });
 
-      then('grant value matches stored value', () => {
-        const parsed = JSON.parse(result.stdout);
-        const attempt = parsed.find(
-          (a: { grant?: { slug: string } }) =>
-            a.grant?.slug === 'testorg.test.DIRECT_TEST_KEY',
-        );
-        expect(attempt.grant.key.secret).toEqual('direct-test-key-abc123');
+      then('secret values are not exposed', () => {
+        expect(result.stdout).not.toContain('direct-test-key-abc123');
       });
 
       then('stdout matches snapshot', () => {
@@ -56,7 +62,7 @@ describe('keyrack vault os.direct', () => {
       });
     });
 
-    when('[t1] rhx keyrack get --for repo --json (short-circuit)', () => {
+    when('[t1] rhx keyrack get --for repo --json (without unlock)', () => {
       const rhxResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           binary: 'rhx',
@@ -70,9 +76,9 @@ describe('keyrack vault os.direct', () => {
         expect(rhxResult.status).toEqual(0);
       });
 
-      then('rhx returns granted status', () => {
+      then('rhx returns locked status', () => {
         const parsed = JSON.parse(rhxResult.stdout);
-        expect(parsed[0].status).toEqual('granted');
+        expect(parsed[0].status).toEqual('locked');
       });
 
       then('stdout matches snapshot', () => {
@@ -91,7 +97,17 @@ describe('keyrack vault os.direct', () => {
       genTestTempRepo({ fixture: 'with-vault-os-direct' }),
     );
 
-    when('[t0] keyrack get --key DIRECT_TEST_KEY --json', () => {
+    // relock to clear daemon keys from prior test runs
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      }),
+    );
+
+    when('[t0] keyrack get --key DIRECT_TEST_KEY --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY', '--json'],
@@ -110,14 +126,14 @@ describe('keyrack vault os.direct', () => {
         expect(parsed.status).toBeDefined();
       });
 
-      then('status is granted', () => {
+      then('status is locked (vault key requires unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('grant.slug matches requested key', () => {
+      then('fix mentions unlock', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.slug).toEqual('testorg.test.DIRECT_TEST_KEY');
+        expect(parsed.fix).toContain('unlock');
       });
 
       then('stdout matches snapshot', () => {
@@ -126,7 +142,7 @@ describe('keyrack vault os.direct', () => {
       });
     });
 
-    when('[t1] keyrack get --key DIRECT_TEST_KEY (human readable)', () => {
+    when('[t1] keyrack get --key DIRECT_TEST_KEY (human readable, without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY'],
@@ -139,8 +155,8 @@ describe('keyrack vault os.direct', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output contains granted indicator', () => {
-        expect(result.stdout).toContain('granted');
+      then('output contains locked indicator', () => {
+        expect(result.stdout).toContain('locked');
         expect(result.stdout).toContain('DIRECT_TEST_KEY');
       });
 
@@ -177,6 +193,46 @@ describe('keyrack vault os.direct', () => {
         expect(output).toMatch(/unlock|keys/i);
       });
     });
+
+    when('[t1] get --key DIRECT_TEST_KEY after unlock', () => {
+      // unlock first
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      // then get
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted after unlock', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('grant value matches stored value', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.key.secret).toEqual('direct-test-key-abc123');
+      });
+
+      then('grant source vault is os.daemon (via unlock)', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.source.vault).toEqual('os.daemon');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
   });
 
   /**
@@ -201,7 +257,7 @@ describe('keyrack vault os.direct', () => {
       });
 
       then('output contains keyrack header', () => {
-        expect(result.stdout).toContain('rhachet/keyrack');
+        expect(result.stdout).toContain('keyrack');
       });
 
       then('output contains DIRECT_TEST_KEY', () => {

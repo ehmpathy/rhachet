@@ -31,7 +31,7 @@ const config: Config = {
   },
   transformIgnorePatterns: [
     // transform esm modules that jest needs to handle (supports both npm and pnpm layouts)
-    'node_modules/(?!(\\.pnpm/(age-encryption|@noble|@scure|@octokit|universal-user-agent)[^/]*/node_modules/(age-encryption|@noble|@scure|@octokit|universal-user-agent)/|(age-encryption|@noble|@scure|@octokit|universal-user-agent)/))',
+    'node_modules/(?!(\\.pnpm/(age-encryption|@noble|@scure|@octokit|universal-user-agent|universal-github-app-jwt)[^/]*/node_modules/(age-encryption|@noble|@scure|@octokit|universal-user-agent|universal-github-app-jwt)/|(age-encryption|@noble|@scure|@octokit|universal-user-agent|universal-github-app-jwt)/))',
   ],
   testMatch: [
     // note: order matters

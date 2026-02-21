@@ -1,5 +1,7 @@
+import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
+import { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import { createDaemonKeyStore } from './daemonKeyStore';
 
 describe('daemonKeyStore', () => {
@@ -19,19 +21,21 @@ describe('daemonKeyStore', () => {
 
   given('[case2] key is stored with valid TTL', () => {
     const store = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000; // 1 minute from now
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       store.set({
-        slug: 'AWS_SSO_PREP',
-        key: {
-          secret: 'test-secret-123',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prep',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'AWS_SSO_PREP',
+          key: {
+            secret: 'test-secret-123',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prep',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
     });
 
@@ -78,19 +82,21 @@ describe('daemonKeyStore', () => {
 
   given('[case3] key is stored with expired TTL', () => {
     const store = createDaemonKeyStore();
-    const expiresAt = Date.now() - 1000; // 1 second ago (expired)
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() - 1000));
 
     beforeEach(() => {
       store.set({
-        slug: 'EXPIRED_KEY',
-        key: {
-          secret: 'expired-secret',
-          grade: { protection: 'plaintext', duration: 'permanent' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'all',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'EXPIRED_KEY',
+          key: {
+            secret: 'expired-secret',
+            grade: { protection: 'plaintext', duration: 'permanent' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'all',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
     });
 
@@ -120,15 +126,17 @@ describe('daemonKeyStore', () => {
 
     beforeEach(() => {
       store.set({
-        slug: 'KEY_TO_DELETE',
-        key: {
-          secret: 'delete-me',
-          grade: { protection: 'encrypted', duration: 'transient' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt: Date.now() + 60000,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_TO_DELETE',
+          key: {
+            secret: 'delete-me',
+            grade: { protection: 'encrypted', duration: 'transient' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+        }),
       });
     });
 
@@ -158,26 +166,30 @@ describe('daemonKeyStore', () => {
 
     beforeEach(() => {
       store.set({
-        slug: 'KEY_1',
-        key: {
-          secret: 'secret-1',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt: Date.now() + 60000,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_1',
+          key: {
+            secret: 'secret-1',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+        }),
       });
       store.set({
-        slug: 'KEY_2',
-        key: {
-          secret: 'secret-2',
-          grade: { protection: 'plaintext', duration: 'permanent' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prep',
-        org: 'ehmpathy',
-        expiresAt: Date.now() + 60000,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_2',
+          key: {
+            secret: 'secret-2',
+            grade: { protection: 'plaintext', duration: 'permanent' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prep',
+          org: 'ehmpathy',
+          expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+        }),
       });
     });
 
@@ -201,30 +213,34 @@ describe('daemonKeyStore', () => {
 
     beforeEach(() => {
       store.set({
-        slug: 'UPDATABLE_KEY',
-        key: {
-          secret: 'original-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'all',
-        org: 'ehmpathy',
-        expiresAt: Date.now() + 60000,
+        grant: new KeyrackKeyGrant({
+          slug: 'UPDATABLE_KEY',
+          key: {
+            secret: 'original-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'all',
+          org: 'ehmpathy',
+          expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+        }),
       });
     });
 
     when('[t0] set is called with same slug', () => {
       then('new value replaces old', () => {
         store.set({
-          slug: 'UPDATABLE_KEY',
-          key: {
-            secret: 'updated-secret',
-            grade: { protection: 'encrypted', duration: 'transient' },
-          },
-          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-          env: 'sudo',
-          org: 'ehmpathy',
-          expiresAt: Date.now() + 120000,
+          grant: new KeyrackKeyGrant({
+            slug: 'UPDATABLE_KEY',
+            key: {
+              secret: 'updated-secret',
+              grade: { protection: 'encrypted', duration: 'transient' },
+            },
+            source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+            env: 'sudo',
+            org: 'ehmpathy',
+            expiresAt: asIsoTimeStamp(new Date(Date.now() + 120000)),
+          }),
         });
 
         const result = store.get({ slug: 'UPDATABLE_KEY' });
@@ -237,41 +253,47 @@ describe('daemonKeyStore', () => {
 
   given('[case7] multiple keys with different envs', () => {
     const store = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       store.set({
-        slug: 'SUDO_KEY',
-        key: {
-          secret: 'sudo-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'SUDO_KEY',
+          key: {
+            secret: 'sudo-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       store.set({
-        slug: 'PROD_KEY',
-        key: {
-          secret: 'prod-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'PROD_KEY',
+          key: {
+            secret: 'prod-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       store.set({
-        slug: 'ALL_KEY',
-        key: {
-          secret: 'all-secret',
-          grade: { protection: 'plaintext', duration: 'permanent' },
-        },
-        source: { vault: 'os.envvar', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'all',
-        org: '@all',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'ALL_KEY',
+          key: {
+            secret: 'all-secret',
+            grade: { protection: 'plaintext', duration: 'permanent' },
+          },
+          source: { vault: 'os.envvar', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'all',
+          org: '@all',
+          expiresAt,
+        }),
       });
     });
 
@@ -319,30 +341,34 @@ describe('daemonKeyStore', () => {
 
   given('[case8] keys with cross-org access', () => {
     const store = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       store.set({
-        slug: 'ORG_SPECIFIC',
-        key: {
-          secret: 'org-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'ORG_SPECIFIC',
+          key: {
+            secret: 'org-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       store.set({
-        slug: 'CROSS_ORG',
-        key: {
-          secret: 'cross-org-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: '@all',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'CROSS_ORG',
+          key: {
+            secret: 'cross-org-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: '@all',
+          expiresAt,
+        }),
       });
     });
 

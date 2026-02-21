@@ -1,8 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp } from 'iso-time';
 
-import type { KeyrackGrantMechanism } from '../../../domain.objects/keyrack/KeyrackGrantMechanism';
-import type { KeyrackHostVault } from '../../../domain.objects/keyrack/KeyrackHostVault';
-import type { KeyrackKey } from '../../../domain.objects/keyrack/KeyrackKey';
+import { KeyrackKeyGrant } from '../../../domain.objects/keyrack/KeyrackKeyGrant';
 import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
 import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessUnlock, findsertKeyrackDaemon } from '../daemon/sdk';
@@ -17,7 +16,7 @@ import { inferKeyGrade } from '../grades/inferKeyGrade';
  * .note = interactive auth prompts occur per source vault
  * .note = keys are stored by slug, reusable across worksites
  */
-export const unlockKeyrack = async (
+export const unlockKeyrackKeys = async (
   input: {
     owner?: string | null;
     env?: string;
@@ -27,13 +26,7 @@ export const unlockKeyrack = async (
   },
   context: ContextKeyrackGrantUnlock,
 ): Promise<{
-  unlocked: Array<{
-    slug: string;
-    vault: string;
-    env: string;
-    org: string;
-    expiresAt: number;
-  }>;
+  unlocked: KeyrackKeyGrant[];
 }> => {
   // resolve socket path based on owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
@@ -107,26 +100,22 @@ export const unlockKeyrack = async (
     });
 
     // get slugs from repoManifest
-    slugsForEnv = input.key
-      ? [input.key]
-      : getAllKeyrackSlugsForEnv({
-          manifest: repoManifest,
-          env: resolvedEnv,
-        });
+    const allSlugsForEnv = getAllKeyrackSlugsForEnv({
+      manifest: repoManifest,
+      env: resolvedEnv,
+    });
+
+    // filter by key: match full slug or key name suffix
+    const keyInput = input.key;
+    slugsForEnv = keyInput
+      ? allSlugsForEnv.filter(
+          (slug) => slug === keyInput || slug.endsWith(`.${keyInput}`),
+        )
+      : allSlugsForEnv;
   }
 
   // collect keys to unlock
-  const keysToUnlock: Array<{
-    slug: string;
-    key: KeyrackKey;
-    source: {
-      vault: KeyrackHostVault;
-      mech: KeyrackGrantMechanism;
-    };
-    env: string;
-    org: string;
-    expiresAt: number;
-  }> = [];
+  const keysToUnlock: KeyrackKeyGrant[] = [];
 
   for (const slug of slugsForEnv) {
     // find host config for this key
@@ -148,9 +137,12 @@ export const unlockKeyrack = async (
     }
 
     // unlock vault if needed
-    const isUnlocked = await adapter.isUnlocked();
+    const isUnlocked = await adapter.isUnlocked({ exid: hostConfig.exid });
     if (!isUnlocked) {
-      await adapter.unlock({ passphrase: input.passphrase });
+      await adapter.unlock({
+        passphrase: input.passphrase,
+        exid: hostConfig.exid,
+      });
     }
 
     // get secret from vault
@@ -183,7 +175,9 @@ export const unlockKeyrack = async (
         );
       }
     }
-    const expiresAt = Date.now() + effectiveDurationMs;
+    const expiresAt = asIsoTimeStamp(
+      new Date(Date.now() + effectiveDurationMs),
+    );
 
     // derive env and org for daemon storage
     // for sudo keys: use hostConfig (has env/org set)
@@ -195,40 +189,27 @@ export const unlockKeyrack = async (
     const keyOrg = hostConfig.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
 
     // collect key for daemon
-    keysToUnlock.push({
-      slug,
-      key: { secret, grade },
-      source: { vault, mech },
-      env: keyEnv,
-      org: keyOrg,
-      expiresAt,
-    });
+    keysToUnlock.push(
+      new KeyrackKeyGrant({
+        slug,
+        key: { secret, grade },
+        source: { vault, mech },
+        env: keyEnv,
+        org: keyOrg,
+        expiresAt,
+      }),
+    );
   }
 
   // send keys to daemon
   if (keysToUnlock.length > 0) {
     await daemonAccessUnlock({
       socketPath,
-      keys: keysToUnlock.map((k) => ({
-        slug: k.slug,
-        key: k.key,
-        source: k.source,
-        env: k.env,
-        org: k.org,
-        expiresAt: k.expiresAt,
-      })),
+      keys: keysToUnlock,
     });
   }
 
-  return {
-    unlocked: keysToUnlock.map((k) => ({
-      slug: k.slug,
-      vault: k.source.vault,
-      env: k.env,
-      org: k.org,
-      expiresAt: k.expiresAt,
-    })),
-  };
+  return { unlocked: keysToUnlock };
 };
 
 /**

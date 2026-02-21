@@ -23,6 +23,6 @@ export interface KeyrackGrantMechanismAdapter {
    * .note = if expiresAt is returned, the translated value can be cached to os.direct
    */
   translate: (input: {
-    value: string;
-  }) => Promise<{ value: string; expiresAt?: IsoTimeStamp }>;
+    secret: string;
+  }) => Promise<{ secret: string; expiresAt?: IsoTimeStamp }>;
 }

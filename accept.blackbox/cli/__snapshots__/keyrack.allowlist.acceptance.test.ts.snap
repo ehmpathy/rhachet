@@ -1,18 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.1] get --key ALLOWED_KEY (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 rhachet/keyrack
-   └─ testorg.test.ALLOWED_KEY
-      ├─ vault: os.direct
-      ├─ mech: REPLICA
-      └─ status: granted 🔑
-done. 1 granted.
-
-"
-`;
-
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0] get --key ALLOWED_KEY (in allowlist, on host) then: stdout matches snapshot 1`] = `
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.5] unlock then get --key ALLOWED_KEY (roundtrip) then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",
@@ -27,28 +15,46 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
     "slug": "testorg.test.ALLOWED_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.direct",
+      "vault": "os.daemon",
     },
   },
   "status": "granted",
 }
 `;
 
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.6] get --key ALLOWED_KEY (human readable, without unlock) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.ALLOWED_KEY
+      └─ status: locked 🔒
+         └─ fix: run: rhx keyrack unlock --env test --key testorg.test.ALLOWED_KEY
+
+"
+`;
+
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0] get --key ALLOWED_KEY without unlock (in allowlist, on host) then: stdout matches snapshot 1`] = `
+{
+  "fix": "run: rhx keyrack unlock --env test --key testorg.test.ALLOWED_KEY",
+  "message": "credential 'testorg.test.ALLOWED_KEY' is locked. unlock it first.",
+  "slug": "testorg.test.ALLOWED_KEY",
+  "status": "locked",
+}
+`;
+
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1.1] get --key SECRET_KEY (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack
+🔐 keyrack
    └─ testorg.test.SECRET_KEY
       └─ status: absent 🫧
-         └─ fix: add 'testorg.test.SECRET_KEY' to .agent/keyrack.yml
-done. 1 absent.
+         └─ fix: add the key to keyrack.yml or use --env sudo for host-only credentials
 
 "
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1] get --key SECRET_KEY (on host but NOT in allowlist) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'testorg.test.SECRET_KEY' to .agent/keyrack.yml",
-  "message": "key 'testorg.test.SECRET_KEY' not found in repo manifest",
+  "fix": "add the key to keyrack.yml or use --env sudo for host-only credentials",
+  "message": "credential 'testorg.test.SECRET_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.SECRET_KEY",
   "status": "absent",
 }
@@ -56,14 +62,14 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t2] get --key NONEXISTENT_KEY (not in allowlist, not on host) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'testorg.test.NONEXISTENT_KEY' to .agent/keyrack.yml",
-  "message": "key 'testorg.test.NONEXISTENT_KEY' not found in repo manifest",
+  "fix": "add the key to keyrack.yml or use --env sudo for host-only credentials",
+  "message": "credential 'testorg.test.NONEXISTENT_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.NONEXISTENT_KEY",
   "status": "absent",
 }
 `;
 
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3] get --for repo then: stdout matches snapshot 1`] = `
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3.5] unlock then get --for repo then: stdout matches snapshot 1`] = `
 [
   {
     "grant": {
@@ -79,10 +85,21 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
       "slug": "testorg.test.ALLOWED_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.direct",
+        "vault": "os.daemon",
       },
     },
     "status": "granted",
+  },
+]
+`;
+
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3] get --for repo without unlock then: stdout matches snapshot 1`] = `
+[
+  {
+    "fix": "run: rhx keyrack unlock --env test --key testorg.test.ALLOWED_KEY",
+    "message": "credential 'testorg.test.ALLOWED_KEY' is locked. unlock it first.",
+    "slug": "testorg.test.ALLOWED_KEY",
+    "status": "locked",
   },
 ]
 `;

@@ -111,7 +111,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
    * .note = tokens expire in 1 hour; we set expiresAt to 55 min for clock drift buffer
    */
   translate: async (input) => {
-    const result = parseGithubAppCredentials(input.value);
+    const result = parseGithubAppCredentials(input.secret);
     if (!result.valid) {
       throw new UnexpectedCodePathError(
         'github_app translate called with invalid credentials',
@@ -134,6 +134,6 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     // github installation tokens expire in 1 hour; buffer 5 min for clock drift
     const expiresAt = addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
 
-    return { value: token, expiresAt };
+    return { secret: token, expiresAt };
   },
 };

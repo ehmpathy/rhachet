@@ -14,9 +14,10 @@ import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
  * .what = lightweight context for keyrack get operations
  * .why = get only reads from unlocked sources (os.envvar, os.daemon) — no host manifest decryption needed
  *
- * .note = no host manifest, no vault adapters (except envvar)
+ * .note = no host manifest, no encrypted vault adapters
  * .note = repo manifest is plaintext yaml — safe to load without passphrase
  * .note = daemon access is handled directly via daemonAccessGet, not via adapter
+ * .note = os.direct intentionally excluded — vault keys require explicit unlock first
  */
 export interface ContextKeyrackGrantGet {
   repoManifest: KeyrackRepoManifest | null;

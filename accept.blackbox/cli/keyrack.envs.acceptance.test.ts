@@ -112,7 +112,7 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t0] get --for repo --env prep --json', () => {
+    when('[t0] get --for repo --env prep --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep', '--json'],
@@ -125,9 +125,49 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('returns granted status for prep keys', () => {
+      then('returns locked status for prep keys (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
         expect(Array.isArray(parsed)).toBe(true);
+        const locked = parsed.filter(
+          (a: { status: string }) => a.status === 'locked',
+        );
+        expect(locked.length).toEqual(2);
+      });
+
+      then('does NOT contain prod keys', () => {
+        const parsed = JSON.parse(result.stdout);
+        const prodAttempts = parsed.filter(
+          (a: { slug?: string }) => a.slug?.includes('.prod.'),
+        );
+        expect(prodAttempts.length).toEqual(0);
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t0.5] unlock prep then get --for repo --env prep --json', () => {
+      // unlock prep keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prep'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('returns granted status for prep keys after unlock', () => {
+        const parsed = JSON.parse(result.stdout);
         const granted = parsed.filter(
           (a: { status: string }) => a.status === 'granted',
         );
@@ -156,22 +196,13 @@ describe('keyrack envs', () => {
         expect(attempt.grant.key.secret).toEqual('testorg.prep');
       });
 
-      then('does NOT contain prod keys', () => {
-        const parsed = JSON.parse(result.stdout);
-        const prodAttempts = parsed.filter(
-          (a: { grant?: { slug: string } }) =>
-            a.grant?.slug?.includes('.prod.'),
-        );
-        expect(prodAttempts.length).toEqual(0);
-      });
-
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toMatchSnapshot();
       });
     });
 
-    when('[t1] get --for repo --env prod --json', () => {
+    when('[t1] get --for repo --env prod --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
@@ -184,7 +215,47 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('returns granted status for prod keys', () => {
+      then('returns locked status for prod keys (vault keys require unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        const locked = parsed.filter(
+          (a: { status: string }) => a.status === 'locked',
+        );
+        expect(locked.length).toEqual(2);
+      });
+
+      then('does NOT contain prep keys', () => {
+        const parsed = JSON.parse(result.stdout);
+        const prepAttempts = parsed.filter(
+          (a: { slug?: string }) => a.slug?.includes('.prep.'),
+        );
+        expect(prepAttempts.length).toEqual(0);
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t1.5] unlock prod then get --for repo --env prod --json', () => {
+      // unlock prod keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prod'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('returns granted status for prod keys after unlock', () => {
         const parsed = JSON.parse(result.stdout);
         const granted = parsed.filter(
           (a: { status: string }) => a.status === 'granted',
@@ -212,22 +283,22 @@ describe('keyrack envs', () => {
         expect(attempt.grant.key.secret).toEqual('testorg.prod');
       });
 
-      then('does NOT contain prep keys', () => {
-        const parsed = JSON.parse(result.stdout);
-        const prepAttempts = parsed.filter(
-          (a: { grant?: { slug: string } }) =>
-            a.grant?.slug?.includes('.prep.'),
-        );
-        expect(prepAttempts.length).toEqual(0);
-      });
-
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toMatchSnapshot();
       });
     });
 
-    when('[t2] get --for repo --env all --json', () => {
+    when('[t2] unlock all then get --for repo --env all --json', () => {
+      // unlock all keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'all'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'all', '--json'],
@@ -254,7 +325,17 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t3] get --for repo --env prep (human readable)', () => {
+    when('[t3] get --for repo --env prep (human readable, without unlock)', () => {
+      // relock to clear daemon keys from t2 unlock
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'relock'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep'],
@@ -267,8 +348,8 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output contains granted indicator', () => {
-        expect(result.stdout).toContain('granted');
+      then('output contains locked indicator', () => {
+        expect(result.stdout).toContain('locked');
       });
 
       then('stdout matches snapshot', () => {
@@ -295,7 +376,7 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t0] get --key testorg.prep.AWS_PROFILE --json', () => {
+    when('[t0] get --key testorg.prep.AWS_PROFILE --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -310,15 +391,9 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('status is granted', () => {
+      then('status is locked (vault key requires unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
-      });
-
-      then('grant.slug contains raw key name AWS_PROFILE', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.slug).toEqual('testorg.prep.AWS_PROFILE');
-        expect(parsed.grant.slug).toContain('AWS_PROFILE');
+        expect(parsed.status).toEqual('locked');
       });
 
       then('stdout matches snapshot', () => {
@@ -327,7 +402,47 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t1] get --key testorg.prep.AWS_PROFILE (human readable)', () => {
+    when('[t0.5] unlock prep then get --key testorg.prep.AWS_PROFILE --json', () => {
+      // unlock prep keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prep'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.prep.AWS_PROFILE',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted after unlock', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('grant.slug contains raw key name AWS_PROFILE', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.slug).toEqual('testorg.prep.AWS_PROFILE');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] get --key testorg.prep.AWS_PROFILE (human readable, without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.prep.AWS_PROFILE'],
@@ -336,8 +451,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('output contains granted and AWS_PROFILE', () => {
-        expect(result.stdout).toContain('granted');
+      then('output contains locked and AWS_PROFILE', () => {
+        expect(result.stdout).toContain('locked');
         expect(result.stdout).toContain('AWS_PROFILE');
       });
 
@@ -367,38 +482,36 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t0] get --key AWS_PROFILE without --env (exists in multiple envs)', () => {
+    when('[t0] get --key AWS_PROFILE without --env (defaults to env=all)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
-          logOnError: false,
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
       });
 
-      then('error mentions found in multiple envs', () => {
-        const output = result.stdout + result.stderr;
-        expect(output.toLowerCase()).toContain('multiple');
+      then('status is absent (key not in repo manifest for env=all)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('absent');
       });
 
-      then('error mentions --env to disambiguate', () => {
-        const output = result.stdout + result.stderr;
-        expect(output).toContain('--env');
+      then('fix suggests --env to disambiguate', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.fix).toContain('--env');
       });
 
-      then('error lists available envs', () => {
-        const output = result.stdout + result.stderr;
-        expect(output).toContain('prod');
-        expect(output).toContain('prep');
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
 
-    when('[t1] get --key AWS_PROFILE --env prep (raw name + explicit env)', () => {
+    when('[t1] get --key AWS_PROFILE --env prep (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--env', 'prep', '--json'],
@@ -411,7 +524,31 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is locked (vault key requires unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t1.5] unlock prep then get --key AWS_PROFILE --env prep', () => {
+      // unlock prep keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prep'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--env', 'prep', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted after unlock', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.status).toEqual('granted');
       });
@@ -432,7 +569,16 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t2] get --key SHARED_API_KEY --env prod (raw name + explicit env)', () => {
+    when('[t2] unlock prod then get --key SHARED_API_KEY --env prod', () => {
+      // unlock prod keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prod'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'SHARED_API_KEY', '--env', 'prod', '--json'],
@@ -477,7 +623,16 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t0] get --for repo --env prep --json (prep only)', () => {
+    when('[t0] unlock prep then get --for repo --env prep --json', () => {
+      // unlock prep keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'prep'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep', '--json'],
@@ -540,6 +695,7 @@ describe('keyrack envs', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'roundtrip-secure-value-123\n',
         }),
       );
 
@@ -549,8 +705,8 @@ describe('keyrack envs', () => {
 
       then('set returns configured host', () => {
         const parsed = JSON.parse(setResult.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.NEW_ROUNDTRIP_KEY');
-        expect(parsed[0].vault).toEqual('os.secure');
+        expect(parsed.slug).toEqual('testorg.test.NEW_ROUNDTRIP_KEY');
+        expect(parsed.vault).toEqual('os.secure');
       });
     });
 
@@ -572,6 +728,7 @@ describe('keyrack envs', () => {
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          stdin: 'locked-test-value-456\n',
         }),
       );
 
@@ -605,16 +762,21 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t2] get SECURE_API_KEY with passphrase (full roundtrip)', () => {
-      // use the fixture's SECURE_API_KEY (from with-vault-os-secure fixture)
+    when('[t2] unlock then get SECURE_API_KEY (full roundtrip)', () => {
+      // unlock keys into daemon first
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
-          env: {
-            HOME: repo.path,
-            KEYRACK_PASSPHRASE: 'test-passphrase-123',
-          },
+          env: { HOME: repo.path },
         }),
       );
 
@@ -622,7 +784,7 @@ describe('keyrack envs', () => {
         expect(getResult.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is granted after unlock', () => {
         const parsed = JSON.parse(getResult.stdout);
         expect(parsed.status).toEqual('granted');
       });
@@ -638,16 +800,21 @@ describe('keyrack envs', () => {
       });
     });
 
-    when('[t3] get SECURE_API_KEY using raw key name with env inference', () => {
-      // SECURE_API_KEY only in test env, so env should be inferred
+    when('[t3] unlock then get SECURE_API_KEY via raw key name with --env test', () => {
+      // unlock keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'SECURE_API_KEY', '--env', 'test', '--json'],
           cwd: repo.path,
-          env: {
-            HOME: repo.path,
-            KEYRACK_PASSPHRASE: 'test-passphrase-123',
-          },
+          env: { HOME: repo.path },
         }),
       );
 
@@ -655,7 +822,7 @@ describe('keyrack envs', () => {
         expect(getResult.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is granted after unlock', () => {
         const parsed = JSON.parse(getResult.stdout);
         expect(parsed.status).toEqual('granted');
       });

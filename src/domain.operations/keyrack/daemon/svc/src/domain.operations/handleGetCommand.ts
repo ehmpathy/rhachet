@@ -1,6 +1,4 @@
-import type { KeyrackGrantMechanism } from '../../../../../../domain.objects/keyrack/KeyrackGrantMechanism';
-import type { KeyrackHostVault } from '../../../../../../domain.objects/keyrack/KeyrackHostVault';
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 
 /**
@@ -20,29 +18,9 @@ export const handleGetCommand = (
     keyStore: DaemonKeyStore;
   },
 ): {
-  keys: Array<{
-    slug: string;
-    key: KeyrackKey;
-    source: {
-      vault: KeyrackHostVault;
-      mech: KeyrackGrantMechanism;
-    };
-    env: string;
-    org: string;
-    expiresAt: number;
-  }>;
+  keys: KeyrackKeyGrant[];
 } => {
-  const keys: Array<{
-    slug: string;
-    key: KeyrackKey;
-    source: {
-      vault: KeyrackHostVault;
-      mech: KeyrackGrantMechanism;
-    };
-    env: string;
-    org: string;
-    expiresAt: number;
-  }> = [];
+  const keys: KeyrackKeyGrant[] = [];
 
   for (const slug of input.slugs) {
     const cachedGrant = context.keyStore.get({ slug });
@@ -59,14 +37,7 @@ export const handleGetCommand = (
     // filter by env: only return if grant.env matches request
     if (input.env && cachedGrant.env !== input.env) continue;
 
-    keys.push({
-      slug: cachedGrant.slug,
-      key: cachedGrant.key,
-      source: cachedGrant.source,
-      env: cachedGrant.env,
-      org: cachedGrant.org,
-      expiresAt: cachedGrant.expiresAt,
-    });
+    keys.push(cachedGrant);
   }
 
   return { keys };

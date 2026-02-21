@@ -11,10 +11,10 @@ import { generateAgeKeyPair } from '../adapters/ageRecipientCrypto';
 import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessGet } from '../daemon/sdk';
 import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
-import { unlockKeyrack } from './unlockKeyrack';
+import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
-describe('unlockKeyrack.integration', () => {
-  const tempHome = withTempHome({ name: 'unlockKeyrack-integration' });
+describe('unlockKeyrackKeys.integration', () => {
+  const tempHome = withTempHome({ name: 'unlockKeyrackKeys-integration' });
 
   beforeAll(() => tempHome.setup());
   afterAll(() => tempHome.teardown());
@@ -77,11 +77,12 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        const result = await unlockKeyrack(
+        const result = await unlockKeyrackKeys(
           { env: 'sudo', key: 'ADMIN_TOKEN' },
           context,
         );
@@ -94,7 +95,11 @@ describe('unlockKeyrack.integration', () => {
 
         // verify TTL is approximately 30 minutes (allow 5s tolerance)
         const thirtyMinMs = 30 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(thirtyMinMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(thirtyMinMs);
       });
@@ -115,11 +120,12 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        await unlockKeyrack({ env: 'sudo', key: 'ADMIN_TOKEN' }, context);
+        await unlockKeyrackKeys({ env: 'sudo', key: 'ADMIN_TOKEN' }, context);
 
         // verify key is accessible from daemon
         const socketPath = getKeyrackDaemonSocketPath({ owner: null });
@@ -202,17 +208,22 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        const result = await unlockKeyrack({ owner: 'case2' }, context);
+        const result = await unlockKeyrackKeys({ owner: 'case2' }, context);
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
 
         // verify TTL is approximately 9 hours (allow 5s tolerance)
         const nineHoursMs = 9 * 60 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(nineHoursMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(nineHoursMs);
       });
@@ -273,6 +284,7 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
@@ -280,7 +292,7 @@ describe('unlockKeyrack.integration', () => {
         // capture console.warn
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        const result = await unlockKeyrack(
+        const result = await unlockKeyrackKeys(
           { owner: 'case3', env: 'sudo', key: 'SENSITIVE_KEY', duration: '1h' },
           context,
         );
@@ -291,7 +303,11 @@ describe('unlockKeyrack.integration', () => {
         // verify TTL is capped to 5 minutes (not 1 hour)
         const fiveMinMs = 5 * 60 * 1000;
         const oneHourMs = 60 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(fiveMinMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(fiveMinMs);
         expect(expiresIn).toBeLessThan(oneHourMs);
@@ -360,11 +376,12 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        const result = await unlockKeyrack(
+        const result = await unlockKeyrackKeys(
           {
             owner: 'case4',
             env: 'sudo',
@@ -379,7 +396,11 @@ describe('unlockKeyrack.integration', () => {
 
         // verify TTL is approximately 15 minutes (not capped to maxDuration)
         const fifteenMinMs = 15 * 60 * 1000;
-        const expiresIn = key.expiresAt - Date.now();
+        expect(key.expiresAt).toBeDefined();
+        const expiresAtMs = key.expiresAt
+          ? new Date(key.expiresAt).getTime()
+          : 0;
+        const expiresIn = expiresAtMs - Date.now();
         expect(expiresIn).toBeGreaterThan(fifteenMinMs - 5000);
         expect(expiresIn).toBeLessThanOrEqual(fifteenMinMs);
       });
@@ -475,11 +496,12 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        await unlockKeyrack(
+        await unlockKeyrackKeys(
           { owner: 'ownerA', env: 'sudo', key: 'TOKEN_A' },
           context,
         );
@@ -521,11 +543,12 @@ describe('unlockKeyrack.integration', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
           },
           mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
-        await unlockKeyrack(
+        await unlockKeyrackKeys(
           { owner: 'ownerB', env: 'sudo', key: 'TOKEN_B' },
           context,
         );

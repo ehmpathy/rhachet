@@ -257,7 +257,7 @@ describe('keyrack init', () => {
       });
 
       then('output shows keyrack init header', () => {
-        expect(result.stdout).toContain('rhachet/keyrack init');
+        expect(result.stdout).toContain('keyrack init');
       });
 
       then('output shows host manifest status', () => {
@@ -283,7 +283,7 @@ describe('keyrack init', () => {
       });
 
       then('output shows keyrack init header (idempotent)', () => {
-        expect(result.stdout).toContain('rhachet/keyrack init');
+        expect(result.stdout).toContain('keyrack init');
       });
 
       then('output shows host manifest status (idempotent)', () => {

@@ -1,3 +1,5 @@
+export { delKeyrackKey } from './delKeyrackKey';
+export { delKeyrackKeyHost } from './delKeyrackKeyHost';
 export type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 export { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 export type { ContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';
@@ -8,4 +10,3 @@ export { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 export { initKeyrackRepoManifest } from './initKeyrackRepoManifest';
 export { setKeyrackKey } from './setKeyrackKey';
 export { setKeyrackKeyHost } from './setKeyrackKeyHost';
-export { unlockKeyrackVault } from './vault/unlockKeyrackVault';

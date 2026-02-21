@@ -2,8 +2,11 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack vault os.secure', () => {
+  // kill daemon from prior test runs to prevent state leakage
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
   /**
    * [uc1] list command with os.secure vault
    * shows configured keys with vault type
@@ -209,8 +212,8 @@ describe('keyrack vault os.secure', () => {
   });
 
   /**
-   * [uc4] get with recipient key available grants via os.secure
-   * recipient-based encryption means os.secure can decrypt when recipient key is present
+   * [uc4] get requires unlock — vault keys are locked by default
+   * even with recipient key available, explicit unlock is required
    */
   given('[case4] repo with os.secure vault (recipient key available)', () => {
     const repo = useBeforeAll(async () =>
@@ -227,7 +230,7 @@ describe('keyrack vault os.secure', () => {
       }),
     );
 
-    when('[t0] keyrack get --key SECURE_API_KEY (recipient key auto-decrypts)', () => {
+    when('[t0] keyrack get --key SECURE_API_KEY without unlock', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
@@ -236,15 +239,52 @@ describe('keyrack vault os.secure', () => {
         }),
       );
 
-      then('returns granted status', () => {
+      then('status is locked (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        // recipient key is available so os.secure can decrypt directly
+        expect(parsed.status).toEqual('locked');
+      });
+
+      then('secret is not exposed', () => {
+        expect(result.stdout).not.toContain('portable-secure-value-xyz789');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] unlock then get --key SECURE_API_KEY (roundtrip)', () => {
+      // unlock vault keys into daemon
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted after unlock', () => {
+        const parsed = JSON.parse(result.stdout);
         expect(parsed.status).toEqual('granted');
       });
 
       then('grant contains the credential value', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
+      });
+
+      then('grant source vault is os.daemon (via unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.source.vault).toEqual('os.daemon');
       });
 
       then('stdout matches snapshot', () => {
@@ -310,21 +350,40 @@ describe('keyrack vault os.secure', () => {
   });
 
   /**
-   * [uc6] portability: pre-encrypted .age file can be read
+   * [uc6] portability: pre-encrypted .age file can be read after unlock
    * proves that age encryption is portable across systems
    *
    * the pre-encrypted fixture exists at .rhachet/keyrack/vault/os.secure/949203795e1e45ae.age
    * passphrase: test-passphrase-123, value: portable-secure-value-xyz789
    */
   given('[case6] repo with pre-encrypted .age fixture', () => {
+    // kill daemon to prevent state leakage from prior cases (case3/case4 do unlock)
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
-    when('[t0] get SECURE_API_KEY with KEYRACK_PASSPHRASE env', () => {
+    when('[t0] get SECURE_API_KEY without unlock', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is locked (vault keys require unlock)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t1] unlock with KEYRACK_PASSPHRASE then get', () => {
+      // unlock with passphrase env to decrypt vault
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: repo.path,
           env: {
             HOME: repo.path,
@@ -333,11 +392,19 @@ describe('keyrack vault os.secure', () => {
         }),
       );
 
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
       then('exits with status 0', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is granted after unlock', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.status).toEqual('granted');
       });

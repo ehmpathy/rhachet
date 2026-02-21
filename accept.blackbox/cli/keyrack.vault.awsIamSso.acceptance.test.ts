@@ -1,7 +1,29 @@
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
+
+/**
+ * .what = path to mock aws CLI executable
+ * .why = placed on PATH ahead of real aws CLI for guided setup tests
+ */
+const MOCK_AWS_CLI_DIR = resolve(__dirname, '../.test/assets/mock-aws-cli');
+
+/**
+ * .what = path to the rhachet binary
+ * .why = needed for pseudo-TTY invocation via the pty-with-answers wrapper
+ */
+const RHACHET_BIN = resolve(__dirname, '../../bin/run');
+
+/**
+ * .what = path to the PTY answer-feeder helper
+ * .why = watches stdout for prompt patterns and sends answers on detection (not timing)
+ */
+const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js');
 
 describe('keyrack vault aws.iam.sso', () => {
   /**
@@ -109,6 +131,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
             '--json',
           ],
           cwd: repo.path,
@@ -122,19 +146,21 @@ describe('keyrack vault aws.iam.sso', () => {
 
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.NEW_AWS_KEY');
-        expect(parsed[0].mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
-        expect(parsed[0].vault).toEqual('aws.iam.sso');
+        // single result returned as object, not array
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        expect(entry.slug).toEqual('testorg.test.NEW_AWS_KEY');
+        expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
+        expect(entry.vault).toEqual('aws.iam.sso');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
-        // redact timestamps for stable snapshots
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
           ...entry,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -154,6 +180,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
@@ -257,6 +285,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
             '--json',
           ],
           cwd: repo.path,
@@ -270,19 +300,20 @@ describe('keyrack vault aws.iam.sso', () => {
 
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].slug).toEqual('testorg.test.AWS_PROFILE');
-        expect(parsed[0].mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
-        expect(parsed[0].vault).toEqual('aws.iam.sso');
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        expect(entry.slug).toEqual('testorg.test.AWS_PROFILE');
+        expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
+        expect(entry.vault).toEqual('aws.iam.sso');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
-        // redact timestamps for stable snapshots
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
           ...entry,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -345,6 +376,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'test',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
             '--json',
           ],
           cwd: repo.path,
@@ -358,21 +391,24 @@ describe('keyrack vault aws.iam.sso', () => {
 
       then('mech is inferred as EPHEMERAL_VIA_AWS_SSO', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
       });
 
       then('vault is aws.iam.sso', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed[0].vault).toEqual('aws.iam.sso');
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        expect(entry.vault).toEqual('aws.iam.sso');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
           ...entry,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
-        }));
+        };
         expect(snapped).toMatchSnapshot();
       });
     });
@@ -390,6 +426,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'test',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
@@ -562,6 +600,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'test',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
             '--json',
           ],
           cwd: repo.path,
@@ -611,6 +651,8 @@ describe('keyrack vault aws.iam.sso', () => {
             'test',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-test',
             '--json',
           ],
           cwd: repo.path,
@@ -656,18 +698,20 @@ describe('keyrack vault aws.iam.sso', () => {
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
 
-    when('[t0] keyrack set for new env (dev)', () => {
+    when('[t0] keyrack set for new env (prep)', () => {
       const setResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
             'set',
             '--key',
-            'DEV_KEY',
+            'PREP_KEY',
             '--env',
-            'dev',
+            'prep',
             '--vault',
             'aws.iam.sso',
+            '--exid',
+            'testorg-prep',
             '--json',
           ],
           cwd: repo.path,
@@ -679,20 +723,20 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(setResult.status).toEqual(0);
       });
 
-      then('repo manifest has env.dev section', async () => {
+      then('repo manifest has env.prep section', async () => {
         const fs = await import('node:fs/promises');
         const manifestPath = `${repo.path}/.agent/keyrack.yml`;
         const manifest = await fs.readFile(manifestPath, 'utf-8');
-        expect(manifest).toContain('env.dev:');
+        expect(manifest).toContain('env.prep:');
       });
 
-      then('repo manifest has DEV_KEY in env.dev', async () => {
+      then('repo manifest has PREP_KEY in env.prep', async () => {
         const fs = await import('node:fs/promises');
         const yaml = await import('yaml');
         const manifestPath = `${repo.path}/.agent/keyrack.yml`;
         const manifest = await fs.readFile(manifestPath, 'utf-8');
         const parsed = yaml.parse(manifest);
-        expect(parsed['env.dev']).toContain('DEV_KEY');
+        expect(parsed['env.prep']).toContain('PREP_KEY');
       });
 
       then('repo manifest snapshot', async () => {
@@ -774,6 +818,286 @@ describe('keyrack vault aws.iam.sso', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.relocked).toBeDefined();
         expect(Array.isArray(parsed.relocked)).toBe(true);
+      });
+    });
+  });
+
+  /**
+   * [uc13] guided setup roundtrip with mock aws CLI
+   *
+   * .what = full interactive wizard flow: sso domain -> account -> role -> profile name
+   * .why = proves the guided setup path works end-to-end without real AWS credentials
+   *
+   * .note = uses pseudo-TTY via `script -qec` so process.stdin.isTTY is true
+   * .note = mock aws executable on PATH returns canned responses
+   * .note = pre-populated ~/.aws/config and ~/.aws/sso/cache for portal discovery
+   */
+  given('[case13] guided setup with mock aws CLI', () => {
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // ensure mock aws executable is chmod +x
+      const mockAwsPath = `${MOCK_AWS_CLI_DIR}/aws`;
+      chmodSync(mockAwsPath, 0o755);
+
+      // keyrack init (creates encrypted manifest + ssh key discovery)
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest so org is known
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/config with a portal entry
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[sso-session mock-portal]',
+          'sso_start_url = https://mock-portal.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/sso/cache with a mock access token
+      const ssoCacheDir = `${r.path}/.aws/sso/cache`;
+      mkdirSync(ssoCacheDir, { recursive: true });
+      writeFileSync(
+        `${ssoCacheDir}/mock-token.json`,
+        JSON.stringify({
+          accessToken: 'mock-access-token-for-test',
+          expiresAt: '2099-01-01T00:00:00Z',
+        }),
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    /**
+     * .what = env vars for mock aws PATH override
+     * .why = all commands in this case need mock aws on PATH and isolated HOME
+     */
+    const envWithMockAws = () => ({
+      HOME: repo.path,
+      PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+    });
+
+    when('[t0] keyrack set --vault aws.iam.sso via guided wizard (pseudo-TTY)', () => {
+      const result = useBeforeAll(async () => {
+        // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
+        // helper detects "choice" prompts in stdout and sends answers on detection (not timing)
+        // answers: 1 (portal), 1 (account), 1 (role), empty (accept suggested name)
+        const r = spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack set --key AWS_PROFILE --env test --vault aws.iam.sso`,
+            'choice',
+            '1', '1', '1', '',
+          ],
+          {
+            encoding: 'utf-8',
+            cwd: repo.path,
+            env: { ...process.env, ...envWithMockAws() },
+            timeout: 60000,
+          },
+        );
+        return r;
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains wizard prompts', () => {
+        const out = result.stdout;
+        expect(out).toContain('which sso domain');
+        expect(out).toContain('which account');
+        expect(out).toContain('which role');
+        expect(out).toContain('what should we call it');
+      });
+
+      then('host manifest has entry with derived profile name as exid', () => {
+        // the profile name is stored as exid in the encrypted host manifest
+        // verify via list --json which reads from the host manifest
+        const listResult = invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path, PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}` },
+        });
+        const parsed = JSON.parse(listResult.stdout);
+        const entry = parsed['testorg.test.AWS_PROFILE'];
+        expect(entry).toBeDefined();
+        expect(entry.exid).toEqual('testorg.dev');
+      });
+
+      then('~/.aws/config has the new profile section', () => {
+        const configPath = `${repo.path}/.aws/config`;
+        const config = readFileSync(configPath, 'utf-8');
+        expect(config).toContain('[profile testorg.dev]');
+        expect(config).toContain('sso_account_id = 123456789012');
+        expect(config).toContain('sso_role_name = AdministratorAccess');
+      });
+
+      then('stdout matches snapshot', () => {
+        // strip ANSI escape codes and PTY control sequences for stable snapshot
+        const stripped = result.stdout
+          .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '') // ANSI escape sequences
+          .replace(/\x1B\]/g, '') // OSC sequences
+          .replace(/\r/g, '') // carriage returns from PTY
+          .replace(/·/g, '') // middle dots from PTY
+          .replace(/\s+$/gm, ''); // trim end-of-line whitespace
+        // trim PTY echo noise before tree header
+        const treeStart = stripped.indexOf('\u{1F510}');
+        const clean = stripped
+          .slice(treeStart >= 0 ? treeStart : 0)
+          .split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .join('\n');
+        expect(clean).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] keyrack list --json after guided set', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('list contains AWS_PROFILE with aws.iam.sso vault', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed['testorg.test.AWS_PROFILE']).toBeDefined();
+        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.iam.sso');
+        expect(parsed['testorg.test.AWS_PROFILE'].mech).toEqual(
+          'EPHEMERAL_VIA_AWS_SSO',
+        );
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]) => [
+            k,
+            {
+              ...(v as Record<string, unknown>),
+              createdAt: '__TIMESTAMP__',
+              updatedAt: '__TIMESTAMP__',
+            },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] keyrack get before unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+          logOnError: false,
+        }),
+      );
+
+      then('status is locked', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t3] keyrack unlock --env test --key AWS_PROFILE', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains the unlocked key slug', () => {
+        expect(result.stdout).toContain('testorg.test.AWS_PROFILE');
+      });
+    });
+
+    when('[t4] keyrack get after unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+        }),
+      );
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value is the profile name', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('testorg.dev');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t5] keyrack relock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'relock'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+    });
+
+    when('[t6] keyrack get after relock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
+          cwd: repo.path,
+          env: envWithMockAws(),
+          logOnError: false,
+        }),
+      );
+
+      then('status is locked again', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
       });
     });
   });

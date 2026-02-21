@@ -242,6 +242,7 @@ describe('setKeyrackKeyHost', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 
@@ -265,20 +266,18 @@ describe('setKeyrackKeyHost', () => {
       });
     });
 
-    when('[t2] org is invalid', () => {
-      then('throws BadRequestError', async () => {
-        const error = await getError(
-          setKeyrackKeyHost(
-            {
-              slug: 'KEY',
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              org: 'invalid',
-            },
-            context,
-          ),
+    when('[t2] org is already-expanded name', () => {
+      then('passes through as-is', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'KEY',
+            mech: 'REPLICA',
+            vault: 'os.direct',
+            org: 'testorg',
+          },
+          context,
         );
-        expect(error.message).toContain('org must be @this or @all');
+        expect(result.org).toEqual('testorg');
       });
     });
   });
@@ -293,6 +292,7 @@ describe('setKeyrackKeyHost', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
       },
     };
 

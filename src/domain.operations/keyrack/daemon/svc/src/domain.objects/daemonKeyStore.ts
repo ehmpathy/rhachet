@@ -1,24 +1,12 @@
-import type { KeyrackGrantMechanism } from '../../../../../../domain.objects/keyrack/KeyrackGrantMechanism';
-import type { KeyrackHostVault } from '../../../../../../domain.objects/keyrack/KeyrackHostVault';
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 
 /**
  * .what = a cached grant stored in daemon memory with TTL
  * .why = tracks full grant info with source for audit and debug
  *
- * .note = mirrors KeyrackKeyGrant shape but uses numeric expiresAt for efficient TTL comparison
+ * .note = uses KeyrackKeyGrant directly; ISO timestamp comparison is lexicographic
  */
-export interface CachedGrant {
-  slug: string;
-  key: KeyrackKey;
-  source: {
-    vault: KeyrackHostVault;
-    mech: KeyrackGrantMechanism;
-  };
-  env: string; // 'sudo' | 'all' | 'prod' | 'prep' | etc
-  org: string; // resolved org name (e.g., 'ehmpathy') or '@all' for cross-org
-  expiresAt: number; // timestamp ms
-}
+export type CachedGrant = KeyrackKeyGrant;
 
 /**
  * .what = in-memory key store with TTL enforcement
@@ -34,26 +22,8 @@ export const createDaemonKeyStore = () => {
    * .what = store a grant with TTL
    * .why = called by UNLOCK command to cache credentials
    */
-  const set = (input: {
-    slug: string;
-    key: KeyrackKey;
-    source: {
-      vault: KeyrackHostVault;
-      mech: KeyrackGrantMechanism;
-    };
-    env: string;
-    org: string;
-    expiresAt: number;
-  }): void => {
-    const cachedGrant: CachedGrant = {
-      slug: input.slug,
-      key: input.key,
-      source: input.source,
-      env: input.env,
-      org: input.org,
-      expiresAt: input.expiresAt,
-    };
-    store.set(input.slug, cachedGrant);
+  const set = (input: { grant: CachedGrant }): void => {
+    store.set(input.grant.slug, input.grant);
   };
 
   /**
@@ -66,8 +36,9 @@ export const createDaemonKeyStore = () => {
     const cachedGrant = store.get(input.slug);
     if (!cachedGrant) return null;
 
-    // check TTL
-    const now = Date.now();
+    // check TTL (ISO timestamps are lexicographically sortable)
+    if (!cachedGrant.expiresAt) return cachedGrant; // no expiration — always valid
+    const now = new Date().toISOString();
     if (now >= cachedGrant.expiresAt) {
       // expired — purge and return null
       store.delete(input.slug);
@@ -85,11 +56,11 @@ export const createDaemonKeyStore = () => {
    * .note = if env provided, only returns grants with matched env
    */
   const entries = (input?: { env?: string }): CachedGrant[] => {
-    const now = Date.now();
+    const now = new Date().toISOString();
     const result: CachedGrant[] = [];
 
     for (const [slug, cachedGrant] of store.entries()) {
-      if (now >= cachedGrant.expiresAt) {
+      if (cachedGrant.expiresAt && now >= cachedGrant.expiresAt) {
         // expired — purge
         store.delete(slug);
       } else {

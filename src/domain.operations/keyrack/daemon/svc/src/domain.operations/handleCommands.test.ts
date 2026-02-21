@@ -1,5 +1,7 @@
+import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
+import { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import { createDaemonKeyStore } from '../domain.objects/daemonKeyStore';
 import { handleGetCommand } from './handleGetCommand';
 import { handleRelockCommand } from './handleRelockCommand';
@@ -9,14 +11,14 @@ import { handleUnlockCommand } from './handleUnlockCommand';
 describe('handleUnlockCommand', () => {
   given('[case1] keys to unlock', () => {
     const keyStore = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     when('[t0] unlock command is handled', () => {
       then('keys are stored in keyStore', () => {
         const result = handleUnlockCommand(
           {
             keys: [
-              {
+              new KeyrackKeyGrant({
                 slug: 'AWS_SSO_PREP',
                 key: {
                   secret: 'secret-1',
@@ -26,8 +28,8 @@ describe('handleUnlockCommand', () => {
                 env: 'prep',
                 org: 'ehmpathy',
                 expiresAt,
-              },
-              {
+              }),
+              new KeyrackKeyGrant({
                 slug: 'XAI_API_KEY',
                 key: {
                   secret: 'secret-2',
@@ -37,7 +39,7 @@ describe('handleUnlockCommand', () => {
                 env: 'all',
                 org: 'ehmpathy',
                 expiresAt,
-              },
+              }),
             ],
           },
           { keyStore },
@@ -56,7 +58,7 @@ describe('handleUnlockCommand', () => {
         handleUnlockCommand(
           {
             keys: [
-              {
+              new KeyrackKeyGrant({
                 slug: 'SUDO_KEY',
                 key: {
                   secret: 'sudo-secret',
@@ -66,7 +68,7 @@ describe('handleUnlockCommand', () => {
                 env: 'sudo',
                 org: '@all',
                 expiresAt,
-              },
+              }),
             ],
           },
           { keyStore },
@@ -83,30 +85,34 @@ describe('handleUnlockCommand', () => {
 describe('handleGetCommand', () => {
   given('[case1] keys in store', () => {
     const keyStore = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       keyStore.set({
-        slug: 'KEY_A',
-        key: {
-          secret: 'secret-a',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_A',
+          key: {
+            secret: 'secret-a',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       keyStore.set({
-        slug: 'KEY_B',
-        key: {
-          secret: 'secret-b',
-          grade: { protection: 'plaintext', duration: 'permanent' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: '@all',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_B',
+          key: {
+            secret: 'secret-b',
+            grade: { protection: 'plaintext', duration: 'permanent' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: '@all',
+          expiresAt,
+        }),
       });
     });
 
@@ -155,31 +161,35 @@ describe('handleStatusCommand', () => {
   given('[case1] keys in store with valid TTL', () => {
     const keyStore = createDaemonKeyStore();
     const now = Date.now();
-    const expiresAt1 = now + 60000; // 1 min
-    const expiresAt2 = now + 120000; // 2 min
+    const expiresAt1 = asIsoTimeStamp(new Date(now + 60000)); // 1 min
+    const expiresAt2 = asIsoTimeStamp(new Date(now + 120000)); // 2 min
 
     beforeEach(() => {
       keyStore.set({
-        slug: 'KEY_1',
-        key: {
-          secret: 'secret-1',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt: expiresAt1,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_1',
+          key: {
+            secret: 'secret-1',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt: expiresAt1,
+        }),
       });
       keyStore.set({
-        slug: 'KEY_2',
-        key: {
-          secret: 'secret-2',
-          grade: { protection: 'encrypted', duration: 'transient' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: '@all',
-        expiresAt: expiresAt2,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_2',
+          key: {
+            secret: 'secret-2',
+            grade: { protection: 'encrypted', duration: 'transient' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: '@all',
+          expiresAt: expiresAt2,
+        }),
       });
     });
 
@@ -229,30 +239,34 @@ describe('handleStatusCommand', () => {
 describe('handleRelockCommand', () => {
   given('[case1] keys in store', () => {
     const keyStore = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       keyStore.set({
-        slug: 'KEY_A',
-        key: {
-          secret: 'secret-a',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_A',
+          key: {
+            secret: 'secret-a',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       keyStore.set({
-        slug: 'KEY_B',
-        key: {
-          secret: 'secret-b',
-          grade: { protection: 'encrypted', duration: 'transient' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'KEY_B',
+          key: {
+            secret: 'secret-b',
+            grade: { protection: 'encrypted', duration: 'transient' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
     });
 
@@ -287,41 +301,47 @@ describe('handleRelockCommand', () => {
 
   given('[case2] keys with different envs', () => {
     const keyStore = createDaemonKeyStore();
-    const expiresAt = Date.now() + 60000;
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
 
     beforeEach(() => {
       keyStore.set({
-        slug: 'SUDO_KEY',
-        key: {
-          secret: 'sudo-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'sudo',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'SUDO_KEY',
+          key: {
+            secret: 'sudo-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'sudo',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       keyStore.set({
-        slug: 'PROD_KEY',
-        key: {
-          secret: 'prod-secret',
-          grade: { protection: 'encrypted', duration: 'ephemeral' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'prod',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'PROD_KEY',
+          key: {
+            secret: 'prod-secret',
+            grade: { protection: 'encrypted', duration: 'ephemeral' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'prod',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
       keyStore.set({
-        slug: 'ALL_KEY',
-        key: {
-          secret: 'all-secret',
-          grade: { protection: 'plaintext', duration: 'permanent' },
-        },
-        source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
-        env: 'all',
-        org: 'ehmpathy',
-        expiresAt,
+        grant: new KeyrackKeyGrant({
+          slug: 'ALL_KEY',
+          key: {
+            secret: 'all-secret',
+            grade: { protection: 'plaintext', duration: 'permanent' },
+          },
+          source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+          env: 'all',
+          org: 'ehmpathy',
+          expiresAt,
+        }),
       });
     });
 

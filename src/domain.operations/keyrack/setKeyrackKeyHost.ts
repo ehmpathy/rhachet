@@ -8,7 +8,6 @@ import {
   type KeyrackHostVault,
   KeyrackKeyHost,
 } from '../../domain.objects/keyrack';
-import { vaultAdapterOsDirect, vaultAdapterOsSecure } from './adapters/vaults';
 import type { KeyrackHostContext } from './genKeyrackHostContext';
 
 /**
@@ -30,68 +29,51 @@ export const setKeyrackKeyHost = async (
     org?: string;
     vaultRecipient?: string | null;
     maxDuration?: string | null;
-    value?: string | null;
+    secret?: string | null;
   },
   context: KeyrackHostContext,
 ): Promise<KeyrackKeyHost> => {
   const now = new Date().toISOString();
 
-  // validate org — only @this or @all allowed at domain level
+  // expand org — accepts @this (expands from manifest), @all, or already-expanded org name
   const orgInput = input.org ?? '@this';
-  if (orgInput !== '@this' && orgInput !== '@all') {
-    throw new BadRequestError('org must be @this or @all', {
-      org: orgInput,
-      note: 'use @this for same-org credentials, @all for cross-org',
-    });
-  }
+  const orgExpanded = (() => {
+    if (orgInput === '@this') {
+      if (!context.repoManifest?.org) {
+        throw new BadRequestError(
+          '@this requires repo manifest to expand org',
+          {
+            note: 'run from a repo with keyrack.yml or use @all for cross-org credentials',
+          },
+        );
+      }
+      return context.repoManifest.org;
+    }
+    // @all or already-expanded org name (e.g., 'testorg') — pass through
+    return orgInput;
+  })();
 
-  // resolve @this to actual org from repo manifest
-  if (orgInput === '@this' && !context.repoManifest?.org) {
-    throw new BadRequestError('@this requires repo manifest to resolve org', {
-      note: 'run from a repo with keyrack.yml or use @all for cross-org credentials',
-    });
-  }
-  const resolvedOrg = orgInput === '@this' ? context.repoManifest!.org : '@all';
-
-  // construct key host
-  const keyHost = new KeyrackKeyHost({
+  // store secret in vault (upsert — always call adapter)
+  const envValue = input.env ?? 'all';
+  const adapter = context.vaultAdapters[input.vault];
+  const setResult = await adapter.set({
     slug: input.slug,
-    mech: input.mech,
-    vault: input.vault,
+    secret: input.secret ?? null,
     exid: input.exid ?? null,
-    env: input.env ?? 'all',
-    org: resolvedOrg,
+    env: envValue,
+    org: orgExpanded,
     vaultRecipient: input.vaultRecipient ?? null,
-    maxDuration: input.maxDuration ?? null,
-    createdAt: now,
-    updatedAt: now,
+    // when no explicit vaultRecipient, use manifest recipients
+    recipients: input.vaultRecipient
+      ? undefined
+      : context.hostManifest.recipients,
   });
 
-  // always store value in vault first (ensures file exists even on findsert match)
-  if (input.value) {
-    const envValue = input.env ?? 'all';
-    if (input.vault === 'os.secure') {
-      await vaultAdapterOsSecure.set({
-        slug: input.slug,
-        value: input.value,
-        env: envValue,
-        org: resolvedOrg,
-        vaultRecipient: input.vaultRecipient ?? null,
-        // when no explicit vaultRecipient, use manifest recipients
-        recipients: input.vaultRecipient
-          ? undefined
-          : context.hostManifest.recipients,
-      });
-    }
-    if (input.vault === 'os.direct') {
-      await vaultAdapterOsDirect.set({
-        slug: input.slug,
-        value: input.value,
-        env: envValue,
-        org: resolvedOrg,
-      });
-    }
-  }
+  // if adapter derived an exid (e.g., aws.iam.sso guided setup), use it for the manifest entry
+  const exidForManifest =
+    (setResult && 'exid' in setResult ? setResult.exid : null) ??
+    input.exid ??
+    null;
 
   // check if key already exists in manifest
   const hostFound = context.hostManifest.hosts[input.slug];
@@ -100,14 +82,28 @@ export const setKeyrackKeyHost = async (
     if (
       hostFound.mech === input.mech &&
       hostFound.vault === input.vault &&
-      hostFound.exid === (input.exid ?? null) &&
+      hostFound.exid === exidForManifest &&
       hostFound.env === (input.env ?? 'all') &&
-      hostFound.org === resolvedOrg &&
+      hostFound.org === orgExpanded &&
       hostFound.vaultRecipient === (input.vaultRecipient ?? null)
     ) {
       return new KeyrackKeyHost(hostFound);
     }
   }
+
+  // construct key host with derived exid
+  const keyHost = new KeyrackKeyHost({
+    slug: input.slug,
+    mech: input.mech,
+    vault: input.vault,
+    exid: exidForManifest,
+    env: input.env ?? 'all',
+    org: orgExpanded,
+    vaultRecipient: input.vaultRecipient ?? null,
+    maxDuration: input.maxDuration ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
 
   // update manifest with new/updated key host
   const hostsUpdated = {
@@ -124,7 +120,6 @@ export const setKeyrackKeyHost = async (
   await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
 
   // for non-sudo keys: also write to keyrack.yml (if gitroot available)
-  const envValue = input.env ?? 'all';
   if (envValue !== 'sudo' && context.gitroot) {
     // extract key name from slug (format: $org.$env.$key)
     const keyName = input.slug.split('.').slice(2).join('.');

@@ -9,7 +9,6 @@
  *   const grants = await keyrack.get({ for: { repo: true } });
  *   const grant = await keyrack.get({ for: { key: 'XAI_API_KEY' } });
  *   await keyrack.set({ slug: 'XAI_API_KEY', mech: 'REPLICA', vault: 'os.direct' });
- *   await keyrack.unlock({ for: { repo: true } });
  */
 
 import { getGitRepoRoot } from 'rhachet-artifact-git';
@@ -22,7 +21,6 @@ import { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrack
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
-import { unlockKeyrackVault } from '@src/domain.operations/keyrack/vault/unlockKeyrackVault';
 
 // domain objects
 export type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
@@ -48,8 +46,6 @@ export type { KeyrackHostContext } from '@src/domain.operations/keyrack/genKeyra
 export { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
 export { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 export { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
-export { unlockKeyrackVault } from '@src/domain.operations/keyrack/vault/unlockKeyrackVault';
-
 /**
  * .what = keyrack sdk namespace
  * .why = provides simple api for credential management
@@ -107,28 +103,6 @@ export const keyrack = {
         vault: input.vault,
         exid: input.exid,
       },
-      context,
-    );
-  },
-
-  /**
-   * .what = unlock vaults for credential access
-   * .why = some vaults require explicit unlock before read
-   */
-  unlock: async (input: {
-    for: { repo: true } | { key: string };
-    passphrase?: string;
-  }) => {
-    const context = await genKeyrackHostContext({ owner: null });
-
-    if ('repo' in input.for) {
-      return unlockKeyrackVault(
-        { for: { repo: true }, passphrase: input.passphrase },
-        context,
-      );
-    }
-    return unlockKeyrackVault(
-      { for: { key: input.for.key }, passphrase: input.passphrase },
       context,
     );
   },

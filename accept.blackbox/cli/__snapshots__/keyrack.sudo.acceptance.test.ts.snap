@@ -17,16 +17,13 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t0] set --key SU
 
 exports[`keyrack sudo given: [case1] sudo credential set when: [t1] set --key SUDO_TOKEN --env sudo (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack set (org: testorg, env: sudo)
+🔐 keyrack set (org: testorg, env: sudo)
    └─ testorg.sudo.SUDO_TOKEN
-      ├─ env: sudo
-      ├─ org: testorg
       ├─ mech: REPLICA
       └─ vault: os.direct
 
    note: sudo credentials are stored in encrypted host manifest only.
          they will NOT appear in keyrack.yml.
-done. key configured ✨
 
 "
 `;
@@ -37,12 +34,11 @@ exports[`keyrack sudo given: [case3] org validation when: [t0] set --org invalid
 
 exports[`keyrack sudo given: [case4] relock behavior when: [t0] relock (bare, no flags) then: stdout matches snapshot 1`] = `
 "
-🔒 rhachet/keyrack relock
+🔒 keyrack relock
    ├─ testorg.prep.AWS_PROFILE: pruned 🔒
    ├─ testorg.prep.SHARED_API_KEY: pruned 🔒
    ├─ testorg.prod.AWS_PROFILE: pruned 🔒
    └─ testorg.prod.SHARED_API_KEY: pruned 🔒
-done. 4 keys pruned.
 
 "
 `;
@@ -55,7 +51,7 @@ exports[`keyrack sudo given: [case4] relock behavior when: [t1] relock --json th
 
 exports[`keyrack sudo given: [case5] status output when: [t0] status when daemon not active then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack status
+🔐 keyrack status
    ├─ owner: (default)
    ├─ recipients:
    │  └─ test-key (age)
@@ -83,9 +79,9 @@ exports[`keyrack sudo given: [case5] status output when: [t1] status --json then
 
 exports[`keyrack sudo given: [case6] list shows env and org fields when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack list
-   ├─ testorg.prod.SHARED_API_KEY
-   │  ├─ env: prod
+🔐 keyrack list
+   ├─ testorg.prep.AWS_PROFILE
+   │  ├─ env: prep
    │  ├─ org: testorg
    │  ├─ mech: REPLICA
    │  └─ vault: os.direct
@@ -99,8 +95,8 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t0] ke
    │  ├─ org: testorg
    │  ├─ mech: REPLICA
    │  └─ vault: os.direct
-   ├─ testorg.prep.AWS_PROFILE
-   │  ├─ env: prep
+   ├─ testorg.prod.SHARED_API_KEY
+   │  ├─ env: prod
    │  ├─ org: testorg
    │  ├─ mech: REPLICA
    │  └─ vault: os.direct
@@ -109,8 +105,6 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t0] ke
       ├─ org: testorg
       ├─ mech: REPLICA
       └─ vault: os.direct
-done. 5 keys configured.
-
 "
 `;
 
@@ -196,13 +190,12 @@ exports[`keyrack sudo given: [case8] os.secure vault with vault-recipient when: 
 
 exports[`keyrack sudo given: [case9] unlock with --key for regular env when: [t0] unlock --env prod --key testorg.prod.AWS_PROFILE then: stdout matches snapshot 1`] = `
 "
-🔓 rhachet/keyrack unlock
+🔓 keyrack unlock
    └─ testorg.prod.AWS_PROFILE
       ├─ env: prod
       ├─ org: testorg
       ├─ vault: os.direct
       └─ expires in: 540m
-done. 1 keys unlocked.
 
 "
 `;

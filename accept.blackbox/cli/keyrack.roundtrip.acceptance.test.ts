@@ -119,8 +119,8 @@ describe('keyrack roundtrip', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('reports 1 key unlocked', () => {
-        expect(result.stdout).toContain('1 keys unlocked');
+      then('output contains the unlocked key slug', () => {
+        expect(result.stdout).toContain('SUDO_SECURE_KEY');
       });
     });
 
@@ -299,8 +299,8 @@ describe('keyrack roundtrip', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('reports 1 key unlocked', () => {
-        expect(result.stdout).toContain('1 keys unlocked');
+      then('output contains the unlocked key slug', () => {
+        expect(result.stdout).toContain('SUDO_DIRECT_KEY');
       });
     });
 
@@ -380,10 +380,13 @@ describe('keyrack roundtrip', () => {
   });
 
   /**
-   * [uc3] regular + os.direct roundtrip (no unlock needed)
-   * set -> get-granted
+   * [uc3] regular + os.direct roundtrip
+   * set -> get-locked -> unlock -> get-granted
    */
   given('[case3] regular + os.direct roundtrip', () => {
+    // kill daemon to prevent state leakage from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
       await invokeRhachetCliBinary({
@@ -424,7 +427,56 @@ describe('keyrack roundtrip', () => {
       });
     });
 
-    when('[t1] get --key REGULAR_DIRECT_KEY --env prod (no unlock needed)', () => {
+    when('[t1] get before unlock (returns locked)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'REGULAR_DIRECT_KEY',
+            '--env',
+            'prod',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('status is locked', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t2] unlock --env prod --key REGULAR_DIRECT_KEY', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'prod',
+            '--key',
+            'REGULAR_DIRECT_KEY',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains the unlocked key slug', () => {
+        expect(result.stdout).toContain('REGULAR_DIRECT_KEY');
+      });
+    });
+
+    when('[t3] get after unlock (returns granted)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -458,10 +510,13 @@ describe('keyrack roundtrip', () => {
   });
 
   /**
-   * [uc4] regular + os.secure roundtrip (auto-discovered identity)
-   * set -> get-granted (identity auto-discovered from ssh key)
+   * [uc4] regular + os.secure roundtrip
+   * set -> get-locked -> unlock -> get-granted
    */
   given('[case4] regular + os.secure roundtrip', () => {
+    // kill daemon to prevent state leakage from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
       await invokeRhachetCliBinary({
@@ -504,7 +559,56 @@ describe('keyrack roundtrip', () => {
       });
     });
 
-    when('[t1] get --key REGULAR_SECURE_KEY --env prod (auto-discovered identity)', () => {
+    when('[t1] get before unlock (returns locked)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'REGULAR_SECURE_KEY',
+            '--env',
+            'prod',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('status is locked', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t2] unlock --env prod --key REGULAR_SECURE_KEY', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'prod',
+            '--key',
+            'REGULAR_SECURE_KEY',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains the unlocked key slug', () => {
+        expect(result.stdout).toContain('REGULAR_SECURE_KEY');
+      });
+    });
+
+    when('[t3] get after unlock (returns granted)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
