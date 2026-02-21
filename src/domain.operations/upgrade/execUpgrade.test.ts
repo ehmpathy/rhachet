@@ -14,8 +14,8 @@ jest.mock('./resolveBrainsToPackages', () => ({
 jest.mock('./execNpmInstall', () => ({
   execNpmInstall: jest.fn(),
 }));
-jest.mock('./getFileDotDependencies', () => ({
-  getFileDotDependencies: jest.fn(),
+jest.mock('./getLocalRefDependencies', () => ({
+  getLocalRefDependencies: jest.fn(),
 }));
 jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
   initRolesFromPackages: jest.fn(),
@@ -25,7 +25,7 @@ import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFrom
 
 import { execNpmInstall } from './execNpmInstall';
 import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
-import { getFileDotDependencies } from './getFileDotDependencies';
+import { getLocalRefDependencies } from './getLocalRefDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
 
 const mockExpandRoleSupplierSlugs =
@@ -39,8 +39,10 @@ const mockResolveBrainsToPackages =
 const mockExecNpmInstall = execNpmInstall as jest.MockedFunction<
   typeof execNpmInstall
 >;
-const mockGetFileDotDependencies =
-  getFileDotDependencies as jest.MockedFunction<typeof getFileDotDependencies>;
+const mockGetLocalRefDependencies =
+  getLocalRefDependencies as jest.MockedFunction<
+    typeof getLocalRefDependencies
+  >;
 const mockInitRolesFromPackages = initRolesFromPackages as jest.MockedFunction<
   typeof initRolesFromPackages
 >;
@@ -56,7 +58,7 @@ describe('execUpgrade', () => {
       slugs: ['ehmpathy/*'] as any,
     });
     mockResolveBrainsToPackages.mockResolvedValue(['rhachet-brains-anthropic']);
-    mockGetFileDotDependencies.mockReturnValue(new Set());
+    mockGetLocalRefDependencies.mockReturnValue(new Set());
     mockInitRolesFromPackages.mockResolvedValue({
       rolesLinked: [],
       rolesInitialized: [],
@@ -278,7 +280,7 @@ describe('execUpgrade', () => {
 
   given('package has file:. dependency for a role package', () => {
     beforeEach(() => {
-      mockGetFileDotDependencies.mockReturnValue(
+      mockGetLocalRefDependencies.mockReturnValue(
         new Set(['rhachet-roles-ehmpathy']),
       );
       mockResolveBrainsToPackages.mockResolvedValue([]);
@@ -309,7 +311,7 @@ describe('execUpgrade', () => {
 
   given('rhachet itself has file:. dependency', () => {
     beforeEach(() => {
-      mockGetFileDotDependencies.mockReturnValue(new Set(['rhachet']));
+      mockGetLocalRefDependencies.mockReturnValue(new Set(['rhachet']));
       mockExpandRoleSupplierSlugs.mockResolvedValue({
         packages: [],
         linkedRoles: [],
@@ -330,7 +332,7 @@ describe('execUpgrade', () => {
 
   given('mixed file:. and regular dependencies', () => {
     beforeEach(() => {
-      mockGetFileDotDependencies.mockReturnValue(
+      mockGetLocalRefDependencies.mockReturnValue(
         new Set(['rhachet-roles-ehmpathy']),
       );
       mockExpandRoleSupplierSlugs.mockResolvedValue({
@@ -470,7 +472,7 @@ describe('execUpgrade', () => {
 
   given('package has file:. dependency for a brain package', () => {
     beforeEach(() => {
-      mockGetFileDotDependencies.mockReturnValue(
+      mockGetLocalRefDependencies.mockReturnValue(
         new Set(['rhachet-brains-anthropic']),
       );
       mockExpandRoleSupplierSlugs.mockResolvedValue({
@@ -502,7 +504,7 @@ describe('execUpgrade', () => {
 
   given('mixed file:. and regular brain dependencies', () => {
     beforeEach(() => {
-      mockGetFileDotDependencies.mockReturnValue(
+      mockGetLocalRefDependencies.mockReturnValue(
         new Set(['rhachet-brains-anthropic']),
       );
       mockExpandRoleSupplierSlugs.mockResolvedValue({

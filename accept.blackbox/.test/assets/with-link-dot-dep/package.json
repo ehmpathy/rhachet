@@ -1,0 +1,8 @@
+{
+  "name": "rhachet-roles-brain",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-brain": "link:."
+  }
+}

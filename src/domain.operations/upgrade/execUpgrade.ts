@@ -10,7 +10,7 @@ import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksFo
 
 import { execNpmInstall } from './execNpmInstall';
 import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
-import { getFileDotDependencies } from './getFileDotDependencies';
+import { getLocalRefDependencies } from './getLocalRefDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
 
 /**
@@ -40,14 +40,14 @@ const buildInstallList = (input: {
     list.push('rhachet');
   }
 
-  // add role packages (exclude file:. deps)
+  // add role packages (exclude local refs)
   for (const pkg of input.rolePackages) {
     if (!input.exclude.has(pkg)) {
       list.push(pkg);
     }
   }
 
-  // add brain packages (exclude file:. deps)
+  // add brain packages (exclude local refs)
   for (const pkg of input.brainPackages) {
     if (!input.exclude.has(pkg)) {
       list.push(pkg);
@@ -91,17 +91,17 @@ export const execUpgrade = async (
     context,
   );
 
-  // detect file:. dependencies to exclude
-  const fileDotDeps = getFileDotDependencies({ cwd: context.cwd });
+  // detect local ref dependencies to exclude (file: or link:)
+  const localRefDeps = getLocalRefDependencies({ cwd: context.cwd });
 
   // log skipped packages
-  if (fileDotDeps.size > 0) {
+  if (localRefDeps.size > 0) {
     const allPackages = [...roleExpanded.packages, ...brainPackages];
-    const skipped = [...fileDotDeps].filter(
+    const skipped = [...localRefDeps].filter(
       (pkg) => allPackages.includes(pkg) || (upgradeSelf && pkg === 'rhachet'),
     );
     if (skipped.length > 0) {
-      console.log(`🫧 skip (file:. deps): ${skipped.join(', ')}`);
+      console.log(`🫧 skip (local refs): ${skipped.join(', ')}`);
     }
   }
 
@@ -110,7 +110,7 @@ export const execUpgrade = async (
     self: upgradeSelf,
     rolePackages: roleExpanded.packages,
     brainPackages,
-    exclude: fileDotDeps,
+    exclude: localRefDeps,
   });
 
   // execute npm install (fail fast)
@@ -131,12 +131,12 @@ export const execUpgrade = async (
 
   // extract slugs from brain packages for result
   const upgradedBrains = brainPackages
-    .filter((pkg) => !fileDotDeps.has(pkg))
+    .filter((pkg) => !localRefDeps.has(pkg))
     .map((pkg) => toBrainSupplierSlug(pkg));
 
   // filter role slugs for packages that were actually upgraded (not excluded)
   const upgradedRoles = roleExpanded.slugs.filter(
-    (slug) => !fileDotDeps.has(`rhachet-roles-${slug.split('/')[0]}`),
+    (slug) => !localRefDeps.has(`rhachet-roles-${slug.split('/')[0]}`),
   );
 
   // report success

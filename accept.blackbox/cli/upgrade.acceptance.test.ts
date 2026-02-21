@@ -738,4 +738,39 @@ describe('rhachet upgrade', () => {
       });
     });
   });
+
+  given('[case14] inside rhachet-roles-brain repo with link:. self-reference', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genTestTempRepo({
+        fixture: 'with-link-dot-dep',
+        install: false,
+      });
+
+      return { repo };
+    });
+
+    when('[t0] rhachet upgrade --roles brain/thinker', () => {
+      const result = useBeforeAll(async () => {
+        // upgrade tries to resolve the role, which maps to rhachet-roles-brain
+        // since rhachet-roles-brain has link:. version, it should be skipped
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'brain/thinker'],
+          cwd: scene.repo.path,
+          logOnError: false,
+        });
+
+        const packageJson = JSON.parse(
+          readFileSync(join(scene.repo.path, 'package.json'), 'utf-8'),
+        );
+
+        return { upgradeResult, packageJson };
+      });
+
+      then('package.json still has rhachet-roles-brain as link:.', () => {
+        expect(result.packageJson.dependencies['rhachet-roles-brain']).toEqual(
+          'link:.',
+        );
+      });
+    });
+  });
 });

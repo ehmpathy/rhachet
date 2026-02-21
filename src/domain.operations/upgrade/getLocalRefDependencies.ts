@@ -2,10 +2,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * .what = identifies dependencies with file:. version specifiers
+ * .what = identifies dependencies with local ref version specifiers (file: or link:)
  * .why = these dependencies should be excluded from upgrade (local refs)
  */
-export const getFileDotDependencies = (input: { cwd: string }): Set<string> => {
+export const getLocalRefDependencies = (input: {
+  cwd: string;
+}): Set<string> => {
   const packageJsonPath = join(input.cwd, 'package.json');
 
   // handle absent package.json gracefully
@@ -20,13 +22,18 @@ export const getFileDotDependencies = (input: { cwd: string }): Set<string> => {
   // merge all dependencies
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-  // filter to file: versions
-  const fileDotDeps = new Set<string>();
+  // filter to local ref versions (file: or link:)
+  const localRefDeps = new Set<string>();
   for (const [name, version] of Object.entries(allDeps)) {
-    if (version.startsWith('file:')) {
-      fileDotDeps.add(name);
+    if (version.startsWith('file:') || version.startsWith('link:')) {
+      localRefDeps.add(name);
     }
   }
 
-  return fileDotDeps;
+  return localRefDeps;
 };
+
+/**
+ * @deprecated use getLocalRefDependencies instead
+ */
+export const getFileDotDependencies = getLocalRefDependencies;
