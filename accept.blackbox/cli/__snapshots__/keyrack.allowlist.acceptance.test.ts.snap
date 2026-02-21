@@ -1,19 +1,9 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.1] get --key ALLOWED_KEY (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 rhachet/keyrack
-   └─ testorg.test.ALLOWED_KEY
-      ├─ vault: os.direct
-      ├─ mech: REPLICA
-      └─ status: granted 🔑
-
-"
-`;
-
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0] get --key ALLOWED_KEY (in allowlist, on host) then: stdout matches snapshot 1`] = `
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.5] unlock then get --key ALLOWED_KEY (roundtrip) then: stdout matches snapshot 1`] = `
 {
   "grant": {
+    "env": "test",
     "key": {
       "grade": {
         "duration": "permanent",
@@ -21,30 +11,50 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
       },
       "secret": "allowed-key-value-123",
     },
+    "org": "testorg",
     "slug": "testorg.test.ALLOWED_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.direct",
+      "vault": "os.daemon",
     },
   },
   "status": "granted",
 }
 `;
 
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.6] get --key ALLOWED_KEY (human readable, without unlock) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.ALLOWED_KEY
+      ├─ status: locked 🔒
+      └─ [2mtip: rhx keyrack unlock --env test --key ALLOWED_KEY[0m
+
+"
+`;
+
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0] get --key ALLOWED_KEY without unlock (in allowlist, on host) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env test --key ALLOWED_KEY",
+  "message": "credential 'testorg.test.ALLOWED_KEY' is locked. unlock it first.",
+  "slug": "testorg.test.ALLOWED_KEY",
+  "status": "locked",
+}
+`;
+
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1.1] get --key SECRET_KEY (human readable) then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack
+🔐 keyrack
    └─ testorg.test.SECRET_KEY
-      └─ status: absent 🫧
-         └─ fix: add 'SECRET_KEY' to env.test in .agent/keyrack.yml
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key SECRET_KEY --env all --vault <vault>[0m
 
 "
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1] get --key SECRET_KEY (on host but NOT in allowlist) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'SECRET_KEY' to env.test in .agent/keyrack.yml",
-  "message": "key 'testorg.test.SECRET_KEY' not found in repo manifest",
+  "fix": "rhx keyrack set --key SECRET_KEY --env all --vault <vault>",
+  "message": "credential 'testorg.test.SECRET_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.SECRET_KEY",
   "status": "absent",
 }
@@ -52,17 +62,18 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t2] get --key NONEXISTENT_KEY (not in allowlist, not on host) then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'NONEXISTENT_KEY' to env.test in .agent/keyrack.yml",
-  "message": "key 'testorg.test.NONEXISTENT_KEY' not found in repo manifest",
+  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env all --vault <vault>",
+  "message": "credential 'testorg.test.NONEXISTENT_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.NONEXISTENT_KEY",
   "status": "absent",
 }
 `;
 
-exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3] get --for repo then: stdout matches snapshot 1`] = `
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3.5] unlock then get --for repo then: stdout matches snapshot 1`] = `
 [
   {
     "grant": {
+      "env": "test",
       "key": {
         "grade": {
           "duration": "permanent",
@@ -70,10 +81,11 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
         },
         "secret": "allowed-key-value-123",
       },
+      "org": "testorg",
       "slug": "testorg.test.ALLOWED_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.direct",
+        "vault": "os.daemon",
       },
     },
     "status": "granted",
@@ -81,11 +93,35 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 ]
 `;
 
+exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t3] get --for repo without unlock then: stdout matches snapshot 1`] = `
+[
+  {
+    "fix": "rhx keyrack unlock --env test --key ALLOWED_KEY",
+    "message": "credential 'testorg.test.ALLOWED_KEY' is locked. unlock it first.",
+    "slug": "testorg.test.ALLOWED_KEY",
+    "status": "locked",
+  },
+]
+`;
+
 exports[`keyrack allowlist given: [case2] env var exists but key not in allowlist when: [t0] get --key SECRET_FROM_ENV with env var set then: stdout matches snapshot 1`] = `
 {
-  "fix": "add 'SECRET_FROM_ENV' to env.test in .agent/keyrack.yml",
-  "message": "key 'testorg.test.SECRET_FROM_ENV' not found in repo manifest",
-  "slug": "testorg.test.SECRET_FROM_ENV",
-  "status": "absent",
+  "grant": {
+    "env": "test",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "secret-env-value-789",
+    },
+    "org": "testorg",
+    "slug": "testorg.test.SECRET_FROM_ENV",
+    "source": {
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.envvar",
+    },
+  },
+  "status": "granted",
 }
 `;

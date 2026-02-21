@@ -3,20 +3,19 @@ import { given, then, when } from 'test-fns';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { withTempHome } from '../../.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
-import {
-  KeyrackHostManifest,
-  KeyrackKeyHost,
-} from '../../domain.objects/keyrack';
-import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
-import { genKeyrackGrantContext } from './genKeyrackGrantContext';
+import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 
-describe('getKeyrackKeyGrant', () => {
+// mock daemon interactions to avoid socket access in integration tests
+jest.mock('./daemon/sdk', () => ({
+  daemonAccessGet: jest.fn().mockResolvedValue(null),
+}));
+
+describe('getKeyrackKeyGrant.integration', () => {
   const tempHome = withTempHome({ name: 'getKeyrackKeyGrant' });
   const testDir = resolve(__dirname, './.temp/getKeyrackKeyGrant');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     tempHome.setup();
     rmSync(testDir, { recursive: true, force: true });
     mkdirSync(testDir, { recursive: true });
@@ -33,330 +32,80 @@ describe('getKeyrackKeyGrant', () => {
     rmSync(join(testDir, '.agent'), { recursive: true, force: true });
   });
 
-  given('[case1] key configured in repo and host with value in vault', () => {
-    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
+  given(
+    '[case1] key configured in repo and host but no envvar or daemon',
+    () => {
+      const slug = 'testorg.test.__TEST_HOST_API_KEY__';
 
-    beforeEach(async () => {
-      // setup repo manifest
-      const agentDir = join(testDir, '.agent');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(
-        join(agentDir, 'keyrack.yml'),
-        `org: testorg
-
-env.all:
-  - __TEST_HOST_API_KEY__
-
-env.test: []
-`,
-      );
-
-      // setup host manifest
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {
-            [slug]: new KeyrackKeyHost({
-              slug,
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              exid: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          },
-        }),
-      });
-
-      // store value in vault
-      await vaultAdapterOsDirect.set({
-        slug,
-        value: 'xai-test-key-123',
-      });
-    });
-
-    when('[t0] get called for single key', () => {
-      then('status is granted', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        expect(result.status).toEqual('granted');
-      });
-
-      then('grant value matches stored value', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        if (result.status === 'granted') {
-          expect(result.grant.key.secret).toEqual('xai-test-key-123');
-        }
-      });
-    });
-
-    when('[t1] get called for repo', () => {
-      then('returns array with granted status', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { repo: true }, env: 'test' },
-          context,
-        );
-
-        expect(Array.isArray(result)).toBe(true);
-        expect(result).toHaveLength(1);
-        expect(result[0]?.status).toEqual('granted');
-      });
-    });
-  });
-
-  given('[case2] key not in repo manifest', () => {
-    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
-
-    beforeEach(async () => {
-      // setup repo manifest without the key
-      const agentDir = join(testDir, '.agent');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(
-        join(agentDir, 'keyrack.yml'),
-        `org: testorg
-
-env.all: []
-
-env.test: []
-`,
-      );
-
-      // setup host manifest with the key
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {
-            [slug]: new KeyrackKeyHost({
-              slug,
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              exid: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          },
-        }),
-      });
-    });
-
-    when('[t0] get called for key not in repo', () => {
-      then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        expect(result.status).toEqual('absent');
-      });
-
-      then('message mentions repo manifest', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        if (result.status === 'absent') {
-          expect(result.message).toContain('repo manifest');
-        }
-      });
-    });
-  });
-
-  given('[case3] key not configured on host', () => {
-    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
-
-    beforeEach(async () => {
-      // setup repo manifest with the key
-      const agentDir = join(testDir, '.agent');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(
-        join(agentDir, 'keyrack.yml'),
-        `org: testorg
+      beforeEach(async () => {
+        // setup repo manifest
+        const agentDir = join(testDir, '.agent');
+        mkdirSync(agentDir, { recursive: true });
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
 
 env.all:
   - __TEST_HOST_API_KEY__
 
 env.test: []
 `,
-      );
-
-      // setup empty host manifest
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {},
-        }),
-      });
-    });
-
-    when('[t0] get called for unconfigured key', () => {
-      then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
         );
-
-        expect(result.status).toEqual('absent');
       });
 
-      then('message mentions host', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
+      when('[t0] get called for single key', () => {
+        then('status is locked (envvar and daemon miss)', async () => {
+          const context = await genContextKeyrackGrantGet({
+            gitroot: testDir,
+          });
+          const result = await getKeyrackKeyGrant(
+            { for: { key: slug } },
+            context,
+          );
 
-        if (result.status === 'absent') {
-          expect(result.message).toContain('host');
-        }
+          expect(result.status).toEqual('locked');
+        });
+
+        then('fix mentions unlock', async () => {
+          const context = await genContextKeyrackGrantGet({
+            gitroot: testDir,
+          });
+          const result = await getKeyrackKeyGrant(
+            { for: { key: slug } },
+            context,
+          );
+
+          if (result.status === 'locked') {
+            expect(result.fix).toContain('unlock');
+          }
+        });
       });
 
-      then('fix instructions mention keyrack set', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
+      when('[t1] get called for repo', () => {
+        then('returns array with locked status', async () => {
+          const context = await genContextKeyrackGrantGet({
+            gitroot: testDir,
+          });
 
-        if (result.status === 'absent') {
-          expect(result.fix).toContain('keyrack set');
-        }
+          // resolve slugs from repo manifest (like the CLI does)
+          const slugs = context.repoManifest
+            ? Object.keys(context.repoManifest.keys)
+            : [];
+
+          const result = await getKeyrackKeyGrant(
+            { for: { repo: true }, env: 'test', slugs },
+            context,
+          );
+
+          expect(Array.isArray(result)).toBe(true);
+          expect(result).toHaveLength(1);
+          expect(result[0]?.status).toEqual('locked');
+        });
       });
-    });
-  });
+    },
+  );
 
-  given('[case4] value not in vault', () => {
-    const slug = 'testorg.test.__TEST_HOST_API_KEY__';
-
-    beforeEach(async () => {
-      // setup repo manifest
-      const agentDir = join(testDir, '.agent');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(
-        join(agentDir, 'keyrack.yml'),
-        `org: testorg
-
-env.all:
-  - __TEST_HOST_API_KEY__
-
-env.test: []
-`,
-      );
-
-      // setup host manifest
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {
-            [slug]: new KeyrackKeyHost({
-              slug,
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              exid: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          },
-        }),
-      });
-
-      // do NOT store value in vault
-    });
-
-    when('[t0] get called for key without value', () => {
-      then('status is absent', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        expect(result.status).toEqual('absent');
-      });
-    });
-  });
-
-  given('[case5] invalid credential value', () => {
-    const slug = 'testorg.test.GITHUB_TOKEN';
-
-    beforeEach(async () => {
-      // setup repo manifest
-      const agentDir = join(testDir, '.agent');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(
-        join(agentDir, 'keyrack.yml'),
-        `org: testorg
-
-env.all:
-  - GITHUB_TOKEN
-
-env.test: []
-`,
-      );
-
-      // setup host manifest
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {
-            [slug]: new KeyrackKeyHost({
-              slug,
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              exid: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          },
-        }),
-      });
-
-      // store a long-lived github pat (should be blocked by REPLICA mech)
-      await vaultAdapterOsDirect.set({
-        slug,
-        value: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-      });
-    });
-
-    when('[t0] get called for invalid value', () => {
-      then('status is blocked', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        expect(result.status).toEqual('blocked');
-      });
-
-      then('message mentions validation failure', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
-        const result = await getKeyrackKeyGrant(
-          { for: { key: slug } },
-          context,
-        );
-
-        if (result.status === 'blocked') {
-          expect(result.message).toContain('github classic pat');
-        }
-      });
-    });
-  });
-
-  given('[case6] key present in process.env (ci passthrough)', () => {
+  given('[case2] key present in process.env (ci passthrough)', () => {
     const envKey = '__TEST_KEYRACK_INTEG_ENV_VAR__';
     const slug = `testorg.test.${envKey}`;
     const envValue = 'ci-passthrough-value-123';
@@ -378,14 +127,6 @@ env.all:
 env.test: []
 `,
       );
-
-      // setup empty host manifest (no host config for this key)
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {},
-        }),
-      });
     });
 
     afterEach(() => {
@@ -394,7 +135,9 @@ env.test: []
 
     when('[t0] get called for key that exists in env', () => {
       then('status is granted', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genContextKeyrackGrantGet({
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -404,7 +147,9 @@ env.test: []
       });
 
       then('grant source vault is os.envvar', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genContextKeyrackGrantGet({
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -416,7 +161,9 @@ env.test: []
       });
 
       then('grant value matches env value', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+        const context = await genContextKeyrackGrantGet({
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,
@@ -429,11 +176,10 @@ env.test: []
     });
   });
 
-  given('[case7] key in both env and host manifest (env wins)', () => {
+  given('[case3] key in env takes precedence over locked vault', () => {
     const envKey = '__TEST_KEYRACK_INTEG_ENV_PRIORITY__';
     const slug = `testorg.test.${envKey}`;
     const envValue = 'value-from-env';
-    const hostValue = 'value-from-host';
 
     beforeEach(async () => {
       // set env var (uses raw key name for passthrough lookup)
@@ -452,29 +198,6 @@ env.all:
 env.test: []
 `,
       );
-
-      // setup host manifest with different value
-      await daoKeyrackHostManifest.set({
-        upsert: new KeyrackHostManifest({
-          uri: '~/.rhachet/keyrack.manifest.json',
-          hosts: {
-            [slug]: new KeyrackKeyHost({
-              slug,
-              mech: 'REPLICA',
-              vault: 'os.direct',
-              exid: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          },
-        }),
-      });
-
-      // store different value in vault
-      await vaultAdapterOsDirect.set({
-        slug,
-        value: hostValue,
-      });
     });
 
     afterEach(() => {
@@ -482,8 +205,10 @@ env.test: []
     });
 
     when('[t0] get called for key', () => {
-      then('env takes precedence over host', async () => {
-        const context = await genKeyrackGrantContext({ gitroot: testDir });
+      then('env takes precedence over vault', async () => {
+        const context = await genContextKeyrackGrantGet({
+          gitroot: testDir,
+        });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
           context,

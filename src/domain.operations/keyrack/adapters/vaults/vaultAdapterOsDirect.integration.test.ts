@@ -13,7 +13,14 @@ describe('vaultAdapterOsDirect', () => {
 
   beforeEach(() => {
     // clean up store before each test
-    const storePath = join(tempHome.path, '.rhachet', 'keyrack.direct.json');
+    const storePath = join(
+      tempHome.path,
+      '.rhachet',
+      'keyrack',
+      'vault',
+      'os.direct',
+      'keyrack.direct.json',
+    );
     rmSync(storePath, { force: true });
   });
 
@@ -36,12 +43,17 @@ describe('vaultAdapterOsDirect', () => {
       then('creates store file', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         expect(existsSync(storePath)).toBe(true);
@@ -50,7 +62,9 @@ describe('vaultAdapterOsDirect', () => {
       then('stores key value', async () => {
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'XAI_API_KEY' });
@@ -61,8 +75,18 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case2] store has keys', () => {
     beforeEach(async () => {
-      await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsDirect.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_A',
+        secret: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_B',
+        secret: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] get called for stored key', () => {
@@ -77,14 +101,24 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t1] set called to update key', () => {
       then('updates value', async () => {
-        await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsDirect.set({
+          slug: 'KEY_A',
+          secret: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
         expect(result).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsDirect.set({
+          slug: 'KEY_A',
+          secret: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
         expect(resultB).toEqual('value-b');
@@ -120,8 +154,18 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case3] store file format', () => {
     beforeEach(async () => {
-      await vaultAdapterOsDirect.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsDirect.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_A',
+        secret: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsDirect.set({
+        slug: 'KEY_B',
+        secret: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] store file read directly', () => {
@@ -129,6 +173,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -142,6 +189,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -158,13 +208,18 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          value: 'ghs_token123',
+          secret: 'ghs_token123',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -180,7 +235,9 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          value: 'ghs_token123',
+          secret: 'ghs_token123',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -196,7 +253,9 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          value: 'expired_token',
+          secret: 'expired_token',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -208,7 +267,9 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          value: 'expired_token',
+          secret: 'expired_token',
+          env: 'test',
+          org: 'testorg',
           expiresAt,
         });
 
@@ -219,6 +280,9 @@ describe('vaultAdapterOsDirect', () => {
         const storePath = join(
           tempHome.path,
           '.rhachet',
+          'keyrack',
+          'vault',
+          'os.direct',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');

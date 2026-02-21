@@ -3,10 +3,16 @@ import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 /**
  * .what = handle RELOCK command to purge keys from daemon memory
  * .why = allows explicit session end or selective key revocation
+ *
+ * .note = priority: slugs > env > all
+ * .note = if slugs provided, purge only those specific keys
+ * .note = if env provided (without slugs), purge only keys with that env
+ * .note = if neither provided, purge all keys
  */
 export const handleRelockCommand = (
   input: {
-    slugs?: string[]; // if provided, purge only these; if absent, purge all
+    slugs?: string[]; // if provided, purge only these
+    env?: string; // if provided (without slugs), purge only keys with this env
   },
   context: {
     keyStore: DaemonKeyStore;
@@ -21,6 +27,16 @@ export const handleRelockCommand = (
       if (wasDeleted) {
         relockedSlugs.push(slug);
       }
+    }
+    return { relocked: relockedSlugs };
+  }
+
+  // if env provided, delete only keys with that env
+  if (input.env) {
+    const keysForEnv = context.keyStore.entries({ env: input.env });
+    for (const key of keysForEnv) {
+      context.keyStore.del({ slug: key.slug });
+      relockedSlugs.push(key.slug);
     }
     return { relocked: relockedSlugs };
   }

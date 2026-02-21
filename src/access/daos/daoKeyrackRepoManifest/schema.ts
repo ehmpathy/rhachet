@@ -13,7 +13,7 @@ const schemaKeyrackKeyEntry = z.union([
  * .what = zod schema for KeyrackRepoManifest (env-scoped format)
  * .why = validates manifest from @gitroot/.agent/keyrack.yml
  *
- * .note = rejects flat keys: format; requires org + env.* sections
+ * .note = rejects flat keys: format; org required, env.* sections optional
  */
 export const schemaKeyrackRepoManifest = z
   .object({
@@ -31,14 +31,8 @@ export const schemaKeyrackRepoManifest = z
         'flat keys: format is no longer supported; use org + env.* sections instead',
     },
   )
-  .refine(
-    (data) => {
-      // require at least one env.* section
-      const envKeys = Object.keys(data).filter((k) => k.startsWith('env.'));
-      return envKeys.length > 0;
-    },
-    { message: 'at least one env.* section is required' },
-  )
+  // note: env.* sections are optional — a fresh manifest may only have org
+  // env.* sections are added as keys are set (except sudo which never appears here)
   .refine(
     (data) => {
       // env.all requires at least one env-specific section

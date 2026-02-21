@@ -1,19 +1,15 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import { connectToKeyrackDaemon } from '../infra/connectToKeyrackDaemon';
 import { sendKeyrackDaemonCommand } from '../infra/sendKeyrackDaemonCommand';
 
 /**
- * .what = send UNLOCK command to daemon to store keys with TTL
+ * .what = send UNLOCK command to daemon to store grants with TTL
  * .why = caches credentials in daemon memory after interactive auth
  */
 export const daemonAccessUnlock = async (input: {
-  keys: Array<{
-    slug: string;
-    key: KeyrackKey;
-    expiresAt: number;
-  }>;
+  keys: KeyrackKeyGrant[];
   socketPath?: string;
 }): Promise<{ unlocked: string[] }> => {
   const socket = await connectToKeyrackDaemon({ socketPath: input.socketPath });

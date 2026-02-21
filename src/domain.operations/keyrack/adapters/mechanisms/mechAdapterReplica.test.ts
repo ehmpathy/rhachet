@@ -25,12 +25,12 @@ describe('mechAdapterReplica', () => {
       });
     });
 
-    when('[t2] translate called with value', () => {
-      then('returns value unchanged with no expiry', async () => {
+    when('[t2] translate called with secret', () => {
+      then('returns secret unchanged with no expiry', async () => {
         const result = await mechAdapterReplica.translate({
-          value: 'my-api-key-123',
+          secret: 'my-api-key-123',
         });
-        expect(result.value).toEqual('my-api-key-123');
+        expect(result.secret).toEqual('my-api-key-123');
         expect(result.expiresAt).toBeUndefined();
       });
     });

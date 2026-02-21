@@ -1,3 +1,6 @@
+import { UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp } from 'iso-time';
+
 import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
 import {
   daemonAccessGet,
@@ -57,9 +60,17 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
    */
   set: async (input: {
     slug: string;
-    value: string;
+    secret: string | null;
+    env: string;
+    org: string;
     expiresAt?: string | null;
   }) => {
+    // secret is required for os.daemon vault
+    if (!input.secret)
+      throw new UnexpectedCodePathError('secret required for os.daemon vault', {
+        slug: input.slug,
+      });
+
     // infer grade for os.daemon (always encrypted + transient)
     const grade = inferKeyGrade({
       vault: 'os.daemon',
@@ -69,14 +80,17 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
     // calculate expiration (default 9 hours if not provided)
     const defaultTtlMs = 9 * 60 * 60 * 1000; // 9 hours
     const expiresAt = input.expiresAt
-      ? new Date(input.expiresAt).getTime()
-      : Date.now() + defaultTtlMs;
+      ? asIsoTimeStamp(new Date(input.expiresAt))
+      : asIsoTimeStamp(new Date(Date.now() + defaultTtlMs));
 
     await daemonAccessUnlock({
       keys: [
         {
           slug: input.slug,
-          key: { secret: input.value, grade },
+          key: { secret: input.secret, grade },
+          source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
+          env: input.env,
+          org: input.org,
           expiresAt,
         },
       ],

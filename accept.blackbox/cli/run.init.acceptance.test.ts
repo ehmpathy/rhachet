@@ -82,7 +82,7 @@ describe('rhachet run --init', () => {
 
   given('[case2] repo with published perf-role (requires link)', () => {
     const repo = useBeforeAll(async () => {
-      const r = genTestTempRepo({ fixture: 'with-perf-test' });
+      const r = await genTestTempRepo({ fixture: 'with-perf-test' });
 
       // link the perf-role to make inits available
       invokeRhachetCliBinary({
@@ -137,7 +137,7 @@ describe('rhachet run --init', () => {
 
   given('[case4] repo with inits after roles link (Claude Code hook scenarios)', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-inits' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-inits' });
 
       // link role to create .agent/ directory
       const linkResult = invokeRhachetCliBinary({
@@ -197,7 +197,7 @@ describe('rhachet run --init', () => {
 
   given('[case5] repo with inits and piped stdin (Claude Code hook scenario)', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({
+      const tempRepo = await genTestTempRepo({
         fixture: 'with-inits',
         suffix: 'stdin-test',
       });
@@ -304,7 +304,7 @@ describe('rhachet run --init', () => {
 
   given('[case6] repo with forbid-gerunds init (Claude Code hook scenario)', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({
+      const tempRepo = await genTestTempRepo({
         fixture: 'with-inits',
         suffix: 'forbid-gerunds-test',
       });

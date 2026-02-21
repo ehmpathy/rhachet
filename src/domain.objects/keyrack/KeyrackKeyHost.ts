@@ -32,6 +32,34 @@ export interface KeyrackKeyHost {
   mech: KeyrackGrantMechanism;
 
   /**
+   * .what = which env this key belongs to
+   * .why = 'sudo' keys are invisible to codebase; others appear in keyrack.yml
+   * .example = 'sudo', 'prod', 'prep', 'all'
+   */
+  env: string;
+
+  /**
+   * .what = which org this key belongs to
+   * .why = enables org-scoped access and cross-org credentials
+   * .example = 'ehmpathy', '@all' (for cross-org)
+   */
+  org: string;
+
+  /**
+   * .what = optional pubkey for os.secure vault if different from manifest
+   * .why = enables separate key for high-value credentials
+   * .example = 'ssh-ed25519 AAAA...'
+   */
+  vaultRecipient: string | null;
+
+  /**
+   * .what = optional max TTL for this key
+   * .why = caps unlock duration for sensitive credentials
+   * .example = '30m', '1h', '5m'
+   */
+  maxDuration: string | null;
+
+  /**
    * .what = when this host entry was created
    */
   createdAt: string;

@@ -20,8 +20,8 @@ export const findsertKeyrackDaemon = async (input?: {
     return { socketPath, spawned: false };
   }
 
-  // spawn daemon in background
-  spawnKeyrackDaemonBackground();
+  // spawn daemon in background (pass socketPath for per-owner isolation)
+  spawnKeyrackDaemonBackground({ socketPath });
 
   // wait for daemon to become reachable (up to 5 seconds)
   const maxWaitMs = 5000;

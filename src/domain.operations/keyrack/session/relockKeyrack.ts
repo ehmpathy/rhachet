@@ -1,24 +1,37 @@
+import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessRelock } from '../daemon/sdk';
-import type { KeyrackGrantContext } from '../genKeyrackGrantContext';
+import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 
 /**
  * .what = relock keyrack keys by prune from daemon memory and clear vault caches
  * .why = ends session and removes credentials from daemon and vault caches
  *
- * .note = if slugs provided, only those keys are pruned
- * .note = if no slugs provided, all keys are pruned
+ * .note = priority: slugs > env > all
+ * .note = if slugs provided, only those keys are purged
+ * .note = if env provided (without slugs), only keys with that env are purged
+ * .note = if neither provided, all keys are purged
  * .note = if context provided, vault adapters are called to clear external caches
  */
 export const relockKeyrack = async (
-  input: {
+  input?: {
+    owner?: string | null;
     slugs?: string[];
+    env?: string;
   },
-  context?: KeyrackGrantContext,
+  context?: ContextKeyrackGrantUnlock,
 ): Promise<{
   relocked: string[];
 }> => {
-  // prune from daemon memory
-  const result = await daemonAccessRelock({ slugs: input.slugs });
+  // resolve socket path based on owner
+  const socketPath = getKeyrackDaemonSocketPath({
+    owner: input?.owner ?? null,
+  });
+
+  const result = await daemonAccessRelock({
+    socketPath,
+    slugs: input?.slugs,
+    env: input?.env,
+  });
   const relocked = result?.relocked ?? [];
 
   // if context provided, call vault adapter relock for each slug

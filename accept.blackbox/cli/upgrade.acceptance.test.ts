@@ -64,7 +64,7 @@ const getInstalledVersion = (input: {
 describe('rhachet upgrade', () => {
   given('[case1] discoverability: user runs "update"', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'minimal' }),
+      await genTestTempRepo({ fixture: 'minimal' }),
     );
 
     when('[t0] rhachet update', () => {
@@ -92,7 +92,7 @@ describe('rhachet upgrade', () => {
 
   given('[case2] upgrade --roles on repo without rhachet-roles packages', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'without-roles-packages' }),
+      await genTestTempRepo({ fixture: 'without-roles-packages' }),
     );
 
     when('[t0] rhachet upgrade --roles mechanic', () => {
@@ -116,7 +116,7 @@ describe('rhachet upgrade', () => {
 
   given('[case3] upgrade --help', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'minimal' }),
+      await genTestTempRepo({ fixture: 'minimal' }),
     );
 
     when('[t0] rhachet upgrade --help', () => {
@@ -156,7 +156,7 @@ describe('rhachet upgrade', () => {
   given('[case4] repo with rhachet-roles-ehmpathy@1.17.20 installed', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo and install dependencies
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-packages-pinned',
         install: true,
       });
@@ -237,7 +237,7 @@ describe('rhachet upgrade', () => {
 
   given('[case5] upgrade --brains on repo without rhachet-brains packages', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'without-roles-packages' }),
+      await genTestTempRepo({ fixture: 'without-roles-packages' }),
     );
 
     when('[t0] rhachet upgrade --brains anthropic', () => {
@@ -262,7 +262,7 @@ describe('rhachet upgrade', () => {
   given('[case7] repo with rhachet-brains-anthropic@0.1.0 installed', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo and install dependencies
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-brains-packages-pinned',
         install: true,
       });
@@ -341,7 +341,7 @@ describe('rhachet upgrade', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo and install dependencies
       // note: fixture has NO .agent/ directory - roles are not linked
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-packages-pinned',
         install: true,
       });
@@ -435,7 +435,7 @@ describe('rhachet upgrade', () => {
   given('[case9] --roles * with linked role', () => {
     const scene = useBeforeAll(async () => {
       // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-linked',
         install: true,
       });
@@ -501,7 +501,7 @@ describe('rhachet upgrade', () => {
   given('[case10] --roles ehmpathy/* with unlinked package', () => {
     const scene = useBeforeAll(async () => {
       // fixture has NO .agent/ directory (not linked)
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-packages-pinned',
         install: true,
       });
@@ -557,7 +557,7 @@ describe('rhachet upgrade', () => {
   given('[case11] --roles ehmpathy/* with linked role', () => {
     const scene = useBeforeAll(async () => {
       // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-linked',
         install: true,
       });
@@ -604,7 +604,7 @@ describe('rhachet upgrade', () => {
   given('[case12] --roles ehmpathy/mechanic with linked role', () => {
     const scene = useBeforeAll(async () => {
       // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-linked',
         install: true,
       });
@@ -652,7 +652,7 @@ describe('rhachet upgrade', () => {
     const scene = useBeforeAll(async () => {
       // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)
       // but designer is NOT linked
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-roles-linked',
         install: true,
       });
@@ -706,7 +706,7 @@ describe('rhachet upgrade', () => {
 
   given('[case6] inside rhachet-roles-brain repo with file:. self-reference', () => {
     const scene = useBeforeAll(async () => {
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-file-dot-dep',
         install: false,
       });
@@ -741,7 +741,7 @@ describe('rhachet upgrade', () => {
 
   given('[case14] inside rhachet-roles-brain repo with link:. self-reference', () => {
     const scene = useBeforeAll(async () => {
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-link-dot-dep',
         install: false,
       });

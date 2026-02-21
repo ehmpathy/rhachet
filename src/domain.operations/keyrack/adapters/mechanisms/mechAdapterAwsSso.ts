@@ -98,7 +98,7 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
    * .note = uses AWS_CREDENTIAL_EXPIRATION if available, else 55 min buffer
    */
   translate: async (input) => {
-    const profile = input.value;
+    const profile = input.secret;
 
     try {
       // export credentials as json
@@ -136,7 +136,7 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
           ? awsExpiration
           : addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
 
-      return { value: JSON.stringify(credentials), expiresAt };
+      return { secret: JSON.stringify(credentials), expiresAt };
     } catch (error) {
       if (error instanceof UnexpectedCodePathError) throw error;
 

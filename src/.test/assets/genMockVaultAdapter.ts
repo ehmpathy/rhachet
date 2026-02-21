@@ -19,8 +19,8 @@ export const genMockVaultAdapter = (input?: {
     },
     isUnlocked: async () => unlocked,
     get: async ({ slug }) => storage[slug] ?? null,
-    set: async ({ slug, value }) => {
-      storage[slug] = value;
+    set: async ({ slug, secret }) => {
+      if (secret) storage[slug] = secret;
     },
     del: async ({ slug }) => {
       delete storage[slug];

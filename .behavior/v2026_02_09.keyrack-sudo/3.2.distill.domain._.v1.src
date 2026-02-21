@@ -1,0 +1,41 @@
+distill the declastruct domain.objects and domain.operations that would
+- enable fulfillment of
+  - this wish .behavior/v2026_02_09.keyrack-sudo/0.wish.md
+  - this vision .behavior/v2026_02_09.keyrack-sudo/1.vision.md (if declared)
+  - this criteria .behavior/v2026_02_09.keyrack-sudo/2.1.criteria.blackbox.md (if declared)
+- given the research declared here
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.access._.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.claims._.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.domain._.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.domain.terms.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.patterns._.code.prod.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.patterns._.code.test.v1.i1.md (if declared)
+  - .behavior/v2026_02_09.keyrack-sudo/3.1.research.templates._.v1.i1.md (if declared)
+
+procedure
+1. declare the usecases and envision the contract that would be used to fulfill the usecases
+2. declare the domain.objects, domain.operations, and access.daos that would fulfill this, via the declastruct pattern in this repo
+
+---
+
+specifically
+- what are the domain objects that are involved with this wish
+  - entities
+  - events
+  - literals
+- what are the domain operations
+  - getOne
+  - getAll
+  - setCreate
+  - setUpdate
+  - setDelete
+- what are the relationships between the domain objects?
+  - is there a treestruct of decoration?
+  - is there a treestruct of common subdomains?
+  - are there dependencies?
+- how do the domain objects and operations compose to support wish?
+
+---
+
+emit into
+- .behavior/v2026_02_09.keyrack-sudo/3.2.distill.domain._.v1.i1.md

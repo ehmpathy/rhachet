@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+######################################################################
+# .what = mock aws CLI for acceptance tests
+# .why  = enables guided setup flow test without real AWS credentials
+#
+# responds to known subcommands with canned JSON output.
+# placed on PATH ahead of real aws CLI via env override.
+######################################################################
+
+case "$1 $2" in
+  "--version ")
+    echo "aws-cli/2.0.0-mock Python/3.9.0 Linux/5.0.0"
+    ;;
+  "sso login")
+    echo "Attempting to automatically open the SSO authorization page in your default browser."
+    echo "If the browser does not open or you wish to use a different device to authorize this request, open the following URL:"
+    echo ""
+    echo "https://device.sso.us-east-1.amazonaws.com/"
+    echo ""
+    echo "Then enter the code:"
+    echo ""
+    echo "MOCK-CODE"
+    echo ""
+    echo "Successfully logged into Start URL: https://mock-portal.awsapps.com/start"
+    ;;
+  "sso list-accounts")
+    echo '{"accountList":[{"accountId":"123456789012","accountName":"testorg-dev","emailAddress":"dev@testorg.com"},{"accountId":"987654321098","accountName":"testorg-prod","emailAddress":"prod@testorg.com"}]}'
+    ;;
+  "sso list-account-roles")
+    echo '{"roleList":[{"roleName":"AdministratorAccess"},{"roleName":"ReadOnlyAccess"}]}'
+    ;;
+  "sts get-caller-identity")
+    echo '{"UserId":"MOCK:session","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/session"}'
+    ;;
+  "sso logout")
+    ;;
+  *)
+    echo "mock aws: unknown command: $*" >&2
+    exit 1
+    ;;
+esac

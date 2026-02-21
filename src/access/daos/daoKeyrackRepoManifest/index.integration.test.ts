@@ -171,13 +171,11 @@ env.test:
 
     when('[t0] set called with new key', () => {
       then('adds key and returns status "added"', async () => {
-        const result = await daoKeyrackRepoManifest.set({
+        await daoKeyrackRepoManifest.set.findsertKeyToEnv({
           gitroot: testDir,
           env: 'test',
-          keyName: 'NEW_KEY',
+          key: 'NEW_KEY',
         });
-
-        expect(result.status).toEqual('added');
 
         // verify key was written
         const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
@@ -188,13 +186,11 @@ env.test:
 
     when('[t1] set called with key that already found', () => {
       then('returns status "found" without duplicate', async () => {
-        const result = await daoKeyrackRepoManifest.set({
+        await daoKeyrackRepoManifest.set.findsertKeyToEnv({
           gitroot: testDir,
           env: 'test',
-          keyName: 'OLD_KEY',
+          key: 'OLD_KEY',
         });
-
-        expect(result.status).toEqual('found');
 
         // verify no duplicate
         const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
@@ -207,13 +203,11 @@ env.test:
 
     when('[t2] set called for new env section', () => {
       then('creates env section and adds key', async () => {
-        const result = await daoKeyrackRepoManifest.set({
+        await daoKeyrackRepoManifest.set.findsertKeyToEnv({
           gitroot: testDir,
           env: 'prod',
-          keyName: 'PROD_KEY',
+          key: 'PROD_KEY',
         });
-
-        expect(result.status).toEqual('added');
 
         // verify key was written in prod env
         const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
@@ -237,10 +231,10 @@ env.test:
     when('[t0] set called', () => {
       then('throws error about org absent', async () => {
         const error = await getError(
-          daoKeyrackRepoManifest.set({
+          daoKeyrackRepoManifest.set.findsertKeyToEnv({
             gitroot: testDir,
             env: 'test',
-            keyName: 'NEW_KEY',
+            key: 'NEW_KEY',
           }),
         );
         expect(error).toBeDefined();

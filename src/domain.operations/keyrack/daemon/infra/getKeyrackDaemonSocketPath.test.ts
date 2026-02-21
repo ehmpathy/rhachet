@@ -49,7 +49,53 @@ describe('getKeyrackDaemonSocketPath', () => {
     });
   });
 
-  given('[case2] XDG_RUNTIME_DIR is unset', () => {
+  given('[case2] owner is specified', () => {
+    const runtimeDirOriginal = process.env['XDG_RUNTIME_DIR'];
+
+    beforeEach(() => {
+      process.env['XDG_RUNTIME_DIR'] = '/run/user/1000';
+    });
+
+    afterEach(() => {
+      if (runtimeDirOriginal !== undefined) {
+        process.env['XDG_RUNTIME_DIR'] = runtimeDirOriginal;
+      } else {
+        delete process.env['XDG_RUNTIME_DIR'];
+      }
+    });
+
+    when('[t0] owner is mechanic', () => {
+      then('includes owner in socket path', () => {
+        const path = getKeyrackDaemonSocketPath({ owner: 'mechanic' });
+        expect(path).toContain('.mechanic.sock');
+      });
+
+      then('matches expected format', () => {
+        const sessionId = getLoginSessionId({ pid: process.pid });
+        const path = getKeyrackDaemonSocketPath({ owner: 'mechanic' });
+        expect(path).toEqual(
+          `/run/user/1000/keyrack.${sessionId}.mechanic.sock`,
+        );
+      });
+    });
+
+    when('[t1] owner is foreman', () => {
+      then('includes owner in socket path', () => {
+        const path = getKeyrackDaemonSocketPath({ owner: 'foreman' });
+        expect(path).toContain('.foreman.sock');
+      });
+    });
+
+    when('[t2] owner is null', () => {
+      then('uses default socket path (no owner suffix)', () => {
+        const sessionId = getLoginSessionId({ pid: process.pid });
+        const path = getKeyrackDaemonSocketPath({ owner: null });
+        expect(path).toEqual(`/run/user/1000/keyrack.${sessionId}.sock`);
+      });
+    });
+  });
+
+  given('[case3] XDG_RUNTIME_DIR is unset', () => {
     const runtimeDirOriginal = process.env['XDG_RUNTIME_DIR'];
 
     beforeEach(() => {

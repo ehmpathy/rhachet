@@ -17,6 +17,14 @@ const config: Config = {
   moduleFileExtensions: ['js', 'ts', 'mjs'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    // map esm subpath exports for noble/scure packages
+    // handle imports with .js extension (from age-encryption)
+    '^@noble/hashes/(.*)\\.js$': '<rootDir>/node_modules/@noble/hashes/$1.js',
+    '^@noble/curves/(.*)\\.js$': '<rootDir>/node_modules/@noble/curves/$1.js',
+    // handle imports without .js extension
+    '^@noble/hashes/([^.]+)$': '<rootDir>/node_modules/@noble/hashes/$1.js',
+    '^@noble/curves/([^.]+)$': '<rootDir>/node_modules/@noble/curves/$1.js',
+    '^@scure/base$': '<rootDir>/node_modules/@scure/base/index.js',
   },
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',

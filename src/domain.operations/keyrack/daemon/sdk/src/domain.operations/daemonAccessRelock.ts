@@ -9,15 +9,21 @@ import { sendKeyrackDaemonCommand } from '../infra/sendKeyrackDaemonCommand';
 /**
  * .what = send RELOCK command to daemon to purge keys
  * .why = allows explicit session end or selective key revocation
+ *
+ * .note = priority: slugs > env > all
+ * .note = if slugs provided, purge only those specific keys
+ * .note = if env provided (without slugs), purge only keys with that env
+ * .note = if neither provided, purge all keys
  */
 export const daemonAccessRelock = async (input?: {
   slugs?: string[];
+  env?: string;
   socketPath?: string;
 }): Promise<{ relocked: string[] } | null> => {
   // check if daemon is reachable first
   const reachable = await isDaemonReachable({ socketPath: input?.socketPath });
   if (!reachable) {
-    return null; // daemon not found, nothing to relock
+    return null; // daemon not found — no keys to relock
   }
 
   const socket = await connectToKeyrackDaemon({
@@ -27,7 +33,7 @@ export const daemonAccessRelock = async (input?: {
   const response = await sendKeyrackDaemonCommand<{ relocked: string[] }>({
     socket,
     command: 'RELOCK',
-    payload: { slugs: input?.slugs },
+    payload: { slugs: input?.slugs, env: input?.env },
   });
 
   if (!response.success) {

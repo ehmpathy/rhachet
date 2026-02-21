@@ -8,6 +8,7 @@ export { daemonAccessRelock } from './src/domain.operations/daemonAccessRelock';
 export { daemonAccessStatus } from './src/domain.operations/daemonAccessStatus';
 export { daemonAccessUnlock } from './src/domain.operations/daemonAccessUnlock';
 export { findsertKeyrackDaemon } from './src/domain.operations/findsertKeyrackDaemon';
+export { killKeyrackDaemon } from './src/domain.operations/killKeyrackDaemon';
 export {
   connectToKeyrackDaemon,
   isDaemonReachable,

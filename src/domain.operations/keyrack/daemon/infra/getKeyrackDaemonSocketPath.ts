@@ -11,10 +11,13 @@ import { getLoginSessionId } from './getLoginSessionId';
  *   - tmpfs (dies on reboot)
  *   - proper permissions (0700)
  *
- * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.sock
+ * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.sock (default)
+ * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.$owner.sock (per-owner)
  * .note = falls back to /run/user/$UID if XDG_RUNTIME_DIR is unset
  */
-export const getKeyrackDaemonSocketPath = (): string => {
+export const getKeyrackDaemonSocketPath = (input?: {
+  owner?: string | null;
+}): string => {
   // guard: getuid only available on POSIX (linux)
   if (typeof process.getuid !== 'function') {
     throw new UnexpectedCodePathError(
@@ -38,6 +41,11 @@ export const getKeyrackDaemonSocketPath = (): string => {
     );
   }
 
-  // construct socket path
-  return `${runtimeDir}/keyrack.${sessionId}.sock`;
+  // construct socket path with optional owner suffix
+  const owner = input?.owner ?? null;
+  const filename =
+    owner === null
+      ? `keyrack.${sessionId}.sock`
+      : `keyrack.${sessionId}.${owner}.sock`;
+  return `${runtimeDir}/${filename}`;
 };

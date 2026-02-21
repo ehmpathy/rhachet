@@ -2,8 +2,12 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
+
 
 describe('keyrack daemon cache', () => {
+  // kill any stale daemon to ensure fresh daemon with current code
+  beforeAll(() => killKeyrackDaemonForTests());
   /**
    * [uc1] daemon cache hit: robot uses cached value without passphrase
    * proves that after human unlocks once, robot can reuse cached credentials from daemon
@@ -31,7 +35,7 @@ describe('keyrack daemon cache', () => {
       invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'test'],
         cwd: repo.path,
-        env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
+        env: { HOME: repo.path },
       }),
     );
 
@@ -71,8 +75,11 @@ describe('keyrack daemon cache', () => {
   });
 
   /**
-   * [uc2] daemon cache miss: robot fails without passphrase when daemon is empty
-   * proves keyrack returns absent when daemon has no cached keys
+   * [uc2] daemon cache miss: vault keys require explicit unlock
+   * proves that even with identity auto-discoverable, get returns locked without unlock
+   *
+   * note: all vault keys require explicit unlock before get — no auto-discovery fallback.
+   * the get flow is: envvar → daemon → locked. vault is never accessed directly by get.
    */
   given('[case2] repo with os.secure vault, daemon empty', () => {
     const repo = useBeforeAll(async () =>
@@ -89,7 +96,7 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] keyrack get --key SECURE_API_KEY --json (no passphrase)', () => {
+    when('[t0] keyrack get --key SECURE_API_KEY --json (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
@@ -99,15 +106,14 @@ describe('keyrack daemon cache', () => {
         }),
       );
 
-      then('status is locked', () => {
+      then('status is locked (vault keys require explicit unlock)', () => {
         const parsed = JSON.parse(result.stdout);
-        // key exists in os.secure but vault is locked (daemon empty, no passphrase)
+        // all vault keys require explicit unlock — no auto-discovery fallback
         expect(parsed.status).toEqual('locked');
       });
 
-      then('fix instructions mention unlock', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.fix).toContain('unlock');
+      then('no secret is exposed', () => {
+        expect(result.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -118,10 +124,10 @@ describe('keyrack daemon cache', () => {
   });
 
   /**
-   * [uc3] passphrase env var unlocks vault directly
-   * proves passphrase env var can be used to unlock vault on-the-fly
+   * [uc3] KEYRACK_PASSPHRASE env does not bypass unlock requirement
+   * proves that vault keys always require explicit unlock, even with passphrase available
    */
-  given('[case3] repo with os.secure vault', () => {
+  given('[case3] repo with os.secure vault, KEYRACK_PASSPHRASE available', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
@@ -136,15 +142,13 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] keyrack get with KEYRACK_PASSPHRASE env', () => {
+    when('[t0] keyrack get with KEYRACK_PASSPHRASE env (without unlock)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
-          env: {
-            HOME: repo.path,
-            KEYRACK_PASSPHRASE: 'test-passphrase-123',
-          },
+          env: { HOME: repo.path },
+          logOnError: false,
         }),
       );
 
@@ -152,19 +156,13 @@ describe('keyrack daemon cache', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('status is granted', () => {
+      then('status is locked (passphrase does not bypass unlock requirement)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('grant value matches pre-encrypted fixture', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
-      });
-
-      then('grant source vault is os.secure', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.secure');
+      then('no secret is exposed', () => {
+        expect(result.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -176,9 +174,9 @@ describe('keyrack daemon cache', () => {
 
   /**
    * [uc5] mid-session unlock: robot can access keys after human unlocks mid-session
-   * proves that robot doesn't need restart after human unlocks
+   * proves that get returns locked before unlock and granted after
    *
-   * flow: get fails (locked) → human unlocks → get succeeds
+   * flow: get returns locked → human unlocks → get returns granted
    */
   given('[case5] mid-session unlock flow', () => {
     const repo = useBeforeAll(async () =>
@@ -195,7 +193,7 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    when('[t0] get before unlock (should be locked)', () => {
+    when('[t0] get before unlock (daemon empty)', () => {
       const resultBefore = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
@@ -205,14 +203,14 @@ describe('keyrack daemon cache', () => {
         }),
       );
 
-      then('status is locked before unlock', () => {
+      then('status is locked (vault keys require explicit unlock)', () => {
         const parsed = JSON.parse(resultBefore.stdout);
+        // all vault keys require explicit unlock — no auto-discovery fallback
         expect(parsed.status).toEqual('locked');
       });
 
-      then('fix mentions unlock', () => {
-        const parsed = JSON.parse(resultBefore.stdout);
-        expect(parsed.fix).toContain('unlock');
+      then('no secret is exposed', () => {
+        expect(resultBefore.stdout).not.toContain('portable-secure-value-xyz789');
       });
 
       then('stdout matches snapshot', () => {
@@ -227,7 +225,7 @@ describe('keyrack daemon cache', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: repo.path,
-          env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
+          env: { HOME: repo.path },
         }),
       );
 
@@ -262,13 +260,14 @@ describe('keyrack daemon cache', () => {
   });
 
   /**
-   * [uc6] interactive unlock: passphrase provided via stdin (hidden input)
-   * proves human can unlock via interactive prompt (simulated with stdin pipe)
+   * [uc6] unlock via env var then robot gets from daemon
+   * proves that human can unlock via recipient key, robot can then get without identity
    *
-   * note: in real usage, promptHiddenInput uses raw mode for hidden echo.
-   * in tests, we simulate by pipe of passphrase to stdin.
+   * note: the original passphrase-based interactive unlock is deprecated.
+   * the new system uses recipient-key-based locks via ssh keys / yubikeys.
+   * identity is discovered at runtime from ssh keys matched to the manifest recipients.
    */
-  given('[case6] interactive unlock via stdin', () => {
+  given('[case6] unlock via recipient key discovery', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
@@ -283,17 +282,16 @@ describe('keyrack daemon cache', () => {
       }),
     );
 
-    // unlock via stdin at given level so it runs before all when blocks
-    const unlockResult = useBeforeAll(async () =>
-      invokeRhachetCliBinary({
-        args: ['keyrack', 'unlock', '--env', 'test'],
-        cwd: repo.path,
-        env: { HOME: repo.path },
-        stdin: 'test-passphrase-123\n',
-      }),
-    );
+    when('[t0] unlock via recipient key discovery', () => {
+      // human unlocks via recipient key (secure — auto-discovered from ssh key)
+      const unlockResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
 
-    when('[t0] unlock via stdin', () => {
       then('unlock exits with status 0', () => {
         expect(unlockResult.status).toEqual(0);
       });
@@ -303,8 +301,8 @@ describe('keyrack daemon cache', () => {
       });
     });
 
-    when('[t1] get after interactive unlock (human readable)', () => {
-      // robot gets key (should come from daemon)
+    when('[t1] get after unlock (human readable)', () => {
+      // robot gets key (should come from daemon — no identity needed)
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY'],
@@ -322,7 +320,7 @@ describe('keyrack daemon cache', () => {
       });
     });
 
-    when('[t2] get after interactive unlock (json)', () => {
+    when('[t2] get after unlock (json)', () => {
       // robot gets key in json mode
       const getResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -375,7 +373,7 @@ describe('keyrack daemon cache', () => {
       invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'test'],
         cwd: repo.path,
-        env: { HOME: repo.path, KEYRACK_PASSPHRASE: 'test-passphrase-123' },
+        env: { HOME: repo.path },
       }),
     );
 
@@ -384,10 +382,7 @@ describe('keyrack daemon cache', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
           cwd: repo.path,
-          env: {
-            HOME: repo.path,
-            KEYRACK_PASSPHRASE: 'test-passphrase-123',
-          },
+          env: { HOME: repo.path },
         }),
       );
 

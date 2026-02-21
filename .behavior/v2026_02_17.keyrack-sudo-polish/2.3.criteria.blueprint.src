@@ -1,0 +1,65 @@
+declare the blueprint criteria (mechanism bounds) that satisfies the blackbox criteria
+
+ref:
+- blackbox criteria .behavior/v2026_02_17.keyrack-sudo-polish/2.1.criteria.blackbox.md
+- wish .behavior/v2026_02_17.keyrack-sudo-polish/0.wish.md
+- vision .behavior/v2026_02_17.keyrack-sudo-polish/1.vision.md (if declared)
+
+emit into .behavior/v2026_02_17.keyrack-sudo-polish/2.3.criteria.blueprint.md
+
+---
+
+blueprint criteria = MECHANISM BOUNDS
+- constraints on what contracts & composition must exist to deliver the experience
+- this is OPTIONAL — not all behaviors need prescribed mechanism bounds
+
+first, confirm which blackbox experience bounds will be satisfied
+
+then, declare ONLY:
+- what subcomponents are demanded by the wish, vision, or criteria.blackbox? and with what contracts and boundaries?
+- how do subcomponents compose together?
+- what integration boundaries exist?
+- what test coverage is required?
+
+DO NOT prescribe:
+- internal implementation details of subcomponents
+- how subcomponents achieve their contracts internally
+- any subcomponents not explicitly demanded in the wish, vision, or criteria.blackbox
+
+note: blueprint criteria is NOT "how to build" — that's decided in blueprint.md (3.3)
+      blueprint criteria is "what mechanisms must exist" to deliver the experience
+
+the HOW is discovered during research (3.1) and decided during blueprint (3.3)
+
+---
+
+## template
+
+```
+## blackbox criteria satisfied
+
+- usecase.1 = ... ✓
+- usecase.2 = ... ✓
+
+## subcomponent contracts
+
+given('componentName contract')
+  then('exposes: methodName(input: Type) => ReturnType')
+  then('throws ErrorType for invalid inputs')
+
+given('anotherComponent contract')
+  then('exposes: ...')
+
+## composition boundaries
+
+given('feature implementation')
+  then('composes componentA and componentB')
+  then('componentA provides X, componentB transforms to Y')
+
+## test coverage criteria
+
+given('feature')
+  then('has unit tests for ...')
+  then('has integration tests for ...')
+  then('has acceptance test for full usecase')
+```

@@ -1,17 +1,13 @@
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 
 /**
- * .what = handle UNLOCK command to store keys with TTL
+ * .what = handle UNLOCK command to store grants with TTL
  * .why = caches credentials in daemon memory for session-time access
  */
 export const handleUnlockCommand = (
   input: {
-    keys: Array<{
-      slug: string;
-      key: KeyrackKey;
-      expiresAt: number;
-    }>;
+    keys: KeyrackKeyGrant[];
   },
   context: {
     keyStore: DaemonKeyStore;
@@ -19,13 +15,9 @@ export const handleUnlockCommand = (
 ): { unlocked: string[] } => {
   const unlockedSlugs: string[] = [];
 
-  for (const keyEntry of input.keys) {
-    context.keyStore.set({
-      slug: keyEntry.slug,
-      key: keyEntry.key,
-      expiresAt: keyEntry.expiresAt,
-    });
-    unlockedSlugs.push(keyEntry.slug);
+  for (const grant of input.keys) {
+    context.keyStore.set({ grant });
+    unlockedSlugs.push(grant.slug);
   }
 
   return { unlocked: unlockedSlugs };

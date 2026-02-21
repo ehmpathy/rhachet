@@ -32,7 +32,7 @@ describe('keyrack validation', () => {
 
       then('error mentions manifest not found', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/repo manifest.*none found|keyrack\.yml/i);
+        expect(output).toMatch(/manifest.*not found|keyrack\.yml|keyrack init/i);
       });
 
       then('stderr matches snapshot', () => {
@@ -56,7 +56,7 @@ describe('keyrack validation', () => {
 
       then('error mentions manifest not found', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/repo manifest|keyrack\.yml|no.*found/i);
+        expect(output).toMatch(/manifest.*not found|keyrack\.yml|keyrack init/i);
       });
 
       then('stderr matches snapshot', () => {
@@ -84,20 +84,20 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('status is absent', () => {
+      then('status is locked (key in manifest but not on host)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('absent');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('message indicates key not configured', () => {
+      then('message indicates key is locked', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message).toContain('not configured');
+        expect(parsed.message).toMatch(/locked|unlock/i);
       });
 
       then('fix instructions are provided', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.fix).toBeDefined();
-        expect(parsed.fix).toContain('keyrack set');
+        expect(parsed.fix).toMatch(/keyrack set|keyrack unlock/i);
       });
 
       then('stdout matches snapshot', () => {
@@ -116,8 +116,8 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('output contains absent indicator', () => {
-        expect(result.stdout).toContain('absent');
+      then('output contains locked indicator', () => {
+        expect(result.stdout).toContain('locked');
         expect(result.stdout).toContain('XAI_API_KEY');
       });
 
@@ -152,10 +152,10 @@ describe('keyrack validation', () => {
         expect(parsed.length).toEqual(2);
       });
 
-      then('all attempts have absent status', () => {
+      then('all attempts have locked status (keys in manifest but not on host)', () => {
         const parsed = JSON.parse(result.stdout);
         for (const attempt of parsed) {
-          expect(attempt.status).toEqual('absent');
+          expect(attempt.status).toEqual('locked');
         }
       });
 

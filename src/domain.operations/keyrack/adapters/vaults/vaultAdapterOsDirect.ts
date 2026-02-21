@@ -33,11 +33,18 @@ const getHomeDir = (): string => {
 
 /**
  * .what = path to the plaintext credential store
- * .why = stores credentials in ~/.rhachet/keyrack.direct.json
+ * .why = stores credentials in ~/.rhachet/keyrack/vault/os.direct/keyrack.direct.json
  */
 const getDirectStorePath = (): string => {
   const home = getHomeDir();
-  return join(home, '.rhachet', 'keyrack.direct.json');
+  return join(
+    home,
+    '.rhachet',
+    'keyrack',
+    'vault',
+    'os.direct',
+    'keyrack.direct.json',
+  );
 };
 
 /**
@@ -126,8 +133,14 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
    * .note = expiresAt enables ephemeral grant cache
    */
   set: async (input) => {
+    // secret is required for os.direct vault
+    if (!input.secret)
+      throw new UnexpectedCodePathError('secret required for os.direct vault', {
+        slug: input.slug,
+      });
+
     const store = readDirectStore();
-    const entry: DirectStoreEntry = { value: input.value };
+    const entry: DirectStoreEntry = { value: input.secret };
     if (input.expiresAt) {
       entry.expiresAt = input.expiresAt;
     }

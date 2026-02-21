@@ -1,6 +1,5 @@
 import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
-import readline from 'readline';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type {
@@ -8,63 +7,26 @@ import type {
   KeyrackHostVault,
 } from '@src/domain.objects/keyrack';
 import {
-  genKeyrackGrantContext,
+  delKeyrackKey,
+  genContextKeyrackGrantGet,
+  genContextKeyrackGrantUnlock,
   genKeyrackHostContext,
   getKeyrackKeyGrant,
-  initKeyrackRepoManifest,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
-import {
-  doesAwsProfileExist,
-  getAwsSsoProfileConfig,
-  initiateAwsSsoAuth,
-  listAwsSsoAccounts,
-  listAwsSsoRoles,
-  listAwsSsoStartUrls,
-  setupAwsSsoProfile,
-} from '@src/domain.operations/keyrack/adapters/vaults/setupAwsSsoProfile';
-import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
+import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
-import { resolveKeyrackSlug } from '@src/domain.operations/keyrack/resolveKeyrackSlug';
+import { inferKeyrackVaultFromKey } from '@src/domain.operations/keyrack/inferKeyrackVaultFromKey';
+import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
+import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
+import { getKeyrackRecipients } from '@src/domain.operations/keyrack/recipient/getKeyrackRecipients';
+import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/setKeyrackRecipient';
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
-import { unlockKeyrack } from '@src/domain.operations/keyrack/session/unlockKeyrack';
-
-/**
- * .what = prompts user for input via readline
- * .why = interactive cli input for guided setup flows
- */
-const promptUser = (question: string): Promise<string> => {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-};
-
-/**
- * .what = prompts user to select from a list of options
- * .why = interactive selection for guided setup flows
- */
-const promptSelect = async <T extends { label: string }>(
-  question: string,
-  options: T[],
-): Promise<T> => {
-  console.log(question);
-  options.forEach((opt, i) => console.log(`  ${i + 1}. ${opt.label}`));
-  const answer = await promptUser('enter number: ');
-  const index = parseInt(answer, 10) - 1;
-  if (isNaN(index) || index < 0 || index >= options.length) {
-    throw new BadRequestError(`invalid selection: ${answer}`);
-  }
-  return options[index]!;
-};
+import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlockKeyrackKeys';
+import { inferMechFromVault } from '@src/infra/inferMechFromVault';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 /**
  * .what = adds the "keyrack" command group to the CLI
@@ -78,20 +40,235 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .command('keyrack')
     .description('manage credentials via keyrack');
 
+  // keyrack init [--for owner] [--pubkey path] [--label label] [--org org]
+  keyrack
+    .command('init')
+    .description('initialize keyrack with a recipient key')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--pubkey <path>', 'path to private key or .pub file')
+    .option(
+      '--label <label>',
+      'label for the recipient key (default: "default")',
+    )
+    .option(
+      '--org <org>',
+      'org for repo manifest (required if keyrack.yml absent)',
+    )
+    .option('--json', 'output as json (robot mode)')
+    .action(
+      async (opts: {
+        for?: string;
+        pubkey?: string;
+        label?: string;
+        org?: string;
+        json?: boolean;
+      }) => {
+        // get gitroot to check for repo manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() }).catch(
+          () => null,
+        );
+
+        const result = await initKeyrack({
+          owner: opts.for ?? null,
+          pubkey: opts.pubkey,
+          label: opts.label,
+          gitroot,
+          org: opts.org ?? null,
+        });
+
+        // display paths with ~/ instead of $HOME
+        const asHomePath = (p: string) =>
+          p.replace(process.env.HOME ?? '', '~');
+
+        if (opts.json) {
+          console.log(
+            JSON.stringify(
+              {
+                host: {
+                  effect: result.host.effect,
+                  manifestPath: result.host.manifestPath,
+                  owner: result.host.owner,
+                  recipient: result.host.recipient,
+                },
+                repo: result.repo
+                  ? {
+                      effect: result.repo.effect,
+                      manifestPath: result.repo.manifestPath,
+                      org: result.repo.org,
+                    }
+                  : null,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          const hostStatus =
+            result.host.effect === 'created'
+              ? 'freshly minted ✨'
+              : 'already active 👌';
+          console.log('');
+          console.log('🔐 keyrack init');
+          console.log(`   ├─ host manifest: ${hostStatus}`);
+          console.log(
+            `   │   ├─ path: ${asHomePath(result.host.manifestPath)}`,
+          );
+          console.log(`   │   ├─ owner: ${result.host.owner ?? 'default'}`);
+          console.log(`   │   └─ recipient: ${result.host.recipient.label}`);
+          if (result.repo) {
+            const repoStatus =
+              result.repo.effect === 'created'
+                ? 'freshly minted ✨'
+                : 'already active 👌';
+            // show relative path from cwd
+            const repoPathRelative = gitroot
+              ? result.repo.manifestPath.replace(`${gitroot}/`, './')
+              : result.repo.manifestPath;
+            console.log(`   └─ repo manifest: ${repoStatus}`);
+            console.log(`       ├─ path: ${repoPathRelative}`);
+            console.log(`       └─ org: ${result.repo.org}`);
+          } else {
+            console.log(`   └─ repo manifest: not in repo`);
+            console.log(
+              `       └─ run 'rhachet keyrack init --org <org>' to init one`,
+            );
+          }
+          console.log('');
+        }
+      },
+    );
+
+  // keyrack recipient set|get|del
+  const recipient = keyrack
+    .command('recipient')
+    .description('manage recipients who can decrypt the host manifest');
+
+  // keyrack recipient set --pubkey <pubkey> --label <label> [--for owner] [--stanza ssh]
+  recipient
+    .command('set')
+    .description('add a recipient to the host manifest')
+    .requiredOption('--pubkey <pubkey>', 'age pubkey (age1...) or ssh pubkey')
+    .requiredOption('--label <label>', 'label for this recipient')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option(
+      '--stanza <format>',
+      'force stanza format: ssh (for ssh-keygen -p prevention flow)',
+    )
+    .option('--json', 'output as json (robot mode)')
+    .action(
+      async (opts: {
+        pubkey: string;
+        label: string;
+        for?: string;
+        stanza?: string;
+        json?: boolean;
+      }) => {
+        // validate --stanza if provided
+        if (opts.stanza && opts.stanza !== 'ssh')
+          throw new BadRequestError('--stanza must be "ssh" if specified');
+
+        const recipientAdded = await setKeyrackRecipient({
+          owner: opts.for ?? null,
+          pubkey: opts.pubkey,
+          label: opts.label,
+          stanza: opts.stanza as 'ssh' | undefined,
+        });
+
+        if (opts.json) {
+          console.log(JSON.stringify(recipientAdded, null, 2));
+        } else {
+          console.log('');
+          console.log('🔐 keyrack recipient set');
+          console.log(`   └─ added recipient`);
+          console.log(`      ├─ label: ${recipientAdded.label}`);
+          console.log(`      ├─ mech: ${recipientAdded.mech}`);
+          console.log(
+            `      └─ pubkey: ${recipientAdded.pubkey.slice(0, 20)}...`,
+          );
+          console.log('');
+        }
+      },
+    );
+
+  // keyrack recipient get [--for owner]
+  recipient
+    .command('get')
+    .description('list recipients from the host manifest')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--json', 'output as json (robot mode)')
+    .action(async (opts: { for?: string; json?: boolean }) => {
+      const recipients = await getKeyrackRecipients({
+        owner: opts.for ?? null,
+      });
+
+      if (opts.json) {
+        console.log(JSON.stringify(recipients, null, 2));
+      } else {
+        console.log('');
+        console.log('🔐 keyrack recipient get');
+        if (recipients.length === 0) {
+          console.log('   └─ (no recipients)');
+        } else {
+          for (let i = 0; i < recipients.length; i++) {
+            const r = recipients[i]!;
+            const isLast = i === recipients.length - 1;
+            const prefix = isLast ? '   └─' : '   ├─';
+            const indent = isLast ? '      ' : '   │  ';
+            console.log(`${prefix} ${r.label}`);
+            console.log(`${indent}├─ mech: ${r.mech}`);
+            console.log(`${indent}├─ pubkey: ${r.pubkey.slice(0, 20)}...`);
+            console.log(`${indent}└─ added: ${r.addedAt}`);
+          }
+        }
+        console.log('');
+      }
+    });
+
+  // keyrack recipient del --label <label> [--for owner]
+  recipient
+    .command('del')
+    .description('remove a recipient from the host manifest')
+    .requiredOption('--label <label>', 'label of recipient to remove')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--json', 'output as json (robot mode)')
+    .action(async (opts: { label: string; for?: string; json?: boolean }) => {
+      await delKeyrackRecipient({
+        owner: opts.for ?? null,
+        label: opts.label,
+      });
+
+      if (opts.json) {
+        console.log(JSON.stringify({ deleted: opts.label }, null, 2));
+      } else {
+        console.log('');
+        console.log('🔐 keyrack recipient del');
+        console.log(`   └─ removed recipient: ${opts.label}`);
+        console.log('');
+      }
+    });
+
   // keyrack get --for repo
   // keyrack get --key $key
   keyrack
     .command('get')
     .description('grant credentials from keyrack')
     .option('--for <scope>', 'grant scope: "repo" for all keys')
-    .option('--key <slug>', 'grant specific key by slug')
-    .option('--env <env>', 'target env: prod, prep, test, or all')
+    .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--key <keyname>', 'raw key name to grant (e.g., AWS_PROFILE)')
+    .option('--env <env>', 'target env: prod, prep, test, all, or sudo')
+    .option(
+      '--org <org>',
+      'target org: @this or @all (default: @this)',
+      '@this',
+    )
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
         for?: string;
+        owner?: string;
         key?: string;
         env?: string;
+        org: string;
         json?: boolean;
       }) => {
         // validate: must specify either --for repo or --key
@@ -105,13 +282,28 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // get gitroot for repo manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
-        // generate context
-        const context = await genKeyrackGrantContext({ gitroot });
+        // generate lightweight context (no manifest decryption, no passphrase prompt)
+        const context = await genContextKeyrackGrantGet({ gitroot });
 
         // handle grant
         if (opts.for === 'repo') {
+          // resolve slugs from repo manifest
+          if (!context.repoManifest) {
+            throw new BadRequestError(
+              'no keyrack.yml found in repo. --for repo requires keyrack.yml',
+            );
+          }
+          const resolvedEnv = assertKeyrackEnvIsSpecified({
+            manifest: context.repoManifest,
+            env: opts.env ?? null,
+          });
+          const slugs = getAllKeyrackSlugsForEnv({
+            manifest: context.repoManifest,
+            env: resolvedEnv,
+          });
+
           const attempts = await getKeyrackKeyGrant(
-            { for: { repo: true }, env: opts.env },
+            { for: { repo: true }, env: opts.env, slugs },
             context,
           );
 
@@ -125,7 +317,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             const absent = attempts.filter((a) => a.status === 'absent');
 
             console.log('');
-            console.log('🔐 rhachet/keyrack');
+            console.log('🔐 keyrack');
             for (let i = 0; i < attempts.length; i++) {
               const attempt = attempts[i]!;
               const isLast = i === attempts.length - 1;
@@ -141,55 +333,127 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 console.log(`${prefix} ${attempt.slug}`);
                 console.log(`${indent}└─ status: blocked 🚫`);
                 console.log(`${indent}   └─ ${attempt.message}`);
+              } else if (attempt.status === 'locked') {
+                console.log(`${prefix} ${attempt.slug}`);
+                console.log(
+                  `${indent}${attempt.fix ? '├' : '└'}─ status: locked 🔒`,
+                );
+                if (attempt.fix) {
+                  console.log(`${indent}└─ \x1b[2mtip: ${attempt.fix}\x1b[0m`);
+                }
               } else {
                 console.log(`${prefix} ${attempt.slug}`);
-                console.log(`${indent}└─ status: absent 🫧`);
+                console.log(
+                  `${indent}${attempt.fix ? '├' : '└'}─ status: absent 🫧`,
+                );
                 if (attempt.fix) {
-                  console.log(`${indent}   └─ fix: ${attempt.fix}`);
+                  console.log(`${indent}└─ \x1b[2mtip: ${attempt.fix}\x1b[0m`);
                 }
               }
             }
             console.log('');
           }
         } else if (opts.key) {
-          // resolve raw key name to full slug (infers env if unambiguous)
-          const resolved = resolveKeyrackSlug({
-            key: opts.key,
-            env: opts.env ?? null,
-            manifest: context.repoManifest,
-          });
+          // resolve org from manifest (or use @all directly)
+          let resolvedOrg: string;
+          if (opts.org === '@all') {
+            resolvedOrg = '@all';
+          } else {
+            if (!context.repoManifest) {
+              // for sudo keys, guide user to use @all
+              if (opts.env === 'sudo') {
+                throw new BadRequestError(
+                  'no keyrack.yml found in repo. for sudo credentials without keyrack.yml, use --org @all',
+                );
+              }
+              throw new BadRequestError('no keyrack.yml found in repo');
+            }
+            resolvedOrg = assertKeyrackOrgMatchesManifest({
+              manifest: context.repoManifest,
+              org: opts.org,
+            });
+          }
+
+          // detect if opts.key is already a full slug (org.env.key format)
+          // full slug format: $org.$env.$key where env is one of the valid env values
+          // note: we detect by format, not by hostManifest lookup, because manifest may be empty
+          //       (e.g., when daemon has cached keys but manifest decryption fails)
+          const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
+          const parts = opts.key.split('.');
+          const isFullSlug =
+            parts.length >= 3 && validEnvs.includes(parts[1] ?? '');
+
+          // construct slug: use as-is if full slug, otherwise $org.$env.$key
+          const env = opts.env ?? 'all';
+          const slug = isFullSlug
+            ? opts.key
+            : `${resolvedOrg}.${env}.${opts.key}`;
 
           const attempt = await getKeyrackKeyGrant(
-            { for: { key: resolved.slug } },
+            { for: { key: slug } },
             context,
           );
 
+          // promote locked → absent for non-sudo keys not in repo manifest (allowlist)
+          // envvar passthrough and daemon results are unaffected (they return granted/blocked)
+          const attemptResolved: typeof attempt = (() => {
+            if (attempt.status !== 'locked') return attempt;
+            if (env === 'sudo') return attempt;
+            if (!context.repoManifest) return attempt;
+            const repoSlugs = getAllKeyrackSlugsForEnv({
+              manifest: context.repoManifest,
+              env,
+            });
+            if (repoSlugs.includes(slug)) return attempt;
+            const keyName = slug.split('.').slice(2).join('.');
+            const vaultHint =
+              inferKeyrackVaultFromKey({ keyName }) ?? '<vault>';
+            return {
+              status: 'absent',
+              slug,
+              message: `credential '${slug}' not found in repo manifest (keyrack.yml)`,
+              fix: `rhx keyrack set --key ${keyName} --env ${env} --vault ${vaultHint}`,
+            };
+          })();
+
           // output results
           if (opts.json) {
-            console.log(JSON.stringify(attempt, null, 2));
+            console.log(JSON.stringify(attemptResolved, null, 2));
           } else {
             console.log('');
-            console.log('🔐 rhachet/keyrack');
-            if (attempt.status === 'granted') {
-              console.log(`   └─ ${attempt.grant.slug}`);
-              console.log(`      ├─ vault: ${attempt.grant.source.vault}`);
-              console.log(`      ├─ mech: ${attempt.grant.source.mech}`);
+            console.log('🔐 keyrack');
+            if (attemptResolved.status === 'granted') {
+              console.log(`   └─ ${attemptResolved.grant.slug}`);
+              console.log(
+                `      ├─ vault: ${attemptResolved.grant.source.vault}`,
+              );
+              console.log(
+                `      ├─ mech: ${attemptResolved.grant.source.mech}`,
+              );
               console.log(`      └─ status: granted 🔑`);
-            } else if (attempt.status === 'blocked') {
-              console.log(`   └─ ${attempt.slug}`);
+            } else if (attemptResolved.status === 'blocked') {
+              console.log(`   └─ ${attemptResolved.slug}`);
               console.log(`      └─ status: blocked 🚫`);
-              console.log(`         └─ ${attempt.message}`);
-            } else if (attempt.status === 'locked') {
-              console.log(`   └─ ${attempt.slug}`);
-              console.log(`      └─ status: locked 🔒`);
-              if (attempt.fix) {
-                console.log(`         └─ fix: ${attempt.fix}`);
+              console.log(`         └─ ${attemptResolved.message}`);
+            } else if (attemptResolved.status === 'locked') {
+              console.log(`   └─ ${attemptResolved.slug}`);
+              console.log(
+                `      ${attemptResolved.fix ? '├' : '└'}─ status: locked 🔒`,
+              );
+              if (attemptResolved.fix) {
+                console.log(
+                  `      └─ \x1b[2mtip: ${attemptResolved.fix}\x1b[0m`,
+                );
               }
             } else {
-              console.log(`   └─ ${attempt.slug}`);
-              console.log(`      └─ status: absent 🫧`);
-              if (attempt.fix) {
-                console.log(`         └─ fix: ${attempt.fix}`);
+              console.log(`   └─ ${attemptResolved.slug}`);
+              console.log(
+                `      ${attemptResolved.fix ? '├' : '└'}─ status: absent 🫧`,
+              );
+              if (attemptResolved.fix) {
+                console.log(
+                  `      └─ \x1b[2mtip: ${attemptResolved.fix}\x1b[0m`,
+                );
               }
             }
             console.log('');
@@ -198,7 +462,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       },
     );
 
-  // keyrack set --key $key --mech $mech --vault $vault
+  // keyrack set --key $key --mech $mech --vault $vault [--for owner] [--env env] [--org org]
   keyrack
     .command('set')
     .description('configure storage for a credential key')
@@ -208,69 +472,49 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     )
     .option(
       '--mech <mechanism>',
-      'grant mechanism: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO (inferred from vault if not specified)',
+      'grant mechanism (inferred from vault when omitted)',
     )
     .requiredOption(
       '--vault <vault>',
-      'storage vault: os.direct, os.secure, 1password, aws.iam.sso',
+      'storage vault: os.direct, os.secure, os.daemon, os.envvar, 1password',
     )
-    .option('--env <env>', 'target env (default: all)', 'all')
-    .option('--org <org>', 'target org (default: @this)', '@this')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option(
+      '--env <env>',
+      'target env: prod, prep, test, all, or sudo (default: all)',
+      'all',
+    )
+    .option(
+      '--org <org>',
+      'target org: @this or @all (default: @this)',
+      '@this',
+    )
     .option('--exid <exid>', 'external id (vault-specific reference)')
+    .option(
+      '--vault-recipient <pubkey>',
+      'pubkey for os.secure vault (if different from manifest)',
+    )
+    .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
         key: string;
         mech?: string;
         vault: string;
+        for?: string;
         env: string;
         org: string;
         exid?: string;
+        vaultRecipient?: string;
+        maxDuration?: string;
         json?: boolean;
       }) => {
-        // helper to write inline and clear line
-        const write = (text: string) => process.stdout.write(text);
-        const clearLine = () => write('\x1b[2K\r');
-
-        // infer mechanism from vault if not provided
-        const inferredMech: string | undefined = (() => {
-          if (opts.mech) return opts.mech;
-          // aws.iam.sso vault only makes sense with EPHEMERAL_VIA_AWS_SSO
-          if (opts.vault === 'aws.iam.sso') return 'EPHEMERAL_VIA_AWS_SSO';
-          return undefined;
-        })();
-
-        if (!inferredMech) {
-          throw new BadRequestError(
-            `--mech is required for vault '${opts.vault}'. use one of: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO`,
-          );
-        }
-
-        // apply inferred value to opts.mech
-        opts.mech = inferredMech;
-
-        // validate mechanism (accept new and deprecated names)
-        const validMechs: KeyrackGrantMechanism[] = [
-          'PERMANENT_VIA_REPLICA',
-          'EPHEMERAL_VIA_GITHUB_APP',
-          'EPHEMERAL_VIA_AWS_SSO',
-          'EPHEMERAL_VIA_GITHUB_OIDC',
-          // deprecated aliases (still accepted for backwards compat)
-          'REPLICA',
-          'GITHUB_APP',
-          'AWS_SSO',
-        ];
-        if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
-          throw new BadRequestError(
-            `invalid --mech: must be one of PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO`,
-          );
-        }
-
-        // validate vault
+        // validate vault first (needed for mech inference)
         const validVaults: KeyrackHostVault[] = [
           'os.direct',
           'os.secure',
           'os.daemon',
+          'os.envvar',
           '1password',
           'aws.iam.sso',
         ];
@@ -280,410 +524,325 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           );
         }
 
-        // get gitroot to resolve org from manifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const grantContext = await genKeyrackGrantContext({ gitroot });
-        const context = await genKeyrackHostContext();
-
-        // resolve org from manifest
-        if (!grantContext.repoManifest) {
-          console.log('');
-          console.log('✋ no keyrack.yml found in this repo');
-          console.log(
-            "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
-          );
-          console.log('');
-          process.exit(1);
-        }
-        const org = assertKeyrackOrgMatchesManifest({
-          manifest: grantContext.repoManifest,
-          org: opts.org,
-        });
-
-        // compute target slugs based on --env
-        const targetSlugs: string[] = (() => {
-          if (opts.env === 'all') {
-            // expand to all envs that declare this key
-            return getAllKeyrackSlugsForEnv({
-              manifest: grantContext.repoManifest!,
-              env: 'all',
-            }).filter((s) => asKeyrackKeyName({ slug: s }) === opts.key);
+        // infer mech from vault if not provided
+        const mech: KeyrackGrantMechanism = (() => {
+          if (opts.mech) {
+            // validate explicit mechanism
+            const validMechs: KeyrackGrantMechanism[] = [
+              'PERMANENT_VIA_REPLICA',
+              'EPHEMERAL_VIA_GITHUB_APP',
+              'EPHEMERAL_VIA_AWS_SSO',
+              'EPHEMERAL_VIA_GITHUB_OIDC',
+              // deprecated aliases (still accepted for backwards compat)
+              'REPLICA',
+              'GITHUB_APP',
+              'AWS_SSO',
+            ];
+            if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
+              throw new BadRequestError(
+                `invalid --mech: must be one of PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO`,
+              );
+            }
+            return opts.mech as KeyrackGrantMechanism;
           }
-          return [`${org}.${opts.env}.${opts.key}`];
+
+          // infer from vault
+          const inferred = inferMechFromVault({
+            vault: opts.vault as KeyrackHostVault,
+          });
+          if (!inferred) {
+            throw new BadRequestError(
+              `--mech required for vault ${opts.vault}`,
+            );
+          }
+          return inferred;
         })();
 
-        // handle interactive AWS SSO setup
-        // skip if --exid provided (user already has profile name) or stdin is not TTY
-        let awsSsoProfileName: string | null = null;
-        const shouldRunInteractiveSsoSetup =
-          opts.mech === 'EPHEMERAL_VIA_AWS_SSO' &&
-          !opts.exid &&
-          process.stdin.isTTY;
-
-        if (shouldRunInteractiveSsoSetup) {
-          console.log('');
-          console.log('🔐 keyrack set AWS_PROFILE');
-
-          // lookup sso portals from config (silent)
-          const portalsFound = await listAwsSsoStartUrls();
-
-          let ssoStartUrl: string;
-          let ssoRegion: string;
-
-          console.log('   │');
-          console.log('   ├─ which sso domain?');
-
-          if (portalsFound.length > 0) {
-            // show options
-            console.log('   │  ├─ options');
-            portalsFound.forEach((p, i) => {
-              const isLastOption = i === portalsFound.length - 1;
-              const optPrefix = isLastOption ? '└─' : '├─';
-              console.log(
-                `   │  │  ${optPrefix} ${i + 1}. ${p.ssoStartUrl} (${p.ssoRegion})`,
-              );
-            });
-
-            // get choice
-            console.log('   │  └─ choice');
-            const answer = await promptUser('   │     └─ ');
-            const index = parseInt(answer, 10) - 1;
-
-            if (!isNaN(index) && index >= 0 && index < portalsFound.length) {
-              // user picked option
-              ssoStartUrl = portalsFound[index]!.ssoStartUrl;
-              ssoRegion = portalsFound[index]!.ssoRegion;
-              // rewrite the choice line with confirmation
-              process.stdout.write('\x1b[1A\x1b[2K'); // move up and clear
-              console.log(`   │     └─ ${index + 1} ✓`);
-            } else if (answer.startsWith('http')) {
-              // user entered new url
-              ssoStartUrl = answer;
-              // rewrite the choice line with confirmation
-              process.stdout.write('\x1b[1A\x1b[2K');
-              console.log(`   │     └─ ${answer} ✓`);
-              // prompt for region
-              console.log('   │  └─ sso region');
-              ssoRegion = await promptUser('   │     └─ ');
-              if (!ssoRegion) {
-                throw new BadRequestError('sso region is required');
-              }
-              process.stdout.write('\x1b[1A\x1b[2K');
-              console.log(`   │     └─ ${ssoRegion} ✓`);
-            } else {
-              throw new BadRequestError(
-                `invalid selection: enter 1-${portalsFound.length} or a url`,
-              );
-            }
-          } else {
-            // no portals found, prompt for new
-            console.log('   │  ├─ sso start url');
-            ssoStartUrl = await promptUser('   │  │  └─ ');
-            if (!ssoStartUrl) {
-              throw new BadRequestError('sso start url is required');
-            }
-            process.stdout.write('\x1b[1A\x1b[2K');
-            console.log(`   │  │  └─ ${ssoStartUrl} ✓`);
-
-            console.log('   │  └─ sso region');
-            ssoRegion = await promptUser('   │     └─ ');
-            if (!ssoRegion) {
-              throw new BadRequestError('sso region is required');
-            }
-            process.stdout.write('\x1b[1A\x1b[2K');
-            console.log(`   │     └─ ${ssoRegion} ✓`);
-          }
-
-          // browser auth
-          console.log('   │');
-          console.log('   ├─ which sso login?');
-
-          // aws cli outputs directly to terminal (stdio: 'inherit')
-          // initiateAwsSsoAuth prints 🔗 and 🔑 lines
-          await initiateAwsSsoAuth({
-            ssoStartUrl,
-            ssoRegion,
+        // grab secret from stdin for vaults that require secret input (some vaults fetch it themselves via guided flows)
+        let secret: string | null = null;
+        const vaultsNeedSecret: KeyrackHostVault[] = ['os.secure', 'os.direct'];
+        if (vaultsNeedSecret.includes(opts.vault as KeyrackHostVault)) {
+          secret = await promptHiddenInput({
+            prompt: `enter secret for ${opts.key}: `,
           });
+        }
 
-          // list accounts (silent fetch)
-          const accounts = listAwsSsoAccounts({ ssoRegion });
-          if (accounts.length === 0) {
-            throw new BadRequestError(
-              'no accounts found for this sso configuration',
-            );
-          }
+        // validate env
+        const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
+        if (!validEnvs.includes(opts.env)) {
+          throw new BadRequestError(
+            `invalid --env: must be one of ${validEnvs.join(', ')}`,
+          );
+        }
 
-          console.log('   │');
-          console.log('   ├─ which account?');
-          console.log('   │  ├─ options');
-          accounts.forEach((a, i) => {
-            const isLastOption = i === accounts.length - 1;
-            const optPrefix = isLastOption ? '└─' : '├─';
+        // get gitroot to resolve org from manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        const getContext = await genContextKeyrackGrantGet({ gitroot });
+        const hostContext = await genKeyrackHostContext({
+          owner: opts.for ?? null,
+        });
+
+        // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
+        const context = {
+          ...hostContext,
+          repoManifest: getContext.repoManifest,
+          gitroot,
+        };
+
+        // resolve org from manifest (only if not @all)
+        let resolvedOrg: string;
+        if (opts.org === '@all') {
+          resolvedOrg = '@all';
+        } else {
+          if (!getContext.repoManifest) {
+            // for sudo keys, we don't need keyrack.yml — guide user to use @all
+            if (opts.env === 'sudo') {
+              console.log('');
+              console.log('✋ no keyrack.yml found in this repo');
+              console.log(
+                '   └─ tip: for sudo credentials without keyrack.yml, use --org @all',
+              );
+              console.log('');
+              process.exit(1);
+            }
+            console.log('');
+            console.log('✋ no keyrack.yml found in this repo');
             console.log(
-              `   │  │  ${optPrefix} ${i + 1}. ${a.accountId} · ${a.accountName}`,
+              "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
             );
+            console.log('');
+            process.exit(1);
+          }
+          resolvedOrg = assertKeyrackOrgMatchesManifest({
+            manifest: getContext.repoManifest,
+            org: opts.org,
           });
-          console.log('   │  └─ choice');
-          const accountAnswer = await promptUser('   │     └─ ');
-          const accountIndex = parseInt(accountAnswer, 10) - 1;
-          if (
-            isNaN(accountIndex) ||
-            accountIndex < 0 ||
-            accountIndex >= accounts.length
-          ) {
-            throw new BadRequestError(`invalid selection: ${accountAnswer}`);
-          }
-          const selectedAccount = accounts[accountIndex]!;
-          // rewrite the choice line with confirmation
-          process.stdout.write('\x1b[1A\x1b[2K');
-          console.log(`   │     └─ ${accountIndex + 1} ✓`);
-
-          // list roles (silent fetch)
-          const roles = listAwsSsoRoles({
-            ssoRegion,
-            accountId: selectedAccount.accountId,
-          });
-          if (roles.length === 0) {
-            throw new BadRequestError('no roles found for this account');
-          }
-
-          console.log('   │');
-          console.log('   ├─ which role?');
-          console.log('   │  ├─ options');
-          roles.forEach((r, i) => {
-            const isLastOption = i === roles.length - 1;
-            const optPrefix = isLastOption ? '└─' : '├─';
-            console.log(`   │  │  ${optPrefix} ${i + 1}. ${r.roleName}`);
-          });
-          console.log('   │  └─ choice');
-          const roleAnswer = await promptUser('   │     └─ ');
-          const roleIndex = parseInt(roleAnswer, 10) - 1;
-          if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= roles.length) {
-            throw new BadRequestError(`invalid selection: ${roleAnswer}`);
-          }
-          const selectedRole = roles[roleIndex]!;
-          // rewrite the choice line with confirmation
-          process.stdout.write('\x1b[1A\x1b[2K');
-          console.log(`   │     └─ ${roleIndex + 1} ✓`);
-
-          // profile name with smart suggestion
-          // strip redundant prefix: if account name starts with org, use just the suffix
-          const accountSlug = selectedAccount.accountName
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '');
-          const orgLower = org.toLowerCase();
-          const accountSuffix = accountSlug.startsWith(orgLower)
-            ? accountSlug.slice(orgLower.length)
-            : accountSlug;
-          const suggestedName = `${org}.${accountSuffix || accountSlug}`;
-
-          console.log('   │');
-          console.log('   ├─ what should we call it?');
-          console.log('   │  ├─ suggested');
-          console.log(`   │  │  └─ ${suggestedName}`);
-          console.log('   │  └─ choice');
-          const profileNameInput = await promptUser('   │     └─ ');
-          const profileName = profileNameInput || suggestedName;
-          // rewrite the choice line with confirmation
-          process.stdout.write('\x1b[1A\x1b[2K');
-          console.log(`   │     └─ ${profileName} ✓`);
-
-          // check if profile already exists
-          const profileExists = await doesAwsProfileExist({ profileName });
-          const profileSsoConfig = profileExists
-            ? await getAwsSsoProfileConfig({ profileName })
-            : null;
-          let shouldOverwrite = false;
-          let isEquivalent = false;
-
-          if (profileExists) {
-            if (profileSsoConfig) {
-              // profile exists and is an sso profile - compare configs
-              isEquivalent =
-                profileSsoConfig.ssoStartUrl === ssoStartUrl &&
-                profileSsoConfig.ssoRegion === ssoRegion &&
-                profileSsoConfig.ssoAccountId === selectedAccount.accountId &&
-                profileSsoConfig.ssoRoleName === selectedRole.roleName;
-
-              if (!isEquivalent) {
-                // collect differences
-                const diffs: string[] = [];
-                if (profileSsoConfig.ssoStartUrl !== ssoStartUrl) {
-                  diffs.push(
-                    `sso_start_url: ${profileSsoConfig.ssoStartUrl} → ${ssoStartUrl}`,
-                  );
-                }
-                if (profileSsoConfig.ssoRegion !== ssoRegion) {
-                  diffs.push(
-                    `sso_region: ${profileSsoConfig.ssoRegion} → ${ssoRegion}`,
-                  );
-                }
-                if (
-                  profileSsoConfig.ssoAccountId !== selectedAccount.accountId
-                ) {
-                  diffs.push(
-                    `sso_account_id: ${profileSsoConfig.ssoAccountId} → ${selectedAccount.accountId}`,
-                  );
-                }
-                if (profileSsoConfig.ssoRoleName !== selectedRole.roleName) {
-                  diffs.push(
-                    `sso_role_name: ${profileSsoConfig.ssoRoleName} → ${selectedRole.roleName}`,
-                  );
-                }
-
-                console.log('   │');
-                console.log(
-                  '   ├─ ⚠ profile found in ~/.aws/config (different)',
-                );
-                console.log('   │  ├─ differences');
-                diffs.forEach((diff, i) => {
-                  const isLastDiff = i === diffs.length - 1;
-                  const diffPrefix = isLastDiff ? '└─' : '├─';
-                  console.log(`   │  │  ${diffPrefix} ${diff}`);
-                });
-                console.log('   │  └─ choice');
-                const overwriteAnswer = await promptUser(
-                  '   │     └─ overwrite? (y/n): ',
-                );
-                shouldOverwrite = overwriteAnswer.toLowerCase() === 'y';
-                // rewrite the choice line with confirmation
-                process.stdout.write('\x1b[1A\x1b[2K');
-                console.log(`   │     └─ ${shouldOverwrite ? 'y ✓' : 'n ✗'}`);
-
-                if (!shouldOverwrite) {
-                  console.log('   │');
-                  console.log('   └─ (setup cancelled)');
-                  console.log('');
-                  process.exit(0);
-                }
-              }
-            } else {
-              // profile exists but is NOT an sso profile
-              console.log('   │');
-              console.log(
-                '   ├─ ⚠ profile found in ~/.aws/config (not an sso profile)',
-              );
-              console.log('   │  ├─ note');
-              console.log(
-                '   │  │  └─ this profile exists but was not set up for sso',
-              );
-              console.log('   │  └─ choice');
-              const overwriteAnswer = await promptUser(
-                '   │     └─ overwrite? (y/n): ',
-              );
-              shouldOverwrite = overwriteAnswer.toLowerCase() === 'y';
-              // rewrite the choice line with confirmation
-              process.stdout.write('\x1b[1A\x1b[2K');
-              console.log(`   │     └─ ${shouldOverwrite ? 'y ✓' : 'n ✗'}`);
-
-              if (!shouldOverwrite) {
-                console.log('   │');
-                console.log('   └─ (setup cancelled)');
-                console.log('');
-                process.exit(0);
-              }
-            }
-          }
-
-          // setup profile (skip if equivalent)
-          console.log('   │');
-          console.log('   ├─ lovely, lets vault it now...');
-          if (!profileExists || shouldOverwrite) {
-            await setupAwsSsoProfile({
-              profileName,
-              ssoStartUrl,
-              ssoRegion,
-              ssoAccountId: selectedAccount.accountId,
-              ssoRoleName: selectedRole.roleName,
-              overwrite: true, // always safe: harmless if new, required if exists
-            });
-            console.log('   │  └─ ✓ written to ~/.aws/config');
-          } else if (isEquivalent) {
-            // equivalent profile found, just use it
-            console.log('   │  └─ ✓ profile already in ~/.aws/config');
-          }
-
-          awsSsoProfileName = profileName;
         }
 
-        // domain operation orchestrates set (vault ops, manifest updates, roundtrip)
-        const profileNameToStore = awsSsoProfileName ?? opts.exid;
-
-        // show roundtrip progress in CLI (before domain operation)
-        if (opts.vault === 'aws.iam.sso' && profileNameToStore && !opts.json) {
-          console.log('   │');
-          console.log('   └─ perfect, now lets verify...');
-        }
-
-        const { results, roundtripValidated } = await setKeyrackKey(
+        // delegate to domain operation
+        const { results } = await setKeyrackKey(
           {
             key: opts.key,
             env: opts.env,
-            org,
+            org: resolvedOrg,
             vault: opts.vault as KeyrackHostVault,
-            mech: opts.mech as KeyrackGrantMechanism,
-            exid: profileNameToStore,
-            repoManifest: grantContext.repoManifest,
-            gitroot,
+            mech,
+            secret,
+            exid: opts.exid ?? null,
+            vaultRecipient: opts.vaultRecipient ?? null,
+            maxDuration: opts.maxDuration ?? null,
+            repoManifest: getContext.repoManifest ?? undefined,
           },
           context,
         );
 
-        // show roundtrip success (after domain operation completes)
-        if (roundtripValidated && !opts.json) {
-          console.log('      ├─ ✓ unlock');
-          console.log('      ├─ ✓ get');
-          console.log('      └─ ✓ relock');
-        }
-
         // output results
         if (opts.json) {
-          console.log(JSON.stringify(results, null, 2));
+          console.log(
+            JSON.stringify(
+              results.length === 1 ? results[0] : results,
+              null,
+              2,
+            ),
+          );
         } else {
           console.log('');
-          console.log(`🔐 keyrack set (org: ${org}, env: ${opts.env})`);
-          for (let i = 0; i < results.length; i++) {
-            const r = results[i]!;
-            const isLast = i === results.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
-            console.log(`${prefix} ${r.slug}`);
-            console.log(`${indent}├─ mech: ${r.mech}`);
-            console.log(`${indent}└─ vault: ${r.vault}`);
+          console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
+          for (const result of results) {
+            console.log(`   └─ ${result.slug}`);
+            console.log(`      ├─ mech: ${result.mech}`);
+            console.log(`      └─ vault: ${result.vault}`);
           }
+          if (opts.env === 'sudo') {
+            console.log('');
+            console.log(
+              '   note: sudo credentials are stored in encrypted host manifest only.',
+            );
+            console.log('         they will NOT appear in keyrack.yml.');
+          }
+          console.log('');
         }
       },
     );
 
-  // keyrack unlock [--duration 9h] [--passphrase <passphrase>]
+  // keyrack del --key <key> [--env env] [--for owner] [--json]
+  keyrack
+    .command('del')
+    .description('remove a credential key from this host')
+    .requiredOption('--key <keyname>', 'key name to remove (e.g., AWS_PROFILE)')
+    .option(
+      '--env <env>',
+      'target env: prod, prep, test, all, or sudo (default: all)',
+      'all',
+    )
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option(
+      '--org <org>',
+      'target org: @this or @all (default: @this)',
+      '@this',
+    )
+    .option('--json', 'output as json (robot mode)')
+    .action(
+      async (opts: {
+        key: string;
+        env: string;
+        for?: string;
+        org: string;
+        json?: boolean;
+      }) => {
+        // validate env
+        const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
+        if (!validEnvs.includes(opts.env)) {
+          throw new BadRequestError(
+            `invalid --env: must be one of ${validEnvs.join(', ')}`,
+          );
+        }
+
+        // blank line before passphrase prompt (matches `set` output cadence)
+        console.log('');
+
+        // get gitroot to derive org from manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        const getContext = await genContextKeyrackGrantGet({ gitroot });
+        const hostContext = await genKeyrackHostContext({
+          owner: opts.for ?? null,
+        });
+
+        // provide repoManifest and gitroot to hostContext for keyrack.yml writes
+        const context = {
+          ...hostContext,
+          repoManifest: getContext.repoManifest,
+          gitroot,
+        };
+
+        // derive org from manifest
+        let derivedOrg: string;
+        if (opts.org === '@all') {
+          derivedOrg = '@all';
+        } else {
+          if (!getContext.repoManifest) {
+            if (opts.env === 'sudo') {
+              // for sudo keys, try to find org from host manifest keys
+              const hostSlugs = Object.keys(context.hostManifest.hosts);
+              const matchedSlug = hostSlugs.find((s) => {
+                const parts = s.split('.');
+                return (
+                  parts[1] === opts.env && parts.slice(2).join('.') === opts.key
+                );
+              });
+              if (matchedSlug) {
+                derivedOrg = matchedSlug.split('.')[0] ?? '@all';
+              } else {
+                console.log('');
+                console.log(
+                  `✋ key '${opts.key}' not found in host manifest for env '${opts.env}'`,
+                );
+                console.log('');
+                process.exit(1);
+              }
+            } else {
+              console.log('');
+              console.log('✋ no keyrack.yml found in this repo');
+              console.log(
+                "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
+              );
+              console.log('');
+              process.exit(1);
+            }
+          } else {
+            derivedOrg = assertKeyrackOrgMatchesManifest({
+              manifest: getContext.repoManifest,
+              org: opts.org,
+            });
+          }
+        }
+
+        // construct slug
+        const slug = `${derivedOrg}.${opts.env}.${opts.key}`;
+
+        // delegate to domain operation
+        const result = await delKeyrackKey({ slug }, context);
+
+        // output results
+        if (opts.json) {
+          console.log(JSON.stringify({ slug, effect: result.effect }, null, 2));
+        } else {
+          console.log('');
+          if (result.effect === 'deleted') {
+            console.log(`🗑️  keyrack del`);
+            console.log(`   └─ ${slug} removed`);
+          } else {
+            console.log(`🗑️  keyrack del`);
+            console.log(`   └─ ${slug} not found (already absent)`);
+          }
+          console.log('');
+        }
+      },
+    );
+
+  // keyrack unlock [--for owner] [--env env] [--key key] [--duration 9h] [--prikey path]
   keyrack
     .command('unlock')
     .description('unlock keys and send them to daemon for session access')
-    .option('--env <env>', 'target env: prod, prep, test, or all')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--env <env>', 'target env: prod, prep, test, all, or sudo')
+    .option('--key <key>', 'specific key to unlock (required for --env sudo)')
     .option(
       '--duration <duration>',
-      'TTL for unlocked keys (e.g., 9h, 30m)',
-      '9h',
+      'TTL for unlocked keys (default: 30m for sudo, 9h for others)',
+    )
+    .option(
+      '--prikey <path>',
+      'explicit ssh private key path (fallback when discovery fails)',
     )
     .option('--passphrase <passphrase>', 'passphrase for encrypted vaults')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
+        for?: string;
         env?: string;
+        key?: string;
         duration?: string;
+        prikey?: string;
         passphrase?: string;
         json?: boolean;
       }) => {
+        // validate env if provided
+        if (opts.env) {
+          const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
+          if (!validEnvs.includes(opts.env)) {
+            throw new BadRequestError(
+              `invalid --env: must be one of ${validEnvs.join(', ')}`,
+            );
+          }
+        }
+
+        // sudo env requires --key flag
+        if (opts.env === 'sudo' && !opts.key) {
+          throw new BadRequestError('sudo credentials require --key flag', {
+            note: 'run: rhx keyrack unlock --env sudo --key X',
+          });
+        }
+
         // get gitroot for repo manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
-        // generate context
-        const context = await genKeyrackGrantContext({ gitroot });
+        // blank line before passphrase prompt (matches `set` output cadence)
+        console.log('');
+
+        // generate full context (decrypts host manifest — may prompt for passphrase)
+        const context = await genContextKeyrackGrantUnlock({
+          owner: opts.for ?? null,
+          gitroot,
+          prikey: opts.prikey,
+        });
 
         // unlock keys and send to daemon
-        const { unlocked } = await unlockKeyrack(
+        const { unlocked } = await unlockKeyrackKeys(
           {
+            owner: opts.for ?? null,
             env: opts.env,
+            key: opts.key,
             duration: opts.duration,
             passphrase: opts.passphrase,
           },
@@ -695,245 +854,169 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           console.log(JSON.stringify({ unlocked }, null, 2));
         } else {
           console.log('');
-          console.log('🔓 rhachet/keyrack unlock');
+          console.log('🔓 keyrack unlock');
           for (let i = 0; i < unlocked.length; i++) {
             const key = unlocked[i]!;
             const isLast = i === unlocked.length - 1;
             const prefix = isLast ? '   └─' : '   ├─';
             const indent = isLast ? '      ' : '   │  ';
-            const expiresIn = Math.round(
-              (key.expiresAt - Date.now()) / 1000 / 60,
-            );
+            const expiresIn = key.expiresAt
+              ? Math.round(
+                  (new Date(key.expiresAt).getTime() - Date.now()) / 1000 / 60,
+                )
+              : null;
             console.log(`${prefix} ${key.slug}`);
-            console.log(`${indent}├─ vault: ${key.vault}`);
-            console.log(`${indent}└─ expires in: ${expiresIn}m`);
+            console.log(`${indent}├─ env: ${key.env}`);
+            console.log(`${indent}├─ org: ${key.org}`);
+            console.log(`${indent}├─ vault: ${key.source.vault}`);
+            console.log(
+              `${indent}└─ expires in: ${expiresIn !== null ? `${expiresIn}m` : 'never'}`,
+            );
           }
           console.log('');
         }
       },
     );
 
-  // keyrack relock [--key <slug>]
+  // keyrack relock [--for owner] [--env env] [--key slug]
   keyrack
     .command('relock')
-    .description('prune keys from daemon memory and clear vault caches')
-    .option('--key <slug>', 'relock specific key (default: all keys)')
+    .description('prune keys from daemon memory (default: all keys)')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--env <env>', 'filter by env (e.g., sudo)')
+    .option('--key <slug>', 'relock specific key')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { key?: string; json?: boolean }) => {
-      // get gitroot for repo manifest
-      const gitroot = await getGitRepoRoot({ from: process.cwd() });
+    .action(
+      async (opts: {
+        for?: string;
+        env?: string;
+        key?: string;
+        json?: boolean;
+      }) => {
+        // relock keys
+        const slugs = opts.key ? [opts.key] : undefined;
+        const { relocked } = await relockKeyrack({
+          owner: opts.for ?? null,
+          slugs,
+          env: opts.env,
+        });
 
-      // generate context for vault adapter access
-      const context = await genKeyrackGrantContext({ gitroot });
+        // sort for deterministic output
+        const sorted = [...relocked].sort();
 
-      // relock keys from daemon and clear vault caches
-      const slugs = opts.key ? [opts.key] : undefined;
-      const { relocked } = await relockKeyrack({ slugs }, context);
-
-      // output results
-      if (opts.json) {
-        console.log(JSON.stringify({ relocked }, null, 2));
-      } else {
-        console.log('');
-        console.log('🔒 rhachet/keyrack relock');
-        if (relocked.length === 0) {
-          console.log('   └─ (no keys to prune)');
+        // output results
+        if (opts.json) {
+          console.log(JSON.stringify({ relocked: sorted }, null, 2));
         } else {
-          for (let i = 0; i < relocked.length; i++) {
-            const slug = relocked[i]!;
-            const isLast = i === relocked.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            console.log(`${prefix} ${slug}: pruned 🔒`);
+          console.log('');
+          console.log('🔒 keyrack relock');
+          if (sorted.length === 0) {
+            console.log('   └─ (no keys to prune)');
+          } else {
+            for (let i = 0; i < sorted.length; i++) {
+              const slug = sorted[i]!;
+              const isLast = i === sorted.length - 1;
+              const prefix = isLast ? '   └─' : '   ├─';
+              console.log(`${prefix} ${slug}: pruned 🔒`);
+            }
           }
+          console.log('');
         }
-        console.log('');
-      }
-    });
+      },
+    );
 
-  // keyrack status
+  // keyrack status [--for owner]
   keyrack
     .command('status')
     .description('show status of unlocked keys in daemon')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { json?: boolean }) => {
+    .action(async (opts: { for?: string; json?: boolean }) => {
       // get status
-      const status = await getKeyrackStatus();
+      const status = await getKeyrackStatus({ owner: opts.for ?? null });
 
       // output results
       if (opts.json) {
         console.log(JSON.stringify(status, null, 2));
       } else {
         console.log('');
-        console.log('🔐 rhachet/keyrack status');
+        console.log('🔐 keyrack status');
         if (!status) {
           console.log('   └─ daemon: not found');
           console.log('      └─ run `rhx keyrack unlock` to start session');
-        } else if (status.keys.length === 0) {
-          console.log('   └─ daemon: active ✨');
-          console.log('      └─ (no keys unlocked)');
         } else {
-          console.log('   ├─ daemon: active ✨');
-          for (let i = 0; i < status.keys.length; i++) {
-            const key = status.keys[i]!;
-            const isLast = i === status.keys.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
-            const ttlMinutes = Math.round(key.ttlLeftMs / 1000 / 60);
-            console.log(`${prefix} ${key.slug}`);
-            console.log(`${indent}└─ expires in: ${ttlMinutes}m`);
+          // show owner
+          const ownerLabel = status.owner ?? '(default)';
+          console.log(`   ├─ owner: ${ownerLabel}`);
+
+          // show recipients
+          if (status.recipients.length > 0) {
+            console.log('   ├─ recipients:');
+            for (let i = 0; i < status.recipients.length; i++) {
+              const recipient = status.recipients[i]!;
+              const isLastRecipient = i === status.recipients.length - 1;
+              const prefix = isLastRecipient ? '   │  └─' : '   │  ├─';
+              console.log(`${prefix} ${recipient.label} (${recipient.mech})`);
+            }
+          }
+
+          // show daemon status
+          if (status.keys.length === 0) {
+            console.log('   └─ daemon: active ✨');
+            console.log('      └─ (no keys unlocked)');
+          } else {
+            console.log('   ├─ daemon: active ✨');
+            for (let i = 0; i < status.keys.length; i++) {
+              const key = status.keys[i]!;
+              const isLast = i === status.keys.length - 1;
+              const prefix = isLast ? '   └─' : '   ├─';
+              const indent = isLast ? '      ' : '   │  ';
+              const ttlMinutes = Math.round(key.ttlLeftMs / 1000 / 60);
+              console.log(`${prefix} ${key.slug}`);
+              console.log(`${indent}├─ env: ${key.env}`);
+              console.log(`${indent}├─ org: ${key.org}`);
+              console.log(`${indent}└─ expires in: ${ttlMinutes}m`);
+            }
           }
         }
         console.log('');
       }
     });
 
-  // keyrack list
+  // keyrack list [--for owner]
   keyrack
     .command('list')
-    .description(
-      'list keys declared in repo manifest (default) or configured on host',
-    )
-    .option('--from <scope>', 'source: repo (default) or host', 'repo')
+    .description('list configured keys on this host')
+    .option('--for <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { from: string; json?: boolean }) => {
-      // validate --from
-      if (opts.from !== 'repo' && opts.from !== 'host') {
-        throw new BadRequestError('--from must be "repo" or "host"');
-      }
-
-      // handle --from host (legacy behavior)
-      if (opts.from === 'host') {
-        const context = await genKeyrackHostContext();
-        const hosts = context.hostManifest.hosts;
-        const slugs = Object.keys(hosts).sort();
-
-        if (opts.json) {
-          console.log(JSON.stringify(hosts, null, 2));
-        } else {
-          console.log('');
-          console.log('🔐 rhachet/keyrack (host)');
-          if (slugs.length === 0) {
-            console.log('   └─ (no keys configured on host)');
-          } else {
-            for (let i = 0; i < slugs.length; i++) {
-              const slug = slugs[i]!;
-              const host = hosts[slug]!;
-              const isLast = i === slugs.length - 1;
-              const prefix = isLast ? '   └─' : '   ├─';
-              const indent = isLast ? '      ' : '   │  ';
-              console.log(`${prefix} ${slug}`);
-              console.log(`${indent}├─ mech: ${host.mech}`);
-              console.log(`${indent}└─ vault: ${host.vault}`);
-            }
-          }
-          console.log('');
-        }
-        return;
-      }
-
-      // handle --from repo (default)
-      const gitroot = await getGitRepoRoot({ from: process.cwd() });
-      const grantContext = await genKeyrackGrantContext({ gitroot });
-      const hostContext = await genKeyrackHostContext();
-
-      if (!grantContext.repoManifest) {
-        console.log('');
-        console.log('✋ no keyrack.yml found in this repo');
-        console.log(
-          "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
-        );
-        console.log('');
-        process.exit(1);
-      }
-
-      // get all slugs from repo manifest, sorted for deterministic output
-      const repoKeys = grantContext.repoManifest.keys;
-      const slugs = Object.keys(repoKeys).sort();
-
-      // enrich with host config if available
-      const enriched: Record<
-        string,
-        {
-          slug: string;
-          mech: string;
-          vault: string | null;
-          exid: string | null;
-          createdAt: string | null;
-          updatedAt: string | null;
-        }
-      > = {};
-
-      for (const slug of slugs) {
-        const repoKey = repoKeys[slug]!;
-        const hostEntry = hostContext.hostManifest.hosts[slug];
-        enriched[slug] = {
-          slug,
-          mech: hostEntry?.mech ?? repoKey.mech,
-          vault: hostEntry?.vault ?? null,
-          exid: hostEntry?.exid ?? null,
-          createdAt: hostEntry?.createdAt ?? null,
-          updatedAt: hostEntry?.updatedAt ?? null,
-        };
-      }
+    .action(async (opts: { for?: string; json?: boolean }) => {
+      // generate context (use owner from --for flag)
+      const context = await genKeyrackHostContext({ owner: opts.for ?? null });
+      const hosts = context.hostManifest.hosts;
+      const slugs = Object.keys(hosts).sort();
 
       // output results
       if (opts.json) {
-        console.log(JSON.stringify(enriched, null, 2));
+        console.log(JSON.stringify(hosts, null, 2));
       } else {
         console.log('');
-        console.log('🔐 rhachet/keyrack');
+        console.log('🔐 keyrack list');
         if (slugs.length === 0) {
-          console.log('   └─ (no keys declared in repo manifest)');
+          console.log('   └─ (no keys configured on host)');
         } else {
           for (let i = 0; i < slugs.length; i++) {
             const slug = slugs[i]!;
-            const entry = enriched[slug]!;
+            const host = hosts[slug]!;
             const isLast = i === slugs.length - 1;
             const prefix = isLast ? '   └─' : '   ├─';
             const indent = isLast ? '      ' : '   │  ';
             console.log(`${prefix} ${slug}`);
-            console.log(`${indent}├─ mech: ${entry.mech}`);
-            console.log(
-              `${indent}└─ vault: ${entry.vault ?? '(not configured on host)'}`,
-            );
+            console.log(`${indent}├─ env: ${host.env}`);
+            console.log(`${indent}├─ org: ${host.org}`);
+            console.log(`${indent}├─ mech: ${host.mech}`);
+            console.log(`${indent}└─ vault: ${host.vault}`);
           }
         }
-      }
-    });
-
-  // keyrack init --org $org
-  keyrack
-    .command('init')
-    .description('initialize keyrack manifest for this repo')
-    .requiredOption('--org <org>', 'org name for key slugs (e.g., ehmpathy)')
-    .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { org: string; json?: boolean }) => {
-      // get gitroot
-      const gitroot = await getGitRepoRoot({ from: process.cwd() });
-
-      // initialize manifest
-      const result = await initKeyrackRepoManifest({ gitroot, org: opts.org });
-
-      // output results
-      const path = await import('path');
-      const relativePath = path.relative(process.cwd(), result.path);
-
-      if (opts.json) {
-        console.log(JSON.stringify(result, null, 2));
-      } else {
-        console.log('');
-        console.log('🔐 rhachet/keyrack init');
-        if (result.status === 'exists') {
-          console.log(`   └─ manifest already exists: ${relativePath}`);
-        } else {
-          console.log(`   └─ created: ${relativePath}`);
-          console.log('');
-          console.log('   next steps:');
-          console.log(
-            '   └─ run `rhx keyrack set --key <KEY_NAME> --env <ENV> --vault <VAULT>` to configure keys',
-          );
-        }
-        console.log('');
       }
     });
 };

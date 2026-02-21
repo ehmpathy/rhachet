@@ -2,8 +2,12 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/accept.blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack firewall', () => {
+  // kill daemon from prior test runs to prevent state leakage
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
   /**
    * [uc6] firewall behavior
    * ghp_* and AKIA* tokens should be blocked by replica mechanism
@@ -11,6 +15,15 @@ describe('keyrack firewall', () => {
   given('[case1] repo with firewall test (ghp_* and AKIA* tokens)', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-firewall-test' }),
+    );
+
+    // unlock vault keys into daemon so firewall can validate them
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'unlock', '--env', 'test'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      }),
     );
 
     when('[t0] get --key SAFE_API_KEY (valid api key)', () => {

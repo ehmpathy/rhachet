@@ -85,6 +85,6 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
    * .note = replica never sets expiresAt — the credential is used as-is
    */
   translate: async (input) => {
-    return { value: input.value };
+    return { secret: input.secret };
   },
 };

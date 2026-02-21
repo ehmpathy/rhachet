@@ -19,7 +19,7 @@ describe('rhachet roles cost performance (published)', () => {
     '[case1] repo with published perf-role (requires link)',
     () => {
     const repo = useBeforeAll(async () => {
-      const r = genTestTempRepo({ fixture: 'with-perf-test' });
+      const r = await genTestTempRepo({ fixture: 'with-perf-test' });
 
       // link the perf-role to make it available
       invokeRhachetCliBinary({

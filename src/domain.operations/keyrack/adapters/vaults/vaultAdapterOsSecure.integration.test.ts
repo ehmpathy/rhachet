@@ -14,7 +14,13 @@ describe('vaultAdapterOsSecure', () => {
 
   beforeEach(async () => {
     // clean up vault directory before each test
-    const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+    const vaultDir = join(
+      tempHome.path,
+      '.rhachet',
+      'keyrack',
+      'vault',
+      'os.secure',
+    );
     rmSync(vaultDir, { recursive: true, force: true });
 
     // reset session state by lock then unlock
@@ -70,10 +76,18 @@ describe('vaultAdapterOsSecure', () => {
       then('creates encrypted file', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         expect(existsSync(vaultDir)).toBe(true);
 
         const files = readdirSync(vaultDir);
@@ -84,7 +98,9 @@ describe('vaultAdapterOsSecure', () => {
       then('round-trips correctly', async () => {
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          value: 'xai-test-key-123',
+          secret: 'xai-test-key-123',
+          env: 'test',
+          org: 'testorg',
         });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'XAI_API_KEY' });
@@ -96,8 +112,18 @@ describe('vaultAdapterOsSecure', () => {
   given('[case3] vault has stored keys', () => {
     beforeEach(async () => {
       await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
-      await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'value-a' });
-      await vaultAdapterOsSecure.set({ slug: 'KEY_B', value: 'value-b' });
+      await vaultAdapterOsSecure.set({
+        slug: 'KEY_A',
+        secret: 'value-a',
+        env: 'test',
+        org: 'testorg',
+      });
+      await vaultAdapterOsSecure.set({
+        slug: 'KEY_B',
+        secret: 'value-b',
+        env: 'test',
+        org: 'testorg',
+      });
     });
 
     when('[t0] get called for stored key', () => {
@@ -112,14 +138,24 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t1] set called to update key', () => {
       then('updates encrypted value', async () => {
-        await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsSecure.set({
+          slug: 'KEY_A',
+          secret: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
         expect(result).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsSecure.set({ slug: 'KEY_A', value: 'new-value-a' });
+        await vaultAdapterOsSecure.set({
+          slug: 'KEY_A',
+          secret: 'new-value-a',
+          env: 'test',
+          org: 'testorg',
+        });
 
         const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
         expect(resultB).toEqual('value-b');
@@ -148,13 +184,21 @@ describe('vaultAdapterOsSecure', () => {
       await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',
-        value: 'super-secret-value',
+        secret: 'super-secret-value',
+        env: 'test',
+        org: 'testorg',
       });
     });
 
     when('[t0] encrypted file read directly', () => {
       then('does not contain plaintext value', async () => {
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);
         const { readFileSync } = await import('node:fs');
@@ -165,7 +209,13 @@ describe('vaultAdapterOsSecure', () => {
       });
 
       then('contains age header', async () => {
-        const vaultDir = join(tempHome.path, '.rhachet', 'keyrack.secure');
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+        );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);
         const { readFileSync } = await import('node:fs');

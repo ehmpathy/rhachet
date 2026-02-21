@@ -1,8 +1,8 @@
 import { BadRequestError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   KeyrackKeySpec,
   KeyrackRepoManifest,
@@ -17,63 +17,50 @@ import { schemaKeyrackRepoManifest } from './schema';
  */
 export const daoKeyrackRepoManifest = {
   /**
-   * .what = add a key to the repo manifest
-   * .why = registers a key requirement for the repo after keyrack set
+   * .what = path to keyrack.yml for a repo
    */
-  set: async (input: {
+  getPath: (input: { gitroot: string }): string =>
+    join(input.gitroot, '.agent', 'keyrack.yml'),
+
+  /**
+   * .what = initialize keyrack.yml with org declaration
+   * .why = creates repo manifest if it doesn't exist (findsert semantics)
+   */
+  init: async (input: {
     gitroot: string;
-    env: string;
-    keyName: string;
-  }): Promise<{ status: 'added' | 'found' }> => {
+    org: string;
+  }): Promise<{
+    manifestPath: string;
+    org: string;
+    effect: 'created' | 'found';
+  }> => {
     const path = join(input.gitroot, '.agent', 'keyrack.yml');
 
-    // read current manifest or create new one
-    let parsed: Record<string, unknown> = {};
+    // if already present, return found
     if (existsSync(path)) {
       const content = readFileSync(path, 'utf8');
-      try {
-        parsed = parseYaml(content) ?? {};
-      } catch {
-        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
-      }
+      const parsed = parseYaml(content) as Record<string, unknown>;
+      return {
+        manifestPath: path,
+        org: (parsed.org as string) ?? input.org,
+        effect: 'found',
+      };
     }
 
-    // ensure org is set (required field)
-    if (!parsed.org) {
-      throw new BadRequestError(
-        'keyrack.yml missing org field. please set org first.',
-        { path },
-      );
-    }
+    // create minimal keyrack.yml with org
+    const manifest = { org: input.org };
 
-    // get or create the env section
-    const envKey = `env.${input.env}`;
-    const envEntries: unknown[] = Array.isArray(parsed[envKey])
-      ? (parsed[envKey] as unknown[])
-      : [];
+    // ensure parent directory present
+    mkdirSync(dirname(path), { recursive: true });
 
-    // check if key already found in this env section
-    const keyFound = envEntries.some((entry) => {
-      if (typeof entry === 'string') return entry === input.keyName;
-      if (typeof entry === 'object' && entry !== null) {
-        const keys = Object.keys(entry);
-        return keys.includes(input.keyName);
-      }
-      return false;
-    });
+    // write yaml
+    writeFileSync(path, stringifyYaml(manifest), 'utf8');
 
-    // if already found, return early (findsert semantics)
-    if (keyFound) return { status: 'found' };
-
-    // add the key to the env section
-    envEntries.push(input.keyName);
-    parsed[envKey] = envEntries;
-
-    // write back to disk
-    const yamlContent = stringifyYaml(parsed);
-    writeFileSync(path, yamlContent, 'utf8');
-
-    return { status: 'added' };
+    return {
+      manifestPath: path,
+      org: input.org,
+      effect: 'created',
+    };
   },
 
   /**
@@ -162,6 +149,140 @@ export const daoKeyrackRepoManifest = {
     }
 
     return new KeyrackRepoManifest({ org, envs: envSections, keys });
+  },
+
+  /**
+   * .what = add a key to a specific env section in keyrack.yml
+   * .why = regular credentials (env !== sudo) should appear in repo manifest
+   *
+   * .note = sudo keys are never written to keyrack.yml
+   * .note = findsert semantics: no-op if key already present in section
+   */
+  set: {
+    findsertKeyToEnv: async (input: {
+      gitroot: string;
+      key: string;
+      env: string;
+    }): Promise<void> => {
+      // sudo keys never go to keyrack.yml
+      if (input.env === 'sudo') return;
+
+      const path = join(input.gitroot, '.agent', 'keyrack.yml');
+
+      // if file doesn't exist, we can't add to it (need org declaration first)
+      if (!existsSync(path)) {
+        throw new BadRequestError(
+          'cannot add key to keyrack.yml: file does not exist',
+          { path, note: 'create keyrack.yml with org declaration first' },
+        );
+      }
+
+      // read and parse current yaml
+      const content = readFileSync(path, 'utf8');
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseYaml(content) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      }
+
+      // validate org declaration
+      if (!parsed.org || typeof parsed.org !== 'string') {
+        throw new BadRequestError(
+          'cannot add key to keyrack.yml: org declaration absent',
+          { path, note: 'add org: <your-org> to keyrack.yml first' },
+        );
+      }
+
+      // determine section name (env.all for 'all', env.prod for 'prod', etc)
+      const sectionName = `env.${input.env}`;
+
+      // get current section or create empty array
+      const section = parsed[sectionName];
+      const keys: unknown[] = Array.isArray(section) ? [...section] : [];
+
+      // check if key already present (findsert semantics)
+      const keyFound = keys.some((entry) => {
+        if (typeof entry === 'string') return entry === input.key;
+        if (typeof entry === 'object' && entry !== null) {
+          return Object.keys(entry).includes(input.key);
+        }
+        return false;
+      });
+
+      if (keyFound) return; // already present, no-op
+
+      // add key to section
+      keys.push(input.key);
+      parsed[sectionName] = keys;
+
+      // ensure parent directory exists
+      mkdirSync(dirname(path), { recursive: true });
+
+      // write updated yaml
+      writeFileSync(path, stringifyYaml(parsed), 'utf8');
+    },
+  },
+
+  /**
+   * .what = remove a key from a specific env section in keyrack.yml
+   * .why = regular credentials removed from repo manifest on del
+   *
+   * .note = sudo keys are never in keyrack.yml so this is a no-op for them
+   * .note = idempotent: no-op if key not present
+   */
+  del: {
+    keyFromEnv: async (input: {
+      gitroot: string;
+      key: string;
+      env: string;
+    }): Promise<void> => {
+      // sudo keys never in keyrack.yml
+      if (input.env === 'sudo') return;
+
+      const path = join(input.gitroot, '.agent', 'keyrack.yml');
+
+      // if file doesn't exist, no key to remove
+      if (!existsSync(path)) return;
+
+      // read and parse current yaml
+      const content = readFileSync(path, 'utf8');
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseYaml(content) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      }
+
+      // determine section name
+      const sectionName = `env.${input.env}`;
+
+      // get current section
+      const section = parsed[sectionName];
+      if (!Array.isArray(section)) return; // no section, no key to remove
+
+      // filter out the key
+      const keysUpdated = section.filter((entry) => {
+        if (typeof entry === 'string') return entry !== input.key;
+        if (typeof entry === 'object' && entry !== null) {
+          return !Object.keys(entry).includes(input.key);
+        }
+        return true;
+      });
+
+      // if count unchanged, key was not present — no-op
+      if (keysUpdated.length === section.length) return;
+
+      // update section (remove section entirely if empty)
+      if (keysUpdated.length === 0) {
+        delete parsed[sectionName];
+      } else {
+        parsed[sectionName] = keysUpdated;
+      }
+
+      // write updated yaml
+      writeFileSync(path, stringifyYaml(parsed), 'utf8');
+    },
   },
 };
 

@@ -68,7 +68,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case2] rhachet-roles package without getRoleRegistry export', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
       // overwrite index.js to remove getRoleRegistry export
       const fs = require('fs');
       fs.writeFileSync(
@@ -99,7 +99,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case3] rhachet-roles package with executable .sh skill', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 
       // create skills directory and add executable skill
       const skillsDir = resolve(tempRepo.path, 'roles/mechanic/skills');
@@ -132,7 +132,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case4] rhachet-roles package with non-executable .sh skill', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 
       // create skills directory and add non-executable skill
       const skillsDir = resolve(tempRepo.path, 'roles/mechanic/skills');
@@ -169,7 +169,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case5] rhachet-roles package with multiple non-executable .sh skills', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 
       // create skills directory and add multiple non-executable skills
       const skillsDir = resolve(tempRepo.path, 'roles/mechanic/skills');
@@ -206,7 +206,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case6] rhachet-roles package with orphan .md.min in briefs', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 
       // create briefs directory and add orphan .md.min (no .md source)
       const briefsDir = resolve(tempRepo.path, 'roles/mechanic/briefs');
@@ -240,7 +240,7 @@ describe('rhachet repo introspect', () => {
 
   given('[case7] rhachet-roles package with only .ts/.md files in skills', () => {
     const repo = useBeforeAll(async () => {
-      const tempRepo = genTestTempRepo({ fixture: 'with-roles-package' });
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 
       // create skills directory with non-.sh files only
       const skillsDir = resolve(tempRepo.path, 'roles/mechanic/skills');

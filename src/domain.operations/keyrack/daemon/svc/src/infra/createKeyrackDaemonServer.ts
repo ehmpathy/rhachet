@@ -1,6 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { unlinkSync } from 'node:fs';
+import { chmodSync, unlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import {
   createDaemonKeyStore,
@@ -37,6 +37,10 @@ export const createKeyrackDaemonServer = (input: {
 
   // listen on the unix socket
   server.listen(socketPath, () => {
+    // set socket permissions to owner-only (0600) for security
+    // .why = prevents other users on machine from access to daemon
+    chmodSync(socketPath, 0o600);
+
     console.log(`[keyrack-daemon] server started at ${socketPath}`);
   });
 

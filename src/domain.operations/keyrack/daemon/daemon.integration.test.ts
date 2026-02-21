@@ -1,6 +1,8 @@
+import { asIsoTimeStamp } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { existsSync, unlinkSync } from 'node:fs';
+import { KeyrackKeyGrant } from '../../../domain.objects/keyrack/KeyrackKeyGrant';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -66,22 +68,28 @@ describe('keyrack daemon integration', () => {
       then('stores keys in daemon', async () => {
         const result = await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_1',
               key: {
                 secret: 'secret-1',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
-              expiresAt: Date.now() + 60000,
-            },
-            {
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'prod',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_2',
               key: {
                 secret: 'secret-2',
                 grade: { protection: 'encrypted', duration: 'transient' },
               },
-              expiresAt: Date.now() + 60000,
-            },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'sudo',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -159,14 +167,17 @@ describe('keyrack daemon integration', () => {
         // first add a key back
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TEST_KEY_3',
               key: {
                 secret: 'secret-3',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
-              expiresAt: Date.now() + 60000,
-            },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -230,14 +241,17 @@ describe('keyrack daemon integration', () => {
         // unlock with already-expired TTL
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'EXPIRED_KEY',
               key: {
                 secret: 'expired-secret',
                 grade: { protection: 'encrypted', duration: 'transient' },
               },
-              expiresAt: Date.now() - 1000, // already expired
-            },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() - 1000)), // already expired
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -259,7 +273,84 @@ describe('keyrack daemon integration', () => {
     });
   });
 
-  given('[case5] TTL extension on re-unlock', () => {
+  given('[case5] relock with env filter', () => {
+    const scene = useBeforeAll(async () => {
+      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+    });
+
+    afterAll(() => {
+      scene.server.close();
+    });
+
+    when('[t0] keys with different envs are unlocked', () => {
+      then('relock --env sudo purges only sudo keys', async () => {
+        // unlock keys with different envs
+        await daemonAccessUnlock({
+          keys: [
+            new KeyrackKeyGrant({
+              slug: 'PROD_KEY',
+              key: {
+                secret: 'prod-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'prod',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
+              slug: 'SUDO_KEY',
+              key: {
+                secret: 'sudo-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'sudo',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+            new KeyrackKeyGrant({
+              slug: 'ALL_KEY',
+              key: {
+                secret: 'all-secret',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 60000)),
+            }),
+          ],
+          socketPath: testSocketPath,
+        });
+
+        // verify all 3 keys are present
+        const statusBefore = await daemonAccessStatus({
+          socketPath: testSocketPath,
+        });
+        expect(statusBefore!.keys.length).toBe(3);
+
+        // relock only sudo keys
+        const result = await daemonAccessRelock({
+          env: 'sudo',
+          socketPath: testSocketPath,
+        });
+
+        expect(result).not.toBeNull();
+        expect(result!.relocked).toEqual(['SUDO_KEY']);
+
+        // verify only prod and all keys remain
+        const statusAfter = await daemonAccessStatus({
+          socketPath: testSocketPath,
+        });
+        expect(statusAfter!.keys.length).toBe(2);
+        const slugs = statusAfter!.keys.map((k) => k.slug).sort();
+        expect(slugs).toEqual(['ALL_KEY', 'PROD_KEY']);
+      });
+    });
+  });
+
+  given('[case6] TTL extension on re-unlock', () => {
     const scene = useBeforeAll(async () => {
       return createKeyrackDaemonServer({ socketPath: testSocketPath });
     });
@@ -270,20 +361,23 @@ describe('keyrack daemon integration', () => {
 
     when('[t0] key is re-unlocked with new TTL', () => {
       then('TTL is updated', async () => {
-        const originalExpiresAt = Date.now() + 30000; // 30 seconds
-        const newExpiresAt = Date.now() + 120000; // 2 minutes
+        const originalExpiresAt = asIsoTimeStamp(new Date(Date.now() + 30000)); // 30 seconds
+        const newExpiresAt = asIsoTimeStamp(new Date(Date.now() + 120000)); // 2 minutes
 
         // initial unlock
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
               key: {
                 secret: 'ttl-secret',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: originalExpiresAt,
-            },
+            }),
           ],
           socketPath: testSocketPath,
         });
@@ -291,14 +385,17 @@ describe('keyrack daemon integration', () => {
         // re-unlock with longer TTL
         await daemonAccessUnlock({
           keys: [
-            {
+            new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
               key: {
                 secret: 'ttl-secret',
                 grade: { protection: 'encrypted', duration: 'ephemeral' },
               },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'testorg',
               expiresAt: newExpiresAt,
-            },
+            }),
           ],
           socketPath: testSocketPath,
         });

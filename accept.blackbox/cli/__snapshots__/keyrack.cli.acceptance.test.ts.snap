@@ -2,13 +2,17 @@
 
 exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t0] rhx keyrack list then: stdout matches snapshot 1`] = `
 "
-🔐 rhachet/keyrack
+🔐 keyrack list
    ├─ testorg.test.GITHUB_APP_CREDS
+   │  ├─ env: test
+   │  ├─ org: testorg
    │  ├─ mech: REPLICA
-   │  └─ vault: (not configured on host)
+   │  └─ vault: os.direct
    └─ testorg.test.XAI_API_KEY
+      ├─ env: test
+      ├─ org: testorg
       ├─ mech: REPLICA
-      └─ vault: (not configured on host)
+      └─ vault: os.direct
 "
 `;
 
@@ -16,19 +20,27 @@ exports[`keyrack cli given: [case1] repo with keyrack manifest when: [t1] rhx ke
 {
   "testorg.test.GITHUB_APP_CREDS": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.GITHUB_APP_CREDS",
     "updatedAt": "__TIMESTAMP__",
-    "vault": null,
+    "vault": "os.direct",
+    "vaultRecipient": null,
   },
   "testorg.test.XAI_API_KEY": {
     "createdAt": "__TIMESTAMP__",
+    "env": "test",
     "exid": null,
+    "maxDuration": null,
     "mech": "REPLICA",
+    "org": "testorg",
     "slug": "testorg.test.XAI_API_KEY",
     "updatedAt": "__TIMESTAMP__",
-    "vault": null,
+    "vault": "os.direct",
+    "vaultRecipient": null,
   },
 }
 `;

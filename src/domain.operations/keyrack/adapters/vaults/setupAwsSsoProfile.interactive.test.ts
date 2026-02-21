@@ -465,7 +465,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
         // verify sso login was triggered with --profile (portal flow)
         expect(mockExecSync).toHaveBeenCalledWith(
           'aws sso login --profile "test-profile"',
-          { stdio: 'inherit' },
+          { stdio: 'pipe' },
         );
 
         // verify sts get-caller-identity was called
