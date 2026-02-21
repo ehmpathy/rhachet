@@ -186,6 +186,14 @@ export const daoKeyrackRepoManifest = {
         throw new BadRequestError('keyrack.yml has invalid yaml', { path });
       }
 
+      // validate org declaration
+      if (!parsed.org || typeof parsed.org !== 'string') {
+        throw new BadRequestError(
+          'cannot add key to keyrack.yml: org declaration absent',
+          { path, note: 'add org: <your-org> to keyrack.yml first' },
+        );
+      }
+
       // determine section name (env.all for 'all', env.prod for 'prod', etc)
       const sectionName = `env.${input.env}`;
 

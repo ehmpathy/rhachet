@@ -155,7 +155,13 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
       console.log('   │');
       console.log('   └─ perfect, now lets verify...');
 
-      // 1. get — prove stored profile name matches
+      // 1. unlock — prove sso session is valid after setup
+      await vaultAdapterAwsIamSso.unlock({
+        exid: profileName,
+      });
+      console.log('      ├─ ✓ unlock');
+
+      // 2. get — prove stored profile name matches
       const profileRead = await vaultAdapterAwsIamSso.get({
         slug: input.slug,
         exid: profileName,
@@ -168,7 +174,7 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
       }
       console.log('      ├─ ✓ get');
 
-      // 2. relock — clear session, leave vault locked after setup
+      // 3. relock — clear session, leave vault locked after setup
       await vaultAdapterAwsIamSso.relock?.({
         slug: input.slug,
         exid: profileName,

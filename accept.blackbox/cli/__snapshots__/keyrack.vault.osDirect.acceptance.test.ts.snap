@@ -3,7 +3,7 @@
 exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t0] keyrack get --for repo --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+    "fix": "rhx keyrack unlock --env test --key DIRECT_TEST_KEY",
     "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "status": "locked",
@@ -14,7 +14,7 @@ exports[`keyrack vault os.direct given: [case1] repo with vault os.direct config
 exports[`keyrack vault os.direct given: [case1] repo with vault os.direct configured when: [t1] rhx keyrack get --for repo --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+    "fix": "rhx keyrack unlock --env test --key DIRECT_TEST_KEY",
     "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "status": "locked",
@@ -24,7 +24,7 @@ exports[`keyrack vault os.direct given: [case1] repo with vault os.direct config
 
 exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t0] keyrack get --key DIRECT_TEST_KEY --json (without unlock) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY",
+  "fix": "rhx keyrack unlock --env test --key DIRECT_TEST_KEY",
   "message": "credential 'testorg.test.DIRECT_TEST_KEY' is locked. unlock it first.",
   "slug": "testorg.test.DIRECT_TEST_KEY",
   "status": "locked",
@@ -35,8 +35,8 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
 "
 🔐 keyrack
    └─ testorg.test.DIRECT_TEST_KEY
-      └─ status: locked 🔒
-         └─ fix: run: rhx keyrack unlock --env test --key testorg.test.DIRECT_TEST_KEY
+      ├─ status: locked 🔒
+      └─ [2mtip: rhx keyrack unlock --env test --key DIRECT_TEST_KEY[0m
 
 "
 `;

@@ -741,7 +741,7 @@ describe('rhachet upgrade', () => {
 
   given('[case14] inside rhachet-roles-brain repo with link:. self-reference', () => {
     const scene = useBeforeAll(async () => {
-      const repo = genTestTempRepo({
+      const repo = await genTestTempRepo({
         fixture: 'with-link-dot-dep',
         install: false,
       });

@@ -115,7 +115,7 @@ exports[`keyrack vault aws.iam.sso given: [case2] repo without host entry for a 
 
 exports[`keyrack vault aws.iam.sso given: [case3] repo with aws.iam.sso vault when: [t0] keyrack get --key AWS_PROFILE --json (no valid sso session) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.AWS_PROFILE",
+  "fix": "rhx keyrack unlock --env test --key AWS_PROFILE",
   "message": "credential 'testorg.test.AWS_PROFILE' is locked. unlock it first.",
   "slug": "testorg.test.AWS_PROFILE",
   "status": "locked",

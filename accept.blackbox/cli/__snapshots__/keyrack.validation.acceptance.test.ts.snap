@@ -31,7 +31,7 @@ Node.js v22.21.0
 
 exports[`keyrack validation given: [case1] repo with manifest but no host config when: [t0] keyrack get --key XAI_API_KEY --json (key not configured) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.XAI_API_KEY",
+  "fix": "rhx keyrack unlock --env test --key XAI_API_KEY",
   "message": "credential 'testorg.test.XAI_API_KEY' is locked. unlock it first.",
   "slug": "testorg.test.XAI_API_KEY",
   "status": "locked",
@@ -42,8 +42,8 @@ exports[`keyrack validation given: [case1] repo with manifest but no host config
 "
 🔐 keyrack
    └─ testorg.test.XAI_API_KEY
-      └─ status: locked 🔒
-         └─ fix: run: rhx keyrack unlock --env test --key testorg.test.XAI_API_KEY
+      ├─ status: locked 🔒
+      └─ [2mtip: rhx keyrack unlock --env test --key XAI_API_KEY[0m
 
 "
 `;
@@ -51,13 +51,13 @@ exports[`keyrack validation given: [case1] repo with manifest but no host config
 exports[`keyrack validation given: [case2] repo with multiple keys, one absent when: [t0] keyrack get --for repo --json then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "run: rhx keyrack unlock --env test --key testorg.test.XAI_API_KEY",
+    "fix": "rhx keyrack unlock --env test --key XAI_API_KEY",
     "message": "credential 'testorg.test.XAI_API_KEY' is locked. unlock it first.",
     "slug": "testorg.test.XAI_API_KEY",
     "status": "locked",
   },
   {
-    "fix": "run: rhx keyrack unlock --env test --key testorg.test.GITHUB_APP_CREDS",
+    "fix": "rhx keyrack unlock --env test --key GITHUB_APP_CREDS",
     "message": "credential 'testorg.test.GITHUB_APP_CREDS' is locked. unlock it first.",
     "slug": "testorg.test.GITHUB_APP_CREDS",
     "status": "locked",

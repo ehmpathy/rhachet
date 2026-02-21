@@ -25,7 +25,22 @@ const RHACHET_BIN = resolve(__dirname, '../../bin/run');
  */
 const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js');
 
+/**
+ * .what = env vars with mock aws CLI on PATH
+ * .why = acceptance tests must be fully portable without real AWS credentials
+ *
+ * .note = mock aws responds to known subcommands (sts get-caller-identity, sso login, etc.)
+ * .note = cases that call `set` need this because vaultAdapterAwsIamSso.set validates the profile
+ */
+const envWithMockAws = (home: string) => ({
+  HOME: home,
+  PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+});
+
 describe('keyrack vault aws.iam.sso', () => {
+  // ensure mock aws executable is chmod +x (git may not preserve permissions)
+  beforeAll(() => chmodSync(`${MOCK_AWS_CLI_DIR}/aws`, 0o755));
+
   /**
    * [uc1] list command with aws.iam.sso vault
    * shows configured keys with vault type
@@ -136,7 +151,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -184,7 +199,7 @@ describe('keyrack vault aws.iam.sso', () => {
             'testorg-test',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -290,7 +305,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -381,7 +396,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -430,7 +445,7 @@ describe('keyrack vault aws.iam.sso', () => {
             'testorg-test',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -605,7 +620,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -656,7 +671,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -715,7 +730,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -840,10 +855,6 @@ describe('keyrack vault aws.iam.sso', () => {
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'minimal' });
 
-      // ensure mock aws executable is chmod +x
-      const mockAwsPath = `${MOCK_AWS_CLI_DIR}/aws`;
-      chmodSync(mockAwsPath, 0o755);
-
       // keyrack init (creates encrypted manifest + ssh key discovery)
       invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
@@ -890,13 +901,10 @@ describe('keyrack vault aws.iam.sso', () => {
     });
 
     /**
-     * .what = env vars for mock aws PATH override
+     * .what = env vars for mock aws PATH override (case-local alias)
      * .why = all commands in this case need mock aws on PATH and isolated HOME
      */
-    const envWithMockAws = () => ({
-      HOME: repo.path,
-      PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
-    });
+    const envMockAws = () => envWithMockAws(repo.path);
 
     when('[t0] keyrack set --vault aws.iam.sso via guided wizard (pseudo-TTY)', () => {
       const result = useBeforeAll(async () => {
@@ -914,7 +922,7 @@ describe('keyrack vault aws.iam.sso', () => {
           {
             encoding: 'utf-8',
             cwd: repo.path,
-            env: { ...process.env, ...envWithMockAws() },
+            env: { ...process.env, ...envMockAws() },
             timeout: 60000,
           },
         );
@@ -979,7 +987,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
         }),
       );
 
@@ -1017,7 +1025,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
           logOnError: false,
         }),
       );
@@ -1033,7 +1041,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
         }),
       );
 
@@ -1051,7 +1059,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
         }),
       );
 
@@ -1076,7 +1084,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
         }),
       );
 
@@ -1090,7 +1098,7 @@ describe('keyrack vault aws.iam.sso', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: envWithMockAws(),
+          env: envMockAws(),
           logOnError: false,
         }),
       );

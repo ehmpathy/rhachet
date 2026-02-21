@@ -24,7 +24,7 @@ exports[`keyrack daemon cache given: [case1] repo with os.secure vault, after un
 
 exports[`keyrack daemon cache given: [case2] repo with os.secure vault, daemon empty when: [t0] keyrack get --key SECURE_API_KEY --json (without unlock) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.SECURE_API_KEY",
+  "fix": "rhx keyrack unlock --env test --key SECURE_API_KEY",
   "message": "credential 'testorg.test.SECURE_API_KEY' is locked. unlock it first.",
   "slug": "testorg.test.SECURE_API_KEY",
   "status": "locked",
@@ -33,7 +33,7 @@ exports[`keyrack daemon cache given: [case2] repo with os.secure vault, daemon e
 
 exports[`keyrack daemon cache given: [case3] repo with os.secure vault, KEYRACK_PASSPHRASE available when: [t0] keyrack get with KEYRACK_PASSPHRASE env (without unlock) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.SECURE_API_KEY",
+  "fix": "rhx keyrack unlock --env test --key SECURE_API_KEY",
   "message": "credential 'testorg.test.SECURE_API_KEY' is locked. unlock it first.",
   "slug": "testorg.test.SECURE_API_KEY",
   "status": "locked",
@@ -64,7 +64,7 @@ exports[`keyrack daemon cache given: [case4] repo with daemon cache and source v
 
 exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t0] get before unlock (daemon empty) then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.SECURE_API_KEY",
+  "fix": "rhx keyrack unlock --env test --key SECURE_API_KEY",
   "message": "credential 'testorg.test.SECURE_API_KEY' is locked. unlock it first.",
   "slug": "testorg.test.SECURE_API_KEY",
   "status": "locked",
@@ -95,6 +95,7 @@ exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t1] 
 
 exports[`keyrack daemon cache given: [case6] unlock via recipient key discovery when: [t0] unlock via recipient key discovery then: unlock stdout matches snapshot 1`] = `
 "
+
 🔓 keyrack unlock
    └─ testorg.test.SECURE_API_KEY
       ├─ env: test

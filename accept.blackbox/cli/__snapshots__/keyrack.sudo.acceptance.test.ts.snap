@@ -190,6 +190,7 @@ exports[`keyrack sudo given: [case8] os.secure vault with vault-recipient when: 
 
 exports[`keyrack sudo given: [case9] unlock with --key for regular env when: [t0] unlock --env prod --key testorg.prod.AWS_PROFILE then: stdout matches snapshot 1`] = `
 "
+
 🔓 keyrack unlock
    └─ testorg.prod.AWS_PROFILE
       ├─ env: prod

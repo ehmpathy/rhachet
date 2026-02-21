@@ -130,9 +130,9 @@ describe('keyrack allowlist', () => {
         expect(parsed.message).not.toContain('vault');
       });
 
-      then('fix suggests to add key to keyrack.yml', () => {
+      then('fix suggests keyrack set command', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.fix).toContain('keyrack.yml');
+        expect(parsed.fix).toContain('keyrack set');
       });
 
       then('stdout matches snapshot', () => {

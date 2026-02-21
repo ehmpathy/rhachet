@@ -86,7 +86,7 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
 
 exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recipient key available) when: [t0] keyrack get --key SECURE_API_KEY without unlock then: stdout matches snapshot 1`] = `
 {
-  "fix": "run: rhx keyrack unlock --env test --key testorg.test.SECURE_API_KEY",
+  "fix": "rhx keyrack unlock --env test --key SECURE_API_KEY",
   "message": "credential 'testorg.test.SECURE_API_KEY' is locked. unlock it first.",
   "slug": "testorg.test.SECURE_API_KEY",
   "status": "locked",
