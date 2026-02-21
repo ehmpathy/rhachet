@@ -161,4 +161,79 @@ describe('rhx', () => {
       });
     });
   });
+
+  given('[case3] rhx upgrade short-circuit', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] rhx upgrade --help', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['upgrade', '--help'],
+          cwd: repo.path,
+        }),
+      );
+      const rhachetResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--help'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('rhx exits with status 0', () => {
+        expect(rhxResult.status).toEqual(0);
+      });
+
+      then('rhx output matches rhachet upgrade output', () => {
+        expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+      });
+
+      then('rhx exit code matches rhachet upgrade exit code', () => {
+        expect(rhxResult.status).toEqual(rhachetResult.status);
+      });
+
+      then('stdout contains --self option (confirms upgrade command)', () => {
+        expect(rhxResult.stdout).toContain('--self');
+      });
+
+      then('stdout contains --roles option (confirms upgrade command)', () => {
+        expect(rhxResult.stdout).toContain('--roles');
+      });
+    });
+
+    when('[t1] rhx upgrade (without args)', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['upgrade'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+      const rhachetResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('does NOT fail with "skill not found" error', () => {
+        // if rhx upgrade went through skill path, it would fail with "not found"
+        // since there's no skill called "upgrade"
+        expect(rhxResult.stderr).not.toContain('not found');
+        expect(rhxResult.stderr).not.toContain('skill');
+      });
+
+      then('rhx output matches rhachet upgrade output', () => {
+        expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+      });
+
+      then('rhx exit code matches rhachet upgrade exit code', () => {
+        expect(rhxResult.status).toEqual(rhachetResult.status);
+      });
+    });
+  });
 });
