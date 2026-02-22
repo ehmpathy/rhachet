@@ -1,12 +1,13 @@
-import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import {
   listSshAgentKeys,
   readSshPubkey,
   sshPrikeyToAgeIdentity,
   sshPubkeyToAgeRecipient,
-} from '../../infra/ssh';
+} from '@src/infra/ssh';
+
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * .what = discover identity that matches a manifest recipient

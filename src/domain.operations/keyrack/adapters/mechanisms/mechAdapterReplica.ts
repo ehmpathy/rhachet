@@ -1,4 +1,4 @@
-import type { KeyrackGrantMechanismAdapter } from '../../../../domain.objects/keyrack';
+import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 
 /**
  * .what = patterns that indicate long-lived tokens

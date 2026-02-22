@@ -1,8 +1,9 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
 
 /**
  * .what = entry stored in os.direct vault

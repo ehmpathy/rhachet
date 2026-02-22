@@ -1,11 +1,11 @@
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { discoverBrainPackages } from '@src/domain.operations/brains/discoverBrainPackages';
 
 import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { discoverBrainPackages } from '../brains/discoverBrainPackages';
 
 /**
  * .what = resolves a brain hooks adapter via implicit discovery

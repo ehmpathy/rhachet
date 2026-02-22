@@ -1,9 +1,10 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
 
+import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
+
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { KeyrackGrantMechanismAdapter } from '../../../../domain.objects/keyrack';
 
 const execAsync = promisify(exec);
 

@@ -3,8 +3,8 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import {
   connectToKeyrackDaemon,
   isDaemonReachable,
-} from '../infra/connectToKeyrackDaemon';
-import { sendKeyrackDaemonCommand } from '../infra/sendKeyrackDaemonCommand';
+} from '@src/domain.operations/keyrack/daemon/sdk/src/infra/connectToKeyrackDaemon';
+import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/sendKeyrackDaemonCommand';
 
 /**
  * .what = send STATUS command to daemon to list unlocked keys

@@ -1,8 +1,9 @@
 import { given, then, when } from 'test-fns';
 
+import { withTempHome } from '@src/.test/infra/withTempHome';
+
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { withTempHome } from '../../.test/infra/withTempHome';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 

@@ -1,8 +1,8 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
-import { connectToKeyrackDaemon } from '../infra/connectToKeyrackDaemon';
-import { sendKeyrackDaemonCommand } from '../infra/sendKeyrackDaemonCommand';
+import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { connectToKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/connectToKeyrackDaemon';
+import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/sendKeyrackDaemonCommand';
 
 /**
  * .what = send UNLOCK command to daemon to store grants with TTL

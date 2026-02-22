@@ -2,7 +2,7 @@ import type {
   KeyrackGrantMechanism,
   KeyrackHostVault,
   KeyrackKeyGrade,
-} from '../../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
 
 /**
  * .what = infer key grade from vault and mechanism

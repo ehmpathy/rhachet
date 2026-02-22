@@ -1,8 +1,9 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+
 import { exec, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
 import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
 
 const execAsync = promisify(exec);

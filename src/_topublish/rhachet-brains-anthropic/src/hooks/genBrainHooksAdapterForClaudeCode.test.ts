@@ -3,7 +3,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import type { BrainHook } from '../../../../domain.objects/BrainHook';
+import type { BrainHook } from '@src/domain.objects/BrainHook';
+
 import { genBrainHooksAdapterForClaudeCode } from './genBrainHooksAdapterForClaudeCode';
 
 describe('genBrainHooksAdapterForClaudeCode', () => {

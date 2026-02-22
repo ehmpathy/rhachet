@@ -1,8 +1,9 @@
 import { BadRequestError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
-import { daoKeyrackRepoManifest } from '../../access/daos/daoKeyrackRepoManifest';
-import { KeyrackHostManifest } from '../../domain.objects/keyrack';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
+import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
+
 import { daemonAccessRelock } from './daemon/sdk';
 import type { KeyrackHostContext } from './genKeyrackHostContext';
 

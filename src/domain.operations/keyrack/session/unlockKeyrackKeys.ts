@@ -1,13 +1,16 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import { asIsoTimeStamp } from 'iso-time';
 
-import { KeyrackKeyGrant } from '../../../domain.objects/keyrack/KeyrackKeyGrant';
-import { assertKeyrackEnvIsSpecified } from '../assertKeyrackEnvIsSpecified';
-import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
-import { daemonAccessUnlock, findsertKeyrackDaemon } from '../daemon/sdk';
-import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
-import { getAllKeyrackSlugsForEnv } from '../getAllKeyrackSlugsForEnv';
-import { inferKeyGrade } from '../grades/inferKeyGrade';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import {
+  daemonAccessUnlock,
+  findsertKeyrackDaemon,
+} from '@src/domain.operations/keyrack/daemon/sdk';
+import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
 /**
  * .what = unlock keyrack keys and send them to daemon memory

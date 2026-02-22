@@ -1,8 +1,9 @@
 import { BadRequestError } from 'helpful-errors';
 
+import { getLoginSessionId } from '@src/domain.operations/keyrack/daemon/infra/getLoginSessionId';
+import { getSocketPeerPid } from '@src/domain.operations/keyrack/daemon/svc/src/infra/getSocketPeerPid';
+
 import type { Socket } from 'node:net';
-import { getLoginSessionId } from '../../../infra/getLoginSessionId';
-import { getSocketPeerPid } from '../infra/getSocketPeerPid';
 
 /**
  * .what = verify that the caller process is in the same login session as the daemon

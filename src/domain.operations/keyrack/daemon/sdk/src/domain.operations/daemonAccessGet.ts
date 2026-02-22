@@ -1,13 +1,13 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackGrantMechanism } from '../../../../../../domain.objects/keyrack/KeyrackGrantMechanism';
-import type { KeyrackHostVault } from '../../../../../../domain.objects/keyrack/KeyrackHostVault';
-import type { KeyrackKey } from '../../../../../../domain.objects/keyrack/KeyrackKey';
+import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
+import type { KeyrackHostVault } from '@src/domain.objects/keyrack/KeyrackHostVault';
+import type { KeyrackKey } from '@src/domain.objects/keyrack/KeyrackKey';
 import {
   connectToKeyrackDaemon,
   isDaemonReachable,
-} from '../infra/connectToKeyrackDaemon';
-import { sendKeyrackDaemonCommand } from '../infra/sendKeyrackDaemonCommand';
+} from '@src/domain.operations/keyrack/daemon/sdk/src/infra/connectToKeyrackDaemon';
+import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/sendKeyrackDaemonCommand';
 
 /**
  * .what = send GET command to daemon to retrieve keys by slug

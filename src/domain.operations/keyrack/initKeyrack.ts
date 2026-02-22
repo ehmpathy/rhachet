@@ -1,13 +1,11 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
-import { daoKeyrackRepoManifest } from '../../access/daos/daoKeyrackRepoManifest';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
 import {
   extractSshKeyCipher,
   findDefaultSshKey,
@@ -15,7 +13,10 @@ import {
   readSshPubkey,
   sshPrikeyToAgeIdentity,
   sshPubkeyToAgeRecipient,
-} from '../../infra/ssh';
+} from '@src/infra/ssh';
+
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { getKeyrackHostManifestPath } from './getKeyrackHostManifestPath';
 
 /**

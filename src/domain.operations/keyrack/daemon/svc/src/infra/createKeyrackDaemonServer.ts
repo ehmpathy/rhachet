@@ -1,12 +1,13 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { chmodSync, unlinkSync } from 'node:fs';
-import { createServer, type Server } from 'node:net';
 import {
   createDaemonKeyStore,
   type DaemonKeyStore,
-} from '../domain.objects/daemonKeyStore';
-import { handleKeyrackDaemonConnection } from '../domain.operations/handleKeyrackDaemonConnection';
+} from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
+
+import { chmodSync, unlinkSync } from 'node:fs';
+import { createServer, type Server } from 'node:net';
 
 /**
  * .what = create and start the keyrack daemon server on a unix socket

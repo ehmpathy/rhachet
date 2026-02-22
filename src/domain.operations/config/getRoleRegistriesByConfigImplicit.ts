@@ -1,10 +1,10 @@
 import type { RoleRegistryManifest } from '@src/domain.objects';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { getRoleRegistryManifest } from '@src/domain.operations/manifest/getRoleRegistryManifest';
 
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { discoverRolePackages } from '../init/discoverRolePackages';
-import { getRoleRegistryManifest } from '../manifest/getRoleRegistryManifest';
 import type { HasPackageRoot } from './ContextConfigOfUsage';
 
 /**

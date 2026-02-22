@@ -1,6 +1,6 @@
 import { asIsoPrice } from 'iso-price';
 
-import { BrainSpec } from '../domain.objects/BrainSpec';
+import { BrainSpec } from '@src/domain.objects/BrainSpec';
 
 /**
  * .what = generates a sample BrainSpec for tests

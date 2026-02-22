@@ -1,7 +1,8 @@
-import type { BrainEpisode } from '../../domain.objects/BrainEpisode';
-import type { BrainExchange } from '../../domain.objects/BrainExchange';
-import type { BrainGrain } from '../../domain.objects/BrainGrain';
-import type { BrainSeries } from '../../domain.objects/BrainSeries';
+import type { BrainEpisode } from '@src/domain.objects/BrainEpisode';
+import type { BrainExchange } from '@src/domain.objects/BrainExchange';
+import type { BrainGrain } from '@src/domain.objects/BrainGrain';
+import type { BrainSeries } from '@src/domain.objects/BrainSeries';
+
 import { genBrainEpisode } from './genBrainEpisode';
 import { genBrainExchange } from './genBrainExchange';
 import { genBrainSeries } from './genBrainSeries';

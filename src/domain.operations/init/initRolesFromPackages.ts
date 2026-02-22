@@ -2,12 +2,11 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
+import { getRoleRegistriesByConfigImplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigImplicit';
 import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
+import { getRolesFromManifests } from '@src/domain.operations/manifest/getRolesFromManifests';
 import { indentLines } from '@src/infra/indentLines';
-
-import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
-import { getRolesFromManifests } from '../manifest/getRolesFromManifests';
 
 /**
  * .what = result of init roles operation

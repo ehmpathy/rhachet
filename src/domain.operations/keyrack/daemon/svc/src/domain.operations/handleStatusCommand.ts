@@ -1,6 +1,6 @@
 import type { IsoTimeStamp } from 'iso-time';
 
-import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
+import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 
 /**
  * .what = handle STATUS command to list unlocked keys with TTL left

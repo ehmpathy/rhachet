@@ -2,6 +2,18 @@ import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import type { PickOne } from 'type-fns';
 
 import {
+  KeyrackHostManifest,
+  KeyrackKeyHost,
+  KeyrackKeyRecipient,
+} from '@src/domain.objects/keyrack';
+import {
+  decryptWithIdentity,
+  encryptToRecipients,
+} from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
+import { listSshAgentKeys, sshPrikeyToAgeIdentity } from '@src/infra/ssh';
+
+import {
   chmodSync,
   existsSync,
   mkdirSync,
@@ -10,17 +22,6 @@ import {
 } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import {
-  KeyrackHostManifest,
-  KeyrackKeyHost,
-  KeyrackKeyRecipient,
-} from '../../../domain.objects/keyrack';
-import {
-  decryptWithIdentity,
-  encryptToRecipients,
-} from '../../../domain.operations/keyrack/adapters/ageRecipientCrypto';
-import { getKeyrackHostManifestPath } from '../../../domain.operations/keyrack/getKeyrackHostManifestPath';
-import { listSshAgentKeys, sshPrikeyToAgeIdentity } from '../../../infra/ssh';
 import { schemaKeyrackHostManifest } from './schema';
 
 /**

@@ -1,6 +1,7 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { BrainSeries } from '../../domain.objects/BrainSeries';
+import { BrainSeries } from '@src/domain.objects/BrainSeries';
+
 import { genBrainEpisode } from './genBrainEpisode';
 import { genBrainExchange } from './genBrainExchange';
 import { genBrainSeries } from './genBrainSeries';

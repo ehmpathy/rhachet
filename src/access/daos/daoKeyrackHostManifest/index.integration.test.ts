@@ -1,14 +1,15 @@
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { withTempHome } from '../../../.test/infra/withTempHome';
+import { withTempHome } from '@src/.test/infra/withTempHome';
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
   KeyrackKeyRecipient,
-} from '../../../domain.objects/keyrack';
-import { generateAgeKeyPair } from '../../../domain.operations/keyrack/adapters/ageRecipientCrypto';
+} from '@src/domain.objects/keyrack';
+import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { daoKeyrackHostManifest } from './index';
 
 describe('daoKeyrackHostManifest', () => {

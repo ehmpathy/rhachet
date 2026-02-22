@@ -1,5 +1,5 @@
-import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
-import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
+import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 
 /**
  * .what = handle UNLOCK command to store grants with TTL

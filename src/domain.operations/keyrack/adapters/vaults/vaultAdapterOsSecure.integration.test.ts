@@ -1,8 +1,9 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { withTempHome } from '@src/.test/infra/withTempHome';
+
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { withTempHome } from '../../../../.test/infra/withTempHome';
 import { vaultAdapterOsSecure } from './vaultAdapterOsSecure';
 
 describe('vaultAdapterOsSecure', () => {

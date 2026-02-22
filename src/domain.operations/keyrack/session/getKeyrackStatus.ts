@@ -1,7 +1,7 @@
-import { daoKeyrackHostManifest } from '../../../access/daos/daoKeyrackHostManifest';
-import type { KeyrackKeyRecipient } from '../../../domain.objects/keyrack';
-import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
-import { daemonAccessStatus } from '../daemon/sdk';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
 
 /**
  * .what = get status of unlocked keys in daemon

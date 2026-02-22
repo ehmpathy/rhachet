@@ -1,4 +1,4 @@
-import type { KeyrackKeyGrade } from '../../../domain.objects/keyrack';
+import type { KeyrackKeyGrade } from '@src/domain.objects/keyrack';
 
 /**
  * .what = result of grade change detection

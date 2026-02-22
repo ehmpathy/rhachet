@@ -1,6 +1,6 @@
-import { getKeyrackDaemonSocketPath } from '../../../infra/getKeyrackDaemonSocketPath';
-import { spawnKeyrackDaemonBackground } from '../../../svc';
-import { isDaemonReachable } from '../infra/connectToKeyrackDaemon';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import { isDaemonReachable } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/connectToKeyrackDaemon';
+import { spawnKeyrackDaemonBackground } from '@src/domain.operations/keyrack/daemon/svc';
 
 /**
  * .what = ensure keyrack daemon is alive (start if absent)

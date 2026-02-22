@@ -1,15 +1,16 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 import { parse as parseYaml } from 'yaml';
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { genMockVaultAdapter } from '../../.test/assets/genMockVaultAdapter';
-import { withTempHome } from '../../.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
+import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
+import { withTempHome } from '@src/.test/infra/withTempHome';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
 import type { KeyrackHostContext } from './genKeyrackHostContext';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';

@@ -1,9 +1,10 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { withTempHome } from '@src/.test/infra/withTempHome';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { withTempHome } from '../../.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
 import { initKeyrack } from './initKeyrack';
 
 // test ssh key paths

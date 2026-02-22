@@ -3,6 +3,16 @@ import { asHashSha256Sync } from 'hash-fns';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import {
+  type KeyrackHostVaultAdapter,
+  KeyrackKeyRecipient,
+} from '@src/domain.objects/keyrack';
+import {
+  decryptWithIdentity,
+  encryptToRecipients,
+} from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
+
+import {
   existsSync,
   mkdirSync,
   readFileSync,
@@ -10,15 +20,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import {
-  type KeyrackHostVaultAdapter,
-  KeyrackKeyRecipient,
-} from '../../../../domain.objects/keyrack';
-import { promptHiddenInput } from '../../../../infra/promptHiddenInput';
-import {
-  decryptWithIdentity,
-  encryptToRecipients,
-} from '../ageRecipientCrypto';
 
 /**
  * .what = resolves the home directory

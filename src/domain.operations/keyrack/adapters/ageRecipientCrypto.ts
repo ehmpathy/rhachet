@@ -1,12 +1,13 @@
 import * as age from 'age-encryption';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
+import { SSH_KEY_PATH_MARKER } from '@src/infra/ssh';
+
 import { execSync } from 'node:child_process';
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { KeyrackKeyRecipient } from '../../../domain.objects/keyrack';
-import { SSH_KEY_PATH_MARKER } from '../../../infra/ssh';
 
 /**
  * .what = encrypt plaintext to multiple age recipients

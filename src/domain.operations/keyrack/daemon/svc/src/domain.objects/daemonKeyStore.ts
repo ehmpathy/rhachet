@@ -1,4 +1,4 @@
-import type { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
+import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 /**
  * .what = a cached grant stored in daemon memory with TTL

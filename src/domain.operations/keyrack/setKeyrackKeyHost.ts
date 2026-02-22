@@ -1,13 +1,14 @@
 import { BadRequestError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
-import { daoKeyrackRepoManifest } from '../../access/daos/daoKeyrackRepoManifest';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   type KeyrackGrantMechanism,
   KeyrackHostManifest,
   type KeyrackHostVault,
   KeyrackKeyHost,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
 import type { KeyrackHostContext } from './genKeyrackHostContext';
 
 /**

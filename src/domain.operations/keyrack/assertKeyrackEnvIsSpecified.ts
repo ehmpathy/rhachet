@@ -1,6 +1,6 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { KeyrackRepoManifest } from '../../domain.objects/keyrack';
+import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 /**
  * .what = fail fast if --env is omitted when env-specific sections exist

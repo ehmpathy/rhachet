@@ -1,4 +1,5 @@
-import { BrainExchange } from '../../domain.objects/BrainExchange';
+import { BrainExchange } from '@src/domain.objects/BrainExchange';
+
 import { computeBrainExchangeHash } from './computeBrainExchangeHash';
 
 /**

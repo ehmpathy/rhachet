@@ -1,7 +1,8 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import type { KeyrackDaemonCommand } from '@src/domain.objects/keyrack/KeyrackDaemonCommand';
+
 import type { Socket } from 'node:net';
-import type { KeyrackDaemonCommand } from '../../../../../../domain.objects/keyrack/KeyrackDaemonCommand';
 
 /**
  * .what = daemon response shape

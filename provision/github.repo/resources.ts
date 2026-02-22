@@ -97,6 +97,7 @@ export const getResources = async (): Promise<DomainEntity<any>[]> => {
       strict: true, // branch must be up to date. otherwise, we dont know if it will really pass once it is merged
       contexts: [
         'suite / install / pnpm',
+        'suite / enshard',
         'suite / test-commits',
         'suite / test-types',
         'suite / test-format',

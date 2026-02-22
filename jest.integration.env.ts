@@ -4,7 +4,7 @@ import { join } from 'path';
 import util from 'util';
 
 // eslint-disable-next-line no-undef
-jest.setTimeout(180000); // since we're calling downstream apis w/ retries
+jest.setTimeout(180000); // since we call downstream apis w/ retries
 
 // set console.log to not truncate nested objects
 util.inspect.defaultOptions.depth = 5;
@@ -50,19 +50,6 @@ if (
   );
 
 /**
- * .what = verify that brain API keys are present for actor/brain integration tests
- * .why =
- *   - prevent time wasted waiting on tests to fail due to missing API keys
- *   - provide clear instructions on how to set up API keys
- */
-if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)
-  throw new Error(
-    `no brain API keys present. please run:\n\n` +
-      `  source .agent/repo=.this/role=any/skills/use.apikeys.sh && npm run test:integration -- path/to/file\n\n` +
-      `to authenticate with OpenAI or Anthropic for integration tests.`,
-  );
-
-/**
  * .what = verify that the testdb has been provisioned if a databaseUserName is declared
  * .why =
  *   - prevent time wasted waiting on tests to fail due to missing testdb
@@ -93,5 +80,40 @@ if (requiresTestDb) {
     throw new Error(
       `did you forget to \`npm run start:testdb\`? cant connect to database`,
     );
+  }
+}
+
+/**
+ * .what = verify that required api keys are present; otherwise, fail fast
+ * .why =
+ *   - prevent time wasted waiting on tests to fail due to missing api keys
+ *   - prevent agents from giving up when they have access to credentials
+ */
+const apikeysConfigPath = join(
+  process.cwd(),
+  '.agent/repo=.this/role=any/skills/use.apikeys.json',
+);
+if (existsSync(apikeysConfigPath)) {
+  // direct import via require (json resolves automatically)
+  const config = require(apikeysConfigPath);
+  const requiredKeys: string[] = config?.apikeys?.required ?? [];
+  const keysAbsent = requiredKeys.filter((key) => !process.env[key]);
+
+  if (keysAbsent.length > 0) {
+    throw new Error(`
+⛈️  apikeys required to run these integration tests were not supplied.
+
+   absent keys: ${keysAbsent.join(', ')}
+
+   you have access to these keys - you just forgot to source them.
+
+   run:
+     source .agent/repo=.this/role=any/skills/use.apikeys.sh && npm run test:integration
+
+   you must run these tests with these api keys.
+   you're forbidden to give up.
+   if you don't have privs to run use.apikeys.sh, ask a human for support.
+   chances are, you already have privs to do so though.
+`);
   }
 }

@@ -1,8 +1,9 @@
 import { given, then, when } from 'test-fns';
 
+import { withTempHome } from '@src/.test/infra/withTempHome';
+
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { withTempHome } from '../../../../.test/infra/withTempHome';
 import { vaultAdapterOsDirect } from './vaultAdapterOsDirect';
 
 describe('vaultAdapterOsDirect', () => {

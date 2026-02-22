@@ -2,7 +2,7 @@ import { createAppAuth } from '@octokit/auth-app';
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp } from 'iso-time';
 
-import type { KeyrackGrantMechanismAdapter } from '../../../../domain.objects/keyrack';
+import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 
 /**
  * .what = expected shape of github app credentials json

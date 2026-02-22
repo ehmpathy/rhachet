@@ -2,8 +2,9 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import { type IsoPrice, multiplyPrice, sumPrices } from 'iso-price';
 import type { PickOne } from 'type-fns';
 
-import type { BrainOutputMetrics } from '../../domain.objects/BrainOutputMetrics';
-import type { BrainSpec } from '../../domain.objects/BrainSpec';
+import type { BrainOutputMetrics } from '@src/domain.objects/BrainOutputMetrics';
+import type { BrainSpec } from '@src/domain.objects/BrainSpec';
+
 import { calcBrainTokens } from './calcBrainTokens';
 
 /**

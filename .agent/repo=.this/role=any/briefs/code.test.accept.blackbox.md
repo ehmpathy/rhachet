@@ -45,9 +45,9 @@ all external contracts must have acceptance test coverage:
 
 | contract type | test approach                         | location                     |
 | ------------- | ------------------------------------- | ---------------------------- |
-| cli           | subprocess invocation via spawn/exec  | `@/accept.blackbox/cli/*.ts` |
-| sdk           | import compiled dist/, call functions | `@/accept.blackbox/sdk/*.ts` |
-| api           | http calls to endpoints               | `@/accept.blackbox/api/*.ts` |
+| cli           | subprocess invocation via spawn/exec  | `@/blackbox/cli/*.ts` |
+| sdk           | import compiled dist/, call functions | `@/blackbox/sdk/*.ts` |
+| api           | http calls to endpoints               | `@/blackbox/api/*.ts` |
 
 ## .pattern: genTestTempRepo
 
@@ -128,8 +128,8 @@ add acceptance tests when:
 ```ts
 // file: accept.blackbox/cli/run.acceptance.test.ts
 import { given, when, then, useBeforeAll } from 'test-fns';
-import { genTestTempRepo } from '@/accept.blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/accept.blackbox/.test/infra/invokeRhachetCliBinary';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet run', () => {
   given('[case1] repo with say-hello skill', () => {

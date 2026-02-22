@@ -2,8 +2,8 @@ import { getError, given, then, when } from 'test-fns';
 
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
+import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
 
-import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 // mock the daemon interactions to avoid socket access in unit tests
