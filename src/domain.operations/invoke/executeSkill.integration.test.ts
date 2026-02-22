@@ -184,6 +184,66 @@ exit 2
           expect((error as SkillExecutionError).exitCode).toEqual(2);
         }
       });
+
+      then('SkillExecutionError.stderr contains skill output', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-stream-code2-stderr.sh',
+          content: `#!/usr/bin/env bash
+echo "quota error: no commit uses granted" >&2
+exit 2
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-stream-code2-stderr',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        try {
+          executeSkill({ skill, args: [], stream: true });
+          fail('expected SkillExecutionError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(SkillExecutionError);
+          expect((error as SkillExecutionError).exitCode).toEqual(2);
+          expect((error as SkillExecutionError).stderr).toEqual(
+            'quota error: no commit uses granted',
+          );
+        }
+      });
+    });
+
+    when('skill exits with exit code 1 with stderr in stream mode', () => {
+      then('SkillExecutionError.stderr contains skill output', () => {
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'fail-stream-code1-stderr.sh',
+          content: `#!/usr/bin/env bash
+echo "jq: command not found" >&2
+exit 1
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'fail-stream-code1-stderr',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        try {
+          executeSkill({ skill, args: [], stream: true });
+          fail('expected SkillExecutionError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(SkillExecutionError);
+          expect((error as SkillExecutionError).exitCode).toEqual(1);
+          expect((error as SkillExecutionError).stderr).toEqual(
+            'jq: command not found',
+          );
+        }
+      });
     });
 
     when('skill exits with non-zero status in capture mode', () => {

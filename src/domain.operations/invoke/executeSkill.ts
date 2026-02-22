@@ -16,12 +16,24 @@ export class SkillExecutionError extends HelpfulError {
    */
   public readonly exitCode: number;
 
+  /**
+   * .what = the captured stderr output from the skill script
+   * .why = enables callers to display the skill's error message cleanly
+   */
+  public readonly stderr: string | null;
+
   constructor(
     message: string,
-    metadata: { skill: string; path: string; exitCode: number | null },
+    metadata: {
+      skill: string;
+      path: string;
+      exitCode: number | null;
+      stderr?: string | null;
+    },
   ) {
     super(message, metadata);
     this.exitCode = metadata.exitCode ?? 1;
+    this.stderr = metadata.stderr ?? null;
   }
 }
 
@@ -49,22 +61,24 @@ export const executeSkill = <TOutput = unknown>(input: {
     .map((arg) => (arg.includes(' ') ? `"${arg}"` : arg))
     .join(' ');
 
-  // run skill: stream mode passes through stdio, capture mode pipes stdout
+  // run skill: stream mode passes through stdin/stdout, capture mode pipes stdout
+  // stderr is always buffered so we can include it in errors
   const result = spawnSync(command, [], {
     cwd: process.cwd(),
     shell: '/bin/bash',
     encoding: 'utf-8',
     stdio: stream
-      ? [process.stdin, process.stdout, process.stderr]
-      : ['inherit', 'pipe', 'inherit'],
+      ? [process.stdin, process.stdout, 'pipe']
+      : ['inherit', 'pipe', 'pipe'],
   });
 
-  // throw on non-zero exit, preserve the original exit code
+  // throw on non-zero exit, preserve the original exit code and captured stderr
   if (result.status !== 0)
     throw new SkillExecutionError('skill execution failed', {
       skill: input.skill.slug,
       path: input.skill.path,
       exitCode: result.status,
+      stderr: result.stderr?.trim() || null,
     });
 
   // stream mode has no return value
