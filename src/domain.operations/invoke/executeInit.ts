@@ -15,12 +15,24 @@ export class InitExecutionError extends HelpfulError {
    */
   public readonly exitCode: number;
 
+  /**
+   * .what = the captured stderr output from the init script
+   * .why = enables callers to display the init's error message cleanly
+   */
+  public readonly stderr: string | null;
+
   constructor(
     message: string,
-    metadata: { init: string; path: string; exitCode: number | null },
+    metadata: {
+      init: string;
+      path: string;
+      exitCode: number | null;
+      stderr?: string | null;
+    },
   ) {
     super(message, metadata);
     this.exitCode = metadata.exitCode ?? 1;
+    this.stderr = metadata.stderr ?? null;
   }
 }
 
@@ -44,18 +56,21 @@ export const executeInit = (input: {
     })
     .join(' ');
 
-  // execute with explicit stdin passthrough to ensure data reaches script
+  // execute with explicit stdin passthrough to ensure data reaches init
+  // stderr is always buffered so we can include it in errors
   const result = spawnSync(command, [], {
     cwd: process.cwd(),
-    stdio: [process.stdin, process.stdout, process.stderr],
+    stdio: [process.stdin, process.stdout, 'pipe'],
     shell: '/bin/bash',
+    encoding: 'utf-8',
   });
 
-  // throw on non-zero exit, preserve the original exit code
+  // throw on non-zero exit, preserve the original exit code and captured stderr
   if (result.status !== 0)
     throw new InitExecutionError('init execution failed', {
       init: input.init.slug,
       path: input.init.path,
       exitCode: result.status,
+      stderr: result.stderr?.trim() || null,
     });
 };

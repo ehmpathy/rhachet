@@ -156,7 +156,23 @@ export const invokeRun = ({ program }: { program: Command }): void => {
           } catch (error) {
             // handle init failures cleanly without stack trace
             if (error instanceof InitExecutionError) {
-              console.error(`\n⛈️ ${error.message}`);
+              // print header + status to stderr (so it shows when stdout hidden)
+              const init = findUniqueInitExecutable({
+                slugRepo: opts.repo,
+                slugRole: opts.role,
+                slugInit: opts.init!,
+              });
+              console.error(``);
+              console.error(
+                `💪 init role repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
+              );
+              if (error.exitCode === 2) {
+                console.error(`   └─ ✋ blocked by constraints`);
+              } else {
+                console.error(`   └─ 💥 failed with an error`);
+              }
+              console.error(``);
+              if (error.stderr) console.error(error.stderr);
               process.exit(error.exitCode);
             }
             throw error;
@@ -172,7 +188,23 @@ export const invokeRun = ({ program }: { program: Command }): void => {
           } catch (error) {
             // handle skill failures cleanly without stack trace
             if (error instanceof SkillExecutionError) {
-              console.error(`\n⛈️ ${error.message}`);
+              // print header + status to stderr (so it shows when stdout hidden)
+              const skill = findUniqueSkillExecutable({
+                slugRepo: opts.repo,
+                slugRole: opts.role,
+                slugSkill: opts.skill!,
+              });
+              console.error(``);
+              console.error(
+                `🪨 run solid skill repo=${skill.slugRepo}/role=${skill.slugRole}/skill=${skill.slug}`,
+              );
+              if (error.exitCode === 2) {
+                console.error(`   └─ ✋ blocked by constraints`);
+              } else {
+                console.error(`   └─ 💥 failed with an error`);
+              }
+              console.error(``);
+              if (error.stderr) console.error(error.stderr);
               process.exit(error.exitCode);
             }
             throw error;

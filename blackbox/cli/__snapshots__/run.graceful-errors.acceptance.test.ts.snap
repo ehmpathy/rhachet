@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet run graceful errors given: [case2] skill that exits 2 (graceful failure) when: [t0] npx rhachet run --skill graceful-fail then: stderr matches snapshot 1`] = `
+"[0m[31m[0m
+[0m[31m🪨 run solid skill repo=.this/role=any/skill=graceful-fail[0m
+[0m[31m   └─ ✋ blocked by constraints[0m
+[0m[31m[0m
+[0m[31mquota error: no commit uses granted[0m
+"
+`;
+
+exports[`rhachet run graceful errors given: [case3] skill that exits 1 (unexpected failure) when: [t0] npx rhachet run --skill unexpected-fail then: stderr matches snapshot 1`] = `
+"[0m[31m[0m
+[0m[31m🪨 run solid skill repo=.this/role=any/skill=unexpected-fail[0m
+[0m[31m   └─ 💥 failed with an error[0m
+[0m[31m[0m
+[0m[31mjq: command not found[0m
+"
+`;
