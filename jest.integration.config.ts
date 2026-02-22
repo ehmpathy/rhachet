@@ -16,6 +16,7 @@ const config: Config = {
   testEnvironment: 'node',
   moduleFileExtensions: ['js', 'ts', 'mjs'],
   moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
     '^@src/(.*)$': '<rootDir>/src/$1',
     // map esm subpath exports for noble/scure packages
     // handle imports with .js extension (from age-encryption)

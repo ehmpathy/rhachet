@@ -35,7 +35,7 @@ jobs:
   # run tests in parallel
   test-commits:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, test-shards-omit]
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -58,7 +58,7 @@ jobs:
 
   test-types:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, test-shards-omit]
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -75,14 +75,14 @@ jobs:
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
       - name: build
-        run: npm run build
+        run: npm run build # build before test:types, to ensure .dist/ artifacts are importable for blackbox tests
 
       - name: test:types
         run: npm run test:types
 
   test-format:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, test-shards-omit]
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -106,7 +106,7 @@ jobs:
 
   test-lint:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, test-shards-omit]
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -127,7 +127,7 @@ jobs:
 
   test-unit:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, test-shards-omit]
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -146,9 +146,56 @@ jobs:
       - name: test:unit
         run: THOROUGH=true npm run test:unit
 
-  test-integration:
+  # shard setup job
+  enshard:
+    name: enshard
+    runs-on: ubuntu-24.04
+    outputs:
+      integration-matrix: ${{ steps.integration.outputs.matrix }}
+      integration-patterns: ${{ steps.integration.outputs.patterns }}
+      acceptance-matrix: ${{ steps.acceptance.outputs.matrix }}
+      acceptance-patterns: ${{ steps.acceptance.outputs.patterns }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            jest.integration.shards.jsonc
+            jest.acceptance.shards.jsonc
+            .github/actions/test-shards-setup
+          sparse-checkout-cone-mode: false
+
+      - name: setup integration shards
+        id: integration
+        uses: ./.github/actions/test-shards-setup
+        with:
+          config-file: jest.integration.shards.jsonc
+          test-type: integration
+
+      - name: setup acceptance shards
+        id: acceptance
+        uses: ./.github/actions/test-shards-setup
+        with:
+          config-file: jest.acceptance.shards.jsonc
+          test-type: acceptance
+
+  # placeholder job for github actions visualization alignment
+  # note: github actions has no column position controls;
+  #       this job pushes test-* jobs one column right to align with test-shards-* column
+  test-shards-omit:
     runs-on: ubuntu-24.04
     needs: [install]
+    steps:
+      - run: echo "👌 placeholder for column alignment"
+
+  # shard runner jobs
+  test-shards-integration:
+    runs-on: ubuntu-24.04
+    needs: [install, enshard]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.enshard.outputs.integration-matrix) }}
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -183,16 +230,52 @@ jobs:
       - name: start:livedb:dev
         run: npm run start:livedb:dev --if-present
 
-      - name: test:integration
-        run: THOROUGH=true npm run test:integration
+      - name: build
+        run: npm run build
+
+      - name: test:integration (explicit ${{ matrix.shard.index }})
+        if: matrix.shard.type == 'explicit'
+        run: |
+          patterns='${{ join(matrix.shard.patterns, '|') }}'
+          THOROUGH=true npm run test:integration -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
         env:
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
           XAI_API_KEY: ${{ secrets.xai-api-key }}
 
-  test-acceptance-locally:
+      - name: test:integration (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
+        if: matrix.shard.type == 'dynamic'
+        run: |
+          exclude='${{ needs.enshard.outputs.integration-patterns }}'
+          if [[ -n "$exclude" ]]; then
+            THOROUGH=true npm run test:integration -- --testPathIgnorePatterns="$exclude" --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
+          else
+            THOROUGH=true npm run test:integration -- --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
+          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+          XAI_API_KEY: ${{ secrets.xai-api-key }}
+
+      - name: report slow tests
+        if: always() && hashFiles('jest-results.json') != ''
+        run: |
+          jq -r '.testResults[] | "\(.name):\(.perfStats.runtime)"' jest-results.json | while IFS=: read -r name runtime; do
+            seconds=$((runtime / 1000))
+            if [[ $seconds -ge 30 ]]; then
+              echo "::warning file=${name}::slow test: ${seconds}s"
+            elif [[ $seconds -ge 10 ]]; then
+              echo "::notice file=${name}::test duration: ${seconds}s"
+            fi
+          done
+
+  test-shards-acceptance:
     runs-on: ubuntu-24.04
-    needs: [install]
+    needs: [install, enshard]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.enshard.outputs.acceptance-matrix) }}
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -211,6 +294,9 @@ jobs:
           path: ./node_modules
           key: ${{ needs.install.outputs.node-modules-cache-key }}
 
+      - name: install age cli
+        run: sudo apt-get install -y age
+
       - name: get aws auth, if creds supplied
         if: ${{ inputs.creds-aws-role-arn }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -224,9 +310,71 @@ jobs:
       - name: start:livedb:dev
         run: npm run start:livedb:dev --if-present
 
-      - name: test:acceptance:locally
-        run: THOROUGH=true npm run test:acceptance:locally --if-present
+      - name: build
+        run: npm run build
+
+      - name: test:acceptance (explicit ${{ matrix.shard.index }})
+        if: matrix.shard.type == 'explicit'
+        run: |
+          patterns='${{ join(matrix.shard.patterns, '|') }}'
+          THOROUGH=true npm run test:acceptance -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
         env:
           OPENAI_API_KEY: ${{ secrets.openai-api-key }}
           ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
           XAI_API_KEY: ${{ secrets.xai-api-key }}
+
+      - name: test:acceptance (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
+        if: matrix.shard.type == 'dynamic'
+        run: |
+          exclude='${{ needs.enshard.outputs.acceptance-patterns }}'
+          if [[ -n "$exclude" ]]; then
+            THOROUGH=true npm run test:acceptance -- --testPathIgnorePatterns="$exclude" --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
+          else
+            THOROUGH=true npm run test:acceptance -- --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
+          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+          XAI_API_KEY: ${{ secrets.xai-api-key }}
+
+      - name: report slow tests
+        if: always() && hashFiles('jest-results.json') != ''
+        run: |
+          jq -r '.testResults[] | "\(.name):\(.perfStats.runtime)"' jest-results.json | while IFS=: read -r name runtime; do
+            seconds=$((runtime / 1000))
+            if [[ $seconds -ge 30 ]]; then
+              echo "::warning file=${name}::slow test: ${seconds}s"
+            elif [[ $seconds -ge 10 ]]; then
+              echo "::notice file=${name}::test duration: ${seconds}s"
+            fi
+          done
+
+  # union job: aggregates shard results into single status for pr merge constraints
+  test-integration:
+    runs-on: ubuntu-24.04
+    needs: [install, enshard, test-shards-integration]
+    if: always() && needs.install.result == 'success' && needs.enshard.result == 'success'
+    steps:
+      - name: report shard results
+        run: |
+          if [[ "${{ needs.test-shards-integration.result }}" == "success" ]]; then
+            echo "👌 all integration test shards passed"
+          else
+            echo "::error::some integration test shards failed"
+            exit 1
+          fi
+
+  # union job: aggregates shard results into single status for pr merge constraints
+  test-acceptance-locally:
+    runs-on: ubuntu-24.04
+    needs: [install, enshard, test-shards-acceptance]
+    if: always() && needs.install.result == 'success' && needs.enshard.result == 'success'
+    steps:
+      - name: report shard results
+        run: |
+          if [[ "${{ needs.test-shards-acceptance.result }}" == "success" ]]; then
+            echo "👌 all acceptance test shards passed"
+          else
+            echo "::error::some acceptance test shards failed"
+            exit 1
+          fi

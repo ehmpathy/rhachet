@@ -1,7 +1,7 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
-import { asKeyrackKeyName } from '../../asKeyrackKeyName';
+import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 
 /**
  * .what = vault adapter that reads from process.env

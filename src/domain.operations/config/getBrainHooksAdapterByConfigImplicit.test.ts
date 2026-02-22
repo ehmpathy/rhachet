@@ -1,8 +1,8 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import * as discoverModule from '@src/domain.operations/brains/discoverBrainPackages';
 
-import * as discoverModule from '../brains/discoverBrainPackages';
 import { getBrainHooksAdapterByConfigImplicit } from './getBrainHooksAdapterByConfigImplicit';
 
 // mock the discoverBrainPackages module

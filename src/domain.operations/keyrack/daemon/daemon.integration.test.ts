@@ -1,8 +1,9 @@
 import { asIsoTimeStamp } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+
 import { existsSync, unlinkSync } from 'node:fs';
-import { KeyrackKeyGrant } from '../../../domain.objects/keyrack/KeyrackKeyGrant';
 import {
   daemonAccessGet,
   daemonAccessRelock,

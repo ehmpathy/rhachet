@@ -1,6 +1,5 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-
-import { getRoleRegistriesByConfigImplicit } from '../config/getRoleRegistriesByConfigImplicit';
+import { getRoleRegistriesByConfigImplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigImplicit';
 
 /**
  * .what = shows usage instructions when init called without --roles

@@ -1,6 +1,7 @@
 import { getError, given, then, when } from 'test-fns';
 
-import type { KeyrackRepoManifest } from '../../domain.objects/keyrack';
+import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
+
 import { asKeyrackKeySlug } from './asKeyrackKeySlug';
 
 /**

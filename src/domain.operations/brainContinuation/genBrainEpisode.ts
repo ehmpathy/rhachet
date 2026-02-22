@@ -1,5 +1,6 @@
-import { BrainEpisode } from '../../domain.objects/BrainEpisode';
-import type { BrainExchange } from '../../domain.objects/BrainExchange';
+import { BrainEpisode } from '@src/domain.objects/BrainEpisode';
+import type { BrainExchange } from '@src/domain.objects/BrainExchange';
+
 import { computeBrainEpisodeHash } from './computeBrainEpisodeHash';
 
 /**

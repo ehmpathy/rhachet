@@ -3,8 +3,7 @@ import { BadRequestError } from 'helpful-errors';
 import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
-
-import { parseRoleSpecifier } from '../invoke/parseRoleSpecifier';
+import { parseRoleSpecifier } from '@src/domain.operations/invoke/parseRoleSpecifier';
 
 /**
  * .what = gets a single role from manifests by specifier

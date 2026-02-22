@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '../../../access/daos/daoKeyrackHostManifest';
-import { KeyrackHostManifest } from '../../../domain.objects/keyrack';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
 
 /**
  * .what = remove a recipient from the host manifest

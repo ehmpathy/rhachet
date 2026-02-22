@@ -3,8 +3,8 @@ import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
+import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
-import { getBrainHooksAdapterByConfigImplicit } from '../config/getBrainHooksAdapterByConfigImplicit';
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
 import { syncOneRoleHooksIntoOneBrainRepl } from './syncOneRoleHooksIntoOneBrainRepl';
 

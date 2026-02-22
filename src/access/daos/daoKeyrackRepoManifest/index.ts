@@ -1,12 +1,13 @@
 import { BadRequestError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import {
   KeyrackKeySpec,
   KeyrackRepoManifest,
-} from '../../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { schemaKeyrackRepoManifest } from './schema';
 
 /**

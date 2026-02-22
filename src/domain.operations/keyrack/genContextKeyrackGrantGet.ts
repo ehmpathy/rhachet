@@ -1,10 +1,11 @@
-import { daoKeyrackRepoManifest } from '../../access/daos/daoKeyrackRepoManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
   KeyrackRepoManifest,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
 import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';

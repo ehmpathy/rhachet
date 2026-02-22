@@ -1,13 +1,13 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
-
-import { mkdirSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
 import {
   getAgentRepoThisReadmeTemplate,
   getAgentRootReadmeTemplate,
-} from '../getAgentReadmeTemplates';
+} from '@src/domain.operations/invoke/getAgentReadmeTemplates';
+
+import { mkdirSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 import { findsertFile, type LinkResult } from './findsertFile';
 import { findsertRepoGitignore } from './findsertRepoGitignore';
 import { symlinkReadme } from './symlinkReadme';

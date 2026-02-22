@@ -1,16 +1,17 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { genMockVaultAdapter } from '../../../.test/assets/genMockVaultAdapter';
-import { withTempHome } from '../../../.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '../../../access/daos/daoKeyrackHostManifest';
+import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
+import { withTempHome } from '@src/.test/infra/withTempHome';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
-} from '../../../domain.objects/keyrack';
-import { generateAgeKeyPair } from '../adapters/ageRecipientCrypto';
-import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
-import { daemonAccessGet } from '../daemon/sdk';
-import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
+} from '@src/domain.objects/keyrack';
+import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import { daemonAccessGet } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 describe('unlockKeyrackKeys.integration', () => {

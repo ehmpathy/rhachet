@@ -1,8 +1,9 @@
 import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
-import { KeyrackKeyGrant } from '../../../../../../domain.objects/keyrack/KeyrackKeyGrant';
-import { createDaemonKeyStore } from '../domain.objects/daemonKeyStore';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+
 import { handleGetCommand } from './handleGetCommand';
 import { handleRelockCommand } from './handleRelockCommand';
 import { handleStatusCommand } from './handleStatusCommand';

@@ -1,6 +1,7 @@
 import { given, then, when } from 'test-fns';
 
-import type { BrainHook } from '../../../../domain.objects/BrainHook';
+import type { BrainHook } from '@src/domain.objects/BrainHook';
+
 import {
   translateHookFromClaudeCode,
   translateHookToClaudeCode,

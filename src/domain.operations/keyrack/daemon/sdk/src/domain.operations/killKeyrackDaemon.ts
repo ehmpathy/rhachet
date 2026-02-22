@@ -1,5 +1,6 @@
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
-import { getKeyrackDaemonSocketPath } from '../../../infra/getKeyrackDaemonSocketPath';
 
 /**
  * .what = kill the keyrack daemon if active

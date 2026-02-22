@@ -1,4 +1,4 @@
-import type { KeyrackRepoManifest } from '../../domain.objects/keyrack';
+import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 /**
  * .what = derive the list of declared envs from a manifest

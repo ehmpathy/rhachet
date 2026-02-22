@@ -1,6 +1,6 @@
-import { getKeyrackDaemonSocketPath } from '../daemon/infra/getKeyrackDaemonSocketPath';
-import { daemonAccessRelock } from '../daemon/sdk';
-import type { ContextKeyrackGrantUnlock } from '../genContextKeyrackGrantUnlock';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import { daemonAccessRelock } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
 
 /**
  * .what = relock keyrack keys by prune from daemon memory and clear vault caches

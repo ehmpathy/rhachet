@@ -1,10 +1,11 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { withTempHome } from '@src/.test/infra/withTempHome';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
+
 import { join } from 'node:path';
-import { withTempHome } from '../../../.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '../../../access/daos/daoKeyrackHostManifest';
-import { generateAgeKeyPair } from '../adapters/ageRecipientCrypto';
-import { initKeyrack } from '../initKeyrack';
 import { delKeyrackRecipient } from './delKeyrackRecipient';
 import { getKeyrackRecipients } from './getKeyrackRecipients';
 import { setKeyrackRecipient } from './setKeyrackRecipient';

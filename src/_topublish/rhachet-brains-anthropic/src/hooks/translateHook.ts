@@ -1,7 +1,8 @@
 import { toMilliseconds } from 'iso-time';
 
-import type { BrainHook } from '../../../../domain.objects/BrainHook';
-import type { BrainHookEvent } from '../../../../domain.objects/BrainHookEvent';
+import type { BrainHook } from '@src/domain.objects/BrainHook';
+import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
+
 import type { ClaudeCodeHookEntry } from './config.dao';
 
 /**

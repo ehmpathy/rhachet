@@ -1,10 +1,10 @@
 import { BadRequestError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '../../../access/daos/daoKeyrackHostManifest';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
-} from '../../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
 
 /**
  * .what = add a recipient to the host manifest

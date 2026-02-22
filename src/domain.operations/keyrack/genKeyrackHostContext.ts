@@ -1,11 +1,12 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '../../access/daos/daoKeyrackHostManifest';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import type {
   KeyrackHostManifest,
   KeyrackHostVault,
   KeyrackHostVaultAdapter,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
 import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
 import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
 import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';

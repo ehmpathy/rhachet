@@ -1,6 +1,6 @@
 import { asHashSha256 } from 'hash-fns';
 
-import type { BrainEpisode } from '../../domain.objects/BrainEpisode';
+import type { BrainEpisode } from '@src/domain.objects/BrainEpisode';
 
 /**
  * .what = computes content-derived hash for a BrainSeries

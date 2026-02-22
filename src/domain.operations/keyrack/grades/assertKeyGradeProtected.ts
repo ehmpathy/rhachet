@@ -1,6 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { KeyrackKeyGrade } from '../../../domain.objects/keyrack';
+import type { KeyrackKeyGrade } from '@src/domain.objects/keyrack';
+
 import { detectKeyGradeChange } from './detectKeyGradeChange';
 
 /**

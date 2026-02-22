@@ -1,5 +1,6 @@
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+
 import { createConnection, type Socket } from 'node:net';
-import { getKeyrackDaemonSocketPath } from '../../../infra/getKeyrackDaemonSocketPath';
 
 /**
  * .what = connect to the keyrack daemon via unix socket

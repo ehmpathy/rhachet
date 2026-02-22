@@ -59,7 +59,8 @@ jest.mock('./detectBrainReplsInRepo', () => ({
   detectBrainReplsInRepo: jest.fn(),
 }));
 
-import { getBrainHooksAdapterByConfigImplicit } from '../config/getBrainHooksAdapterByConfigImplicit';
+import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
+
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
 
 const mockGetAdapter = getBrainHooksAdapterByConfigImplicit as jest.Mock;

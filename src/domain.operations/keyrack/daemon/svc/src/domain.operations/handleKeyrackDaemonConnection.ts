@@ -1,6 +1,7 @@
+import type { KeyrackDaemonCommand } from '@src/domain.objects/keyrack/KeyrackDaemonCommand';
+import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+
 import type { Socket } from 'node:net';
-import type { KeyrackDaemonCommand } from '../../../../../../domain.objects/keyrack/KeyrackDaemonCommand';
-import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 import { handleGetCommand } from './handleGetCommand';
 import { handleRelockCommand } from './handleRelockCommand';
 import { handleStatusCommand } from './handleStatusCommand';

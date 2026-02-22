@@ -1,7 +1,8 @@
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import { createKeyrackDaemonServer } from '@src/domain.operations/keyrack/daemon/svc/src/infra/createKeyrackDaemonServer';
+
 import { spawn } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
-import { getKeyrackDaemonSocketPath } from '../../../infra/getKeyrackDaemonSocketPath';
-import { createKeyrackDaemonServer } from '../infra/createKeyrackDaemonServer';
 
 /**
  * .what = start the keyrack daemon as a background process

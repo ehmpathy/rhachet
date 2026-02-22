@@ -6,7 +6,8 @@ import {
   type KeyrackHostVault,
   type KeyrackKey,
   KeyrackKeyGrant,
-} from '../../domain.objects/keyrack';
+} from '@src/domain.objects/keyrack';
+
 import { daemonAccessGet } from './daemon/sdk';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 

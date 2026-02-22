@@ -1,6 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { KeyrackRepoManifest } from '../../domain.objects/keyrack';
+import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
+
 import { asKeyrackKeyName } from './asKeyrackKeyName';
 
 /**

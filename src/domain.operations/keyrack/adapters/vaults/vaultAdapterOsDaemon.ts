@@ -1,14 +1,14 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 import { asIsoTimeStamp } from 'iso-time';
 
-import type { KeyrackHostVaultAdapter } from '../../../../domain.objects/keyrack';
+import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
 import {
   daemonAccessGet,
   daemonAccessRelock,
   daemonAccessUnlock,
   isDaemonReachable,
-} from '../../daemon/sdk';
-import { inferKeyGrade } from '../../grades/inferKeyGrade';
+} from '@src/domain.operations/keyrack/daemon/sdk';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
 /**
  * .what = vault adapter for os.daemon storage

@@ -1,5 +1,6 @@
-import type { BrainHooksAdapter } from '../../../../domain.objects/BrainHooksAdapter';
-import type { BrainSpecifier } from '../../../../domain.objects/BrainSpecifier';
+import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
+import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
+
 import { genBrainHooksAdapterForClaudeCode } from './genBrainHooksAdapterForClaudeCode';
 
 /**
