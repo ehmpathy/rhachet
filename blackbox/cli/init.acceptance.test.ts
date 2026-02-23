@@ -265,7 +265,7 @@ describe('rhachet init', () => {
       );
 
       // setup: write package.json with extant prepare entry
-      useBeforeAll(async () => {
+      beforeAll(async () => {
         const pkgPath = join(repo.path, 'package.json');
         const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
         pkg.scripts = { prepare: 'husky install' };
@@ -303,7 +303,7 @@ describe('rhachet init', () => {
       );
 
       // setup: write package.json with extant prepare:rhachet
-      useBeforeAll(async () => {
+      beforeAll(async () => {
         const pkgPath = join(repo.path, 'package.json');
         const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
         pkg.scripts = {
