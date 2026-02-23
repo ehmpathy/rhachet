@@ -99,8 +99,10 @@ env.test: []
           );
 
           expect(Array.isArray(result)).toBe(true);
-          expect(result).toHaveLength(1);
+          // env.all key creates both .all. slug and .test. slug = 2 keys
+          expect(result).toHaveLength(2);
           expect(result[0]?.status).toEqual('locked');
+          expect(result[1]?.status).toEqual('locked');
         });
       });
     },
