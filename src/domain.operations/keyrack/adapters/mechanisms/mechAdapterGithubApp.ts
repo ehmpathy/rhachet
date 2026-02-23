@@ -22,37 +22,37 @@ const parseGithubAppCredentials = (
   value: string,
 ):
   | { valid: true; creds: GithubAppCredentials }
-  | { valid: false; reason: string } => {
+  | { valid: false; reasons: string[] } => {
   // attempt to parse as json
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
   } catch {
-    return { valid: false, reason: 'value is not valid json' };
+    return { valid: false, reasons: ['value is not valid json'] };
   }
 
   // validate required fields
   if (typeof parsed !== 'object' || parsed === null) {
-    return { valid: false, reason: 'value is not a json object' };
+    return { valid: false, reasons: ['value is not a json object'] };
   }
 
   const obj = parsed as Record<string, unknown>;
 
   if (!obj.appId && !obj.app_id) {
-    return { valid: false, reason: 'json lacks appId or app_id field' };
+    return { valid: false, reasons: ['json lacks appId or app_id field'] };
   }
 
   if (!obj.privateKey && !obj.private_key) {
     return {
       valid: false,
-      reason: 'json lacks privateKey or private_key field',
+      reasons: ['json lacks privateKey or private_key field'],
     };
   }
 
   if (!obj.installationId && !obj.installation_id) {
     return {
       valid: false,
-      reason: 'json lacks installationId or installation_id field',
+      reasons: ['json lacks installationId or installation_id field'],
     };
   }
 
@@ -87,7 +87,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     // validate cached ephemeral (ghs_ token)
     if (input.cached) {
       if (!input.cached.startsWith('ghs_')) {
-        return { valid: false, reason: 'cached value must be ghs_ token' };
+        return { valid: false, reasons: ['cached value must be ghs_ token'] };
       }
       return { valid: true };
     }
@@ -96,12 +96,15 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     if (input.source) {
       const result = parseGithubAppCredentials(input.source);
       if (!result.valid) {
-        return { valid: false, reason: `github_app: ${result.reason}` };
+        return {
+          valid: false,
+          reasons: result.reasons.map((r) => `github_app: ${r}`),
+        };
       }
       return { valid: true };
     }
 
-    return { valid: false, reason: 'no value to validate' };
+    return { valid: false, reasons: ['no value to validate'] };
   },
 
   /**
@@ -115,7 +118,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     if (!result.valid) {
       throw new UnexpectedCodePathError(
         'github_app translate called with invalid credentials',
-        { reason: result.reason },
+        { reasons: result.reasons },
       );
     }
 

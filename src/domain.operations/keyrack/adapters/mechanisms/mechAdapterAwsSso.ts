@@ -31,24 +31,24 @@ const isValidProfileName = (value: string): boolean => {
  */
 const isValidCachedCredentials = (
   value: string,
-): { valid: true } | { valid: false; reason: string } => {
+): { valid: true } | { valid: false; reasons: string[] } => {
   try {
     const creds = JSON.parse(value);
     if (!creds.AWS_ACCESS_KEY_ID) {
       return {
         valid: false,
-        reason: 'cached credentials lack AWS_ACCESS_KEY_ID',
+        reasons: ['cached credentials lack AWS_ACCESS_KEY_ID'],
       };
     }
     if (!creds.AWS_SECRET_ACCESS_KEY) {
       return {
         valid: false,
-        reason: 'cached credentials lack AWS_SECRET_ACCESS_KEY',
+        reasons: ['cached credentials lack AWS_SECRET_ACCESS_KEY'],
       };
     }
     return { valid: true };
   } catch {
-    return { valid: false, reason: 'cached value is not valid json' };
+    return { valid: false, reasons: ['cached value is not valid json'] };
   }
 };
 
@@ -73,7 +73,7 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
       if (!isValidProfileName(input.source)) {
         return {
           valid: false,
-          reason: 'aws_sso: value is not a valid aws profile name format',
+          reasons: ['aws_sso: value is not a valid aws profile name format'],
         };
       }
 
@@ -84,11 +84,11 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
         });
         return { valid: true };
       } catch {
-        return { valid: false, reason: 'aws_sso: sso session expired' };
+        return { valid: false, reasons: ['aws_sso: sso session expired'] };
       }
     }
 
-    return { valid: false, reason: 'no value to validate' };
+    return { valid: false, reasons: ['no value to validate'] };
   },
 
   /**
