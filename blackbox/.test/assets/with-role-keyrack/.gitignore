@@ -1,0 +1,2 @@
+# track node_modules for this test fixture
+!node_modules/
