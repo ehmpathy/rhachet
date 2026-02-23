@@ -391,7 +391,7 @@ env.test:
 
     when('[t0] key is set in extended keyrack, then unlocked via root extends', () => {
       // set up extended keyrack with a key
-      useBeforeAll(async () => {
+      beforeAll(async () => {
         const { mkdirSync, writeFileSync } = await import('node:fs');
         const { join } = await import('node:path');
 
@@ -481,7 +481,7 @@ env.test:
 
     when('[t0] env.all key is set in extended keyrack', () => {
       // set up extended keyrack with env.all key
-      useBeforeAll(async () => {
+      beforeAll(async () => {
         const { mkdirSync, writeFileSync } = await import('node:fs');
         const { join } = await import('node:path');
 
