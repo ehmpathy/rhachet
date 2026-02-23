@@ -410,4 +410,115 @@ describe('setKeyrackKeyHost.integration', () => {
       });
     });
   });
+
+  given('[case6] set --at custom keyrack path', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const repo = useBeforeAll(async () => {
+      const root = join(tempHome.path, 'repo-case6');
+      mkdirSync(join(root, '.agent'), { recursive: true });
+      mkdirSync(join(root, 'custom', 'role'), { recursive: true });
+
+      // create default keyrack.yml (should NOT be modified)
+      writeFileSync(
+        join(root, '.agent', 'keyrack.yml'),
+        'org: defaultorg\n',
+        'utf8',
+      );
+
+      // create custom keyrack at specified path
+      writeFileSync(
+        join(root, 'custom', 'role', 'keyrack.yml'),
+        'org: customorg\nenv.prod: []\n',
+        'utf8',
+      );
+      return { path: root };
+    });
+
+    const manifest = useBeforeAll(async () => {
+      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case6.age',
+          owner: 'case6',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+    });
+
+    when('[t0] set called with --at custom path', () => {
+      then('writes key to custom keyrack at specified path', async () => {
+        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+
+        const context: KeyrackHostContext = {
+          hostManifest: manifest,
+          repoManifest: { org: 'customorg' },
+          gitroot: repo.path,
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': genMockVaultAdapter(),
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
+          },
+        };
+
+        const result = await setKeyrackKeyHost(
+          {
+            owner: 'case6',
+            slug: 'customorg.prod.CUSTOM_KEY',
+            mech: 'REPLICA',
+            vault: 'os.direct',
+            env: 'prod',
+            org: 'customorg',
+            at: 'custom/role/keyrack.yml',
+          },
+          context,
+        );
+
+        expect(result.slug).toEqual('customorg.prod.CUSTOM_KEY');
+        expect(result.env).toEqual('prod');
+        expect(result.org).toEqual('customorg');
+
+        // verify key was written to custom keyrack
+        const customKeyrackPath = join(
+          repo.path,
+          'custom',
+          'role',
+          'keyrack.yml',
+        );
+        const customContent = readFileSync(customKeyrackPath, 'utf8');
+        const customParsed = parseYaml(customContent) as Record<
+          string,
+          unknown
+        >;
+        const envProd = customParsed['env.prod'];
+        expect(Array.isArray(envProd)).toBe(true);
+        expect(envProd).toContain('CUSTOM_KEY');
+      });
+
+      then('does NOT modify default keyrack.yml', async () => {
+        // verify default keyrack was not modified
+        const defaultKeyrackPath = join(repo.path, '.agent', 'keyrack.yml');
+        const defaultContent = readFileSync(defaultKeyrackPath, 'utf8');
+        const defaultParsed = parseYaml(defaultContent) as Record<
+          string,
+          unknown
+        >;
+
+        // should still only have org, no env sections
+        expect(defaultParsed.org).toEqual('defaultorg');
+        expect(defaultParsed['env.prod']).toBeUndefined();
+      });
+    });
+  });
 });

@@ -62,9 +62,10 @@ const toKeyrackKey = (input: {
  * .note = resolution order: os.envvar (ci passthrough) -> os.daemon (session cache) -> locked
  * .note = never reads from vault — vault access is exclusively via unlock
  * .note = firewall validation applies uniformly to all granted keys, regardless of source
+ * .note = allowDangerous bypasses firewall validation (for known-dangerous credentials)
  */
 const attemptGrantKey = async (
-  input: { slug: string },
+  input: { slug: string; allowDangerous?: boolean },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt> => {
   const { slug } = input;
@@ -130,19 +131,25 @@ const attemptGrantKey = async (
     };
   }
 
-  // apply firewall validation uniformly to all granted keys
-  const mech = grantFound.source.mech;
-  const mechAdapter = context.mechAdapters[mech];
-  if (!mechAdapter)
-    throw new UnexpectedCodePathError('mechanism adapter not found', { mech });
-  const validation = mechAdapter.validate({ source: grantFound.key.secret });
-  if (!validation.valid) {
-    return {
-      status: 'blocked',
-      slug,
-      message: validation.reason ?? 'credential blocked by mechanism firewall',
-      fix: `update the stored value to use a short-lived or properly-formatted credential`,
-    };
+  // apply firewall validation uniformly to all granted keys (unless allowDangerous)
+  if (!input.allowDangerous) {
+    const mech = grantFound.source.mech;
+    const mechAdapter = context.mechAdapters[mech];
+    if (!mechAdapter)
+      throw new UnexpectedCodePathError('mechanism adapter not found', {
+        mech,
+      });
+    const validation = mechAdapter.validate({ source: grantFound.key.secret });
+    if (!validation.valid) {
+      return {
+        status: 'blocked',
+        slug,
+        reasons: validation.reasons ?? [
+          'credential blocked by mechanism firewall',
+        ],
+        fix: `update the stored value to use a short-lived or properly-formatted credential`,
+      };
+    }
   }
 
   return { status: 'granted', grant: grantFound };
@@ -154,31 +161,48 @@ const attemptGrantKey = async (
  *
  * .note = uses all-or-none semantics for repo grants
  * .note = env filter scopes which keys are resolved
+ * .note = allowDangerous bypasses firewall validation (for known-dangerous credentials)
  */
 export async function getKeyrackKeyGrant(
-  input: { for: { repo: true }; env?: string; slugs: string[] },
+  input: {
+    for: { repo: true };
+    env?: string;
+    slugs: string[];
+    allowDangerous?: boolean;
+  },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt[]>;
 export async function getKeyrackKeyGrant(
-  input: { for: { key: string } },
+  input: { for: { key: string }; allowDangerous?: boolean },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt>;
 export async function getKeyrackKeyGrant(
   input:
-    | { for: { repo: true }; env?: string; slugs: string[] }
-    | { for: { key: string } },
+    | {
+        for: { repo: true };
+        env?: string;
+        slugs: string[];
+        allowDangerous?: boolean;
+      }
+    | { for: { key: string }; allowDangerous?: boolean },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt | KeyrackGrantAttempt[]> {
   // handle single key grant
   if ('key' in input.for) {
-    return attemptGrantKey({ slug: input.for.key }, context);
+    return attemptGrantKey(
+      { slug: input.for.key, allowDangerous: input.allowDangerous },
+      context,
+    );
   }
 
   // handle repo grant — resolve all slugs
-  const { slugs } = input as { slugs: string[] };
+  const { slugs, allowDangerous } = input as {
+    slugs: string[];
+    allowDangerous?: boolean;
+  };
   const attempts: KeyrackGrantAttempt[] = [];
   for (const slug of slugs) {
-    const attempt = await attemptGrantKey({ slug }, context);
+    const attempt = await attemptGrantKey({ slug, allowDangerous }, context);
     attempts.push(attempt);
   }
 

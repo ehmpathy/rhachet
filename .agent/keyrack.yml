@@ -1,4 +1,6 @@
 org: ehmpathy
+extends:
+  - .agent/repo=.this/role=test/keyrack.yml
 env.prod: []
 env.all:
   - RELOCK_REGULAR_KEY

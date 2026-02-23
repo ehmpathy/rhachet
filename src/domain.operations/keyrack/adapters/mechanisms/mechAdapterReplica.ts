@@ -72,7 +72,10 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
     if (matched) {
       return {
         valid: false,
-        reason: `replica mechanism rejects long-lived tokens: detected ${matched}`,
+        reasons: [
+          'its dangerous to use long lived tokens via replica mechanisms',
+          `detected ${matched}`,
+        ],
       };
     }
     return { valid: true };

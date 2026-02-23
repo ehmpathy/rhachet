@@ -2,10 +2,10 @@ import { lstatSync, rmSync, symlinkSync, unlinkSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 
 /**
- * .what = creates or updates a symlink to a readme file
- * .why = enables idempotent symlink creation for role and repo readme files
+ * .what = creates or updates a symlink to a single file
+ * .why = enables idempotent symlink creation for role files (readme, boot, keyrack)
  */
-export const symlinkReadme = (input: {
+export const symlinkFile = (input: {
   sourcePath: string;
   targetPath: string;
 }): { status: 'created' | 'updated' } => {
@@ -20,8 +20,11 @@ export const symlinkReadme = (input: {
     try {
       lstatSync(targetAbsolute);
       return true;
-    } catch {
-      return false;
+    } catch (error: unknown) {
+      // ENOENT = file does not exist, which is expected
+      const code = (error as { code?: string })?.code;
+      if (code === 'ENOENT') return false;
+      throw error; // rethrow unexpected errors
     }
   })();
 
@@ -29,8 +32,14 @@ export const symlinkReadme = (input: {
   if (hadTargetBefore) {
     try {
       unlinkSync(targetAbsolute);
-    } catch {
-      rmSync(targetAbsolute, { force: true });
+    } catch (error: unknown) {
+      // unlink may fail on directories; fallback to rmSync
+      const code = (error as { code?: string })?.code;
+      if (code === 'EISDIR') {
+        rmSync(targetAbsolute, { force: true });
+      } else {
+        throw error; // rethrow unexpected errors
+      }
     }
   }
 

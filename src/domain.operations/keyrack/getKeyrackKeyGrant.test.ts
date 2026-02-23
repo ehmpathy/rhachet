@@ -318,7 +318,9 @@ describe('getKeyrackKeyGrant', () => {
           context,
         );
         if (result.status === 'blocked') {
-          expect(result.message).toContain('ghp_ token blocked by firewall');
+          expect(result.reasons?.join(' ')).toContain(
+            'ghp_ token blocked by firewall',
+          );
         }
       });
     });
@@ -372,7 +374,9 @@ describe('getKeyrackKeyGrant', () => {
           context,
         );
         if (result.status === 'blocked') {
-          expect(result.message).toContain('long-lived credential blocked');
+          expect(result.reasons?.join(' ')).toContain(
+            'long-lived credential blocked',
+          );
         }
       });
     });

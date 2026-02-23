@@ -17,6 +17,8 @@ interface RoleManifestSerializable {
     dirs?: string | string[];
     exec?: string[];
   };
+  boot?: string;
+  keyrack?: string;
 }
 
 /**
@@ -110,6 +112,19 @@ const castIntoRoleManifestSerializable = (input: {
     if (Object.keys(inits).length > 0) {
       manifest.inits = inits;
     }
+  }
+
+  // add boot if present
+  if (role.boot?.uri) {
+    manifest.boot = makeRelative({ absolutePath: role.boot.uri, packageRoot });
+  }
+
+  // add keyrack if present
+  if (role.keyrack?.uri) {
+    manifest.keyrack = makeRelative({
+      absolutePath: role.keyrack.uri,
+      packageRoot,
+    });
   }
 
   return manifest;

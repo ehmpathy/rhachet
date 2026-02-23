@@ -46,6 +46,16 @@ const schemaRoleManifestRaw = z.object({
       exec: z.array(z.string()).optional(),
     })
     .optional(),
+
+  /**
+   * .what = path to boot.yml relative to package root
+   */
+  boot: z.string().optional(),
+
+  /**
+   * .what = path to keyrack.yml relative to package root
+   */
+  keyrack: z.string().optional(),
 });
 
 /**
@@ -164,6 +174,12 @@ export const getRoleRegistryManifest = (input: {
               })),
             }),
           },
+        }),
+        ...(role.boot && {
+          boot: { uri: resolve(input.packageRoot, role.boot) },
+        }),
+        ...(role.keyrack && {
+          keyrack: { uri: resolve(input.packageRoot, role.keyrack) },
         }),
       }),
   );

@@ -1,0 +1,5 @@
+org: testorg
+extends:
+  - .agent/repo=test-repo/role=tester/keyrack.yml
+env.test:
+  - LOCAL_KEY

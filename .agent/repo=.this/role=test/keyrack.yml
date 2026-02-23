@@ -1,0 +1,5 @@
+org: ehmpathy
+env.prod: null
+env.test: null
+env.all:
+  - EHMPATHY_SEATURTLE_PROD_GITHUB_TOKEN

@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -331,6 +331,142 @@ describe('keyrack init', () => {
       then('error mentions ssh-keygen', () => {
         const output = result.stdout + result.stderr;
         expect(output).toContain('ssh-keygen');
+      });
+    });
+  });
+
+  /**
+   * [uc7] keyrack init --at (custom path)
+   * usecase.6 = keyrack init --at
+   * verifies that keyrack init creates keyrack.yml at custom path
+   */
+  given('[case7] keyrack init --at custom path', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] init --at with custom path', () => {
+      const customPath = 'src/roles/mechanic/keyrack.yml';
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'init', '--org', 'testorg', '--at', customPath],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('creates keyrack.yml at custom path', () => {
+        const fullPath = join(repo.path, customPath);
+        expect(existsSync(fullPath)).toBe(true);
+      });
+
+      then('keyrack.yml contains org declaration', () => {
+        const fullPath = join(repo.path, customPath);
+        const content = readFileSync(fullPath, 'utf-8');
+        expect(content).toContain('org: testorg');
+      });
+
+      then('does not create keyrack.yml at default path', () => {
+        const defaultPath = join(repo.path, '.agent', 'keyrack.yml');
+        expect(existsSync(defaultPath)).toBe(false);
+      });
+    });
+  });
+
+  /**
+   * [uc8] keyrack init --at with deep nested path
+   * verifies that parent directories are created
+   */
+  given('[case8] keyrack init --at with deep nested path', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] init --at with deeply nested path', () => {
+      const customPath = 'deep/nested/path/to/keyrack.yml';
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'init', '--org', 'testorg', '--at', customPath],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('creates keyrack.yml at deeply nested path', () => {
+        const fullPath = join(repo.path, customPath);
+        expect(existsSync(fullPath)).toBe(true);
+      });
+
+      then('parent directories are created', () => {
+        const parentDir = join(repo.path, 'deep/nested/path/to');
+        expect(existsSync(parentDir)).toBe(true);
+      });
+    });
+  });
+
+  /**
+   * [uc9] keyrack init --at idempotent
+   * verifies idempotent behavior (returns found, not error)
+   */
+  given('[case9] keyrack init --at idempotent', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] init --at twice at same path', () => {
+      const customPath = 'custom/keyrack.yml';
+
+      // first init creates the file
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'init', '--org', 'testorg', '--at', customPath],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      // second init should find the file
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'init',
+            '--org',
+            'differentorg',
+            '--at',
+            customPath,
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('reports found effect (not created)', () => {
+        const output = JSON.parse(result.stdout);
+        expect(output.repo.effect).toEqual('found');
+      });
+
+      then('preserves original org (not overwritten)', () => {
+        const fullPath = join(repo.path, customPath);
+        const content = readFileSync(fullPath, 'utf-8');
+        // original org should be preserved
+        expect(content).toContain('org: testorg');
+        expect(content).not.toContain('org: differentorg');
       });
     });
   });

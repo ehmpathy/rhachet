@@ -37,8 +37,10 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 "
 🔐 keyrack
    └─ testorg.test.GHP_TOKEN
-      └─ status: blocked 🚫
-         └─ replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected github classic pat (ghp_*)
+      └─ [2mtip: --allow-dangerous if you must[0m
 
 "
 `;
@@ -46,7 +48,10 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1] get --key GHP_TOKEN (github classic pat) then: stdout matches snapshot 1`] = `
 {
   "fix": "update the stored value to use a short-lived or properly-formatted credential",
-  "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected github classic pat (ghp_*)",
+  ],
   "slug": "testorg.test.GHP_TOKEN",
   "status": "blocked",
 }
@@ -55,7 +60,10 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t2] get --key AKIA_TOKEN (aws long-lived access key) then: stdout matches snapshot 1`] = `
 {
   "fix": "update the stored value to use a short-lived or properly-formatted credential",
-  "message": "replica mechanism rejects long-lived tokens: detected aws long-lived access key (AKIA*)",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected aws long-lived access key (AKIA*)",
+  ],
   "slug": "testorg.test.AKIA_TOKEN",
   "status": "blocked",
 }
@@ -84,23 +92,32 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
   },
   {
     "fix": "update the stored value to use a short-lived or properly-formatted credential",
-    "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
+    "reasons": [
+      "its dangerous to use long lived tokens via replica mechanisms",
+      "detected github classic pat (ghp_*)",
+    ],
     "slug": "testorg.test.GHP_TOKEN",
     "status": "blocked",
   },
   {
     "fix": "update the stored value to use a short-lived or properly-formatted credential",
-    "message": "replica mechanism rejects long-lived tokens: detected aws long-lived access key (AKIA*)",
+    "reasons": [
+      "its dangerous to use long lived tokens via replica mechanisms",
+      "detected aws long-lived access key (AKIA*)",
+    ],
     "slug": "testorg.test.AKIA_TOKEN",
     "status": "blocked",
   },
 ]
 `;
 
-exports[`keyrack firewall given: [case2] env var contains ghp_* token when: [t0] get --key ALLOWED_KEY with ghp_* env var then: stdout matches snapshot 1`] = `
+exports[`keyrack firewall given: [case3] env var contains ghp_* token when: [t0] get --key ALLOWED_KEY with ghp_* env var then: stdout matches snapshot 1`] = `
 {
   "fix": "update the stored value to use a short-lived or properly-formatted credential",
-  "message": "replica mechanism rejects long-lived tokens: detected github classic pat (ghp_*)",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected github classic pat (ghp_*)",
+  ],
   "slug": "testorg.test.ALLOWED_KEY",
   "status": "blocked",
 }

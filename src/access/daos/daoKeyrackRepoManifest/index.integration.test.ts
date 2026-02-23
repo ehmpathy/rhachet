@@ -242,4 +242,228 @@ env.test:
       });
     });
   });
+
+  given('[case8] keyrack.yml with extends', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      const roleDir = join(agentDir, 'repo=test-repo/role=tester');
+      mkdirSync(roleDir, { recursive: true });
+
+      // role keyrack (extended)
+      writeFileSync(
+        join(roleDir, 'keyrack.yml'),
+        `org: testorg
+env.test:
+  - ROLE_KEY
+`,
+      );
+
+      // root keyrack with extends
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/repo=test-repo/role=tester/keyrack.yml
+env.test:
+  - LOCAL_KEY
+`,
+      );
+    });
+
+    when('[t0] get called', () => {
+      then('returns merged keys from both manifests', async () => {
+        const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+
+        expect(result).not.toBeNull();
+        // both LOCAL_KEY and ROLE_KEY should be present
+        expect(result!.keys['testorg.test.LOCAL_KEY']).toBeDefined();
+        expect(result!.keys['testorg.test.ROLE_KEY']).toBeDefined();
+      });
+
+      then('includes extends in manifest for debug', async () => {
+        const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+
+        expect(result!.extends).toBeDefined();
+        expect(result!.extends).toContain(
+          '.agent/repo=test-repo/role=tester/keyrack.yml',
+        );
+      });
+    });
+  });
+
+  given('[case9] keyrack.yml with circular extends', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      const pathA = join(agentDir, 'pathA');
+      const pathB = join(agentDir, 'pathB');
+      mkdirSync(pathA, { recursive: true });
+      mkdirSync(pathB, { recursive: true });
+
+      // pathA extends pathB
+      writeFileSync(
+        join(pathA, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/pathB/keyrack.yml
+env.test:
+  - PATH_A_KEY
+`,
+      );
+
+      // pathB extends pathA (circular!)
+      writeFileSync(
+        join(pathB, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/pathA/keyrack.yml
+env.test:
+  - PATH_B_KEY
+`,
+      );
+
+      // root extends pathA
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/pathA/keyrack.yml
+env.test:
+  - ROOT_KEY
+`,
+      );
+    });
+
+    when('[t0] get called', () => {
+      then('throws error about circular extends', async () => {
+        const error = await getError(
+          daoKeyrackRepoManifest.get({ gitroot: testDir }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('circular extends');
+      });
+    });
+  });
+
+  given('[case10] keyrack.yml with recursive extends', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      const pathA = join(agentDir, 'pathA');
+      const pathB = join(agentDir, 'pathB');
+      mkdirSync(pathA, { recursive: true });
+      mkdirSync(pathB, { recursive: true });
+
+      // pathB has deep key (no extends)
+      writeFileSync(
+        join(pathB, 'keyrack.yml'),
+        `org: testorg
+env.test:
+  - DEEP_KEY
+`,
+      );
+
+      // pathA extends pathB
+      writeFileSync(
+        join(pathA, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/pathB/keyrack.yml
+env.test:
+  - PATH_A_KEY
+`,
+      );
+
+      // root extends pathA
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/pathA/keyrack.yml
+env.test:
+  - ROOT_KEY
+`,
+      );
+    });
+
+    when('[t0] get called', () => {
+      then('returns keys from entire extends chain', async () => {
+        const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+
+        expect(result).not.toBeNull();
+        // all keys from the chain should be present
+        expect(result!.keys['testorg.test.ROOT_KEY']).toBeDefined();
+        expect(result!.keys['testorg.test.PATH_A_KEY']).toBeDefined();
+        expect(result!.keys['testorg.test.DEEP_KEY']).toBeDefined();
+      });
+    });
+  });
+
+  given('[case11] keyrack.yml extends non-extant file', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      mkdirSync(agentDir, { recursive: true });
+
+      // root extends non-extant file
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/does-not-exist/keyrack.yml
+env.test:
+  - ROOT_KEY
+`,
+      );
+    });
+
+    when('[t0] get called', () => {
+      then('throws error about extended keyrack not found', async () => {
+        const error = await getError(
+          daoKeyrackRepoManifest.get({ gitroot: testDir }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('extended keyrack not found');
+      });
+    });
+  });
+
+  given('[case12] extends with key override (root wins)', () => {
+    beforeEach(() => {
+      const agentDir = join(testDir, '.agent');
+      const roleDir = join(agentDir, 'repo=test-repo/role=tester');
+      mkdirSync(roleDir, { recursive: true });
+
+      // role keyrack declares SHARED_KEY
+      writeFileSync(
+        join(roleDir, 'keyrack.yml'),
+        `org: testorg
+env.test:
+  - SHARED_KEY: encrypted
+`,
+      );
+
+      // root keyrack also declares SHARED_KEY (should override)
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+extends:
+  - .agent/repo=test-repo/role=tester/keyrack.yml
+env.test:
+  - SHARED_KEY: ephemeral
+`,
+      );
+    });
+
+    when('[t0] get called', () => {
+      then('root key spec overrides extended key spec', async () => {
+        const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+
+        expect(result).not.toBeNull();
+        const sharedKey = result!.keys['testorg.test.SHARED_KEY'];
+        expect(sharedKey).toBeDefined();
+        // root declares ephemeral, extended declares encrypted
+        // root should win
+        expect(sharedKey?.grade?.duration).toEqual('ephemeral');
+        expect(sharedKey?.grade?.protection).toBeNull();
+      });
+    });
+  });
 });

@@ -28,6 +28,12 @@ export interface KeyrackRepoManifest {
    * .why = enables lookup by slug for grant operations
    */
   keys: Record<string, KeyrackKeySpec>;
+
+  /**
+   * .what = paths to extended keyrack manifests
+   * .why = enables debug and error context for extends chain
+   */
+  extends?: string[];
 }
 
 export class KeyrackRepoManifest

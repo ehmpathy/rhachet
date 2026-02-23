@@ -1,7 +1,6 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
-import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
@@ -18,6 +17,7 @@ import {
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { getKeyrackHostManifestPath } from './getKeyrackHostManifestPath';
+import { initKeyrackRepoManifest } from './initKeyrackRepoManifest';
 
 /**
  * .what = initialize keyrack with a recipient key
@@ -36,6 +36,7 @@ export const initKeyrack = async (input: {
   label?: string;
   gitroot?: string | null;
   org?: string | null;
+  at?: string | null;
 }): Promise<{
   host: {
     owner: string | null;
@@ -123,6 +124,7 @@ export const initKeyrack = async (input: {
     const repoResult = await initRepoManifest({
       gitroot: input.gitroot ?? null,
       org: input.org ?? null,
+      at: input.at ?? null,
     });
 
     return {
@@ -204,6 +206,7 @@ note: passphrase-less keys (-N "") do not need age installed.`,
   const repoResult = await initRepoManifest({
     gitroot: input.gitroot ?? null,
     org: input.org ?? null,
+    at: input.at ?? null,
   });
 
   return {
@@ -220,10 +223,14 @@ note: passphrase-less keys (-N "") do not need age installed.`,
 /**
  * .what = initialize repo manifest (keyrack.yml) if conditions are met
  * .why = repo manifest declares org for the project's keyrack
+ *
+ * .note = when `at` is provided, creates keyrack at custom path (for role-level keyracks)
+ * .note = uses initKeyrackRepoManifest for proper template with env.prod/env.test sections
  */
 const initRepoManifest = async (input: {
   gitroot: string | null;
   org: string | null;
+  at: string | null;
 }): Promise<{
   manifestPath: string;
   org: string;
@@ -232,26 +239,19 @@ const initRepoManifest = async (input: {
   // if not in a git repo, skip repo manifest
   if (!input.gitroot) return null;
 
-  // check if repo manifest already exists
-  const repoManifestPath = daoKeyrackRepoManifest.getPath({
-    gitroot: input.gitroot,
-  });
-  const repoManifestPresent = existsSync(repoManifestPath);
-
-  // if repo manifest exists, init it (will return 'found')
-  if (repoManifestPresent) {
-    return daoKeyrackRepoManifest.init({
-      gitroot: input.gitroot,
-      org: input.org ?? 'unknown', // org is ignored when manifest already exists
-    });
-  }
-
-  // if repo manifest absent and no org provided, skip (user must use --org)
+  // if no org provided, skip (user must use --org)
   if (!input.org) return null;
 
-  // create repo manifest with provided org
-  return daoKeyrackRepoManifest.init({
+  // use initKeyrackRepoManifest for proper template with env sections
+  const result = await initKeyrackRepoManifest({
     gitroot: input.gitroot,
     org: input.org,
+    at: input.at,
   });
+
+  return {
+    manifestPath: result.path,
+    org: input.org,
+    effect: result.status === 'created' ? 'created' : 'found',
+  };
 };

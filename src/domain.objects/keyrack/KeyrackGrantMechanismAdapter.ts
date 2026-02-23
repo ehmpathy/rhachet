@@ -13,7 +13,7 @@ export interface KeyrackGrantMechanismAdapter {
    */
   validate: (input: { source?: string; cached?: string }) => {
     valid: boolean;
-    reason?: string;
+    reasons?: string[];
   };
 
   /**

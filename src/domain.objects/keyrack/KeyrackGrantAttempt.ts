@@ -46,6 +46,6 @@ export interface KeyrackGrantAttemptLocked {
 export interface KeyrackGrantAttemptBlocked {
   status: 'blocked';
   slug: string;
-  message: string;
+  reasons: string[];
   fix?: string;
 }

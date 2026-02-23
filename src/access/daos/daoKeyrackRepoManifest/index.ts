@@ -1,14 +1,11 @@
 import { BadRequestError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import {
-  KeyrackKeySpec,
-  KeyrackRepoManifest,
-} from '@src/domain.objects/keyrack';
+import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { schemaKeyrackRepoManifest } from './schema';
+import { loadManifestHydrated } from './hydrate/loadManifestHydrated';
 
 /**
  * .what = reads the per-repo keyrack manifest
@@ -26,16 +23,25 @@ export const daoKeyrackRepoManifest = {
   /**
    * .what = initialize keyrack.yml with org declaration
    * .why = creates repo manifest if it doesn't exist (findsert semantics)
+   *
+   * .note = when `at` is provided, creates keyrack at custom path (for role-level keyracks)
+   * .note = when `at` is absent, creates keyrack at default .agent/keyrack.yml
    */
   init: async (input: {
     gitroot: string;
     org: string;
+    at?: string | null;
   }): Promise<{
     manifestPath: string;
     org: string;
     effect: 'created' | 'found';
   }> => {
-    const path = join(input.gitroot, '.agent', 'keyrack.yml');
+    // compute path: custom path (absolute or relative) or default
+    const path = (() => {
+      if (!input.at) return join(input.gitroot, '.agent', 'keyrack.yml');
+      if (input.at.startsWith('/')) return input.at;
+      return join(input.gitroot, input.at);
+    })();
 
     // if already present, return found
     if (existsSync(path)) {
@@ -67,89 +73,16 @@ export const daoKeyrackRepoManifest = {
   /**
    * .what = read the repo manifest from disk
    * .why = discovers which keys this repo requires
+   *
+   * .note = supports extends: paths for keyrack inheritance
    */
   get: async (input: {
     gitroot: string;
   }): Promise<KeyrackRepoManifest | null> => {
     const path = join(input.gitroot, '.agent', 'keyrack.yml');
 
-    // return null if file does not exist
-    if (!existsSync(path)) return null;
-
-    // read file content
-    const content = readFileSync(path, 'utf8');
-
-    // parse yaml
-    let parsed: unknown;
-    try {
-      parsed = parseYaml(content);
-    } catch {
-      throw new BadRequestError('keyrack.yml has invalid yaml', {
-        path,
-      });
-    }
-
-    // validate schema
-    const result = schemaKeyrackRepoManifest.safeParse(parsed);
-    if (!result.success) {
-      throw new BadRequestError('keyrack.yml has invalid schema', {
-        path,
-        issues: result.error.issues,
-      });
-    }
-
-    // hydrate domain objects from env-scoped sections
-    const org = result.data.org;
-    const envSections = Object.keys(result.data)
-      .filter((k) => k.startsWith('env.') && k !== 'env.all')
-      .map((k) => k.slice(4));
-    const keys: Record<string, KeyrackKeySpec> = {};
-
-    // expand env.all keys into each declared env
-    const envAllEntries: Array<{
-      key: string;
-      grade: KeyrackKeySpec['grade'];
-    }> = [];
-    const envAll = (result.data as Record<string, unknown>)['env.all'];
-    if (Array.isArray(envAll)) {
-      for (const entry of envAll) {
-        const parsed = parseKeyEntry(entry);
-        envAllEntries.push(parsed);
-      }
-    }
-
-    // register env-specific keys and expand env.all
-    for (const env of envSections) {
-      // expand env.all keys for this env
-      for (const { key, grade } of envAllEntries) {
-        const slug = `${org}.${env}.${key}`;
-        keys[slug] = new KeyrackKeySpec({
-          slug,
-          mech: 'REPLICA',
-          env,
-          name: key,
-          grade,
-        });
-      }
-
-      // add env-specific keys (override env.all grade if same key)
-      const envEntries = (result.data as Record<string, unknown>)[`env.${env}`];
-      if (Array.isArray(envEntries)) {
-        for (const entry of envEntries) {
-          const { key, grade } = parseKeyEntry(entry);
-          const slug = `${org}.${env}.${key}`;
-          keys[slug] = new KeyrackKeySpec({
-            slug,
-            mech: 'REPLICA',
-            env,
-            name: key,
-            grade,
-          });
-        }
-      }
-    }
-
-    return new KeyrackRepoManifest({ org, envs: envSections, keys });
+    // delegate to hydrated load (handles extends resolution)
+    return loadManifestHydrated({ path }, { gitroot: input.gitroot });
   },
 
   /**
@@ -164,11 +97,15 @@ export const daoKeyrackRepoManifest = {
       gitroot: string;
       key: string;
       env: string;
+      at?: string;
     }): Promise<void> => {
       // sudo keys never go to keyrack.yml
       if (input.env === 'sudo') return;
 
-      const path = join(input.gitroot, '.agent', 'keyrack.yml');
+      // use custom path if provided, otherwise default to .agent/keyrack.yml
+      const path = input.at
+        ? join(input.gitroot, input.at)
+        : join(input.gitroot, '.agent', 'keyrack.yml');
 
       // if file doesn't exist, we can't add to it (need org declaration first)
       if (!existsSync(path)) {
@@ -183,8 +120,11 @@ export const daoKeyrackRepoManifest = {
       let parsed: Record<string, unknown>;
       try {
         parsed = parseYaml(content) as Record<string, unknown>;
-      } catch {
-        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      } catch (error) {
+        throw new BadRequestError('keyrack.yml has invalid yaml', {
+          path,
+          cause: error instanceof Error ? error : undefined,
+        });
       }
 
       // validate org declaration
@@ -251,8 +191,11 @@ export const daoKeyrackRepoManifest = {
       let parsed: Record<string, unknown>;
       try {
         parsed = parseYaml(content) as Record<string, unknown>;
-      } catch {
-        throw new BadRequestError('keyrack.yml has invalid yaml', { path });
+      } catch (error) {
+        throw new BadRequestError('keyrack.yml has invalid yaml', {
+          path,
+          cause: error instanceof Error ? error : undefined,
+        });
       }
 
       // determine section name
@@ -285,39 +228,4 @@ export const daoKeyrackRepoManifest = {
       writeFileSync(path, stringifyYaml(parsed), 'utf8');
     },
   },
-};
-
-/**
- * .what = parse a key entry from env.* array
- * .why = handles both bare key names and key:grade shorthand
- */
-const parseKeyEntry = (
-  entry: unknown,
-): { key: string; grade: KeyrackKeySpec['grade'] } => {
-  // bare string: just key name, no grade
-  if (typeof entry === 'string') return { key: entry, grade: null };
-
-  // object: { KEY_NAME: 'encrypted' } or { KEY_NAME: 'ephemeral' } etc
-  if (typeof entry === 'object' && entry !== null) {
-    const [key, gradeStr] = Object.entries(entry)[0] ?? [];
-    if (!key) throw new BadRequestError('empty key entry in keyrack.yml');
-    return { key, grade: parseGradeShorthand(gradeStr) };
-  }
-
-  throw new BadRequestError('invalid key entry in keyrack.yml', { entry });
-};
-
-/**
- * .what = parse grade shorthand string to grade shape
- * .why = converts 'encrypted', 'ephemeral', 'encrypted,ephemeral' to structured grade
- */
-const parseGradeShorthand = (gradeStr: unknown): KeyrackKeySpec['grade'] => {
-  if (gradeStr == null || gradeStr === '') return null;
-  if (typeof gradeStr !== 'string') return null;
-
-  const parts = gradeStr.split(',').map((s) => s.trim());
-  return {
-    protection: parts.includes('encrypted') ? 'encrypted' : null,
-    duration: parts.includes('ephemeral') ? 'ephemeral' : null,
-  };
 };

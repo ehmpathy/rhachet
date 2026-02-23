@@ -238,7 +238,80 @@ describe('rhachet repo introspect', () => {
     });
   });
 
-  given('[case7] rhachet-roles package with only .ts/.md files in skills', () => {
+  given('[case7] rhachet-roles package with role that has boot and keyrack', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
+
+      // create boot.yml and keyrack.yml for the role
+      const roleDir = resolve(tempRepo.path, 'roles/mechanic');
+      mkdirSync(roleDir, { recursive: true });
+      writeFileSync(resolve(roleDir, 'boot.yml'), 'model: claude-sonnet\n');
+      writeFileSync(
+        resolve(roleDir, 'keyrack.yml'),
+        'org: testorg\nenv.test:\n  - TEST_KEY\n',
+      );
+
+      // update index.js to include boot and keyrack in role definition
+      const indexPath = resolve(tempRepo.path, 'index.js');
+      const indexContent = `
+const path = require('path');
+const packageRoot = __dirname;
+const registry = {
+  slug: 'test',
+  readme: { uri: path.join(packageRoot, 'readme.md') },
+  roles: [
+    {
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'fix things',
+      readme: { uri: path.join(packageRoot, 'roles/mechanic/readme.md') },
+      traits: [],
+      briefs: { dirs: { uri: path.join(packageRoot, 'roles/mechanic/briefs') } },
+      skills: {
+        dirs: { uri: path.join(packageRoot, 'roles/mechanic/skills') },
+        refs: [],
+      },
+      boot: { uri: path.join(packageRoot, 'roles/mechanic/boot.yml') },
+      keyrack: { uri: path.join(packageRoot, 'roles/mechanic/keyrack.yml') },
+    },
+  ],
+};
+exports.getRoleRegistry = () => registry;
+`;
+      writeFileSync(indexPath, indexContent);
+
+      return tempRepo;
+    });
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('yml contains boot path', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toContain('boot:');
+        expect(content).toContain('roles/mechanic/boot.yml');
+      });
+
+      then('yml contains keyrack path', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toContain('keyrack:');
+        expect(content).toContain('roles/mechanic/keyrack.yml');
+      });
+    });
+  });
+
+  given('[case8] rhachet-roles package with only .ts/.md files in skills', () => {
     const repo = useBeforeAll(async () => {
       const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
 

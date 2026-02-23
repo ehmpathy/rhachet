@@ -1,0 +1,3 @@
+org: testorg
+env.test:
+  - DEEP_KEY
