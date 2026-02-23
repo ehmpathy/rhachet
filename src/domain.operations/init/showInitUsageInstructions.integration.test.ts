@@ -11,12 +11,12 @@ describe('showInitUsageInstructions', () => {
     when('[t0] showInitUsageInstructions is called', () => {
       then('output contains usage header', async () => {
         const result = await showInitUsageInstructions(context);
-        expect(result.output).toContain('usage: npx rhachet init --roles');
+        expect(result.output).toContain('usage: rhachet init --roles');
       });
 
-      then('output contains npx rhachet init --roles command', async () => {
+      then('output contains rhachet init --roles command', async () => {
         const result = await showInitUsageInstructions(context);
-        expect(result.output).toContain('npx rhachet init --roles');
+        expect(result.output).toContain('rhachet init --roles');
       });
 
       then(

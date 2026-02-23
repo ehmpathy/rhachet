@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
@@ -167,6 +170,171 @@ describe('rhachet init', () => {
 
       then('stdout lists available roles', () => {
         expect(result.stdout).toContain('tester');
+      });
+    });
+  });
+
+  given('[case5] --prep flag behavior', () => {
+    when('[t0] --prep without --roles', () => {
+      const repo = useBeforeAll(async () =>
+        genTestTempRepo({ fixture: 'with-roles-packages' }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr contains error about --prep requires --roles', () => {
+        expect(result.stderr).toContain('--prep requires --roles');
+      });
+    });
+
+    when('[t1] --prep --roles tester (no hooks)', () => {
+      const repo = useBeforeAll(async () =>
+        genTestTempRepo({ fixture: 'with-roles-packages' }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep', '--roles', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains persist prepare entries message', () => {
+        expect(result.stdout).toContain('persist prepare entries');
+      });
+
+      then('package.json has prepare:rhachet without --hooks', () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'rhachet init --roles tester',
+        );
+      });
+
+      then('package.json has prepare entry', () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        expect(pkg.scripts.prepare).toEqual('npm run prepare:rhachet');
+      });
+    });
+
+    when('[t2] --prep --hooks --roles tester', () => {
+      const repo = useBeforeAll(async () =>
+        genTestTempRepo({ fixture: 'with-roles-packages' }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep', '--hooks', '--roles', 'tester'],
+          cwd: repo.path,
+          logOnError: false, // hook discovery fails on test fixture, but --prep still works
+        }),
+      );
+
+      then('package.json has prepare:rhachet with --hooks', () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'rhachet init --hooks --roles tester',
+        );
+      });
+
+      then('stdout shows prepare entries persisted', () => {
+        expect(result.stdout).toContain('persist prepare entries');
+        expect(result.stdout).toContain('[created]');
+      });
+    });
+
+    when('[t3] --prep with extant prepare entry', () => {
+      const repo = useBeforeAll(async () =>
+        genTestTempRepo({ fixture: 'with-roles-packages' }),
+      );
+
+      // setup: write package.json with extant prepare entry
+      useBeforeAll(async () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        pkg.scripts = { prepare: 'husky install' };
+        const { writeFileSync } = await import('node:fs');
+        writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+      });
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep', '--roles', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('package.json prepare appends npm run prepare:rhachet', () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        expect(pkg.scripts.prepare).toEqual(
+          'husky install && npm run prepare:rhachet',
+        );
+      });
+
+      then('stdout shows appended effect', () => {
+        expect(result.stdout).toContain('[appended]');
+      });
+    });
+
+    when('[t4] --prep idempotent (prepare already has rhachet)', () => {
+      const repo = useBeforeAll(async () =>
+        genTestTempRepo({ fixture: 'with-roles-packages' }),
+      );
+
+      // setup: write package.json with extant prepare:rhachet
+      useBeforeAll(async () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        pkg.scripts = {
+          'prepare:rhachet': 'rhachet init --roles tester',
+          prepare: 'husky install && npm run prepare:rhachet',
+        };
+        const { writeFileSync } = await import('node:fs');
+        writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+      });
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep', '--roles', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('package.json prepare unchanged (no duplicate)', () => {
+        const pkgPath = join(repo.path, 'package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        expect(pkg.scripts.prepare).toEqual(
+          'husky install && npm run prepare:rhachet',
+        );
+      });
+
+      then('stdout shows found effect (idempotent)', () => {
+        expect(result.stdout).toContain('[found]');
       });
     });
   });

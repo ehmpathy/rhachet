@@ -7,7 +7,7 @@ const GITIGNORE_CONTENT = `# .what = tells git to ignore this dir
 # .why = keeps git history clean
 #   - just symlinks here, no real code
 #   - package.json already tracks the version
-# .note = safe to delete; run \`npx rhachet init --roles\` to bring it back
+# .note = safe to delete; run \`rhachet init --roles\` to bring it back
 *
 `;
 

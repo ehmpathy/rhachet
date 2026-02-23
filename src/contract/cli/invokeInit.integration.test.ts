@@ -1,31 +1,36 @@
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { given, then, when } from 'test-fns';
+import { genTempDir, given, then, when } from 'test-fns';
 
 import {
   existsSync,
   mkdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { invokeInit } from './invokeInit';
 
 describe('invokeInit (integration)', () => {
   given('a CLI program with invokeInit registered', () => {
-    const testDir = resolve(__dirname, './.temp/invokeInit');
+    const testDir = genTempDir({ slug: 'invokeInit' });
     const originalCwd = process.cwd();
 
     beforeAll(() => {
-      // Create test directory structure
-      mkdirSync(testDir, { recursive: true });
-
       // Initialize as a git repo for getGitRepoRoot to work
       try {
         execSync('git init', { cwd: testDir, stdio: 'pipe' });
       } catch {
         // already a git repo
+      }
+
+      // Symlink node_modules so rhachet-roles-* packages are discoverable
+      const nodeModulesLink = join(testDir, 'node_modules');
+      const nodeModulesTarget = resolve(__dirname, '../../..', 'node_modules');
+      if (!existsSync(nodeModulesLink)) {
+        symlinkSync(nodeModulesTarget, nodeModulesLink, 'dir');
       }
     });
 
@@ -35,12 +40,16 @@ describe('invokeInit (integration)', () => {
 
     const program = new Command('rhachet');
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const exitSpy = jest
+      .spyOn(process, 'exit')
+      .mockImplementation(() => undefined as never);
 
     beforeEach(() => {
       logSpy.mockClear();
+      exitSpy.mockClear();
       process.chdir(testDir);
 
-      // Clean up any existing rhachet.use.ts
+      // Clean up any extant rhachet.use.ts
       const configPath = resolve(testDir, 'rhachet.use.ts');
       if (existsSync(configPath)) {
         rmSync(configPath);
@@ -375,7 +384,133 @@ describe('invokeInit (integration)', () => {
 
         // should show usage header
         expect(logSpy).toHaveBeenCalledWith(
-          expect.stringContaining('usage: npx rhachet init --roles'),
+          expect.stringContaining('usage: rhachet init --roles'),
+        );
+      });
+    });
+
+    when('invoked with --prep but without --roles', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            scripts: {},
+          }),
+        );
+      });
+
+      then('it should throw BadRequestError', async () => {
+        let thrownError: Error | null = null;
+        try {
+          await program.parseAsync(['init', '--prep'], { from: 'user' });
+        } catch (error) {
+          if (error instanceof Error) thrownError = error;
+        }
+
+        expect(thrownError).not.toBeNull();
+        expect(thrownError?.message).toContain('--prep requires --roles');
+      });
+    });
+
+    when('invoked with --prep --roles mechanic (no hooks)', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            scripts: {},
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+      });
+
+      then('it should upsert prepare:rhachet without --hooks', async () => {
+        await program.parseAsync(['init', '--prep', '--roles', 'mechanic'], {
+          from: 'user',
+        });
+
+        const pkg = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'rhachet init --roles mechanic',
+        );
+        expect(pkg.scripts['prepare:rhachet']).not.toContain('--hooks');
+      });
+
+      then(
+        'it should findsert prepare with npm run prepare:rhachet',
+        async () => {
+          await program.parseAsync(['init', '--prep', '--roles', 'mechanic'], {
+            from: 'user',
+          });
+
+          const pkg = JSON.parse(
+            readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+          );
+          expect(pkg.scripts.prepare).toEqual('npm run prepare:rhachet');
+        },
+      );
+    });
+
+    when('invoked with --prep --hooks --roles mechanic', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            scripts: {},
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+      });
+
+      then('it should upsert prepare:rhachet with --hooks', async () => {
+        await program.parseAsync(
+          ['init', '--prep', '--hooks', '--roles', 'mechanic'],
+          { from: 'user' },
+        );
+
+        const pkg = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'rhachet init --hooks --roles mechanic',
+        );
+      });
+    });
+
+    when('invoked with --prep and prepare entry already extant', () => {
+      beforeEach(() => {
+        writeFileSync(
+          resolve(testDir, 'package.json'),
+          JSON.stringify({
+            name: 'test-project',
+            scripts: {
+              prepare: 'husky install',
+            },
+            dependencies: {
+              'rhachet-roles-ehmpathy': '1.0.0',
+            },
+          }),
+        );
+      });
+
+      then('it should append to prepare entry', async () => {
+        await program.parseAsync(['init', '--prep', '--roles', 'mechanic'], {
+          from: 'user',
+        });
+
+        const pkg = JSON.parse(
+          readFileSync(resolve(testDir, 'package.json'), 'utf8'),
+        );
+        expect(pkg.scripts.prepare).toEqual(
+          'husky install && npm run prepare:rhachet',
         );
       });
     });
