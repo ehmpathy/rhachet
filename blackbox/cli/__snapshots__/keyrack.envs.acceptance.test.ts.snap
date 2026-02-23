@@ -132,6 +132,12 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t2] unlock all then get --for repo --env all --json then: stdout matches snapshot 1`] = `
 [
   {
+    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
+    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "slug": "testorg.all.SHARED_API_KEY",
+    "status": "locked",
+  },
+  {
     "grant": {
       "env": "prod",
       "key": {
