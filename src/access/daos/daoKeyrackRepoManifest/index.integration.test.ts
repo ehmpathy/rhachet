@@ -53,8 +53,8 @@ env.test: []
         const result = await daoKeyrackRepoManifest.get({ gitroot: testDir });
 
         expect(result).not.toBeNull();
-        // 3 keys in env.all expanded to env.test = 3 keys total
-        expect(Object.keys(result!.keys)).toHaveLength(3);
+        // 3 keys in env.all create .all. slugs (3) + expand to env.test (3) = 6 keys total
+        expect(Object.keys(result!.keys)).toHaveLength(6);
       });
 
       then('hydrates KeyrackKeySpec domain objects', async () => {
