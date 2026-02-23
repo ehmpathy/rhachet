@@ -111,11 +111,52 @@ export const genTestTempRepo = async (input: {
   // install dependencies if requested and package.json exists
   // use bun install for bun-compatible node_modules structure
   if (input.install && existsSync(join(repoPath, 'package.json'))) {
-    execSync('bun install', {
-      cwd: repoPath,
-      stdio: 'inherit',
-      timeout: 120000, // 2 minute timeout
-    });
+    // parse package.json to get expected dependencies
+    const pkgJson = JSON.parse(
+      readFileSync(join(repoPath, 'package.json'), 'utf-8'),
+    );
+    const expectedDeps = Object.keys(pkgJson.dependencies ?? {});
+
+    // retry install up to 3 times (transient registry issues)
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        execSync('bun install', {
+          cwd: repoPath,
+          stdio: 'inherit',
+          timeout: 120000, // 2 minute timeout
+        });
+
+        // verify all expected dependencies are installed
+        const nodeModulesPath = join(repoPath, 'node_modules');
+        const depsAbsent = expectedDeps.filter(
+          (dep) => !existsSync(join(nodeModulesPath, dep, 'package.json')),
+        );
+        if (depsAbsent.length > 0) {
+          throw new Error(
+            `bun install completed but packages are absent: ${depsAbsent.join(', ')}`,
+          );
+        }
+
+        // install succeeded
+        lastError = null;
+        break;
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        lastError = error;
+        if (attempt < 3) {
+          // wait before retry
+          execSync('sleep 2', { stdio: 'ignore' });
+        }
+      }
+    }
+
+    // fail if all retries exhausted
+    if (lastError) {
+      throw new Error(
+        `bun install failed after 3 attempts: ${lastError.message}`,
+      );
+    }
   }
 
   return { path: repoPath };

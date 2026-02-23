@@ -15,7 +15,7 @@ export const showInitUsageInstructions = async (
   // build usage output
   const lines: string[] = [];
 
-  lines.push('usage: npx rhachet init --roles <role...>');
+  lines.push('usage: rhachet init --roles <role...>');
   lines.push('');
 
   // check if any packages found
@@ -65,7 +65,7 @@ export const showInitUsageInstructions = async (
     }
     lines.push('');
     lines.push(
-      'run `npx rhachet repo introspect` in those packages to generate the manifest.',
+      'run `rhachet repo introspect` in those packages to generate the manifest.',
     );
     lines.push('');
   }
@@ -79,12 +79,12 @@ export const showInitUsageInstructions = async (
       firstManifest?.roles[1]?.slug ?? secondManifest?.roles[0]?.slug;
 
     lines.push('examples:');
-    lines.push(`  npx rhachet init --roles ${firstRole}`);
+    lines.push(`  rhachet init --roles ${firstRole}`);
     if (secondRole) {
-      lines.push(`  npx rhachet init --roles ${firstRole} ${secondRole}`);
+      lines.push(`  rhachet init --roles ${firstRole} ${secondRole}`);
     }
     lines.push(
-      `  npx rhachet init --roles ${firstManifest?.slug ?? 'ehmpathy'}/${firstRole}`,
+      `  rhachet init --roles ${firstManifest?.slug ?? 'ehmpathy'}/${firstRole}`,
     );
     lines.push('');
   }

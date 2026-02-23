@@ -1,8 +1,10 @@
 import type { Command } from 'commander';
+import { BadRequestError } from 'helpful-errors';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
 import { generateRhachetUseTs } from '@src/domain.operations/init/generateRhachetUseTs';
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
+import { persistPrepareEntries } from '@src/domain.operations/init/persistPrepareEntries';
 import { showInitUsageInstructions } from '@src/domain.operations/init/showInitUsageInstructions';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
 
@@ -20,6 +22,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
       'apply brain hooks (auto-detect brains if no args)',
     )
     .option('--config', 'generate rhachet.use.ts config (legacy behavior)')
+    .option('--prep', 'persist init command to package.json prepare entries')
     .option(
       '--mode <mode>',
       'findsert (default) preserves prior, upsert overwrites',
@@ -30,10 +33,19 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         roles?: string[];
         hooks?: boolean | string[];
         config?: boolean;
+        prep?: boolean;
         mode: 'findsert' | 'upsert';
       }) => {
         // build context for operations
         const context = await genContextCli({ cwd: process.cwd() });
+
+        // validate: --prep requires --roles
+        if (options.prep && (!options.roles || options.roles.length === 0)) {
+          throw new BadRequestError('--prep requires --roles', {
+            prep: options.prep,
+            roles: options.roles,
+          });
+        }
 
         // route: --roles provided => init roles from packages
         if (options.roles && options.roles.length > 0) {
@@ -54,6 +66,17 @@ export const invokeInit = ({ program }: { program: Command }): void => {
               context,
             );
             hookErrors = hookResult.errors;
+          }
+
+          // if --prep specified, persist to package.json
+          if (options.prep) {
+            persistPrepareEntries(
+              {
+                hooks: options.hooks !== undefined,
+                roles: options.roles,
+              },
+              context,
+            );
           }
 
           // exit with failure if any errors occurred

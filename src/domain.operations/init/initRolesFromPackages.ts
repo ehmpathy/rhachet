@@ -24,7 +24,7 @@ export interface InitRolesResult {
 
 /**
  * .what = initializes multiple roles from installed packages
- * .why = enables `npx rhachet init --roles mechanic behaver` workflow
+ * .why = enables `rhachet init --roles mechanic behaver` workflow
  *
  * .note = uses getRolesFromManifests which fail-fast on first error
  */
@@ -52,7 +52,7 @@ export const initRolesFromPackages = async (
       .map((e) => `  - ${e.packageName}`)
       .join('\n');
     throw new BadRequestError(
-      `all rhachet-roles packages lack rhachet.repo.yml:\n${packageList}\n\nrun \`npx rhachet repo introspect\` in those packages to generate the manifest.`,
+      `all rhachet-roles packages lack rhachet.repo.yml:\n${packageList}\n\nrun \`rhachet repo introspect\` in those packages to generate the manifest.`,
     );
   }
 
