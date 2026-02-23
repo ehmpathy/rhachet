@@ -85,10 +85,11 @@ describe('keyrack firewall', () => {
         expect(parsed.status).toEqual('blocked');
       });
 
-      then('message mentions github classic pat', () => {
+      then('reasons mention github classic pat', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message.toLowerCase()).toContain('github');
-        expect(parsed.message).toContain('ghp_');
+        const allReasons = parsed.reasons.join(' ').toLowerCase();
+        expect(allReasons).toContain('github');
+        expect(allReasons).toContain('ghp_');
       });
 
       then('ghp_ token value is NOT exposed', () => {
@@ -139,10 +140,11 @@ describe('keyrack firewall', () => {
         expect(parsed.status).toEqual('blocked');
       });
 
-      then('message mentions aws access key', () => {
+      then('reasons mention aws access key', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message.toLowerCase()).toContain('aws');
-        expect(parsed.message).toContain('AKIA');
+        const allReasons = parsed.reasons.join(' ').toLowerCase();
+        expect(allReasons).toContain('aws');
+        expect(allReasons).toContain('akia');
       });
 
       then('AKIA token value is NOT exposed', () => {
@@ -209,10 +211,108 @@ describe('keyrack firewall', () => {
   });
 
   /**
+   * [uc6.5] --allow-dangerous bypass
+   * ghp_* tokens should be granted when --allow-dangerous is used
+   */
+  given('[case2] --allow-dangerous bypasses firewall', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-firewall-test' }),
+    );
+
+    // unlock vault keys into daemon so firewall can validate them
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'unlock', '--env', 'test'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      }),
+    );
+
+    when('[t0] get --key GHP_TOKEN --allow-dangerous (json)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.test.GHP_TOKEN',
+            '--allow-dangerous',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted (bypass)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value is returned for ghp_* token', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toContain('ghp_');
+      });
+    });
+
+    when('[t1] get --key AKIA_TOKEN --allow-dangerous (json)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.test.AKIA_TOKEN',
+            '--allow-dangerous',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted (bypass)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value is returned for AKIA* token', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toContain('AKIA');
+      });
+    });
+
+    when('[t2] get --for repo --allow-dangerous', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--for',
+            'repo',
+            '--env',
+            'test',
+            '--allow-dangerous',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('all 3 keys are granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed.every((a: { status: string }) => a.status === 'granted')).toBe(true);
+      });
+    });
+  });
+
+  /**
    * [uc6] firewall via os.envvar
    * ghp_* in env var should also be blocked
    */
-  given('[case2] env var contains ghp_* token', () => {
+  given('[case3] env var contains ghp_* token', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-allowlist-test' }),
     );
@@ -236,14 +336,47 @@ describe('keyrack firewall', () => {
         expect(parsed.status).toEqual('blocked');
       });
 
-      then('message mentions firewall', () => {
+      then('reasons mention ghp_* pattern', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message.toLowerCase()).toContain('ghp_');
+        const allReasons = parsed.reasons.join(' ').toLowerCase();
+        expect(allReasons).toContain('ghp_');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] get --key ALLOWED_KEY --allow-dangerous with ghp_* env var', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.test.ALLOWED_KEY',
+            '--allow-dangerous',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            ALLOWED_KEY: 'ghp_abcdefghijklmnopqrstuvwxyz1234567890',
+          },
+        }),
+      );
+
+      then('status is granted (bypass envvar firewall)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value is returned for ghp_* token from envvar', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual(
+          'ghp_abcdefghijklmnopqrstuvwxyz1234567890',
+        );
       });
     });
   });

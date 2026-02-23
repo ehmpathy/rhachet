@@ -18,6 +18,7 @@ const schemaKeyrackKeyEntry = z.union([
 export const schemaKeyrackRepoManifest = z
   .object({
     org: z.string(),
+    extends: z.array(z.string()).optional(),
   })
   .catchall(z.unknown())
   .refine(

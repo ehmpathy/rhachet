@@ -131,6 +131,18 @@ export interface Role<
    *   - onBrain: hooks applied to brain repl configs (boot, tool, stop events)
    */
   hooks?: RoleHooks;
+
+  /**
+   * .what = boot configuration for this role
+   * .why = enables role authors to declare boot.yml for brain initialization
+   */
+  boot?: { uri: string };
+
+  /**
+   * .what = keyrack manifest for this role
+   * .why = enables role authors to declare key requirements for skills
+   */
+  keyrack?: { uri: string };
 }
 export class Role<
     TSolid extends RoleSkillRegistry = RoleSkillRegistry,

@@ -1,0 +1,7 @@
+{
+  "name": "test-repo-with-role-boot-keyrack",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-test-repo": "file:./node_modules/rhachet-roles-test-repo"
+  }
+}

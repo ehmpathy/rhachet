@@ -3,14 +3,22 @@ import path from 'path';
 
 /**
  * .what = initializes a keyrack manifest for a repo
- * .why = provides a standard start point for keyrack configuration
+ * .why = enables keyrack init CLI command and role-level keyrack creation
+ *
+ * .note = when `at` is provided, creates keyrack at custom path (for role-level keyracks)
+ * .note = when `at` is absent, creates keyrack at default .agent/keyrack.yml
  */
 export const initKeyrackRepoManifest = async (input: {
   gitroot: string;
   org: string;
+  at?: string | null;
 }): Promise<{ status: 'created' | 'exists'; path: string }> => {
-  // compute manifest path
-  const manifestPath = path.join(input.gitroot, '.agent', 'keyrack.yml');
+  // compute manifest path (custom path or default)
+  const manifestPath = input.at
+    ? path.isAbsolute(input.at)
+      ? input.at
+      : path.join(input.gitroot, input.at)
+    : path.join(input.gitroot, '.agent', 'keyrack.yml');
 
   // check if manifest already exists
   const manifestExists = await fs
@@ -22,9 +30,9 @@ export const initKeyrackRepoManifest = async (input: {
     return { status: 'exists', path: manifestPath };
   }
 
-  // create .agent dir if needed
-  const agentDir = path.join(input.gitroot, '.agent');
-  await fs.mkdir(agentDir, { recursive: true });
+  // create parent directory if needed
+  const parentDir = path.dirname(manifestPath);
+  await fs.mkdir(parentDir, { recursive: true });
 
   // write manifest template
   const content = `org: ${input.org}

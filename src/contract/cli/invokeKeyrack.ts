@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import { loadManifestHydrated } from '@src/access/daos/daoKeyrackRepoManifest/hydrate/loadManifestHydrated';
 import type {
   KeyrackGrantMechanism,
   KeyrackHostVault,
@@ -28,6 +29,9 @@ import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlock
 import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 /**
  * .what = adds the "keyrack" command group to the CLI
  * .why = enables credential management via keyrack get/set/unlock
@@ -40,7 +44,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .command('keyrack')
     .description('manage credentials via keyrack');
 
-  // keyrack init [--for owner] [--pubkey path] [--label label] [--org org]
+  // keyrack init [--for owner] [--pubkey path] [--label label] [--org org] [--at path]
   keyrack
     .command('init')
     .description('initialize keyrack with a recipient key')
@@ -54,6 +58,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '--org <org>',
       'org for repo manifest (required if keyrack.yml absent)',
     )
+    .option(
+      '--at <path>',
+      'custom path for keyrack.yml (for role-level keyracks)',
+    )
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -61,6 +69,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         pubkey?: string;
         label?: string;
         org?: string;
+        at?: string;
         json?: boolean;
       }) => {
         // get gitroot to check for repo manifest
@@ -74,6 +83,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           label: opts.label,
           gitroot,
           org: opts.org ?? null,
+          at: opts.at ?? null,
         });
 
         // display paths with ~/ instead of $HOME
@@ -261,6 +271,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       'target org: @this or @all (default: @this)',
       '@this',
     )
+    .option(
+      '--allow-dangerous',
+      'bypass firewall for blocked long-lived tokens',
+    )
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -269,6 +283,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         key?: string;
         env?: string;
         org: string;
+        allowDangerous?: boolean;
         json?: boolean;
       }) => {
         // validate: must specify either --for repo or --key
@@ -303,7 +318,12 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           });
 
           const attempts = await getKeyrackKeyGrant(
-            { for: { repo: true }, env: opts.env, slugs },
+            {
+              for: { repo: true },
+              env: opts.env,
+              slugs,
+              allowDangerous: opts.allowDangerous,
+            },
             context,
           );
 
@@ -331,8 +351,17 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 console.log(`${indent}└─ status: granted 🔑`);
               } else if (attempt.status === 'blocked') {
                 console.log(`${prefix} ${attempt.slug}`);
-                console.log(`${indent}└─ status: blocked 🚫`);
-                console.log(`${indent}   └─ ${attempt.message}`);
+                console.log(`${indent}├─ status: blocked 🚫`);
+                for (let j = 0; j < attempt.reasons.length; j++) {
+                  const reason = attempt.reasons[j]!;
+                  const isLastReason = j === attempt.reasons.length - 1;
+                  console.log(
+                    `${indent}│  ${isLastReason ? '└' : '├'}─ ${reason}`,
+                  );
+                }
+                console.log(
+                  `${indent}└─ \x1b[2mtip: --allow-dangerous if you must\x1b[0m`,
+                );
               } else if (attempt.status === 'locked') {
                 console.log(`${prefix} ${attempt.slug}`);
                 console.log(
@@ -390,7 +419,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             : `${resolvedOrg}.${env}.${opts.key}`;
 
           const attempt = await getKeyrackKeyGrant(
-            { for: { key: slug } },
+            { for: { key: slug }, allowDangerous: opts.allowDangerous },
             context,
           );
 
@@ -433,8 +462,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               console.log(`      └─ status: granted 🔑`);
             } else if (attemptResolved.status === 'blocked') {
               console.log(`   └─ ${attemptResolved.slug}`);
-              console.log(`      └─ status: blocked 🚫`);
-              console.log(`         └─ ${attemptResolved.message}`);
+              console.log(`      ├─ status: blocked 🚫`);
+              for (let j = 0; j < attemptResolved.reasons.length; j++) {
+                const reason = attemptResolved.reasons[j]!;
+                const isLastReason = j === attemptResolved.reasons.length - 1;
+                console.log(`      │  ${isLastReason ? '└' : '├'}─ ${reason}`);
+              }
+              console.log(
+                `      └─ \x1b[2mtip: --allow-dangerous if you must\x1b[0m`,
+              );
             } else if (attemptResolved.status === 'locked') {
               console.log(`   └─ ${attemptResolved.slug}`);
               console.log(
@@ -495,6 +531,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       'pubkey for os.secure vault (if different from manifest)',
     )
     .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
+    .option('--at <path>', 'custom keyrack.yml path (for role-level keyracks)')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -507,6 +544,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         exid?: string;
         vaultRecipient?: string;
         maxDuration?: string;
+        at?: string;
         json?: boolean;
       }) => {
         // validate vault first (needed for mech inference)
@@ -589,34 +627,53 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           gitroot,
         };
 
-        // resolve org from manifest (only if not @all)
-        let resolvedOrg: string;
-        if (opts.org === '@all') {
-          resolvedOrg = '@all';
-        } else {
-          if (!getContext.repoManifest) {
-            // for sudo keys, we don't need keyrack.yml — guide user to use @all
-            if (opts.env === 'sudo') {
+        // load manifest: from --at path if provided, otherwise use default repo manifest
+        const repoManifest = (() => {
+          if (opts.at) {
+            const customPath = opts.at.startsWith('/')
+              ? opts.at
+              : join(gitroot, opts.at);
+            if (!existsSync(customPath)) {
               console.log('');
-              console.log('✋ no keyrack.yml found in this repo');
+              console.log(`✋ keyrack not found at: ${opts.at}`);
               console.log(
-                '   └─ tip: for sudo credentials without keyrack.yml, use --org @all',
+                "   └─ tip: run 'npx rhachet keyrack init --at <path>' first",
               );
               console.log('');
               process.exit(1);
             }
+            return loadManifestHydrated({ path: customPath }, { gitroot });
+          }
+          return getContext.repoManifest;
+        })();
+
+        // expand org from manifest (only if not @all)
+        let resolvedOrg: string;
+        if (opts.org === '@all') {
+          resolvedOrg = '@all';
+        } else if (repoManifest) {
+          resolvedOrg = assertKeyrackOrgMatchesManifest({
+            manifest: repoManifest,
+            org: opts.org,
+          });
+        } else {
+          // no manifest available
+          if (opts.env === 'sudo') {
             console.log('');
-            console.log('✋ no keyrack.yml found in this repo');
+            console.log('✋ no keyrack.yml found');
             console.log(
-              "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
+              '   └─ tip: for sudo credentials without keyrack.yml, use --org @all',
             );
             console.log('');
             process.exit(1);
           }
-          resolvedOrg = assertKeyrackOrgMatchesManifest({
-            manifest: getContext.repoManifest,
-            org: opts.org,
-          });
+          console.log('');
+          console.log('✋ no keyrack.yml found');
+          console.log(
+            "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
+          );
+          console.log('');
+          process.exit(1);
         }
 
         // delegate to domain operation
@@ -631,7 +688,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             exid: opts.exid ?? null,
             vaultRecipient: opts.vaultRecipient ?? null,
             maxDuration: opts.maxDuration ?? null,
-            repoManifest: getContext.repoManifest ?? undefined,
+            repoManifest: repoManifest ?? undefined,
+            at: opts.at ?? null,
           },
           context,
         );

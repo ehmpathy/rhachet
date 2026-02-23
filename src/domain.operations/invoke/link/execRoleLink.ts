@@ -10,7 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { findsertFile, type LinkResult } from './findsertFile';
 import { findsertRepoGitignore } from './findsertRepoGitignore';
-import { symlinkReadme } from './symlinkReadme';
+import { symlinkFile } from './symlinkFile';
 import { symlinkResourceDirectories } from './symlinkResourceDirectories';
 
 /**
@@ -88,7 +88,7 @@ export const execRoleLink = (
   if (input.repo.readme?.uri) {
     const targetPath = resolve(repoDir, 'readme.md');
     const relativeTargetPath = relative(process.cwd(), targetPath);
-    const { status } = symlinkReadme({
+    const { status } = symlinkFile({
       sourcePath: input.repo.readme.uri,
       targetPath,
     });
@@ -104,8 +104,30 @@ export const execRoleLink = (
   if (input.role.readme?.uri) {
     const targetPath = resolve(repoRoleDir, 'readme.md');
     const relativeTargetPath = relative(process.cwd(), targetPath);
-    const { status } = symlinkReadme({
+    const { status } = symlinkFile({
       sourcePath: input.role.readme.uri,
+      targetPath,
+    });
+    linkResults.push({ path: relativeTargetPath, status });
+  }
+
+  // symlink .agent/repo=$repo/role=$role/boot.yml if present
+  if (input.role.boot?.uri) {
+    const targetPath = resolve(repoRoleDir, 'boot.yml');
+    const relativeTargetPath = relative(process.cwd(), targetPath);
+    const { status } = symlinkFile({
+      sourcePath: input.role.boot.uri,
+      targetPath,
+    });
+    linkResults.push({ path: relativeTargetPath, status });
+  }
+
+  // symlink .agent/repo=$repo/role=$role/keyrack.yml if present
+  if (input.role.keyrack?.uri) {
+    const targetPath = resolve(repoRoleDir, 'keyrack.yml');
+    const relativeTargetPath = relative(process.cwd(), targetPath);
+    const { status } = symlinkFile({
+      sourcePath: input.role.keyrack.uri,
       targetPath,
     });
     linkResults.push({ path: relativeTargetPath, status });

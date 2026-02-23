@@ -23,7 +23,7 @@ export const genMockMechAdapter = (input?: {
 
   return {
     validate: () =>
-      valid ? { valid: true } : { valid: false, reason: invalidReason },
+      valid ? { valid: true } : { valid: false, reasons: [invalidReason] },
     translate: async ({ secret }) => ({
       secret: transform(secret),
       expiresAt,

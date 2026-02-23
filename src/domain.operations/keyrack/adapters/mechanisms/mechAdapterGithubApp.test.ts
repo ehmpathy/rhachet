@@ -57,7 +57,7 @@ describe('mechAdapterGithubApp', () => {
 
       then('reason mentions invalid json', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('not valid json');
+          expect(result.reasons?.[0]).toContain('not valid json');
         }
       });
     });
@@ -71,7 +71,7 @@ describe('mechAdapterGithubApp', () => {
 
       then('reason mentions not a json object', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('not a json object');
+          expect(result.reasons?.[0]).toContain('not a json object');
         }
       });
     });
@@ -90,7 +90,7 @@ describe('mechAdapterGithubApp', () => {
 
       then('reason mentions appId field', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('appId');
+          expect(result.reasons?.[0]).toContain('appId');
         }
       });
     });
@@ -108,7 +108,7 @@ describe('mechAdapterGithubApp', () => {
 
       then('reason mentions privateKey field', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('privateKey');
+          expect(result.reasons?.[0]).toContain('privateKey');
         }
       });
     });
@@ -127,7 +127,7 @@ describe('mechAdapterGithubApp', () => {
 
       then('reason mentions installationId field', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('installationId');
+          expect(result.reasons?.[0]).toContain('installationId');
         }
       });
     });

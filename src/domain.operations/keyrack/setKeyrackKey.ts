@@ -29,6 +29,7 @@ export const setKeyrackKey = async (
     vaultRecipient?: string | null;
     maxDuration?: string | null;
     repoManifest?: KeyrackRepoManifest;
+    at?: string | null;
   },
   context: KeyrackHostContext,
 ): Promise<{
@@ -36,13 +37,15 @@ export const setKeyrackKey = async (
 }> => {
   // compute target slugs based on env
   const targetSlugs: string[] = (() => {
+    // env=all with manifest: expand to all envs that declare this key
     if (input.env === 'all' && input.repoManifest) {
-      // expand to all envs that declare this key
-      return getAllKeyrackSlugsForEnv({
+      const expanded = getAllKeyrackSlugsForEnv({
         manifest: input.repoManifest,
         env: 'all',
       }).filter((s) => asKeyrackKeyName({ slug: s }) === input.key);
+      if (expanded.length > 0) return expanded;
     }
+    // specific env or no manifest: use simple slug
     return [`${input.org}.${input.env}.${input.key}`];
   })();
 
@@ -62,6 +65,7 @@ export const setKeyrackKey = async (
         org: input.org,
         vaultRecipient: input.vaultRecipient ?? null,
         maxDuration: input.maxDuration ?? null,
+        at: input.at ?? null,
       },
       context,
     );

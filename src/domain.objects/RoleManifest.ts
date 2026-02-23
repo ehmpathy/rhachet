@@ -16,6 +16,7 @@ export interface RoleManifest {
     exec?: { cmd: string }[];
   };
   boot?: { uri: string };
+  keyrack?: { uri: string };
 }
 export class RoleManifest
   extends DomainEntity<RoleManifest>

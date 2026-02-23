@@ -1,0 +1,5 @@
+org: testorg
+extends:
+  - .agent/pathA/keyrack.yml
+env.test:
+  - PATH_B_KEY

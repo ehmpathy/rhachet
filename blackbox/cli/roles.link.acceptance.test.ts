@@ -239,4 +239,83 @@ describe('rhachet roles link', () => {
       });
     });
   });
+
+  given('[case4] repo with role that has boot and keyrack', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-role-boot-keyrack' }),
+    );
+
+    when('[t0] roles link --repo test-repo --role tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'link', '--repo', 'test-repo', '--role', 'tester'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('creates boot.yml symlink', () => {
+        const bootPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/boot.yml',
+        );
+        expect(existsSync(bootPath)).toBe(true);
+        expect(lstatSync(bootPath).isSymbolicLink()).toBe(true);
+      });
+
+      then('boot.yml symlink points to source file', () => {
+        const bootPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/boot.yml',
+        );
+        const linkTarget = readlinkSync(bootPath);
+        expect(linkTarget).toContain('roles/tester/boot.yml');
+      });
+
+      then('boot.yml contains expected content', () => {
+        const bootPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/boot.yml',
+        );
+        const content = readFileSync(bootPath, 'utf-8');
+        expect(content).toContain('model: claude-sonnet');
+      });
+
+      then('creates keyrack.yml symlink', () => {
+        const keyrackPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/keyrack.yml',
+        );
+        expect(existsSync(keyrackPath)).toBe(true);
+        expect(lstatSync(keyrackPath).isSymbolicLink()).toBe(true);
+      });
+
+      then('keyrack.yml symlink points to source file', () => {
+        const keyrackPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/keyrack.yml',
+        );
+        const linkTarget = readlinkSync(keyrackPath);
+        expect(linkTarget).toContain('roles/tester/keyrack.yml');
+      });
+
+      then('keyrack.yml contains expected content', () => {
+        const keyrackPath = resolve(
+          repo.path,
+          '.agent/repo=test-repo/role=tester/keyrack.yml',
+        );
+        const content = readFileSync(keyrackPath, 'utf-8');
+        expect(content).toContain('org: testorg');
+        expect(content).toContain('TEST_ROLE_KEY');
+      });
+
+      then('outputs boot.yml and keyrack.yml in links', () => {
+        expect(result.stdout).toContain('boot.yml');
+        expect(result.stdout).toContain('keyrack.yml');
+      });
+    });
+  });
 });

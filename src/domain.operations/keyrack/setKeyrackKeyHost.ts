@@ -31,6 +31,7 @@ export const setKeyrackKeyHost = async (
     vaultRecipient?: string | null;
     maxDuration?: string | null;
     secret?: string | null;
+    at?: string | null;
   },
   context: KeyrackHostContext,
 ): Promise<KeyrackKeyHost> => {
@@ -128,6 +129,7 @@ export const setKeyrackKeyHost = async (
       gitroot: context.gitroot,
       key: keyName,
       env: envValue,
+      at: input.at ?? undefined,
     });
   }
 

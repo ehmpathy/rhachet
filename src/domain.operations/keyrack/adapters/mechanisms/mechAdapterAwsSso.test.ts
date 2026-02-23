@@ -75,7 +75,7 @@ describe('mechAdapterAwsSso', () => {
 
       then('reason mentions no value', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('no value to validate');
+          expect(result.reasons?.[0]).toContain('no value to validate');
         }
       });
 
@@ -148,7 +148,7 @@ describe('mechAdapterAwsSso', () => {
 
       then('reason mentions session expired', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('sso session expired');
+          expect(result.reasons?.[0]).toContain('sso session expired');
         }
       });
     });
@@ -169,7 +169,7 @@ describe('mechAdapterAwsSso', () => {
 
         then('reason mentions session expired', () => {
           if (!result.valid) {
-            expect(result.reason).toContain('sso session expired');
+            expect(result.reasons?.[0]).toContain('sso session expired');
           }
         });
       },
@@ -208,7 +208,7 @@ describe('mechAdapterAwsSso', () => {
 
         then('reason mentions lack access key', () => {
           if (!result.valid) {
-            expect(result.reason).toContain('AWS_ACCESS_KEY_ID');
+            expect(result.reasons?.[0]).toContain('AWS_ACCESS_KEY_ID');
           }
         });
       },
@@ -228,7 +228,7 @@ describe('mechAdapterAwsSso', () => {
 
         then('reason mentions lack secret key', () => {
           if (!result.valid) {
-            expect(result.reason).toContain('AWS_SECRET_ACCESS_KEY');
+            expect(result.reasons?.[0]).toContain('AWS_SECRET_ACCESS_KEY');
           }
         });
       },
@@ -243,7 +243,7 @@ describe('mechAdapterAwsSso', () => {
 
       then('reason mentions invalid json', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('not valid json');
+          expect(result.reasons?.[0]).toContain('not valid json');
         }
       });
     });
@@ -259,7 +259,7 @@ describe('mechAdapterAwsSso', () => {
 
       then('reason mentions no value', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('no value to validate');
+          expect(result.reasons?.[0]).toContain('no value to validate');
         }
       });
     });

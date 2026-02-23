@@ -66,13 +66,16 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
    */
   validate: (input) => {
     const value = input.source ?? input.cached;
-    if (!value) return { valid: false, reason: 'no value to validate' };
+    if (!value) return { valid: false, reasons: ['no value to validate'] };
 
     const matched = matchesLongLivedPattern(value);
     if (matched) {
       return {
         valid: false,
-        reason: `replica mechanism rejects long-lived tokens: detected ${matched}`,
+        reasons: [
+          'its dangerous to use long lived tokens via replica mechanisms',
+          `detected ${matched}`,
+        ],
       };
     }
     return { valid: true };

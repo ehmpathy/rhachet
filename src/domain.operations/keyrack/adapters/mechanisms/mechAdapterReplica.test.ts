@@ -48,7 +48,7 @@ describe('mechAdapterReplica', () => {
 
       then('reason mentions github classic pat', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('github classic pat');
+          expect(result.reasons?.join(' ')).toContain('github classic pat');
         }
       });
     });
@@ -64,7 +64,7 @@ describe('mechAdapterReplica', () => {
 
       then('reason mentions github oauth token', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('github oauth token');
+          expect(result.reasons?.join(' ')).toContain('github oauth token');
         }
       });
     });
@@ -80,7 +80,9 @@ describe('mechAdapterReplica', () => {
 
       then('reason mentions github user-to-server token', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('github user-to-server token');
+          expect(result.reasons?.join(' ')).toContain(
+            'github user-to-server token',
+          );
         }
       });
     });
@@ -98,7 +100,9 @@ describe('mechAdapterReplica', () => {
 
         then('reason mentions github server-to-server token', () => {
           if (!result.valid) {
-            expect(result.reason).toContain('github server-to-server token');
+            expect(result.reasons?.join(' ')).toContain(
+              'github server-to-server token',
+            );
           }
         });
       },
@@ -115,7 +119,7 @@ describe('mechAdapterReplica', () => {
 
       then('reason mentions github refresh token', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('github refresh token');
+          expect(result.reasons?.join(' ')).toContain('github refresh token');
         }
       });
     });
@@ -131,7 +135,9 @@ describe('mechAdapterReplica', () => {
 
       then('reason mentions aws long-lived access key', () => {
         if (!result.valid) {
-          expect(result.reason).toContain('aws long-lived access key');
+          expect(result.reasons?.join(' ')).toContain(
+            'aws long-lived access key',
+          );
         }
       });
     });

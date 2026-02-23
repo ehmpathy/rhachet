@@ -104,4 +104,54 @@ describe('setKeyrackKey', () => {
       });
     });
   });
+
+  given('[case3] --at custom keyrack path with env=all', () => {
+    when('[t0] called with at and env=all', () => {
+      then(
+        'it should NOT expand from manifest, should use simple slug',
+        async () => {
+          const mockAdapter = genMockVaultAdapter();
+          mockAdapter.set = jest.fn();
+
+          const context: KeyrackHostContext = {
+            hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+            repoManifest: {
+              org: 'ehmpathy',
+            },
+            // note: no gitroot, so expansion from custom manifest is skipped
+            // this tests the fallback to simple slug when gitroot is absent
+            vaultAdapters: {
+              'os.envvar': genMockVaultAdapter(),
+              'os.direct': mockAdapter,
+              'os.secure': genMockVaultAdapter(),
+              'os.daemon': genMockVaultAdapter(),
+              '1password': genMockVaultAdapter(),
+              'aws.iam.sso': genMockVaultAdapter(),
+            },
+          };
+
+          const result = await setKeyrackKey(
+            {
+              key: 'NEW_KEY',
+              env: 'all',
+              org: 'customorg',
+              vault: 'os.direct',
+              mech: 'PERMANENT_VIA_REPLICA',
+              secret: 'test-secret',
+              at: 'custom/role/keyrack.yml',
+            },
+            context,
+          );
+
+          // should NOT be empty — should use simple slug path
+          expect(result.results).toHaveLength(1);
+          expect(result.results[0]).toMatchObject({
+            slug: 'customorg.all.NEW_KEY',
+            vault: 'os.direct',
+            mech: 'PERMANENT_VIA_REPLICA',
+          });
+        },
+      );
+    });
+  });
 });
