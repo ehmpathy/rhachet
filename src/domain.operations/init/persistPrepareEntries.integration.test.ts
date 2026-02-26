@@ -336,4 +336,77 @@ describe('persistPrepareEntries', () => {
       });
     });
   });
+
+  given('[case7] rhachet-roles-* repo', () => {
+    when('[t0] --prep --hooks --roles behaver mechanic', () => {
+      const tempDir = genTempDir({ slug: 'persistPrepareEntries-c7t0' });
+      beforeEach(() => {
+        writeFileSync(
+          join(tempDir, 'package.json'),
+          JSON.stringify({
+            name: 'rhachet-roles-ehmpathy',
+            scripts: { build: 'tsc' },
+          }),
+        );
+      });
+
+      then('prepare:rhachet includes npm run build && prefix', () => {
+        const context = new ContextCli({
+          cwd: tempDir,
+          gitroot: tempDir,
+        });
+        const result = persistPrepareEntries(
+          { hooks: true, roles: ['behaver', 'mechanic'] },
+          context,
+        );
+
+        expect(result.prepareRhachet.effect).toEqual('CREATED');
+
+        const pkg = JSON.parse(
+          readFileSync(join(tempDir, 'package.json'), 'utf-8'),
+        );
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'npm run build && rhachet init --hooks --roles behaver mechanic',
+        );
+      });
+    });
+
+    when('[t1] update roles in rhachet-roles-* repo', () => {
+      const tempDir = genTempDir({ slug: 'persistPrepareEntries-c7t1' });
+      beforeEach(() => {
+        writeFileSync(
+          join(tempDir, 'package.json'),
+          JSON.stringify({
+            name: 'rhachet-roles-bhuild',
+            scripts: {
+              build: 'tsc',
+              'prepare:rhachet':
+                'npm run build && rhachet init --hooks --roles behaver',
+              prepare: 'npm run prepare:rhachet',
+            },
+          }),
+        );
+      });
+
+      then('prepare:rhachet updated with build prefix preserved', () => {
+        const context = new ContextCli({
+          cwd: tempDir,
+          gitroot: tempDir,
+        });
+        const result = persistPrepareEntries(
+          { hooks: true, roles: ['behaver', 'driver'] },
+          context,
+        );
+
+        expect(result.prepareRhachet.effect).toEqual('UPDATED');
+
+        const pkg = JSON.parse(
+          readFileSync(join(tempDir, 'package.json'), 'utf-8'),
+        );
+        expect(pkg.scripts['prepare:rhachet']).toEqual(
+          'npm run build && rhachet init --hooks --roles behaver driver',
+        );
+      });
+    });
+  });
 });

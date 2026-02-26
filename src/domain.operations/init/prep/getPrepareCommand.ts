@@ -5,8 +5,16 @@
 export const getPrepareCommand = (input: {
   hooks: boolean;
   roles: string[];
+  pkgName: string | null;
 }): string => {
-  const parts = ['rhachet init'];
+  const parts: string[] = [];
+
+  // prepend build step for rhachet-roles-* repos
+  const isRolesRepo = input.pkgName?.startsWith('rhachet-roles-') ?? false;
+  if (isRolesRepo) parts.push('npm run build &&');
+
+  // add rhachet init command
+  parts.push('rhachet init');
 
   // add --hooks if present
   if (input.hooks) parts.push('--hooks');

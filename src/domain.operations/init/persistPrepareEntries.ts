@@ -49,9 +49,11 @@ export const persistPrepareEntries = (
   }
 
   // generate prepare command
+  const pkgName = typeof pkg.name === 'string' ? pkg.name : null;
   const prepareCommand = getPrepareCommand({
     hooks: input.hooks,
     roles: input.roles,
+    pkgName,
   });
 
   // upsert prepare:rhachet entry
