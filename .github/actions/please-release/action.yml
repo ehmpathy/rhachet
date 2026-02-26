@@ -35,9 +35,9 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        COMMIT_MSG: ${{ inputs.commit-message }}
       run: |
         set -euo pipefail
-        COMMIT_MSG="${{ inputs.commit-message }}"
         REPO_URL="https://github.com/${{ inputs.repository }}"
 
         # check if this is a release commit
