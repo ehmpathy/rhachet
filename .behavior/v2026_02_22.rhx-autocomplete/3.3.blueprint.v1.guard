@@ -1,0 +1,24 @@
+# guard for blueprint stone
+# includes self-review prompts + human approval
+
+reviews:
+  self:
+    - slug: all-done-self
+      say: |
+        are you sure all of the criteria and vision was covered?
+        emit a report into the .behavior dir on gaps detected. then, fix all gaps.
+
+    - slug: all-done-junior
+      say: |
+        a junior recently worked on this blueprint. review against the criteria
+        and vision and flag any gaps detected. emit a report into the
+        .behavior dir if any and fix all gaps.
+
+    - slug: all-simple-junior
+      say: |
+        a junior recently worked on this blueprint. are there any parts that
+        are needlessly over complicated? any opportunities to simplify yet
+        still fulfill the full vision and criteria?
+
+judges:
+  - rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route

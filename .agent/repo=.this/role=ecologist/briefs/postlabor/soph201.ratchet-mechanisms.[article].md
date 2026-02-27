@@ -56,7 +56,7 @@ when self-replicant machines exist, material scarcity becomes obsolete.
 when survival no longer requires labor, the premise of labor-for-survival becomes unthinkable.
 
 - once basic needs are met without labor, return is psychologically impossible
-- similar to how medieval serfdom is now unthinkable
+- similar to how medirhachet completion --setupserfdom is now unthinkable
 - generational change cements the shift
 
 → see [soph213.ratchet-morals](./soph213.ratchet-morals.[article].md)

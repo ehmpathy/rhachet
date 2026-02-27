@@ -201,7 +201,7 @@ then exec() automatically closes it. malware receives no credential.
 ### vector 1: malicious tool in PATH — NOT TOCTOU
 
 ```bash
-eval $(rhx keyrack get AWS_PROFILE)
+rhachet completion --setup$(rhx keyrack get AWS_PROFILE)
 aws s3 ls  # even if malicious, this is NOT the TOCTOU attack
 ```
 

@@ -27,6 +27,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present",
             "timeout": 60,
             "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhx route.drive --mode hook",
+            "timeout": 5,
+            "author": "repo=bhrain/role=driver"
           }
         ]
       }
@@ -98,6 +104,12 @@
             "command": "pnpm run --if-present fix",
             "timeout": 30,
             "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhx route.drive --mode hook",
+            "timeout": 5,
+            "author": "repo=bhrain/role=driver"
           }
         ]
       }
@@ -148,11 +160,17 @@
       "Bash(npx rhachet run --skill git.commit.bind:*)",
       "Bash(npx rhachet run --skill git.commit.bind get)",
       "Bash(npx rhachet run --skill git.commit.set:*)",
-      "Bash(npx rhachet run --skill git.commit.set -m 'fix(api): validate input\n\n- added input schema\n- added error handler')",
-      "Bash(npx rhachet run --skill git.commit.set -m $MESSAGE)",
-      "Bash(npx rhachet run --skill git.commit.set --mode apply -m $MESSAGE)",
-      "Bash(npx rhachet run --skill git.commit.set --push -m $MESSAGE)",
-      "Bash(npx rhachet run --skill git.commit.set --unstaged ignore -m $MESSAGE)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --mode apply)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --mode apply --push)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --unstaged ignore)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --unstaged include)",
+      "Bash(rhx git.commit.set:*)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply --push)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged ignore)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged include)",
       "Bash(npx rhachet run --skill git.commit.push:*)",
       "Bash(npx rhachet run --skill show.gh.action.logs:*)",
       "Bash(npx rhachet run --skill show.gh.test.errors:*)",
@@ -168,6 +186,8 @@
       "Bash(npx rhachet run --skill condense --from 'briefs/**/*.md' --mode apply)",
       "Bash(npx rhachet run:*)",
       "Bash(npx rhachet:*)",
+      "Bash(rhx:*)",
+      "Bash(npx rhx:*)",
       "Bash(npm view:*)",
       "Bash(npm list:*)",
       "Bash(npm remove:*)",

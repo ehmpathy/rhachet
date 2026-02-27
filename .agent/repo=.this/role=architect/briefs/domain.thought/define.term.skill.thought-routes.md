@@ -159,7 +159,7 @@ brain.repl.act "fix these errors and push" --input "$summary"
 ```
 
 ### .when to use
-- workflows that combine data retrieval + ai analysis
+- workflows that combine data retrirhachet completion --setup+ ai analysis
 - skills that need ai thought within a controlled flow
 - multi-step automations with ai-assisted decisions
 

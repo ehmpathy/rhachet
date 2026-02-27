@@ -2,7 +2,7 @@
 
 ## .what
 
-deep dive on how eBPF with Linux Security Modules (LSM) can provide kernel-enforced access control for credential retrieval — the most capable approach for linux parity with macOS Keychain ACLs.
+deep dive on how eBPF with Linux Security Modules (LSM) can provide kernel-enforced access control for credential retrirhachet completion --setup— the most capable approach for linux parity with macOS Keychain ACLs.
 
 this is a **future consideration** for keyrack — high implementation effort, but strongest security guarantees.
 

@@ -1,0 +1,5 @@
+{
+  "stone": "3.3.blueprint.v1",
+  "blockedOn": "approval",
+  "reason": "wait for human approval"
+}

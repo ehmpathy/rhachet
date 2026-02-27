@@ -184,7 +184,7 @@ keyrack.posture
 │  └─ when language runtimes adopt it, keyrack can too
 └─ don't build theater above the floor
    └─ per-terminal-chain adds UX cost with zero security gain
-      └─ because /proc bypasses it entirely (see eval doc)
+      └─ because /proc bypasses it entirely (see rhachet completion --setupdoc)
 ```
 
 ---

@@ -1,0 +1,10 @@
+# guard for criteria stone
+# includes self-review prompts
+
+reviews:
+  self:
+    - slug: all-real-junior
+      say: |
+        a junior recently worked on this criteria. are there any unquestioned
+        assumptions the junior took as requirements? any of these need to
+        be asked to the wisher instead?
