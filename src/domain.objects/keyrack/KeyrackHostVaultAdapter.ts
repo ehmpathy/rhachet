@@ -32,23 +32,26 @@ export interface KeyrackHostVaultAdapter {
    *
    * .note = exid is optional; only 1password requires it
    * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
+   * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
    */
   get: (input: {
     slug: string;
     exid?: string | null;
     vaultRecipient?: string | null;
+    owner?: string | null;
   }) => Promise<string | null>;
 
   /**
    * .what = store a credential in the vault
    * .why = enables set flow for credential storage
    *
-   * .note = env and org are required; callers must resolve them before the vault adapter call
+   * .note = env and org are required; callers must derive them before the vault adapter call
    * .note = exid is optional; only 1password requires it
    * .note = expiresAt is optional; enables ephemeral grant cache (os.direct only)
    * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
    * .note = recipients is optional; os.secure uses it when no vaultRecipient (uses manifest recipients)
    * .note = may return { exid } when the adapter derives an exid (e.g., aws.iam.sso guided setup)
+   * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
    */
   set: (input: {
     slug: string;
@@ -59,6 +62,7 @@ export interface KeyrackHostVaultAdapter {
     expiresAt?: string | null;
     vaultRecipient?: string | null;
     recipients?: KeyrackKeyRecipient[];
+    owner?: string | null;
   }) => Promise<void | { exid: string }>;
 
   /**
@@ -66,8 +70,13 @@ export interface KeyrackHostVaultAdapter {
    * .why = enables del flow for credential removal
    *
    * .note = exid is optional; only 1password requires it
+   * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
    */
-  del: (input: { slug: string; exid?: string | null }) => Promise<void>;
+  del: (input: {
+    slug: string;
+    exid?: string | null;
+    owner?: string | null;
+  }) => Promise<void>;
 
   /**
    * .what = clear cached credentials for a key (optional)

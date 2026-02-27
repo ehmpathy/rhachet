@@ -1,0 +1,15 @@
+# guard for execution stone
+# includes self-review prompts
+
+reviews:
+  self:
+    - slug: all-done-self
+      say: |
+        are you sure all was completed? review the blueprint and criteria.
+        emit a report into the .behavior dir on gaps detected. then, fix all gaps.
+
+    - slug: all-done-junior
+      say: |
+        a junior recently worked on this branch. review against the blueprint
+        and criteria and flag any gaps detected. emit a report into the
+        .behavior dir if any and fix all gaps.

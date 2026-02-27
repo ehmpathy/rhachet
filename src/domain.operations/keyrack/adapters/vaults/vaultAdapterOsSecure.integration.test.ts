@@ -21,6 +21,7 @@ describe('vaultAdapterOsSecure', () => {
       'keyrack',
       'vault',
       'os.secure',
+      'owner=default',
     );
     rmSync(vaultDir, { recursive: true, force: true });
 
@@ -88,6 +89,7 @@ describe('vaultAdapterOsSecure', () => {
           'keyrack',
           'vault',
           'os.secure',
+          'owner=default',
         );
         expect(existsSync(vaultDir)).toBe(true);
 
@@ -199,6 +201,7 @@ describe('vaultAdapterOsSecure', () => {
           'keyrack',
           'vault',
           'os.secure',
+          'owner=default',
         );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);
@@ -216,6 +219,7 @@ describe('vaultAdapterOsSecure', () => {
           'keyrack',
           'vault',
           'os.secure',
+          'owner=default',
         );
         const files = readdirSync(vaultDir);
         expect(files.length).toBeGreaterThan(0);

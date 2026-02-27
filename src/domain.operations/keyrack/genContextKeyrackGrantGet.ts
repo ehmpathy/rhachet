@@ -19,8 +19,10 @@ import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
  * .note = repo manifest is plaintext yaml — safe to load without passphrase
  * .note = daemon access is handled directly via daemonAccessGet, not via adapter
  * .note = os.direct intentionally excluded — vault keys require explicit unlock first
+ * .note = owner enables per-owner daemon isolation
  */
 export interface ContextKeyrackGrantGet {
+  owner: string | null;
   repoManifest: KeyrackRepoManifest | null;
   envvarAdapter: KeyrackHostVaultAdapter;
   mechAdapters: Record<KeyrackGrantMechanism, KeyrackGrantMechanismAdapter>;
@@ -31,9 +33,11 @@ export interface ContextKeyrackGrantGet {
  * .why = avoids host manifest decryption and passphrase prompts for get operations
  *
  * .note = loads repo manifest (plaintext yaml) for slug/org resolution
+ * .note = owner enables per-owner daemon isolation
  */
 export const genContextKeyrackGrantGet = async (input: {
   gitroot: string;
+  owner: string | null;
 }): Promise<ContextKeyrackGrantGet> => {
   // load repo manifest (plaintext yaml, no passphrase)
   const repoManifest = await daoKeyrackRepoManifest.get({
@@ -59,6 +63,7 @@ export const genContextKeyrackGrantGet = async (input: {
   };
 
   return {
+    owner: input.owner,
     repoManifest,
     envvarAdapter: vaultAdapterOsEnvvar,
     mechAdapters,

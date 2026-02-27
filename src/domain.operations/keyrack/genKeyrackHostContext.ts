@@ -25,6 +25,7 @@ import {
  * .note = gitroot is optional; when present, enables keyrack.yml writes for non-sudo keys
  */
 export interface KeyrackHostContext {
+  owner: string | null;
   hostManifest: KeyrackHostManifest;
   repoManifest?: { org: string } | null;
   gitroot?: string | null;
@@ -42,11 +43,14 @@ export const genKeyrackHostContext = async (input: {
 
   // load host manifest (fail fast if not found)
   const hostManifest = await daoKeyrackHostManifest.get({ owner });
-  if (!hostManifest)
-    throw new UnexpectedCodePathError(
-      'host manifest not found. run: rhx keyrack init',
-      { owner },
-    );
+  if (!hostManifest) {
+    const initTip = owner
+      ? `run: rhx keyrack init --owner ${owner}`
+      : 'run: rhx keyrack init';
+    throw new UnexpectedCodePathError(`host manifest not found. ${initTip}`, {
+      owner,
+    });
+  }
 
   // sync identity from manifest DAO to os.secure vault adapter
   // this enables vault decryption with the same identity used for manifest decryption
@@ -66,6 +70,7 @@ export const genKeyrackHostContext = async (input: {
   };
 
   return {
+    owner,
     hostManifest,
     vaultAdapters,
   };

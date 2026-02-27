@@ -3,6 +3,7 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
 import type { KeyrackHostVault } from '@src/domain.objects/keyrack/KeyrackHostVault';
 import type { KeyrackKey } from '@src/domain.objects/keyrack/KeyrackKey';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import {
   connectToKeyrackDaemon,
   isDaemonReachable,
@@ -15,11 +16,13 @@ import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/
  *
  * .note = org filter: only returns keys where key.org matches requested org OR key.org is '@all'
  * .note = env filter: only returns keys where key.env matches requested env
+ * .note = owner derives socketPath if socketPath not provided
  */
 export const daemonAccessGet = async (input: {
   slugs: string[];
   org?: string;
   env?: string;
+  owner?: string | null;
   socketPath?: string;
 }): Promise<{
   keys: Array<{
@@ -34,13 +37,17 @@ export const daemonAccessGet = async (input: {
     expiresAt: number;
   }>;
 } | null> => {
+  // derive socketPath from owner if not provided
+  const socketPath =
+    input.socketPath ?? getKeyrackDaemonSocketPath({ owner: input.owner });
+
   // check if daemon is reachable first
-  const reachable = await isDaemonReachable({ socketPath: input.socketPath });
+  const reachable = await isDaemonReachable({ socketPath });
   if (!reachable) {
     return null; // daemon not found, caller should fall through to other vaults
   }
 
-  const socket = await connectToKeyrackDaemon({ socketPath: input.socketPath });
+  const socket = await connectToKeyrackDaemon({ socketPath });
 
   const response = await sendKeyrackDaemonCommand<{
     keys: Array<{

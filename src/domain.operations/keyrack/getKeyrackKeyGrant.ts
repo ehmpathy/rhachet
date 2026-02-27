@@ -103,7 +103,10 @@ const attemptGrantKey = async (
     }
 
     // check os.daemon — session cache (in-memory daemon)
-    const daemonResult = await daemonAccessGet({ slugs: [slug] });
+    const daemonResult = await daemonAccessGet({
+      slugs: [slug],
+      owner: context.owner,
+    });
     if (daemonResult) {
       const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
       if (keyEntry) {
