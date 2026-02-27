@@ -22,8 +22,8 @@ describe('keyrack extends', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns key from extended keyrack (ROLE_KEY)', () => {
@@ -83,8 +83,8 @@ env.test:
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('inherited key is found via extends (GRADED_KEY)', () => {
@@ -159,8 +159,8 @@ env.test:
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('CONFLICT_KEY is found (merged from extends)', () => {
@@ -217,8 +217,8 @@ env.test:
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('ROOT_OVERRIDE_KEY is found (root declaration wins)', () => {
@@ -249,8 +249,8 @@ env.test:
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns key from deepest level (DEEP_KEY from pathB)', () => {
@@ -578,7 +578,8 @@ env.test:
           cwd: repo.path,
           env: { HOME: repo.path },
         });
-        expect(getResult.status).toEqual(0);
+      // note: exit 2 because other keys in repo may be locked (--for repo gets all keys)
+        expect(getResult.status).toEqual(2);
         const parsed = JSON.parse(getResult.stdout) as Array<{ slug: string }>;
         expect(parsed.some((k) => k.slug.includes('SHARED_TOKEN'))).toBe(true);
       });

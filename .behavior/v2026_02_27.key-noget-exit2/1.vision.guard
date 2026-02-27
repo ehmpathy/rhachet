@@ -1,0 +1,5 @@
+# guard for vision stone
+# requires human approval before stone can be marked as passed
+
+judges:
+  - npx rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route

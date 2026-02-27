@@ -152,8 +152,8 @@ describe('keyrack daemon cache', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('status is locked (passphrase does not bypass unlock requirement)', () => {

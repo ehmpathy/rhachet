@@ -409,6 +409,12 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             }
             console.log('');
           }
+
+          // exit 2 if any key was not granted (blocked by constraints)
+          const allGranted = attempts.every((a) => a.status === 'granted');
+          if (!allGranted) {
+            process.exit(2);
+          }
         } else if (opts.key) {
           // resolve org from manifest (or use @all directly)
           let resolvedOrg: string;
@@ -520,6 +526,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               }
             }
             console.log('');
+          }
+
+          // exit 2 if key was not granted (blocked by constraints)
+          if (attemptResolved.status !== 'granted') {
+            process.exit(2);
           }
         }
       },

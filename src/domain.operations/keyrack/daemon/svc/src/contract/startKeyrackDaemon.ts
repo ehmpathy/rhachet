@@ -87,5 +87,8 @@ export const spawnKeyrackDaemonBackground = (input?: {
   // unref so parent can exit
   child.unref();
 
-  console.log(`[keyrack-daemon] spawned background daemon (pid: ${child.pid})`);
+  // log to stderr to keep stdout clean for --json output
+  console.error(
+    `[keyrack-daemon] spawned background daemon (pid: ${child.pid})`,
+  );
 };
