@@ -65,6 +65,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: null,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           gitroot: repo.path,
@@ -164,6 +165,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: 'case2',
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           gitroot: repo.path,
@@ -179,7 +181,6 @@ describe('setKeyrackKeyHost.integration', () => {
 
         const result = await setKeyrackKeyHost(
           {
-            owner: 'case2',
             slug: 'ehmpathy.all.API_KEY',
             mech: 'REPLICA',
             vault: 'os.direct',
@@ -242,6 +243,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: 'case3',
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -256,7 +258,6 @@ describe('setKeyrackKeyHost.integration', () => {
 
         const result = await setKeyrackKeyHost(
           {
-            owner: 'case3',
             slug: 'global.sudo.CROSS_ORG_KEY',
             mech: 'REPLICA',
             vault: '1password',
@@ -309,6 +310,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: 'case4',
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -323,7 +325,6 @@ describe('setKeyrackKeyHost.integration', () => {
 
         const result = await setKeyrackKeyHost(
           {
-            owner: 'case4',
             slug: 'ehmpathy.sudo.SECURE_KEY',
             mech: 'REPLICA',
             vault: 'os.secure',
@@ -374,6 +375,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: 'case5',
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -388,7 +390,6 @@ describe('setKeyrackKeyHost.integration', () => {
 
         const result = await setKeyrackKeyHost(
           {
-            owner: 'case5',
             slug: 'ehmpathy.sudo.SENSITIVE_KEY',
             mech: 'REPLICA',
             vault: 'os.direct',
@@ -459,6 +460,7 @@ describe('setKeyrackKeyHost.integration', () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
 
         const context: KeyrackHostContext = {
+          owner: 'case6',
           hostManifest: manifest,
           repoManifest: { org: 'customorg' },
           gitroot: repo.path,
@@ -474,7 +476,6 @@ describe('setKeyrackKeyHost.integration', () => {
 
         const result = await setKeyrackKeyHost(
           {
-            owner: 'case6',
             slug: 'customorg.prod.CUSTOM_KEY',
             mech: 'REPLICA',
             vault: 'os.direct',

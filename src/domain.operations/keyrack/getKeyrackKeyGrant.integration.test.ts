@@ -58,6 +58,7 @@ env.test: []
         then('status is locked (envvar and daemon miss)', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
+            owner: null,
           });
           const result = await getKeyrackKeyGrant(
             { for: { key: slug } },
@@ -70,6 +71,7 @@ env.test: []
         then('fix mentions unlock', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
+            owner: null,
           });
           const result = await getKeyrackKeyGrant(
             { for: { key: slug } },
@@ -86,6 +88,7 @@ env.test: []
         then('returns array with locked status', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
+            owner: null,
           });
 
           // resolve slugs from repo manifest (like the CLI does)
@@ -140,6 +143,7 @@ env.test: []
       then('status is granted', async () => {
         const context = await genContextKeyrackGrantGet({
           gitroot: testDir,
+          owner: null,
         });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
@@ -152,6 +156,7 @@ env.test: []
       then('grant source vault is os.envvar', async () => {
         const context = await genContextKeyrackGrantGet({
           gitroot: testDir,
+          owner: null,
         });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
@@ -166,6 +171,7 @@ env.test: []
       then('grant value matches env value', async () => {
         const context = await genContextKeyrackGrantGet({
           gitroot: testDir,
+          owner: null,
         });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },
@@ -211,6 +217,7 @@ env.test: []
       then('env takes precedence over vault', async () => {
         const context = await genContextKeyrackGrantGet({
           gitroot: testDir,
+          owner: null,
         });
         const result = await getKeyrackKeyGrant(
           { for: { key: slug } },

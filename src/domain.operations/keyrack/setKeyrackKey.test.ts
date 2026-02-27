@@ -31,6 +31,7 @@ describe('setKeyrackKey', () => {
           mockAdapter.set = jest.fn();
 
           const context: KeyrackHostContext = {
+            owner: null,
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
             vaultAdapters: {
               'os.envvar': genMockVaultAdapter(),
@@ -72,6 +73,7 @@ describe('setKeyrackKey', () => {
         mockAdapter.set = jest.fn();
 
         const context: KeyrackHostContext = {
+          owner: null,
           hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
@@ -114,6 +116,7 @@ describe('setKeyrackKey', () => {
           mockAdapter.set = jest.fn();
 
           const context: KeyrackHostContext = {
+            owner: null,
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
             repoManifest: {
               org: 'ehmpathy',

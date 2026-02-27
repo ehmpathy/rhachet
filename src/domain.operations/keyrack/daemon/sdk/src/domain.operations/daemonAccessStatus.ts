@@ -1,5 +1,6 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import {
   connectToKeyrackDaemon,
   isDaemonReachable,
@@ -9,8 +10,11 @@ import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/
 /**
  * .what = send STATUS command to daemon to list unlocked keys
  * .why = shows what credentials are available and when they expire
+ *
+ * .note = owner derives socketPath if socketPath not provided
  */
 export const daemonAccessStatus = async (input?: {
+  owner?: string | null;
   socketPath?: string;
 }): Promise<{
   keys: Array<{
@@ -21,15 +25,17 @@ export const daemonAccessStatus = async (input?: {
     ttlLeftMs: number;
   }>;
 } | null> => {
+  // derive socketPath from owner if not provided
+  const socketPath =
+    input?.socketPath ?? getKeyrackDaemonSocketPath({ owner: input?.owner });
+
   // check if daemon is reachable first
-  const reachable = await isDaemonReachable({ socketPath: input?.socketPath });
+  const reachable = await isDaemonReachable({ socketPath });
   if (!reachable) {
     return null; // daemon not found
   }
 
-  const socket = await connectToKeyrackDaemon({
-    socketPath: input?.socketPath,
-  });
+  const socket = await connectToKeyrackDaemon({ socketPath });
 
   const response = await sendKeyrackDaemonCommand<{
     keys: Array<{

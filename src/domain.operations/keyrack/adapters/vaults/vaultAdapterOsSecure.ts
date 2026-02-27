@@ -35,20 +35,26 @@ const getHomeDir = (): string => {
 
 /**
  * .what = directory for encrypted credential files
- * .why = stores age-encrypted files at ~/.rhachet/keyrack/vault/os.secure/
+ * .why = stores age-encrypted files at ~/.rhachet/keyrack/vault/os.secure/owner={owner}/
+ *
+ * .note = owner enables per-owner vault isolation
  */
-const getSecureVaultDir = (): string => {
+const getSecureVaultDir = (input: { owner: string | null }): string => {
   const home = getHomeDir();
-  return join(home, '.rhachet', 'keyrack', 'vault', 'os.secure');
+  const ownerDir = `owner=${input.owner ?? 'default'}`;
+  return join(home, '.rhachet', 'keyrack', 'vault', 'os.secure', ownerDir);
 };
 
 /**
  * .what = path for a specific credential file
  * .why = each credential is stored as a separate .age file
  */
-const getCredentialPath = (slug: string): string => {
-  const hash = asHashSha256Sync(slug).slice(0, 16);
-  return join(getSecureVaultDir(), `${hash}.age`);
+const getCredentialPath = (input: {
+  slug: string;
+  owner: string | null;
+}): string => {
+  const hash = asHashSha256Sync(input.slug).slice(0, 16);
+  return join(getSecureVaultDir({ owner: input.owner }), `${hash}.age`);
 };
 
 /**
@@ -165,7 +171,8 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
    */
   get: async (input) => {
     // return null if file does not exist
-    const path = getCredentialPath(input.slug);
+    const owner = input.owner ?? null;
+    const path = getCredentialPath({ slug: input.slug, owner });
     if (!existsSync(path)) return null;
 
     // try identity-based decryption first (recipient-encrypted credentials)
@@ -213,12 +220,13 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
       });
 
     // ensure directory exists
-    const dir = getSecureVaultDir();
+    const owner = input.owner ?? null;
+    const dir = getSecureVaultDir({ owner });
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    const path = getCredentialPath(input.slug);
+    const path = getCredentialPath({ slug: input.slug, owner });
 
     // if vaultRecipient specified, use recipient-based encryption (single recipient)
     if (input.vaultRecipient) {
@@ -267,7 +275,8 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
    * .why = deletes the age file from disk
    */
   del: async (input) => {
-    const path = getCredentialPath(input.slug);
+    const owner = input.owner ?? null;
+    const path = getCredentialPath({ slug: input.slug, owner });
     if (existsSync(path)) {
       unlinkSync(path);
     }

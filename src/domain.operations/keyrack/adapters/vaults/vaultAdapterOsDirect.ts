@@ -34,16 +34,20 @@ const getHomeDir = (): string => {
 
 /**
  * .what = path to the plaintext credential store
- * .why = stores credentials in ~/.rhachet/keyrack/vault/os.direct/keyrack.direct.json
+ * .why = stores credentials in ~/.rhachet/keyrack/vault/os.direct/owner={owner}/keyrack.direct.json
+ *
+ * .note = owner enables per-owner vault isolation
  */
-const getDirectStorePath = (): string => {
+const getDirectStorePath = (input: { owner: string | null }): string => {
   const home = getHomeDir();
+  const ownerDir = `owner=${input.owner ?? 'default'}`;
   return join(
     home,
     '.rhachet',
     'keyrack',
     'vault',
     'os.direct',
+    ownerDir,
     'keyrack.direct.json',
   );
 };
@@ -52,8 +56,8 @@ const getDirectStorePath = (): string => {
  * .what = reads the direct store from disk
  * .why = loads the plaintext key-value store
  */
-const readDirectStore = (): DirectStore => {
-  const path = getDirectStorePath();
+const readDirectStore = (input: { owner: string | null }): DirectStore => {
+  const path = getDirectStorePath({ owner: input.owner });
   if (!existsSync(path)) return {};
   const content = readFileSync(path, 'utf8');
   return JSON.parse(content) as DirectStore;
@@ -63,13 +67,16 @@ const readDirectStore = (): DirectStore => {
  * .what = writes the direct store to disk
  * .why = persists the plaintext key-value store
  */
-const writeDirectStore = (store: DirectStore): void => {
-  const path = getDirectStorePath();
+const writeDirectStore = (input: {
+  store: DirectStore;
+  owner: string | null;
+}): void => {
+  const path = getDirectStorePath({ owner: input.owner });
   const dir = dirname(path);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(path, JSON.stringify(store, null, 2), 'utf8');
+  writeFileSync(path, JSON.stringify(input.store, null, 2), 'utf8');
 };
 
 /**
@@ -111,7 +118,8 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
    * .note = if entry is expired, deletes it and returns null
    */
   get: async (input) => {
-    const store = readDirectStore();
+    const owner = input.owner ?? null;
+    const store = readDirectStore({ owner });
     const entry = store[input.slug];
 
     // not found
@@ -120,7 +128,7 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
     // check expiry
     if (isExpired(entry)) {
       delete store[input.slug];
-      writeDirectStore(store);
+      writeDirectStore({ store, owner });
       return null;
     }
 
@@ -140,13 +148,14 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
         slug: input.slug,
       });
 
-    const store = readDirectStore();
+    const owner = input.owner ?? null;
+    const store = readDirectStore({ owner });
     const entry: DirectStoreEntry = { value: input.secret };
     if (input.expiresAt) {
       entry.expiresAt = input.expiresAt;
     }
     store[input.slug] = entry;
-    writeDirectStore(store);
+    writeDirectStore({ store, owner });
   },
 
   /**
@@ -154,8 +163,9 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
    * .why = enables del flow for credential removal
    */
   del: async (input) => {
-    const store = readDirectStore();
+    const owner = input.owner ?? null;
+    const store = readDirectStore({ owner });
     delete store[input.slug];
-    writeDirectStore(store);
+    writeDirectStore({ store, owner });
   },
 };

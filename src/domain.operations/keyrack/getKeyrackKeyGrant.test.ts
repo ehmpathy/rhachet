@@ -29,6 +29,7 @@ describe('getKeyrackKeyGrant', () => {
 
   given('[case1] key not in envvar or daemon', () => {
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters,
@@ -73,6 +74,7 @@ describe('getKeyrackKeyGrant', () => {
 
   given('[case2] key found in daemon', () => {
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters,
@@ -168,6 +170,7 @@ describe('getKeyrackKeyGrant', () => {
     });
 
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters,
@@ -232,6 +235,7 @@ describe('getKeyrackKeyGrant', () => {
     });
 
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters,
@@ -254,6 +258,7 @@ describe('getKeyrackKeyGrant', () => {
 
   given('[case5] key in daemon fails mechanism validation (firewall)', () => {
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters: {
@@ -340,6 +345,7 @@ describe('getKeyrackKeyGrant', () => {
     });
 
     const context: ContextKeyrackGrantGet = {
+      owner: null,
       repoManifest: null,
       envvarAdapter: vaultAdapterOsEnvvar,
       mechAdapters: {

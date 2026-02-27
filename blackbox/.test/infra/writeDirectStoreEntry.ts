@@ -6,13 +6,16 @@ import { dirname, join } from 'node:path';
  * .why = tests need to pre-populate the direct store before unlock
  *
  * .note = the direct store maps slug to { value } entries
+ * .note = owner enables per-owner vault isolation
  */
 export const writeDirectStoreEntry = (input: {
   home: string;
   slug: string;
   value: string;
+  owner?: string | null;
 }): void => {
-  const path = join(input.home, '.rhachet', 'keyrack', 'vault', 'os.direct', 'keyrack.direct.json');
+  const ownerDir = `owner=${input.owner ?? 'default'}`;
+  const path = join(input.home, '.rhachet', 'keyrack', 'vault', 'os.direct', ownerDir, 'keyrack.direct.json');
   const dir = dirname(path);
 
   // ensure directory exists

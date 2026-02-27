@@ -246,36 +246,47 @@ const convertLegacyManifest = async (input: {
  * .what = re-encrypt os.secure credential files to test recipient
  * .why = fixture .age files use passphrase encryption (scrypt stanza) but tests use
  *        auto-discovered identity via $HOME/.ssh/id_ed25519 for decryption (X25519 stanza)
+ *
+ * .note = owner namespace: vault files are now at os.secure/owner={owner}/
  */
 const convertOsSecureCredentials = async (input: {
   repoPath: string;
   recipient: KeyrackKeyRecipient;
 }): Promise<void> => {
   const { asHashSha256Sync } = await import('hash-fns');
-  const secureDir = join(input.repoPath, '.rhachet', 'keyrack', 'vault', 'os.secure');
+  const secureBaseDir = join(input.repoPath, '.rhachet', 'keyrack', 'vault', 'os.secure');
 
   // skip if os.secure directory dne
-  if (!existsSync(secureDir)) return;
+  if (!existsSync(secureBaseDir)) return;
 
-  // iterate over all .age files in the secure directory
-  const files = readdirSync(secureDir);
-  for (const file of files) {
-    if (!file.endsWith('.age')) continue;
+  // iterate over owner directories (owner=default, owner=custom, etc)
+  const ownerDirs = readdirSync(secureBaseDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith('owner='))
+    .map((entry) => entry.name);
 
-    const filePath = join(secureDir, file);
-    const hash = file.replace('.age', '');
+  for (const ownerDir of ownerDirs) {
+    const secureDir = join(secureBaseDir, ownerDir);
 
-    // match hash to known slug and re-encrypt with test recipient
-    for (const [slug, value] of Object.entries(KNOWN_OS_SECURE_VALUES)) {
-      const slugHash = asHashSha256Sync(slug).slice(0, 16);
-      if (slugHash === hash) {
-        const ciphertext = await encryptToRecipients({
-          plaintext: value,
-          recipients: [input.recipient],
-        });
-        writeFileSync(filePath, ciphertext, 'utf8');
-        chmodSync(filePath, 0o600);
-        break;
+    // iterate over all .age files in this owner directory
+    const files = readdirSync(secureDir);
+    for (const file of files) {
+      if (!file.endsWith('.age')) continue;
+
+      const filePath = join(secureDir, file);
+      const hash = file.replace('.age', '');
+
+      // match hash to known slug and re-encrypt with test recipient
+      for (const [slug, value] of Object.entries(KNOWN_OS_SECURE_VALUES)) {
+        const slugHash = asHashSha256Sync(slug).slice(0, 16);
+        if (slugHash === hash) {
+          const ciphertext = await encryptToRecipients({
+            plaintext: value,
+            recipients: [input.recipient],
+          });
+          writeFileSync(filePath, ciphertext, 'utf8');
+          chmodSync(filePath, 0o600);
+          break;
+        }
       }
     }
   }

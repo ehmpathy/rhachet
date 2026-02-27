@@ -53,14 +53,18 @@ export { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyH
 export const keyrack = {
   /**
    * .what = get credentials from keyrack
-   * .why = resolves keys from vault via configured mechanism
+   * .why = grants keys from vault via configured mechanism
    */
   get: async (input: {
     for: { repo: true } | { key: string };
     env?: string;
+    owner?: string | null;
   }) => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
-    const context = await genContextKeyrackGrantGet({ gitroot });
+    const context = await genContextKeyrackGrantGet({
+      gitroot,
+      owner: input.owner ?? null,
+    });
 
     if ('repo' in input.for) {
       // resolve slugs from repo manifest
@@ -87,15 +91,16 @@ export const keyrack = {
 
   /**
    * .what = set credential storage on host
-   * .why = configure how a key is stored and resolved
+   * .why = configure how a key is stored and managed
    */
   set: async (input: {
     slug: string;
     mech: KeyrackGrantMechanism;
     vault: KeyrackHostVault;
     exid?: string;
+    owner?: string | null;
   }) => {
-    const context = await genKeyrackHostContext({ owner: null });
+    const context = await genKeyrackHostContext({ owner: input.owner ?? null });
     return setKeyrackKeyHost(
       {
         slug: input.slug,

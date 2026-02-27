@@ -149,7 +149,11 @@ export const unlockKeyrackKeys = async (
     }
 
     // get secret from vault
-    const secret = await adapter.get({ slug, exid: hostConfig.exid });
+    const secret = await adapter.get({
+      slug,
+      exid: hostConfig.exid,
+      owner: input.owner ?? null,
+    });
     if (!secret) {
       throw new UnexpectedCodePathError(
         'vault file absent for key that exists in manifest',

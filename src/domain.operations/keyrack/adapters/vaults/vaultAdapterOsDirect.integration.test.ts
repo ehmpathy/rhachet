@@ -20,6 +20,7 @@ describe('vaultAdapterOsDirect', () => {
       'keyrack',
       'vault',
       'os.direct',
+      'owner=default',
       'keyrack.direct.json',
     );
     rmSync(storePath, { force: true });
@@ -55,6 +56,7 @@ describe('vaultAdapterOsDirect', () => {
           'keyrack',
           'vault',
           'os.direct',
+          'owner=default',
           'keyrack.direct.json',
         );
         expect(existsSync(storePath)).toBe(true);
@@ -177,6 +179,7 @@ describe('vaultAdapterOsDirect', () => {
           'keyrack',
           'vault',
           'os.direct',
+          'owner=default',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -193,6 +196,7 @@ describe('vaultAdapterOsDirect', () => {
           'keyrack',
           'vault',
           'os.direct',
+          'owner=default',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -221,6 +225,7 @@ describe('vaultAdapterOsDirect', () => {
           'keyrack',
           'vault',
           'os.direct',
+          'owner=default',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');
@@ -284,6 +289,7 @@ describe('vaultAdapterOsDirect', () => {
           'keyrack',
           'vault',
           'os.direct',
+          'owner=default',
           'keyrack.direct.json',
         );
         const content = readFileSync(storePath, 'utf8');

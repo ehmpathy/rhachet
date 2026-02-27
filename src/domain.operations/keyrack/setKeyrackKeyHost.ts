@@ -21,7 +21,6 @@ import type { KeyrackHostContext } from './genKeyrackHostContext';
  */
 export const setKeyrackKeyHost = async (
   input: {
-    owner?: string | null;
     slug: string;
     mech: KeyrackGrantMechanism;
     vault: KeyrackHostVault;
@@ -65,6 +64,7 @@ export const setKeyrackKeyHost = async (
     env: envValue,
     org: orgExpanded,
     vaultRecipient: input.vaultRecipient ?? null,
+    owner: context.owner,
     // when no explicit vaultRecipient, use manifest recipients
     recipients: input.vaultRecipient
       ? undefined
