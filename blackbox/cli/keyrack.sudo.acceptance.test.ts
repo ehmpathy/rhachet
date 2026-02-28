@@ -1529,8 +1529,8 @@ describe('keyrack sudo', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns locked status (no manifest decryption needed)', () => {

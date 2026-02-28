@@ -121,8 +121,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns locked status for prep keys (vault keys require unlock)', () => {
@@ -211,8 +211,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns locked status for prod keys (vault keys require unlock)', () => {
@@ -307,8 +307,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (contains locked key testorg.all.SHARED_API_KEY)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('returns 4 granted keys (2 per env)', () => {
@@ -344,8 +344,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('output contains locked indicator', () => {
@@ -491,8 +491,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (absent keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('status is absent (key not in repo manifest for env=all)', () => {
@@ -520,8 +520,8 @@ describe('keyrack envs', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('status is locked (vault key requires unlock)', () => {

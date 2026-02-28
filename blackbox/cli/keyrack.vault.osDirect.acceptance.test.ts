@@ -35,8 +35,8 @@ describe('keyrack vault os.direct', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('output is valid json array', () => {
@@ -72,8 +72,8 @@ describe('keyrack vault os.direct', () => {
         }),
       );
 
-      then('rhx exits with status 0', () => {
-        expect(rhxResult.status).toEqual(0);
+      then('rhx exits with status 2 (locked keys exit non-zero)', () => {
+        expect(rhxResult.status).toEqual(2);
       });
 
       then('rhx returns locked status', () => {
@@ -116,8 +116,8 @@ describe('keyrack vault os.direct', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('output is valid json object', () => {
@@ -151,8 +151,8 @@ describe('keyrack vault os.direct', () => {
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with status 2 (locked keys exit non-zero)', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('output contains locked indicator', () => {
