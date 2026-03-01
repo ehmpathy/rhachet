@@ -1,0 +1,9 @@
+fix(keyrack): add --prikey flag to init and set commands
+
+- add --prikey option to init command (derives pubkey from private key)
+- add --prikey option to set command (enables manifest decryption)
+- update genKeyrackHostContext to accept prikey parameter
+- add 18 acceptance tests for prikey flows
+- fix unused imports in acceptance test
+
+enables set operations on custom owners with non-standard ssh key locations

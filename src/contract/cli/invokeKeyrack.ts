@@ -52,6 +52,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <owner>', 'alias for --owner')
     .option('--pubkey <path>', 'path to private key or .pub file')
     .option(
+      '--prikey <path>',
+      'ssh private key path (derives pubkey automatically)',
+    )
+    .option(
       '--label <label>',
       'label for the recipient key (default: "default")',
     )
@@ -69,6 +73,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         owner?: string;
         for?: string;
         pubkey?: string;
+        prikey?: string;
         label?: string;
         org?: string;
         at?: string;
@@ -81,9 +86,12 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           () => null,
         );
 
+        // --prikey takes precedence over --pubkey (both accept private key paths)
+        const keyPath = opts.prikey ?? opts.pubkey;
+
         const result = await initKeyrack({
           owner,
-          pubkey: opts.pubkey,
+          pubkey: keyPath,
           label: opts.label,
           gitroot,
           org: opts.org ?? null,
@@ -571,6 +579,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     )
     .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
     .option('--at <path>', 'custom keyrack.yml path (for role-level keyracks)')
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -585,6 +594,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         vaultRecipient?: string;
         maxDuration?: string;
         at?: string;
+        prikey?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
@@ -663,6 +673,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
         const hostContext = await genKeyrackHostContext({
           owner,
+          prikey: opts.prikey,
         });
 
         // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
