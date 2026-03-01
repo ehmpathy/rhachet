@@ -38,11 +38,12 @@ export interface KeyrackHostContext {
  */
 export const genKeyrackHostContext = async (input: {
   owner: string | null;
+  prikey?: string;
 }): Promise<KeyrackHostContext> => {
-  const { owner } = input;
+  const { owner, prikey } = input;
 
   // load host manifest (fail fast if not found)
-  const hostManifest = await daoKeyrackHostManifest.get({ owner });
+  const hostManifest = await daoKeyrackHostManifest.get({ owner, prikey });
   if (!hostManifest) {
     const initTip = owner
       ? `run: rhx keyrack init --owner ${owner}`

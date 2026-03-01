@@ -1,0 +1,77 @@
+# guard for blueprint stone
+# includes standardized self-review frame + human approval
+
+reviews:
+  self:
+    # 1. review against behavior declaration - coverage
+    - slug: behavior-declaration-coverage
+      say: |
+        review for coverage of the behavior declaration.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have omitted
+        requirements or left features unimplemented.
+
+        go through the behavior's vision and criteria, then check
+        each requirement against the blueprint line by line:
+        - is every requirement from the vision addressed?
+        - is every criterion from the criteria satisfied?
+        - did the junior skip or forget any part of the spec?
+
+        emit your findings to .behavior/$thisBehavior/reviews/{stone}.behavior-declaration-coverage.md
+        then fix all gaps before you continue.
+
+    # 2. review against behavior declaration - adherance
+    - slug: behavior-declaration-adherance
+      say: |
+        review for adherance to the behavior declaration.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have drifted
+        from the spec or implemented items incorrectly.
+
+        go through the blueprint line by line, and check
+        against the behavior's vision and criteria:
+        - does the blueprint match what the vision describes?
+        - does the blueprint satisfy the criteria correctly?
+        - did the junior misinterpret or deviate from the spec?
+
+        emit your findings to .behavior/$thisBehavior/reviews/{stone}.behavior-declaration-adherance.md
+        then fix all gaps before you continue.
+
+    # 3. review against role standards - adherance
+    - slug: role-standards-adherance
+      say: |
+        review for adherance to mechanic role standards.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have introduced
+        bad practices or violated patterns that we require.
+
+        go through the blueprint line by line, and check:
+        - does the blueprint follow mechanic standards correctly?
+        - are there violations of required patterns?
+        - did the junior introduce anti-patterns, bad practices, or deviations from our conventions?
+
+        emit your findings to .behavior/$thisBehavior/reviews/{stone}.role-standards-adherance.md
+        then fix all gaps before you continue.
+
+    # 4. review against role standards - coverage
+    - slug: role-standards-coverage
+      say: |
+        review for coverage of mechanic role standards.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have forgotten
+        best practices or omitted patterns that should be present.
+
+        go through the blueprint line by line, and check:
+        - are all relevant mechanic standards applied?
+        - are there patterns that should be present but are absent?
+        - did the junior forget to include error handle, validation, tests, types, or other required practices?
+
+        emit your findings to .behavior/$thisBehavior/reviews/{stone}.role-standards-coverage.md
+        then fix all gaps before you continue.
+
+judges:
+  - npx rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
