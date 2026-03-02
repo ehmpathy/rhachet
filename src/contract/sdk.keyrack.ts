@@ -99,8 +99,12 @@ export const keyrack = {
     vault: KeyrackHostVault;
     exid?: string;
     owner?: string | null;
+    prikey?: string | null;
   }) => {
-    const context = await genKeyrackHostContext({ owner: input.owner ?? null });
+    const context = await genKeyrackHostContext({
+      owner: input.owner ?? null,
+      prikey: input.prikey ?? null,
+    });
     return setKeyrackKeyHost(
       {
         slug: input.slug,

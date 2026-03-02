@@ -372,7 +372,7 @@ describe('rhachet upgrade', () => {
         // run the upgrade command with wildcard
         // note: quote the * to prevent shell glob expansion
         const upgradeResult = invokeRhachetCliBinary({
-          args: ['upgrade', '--roles', "'*'"],
+          args: ['upgrade', '--roles', '*'],
           cwd: scene.repo.path,
         });
 
@@ -460,7 +460,7 @@ describe('rhachet upgrade', () => {
     when('[t1] rhachet upgrade --roles *', () => {
       const result = useBeforeAll(async () => {
         const upgradeResult = invokeRhachetCliBinary({
-          args: ['upgrade', '--roles', "'*'"],
+          args: ['upgrade', '--roles', '*'],
           cwd: scene.repo.path,
         });
 

@@ -26,7 +26,10 @@ describe('daoKeyrackHostManifest', () => {
   given('[case1] no manifest exists (default owner)', () => {
     when('[t0] get called', () => {
       then('returns null', async () => {
-        const result = await daoKeyrackHostManifest.get({ owner: null });
+        const result = await daoKeyrackHostManifest.get({
+          owner: null,
+          prikey: null,
+        });
         expect(result).toBeNull();
       });
     });
@@ -96,7 +99,10 @@ describe('daoKeyrackHostManifest', () => {
       when('[t1] get with correct identity', () => {
         then('decrypts and returns manifest', async () => {
           daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-          const result = await daoKeyrackHostManifest.get({ owner: null });
+          const result = await daoKeyrackHostManifest.get({
+            owner: null,
+            prikey: null,
+          });
 
           expect(result).not.toBeNull();
           expect(result?.owner).toBeNull();
@@ -111,7 +117,7 @@ describe('daoKeyrackHostManifest', () => {
           async () => {
             daoKeyrackHostManifest.setSessionIdentity(null);
             const error = await getError(
-              daoKeyrackHostManifest.get({ owner: null }),
+              daoKeyrackHostManifest.get({ owner: null, prikey: null }),
             );
             expect(error).toBeDefined();
             // per blueprint 6.4: discovery tries available keys; fails if none match
@@ -129,7 +135,7 @@ describe('daoKeyrackHostManifest', () => {
           const wrongKeyPair = await generateAgeKeyPair();
           daoKeyrackHostManifest.setSessionIdentity(wrongKeyPair.identity);
           const error = await getError(
-            daoKeyrackHostManifest.get({ owner: null }),
+            daoKeyrackHostManifest.get({ owner: null, prikey: null }),
           );
           expect(error).toBeDefined();
           expect(error?.message).toContain('failed to decrypt host manifest');
@@ -177,7 +183,10 @@ describe('daoKeyrackHostManifest', () => {
     when('[t0] get after upsert', () => {
       then('host is preserved with env and org fields', async () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-        const result = await daoKeyrackHostManifest.get({ owner: null });
+        const result = await daoKeyrackHostManifest.get({
+          owner: null,
+          prikey: null,
+        });
 
         expect(result?.hosts['ehmpathy.sudo.GITHUB_TOKEN']).toBeDefined();
         const host = result?.hosts['ehmpathy.sudo.GITHUB_TOKEN'];
@@ -225,7 +234,10 @@ describe('daoKeyrackHostManifest', () => {
 
       then('owner is stored in manifest', async () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-        const result = await daoKeyrackHostManifest.get({ owner: 'mechanic' });
+        const result = await daoKeyrackHostManifest.get({
+          owner: 'mechanic',
+          prikey: null,
+        });
         expect(result?.owner).toEqual('mechanic');
       });
     });
@@ -366,13 +378,19 @@ describe('daoKeyrackHostManifest', () => {
     when('[t0] both recipients can decrypt', () => {
       then('first recipient can decrypt', async () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair1.identity);
-        const result = await daoKeyrackHostManifest.get({ owner: 'multi' });
+        const result = await daoKeyrackHostManifest.get({
+          owner: 'multi',
+          prikey: null,
+        });
         expect(result?.owner).toEqual('multi');
       });
 
       then('second recipient can decrypt', async () => {
         daoKeyrackHostManifest.setSessionIdentity(keyPair2.identity);
-        const result = await daoKeyrackHostManifest.get({ owner: 'multi' });
+        const result = await daoKeyrackHostManifest.get({
+          owner: 'multi',
+          prikey: null,
+        });
         expect(result?.owner).toEqual('multi');
       });
     });

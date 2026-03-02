@@ -20,15 +20,16 @@ import {
  *         both X25519 and ssh-ed25519 stanzas; either key format can then decrypt
  */
 export const setKeyrackRecipient = async (input: {
-  owner?: string | null;
+  owner: string | null;
   pubkey: string;
   label: string;
-  stanza?: 'ssh';
+  stanza: 'ssh' | null;
+  prikey: string | null;
 }): Promise<KeyrackKeyRecipient> => {
-  const owner = input.owner ?? null;
+  const { owner, prikey } = input;
 
   // load manifest (dao handles identity discovery)
-  const manifestFound = await daoKeyrackHostManifest.get({ owner });
+  const manifestFound = await daoKeyrackHostManifest.get({ owner, prikey });
   if (!manifestFound)
     throw new BadRequestError(
       'keyrack manifest not found; run `rhx keyrack init` first',

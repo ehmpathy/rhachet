@@ -43,6 +43,8 @@ describe('recipient operations', () => {
             owner: 'set-test-1',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           expect(recipient.mech).toBe('age');
@@ -61,10 +63,13 @@ describe('recipient operations', () => {
             owner: 'set-test-2',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           const recipients = await getKeyrackRecipients({
             owner: 'set-test-2',
+            prikey: null,
           });
           expect(recipients).toHaveLength(2);
         });
@@ -82,6 +87,8 @@ describe('recipient operations', () => {
             owner: 'dup-test',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           const { recipient: pubkey3 } = await generateAgeKeyPair();
@@ -90,6 +97,8 @@ describe('recipient operations', () => {
               owner: 'dup-test',
               pubkey: pubkey3,
               label: 'backup', // duplicate
+              stanza: null,
+              prikey: null,
             }),
           );
 
@@ -113,6 +122,8 @@ describe('recipient operations', () => {
             owner: 'ssh-test',
             pubkey: sshPubkey,
             label: 'ssh-key',
+            stanza: null,
+            prikey: null,
           });
 
           expect(recipient.mech).toBe('ssh');
@@ -133,6 +144,8 @@ describe('recipient operations', () => {
               owner: 'invalid-test',
               pubkey: 'invalid-pubkey-format',
               label: 'invalid',
+              stanza: null,
+              prikey: null,
             }),
           );
 
@@ -158,6 +171,7 @@ describe('recipient operations', () => {
             pubkey: sshPubkey,
             label: 'ssh-stanza-key',
             stanza: 'ssh',
+            prikey: null,
           });
 
           // should force mech: 'ssh' (not converted to age1...)
@@ -184,6 +198,7 @@ describe('recipient operations', () => {
               pubkey: agePubkey,
               label: 'age-key',
               stanza: 'ssh',
+              prikey: null,
             }),
           );
 
@@ -201,6 +216,8 @@ describe('recipient operations', () => {
               owner: 'nonexistent',
               pubkey: 'age1...',
               label: 'test',
+              stanza: null,
+              prikey: null,
             }),
           );
 
@@ -223,6 +240,7 @@ describe('recipient operations', () => {
 
           const recipients = await getKeyrackRecipients({
             owner: 'get-test-1',
+            prikey: null,
           });
 
           expect(recipients).toHaveLength(1);
@@ -245,10 +263,13 @@ describe('recipient operations', () => {
             owner: 'get-test-2',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           const recipients = await getKeyrackRecipients({
             owner: 'get-test-2',
+            prikey: null,
           });
 
           expect(recipients).toHaveLength(2);
@@ -263,7 +284,7 @@ describe('recipient operations', () => {
       when('[t0] attempt to get recipients', () => {
         then('throws error', async () => {
           const error = await getError(
-            getKeyrackRecipients({ owner: 'nonexistent-get' }),
+            getKeyrackRecipients({ owner: 'nonexistent-get', prikey: null }),
           );
 
           expect(error).toBeDefined();
@@ -288,17 +309,29 @@ describe('recipient operations', () => {
             owner: 'del-test-1',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           // verify two recipients
-          let recipients = await getKeyrackRecipients({ owner: 'del-test-1' });
+          let recipients = await getKeyrackRecipients({
+            owner: 'del-test-1',
+            prikey: null,
+          });
           expect(recipients).toHaveLength(2);
 
           // delete backup
-          await delKeyrackRecipient({ owner: 'del-test-1', label: 'backup' });
+          await delKeyrackRecipient({
+            owner: 'del-test-1',
+            label: 'backup',
+            prikey: null,
+          });
 
           // verify one recipient
-          recipients = await getKeyrackRecipients({ owner: 'del-test-1' });
+          recipients = await getKeyrackRecipients({
+            owner: 'del-test-1',
+            prikey: null,
+          });
           expect(recipients).toHaveLength(1);
           expect(recipients[0]?.label).toBe('primary');
         });
@@ -316,10 +349,16 @@ describe('recipient operations', () => {
             owner: 'del-test-2',
             pubkey: pubkey2,
             label: 'backup',
+            stanza: null,
+            prikey: null,
           });
 
           const error = await getError(
-            delKeyrackRecipient({ owner: 'del-test-2', label: 'nonexistent' }),
+            delKeyrackRecipient({
+              owner: 'del-test-2',
+              label: 'nonexistent',
+              prikey: null,
+            }),
           );
 
           expect(error).toBeDefined();
@@ -338,7 +377,11 @@ describe('recipient operations', () => {
           });
 
           const error = await getError(
-            delKeyrackRecipient({ owner: 'last-test', label: 'only-one' }),
+            delKeyrackRecipient({
+              owner: 'last-test',
+              label: 'only-one',
+              prikey: null,
+            }),
           );
 
           expect(error).toBeDefined();
@@ -351,7 +394,11 @@ describe('recipient operations', () => {
       when('[t0] attempt to delete recipient', () => {
         then('throws error', async () => {
           const error = await getError(
-            delKeyrackRecipient({ owner: 'nonexistent-del', label: 'test' }),
+            delKeyrackRecipient({
+              owner: 'nonexistent-del',
+              label: 'test',
+              prikey: null,
+            }),
           );
 
           expect(error).toBeDefined();

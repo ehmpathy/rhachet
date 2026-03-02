@@ -52,7 +52,8 @@ export const invokeRhachetCliBinary = (input: {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
-    shell: '/bin/bash',
+    // shell mode removed: args with spaces (like pubkeys) were being split by bash
+    // absolute binPath doesn't need shell for PATH resolution
     env: { ...process.env, ...input.env }, // always pass env so subprocess inherits modified HOME
   });
 

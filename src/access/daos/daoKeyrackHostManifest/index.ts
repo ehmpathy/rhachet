@@ -134,14 +134,14 @@ export const daoKeyrackHostManifest = {
    * .what = read the host manifest from disk
    * .why = loads credential storage config for this machine
    *
-   * .note = decrypts with session identity, runtime discovery, or explicit --prikey
+   * .note = decrypts with session identity, runtime discovery, or explicit prikey
    * .note = if prikey provided, uses it directly instead of discovery
    */
   get: async (input: {
-    owner?: string | null;
-    prikey?: string;
+    owner: string | null;
+    prikey: string | null;
   }): Promise<KeyrackHostManifest | null> => {
-    const owner = input.owner ?? null;
+    const { owner, prikey } = input;
     const path = getKeyrackHostManifestPath({ owner });
 
     // return null if file does not exist
@@ -152,9 +152,9 @@ export const daoKeyrackHostManifest = {
 
     // get identity for decryption — try prikey first, then explicit, then discover
     let explicitIdentity: string | null = null;
-    if (input.prikey) {
+    if (prikey) {
       // user provided explicit prikey path — use it directly
-      explicitIdentity = sshPrikeyToAgeIdentity({ keyPath: input.prikey });
+      explicitIdentity = sshPrikeyToAgeIdentity({ keyPath: prikey });
     } else {
       explicitIdentity = getExplicitIdentity();
     }
@@ -300,7 +300,7 @@ export const daoKeyrackHostManifest = {
     if (input.findsert && existsSync(path)) {
       // for findsert, we need to read the extant manifest
       // if no explicit identity, discovery will be attempted in get()
-      manifestFound = await daoKeyrackHostManifest.get({ owner });
+      manifestFound = await daoKeyrackHostManifest.get({ owner, prikey: null });
     }
 
     // handle findsert: return found if exists with same uri

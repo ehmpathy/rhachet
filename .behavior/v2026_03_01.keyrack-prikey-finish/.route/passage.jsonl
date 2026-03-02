@@ -1,0 +1,3 @@
+{"stone":"4.1.roadmap.v1","status":"passed"}
+{"stone":"5.1.execution.phase0_to_phaseN.v1","status":"blocked","blocker":"review.self","reason":"review.self required: behavior-declaration-coverage"}
+{"stone":"5.1.execution.phase0_to_phaseN.v1","status":"passed"}

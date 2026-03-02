@@ -95,7 +95,10 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.org).toEqual('ehmpathy');
 
         // verify stored in host manifest
-        const manifestAfter = await daoKeyrackHostManifest.get({ owner: null });
+        const manifestAfter = await daoKeyrackHostManifest.get({
+          owner: null,
+          prikey: null,
+        });
         expect(
           manifestAfter?.hosts['ehmpathy.sudo.SECRET_TOKEN'],
         ).toBeDefined();
@@ -197,6 +200,7 @@ describe('setKeyrackKeyHost.integration', () => {
         // verify stored in host manifest
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case2',
+          prikey: null,
         });
         expect(manifestAfter?.hosts['ehmpathy.all.API_KEY']).toBeDefined();
       });
@@ -273,6 +277,7 @@ describe('setKeyrackKeyHost.integration', () => {
         // verify stored in host manifest with @all org
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case3',
+          prikey: null,
         });
         const host = manifestAfter?.hosts['global.sudo.CROSS_ORG_KEY'];
         expect(host).toBeDefined();
@@ -340,6 +345,7 @@ describe('setKeyrackKeyHost.integration', () => {
         // verify stored in host manifest
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case4',
+          prikey: null,
         });
         const host = manifestAfter?.hosts['ehmpathy.sudo.SECURE_KEY'];
         expect(host?.vaultRecipient).toEqual(vaultKeyPair.recipient);
@@ -405,6 +411,7 @@ describe('setKeyrackKeyHost.integration', () => {
         // verify stored in host manifest
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case5',
+          prikey: null,
         });
         const host = manifestAfter?.hosts['ehmpathy.sudo.SENSITIVE_KEY'];
         expect(host?.maxDuration).toEqual('5m');
