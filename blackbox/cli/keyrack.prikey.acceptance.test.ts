@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
@@ -513,6 +513,542 @@ describe('keyrack --prikey', () => {
         const parsed = JSON.parse(scene.getResult.stdout);
         expect(parsed.status).toEqual('granted');
         expect(parsed.grant.key.secret).toEqual('custom-loc-secret');
+      });
+    });
+  });
+
+  /**
+   * [uc4] list --prikey with custom owner
+   * list command decrypts manifest, needs --prikey for custom key locations
+   */
+  given('[case4] list --prikey with custom owner', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-direct',
+        suffix: 'list-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      // set a key so list has something to show
+      await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'LIST_TEST_KEY',
+          '--env',
+          'all',
+          '--org',
+          '@all',
+          '--mech',
+          'REPLICA',
+          '--vault',
+          'os.direct',
+          '--owner',
+          'robot',
+          '--prikey',
+          prikeyPath,
+        ],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        stdin: 'list-test-secret\n',
+      });
+
+      return { repo, prikeyPath };
+    });
+
+    when('[t0] list without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--owner', 'robot'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] list --owner robot --prikey /path/to/key', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'list',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('lists keys from manifest', () => {
+        // keyrack list --json returns hosts object (Record<slug, host>)
+        const parsed = JSON.parse(result.stdout);
+        const slugs = Object.keys(parsed);
+        expect(slugs.length).toBeGreaterThan(0);
+        expect(slugs.some((slug: string) => slug.includes('LIST_TEST_KEY'))).toBe(true);
+      });
+    });
+  });
+
+  /**
+   * [uc5] del --prikey with custom owner
+   * del command decrypts manifest, needs --prikey for custom key locations
+   */
+  given('[case5] del --prikey with custom owner', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-direct',
+        suffix: 'del-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      // set a key so del has something to delete
+      await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'DEL_TEST_KEY',
+          '--env',
+          'all',
+          '--org',
+          '@all',
+          '--mech',
+          'REPLICA',
+          '--vault',
+          'os.direct',
+          '--owner',
+          'robot',
+          '--prikey',
+          prikeyPath,
+        ],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        stdin: 'del-test-secret\n',
+      });
+
+      return { repo, prikeyPath };
+    });
+
+    when('[t0] del without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'del',
+            '--owner',
+            'robot',
+            '--key',
+            'DEL_TEST_KEY',
+            '--env',
+            'all',
+            '--org',
+            '@all',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] del --owner robot --prikey /path/to/key --key TEST_KEY', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'del',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--key',
+            'DEL_TEST_KEY',
+            '--env',
+            'all',
+            '--org',
+            '@all',
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('key removed from manifest', () => {
+        // keyrack del --json returns { slug, effect }
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.effect).toEqual('deleted');
+      });
+    });
+  });
+
+  /**
+   * [uc6] recipient get --prikey with custom owner
+   * recipient get decrypts manifest, needs --prikey for custom key locations
+   */
+  given('[case6] recipient get --prikey with custom owner', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-direct',
+        suffix: 'recipient-get-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      return { repo, prikeyPath };
+    });
+
+    when('[t0] recipient get without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'recipient', 'get', '--owner', 'robot'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] recipient get --owner robot --prikey /path/to/key', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'recipient',
+            'get',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('lists recipients', () => {
+        // keyrack recipient get --json returns array of recipients
+        const parsed = JSON.parse(result.stdout);
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  /**
+   * [uc7] recipient set --prikey with custom owner
+   * recipient set decrypts manifest, needs --prikey for custom key locations
+   */
+  given('[case7] recipient set --prikey with custom owner', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-direct',
+        suffix: 'recipient-set-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      // generate a second keypair to add as recipient
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'backup_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+      const backupPubkeyPath = join(customKeyDir, 'backup_key.pub');
+      // read pubkey content (--pubkey expects content, not path)
+      // strip comment to avoid shell split: "ssh-ed25519 AAAA... comment" → "ssh-ed25519 AAAA..."
+      const backupPubkey = readFileSync(backupPubkeyPath, 'utf8')
+        .trim()
+        .split(' ')
+        .slice(0, 2)
+        .join(' ');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      return { repo, prikeyPath, backupPubkey };
+    });
+
+    when('[t0] recipient set without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'recipient',
+            'set',
+            '--owner',
+            'robot',
+            '--pubkey',
+            scene.backupPubkey,
+            '--label',
+            'backup',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] recipient set --owner robot --prikey /path/to/key --pubkey ... --label backup', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'recipient',
+            'set',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--pubkey',
+            scene.backupPubkey,
+            '--label',
+            'backup',
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('recipient added', () => {
+        // keyrack recipient set --json returns the added recipient object
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.label).toEqual('backup');
+      });
+    });
+  });
+
+  /**
+   * [uc8] recipient del --prikey with custom owner
+   * recipient del decrypts manifest, needs --prikey for custom key locations
+   */
+  given('[case8] recipient del --prikey with custom owner', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-direct',
+        suffix: 'recipient-del-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      // generate a second keypair to add then delete as recipient
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'backup_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+      const backupPubkeyPath = join(customKeyDir, 'backup_key.pub');
+      // strip comment to avoid shell split: "ssh-ed25519 AAAA... comment" → "ssh-ed25519 AAAA..."
+      const backupPubkey = readFileSync(backupPubkeyPath, 'utf8')
+        .trim()
+        .split(' ')
+        .slice(0, 2)
+        .join(' ');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      // add backup recipient
+      await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'recipient',
+          'set',
+          '--owner',
+          'robot',
+          '--prikey',
+          prikeyPath,
+          '--pubkey',
+          backupPubkey,
+          '--label',
+          'backup',
+        ],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      return { repo, prikeyPath };
+    });
+
+    when('[t0] recipient del without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'recipient',
+            'del',
+            '--owner',
+            'robot',
+            '--label',
+            'backup',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] recipient del --owner robot --prikey /path/to/key --label backup', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'recipient',
+            'del',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--label',
+            'backup',
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('recipient removed', () => {
+        // keyrack recipient del --json returns { deleted: label }
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.deleted).toEqual('backup');
       });
     });
   });

@@ -38,7 +38,7 @@ export interface KeyrackHostContext {
  */
 export const genKeyrackHostContext = async (input: {
   owner: string | null;
-  prikey?: string;
+  prikey: string | null;
 }): Promise<KeyrackHostContext> => {
   const { owner, prikey } = input;
 

@@ -105,7 +105,10 @@ export const initKeyrack = async (input: {
   // check if already initialized (idempotent)
   if (existsSync(manifestPath)) {
     // load manifest to get recipient
-    const manifestFound = await daoKeyrackHostManifest.get({ owner });
+    const manifestFound = await daoKeyrackHostManifest.get({
+      owner,
+      prikey: null,
+    });
     if (!manifestFound)
       throw new UnexpectedCodePathError(
         'manifest file present but could not be read',

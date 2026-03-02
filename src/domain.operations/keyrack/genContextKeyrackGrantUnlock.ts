@@ -41,13 +41,13 @@ export interface ContextKeyrackGrantUnlock {
  * .what = generate full context for keyrack unlock operations
  * .why = constructs runtime context with manifests and all adapters
  *
- * .note = prikey is optional; when provided, uses it directly for manifest decryption
+ * .note = prikey when provided, uses it directly for manifest decryption
  * .note = may prompt for passphrase on manifest decryption
  */
 export const genContextKeyrackGrantUnlock = async (input: {
   owner: string | null;
   gitroot: string;
-  prikey?: string;
+  prikey: string | null;
 }): Promise<ContextKeyrackGrantUnlock> => {
   const { owner, prikey } = input;
 

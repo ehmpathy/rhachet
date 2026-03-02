@@ -165,7 +165,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .command('recipient')
     .description('manage recipients who can decrypt the host manifest');
 
-  // keyrack recipient set --pubkey <pubkey> --label <label> [--owner owner] [--stanza ssh]
+  // keyrack recipient set --pubkey <pubkey> --label <label> [--owner owner] [--stanza ssh] [--prikey path]
   recipient
     .command('set')
     .description('add a recipient to the host manifest')
@@ -177,6 +177,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '--stanza <format>',
       'force stanza format: ssh (for ssh-keygen -p prevention flow)',
     )
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -185,6 +186,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         owner?: string;
         for?: string;
         stanza?: string;
+        prikey?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
@@ -198,7 +200,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           owner,
           pubkey: opts.pubkey,
           label: opts.label,
-          stanza: opts.stanza as 'ssh' | undefined,
+          stanza: (opts.stanza as 'ssh' | undefined) ?? null,
+          prikey: opts.prikey ?? null,
         });
 
         if (opts.json) {
@@ -217,57 +220,68 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       },
     );
 
-  // keyrack recipient get [--owner owner]
+  // keyrack recipient get [--owner owner] [--prikey path]
   recipient
     .command('get')
     .description('list recipients from the host manifest')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { owner?: string; for?: string; json?: boolean }) => {
-      // --owner takes precedence; --for is alias
-      const owner = opts.owner ?? opts.for ?? null;
+    .action(
+      async (opts: {
+        owner?: string;
+        for?: string;
+        prikey?: string;
+        json?: boolean;
+      }) => {
+        // --owner takes precedence; --for is alias
+        const owner = opts.owner ?? opts.for ?? null;
 
-      const recipients = await getKeyrackRecipients({
-        owner,
-      });
+        const recipients = await getKeyrackRecipients({
+          owner,
+          prikey: opts.prikey ?? null,
+        });
 
-      if (opts.json) {
-        console.log(JSON.stringify(recipients, null, 2));
-      } else {
-        console.log('');
-        console.log('🔐 keyrack recipient get');
-        if (recipients.length === 0) {
-          console.log('   └─ (no recipients)');
+        if (opts.json) {
+          console.log(JSON.stringify(recipients, null, 2));
         } else {
-          for (let i = 0; i < recipients.length; i++) {
-            const r = recipients[i]!;
-            const isLast = i === recipients.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
-            console.log(`${prefix} ${r.label}`);
-            console.log(`${indent}├─ mech: ${r.mech}`);
-            console.log(`${indent}├─ pubkey: ${r.pubkey.slice(0, 20)}...`);
-            console.log(`${indent}└─ added: ${r.addedAt}`);
+          console.log('');
+          console.log('🔐 keyrack recipient get');
+          if (recipients.length === 0) {
+            console.log('   └─ (no recipients)');
+          } else {
+            for (let i = 0; i < recipients.length; i++) {
+              const r = recipients[i]!;
+              const isLast = i === recipients.length - 1;
+              const prefix = isLast ? '   └─' : '   ├─';
+              const indent = isLast ? '      ' : '   │  ';
+              console.log(`${prefix} ${r.label}`);
+              console.log(`${indent}├─ mech: ${r.mech}`);
+              console.log(`${indent}├─ pubkey: ${r.pubkey.slice(0, 20)}...`);
+              console.log(`${indent}└─ added: ${r.addedAt}`);
+            }
           }
+          console.log('');
         }
-        console.log('');
-      }
-    });
+      },
+    );
 
-  // keyrack recipient del --label <label> [--owner owner]
+  // keyrack recipient del --label <label> [--owner owner] [--prikey path]
   recipient
     .command('del')
     .description('remove a recipient from the host manifest')
     .requiredOption('--label <label>', 'label of recipient to remove')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
         label: string;
         owner?: string;
         for?: string;
+        prikey?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
@@ -276,6 +290,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         await delKeyrackRecipient({
           owner,
           label: opts.label,
+          prikey: opts.prikey ?? null,
         });
 
         if (opts.json) {
@@ -673,7 +688,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
         const hostContext = await genKeyrackHostContext({
           owner,
-          prikey: opts.prikey,
+          prikey: opts.prikey ?? null,
         });
 
         // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
@@ -779,7 +794,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       },
     );
 
-  // keyrack del --key <key> [--env env] [--owner owner] [--json]
+  // keyrack del --key <key> [--env env] [--owner owner] [--prikey path] [--json]
   keyrack
     .command('del')
     .description('remove a credential key from this host')
@@ -796,6 +811,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       'target org: @this or @all (default: @this)',
       '@this',
     )
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -804,6 +820,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         owner?: string;
         for?: string;
         org: string;
+        prikey?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
@@ -828,6 +845,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
         const hostContext = await genKeyrackHostContext({
           owner,
+          prikey: opts.prikey ?? null,
         });
 
         // provide repoManifest and gitroot to hostContext for keyrack.yml writes
@@ -961,7 +979,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const context = await genContextKeyrackGrantUnlock({
           owner,
           gitroot,
-          prikey: opts.prikey,
+          prikey: opts.prikey ?? null,
         });
 
         // unlock keys and send to daemon
@@ -1125,38 +1143,49 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('list configured keys on this host')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
+    .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { owner?: string; for?: string; json?: boolean }) => {
-      // --owner takes precedence; --for is alias
-      const owner = opts.owner ?? opts.for ?? null;
+    .action(
+      async (opts: {
+        owner?: string;
+        for?: string;
+        prikey?: string;
+        json?: boolean;
+      }) => {
+        // --owner takes precedence; --for is alias
+        const owner = opts.owner ?? opts.for ?? null;
 
-      // generate context (use owner from --owner flag)
-      const context = await genKeyrackHostContext({ owner });
-      const hosts = context.hostManifest.hosts;
-      const slugs = Object.keys(hosts).sort();
+        // generate context (use owner from --owner flag)
+        const context = await genKeyrackHostContext({
+          owner,
+          prikey: opts.prikey ?? null,
+        });
+        const hosts = context.hostManifest.hosts;
+        const slugs = Object.keys(hosts).sort();
 
-      // output results
-      if (opts.json) {
-        console.log(JSON.stringify(hosts, null, 2));
-      } else {
-        console.log('');
-        console.log('🔐 keyrack list');
-        if (slugs.length === 0) {
-          console.log('   └─ (no keys configured on host)');
+        // output results
+        if (opts.json) {
+          console.log(JSON.stringify(hosts, null, 2));
         } else {
-          for (let i = 0; i < slugs.length; i++) {
-            const slug = slugs[i]!;
-            const host = hosts[slug]!;
-            const isLast = i === slugs.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
-            console.log(`${prefix} ${slug}`);
-            console.log(`${indent}├─ env: ${host.env}`);
-            console.log(`${indent}├─ org: ${host.org}`);
-            console.log(`${indent}├─ mech: ${host.mech}`);
-            console.log(`${indent}└─ vault: ${host.vault}`);
+          console.log('');
+          console.log('🔐 keyrack list');
+          if (slugs.length === 0) {
+            console.log('   └─ (no keys configured on host)');
+          } else {
+            for (let i = 0; i < slugs.length; i++) {
+              const slug = slugs[i]!;
+              const host = hosts[slug]!;
+              const isLast = i === slugs.length - 1;
+              const prefix = isLast ? '   └─' : '   ├─';
+              const indent = isLast ? '      ' : '   │  ';
+              console.log(`${prefix} ${slug}`);
+              console.log(`${indent}├─ env: ${host.env}`);
+              console.log(`${indent}├─ org: ${host.org}`);
+              console.log(`${indent}├─ mech: ${host.mech}`);
+              console.log(`${indent}└─ vault: ${host.vault}`);
+            }
           }
         }
-      }
-    });
+      },
+    );
 };

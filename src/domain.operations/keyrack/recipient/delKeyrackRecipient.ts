@@ -13,13 +13,14 @@ import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
  * .note = throws if would remove last recipient
  */
 export const delKeyrackRecipient = async (input: {
-  owner?: string | null;
+  owner: string | null;
   label: string;
+  prikey: string | null;
 }): Promise<void> => {
-  const owner = input.owner ?? null;
+  const { owner, prikey } = input;
 
   // load manifest (dao handles identity discovery)
-  const manifestFound = await daoKeyrackHostManifest.get({ owner });
+  const manifestFound = await daoKeyrackHostManifest.get({ owner, prikey });
   if (!manifestFound)
     throw new BadRequestError(
       'keyrack manifest not found; run `rhx keyrack init` first',
