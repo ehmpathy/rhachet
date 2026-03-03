@@ -25,7 +25,6 @@ export const unlockKeyrackKeys = async (
     env?: string;
     key?: string;
     duration?: string;
-    passphrase?: string;
   },
   context: ContextKeyrackGrantUnlock,
 ): Promise<{
@@ -143,7 +142,7 @@ export const unlockKeyrackKeys = async (
     const isUnlocked = await adapter.isUnlocked({ exid: hostConfig.exid });
     if (!isUnlocked) {
       await adapter.unlock({
-        passphrase: input.passphrase,
+        identity: null, // identity already set in session via genKeyrackHostContext
         exid: hostConfig.exid,
       });
     }

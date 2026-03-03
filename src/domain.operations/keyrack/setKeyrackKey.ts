@@ -5,9 +5,7 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
-import { asKeyrackKeyName } from './asKeyrackKeyName';
 import type { KeyrackHostContext } from './genKeyrackHostContext';
-import { getAllKeyrackSlugsForEnv } from './getAllKeyrackSlugsForEnv';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 /**
@@ -15,7 +13,7 @@ import { setKeyrackKeyHost } from './setKeyrackKeyHost';
  * .why = single domain operation for CLI to call (layer separation)
  *
  * .note = delegates vault storage and roundtrip validation to vault adapters
- * .note = handles env=all expansion into per-env slugs
+ * .note = env=all stores once under $org.all.$key (no expansion)
  */
 export const setKeyrackKey = async (
   input: {
@@ -35,19 +33,8 @@ export const setKeyrackKey = async (
 ): Promise<{
   results: KeyrackKeyHost[];
 }> => {
-  // compute target slugs based on env
-  const targetSlugs: string[] = (() => {
-    // env=all with manifest: expand to all envs that declare this key
-    if (input.env === 'all' && input.repoManifest) {
-      const expanded = getAllKeyrackSlugsForEnv({
-        manifest: input.repoManifest,
-        env: 'all',
-      }).filter((s) => asKeyrackKeyName({ slug: s }) === input.key);
-      if (expanded.length > 0) return expanded;
-    }
-    // specific env or no manifest: use simple slug
-    return [`${input.org}.${input.env}.${input.key}`];
-  })();
+  // compute target slug (no expansion — env=all stores once under $org.all.$key)
+  const targetSlugs = [`${input.org}.${input.env}.${input.key}`];
 
   // set host config for each target slug
   const results: KeyrackKeyHost[] = [];

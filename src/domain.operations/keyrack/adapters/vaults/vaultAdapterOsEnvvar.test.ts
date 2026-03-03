@@ -13,7 +13,9 @@ describe('vaultAdapterOsEnvvar', () => {
 
     when('[t1] unlock called', () => {
       then('completes without error (no-op)', async () => {
-        await expect(vaultAdapterOsEnvvar.unlock({})).resolves.toBeUndefined();
+        await expect(
+          vaultAdapterOsEnvvar.unlock({ identity: null }),
+        ).resolves.toBeUndefined();
       });
     });
   });

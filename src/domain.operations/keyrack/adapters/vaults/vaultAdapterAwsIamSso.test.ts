@@ -56,11 +56,13 @@ describe('vaultAdapterAwsIamSso', () => {
 
     when('[t2] unlock called without exid', () => {
       then('completes without error', async () => {
-        await expect(vaultAdapterAwsIamSso.unlock({})).resolves.toBeUndefined();
+        await expect(
+          vaultAdapterAwsIamSso.unlock({ identity: null }),
+        ).resolves.toBeUndefined();
       });
 
       then('does not call aws cli', async () => {
-        await vaultAdapterAwsIamSso.unlock({});
+        await vaultAdapterAwsIamSso.unlock({ identity: null });
         expect(execMock).not.toHaveBeenCalled();
         expect(spawnMock).not.toHaveBeenCalled();
       });
@@ -146,7 +148,10 @@ describe('vaultAdapterAwsIamSso', () => {
       });
 
       then('does not trigger aws sso login', async () => {
-        await vaultAdapterAwsIamSso.unlock({ exid: 'acme-prod' });
+        await vaultAdapterAwsIamSso.unlock({
+          identity: null,
+          exid: 'acme-prod',
+        });
         expect(spawnMock).not.toHaveBeenCalled();
       });
     });
@@ -169,7 +174,10 @@ describe('vaultAdapterAwsIamSso', () => {
       then(
         'triggers aws sso login with --profile flag (portal flow)',
         async () => {
-          await vaultAdapterAwsIamSso.unlock({ exid: 'acme-prod' });
+          await vaultAdapterAwsIamSso.unlock({
+            identity: null,
+            exid: 'acme-prod',
+          });
 
           expect(spawnMock).toHaveBeenCalledTimes(1);
           const [cmd, args] = spawnMock.mock.calls[0] as [
@@ -203,7 +211,7 @@ describe('vaultAdapterAwsIamSso', () => {
 
       then('throws error', async () => {
         await expect(
-          vaultAdapterAwsIamSso.unlock({ exid: 'acme-prod' }),
+          vaultAdapterAwsIamSso.unlock({ identity: null, exid: 'acme-prod' }),
         ).rejects.toThrow('aws sso login failed');
       });
     });

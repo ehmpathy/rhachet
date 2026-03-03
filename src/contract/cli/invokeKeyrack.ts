@@ -936,7 +936,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '--prikey <path>',
       'explicit ssh private key path (fallback when discovery fails)',
     )
-    .option('--passphrase <passphrase>', 'passphrase for encrypted vaults')
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -946,7 +945,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         key?: string;
         duration?: string;
         prikey?: string;
-        passphrase?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
@@ -989,7 +987,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             env: opts.env,
             key: opts.key,
             duration: opts.duration,
-            passphrase: opts.passphrase,
           },
           context,
         );

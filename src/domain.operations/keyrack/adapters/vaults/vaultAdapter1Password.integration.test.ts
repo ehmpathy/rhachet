@@ -89,7 +89,7 @@ describe('vaultAdapter1Password', () => {
     when('[t0] unlock called', () => {
       then('does not throw (noop)', async () => {
         // unlock is a noop for 1password - it relies on biometric or env var
-        await vaultAdapter1Password.unlock({});
+        await vaultAdapter1Password.unlock({ identity: null });
         expect(true).toBe(true);
       });
     });

@@ -95,7 +95,7 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
    * .note = always silent - browser popup is the feedback, not cli noise
    */
   unlock: async (input: {
-    passphrase?: string;
+    identity: string | null;
     silent?: boolean;
     exid?: string | null;
   }) => {
@@ -158,6 +158,7 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
 
       // 1. unlock — prove sso session is valid after setup
       await vaultAdapterAwsIamSso.unlock({
+        identity: null,
         exid: profileName,
       });
       console.log('      ├─ ✓ unlock');

@@ -183,8 +183,8 @@ describe('keyrack vault os.secure', () => {
   });
 
   /**
-   * [uc3] unlock command with os.secure vault
-   * session-based unlock sends keys to daemon
+   * [uc3] --passphrase flag is deprecated
+   * passphrase auth was removed in favor of identity-based (--prikey) auth
    */
   given('[case3] repo with os.secure vault', () => {
     const repo = useBeforeAll(async () =>
@@ -194,19 +194,27 @@ describe('keyrack vault os.secure', () => {
     when('[t0] keyrack unlock --passphrase', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'unlock', '--env', 'test', '--passphrase', 'test-passphrase-123'],
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'test',
+            '--passphrase',
+            'test-passphrase-123',
+          ],
           cwd: repo.path,
           env: { HOME: repo.path },
+          logOnError: false,
         }),
       );
 
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
       });
 
-      then('output contains unlocked indicator', () => {
+      then('error indicates --passphrase is not recognized', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/unlock|keys/i);
+        expect(output).toMatch(/unknown option.*--passphrase/i);
       });
     });
   });
