@@ -1,6 +1,7 @@
 import { given, then, when } from 'test-fns';
 
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
+import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
 import type { KeyrackHostContext } from './genKeyrackHostContext';
@@ -107,22 +108,72 @@ describe('setKeyrackKey', () => {
     });
   });
 
-  given('[case3] --at custom keyrack path with env=all', () => {
-    when('[t0] called with at and env=all', () => {
-      then(
-        'it should NOT expand from manifest, should use simple slug',
-        async () => {
+  given('[case3] env=all stores single slug', () => {
+    when('[t0] called with env=all', () => {
+      then('it should store under $org.all.$key only', async () => {
+        const mockAdapter = genMockVaultAdapter();
+        mockAdapter.set = jest.fn();
+
+        const context: KeyrackHostContext = {
+          owner: null,
+          hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+          repoManifest: {
+            org: 'ehmpathy',
+          },
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': mockAdapter,
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.iam.sso': genMockVaultAdapter(),
+          },
+        };
+
+        const result = await setKeyrackKey(
+          {
+            key: 'NEW_KEY',
+            env: 'all',
+            org: 'customorg',
+            vault: 'os.direct',
+            mech: 'PERMANENT_VIA_REPLICA',
+            secret: 'test-secret',
+            at: 'custom/role/keyrack.yml',
+          },
+          context,
+        );
+
+        // should store exactly ONE slug under $org.all.$key
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0]).toMatchObject({
+          slug: 'customorg.all.NEW_KEY',
+          vault: 'os.direct',
+          mech: 'PERMANENT_VIA_REPLICA',
+        });
+      });
+    });
+
+    when(
+      '[t1] called with env=all and repo manifest with multiple envs',
+      () => {
+        then('it should NOT expand to multiple slugs', async () => {
           const mockAdapter = genMockVaultAdapter();
           mockAdapter.set = jest.fn();
+
+          // create repo manifest with multiple envs and prior keys
+          const repoManifest = genMockKeyrackRepoManifest({
+            org: 'ehmpathy',
+            envs: ['prod', 'prep', 'test'],
+            keys: {
+              'ehmpathy.prod.PRIOR_KEY': { env: 'prod', name: 'PRIOR_KEY' },
+              'ehmpathy.prep.PRIOR_KEY': { env: 'prep', name: 'PRIOR_KEY' },
+            },
+          });
 
           const context: KeyrackHostContext = {
             owner: null,
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-            repoManifest: {
-              org: 'ehmpathy',
-            },
-            // note: no gitroot, so expansion from custom manifest is skipped
-            // this tests the fallback to simple slug when gitroot is absent
+            repoManifest: { org: repoManifest.org },
             vaultAdapters: {
               'os.envvar': genMockVaultAdapter(),
               'os.direct': mockAdapter,
@@ -135,26 +186,32 @@ describe('setKeyrackKey', () => {
 
           const result = await setKeyrackKey(
             {
-              key: 'NEW_KEY',
+              key: 'MY_SECRET',
               env: 'all',
-              org: 'customorg',
+              org: 'ehmpathy',
               vault: 'os.direct',
               mech: 'PERMANENT_VIA_REPLICA',
               secret: 'test-secret',
-              at: 'custom/role/keyrack.yml',
+              repoManifest,
             },
             context,
           );
 
-          // should NOT be empty — should use simple slug path
+          // should NOT expand — should store exactly ONE slug
           expect(result.results).toHaveLength(1);
-          expect(result.results[0]).toMatchObject({
-            slug: 'customorg.all.NEW_KEY',
-            vault: 'os.direct',
-            mech: 'PERMANENT_VIA_REPLICA',
-          });
-        },
-      );
-    });
+          expect(result.results[0]!.slug).toEqual('ehmpathy.all.MY_SECRET');
+          // should NOT have prod, prep, or test slugs
+          expect(result.results.map((r) => r.slug)).not.toContain(
+            'ehmpathy.prod.MY_SECRET',
+          );
+          expect(result.results.map((r) => r.slug)).not.toContain(
+            'ehmpathy.prep.MY_SECRET',
+          );
+          expect(result.results.map((r) => r.slug)).not.toContain(
+            'ehmpathy.test.MY_SECRET',
+          );
+        });
+      },
+    );
   });
 });

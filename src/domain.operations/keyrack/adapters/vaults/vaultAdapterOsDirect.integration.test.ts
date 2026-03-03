@@ -146,7 +146,7 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t3] unlock called', () => {
       then('is a noop (always unlocked)', async () => {
-        await vaultAdapterOsDirect.unlock({});
+        await vaultAdapterOsDirect.unlock({ identity: null });
 
         // verify store is unchanged
         const resultA = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });

@@ -1,0 +1,13 @@
+{"stone":"1.vision","status":"blocked","blocker":"approval","reason":"wait for human approval"}
+{"stone":"1.vision","status":"approved"}
+{"stone":"1.vision","status":"passed"}
+{"stone":"2.1.criteria.blackbox","status":"blocked","blocker":"review.self","reason":"review.self required: all-real-junior"}
+{"stone":"2.1.criteria.blackbox","status":"blocked","blocker":"review.self","reason":"review.self required: all-real-junior"}
+{"stone":"2.1.criteria.blackbox","status":"approved"}
+{"stone":"2.1.criteria.blackbox","status":"passed"}
+{"stone":"2.2.criteria.blackbox.matrix","status":"passed"}
+{"stone":"3.3.blueprint.v1","status":"blocked","blocker":"review.self","reason":"review.self required: behavior-declaration-coverage"}
+{"stone":"3.3.blueprint.v1","status":"approved"}
+{"stone":"3.3.blueprint.v1","status":"passed"}
+{"stone":"5.1.execution.phase0_to_phaseN.v1","status":"blocked","blocker":"review.self","reason":"review.self required: behavior-declaration-coverage"}
+{"stone":"5.1.execution.phase0_to_phaseN.v1","status":"passed"}

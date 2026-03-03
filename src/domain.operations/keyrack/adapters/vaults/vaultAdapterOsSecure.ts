@@ -1,4 +1,3 @@
-import * as age from 'age-encryption';
 import { asHashSha256Sync } from 'hash-fns';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
@@ -10,7 +9,6 @@ import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
-import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 import {
   existsSync,
@@ -58,15 +56,6 @@ const getCredentialPath = (input: {
 };
 
 /**
- * .what = session state for the os.secure vault
- * .why = tracks the unlock passphrase for the current session
- *
- * .note = the passphrase is held in memory only for the session lifetime
- * .note = KEYRACK_PASSPHRASE env var can be used as fallback for CLI chained commands
- */
-let sessionPassphrase: string | null = null;
-
-/**
  * .what = session state for the age identity
  * .why = tracks the decryption identity for recipient-based encryption
  *
@@ -74,14 +63,6 @@ let sessionPassphrase: string | null = null;
  * .note = identity is set via setOsSecureSessionIdentity from manifest decryption
  */
 let sessionIdentity: string | null = null;
-
-/**
- * .what = get the active passphrase from session or env
- * .why = enables passphrase to persist across CLI invocations via env var
- */
-const getActivePassphrase = (): string | null => {
-  return sessionPassphrase ?? process.env.KEYRACK_PASSPHRASE ?? null;
-};
 
 /**
  * .what = get the active identity from session
@@ -101,73 +82,44 @@ export const setOsSecureSessionIdentity = (identity: string | null): void => {
 
 /**
  * .what = vault adapter for os-secure storage
- * .why = stores credentials in age-encrypted files with passphrase protection
+ * .why = stores credentials in age-encrypted files with identity-based encryption
  *
- * .note = os.secure requires explicit unlock — the passphrase is held in memory
+ * .note = os.secure requires explicit unlock via identity (ssh key)
  */
 export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
   /**
    * .what = unlock the vault for the current session
-   * .why = captures the identity or passphrase for subsequent get/set operations
+   * .why = captures the identity for subsequent get/set operations
    *
-   * .note = unlock can use identity (preferred) or passphrase (legacy):
-   *   1. input.identity (programmatic, set from manifest decryption)
-   *   2. input.passphrase (programmatic, legacy)
-   *   3. KEYRACK_PASSPHRASE env var (legacy)
-   *   4. interactive prompt with hidden input (human interactive, legacy)
+   * .note = identity flows from manifest decryption via setOsSecureSessionIdentity
    */
-  unlock: async (input: { passphrase?: string; identity?: string }) => {
-    // check identity input param first (preferred path — set from manifest decryption)
-    if (input.identity) {
+  unlock: async (input: { identity: string | null }) => {
+    // check if identity already available (set via setOsSecureSessionIdentity)
+    if (getActiveIdentity() !== null) return;
+
+    // check input identity
+    if (input.identity !== null) {
       sessionIdentity = input.identity;
       return;
     }
 
-    // check passphrase input param (legacy path)
-    if (input.passphrase) {
-      sessionPassphrase = input.passphrase;
-      return;
-    }
-
-    // check passphrase env var (legacy)
-    if (process.env.KEYRACK_PASSPHRASE) {
-      sessionPassphrase = process.env.KEYRACK_PASSPHRASE;
-      return;
-    }
-
-    // prompt interactively with hidden input (human interactive, legacy)
-    const passphrase = await promptHiddenInput({
-      prompt: '🔐 os.secure passphrase: ',
+    // no identity available
+    throw new UnexpectedCodePathError('os.secure unlock requires identity', {
+      hint: 'use --prikey to specify ssh key or run keyrack init',
     });
-
-    // validate passphrase was provided
-    if (!passphrase) {
-      throw new UnexpectedCodePathError(
-        'os.secure unlock requires identity or passphrase',
-        {
-          input,
-          hint: 'unlock the manifest first, or provide a passphrase',
-        },
-      );
-    }
-
-    sessionPassphrase = passphrase;
   },
 
   /**
    * .what = check if the vault is unlocked
-   * .why = returns true if an identity or passphrase is available (session or env)
+   * .why = returns true if identity is available
    */
   isUnlocked: async () => {
-    return getActiveIdentity() !== null || getActivePassphrase() !== null;
+    return getActiveIdentity() !== null;
   },
 
   /**
    * .what = retrieve a credential from the encrypted vault
-   * .why = decrypts the age file with identity or passphrase
-   *
-   * .note = tries identity-based decryption first (recipient-encrypted)
-   * .note = falls back to passphrase-based decryption (legacy behavior)
+   * .why = decrypts the age file with identity
    */
   get: async (input) => {
     // return null if file does not exist
@@ -175,42 +127,27 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     const path = getCredentialPath({ slug: input.slug, owner });
     if (!existsSync(path)) return null;
 
-    // try identity-based decryption first (recipient-encrypted credentials)
-    // note: read as text since encryptToRecipients outputs armored format
+    // identity required for decryption
     const identity = getActiveIdentity();
-    if (identity) {
-      const ciphertextArmored = readFileSync(path, 'utf8');
-      const plaintext = await decryptWithIdentity({
-        ciphertext: ciphertextArmored,
-        identity,
-      });
-      return plaintext;
-    }
-
-    // read ciphertext as bytes for passphrase-based decryption (legacy binary format)
-    const ciphertextBytes = readFileSync(path);
-
-    // fall back to passphrase-based decryption (legacy)
-    const passphrase = getActivePassphrase();
-    if (!passphrase)
+    if (!identity) {
       throw new UnexpectedCodePathError('os.secure vault is locked', {
         input,
-        note: 'no identity and no passphrase available',
+        hint: 'use --prikey to specify ssh key or run keyrack init',
       });
+    }
 
-    // decrypt with passphrase
-    const decrypter = new age.Decrypter();
-    decrypter.addPassphrase(passphrase);
-    const plaintext = await decrypter.decrypt(ciphertextBytes, 'text');
+    // decrypt with identity (recipient-encrypted credentials)
+    const ciphertextArmored = readFileSync(path, 'utf8');
+    const plaintext = await decryptWithIdentity({
+      ciphertext: ciphertextArmored,
+      identity,
+    });
     return plaintext;
   },
 
   /**
    * .what = store a credential in the encrypted vault
-   * .why = encrypts with age and writes to disk
-   *
-   * .note = if vaultRecipient provided, encrypts to that recipient
-   * .note = if no vaultRecipient, encrypts with passphrase (legacy behavior)
+   * .why = encrypts with age to recipients and writes to disk
    */
   set: async (input) => {
     // secret is required for os.secure vault
@@ -256,18 +193,14 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
       return;
     }
 
-    // fall back to passphrase-based encryption (legacy)
-    const passphrase = getActivePassphrase();
-    if (!passphrase)
-      throw new UnexpectedCodePathError('os.secure vault is locked', {
-        input,
-        note: 'no vaultRecipient, no manifest recipients, and no passphrase available',
-      });
-
-    const encrypter = new age.Encrypter();
-    encrypter.setPassphrase(passphrase);
-    const ciphertext = await encrypter.encrypt(input.secret);
-    writeFileSync(path, Buffer.from(ciphertext));
+    // no recipients available
+    throw new UnexpectedCodePathError(
+      'os.secure set requires recipients (vaultRecipient or manifest recipients)',
+      {
+        slug: input.slug,
+        hint: 'use --prikey to specify ssh key or run keyrack init',
+      },
+    );
   },
 
   /**

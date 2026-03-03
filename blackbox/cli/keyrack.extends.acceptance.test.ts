@@ -578,10 +578,18 @@ env.test:
           cwd: repo.path,
           env: { HOME: repo.path },
         });
-      // note: exit 2 because other keys in repo may be locked (--for repo gets all keys)
+        // note: exit 2 because other keys in repo may be locked (--for repo gets all keys)
         expect(getResult.status).toEqual(2);
-        const parsed = JSON.parse(getResult.stdout) as Array<{ slug: string }>;
-        expect(parsed.some((k) => k.slug.includes('SHARED_TOKEN'))).toBe(true);
+        const parsed = JSON.parse(getResult.stdout) as Array<{
+          slug?: string;
+          grant?: { slug: string };
+        }>;
+        // note: slug is at k.slug for locked items, k.grant.slug for granted items
+        expect(
+          parsed.some((k) =>
+            (k.slug ?? k.grant?.slug)?.includes('SHARED_TOKEN'),
+          ),
+        ).toBe(true);
       });
 
       then('unlock with --env test finds key via expansion', async () => {

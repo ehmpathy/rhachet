@@ -9,11 +9,11 @@ export interface KeyrackHostVaultAdapter {
    * .what = unlock the vault for the current session
    * .why = enables subsequent get operations without re-authentication
    *
-   * .note = passphrase is for os.secure vault (keychain unlock)
+   * .note = identity is for os.secure vault (age encryption via ssh key)
    * .note = silent mode for aws.iam.sso vault (suppress cli output)
    */
   unlock: (input: {
-    passphrase?: string;
+    identity: string | null;
     silent?: boolean;
     exid?: string | null;
   }) => Promise<void>;

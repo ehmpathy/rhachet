@@ -1,14 +1,22 @@
 import { getError, given, then, when } from 'test-fns';
 
+import {
+  TEST_AGE_IDENTITY,
+  TEST_AGE_RECIPIENT,
+} from '@src/.test/assets/keyrack/age/testAgeKeys';
 import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { vaultAdapterOsSecure } from './vaultAdapterOsSecure';
+import {
+  setOsSecureSessionIdentity,
+  vaultAdapterOsSecure,
+} from './vaultAdapterOsSecure';
 
 describe('vaultAdapterOsSecure', () => {
   const tempHome = withTempHome({ name: 'vaultAdapterOsSecure' });
-  const testPassphrase = 'test-passphrase-for-integration-tests';
+  const testIdentity = TEST_AGE_IDENTITY;
+  const testRecipient = TEST_AGE_RECIPIENT;
 
   beforeAll(() => tempHome.setup());
   afterAll(() => tempHome.teardown());
@@ -25,8 +33,8 @@ describe('vaultAdapterOsSecure', () => {
     );
     rmSync(vaultDir, { recursive: true, force: true });
 
-    // reset session state by lock then unlock
-    // note: module-level sessionPassphrase resets require fresh unlock
+    // reset session identity to ensure clean state between tests
+    setOsSecureSessionIdentity(null);
   });
 
   given('[case1] vault is locked', () => {
@@ -57,7 +65,8 @@ describe('vaultAdapterOsSecure', () => {
 
   given('[case2] vault is unlocked', () => {
     beforeEach(async () => {
-      await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
+      setOsSecureSessionIdentity(testIdentity);
+      await vaultAdapterOsSecure.unlock({ identity: null });
     });
 
     when('[t0] isUnlocked called', () => {
@@ -81,6 +90,7 @@ describe('vaultAdapterOsSecure', () => {
           secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
+          vaultRecipient: testRecipient,
         });
 
         const vaultDir = join(
@@ -104,6 +114,7 @@ describe('vaultAdapterOsSecure', () => {
           secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
+          vaultRecipient: testRecipient,
         });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'XAI_API_KEY' });
@@ -114,18 +125,21 @@ describe('vaultAdapterOsSecure', () => {
 
   given('[case3] vault has stored keys', () => {
     beforeEach(async () => {
-      await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
+      setOsSecureSessionIdentity(testIdentity);
+      await vaultAdapterOsSecure.unlock({ identity: null });
       await vaultAdapterOsSecure.set({
         slug: 'KEY_A',
         secret: 'value-a',
         env: 'test',
         org: 'testorg',
+        vaultRecipient: testRecipient,
       });
       await vaultAdapterOsSecure.set({
         slug: 'KEY_B',
         secret: 'value-b',
         env: 'test',
         org: 'testorg',
+        vaultRecipient: testRecipient,
       });
     });
 
@@ -146,6 +160,7 @@ describe('vaultAdapterOsSecure', () => {
           secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
+          vaultRecipient: testRecipient,
         });
 
         const result = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
@@ -158,6 +173,7 @@ describe('vaultAdapterOsSecure', () => {
           secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
+          vaultRecipient: testRecipient,
         });
 
         const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
@@ -184,12 +200,14 @@ describe('vaultAdapterOsSecure', () => {
 
   given('[case4] encryption security', () => {
     beforeEach(async () => {
-      await vaultAdapterOsSecure.unlock({ passphrase: testPassphrase });
+      setOsSecureSessionIdentity(testIdentity);
+      await vaultAdapterOsSecure.unlock({ identity: null });
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',
         secret: 'super-secret-value',
         env: 'test',
         org: 'testorg',
+        vaultRecipient: testRecipient,
       });
     });
 
@@ -226,8 +244,8 @@ describe('vaultAdapterOsSecure', () => {
         const { readFileSync } = await import('node:fs');
         const content = readFileSync(join(vaultDir, files[0]!), 'utf8');
 
-        // age-encrypted files start with "age-encryption.org"
-        expect(content).toContain('age-encryption.org');
+        // age-encrypted files in armored format start with "-----BEGIN AGE ENCRYPTED FILE-----"
+        expect(content).toContain('-----BEGIN AGE ENCRYPTED FILE-----');
       });
     });
   });

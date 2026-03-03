@@ -125,13 +125,14 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('returns locked status for prep keys (vault keys require unlock)', () => {
+      then('returns locked status for prep keys + env=all keys (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
         expect(Array.isArray(parsed)).toBe(true);
         const locked = parsed.filter(
           (a: { status: string }) => a.status === 'locked',
         );
-        expect(locked.length).toEqual(2);
+        // note: 3 locked = 2 prep-specific + 1 env=all (env=all included for specific env queries)
+        expect(locked.length).toEqual(3);
       });
 
       then('does NOT contain prod keys', () => {
@@ -215,12 +216,13 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('returns locked status for prod keys (vault keys require unlock)', () => {
+      then('returns locked status for prod keys + env=all keys (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
         const locked = parsed.filter(
           (a: { status: string }) => a.status === 'locked',
         );
-        expect(locked.length).toEqual(2);
+        // note: 3 locked = 2 prod-specific + 1 env=all (env=all included for specific env queries)
+        expect(locked.length).toEqual(3);
       });
 
       then('does NOT contain prep keys', () => {
@@ -1025,9 +1027,230 @@ describe('keyrack envs', () => {
   });
 
   /**
+   * [uc13] env=all is per-org scoped
+   * keys set with env=all for orgA should NOT appear for orgB
+   */
+  given('[case8] env=all org scope', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
+    );
+
+    // ensure daemon cache is cleared before each test
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
+    when('[t0] set key for testorg.all', () => {
+      // set a key with env=all for testorg
+      const setResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'ORG_SCOPED_TOKEN',
+            '--org',
+            '@this',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'testorg-all-value-123\n',
+        }),
+      );
+
+      then('set exits with status 0', () => {
+        expect(setResult.status).toEqual(0);
+      });
+
+      then('set creates testorg.all.ORG_SCOPED_TOKEN', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        expect(parsed.slug).toEqual('testorg.all.ORG_SCOPED_TOKEN');
+      });
+    });
+
+    when('[t1] get --for repo --env prod returns testorg.all keys', () => {
+      // first set the key
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'ORG_SCOPED_TOKEN',
+            '--org',
+            '@this',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'testorg-all-value-123\n',
+        }),
+      );
+
+      // unlock all keys
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'all'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('includes testorg.all.ORG_SCOPED_TOKEN in prod results', () => {
+        const parsed = JSON.parse(result.stdout);
+        const allKey = parsed.find(
+          (a: { grant?: { slug: string } }) =>
+            a.grant?.slug === 'testorg.all.ORG_SCOPED_TOKEN',
+        );
+        expect(allKey).toBeDefined();
+        expect(allKey.grant.key.secret).toEqual('testorg-all-value-123');
+      });
+    });
+
+    when('[t2] otherorg keys do NOT appear in testorg query (org isolation)', () => {
+      // create a second repo with org: otherorg (but SAME HOME as testorg for shared daemon)
+      const otherorgRepo = useBeforeAll(async () => {
+        const otherRepo = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
+        // overwrite keyrack.yml with org: otherorg
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        await fs.writeFile(
+          path.join(otherRepo.path, '.agent', 'keyrack.yml'),
+          'org: otherorg\n\nenv.all:\n  - OTHERORG_TOKEN\n\nenv.prod:\n  - OTHERORG_PROD_KEY\n',
+        );
+        return otherRepo;
+      });
+
+      // set key for otherorg with env=all (SAME HOME as testorg for shared daemon)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'OTHERORG_TOKEN',
+            '--org',
+            '@this',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: otherorgRepo.path,
+          env: { HOME: repo.path }, // shared HOME for daemon
+          stdin: 'otherorg-secret-value\n',
+        }),
+      );
+
+      // unlock otherorg keys (so they're in daemon, shared HOME)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'all'],
+          cwd: otherorgRepo.path,
+          env: { HOME: repo.path }, // shared HOME for daemon
+        }),
+      );
+
+      // set key for testorg with env=all (shared HOME)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'TESTORG_ONLY_TOKEN',
+            '--org',
+            '@this',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path }, // shared HOME for daemon
+          stdin: 'testorg-only-value-456\n',
+        }),
+      );
+
+      // unlock testorg keys (shared HOME)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'all'],
+          cwd: repo.path,
+          env: { HOME: repo.path }, // shared HOME for daemon
+        }),
+      );
+
+      // query from testorg repo (shared HOME — daemon has both orgs' keys)
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path }, // shared HOME for daemon
+        }),
+      );
+
+      then('testorg.all.TESTORG_ONLY_TOKEN is in results (positive)', () => {
+        const parsed = JSON.parse(result.stdout);
+        const testorgKey = parsed.find(
+          (a: { grant?: { slug: string }; slug?: string }) =>
+            (a.grant?.slug ?? a.slug) === 'testorg.all.TESTORG_ONLY_TOKEN',
+        );
+        expect(testorgKey).toBeDefined();
+      });
+
+      then('otherorg.all.OTHERORG_TOKEN does NOT appear (negative - org isolation)', () => {
+        const parsed = JSON.parse(result.stdout);
+        const otherOrgKeys = parsed.filter(
+          (a: { grant?: { slug: string }; slug?: string }) =>
+            (a.grant?.slug ?? a.slug)?.startsWith('otherorg.'),
+        );
+        expect(otherOrgKeys.length).toEqual(0);
+      });
+
+      then('only testorg.* keys appear', () => {
+        const parsed = JSON.parse(result.stdout);
+        for (const attempt of parsed) {
+          const slug = attempt.grant?.slug ?? attempt.slug;
+          expect(slug).toMatch(/^testorg\./);
+        }
+      });
+    });
+  });
+
+  /**
    * [uc6] list with env awareness
    */
-  given('[case8] list with multi-env repo', () => {
+  given('[case9] list with multi-env repo', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
     );
@@ -1074,6 +1297,283 @@ describe('keyrack envs', () => {
         expect(parsed['testorg.prep.AWS_PROFILE']).toBeDefined();
         expect(parsed['testorg.prod.SHARED_API_KEY']).toBeDefined();
         expect(parsed['testorg.prep.SHARED_API_KEY']).toBeDefined();
+      });
+    });
+  });
+
+  /**
+   * [uc14] env=all is per-owner scoped
+   * keys set with env=all by ownerA should NOT appear for ownerB
+   *
+   * note: org comes from repo's keyrack.yml (testorg), not from owner
+   * owner isolation = each owner has separate host manifest at ~/.rhachet/keyrack/owner=$owner/
+   */
+  given('[case10] env=all owner scope', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
+    );
+
+    // init mechanic owner
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--for', 'mechanic'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      }),
+    );
+
+    // init foreman owner
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--for', 'foreman'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      }),
+    );
+
+    // ensure daemon cache is cleared before each test
+    beforeEach(async () => {
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+    });
+
+    when('[t0] set key for mechanic with env=all', () => {
+      const setResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'OWNER_SCOPED_TOKEN',
+            '--for',
+            'mechanic',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'mechanic-secret-123\n',
+        }),
+      );
+
+      then('set exits with status 0', () => {
+        expect(setResult.status).toEqual(0);
+      });
+
+      then('set creates testorg.all.OWNER_SCOPED_TOKEN (org from repo)', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        // org is testorg (from keyrack.yml), owner is mechanic (from --for)
+        expect(parsed.slug).toEqual('testorg.all.OWNER_SCOPED_TOKEN');
+      });
+    });
+
+    when('[t1] mechanic can access their env=all key (positive)', () => {
+      // set key for mechanic
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'OWNER_SCOPED_TOKEN',
+            '--for',
+            'mechanic',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'mechanic-secret-123\n',
+        }),
+      );
+
+      // unlock mechanic keys
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--for', 'mechanic', '--env', 'all'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.all.OWNER_SCOPED_TOKEN',
+            '--owner',
+            'mechanic',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('testorg.all.OWNER_SCOPED_TOKEN is granted for mechanic', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+        expect(parsed.grant.slug).toEqual('testorg.all.OWNER_SCOPED_TOKEN');
+        expect(parsed.grant.key.secret).toEqual('mechanic-secret-123');
+      });
+    });
+
+    when('[t2] foreman cannot access mechanic env=all key (negative)', () => {
+      // set key for mechanic
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'MECHANIC_ONLY_TOKEN',
+            '--for',
+            'mechanic',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'mechanic-only-value-456\n',
+        }),
+      );
+
+      // unlock foreman keys (not mechanic)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--for', 'foreman', '--env', 'all'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'testorg.all.MECHANIC_ONLY_TOKEN',
+            '--owner',
+            'foreman',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('mechanic key is NOT granted to foreman (owner isolation)', () => {
+        const parsed = JSON.parse(result.stdout);
+        // key should be locked or absent since foreman's host manifest doesn't have it
+        expect(parsed.status).not.toEqual('granted');
+      });
+
+      then('mechanic secret is NOT exposed', () => {
+        expect(result.stdout).not.toContain('mechanic-only-value-456');
+      });
+    });
+
+    when('[t3] list shows only own owner keys (negative)', () => {
+      // set key for mechanic
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'MECHANIC_LIST_TOKEN',
+            '--for',
+            'mechanic',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'mechanic-list-value\n',
+        }),
+      );
+
+      // set key for foreman
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'FOREMAN_LIST_TOKEN',
+            '--for',
+            'foreman',
+            '--env',
+            'all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.direct',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'foreman-list-value\n',
+        }),
+      );
+
+      const mechanicList = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--for', 'mechanic', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const foremanList = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--for', 'foreman', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('mechanic list contains testorg.all.MECHANIC_LIST_TOKEN', () => {
+        const parsed = JSON.parse(mechanicList.stdout);
+        expect(parsed['testorg.all.MECHANIC_LIST_TOKEN']).toBeDefined();
+      });
+
+      then('mechanic list does NOT contain testorg.all.FOREMAN_LIST_TOKEN', () => {
+        const parsed = JSON.parse(mechanicList.stdout);
+        expect(parsed['testorg.all.FOREMAN_LIST_TOKEN']).toBeUndefined();
+      });
+
+      then('foreman list contains testorg.all.FOREMAN_LIST_TOKEN', () => {
+        const parsed = JSON.parse(foremanList.stdout);
+        expect(parsed['testorg.all.FOREMAN_LIST_TOKEN']).toBeDefined();
+      });
+
+      then('foreman list does NOT contain testorg.all.MECHANIC_LIST_TOKEN', () => {
+        const parsed = JSON.parse(foremanList.stdout);
+        expect(parsed['testorg.all.MECHANIC_LIST_TOKEN']).toBeUndefined();
       });
     });
   });
