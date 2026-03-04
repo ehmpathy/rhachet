@@ -327,4 +327,92 @@ describe('keyrack unlock', () => {
       });
     });
   });
+
+  /**
+   * [uc5] unlock with explicit --prikey flag (os.secure vault)
+   *
+   * proves that explicit --prikey propagates identity to vault adapter.
+   * this catches the bug where sessionIdentity wasn't set after explicit prikey decryption.
+   */
+  given('[case5] repo with os.secure vault and explicit prikey', () => {
+    // cleanup daemon to ensure fresh state
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
+    );
+
+    when('[t0] rhx keyrack unlock --env test --prikey explicit', () => {
+      const result = useThen('it completes', () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'test',
+            '--prikey',
+            `${repo.path}/.ssh/id_ed25519`,
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does NOT show "source required"', () => {
+        expect(result.stdout).not.toContain('source required');
+        expect(result.stderr).not.toContain('source required');
+      });
+
+      then('output shows unlock success', () => {
+        expect(result.stdout).toContain('keyrack unlock');
+      });
+    });
+
+    when('[t1] keyrack get after unlock with explicit prikey', () => {
+      // unlock first with explicit prikey
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'unlock',
+            '--env',
+            'test',
+            '--prikey',
+            `${repo.path}/.ssh/id_ed25519`,
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useThen('get completes', () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('secret matches expected value', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
+      });
+
+      then('grant source vault is os.daemon', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.source.vault).toEqual('os.daemon');
+      });
+    });
+  });
 });
