@@ -167,6 +167,8 @@ export const daoKeyrackHostManifest = {
           ciphertext,
           identity: explicitIdentity,
         });
+        // save explicit identity for subsequent operations (e.g., vault decryption)
+        sessionIdentity = explicitIdentity;
       } catch (error) {
         throw new BadRequestError('failed to decrypt host manifest', {
           path,

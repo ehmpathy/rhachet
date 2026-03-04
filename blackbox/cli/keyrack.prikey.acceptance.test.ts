@@ -21,7 +21,7 @@ describe('keyrack --prikey', () => {
    */
   given('[case1] init --prikey creates manifest', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'with-vault-os-direct' }),
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
     when('[t0] init --prikey /path/to/key (no manifest)', () => {
@@ -62,7 +62,7 @@ describe('keyrack --prikey', () => {
 
     when('[t1] init --prikey vs init --pubkey (same behavior)', () => {
       const repo2 = useBeforeAll(async () =>
-        genTestTempRepo({ fixture: 'with-vault-os-direct', suffix: 'pubkey' }),
+        genTestTempRepo({ fixture: 'with-vault-os-secure', suffix: 'pubkey' }),
       );
 
       // init with --pubkey
@@ -127,7 +127,7 @@ describe('keyrack --prikey', () => {
    */
   given('[case2] set --prikey enables custom owner flow', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'with-vault-os-direct' }),
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
     // setup: init robot owner with prikey
@@ -162,7 +162,7 @@ describe('keyrack --prikey', () => {
             '--mech',
             'REPLICA',
             '--vault',
-            'os.direct',
+            'os.secure',
             '--owner',
             'robot',
             '--prikey',
@@ -182,20 +182,22 @@ describe('keyrack --prikey', () => {
       then('returns key config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('@all.all.ROBOT_API_KEY');
-        expect(parsed.vault).toEqual('os.direct');
+        expect(parsed.vault).toEqual('os.secure');
       });
 
       then('vault file created in owner-namespaced path', () => {
-        const vaultPath = join(
+        const vaultDir = join(
           repo.path,
           '.rhachet',
           'keyrack',
           'vault',
-          'os.direct',
+          'os.secure',
           'owner=robot',
-          'keyrack.direct.json',
         );
-        expect(existsSync(vaultPath)).toBe(true);
+        expect(existsSync(vaultDir)).toBe(true);
+        // os.secure stores credentials as {hash}.age files
+        const files = require('fs').readdirSync(vaultDir);
+        expect(files.some((f: string) => f.endsWith('.age'))).toBe(true);
       });
     });
 
@@ -221,7 +223,7 @@ describe('keyrack --prikey', () => {
             '--mech',
             'REPLICA',
             '--vault',
-            'os.direct',
+            'os.secure',
             '--owner',
             'robot',
             '--prikey',
@@ -250,7 +252,7 @@ describe('keyrack --prikey', () => {
         // create a repo where the owner manifest is encrypted to a key
         // that is NOT at the default .ssh/ location
         const repo2 = await genTestTempRepo({
-          fixture: 'with-vault-os-direct',
+          fixture: 'with-vault-os-secure',
           suffix: 'no-discovery',
         });
 
@@ -289,7 +291,7 @@ describe('keyrack --prikey', () => {
             '--mech',
             'REPLICA',
             '--vault',
-            'os.direct',
+            'os.secure',
             '--owner',
             'custom',
           ],
@@ -319,7 +321,7 @@ describe('keyrack --prikey', () => {
    */
   given('[case3] full roundtrip: init -> set -> unlock -> get', () => {
     const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'with-vault-os-direct' }),
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
     when('[t0] all operations use same --prikey path', () => {
@@ -354,7 +356,7 @@ describe('keyrack --prikey', () => {
             '--mech',
             'REPLICA',
             '--vault',
-            'os.direct',
+            'os.secure',
             '--owner',
             'robot',
             '--prikey',
@@ -424,7 +426,7 @@ describe('keyrack --prikey', () => {
     when('[t1] works with non-standard key location', () => {
       const scene = useBeforeAll(async () => {
         const repo2 = await genTestTempRepo({
-          fixture: 'with-vault-os-direct',
+          fixture: 'with-vault-os-secure',
           suffix: 'custom-loc',
         });
 
@@ -457,7 +459,7 @@ describe('keyrack --prikey', () => {
             '--mech',
             'REPLICA',
             '--vault',
-            'os.direct',
+            'os.secure',
             '--owner',
             'robot2',
             '--prikey',
@@ -524,7 +526,7 @@ describe('keyrack --prikey', () => {
   given('[case4] list --prikey with custom owner', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({
-        fixture: 'with-vault-os-direct',
+        fixture: 'with-vault-os-secure',
         suffix: 'list-prikey',
       });
 
@@ -558,7 +560,7 @@ describe('keyrack --prikey', () => {
           '--mech',
           'REPLICA',
           '--vault',
-          'os.direct',
+          'os.secure',
           '--owner',
           'robot',
           '--prikey',
@@ -630,7 +632,7 @@ describe('keyrack --prikey', () => {
   given('[case5] del --prikey with custom owner', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({
-        fixture: 'with-vault-os-direct',
+        fixture: 'with-vault-os-secure',
         suffix: 'del-prikey',
       });
 
@@ -664,7 +666,7 @@ describe('keyrack --prikey', () => {
           '--mech',
           'REPLICA',
           '--vault',
-          'os.direct',
+          'os.secure',
           '--owner',
           'robot',
           '--prikey',
@@ -751,7 +753,7 @@ describe('keyrack --prikey', () => {
   given('[case6] recipient get --prikey with custom owner', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({
-        fixture: 'with-vault-os-direct',
+        fixture: 'with-vault-os-secure',
         suffix: 'recipient-get-prikey',
       });
 
@@ -832,7 +834,7 @@ describe('keyrack --prikey', () => {
   given('[case7] recipient set --prikey with custom owner', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({
-        fixture: 'with-vault-os-direct',
+        fixture: 'with-vault-os-secure',
         suffix: 'recipient-set-prikey',
       });
 
@@ -939,7 +941,7 @@ describe('keyrack --prikey', () => {
   given('[case8] recipient del --prikey with custom owner', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({
-        fixture: 'with-vault-os-direct',
+        fixture: 'with-vault-os-secure',
         suffix: 'recipient-del-prikey',
       });
 
@@ -1049,6 +1051,194 @@ describe('keyrack --prikey', () => {
         // keyrack recipient del --json returns { deleted: label }
         const parsed = JSON.parse(result.stdout);
         expect(parsed.deleted).toEqual('backup');
+      });
+    });
+  });
+
+  /**
+   * [uc9] set --vault os.secure --prikey with non-standard key location
+   * tests that explicit prikey propagates identity for os.secure vault operations
+   */
+  given('[case9] set --vault os.secure --prikey with non-standard key', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-vault-os-secure',
+        suffix: 'set-secure-prikey',
+      });
+
+      // generate keypair outside ~/.ssh/ (non-standard location)
+      const customKeyDir = join(repo.path, 'custom-keys');
+      mkdirSync(customKeyDir, { recursive: true });
+      execSync(
+        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
+      );
+
+      const prikeyPath = join(customKeyDir, 'custom_key');
+
+      // init with custom key path
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'robot', '--prikey', prikeyPath],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+
+      return { repo, prikeyPath };
+    });
+
+    when('[t0] set --vault os.secure without --prikey (discovery fails)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'SECURE_NO_PRIKEY',
+            '--env',
+            'sudo',
+            '--org',
+            '@all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.secure',
+            '--owner',
+            'robot',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          stdin: 'should-fail\n',
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('error mentions prikey or no match', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toMatch(/prikey|no match|decrypt/i);
+      });
+    });
+
+    when('[t1] set --vault os.secure --prikey (explicit key)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'SECURE_WITH_PRIKEY',
+            '--env',
+            'sudo',
+            '--org',
+            '@all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.secure',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          stdin: 'secure-secret-value-789\n',
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('returns key config with os.secure vault', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.slug).toEqual('@all.sudo.SECURE_WITH_PRIKEY');
+        expect(parsed.vault).toEqual('os.secure');
+      });
+    });
+
+    when('[t2] unlock + get after set --vault os.secure --prikey', () => {
+      // set key first (duplicate from t1 to ensure isolation)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'SECURE_ROUNDTRIP',
+            '--env',
+            'sudo',
+            '--org',
+            '@all',
+            '--mech',
+            'REPLICA',
+            '--vault',
+            'os.secure',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+          stdin: 'roundtrip-secure-xyz\n',
+        }),
+      );
+
+      // unlock with explicit prikey
+      const unlockResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'unlock',
+            '--owner',
+            'robot',
+            '--prikey',
+            scene.prikeyPath,
+            '--env',
+            'sudo',
+            '--key',
+            '@all.sudo.SECURE_ROUNDTRIP',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      // get from daemon
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            '@all.sudo.SECURE_ROUNDTRIP',
+            '--owner',
+            'robot',
+            '--json',
+          ],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('unlock succeeds', () => {
+        expect(unlockResult.status).toEqual(0);
+      });
+
+      then('get returns correct secret', () => {
+        expect(getResult.status).toEqual(0);
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.status).toEqual('granted');
+        expect(parsed.grant.key.secret).toEqual('roundtrip-secure-xyz');
+      });
+
+      then('grant source vault is os.daemon', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.source.vault).toEqual('os.daemon');
       });
     });
   });
