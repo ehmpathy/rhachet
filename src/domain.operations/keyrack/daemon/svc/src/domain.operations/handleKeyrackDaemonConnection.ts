@@ -111,7 +111,7 @@ const processRequest = (
       }
 
       case 'STATUS': {
-        const result = handleStatusCommand({}, { keyStore: context.keyStore });
+        const result = handleStatusCommand({}, context);
         return { success: true, data: result };
       }
 
