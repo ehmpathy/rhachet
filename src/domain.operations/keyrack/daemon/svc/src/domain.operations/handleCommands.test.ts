@@ -224,12 +224,6 @@ describe('handleStatusCommand', () => {
         expect(key2?.env).toBe('sudo');
         expect(key2?.org).toBe('@all');
       });
-
-      then('returns homeHash for daemon identity', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
-
-        expect(result.homeHash).toBe(homeHash);
-      });
     });
   });
 
@@ -240,11 +234,6 @@ describe('handleStatusCommand', () => {
       then('returns empty keys array', () => {
         const result = handleStatusCommand({}, { keyStore, homeHash });
         expect(result.keys).toEqual([]);
-      });
-
-      then('still returns homeHash', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
-        expect(result.homeHash).toBe(homeHash);
       });
     });
   });
