@@ -1,0 +1,21 @@
+# guard for vision stone
+#
+# requires human approval before stone can be marked as passed
+# because the self-review prompts require human feedback,
+# the process needs to halt here for human review
+
+judges:
+  - npx rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+
+reviews:
+  self:
+    - slug: assumptions-checked
+      say: |
+        a junior recently modified files in this repo. we need to carefully
+        review the vision due to this.
+
+        are there any unquestioned assumptions the junior took as requirements?
+        any open questions that need to be asked to the wisher instead?
+
+        ensure that all open questions are answered and all assumptions are verified.
+

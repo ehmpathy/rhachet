@@ -1,3 +1,4 @@
+import { getHomeHash } from '@src/domain.operations/keyrack/daemon/infra/getHomeHash';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { createKeyrackDaemonServer } from '@src/domain.operations/keyrack/daemon/svc/src/infra/createKeyrackDaemonServer';
 
@@ -15,8 +16,11 @@ import { existsSync, writeFileSync } from 'node:fs';
 export const startKeyrackDaemon = (input?: { socketPath?: string }): void => {
   const socketPath = input?.socketPath ?? getKeyrackDaemonSocketPath();
 
+  // compute home hash for daemon identity
+  const homeHash = getHomeHash();
+
   // start the server
-  const { server } = createKeyrackDaemonServer({ socketPath });
+  const { server } = createKeyrackDaemonServer({ socketPath, homeHash });
 
   // write pid file for management
   const pidPath = socketPath.replace(/\.sock$/, '.pid');
@@ -79,9 +83,11 @@ export const spawnKeyrackDaemonBackground = (input?: {
     : process.execPath;
 
   // spawn a detached process
+  // .note = explicitly pass env to ensure subprocess inherits test overrides
   const child = spawn(execPath, ['-e', daemonScript], {
     detached: true,
     stdio: 'ignore',
+    env: process.env,
   });
 
   // unref so parent can exit

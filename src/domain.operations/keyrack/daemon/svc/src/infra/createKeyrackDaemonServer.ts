@@ -5,6 +5,7 @@ import {
   type DaemonKeyStore,
 } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
+import { scheduleAutoTermination } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleAutoTermination';
 
 import { chmodSync, unlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
@@ -15,14 +16,19 @@ import { createServer, type Server } from 'node:net';
  *
  * .note = cleans up stale socket file on start
  * .note = returns server instance for lifecycle management
+ * .note = schedules auto-termination when all keys expire
  */
 export const createKeyrackDaemonServer = (input: {
   socketPath: string;
+  homeHash: string;
 }): { server: Server; keyStore: DaemonKeyStore } => {
-  const { socketPath } = input;
+  const { socketPath, homeHash } = input;
 
   // create the key store
   const keyStore = createDaemonKeyStore();
+
+  // schedule auto-termination when all keys expire
+  scheduleAutoTermination({ keyStore });
 
   // cleanup stale socket file if present
   try {
@@ -33,7 +39,7 @@ export const createKeyrackDaemonServer = (input: {
 
   // create the server
   const server = createServer((socket) => {
-    handleKeyrackDaemonConnection({ socket }, { keyStore });
+    handleKeyrackDaemonConnection({ socket }, { keyStore, homeHash });
   });
 
   // listen on the unix socket

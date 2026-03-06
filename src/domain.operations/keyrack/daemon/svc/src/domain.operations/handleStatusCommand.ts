@@ -5,13 +5,17 @@ import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/s
 /**
  * .what = handle STATUS command to list unlocked keys with TTL left
  * .why = shows what credentials are available and when they expire
+ *
+ * .note = includes homeHash for daemon identity (usecase.5 observability)
  */
 export const handleStatusCommand = (
   _input: Record<string, never>,
   context: {
     keyStore: DaemonKeyStore;
+    homeHash: string;
   },
 ): {
+  homeHash: string;
   keys: Array<{
     slug: string;
     env: string;
@@ -33,5 +37,5 @@ export const handleStatusCommand = (
       : Infinity,
   }));
 
-  return { keys };
+  return { homeHash: context.homeHash, keys };
 };

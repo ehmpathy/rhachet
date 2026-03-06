@@ -159,6 +159,8 @@ describe('handleGetCommand', () => {
 });
 
 describe('handleStatusCommand', () => {
+  const homeHash = 'a1b2c3d4'; // test home hash
+
   given('[case1] keys in store with valid TTL', () => {
     const keyStore = createDaemonKeyStore();
     const now = Date.now();
@@ -196,7 +198,7 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns keys with TTL left', () => {
-        const result = handleStatusCommand({}, { keyStore });
+        const result = handleStatusCommand({}, { keyStore, homeHash });
 
         expect(result.keys.length).toBe(2);
 
@@ -212,7 +214,7 @@ describe('handleStatusCommand', () => {
       });
 
       then('returns env and org with keys', () => {
-        const result = handleStatusCommand({}, { keyStore });
+        const result = handleStatusCommand({}, { keyStore, homeHash });
 
         const key1 = result.keys.find((k) => k.slug === 'KEY_1');
         const key2 = result.keys.find((k) => k.slug === 'KEY_2');
@@ -230,7 +232,7 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns empty keys array', () => {
-        const result = handleStatusCommand({}, { keyStore });
+        const result = handleStatusCommand({}, { keyStore, homeHash });
         expect(result.keys).toEqual([]);
       });
     });

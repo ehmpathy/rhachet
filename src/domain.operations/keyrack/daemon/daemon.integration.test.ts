@@ -3,7 +3,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
-import { existsSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -11,12 +11,13 @@ import {
   daemonAccessUnlock,
   isDaemonReachable,
 } from './sdk';
-import { createKeyrackDaemonServer } from './svc';
+import { createKeyrackDaemonServer, spawnKeyrackDaemonBackground } from './svc';
 
 describe('keyrack daemon integration', () => {
   // use a unique socket path for tests to avoid conflicts
   const testSocketPath = `/tmp/keyrack-test-${process.pid}.sock`;
   const testPidPath = testSocketPath.replace(/\.sock$/, '.pid');
+  const testHomeHash = 'a1b2c3d4'; // test home hash for daemon identity
 
   // cleanup before and after tests
   beforeAll(() => {
@@ -31,7 +32,10 @@ describe('keyrack daemon integration', () => {
 
   given('[case1] daemon server lifecycle', () => {
     const scene = useBeforeAll(async () => {
-      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+      return createKeyrackDaemonServer({
+        socketPath: testSocketPath,
+        homeHash: testHomeHash,
+      });
     });
 
     afterAll(() => {
@@ -58,7 +62,10 @@ describe('keyrack daemon integration', () => {
 
   given('[case2] daemon commands via socket', () => {
     const scene = useBeforeAll(async () => {
-      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+      return createKeyrackDaemonServer({
+        socketPath: testSocketPath,
+        homeHash: testHomeHash,
+      });
     });
 
     afterAll(() => {
@@ -230,7 +237,10 @@ describe('keyrack daemon integration', () => {
 
   given('[case4] expired keys', () => {
     const scene = useBeforeAll(async () => {
-      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+      return createKeyrackDaemonServer({
+        socketPath: testSocketPath,
+        homeHash: testHomeHash,
+      });
     });
 
     afterAll(() => {
@@ -276,7 +286,10 @@ describe('keyrack daemon integration', () => {
 
   given('[case5] relock with env filter', () => {
     const scene = useBeforeAll(async () => {
-      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+      return createKeyrackDaemonServer({
+        socketPath: testSocketPath,
+        homeHash: testHomeHash,
+      });
     });
 
     afterAll(() => {
@@ -353,7 +366,10 @@ describe('keyrack daemon integration', () => {
 
   given('[case6] TTL extension on re-unlock', () => {
     const scene = useBeforeAll(async () => {
-      return createKeyrackDaemonServer({ socketPath: testSocketPath });
+      return createKeyrackDaemonServer({
+        socketPath: testSocketPath,
+        homeHash: testHomeHash,
+      });
     });
 
     afterAll(() => {
@@ -411,4 +427,126 @@ describe('keyrack daemon integration', () => {
       });
     });
   });
+
+  given('[case7] daemon auto-termination in subprocess', () => {
+    // extend timeout for this test (daemon spawning + TTL expiry)
+    jest.setTimeout(15000);
+
+    // use unique socket path for this test
+    const autoTermSocketPath = `/tmp/keyrack-autoterm-${process.pid}.sock`;
+    const autoTermPidPath = autoTermSocketPath.replace(/\.sock$/, '.pid');
+
+    // cleanup before and after
+    beforeAll(() => {
+      // ensure env is clean before test
+      delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
+      if (existsSync(autoTermSocketPath)) unlinkSync(autoTermSocketPath);
+      if (existsSync(autoTermPidPath)) unlinkSync(autoTermPidPath);
+    });
+
+    afterAll(() => {
+      // cleanup env var
+      delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
+      // cleanup any leftover daemon
+      if (existsSync(autoTermPidPath)) {
+        try {
+          const pid = parseInt(readFileSync(autoTermPidPath, 'utf-8'), 10);
+          process.kill(pid, 'SIGTERM');
+        } catch {
+          // ignore if process already gone
+        }
+      }
+      if (existsSync(autoTermSocketPath)) unlinkSync(autoTermSocketPath);
+      if (existsSync(autoTermPidPath)) unlinkSync(autoTermPidPath);
+    });
+
+    when('[t0] daemon subprocess receives keys that expire', () => {
+      then('daemon terminates itself (not the test process)', async () => {
+        // record test process pid to prove we survive
+        const testPid = process.pid;
+
+        // set env for short termination check interval (100ms)
+        process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'] = '100';
+
+        // spawn daemon as subprocess
+        spawnKeyrackDaemonBackground({ socketPath: autoTermSocketPath });
+
+        // wait for daemon to become reachable
+        let reachable = false;
+        for (let i = 0; i < 50 && !reachable; i++) {
+          reachable = await isDaemonReachable({
+            socketPath: autoTermSocketPath,
+          });
+          if (!reachable) await sleep(100);
+        }
+        expect(reachable).toBe(true);
+
+        // verify daemon pid is different from test pid
+        expect(existsSync(autoTermPidPath)).toBe(true);
+        const daemonPid = parseInt(readFileSync(autoTermPidPath, 'utf-8'), 10);
+        expect(daemonPid).not.toBe(testPid);
+
+        // unlock a key with very short TTL (200ms)
+        await daemonAccessUnlock({
+          keys: [
+            new KeyrackKeyGrant({
+              slug: 'SHORT_LIVED_KEY',
+              key: {
+                secret: 'short-secret',
+                grade: { protection: 'encrypted', duration: 'transient' },
+              },
+              source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'test',
+              org: 'testorg',
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 200)),
+            }),
+          ],
+          socketPath: autoTermSocketPath,
+        });
+
+        // wait for key to expire + termination check to run
+        // key expires at 200ms, check runs every 100ms
+        // so by 500ms the daemon should have terminated
+        // (use 1000ms for margin when running with other tests)
+        await sleep(1000);
+
+        // verify daemon is no longer reachable
+        const stillReachable = await isDaemonReachable({
+          socketPath: autoTermSocketPath,
+        });
+        expect(stillReachable).toBe(false);
+
+        // verify test process is still alive (we're still running!)
+        expect(process.pid).toBe(testPid);
+
+        // verify daemon process is gone
+        const daemonStillAlive = isProcessAlive(daemonPid);
+        expect(daemonStillAlive).toBe(false);
+
+        // cleanup env
+        delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
+      });
+    });
+  });
 });
+
+/**
+ * .what = sleep for a duration
+ * .why = simple async delay for test timing
+ */
+const sleep = (ms: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, ms));
+
+/**
+ * .what = check if a process is alive by pid
+ * .why = verify daemon subprocess terminated
+ */
+const isProcessAlive = (pid: number): boolean => {
+  try {
+    // signal 0 doesn't kill, just checks if process exists
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};

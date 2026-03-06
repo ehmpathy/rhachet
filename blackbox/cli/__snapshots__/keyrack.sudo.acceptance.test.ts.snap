@@ -52,30 +52,13 @@ exports[`keyrack sudo given: [case4] relock behavior when: [t1] relock --json th
 exports[`keyrack sudo given: [case5] status output when: [t0] status when daemon not active then: stdout matches snapshot 1`] = `
 "
 🔐 keyrack status
-   ├─ owner: (default)
-   ├─ recipients:
-   │  └─ test-key (age)
-   └─ daemon: active ✨
-      └─ (no keys unlocked)
+   └─ daemon: not found
+      └─ run \`rhx keyrack unlock\` to start session
 
 "
 `;
 
-exports[`keyrack sudo given: [case5] status output when: [t1] status --json then: stdout matches snapshot 1`] = `
-{
-  "keys": [],
-  "owner": null,
-  "recipients": [
-    {
-      "addedAt": "__TIMESTAMP__",
-      "label": "test-key",
-      "mech": "age",
-      "pubkey": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
-    },
-  ],
-  "socketPath": "__SOCKET_PATH__",
-}
-`;
+exports[`keyrack sudo given: [case5] status output when: [t1] status --json then: stdout matches snapshot 1`] = `null`;
 
 exports[`keyrack sudo given: [case6] list shows env and org fields when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "

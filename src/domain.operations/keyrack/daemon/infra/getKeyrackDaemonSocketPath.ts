@@ -1,18 +1,19 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
+import { getHomeHash } from './getHomeHash';
 import { getLoginSessionId } from './getLoginSessionId';
 
 /**
  * .what = compute the unix domain socket path for the keyrack daemon
- * .why = socket path includes session id for per-login-session isolation
+ * .why = socket path includes session id and home hash for isolation
  *
  * .note = uses XDG_RUNTIME_DIR which is:
  *   - per-user
  *   - tmpfs (dies on reboot)
  *   - proper permissions (0700)
  *
- * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.sock (default)
- * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.$owner.sock (per-owner)
+ * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.$HOMEHASH.sock (default)
+ * .note = socket path format: $XDG_RUNTIME_DIR/keyrack.$SESSIONID.$HOMEHASH.$owner.sock (per-owner)
  * .note = falls back to /run/user/$UID if XDG_RUNTIME_DIR is unset
  */
 export const getKeyrackDaemonSocketPath = (input?: {
@@ -41,11 +42,14 @@ export const getKeyrackDaemonSocketPath = (input?: {
     );
   }
 
+  // get home hash for per-HOME isolation
+  const homeHash = getHomeHash();
+
   // construct socket path with optional owner suffix
   const owner = input?.owner ?? null;
   const filename =
     owner === null
-      ? `keyrack.${sessionId}.sock`
-      : `keyrack.${sessionId}.${owner}.sock`;
+      ? `keyrack.${sessionId}.${homeHash}.sock`
+      : `keyrack.${sessionId}.${homeHash}.${owner}.sock`;
   return `${runtimeDir}/${filename}`;
 };

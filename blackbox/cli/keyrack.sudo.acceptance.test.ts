@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
-
 import {
   genTestTempRepo,
   TEST_SSH_AGE_RECIPIENT,
@@ -1415,7 +1415,15 @@ describe('keyrack sudo', () => {
         const uid = process.getuid?.();
         const runtimeDir =
           process.env['XDG_RUNTIME_DIR'] ?? `/run/user/${uid}`;
-        const socketPath = `${runtimeDir}/keyrack.${sessionId}.sock`;
+
+        // compute home hash for repo.path (the HOME used in unlock command)
+        const realPath = realpathSync(repo.path);
+        const homeHash = createHash('sha256')
+          .update(realPath)
+          .digest('hex')
+          .slice(0, 8);
+
+        const socketPath = `${runtimeDir}/keyrack.${sessionId}.${homeHash}.sock`;
 
         expect(existsSync(socketPath)).toBe(true);
         const stats = statSync(socketPath);

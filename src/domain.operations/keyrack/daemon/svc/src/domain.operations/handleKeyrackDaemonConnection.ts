@@ -36,7 +36,7 @@ interface DaemonResponse {
  */
 export const handleKeyrackDaemonConnection = (
   input: { socket: Socket },
-  context: { keyStore: DaemonKeyStore },
+  context: { keyStore: DaemonKeyStore; homeHash: string },
 ): void => {
   const { socket } = input;
   let buffer = '';
@@ -77,7 +77,7 @@ export const handleKeyrackDaemonConnection = (
  */
 const processRequest = (
   input: { socket: Socket; request: DaemonRequest },
-  context: { keyStore: DaemonKeyStore },
+  context: { keyStore: DaemonKeyStore; homeHash: string },
 ): DaemonResponse => {
   const { socket, request } = input;
 
