@@ -125,14 +125,14 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('returns locked status for prep keys + env=all keys (vault keys require unlock)', () => {
+      then('returns locked status for prep keys (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
         expect(Array.isArray(parsed)).toBe(true);
         const locked = parsed.filter(
           (a: { status: string }) => a.status === 'locked',
         );
-        // note: 3 locked = 2 prep-specific + 1 env=all (env=all included for specific env queries)
-        expect(locked.length).toEqual(3);
+        // .note = 2 locked = 2 prep-specific (env=all key has no vault entry, so it's absent)
+        expect(locked.length).toEqual(2);
       });
 
       then('does NOT contain prod keys', () => {
@@ -216,13 +216,13 @@ describe('keyrack envs', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('returns locked status for prod keys + env=all keys (vault keys require unlock)', () => {
+      then('returns locked status for prod keys (vault keys require unlock)', () => {
         const parsed = JSON.parse(result.stdout);
         const locked = parsed.filter(
           (a: { status: string }) => a.status === 'locked',
         );
-        // note: 3 locked = 2 prod-specific + 1 env=all (env=all included for specific env queries)
-        expect(locked.length).toEqual(3);
+        // .note = 2 locked = 2 prod-specific (env=all key has no vault entry, so it's absent)
+        expect(locked.length).toEqual(2);
       });
 
       then('does NOT contain prep keys', () => {

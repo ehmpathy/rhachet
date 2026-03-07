@@ -10,9 +10,7 @@ import {
 
 import { daemonAccessGet } from './daemon/sdk';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
-
-// note: os.direct is intentionally NOT checked here — all vault keys require explicit unlock first
-// this ensures firewall validation and allowlist checks are never bypassed
+import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
 
 /**
  * .what = construct KeyrackKey from secret and source info
@@ -124,13 +122,25 @@ const attemptGrantKey = async (
     return null;
   })();
 
-  // if no grant found — return locked
+  // if no grant found — infer whether key is locked or absent
   if (!grantFound) {
-    return {
-      status: 'locked',
+    const status = inferKeyrackKeyStatusWhenNotGranted({
       slug,
-      message: `credential '${slug}' is locked. unlock it first.`,
-      fix: `rhx keyrack unlock --env ${envFromSlug} --key ${slug.split('.').slice(2).join('.')}`,
+      owner: context.owner,
+    });
+    if (status === 'locked') {
+      return {
+        status: 'locked',
+        slug,
+        message: `credential '${slug}' is locked. unlock it first.`,
+        fix: `rhx keyrack unlock --env ${envFromSlug} --key ${slug.split('.').slice(2).join('.')}`,
+      };
+    }
+    return {
+      status: 'absent',
+      slug,
+      message: `credential '${slug}' does not exist. set it first.`,
+      fix: `rhx keyrack set --key ${slug.split('.').slice(2).join('.')} --env ${envFromSlug}`,
     };
   }
 

@@ -84,20 +84,21 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('status is locked (key in manifest but not on host)', () => {
+      then('status is absent (key in manifest but no vault file)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted returns 'absent' when no vault file exists
+        expect(parsed.status).toEqual('absent');
       });
 
-      then('message indicates key is locked', () => {
+      then('message indicates key needs to be set', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.message).toMatch(/locked|unlock/i);
+        expect(parsed.message).toMatch(/does not exist|set/i);
       });
 
       then('fix instructions are provided', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.fix).toBeDefined();
-        expect(parsed.fix).toMatch(/keyrack set|keyrack unlock/i);
+        expect(parsed.fix).toMatch(/keyrack set/i);
       });
 
       then('stdout matches snapshot', () => {
@@ -116,8 +117,9 @@ describe('keyrack validation', () => {
         }),
       );
 
-      then('output contains locked indicator', () => {
-        expect(result.stdout).toContain('locked');
+      then('output contains absent indicator', () => {
+        // .note = status is 'absent' when no vault file exists
+        expect(result.stdout).toContain('absent');
         expect(result.stdout).toContain('XAI_API_KEY');
       });
 
@@ -152,10 +154,11 @@ describe('keyrack validation', () => {
         expect(parsed.length).toEqual(2);
       });
 
-      then('all attempts have locked status (keys in manifest but not on host)', () => {
+      then('all attempts have absent status (keys in manifest but no vault file)', () => {
         const parsed = JSON.parse(result.stdout);
+        // .note = inferKeyrackKeyStatusWhenNotGranted returns 'absent' when no vault file exists
         for (const attempt of parsed) {
-          expect(attempt.status).toEqual('locked');
+          expect(attempt.status).toEqual('absent');
         }
       });
 

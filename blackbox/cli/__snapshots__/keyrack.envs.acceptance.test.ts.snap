@@ -12,10 +12,10 @@ exports[`keyrack envs given: [case1] repo with multi-env keyrack.yml (prod + pre
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t0.5] unlock prep then get --for repo --env prep --json then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
-    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
-    "status": "locked",
+    "status": "absent",
   },
   {
     "grant": {
@@ -61,10 +61,10 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t0] get --for repo --env prep --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
-    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
-    "status": "locked",
+    "status": "absent",
   },
   {
     "fix": "rhx keyrack unlock --env prep --key SHARED_API_KEY",
@@ -84,10 +84,10 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t1.5] unlock prod then get --for repo --env prod --json then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
-    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
-    "status": "locked",
+    "status": "absent",
   },
   {
     "grant": {
@@ -133,10 +133,10 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t1] get --for repo --env prod --json (without unlock) then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
-    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
-    "status": "locked",
+    "status": "absent",
   },
   {
     "fix": "rhx keyrack unlock --env prod --key SHARED_API_KEY",
@@ -156,10 +156,10 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault configured when: [t2] unlock all then get --for repo --env all --json then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack unlock --env all --key SHARED_API_KEY",
-    "message": "credential 'testorg.all.SHARED_API_KEY' is locked. unlock it first.",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
-    "status": "locked",
+    "status": "absent",
   },
   {
     "grant": {
@@ -244,8 +244,8 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
 "
 🔐 keyrack
    ├─ testorg.all.SHARED_API_KEY
-   │  ├─ status: locked 🔒
-   │  └─ [2mtip: rhx keyrack unlock --env all --key SHARED_API_KEY[0m
+   │  ├─ status: absent 🫧
+   │  └─ [2mtip: rhx keyrack set --key SHARED_API_KEY --env all[0m
    ├─ testorg.prep.SHARED_API_KEY
    │  ├─ status: locked 🔒
    │  └─ [2mtip: rhx keyrack unlock --env prep --key SHARED_API_KEY[0m

@@ -34,12 +34,12 @@ describe('getKeyrackKeyGrant.integration', () => {
   });
 
   given(
-    '[case1] key configured in repo and host but no envvar or daemon',
+    '[case1] key in repo manifest but no vault file, envvar, or daemon',
     () => {
       const slug = 'testorg.test.__TEST_HOST_API_KEY__';
 
       beforeEach(async () => {
-        // setup repo manifest
+        // setup repo manifest only (no vault file)
         const agentDir = join(testDir, '.agent');
         mkdirSync(agentDir, { recursive: true });
         writeFileSync(
@@ -55,7 +55,7 @@ env.test: []
       });
 
       when('[t0] get called for single key', () => {
-        then('status is locked (envvar and daemon miss)', async () => {
+        then('status is absent (no vault file exists)', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
             owner: null,
@@ -65,10 +65,10 @@ env.test: []
             context,
           );
 
-          expect(result.status).toEqual('locked');
+          expect(result.status).toEqual('absent');
         });
 
-        then('fix mentions unlock', async () => {
+        then('fix mentions set', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
             owner: null,
@@ -78,14 +78,14 @@ env.test: []
             context,
           );
 
-          if (result.status === 'locked') {
-            expect(result.fix).toContain('unlock');
+          if (result.status === 'absent') {
+            expect(result.fix).toContain('set');
           }
         });
       });
 
       when('[t1] get called for repo', () => {
-        then('returns array with locked status', async () => {
+        then('returns array with absent status', async () => {
           const context = await genContextKeyrackGrantGet({
             gitroot: testDir,
             owner: null,
@@ -104,8 +104,8 @@ env.test: []
           expect(Array.isArray(result)).toBe(true);
           // env.all key creates both .all. slug and .test. slug = 2 keys
           expect(result).toHaveLength(2);
-          expect(result[0]?.status).toEqual('locked');
-          expect(result[1]?.status).toEqual('locked');
+          expect(result[0]?.status).toEqual('absent');
+          expect(result[1]?.status).toEqual('absent');
         });
       });
     },

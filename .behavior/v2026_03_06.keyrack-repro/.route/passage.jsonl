@@ -1,0 +1,4 @@
+{"stone":"1.vision","status":"blocked","blocker":"review.self","reason":"review.self required: has-questioned-requirements"}
+{"stone":"1.vision","status":"blocked","blocker":"approval","reason":"command exited 1; see judge artifact for details"}
+{"stone":"1.vision","status":"blocked","blocker":"approval","reason":"command exited 1; see judge artifact for details"}
+{"stone":"1.vision","status":"blocked","blocker":"approval","reason":"wait for human approval"}
