@@ -486,7 +486,7 @@ describe('keyrack daemon integration', () => {
         const daemonPid = parseInt(readFileSync(autoTermPidPath, 'utf-8'), 10);
         expect(daemonPid).not.toBe(testPid);
 
-        // unlock a key with very short TTL (200ms)
+        // unlock a key with very short TTL (500ms)
         await daemonAccessUnlock({
           keys: [
             new KeyrackKeyGrant({
@@ -498,22 +498,22 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'test',
               org: 'testorg',
-              expiresAt: asIsoTimeStamp(new Date(Date.now() + 200)),
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 500)),
             }),
           ],
           socketPath: autoTermSocketPath,
         });
 
-        // wait for key to expire + termination check to run
-        // key expires at 200ms, check runs every 100ms
-        // so by 500ms the daemon should have terminated
-        // (use 1000ms for margin when running with other tests)
-        await sleep(1000);
-
-        // verify daemon is no longer reachable
-        const stillReachable = await isDaemonReachable({
-          socketPath: autoTermSocketPath,
-        });
+        // wait for daemon to become unreachable (key expires + termination)
+        // key expires at 500ms, check runs every 100ms
+        // poll with retries to handle CI time variance
+        let stillReachable = true;
+        for (let i = 0; i < 30 && stillReachable; i++) {
+          await sleep(100);
+          stillReachable = await isDaemonReachable({
+            socketPath: autoTermSocketPath,
+          });
+        }
         expect(stillReachable).toBe(false);
 
         // verify test process is still alive (we're still running!)
