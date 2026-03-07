@@ -479,10 +479,12 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             context,
           );
 
-          // promote locked → absent for non-sudo keys not in repo manifest (allowlist)
+          // promote locked/absent → absent for non-sudo keys not in repo manifest (allowlist)
           // envvar passthrough and daemon results are unaffected (they return granted/blocked)
+          // .note = 'absent' status can occur when no vault file exists for the key
           const attemptResolved: typeof attempt = (() => {
-            if (attempt.status !== 'locked') return attempt;
+            if (attempt.status !== 'locked' && attempt.status !== 'absent')
+              return attempt;
             if (env === 'sudo') return attempt;
             if (!context.repoManifest) return attempt;
             const repoSlugs = getAllKeyrackSlugsForEnv({

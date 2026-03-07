@@ -9,6 +9,7 @@ import {
   KeyrackKeyHost,
 } from '@src/domain.objects/keyrack';
 
+import { daemonAccessRelock } from './daemon/sdk';
 import type { KeyrackHostContext } from './genKeyrackHostContext';
 
 /**
@@ -76,6 +77,10 @@ export const setKeyrackKeyHost = async (
     (setResult && 'exid' in setResult ? setResult.exid : null) ??
     input.exid ??
     null;
+
+  // invalidate stale daemon cache for this key (if daemon is active)
+  // this ensures `get` returns "locked" instead of stale value after `set`
+  await daemonAccessRelock({ slugs: [input.slug], owner: context.owner });
 
   // check if key already exists in manifest
   const hostFound = context.hostManifest.hosts[input.slug];

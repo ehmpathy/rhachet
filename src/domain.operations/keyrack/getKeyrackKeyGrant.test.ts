@@ -27,7 +27,7 @@ describe('getKeyrackKeyGrant', () => {
     (daemonAccessGet as jest.Mock).mockResolvedValue(null);
   });
 
-  given('[case1] key not in envvar or daemon', () => {
+  given('[case1] key not in envvar or daemon and no vault file', () => {
     const context: ContextKeyrackGrantGet = {
       owner: null,
       repoManifest: null,
@@ -36,27 +36,27 @@ describe('getKeyrackKeyGrant', () => {
     };
 
     when('[t0] get called for single key', () => {
-      then('status is locked', async () => {
+      then('status is absent (no vault file exists)', async () => {
         const result = await getKeyrackKeyGrant(
           { for: { key: 'XAI_API_KEY' } },
           context,
         );
-        expect(result.status).toEqual('locked');
+        expect(result.status).toEqual('absent');
       });
 
-      then('fix mentions unlock', async () => {
+      then('fix mentions set', async () => {
         const result = await getKeyrackKeyGrant(
           { for: { key: 'XAI_API_KEY' } },
           context,
         );
-        if (result.status === 'locked') {
-          expect(result.fix).toContain('unlock');
+        if (result.status === 'absent') {
+          expect(result.fix).toContain('set');
         }
       });
     });
 
     when('[t1] get called for repo with slugs', () => {
-      then('result is array of locked attempts', async () => {
+      then('result is array of absent attempts', async () => {
         const result = await getKeyrackKeyGrant(
           {
             for: { repo: true },
@@ -66,8 +66,8 @@ describe('getKeyrackKeyGrant', () => {
         );
         expect(Array.isArray(result)).toBe(true);
         expect(result).toHaveLength(2);
-        expect(result[0]?.status).toEqual('locked');
-        expect(result[1]?.status).toEqual('locked');
+        expect(result[0]?.status).toEqual('absent');
+        expect(result[1]?.status).toEqual('absent');
       });
     });
   });

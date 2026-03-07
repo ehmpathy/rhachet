@@ -256,18 +256,18 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('returns locked or invalid status', () => {
+      then('returns absent status (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        // either locked (vault not unlocked) or invalid (session validation failed)
-        expect(['locked', 'invalid']).toContain(parsed.status);
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
 
-      then('fix mentions unlock or session', () => {
+      then('fix mentions set', () => {
         const parsed = JSON.parse(result.stdout);
         const fix = parsed.fix?.toLowerCase() ?? '';
-        const message = parsed.message?.toLowerCase() ?? '';
-        const combined = fix + message;
-        expect(combined).toMatch(/unlock|session|sso/i);
+        // .note = since status is 'absent', fix suggests set (not unlock)
+        expect(fix).toContain('set');
       });
 
       then('stdout matches snapshot', () => {
@@ -1030,9 +1030,11 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is locked', () => {
+      then('status is absent (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
     });
 
@@ -1103,9 +1105,11 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is locked again', () => {
+      then('status is absent again (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
     });
   });

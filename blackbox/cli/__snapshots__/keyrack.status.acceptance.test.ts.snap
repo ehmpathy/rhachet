@@ -1,0 +1,50 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack status: locked vs absent given: [case1] key was never set (truly absent) when: [t0] get --key NONEXISTENT_KEY --env sudo --json then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env sudo",
+  "message": "credential '@all.sudo.NONEXISTENT_KEY' does not exist. set it first.",
+  "slug": "@all.sudo.NONEXISTENT_KEY",
+  "status": "absent",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case2] key was set but not unlocked (locked) when: [t1] get --key LOCKED_KEY --env sudo --json (after set, before unlock) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env sudo --key LOCKED_KEY",
+  "message": "credential '@all.sudo.LOCKED_KEY' is locked. unlock it first.",
+  "slug": "@all.sudo.LOCKED_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t2] get after set returns locked (not stale value) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env sudo --key RELOCK_TEST_KEY",
+  "message": "credential '@all.sudo.RELOCK_TEST_KEY' is locked. unlock it first.",
+  "slug": "@all.sudo.RELOCK_TEST_KEY",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t3] unlock then get returns updated value then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "sudo",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "updated-value",
+    },
+    "org": "@all",
+    "slug": "@all.sudo.RELOCK_TEST_KEY",
+    "source": {
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
+`;
