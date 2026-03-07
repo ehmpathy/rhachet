@@ -290,9 +290,9 @@ describe('keyrack vault os.secure', () => {
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
-      then('grant source vault is os.daemon (via unlock)', () => {
+      then('grant source vault is os.secure (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {

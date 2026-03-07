@@ -108,10 +108,12 @@ const attemptGrantKey = async (
     if (daemonResult) {
       const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
       if (keyEntry) {
+        // preserve original vault from when key was unlocked
+        // (e.g., os.direct, os.secure — not 'os.daemon')
         return new KeyrackKeyGrant({
           slug,
           key: keyEntry.key,
-          source: { vault: 'os.daemon', mech: keyEntry.source.mech },
+          source: keyEntry.source,
           env: keyEntry.env,
           org: keyEntry.org,
         });

@@ -15,7 +15,7 @@ exports[`keyrack daemon cache given: [case1] repo with os.secure vault, after un
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",
@@ -55,7 +55,7 @@ exports[`keyrack daemon cache given: [case4] repo with daemon cache and source v
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",
@@ -86,7 +86,7 @@ exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t1] 
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",
@@ -110,7 +110,7 @@ exports[`keyrack daemon cache given: [case6] unlock via recipient key discovery 
 "
 🔐 keyrack
    └─ testorg.test.SECURE_API_KEY
-      ├─ vault: os.daemon
+      ├─ vault: os.secure
       ├─ mech: REPLICA
       └─ status: granted 🔑
 

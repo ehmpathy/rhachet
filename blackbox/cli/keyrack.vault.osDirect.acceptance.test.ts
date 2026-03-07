@@ -223,9 +223,9 @@ describe('keyrack vault os.direct', () => {
         expect(parsed.grant.key.secret).toEqual('direct-test-key-abc123');
       });
 
-      then('grant source vault is os.daemon (via unlock)', () => {
+      then('grant source vault is os.direct (preserves original vault)', () => {
         const parsed = JSON.parse(getResult.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.direct');
       });
 
       then('stdout matches snapshot', () => {

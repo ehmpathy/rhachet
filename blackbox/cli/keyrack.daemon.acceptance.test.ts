@@ -62,9 +62,9 @@ describe('keyrack daemon cache', () => {
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.secure (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {
@@ -247,9 +247,9 @@ describe('keyrack daemon cache', () => {
         expect(parsed.status).toEqual('granted');
       });
 
-      then('key comes from daemon', () => {
+      then('key preserves original vault (os.secure)', () => {
         const parsed = JSON.parse(resultAfter.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {
@@ -335,9 +335,9 @@ describe('keyrack daemon cache', () => {
         expect(parsed.status).toEqual('granted');
       });
 
-      then('key comes from daemon', () => {
+      then('key preserves original vault (os.secure)', () => {
         const parsed = JSON.parse(getResult.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
 
       then('key value matches fixture', () => {
@@ -397,9 +397,9 @@ describe('keyrack daemon cache', () => {
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
-      then('source is os.daemon (not os.secure)', () => {
+      then('source preserves original vault (os.secure)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
 
       then('stdout matches snapshot', () => {

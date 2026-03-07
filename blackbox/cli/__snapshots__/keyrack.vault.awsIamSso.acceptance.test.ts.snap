@@ -268,7 +268,7 @@ exports[`keyrack vault aws.iam.sso given: [case13] guided setup with mock aws CL
     "slug": "testorg.test.AWS_PROFILE",
     "source": {
       "mech": "EPHEMERAL_VIA_AWS_SSO",
-      "vault": "os.daemon",
+      "vault": "aws.iam.sso",
     },
   },
   "status": "granted",

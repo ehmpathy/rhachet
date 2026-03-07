@@ -31,7 +31,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prep.SHARED_API_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -50,7 +50,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prep.AWS_PROFILE",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -103,7 +103,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prod.SHARED_API_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -122,7 +122,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prod.AWS_PROFILE",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -175,7 +175,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prod.SHARED_API_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -194,7 +194,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prod.AWS_PROFILE",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -213,7 +213,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prep.SHARED_API_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -232,7 +232,7 @@ exports[`keyrack envs given: [case2] repo with multi-env and os.direct vault con
       "slug": "testorg.prep.AWS_PROFILE",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
@@ -280,7 +280,7 @@ exports[`keyrack envs given: [case3.5] raw key name resolution with --key when: 
     "slug": "testorg.prep.AWS_PROFILE",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.direct",
     },
   },
   "status": "granted",
@@ -302,7 +302,7 @@ exports[`keyrack envs given: [case3] raw key name export via single key get when
     "slug": "testorg.prep.AWS_PROFILE",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.direct",
     },
   },
   "status": "granted",
@@ -343,7 +343,7 @@ exports[`keyrack envs given: [case4.5] set+get roundtrip with os.secure vault wh
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",
