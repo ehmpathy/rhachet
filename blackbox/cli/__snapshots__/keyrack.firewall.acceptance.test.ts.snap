@@ -4,7 +4,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 "
 🔐 keyrack
    └─ testorg.test.SAFE_API_KEY
-      ├─ vault: os.daemon
+      ├─ vault: os.direct
       ├─ mech: REPLICA
       └─ status: granted 🔑
 
@@ -26,7 +26,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
     "slug": "testorg.test.SAFE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.direct",
     },
   },
   "status": "granted",
@@ -85,7 +85,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
       "slug": "testorg.test.SAFE_API_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",
