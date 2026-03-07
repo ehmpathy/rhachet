@@ -15,7 +15,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
     "slug": "testorg.test.ALLOWED_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.direct",
     },
   },
   "status": "granted",
@@ -85,7 +85,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
       "slug": "testorg.test.ALLOWED_KEY",
       "source": {
         "mech": "REPLICA",
-        "vault": "os.daemon",
+        "vault": "os.direct",
       },
     },
     "status": "granted",

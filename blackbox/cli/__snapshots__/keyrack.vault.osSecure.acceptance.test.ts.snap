@@ -108,7 +108,7 @@ exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recip
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",
@@ -145,7 +145,7 @@ exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fix
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.secure",
     },
   },
   "status": "granted",

@@ -1236,9 +1236,9 @@ describe('keyrack --prikey', () => {
         expect(parsed.grant.key.secret).toEqual('roundtrip-secure-xyz');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.secure (preserves original vault)', () => {
         const parsed = JSON.parse(getResult.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
     });
   });

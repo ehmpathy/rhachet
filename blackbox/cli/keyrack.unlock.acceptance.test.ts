@@ -79,9 +79,9 @@ describe('keyrack unlock', () => {
         expect(parsed.status).toEqual('granted');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.direct (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.direct');
       });
     });
   });
@@ -214,9 +214,9 @@ describe('keyrack unlock', () => {
         expect(parsed.grant.key.secret).toEqual('custom-owner-secret-value');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.direct (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.direct');
       });
     });
   });
@@ -288,9 +288,9 @@ describe('keyrack unlock', () => {
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.secure (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
     });
   });
@@ -409,9 +409,9 @@ describe('keyrack unlock', () => {
         expect(parsed.grant.key.secret).toEqual('portable-secure-value-xyz789');
       });
 
-      then('grant source vault is os.daemon', () => {
+      then('grant source vault is os.secure (preserves original vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.source.vault).toEqual('os.daemon');
+        expect(parsed.grant.source.vault).toEqual('os.secure');
       });
     });
   });

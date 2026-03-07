@@ -56,7 +56,7 @@ exports[`keyrack vault os.direct given: [case3] repo with vault configured when:
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "source": {
       "mech": "REPLICA",
-      "vault": "os.daemon",
+      "vault": "os.direct",
     },
   },
   "status": "granted",
