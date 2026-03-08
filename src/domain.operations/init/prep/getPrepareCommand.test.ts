@@ -100,4 +100,65 @@ describe('getPrepareCommand', () => {
       });
     });
   });
+
+  given('[case5] rhachet-brains-* repo', () => {
+    when('[t0] pkg name is rhachet-brains-anthropic', () => {
+      then('prepends npm run build &&', () => {
+        const result = getPrepareCommand({
+          hooks: true,
+          roles: ['mechanic'],
+          pkgName: 'rhachet-brains-anthropic',
+        });
+        expect(result).toEqual(
+          'npm run build && rhachet init --hooks --roles mechanic',
+        );
+      });
+    });
+  });
+
+  given('[case6] local self-ref repo with link:.', () => {
+    when('[t0] rhachet has rhachet: link:. in devDeps', () => {
+      then('prepends npm run build &&', () => {
+        const result = getPrepareCommand({
+          hooks: true,
+          roles: ['mechanic', 'behaver'],
+          pkgName: 'rhachet',
+          devDependencies: { rhachet: 'link:.' },
+        });
+        expect(result).toEqual(
+          'npm run build && rhachet init --hooks --roles mechanic behaver',
+        );
+      });
+    });
+  });
+
+  given('[case7] local self-ref repo with file:.', () => {
+    when('[t0] rhachet has rhachet: file:. in devDeps', () => {
+      then('prepends npm run build &&', () => {
+        const result = getPrepareCommand({
+          hooks: true,
+          roles: ['mechanic'],
+          pkgName: 'rhachet',
+          devDependencies: { rhachet: 'file:.' },
+        });
+        expect(result).toEqual(
+          'npm run build && rhachet init --hooks --roles mechanic',
+        );
+      });
+    });
+  });
+
+  given('[case8] non-self-ref devDep', () => {
+    when('[t0] rhachet has rhachet: 1.37.9 (not link/file)', () => {
+      then('does not prepend build step', () => {
+        const result = getPrepareCommand({
+          hooks: true,
+          roles: ['mechanic'],
+          pkgName: 'rhachet',
+          devDependencies: { rhachet: '1.37.9' },
+        });
+        expect(result).toEqual('rhachet init --hooks --roles mechanic');
+      });
+    });
+  });
 });
