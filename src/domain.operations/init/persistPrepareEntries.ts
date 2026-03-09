@@ -50,10 +50,15 @@ export const persistPrepareEntries = (
 
   // generate prepare command
   const pkgName = typeof pkg.name === 'string' ? pkg.name : null;
+  const devDependencies =
+    typeof pkg.devDependencies === 'object' && pkg.devDependencies !== null
+      ? (pkg.devDependencies as Record<string, string>)
+      : null;
   const prepareCommand = getPrepareCommand({
     hooks: input.hooks,
     roles: input.roles,
     pkgName,
+    devDependencies,
   });
 
   // upsert prepare:rhachet entry
