@@ -1,0 +1,35 @@
+distill user experience reproductions for
+- .behavior/v2026_03_09.rhachet-agent-keyrack-init/0.wish.md
+- .behavior/v2026_03_09.rhachet-agent-keyrack-init/1.vision.md (if declared)
+
+---
+
+## experience reproductions
+
+for each user experience in the vision, define how it will be reproduced in tests.
+
+| experience | entry point | user actions | expected outcome | test type |
+|------------|-------------|--------------|------------------|-----------|
+| ...        | ...         | ...          | ...              | ...       |
+
+---
+
+## reproduction feasibility
+
+for each experience, confirm it can be reproduced:
+- what test utilities are available?
+- what setup is required?
+- show a concrete test sketch
+
+---
+
+## gaps
+
+if any experience cannot be reproduced, declare:
+- what is blocked?
+- what is required to unblock?
+- is this a blocker or can it be deferred?
+
+---
+
+emit to .behavior/v2026_03_09.rhachet-agent-keyrack-init/3.2.distill.repros.experience._.v1.i1.md

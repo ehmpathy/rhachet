@@ -1,0 +1,112 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped package name when: [t0] init --keys --roles tester then: stdout matches snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test-repo/role=tester
+   ├─ links
+   │  ├── + .agent/readme.md
+   │  ├── + .agent/repo=.this/readme.md
+   │  ├── + .agent/repo=test-repo/readme.md
+   │  ├── + .agent/repo=test-repo/.gitignore
+   │  ├── ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
+   │  ├── ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
+   │  ├── + .agent/repo=test-repo/role=tester/briefs
+   │  └── + .agent/repo=test-repo/role=tester/skills
+   └─ stats
+       ├── 1 brief(s)
+       └── 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔑 keyrack init
+   ├─ org: test-org
+   ├─ extends:
+   │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
+   └─ created .agent/keyrack.yml
+"
+`;
+
+exports[`rhachet init --keys given: [case2] --keys without --roles (fail-fast) when: [t0] init --keys without --roles then: stderr matches snapshot 1`] = `
+"
+⛈️ BadRequestError: --keys requires --roles to specify which role keyracks to extend
+
+{
+  "example": "npx rhachet init --keys --roles mechanic dispatcher"
+}
+
+[args] init,--keys
+
+"
+`;
+
+exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --keys --roles tester again then: stdout matches snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test-repo/role=tester
+   ├─ links
+   │  ├── ✓ .agent/readme.md (unchanged)
+   │  ├── ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├── ↻ .agent/repo=test-repo/readme.md (updated)
+   │  ├── ✓ .agent/repo=test-repo/.gitignore (unchanged)
+   │  ├── ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
+   │  ├── ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
+   │  ├── ↻ .agent/repo=test-repo/role=tester/briefs (updated)
+   │  └── ↻ .agent/repo=test-repo/role=tester/skills (updated)
+   └─ stats
+       ├── 1 brief(s)
+       └── 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔑 keyrack init
+   ├─ org: test-org
+   ├─ extends:
+   │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
+   └─ found .agent/keyrack.yml (no changes)
+"
+`;
+
+exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create manifest anyway) when: [t0] init --keys --roles norack then: stdout matches snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test-repo/role=norack
+   ├─ links
+   │  ├── + .agent/readme.md
+   │  ├── + .agent/repo=.this/readme.md
+   │  ├── + .agent/repo=test-repo/readme.md
+   │  ├── + .agent/repo=test-repo/.gitignore
+   │  ├── ↻ .agent/repo=test-repo/role=norack/readme.md (updated)
+   │  ├── + .agent/repo=test-repo/role=norack/briefs
+   │  └── + .agent/repo=test-repo/role=norack/skills
+   └─ stats
+       ├── 1 brief(s)
+       └── 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔑 keyrack init
+   ├─ org: test-org
+   └─ created .agent/keyrack.yml
+"
+`;
+
+exports[`rhachet init --keys given: [case6] org not detectable when: [t0] init --keys --roles tester (org undetectable) then: stderr matches snapshot 1`] = `
+"
+⛈️ BadRequestError: unable to detect org from package.json. use \`keyrack init\` for custom org.
+
+{
+  "note": "org detection checks: package.json#organization, scoped name (@org/), repository field",
+  "hint": "run \`npx rhachet keyrack init --for repo --org your-org\` to specify org manually"
+}
+
+[args] init,--keys,--roles,tester
+
+"
+`;

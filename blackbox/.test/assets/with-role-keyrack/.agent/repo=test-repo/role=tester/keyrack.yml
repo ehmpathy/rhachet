@@ -1,0 +1,7 @@
+org: test-repo
+
+env.prod:
+  - ROLE_API_KEY
+
+env.test:
+  - ROLE_TEST_KEY

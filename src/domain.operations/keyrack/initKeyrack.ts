@@ -1,6 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
@@ -17,7 +18,6 @@ import {
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { getKeyrackHostManifestPath } from './getKeyrackHostManifestPath';
-import { initKeyrackRepoManifest } from './initKeyrackRepoManifest';
 
 /**
  * .what = initialize keyrack with a recipient key
@@ -228,7 +228,7 @@ note: passphrase-less keys (-N "") do not need age installed.`,
  * .why = repo manifest declares org for the project's keyrack
  *
  * .note = when `at` is provided, creates keyrack at custom path (for role-level keyracks)
- * .note = uses initKeyrackRepoManifest for proper template with env.prod/env.test sections
+ * .note = creates basic manifest with org only (no extends; use `init --keys` for extends)
  */
 const initRepoManifest = async (input: {
   gitroot: string | null;
@@ -245,16 +245,16 @@ const initRepoManifest = async (input: {
   // if no org provided, skip (user must use --org)
   if (!input.org) return null;
 
-  // use initKeyrackRepoManifest for proper template with env sections
-  const result = await initKeyrackRepoManifest({
+  // use daoKeyrackRepoManifest.init for basic manifest (no extends)
+  const result = await daoKeyrackRepoManifest.init({
     gitroot: input.gitroot,
     org: input.org,
-    at: input.at,
+    at: input.at ?? undefined,
   });
 
   return {
-    manifestPath: result.path,
+    manifestPath: result.manifestPath,
     org: input.org,
-    effect: result.status === 'created' ? 'created' : 'found',
+    effect: result.effect,
   };
 };
