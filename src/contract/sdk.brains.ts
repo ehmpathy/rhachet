@@ -9,7 +9,6 @@
 
 // brain domain objects
 export { BrainAtom } from '@src/domain.objects/BrainAtom';
-export type { BrainAtomPlugs } from '@src/domain.objects/BrainAtomPlugs';
 export { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
 export { BrainEpisode } from '@src/domain.objects/BrainEpisode';
 export { BrainExchange } from '@src/domain.objects/BrainExchange';
@@ -20,12 +19,16 @@ export type { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 export type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 export type { BrainHooksAdapterDao } from '@src/domain.objects/BrainHooksAdapterDao';
 export {
+  type AsBrainOutputCallsFor,
+  type AsBrainOutputOutputFor,
   type AsBrainOutputSeriesFor,
   BrainOutput,
 } from '@src/domain.objects/BrainOutput';
 export { BrainOutputMetrics } from '@src/domain.objects/BrainOutputMetrics';
+export type { BrainPlugs } from '@src/domain.objects/BrainPlugs';
+export type { BrainPlugToolDefinition } from '@src/domain.objects/BrainPlugToolDefinition';
+export type { BrainPlugToolInvocation } from '@src/domain.objects/BrainPlugToolInvocation';
 export { BrainRepl } from '@src/domain.objects/BrainRepl';
-export type { BrainReplPlugs } from '@src/domain.objects/BrainReplPlugs';
 export { BrainSeries } from '@src/domain.objects/BrainSeries';
 export { BrainSpec } from '@src/domain.objects/BrainSpec';
 export type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';

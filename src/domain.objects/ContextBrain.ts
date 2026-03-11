@@ -4,10 +4,9 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { z } from 'zod';
 
 import type { BrainAtom } from './BrainAtom';
-import type { BrainAtomPlugs } from './BrainAtomPlugs';
 import type { BrainOutput } from './BrainOutput';
+import type { BrainPlugs } from './BrainPlugs';
 import type { BrainRepl } from './BrainRepl';
-import type { BrainReplPlugs } from './BrainReplPlugs';
 
 /**
  * .what = union type for a chosen brain (atom or repl)
@@ -48,7 +47,7 @@ export interface ContextBrain<TBrainChoice = BrainChoice | null> {
        */
       ask: <TOutput>(input: {
         brain: RefByUnique<typeof BrainAtom>;
-        plugs?: BrainAtomPlugs;
+        plugs?: BrainPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
@@ -62,7 +61,7 @@ export interface ContextBrain<TBrainChoice = BrainChoice | null> {
        */
       ask: <TOutput>(input: {
         brain: RefByUnique<typeof BrainRepl>;
-        plugs?: BrainReplPlugs;
+        plugs?: BrainPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
@@ -74,7 +73,7 @@ export interface ContextBrain<TBrainChoice = BrainChoice | null> {
        */
       act: <TOutput>(input: {
         brain: RefByUnique<typeof BrainRepl>;
-        plugs?: BrainReplPlugs;
+        plugs?: BrainPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };

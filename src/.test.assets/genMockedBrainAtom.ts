@@ -37,6 +37,7 @@ export const genMockedBrainAtom = (input?: {
       });
       return new BrainOutput<typeof outputParsed, 'atom'>({
         output: outputParsed,
+        calls: null,
         metrics: genMockedBrainOutputMetrics(),
         episode,
         series: null,

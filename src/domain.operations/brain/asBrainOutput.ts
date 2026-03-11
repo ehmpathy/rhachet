@@ -59,6 +59,7 @@ export const asBrainOutput = async <TOutput>(
   });
   return new BrainOutput<TOutput>({
     output: result as TOutput,
+    calls: null,
     metrics: metricsPlaceholder,
     episode,
     series: null,

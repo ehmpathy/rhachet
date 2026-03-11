@@ -4,8 +4,8 @@ import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
 import type { BrainOutput } from '@src/domain.objects/BrainOutput';
+import type { BrainPlugs } from '@src/domain.objects/BrainPlugs';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
-import type { BrainReplPlugs } from '@src/domain.objects/BrainReplPlugs';
 
 /**
  * .what = invoke a brain repl for readonly agentic analysis
@@ -19,7 +19,7 @@ import type { BrainReplPlugs } from '@src/domain.objects/BrainReplPlugs';
 export const askViaBrainRepl = async <TOutput>(
   input: {
     repl: BrainRepl;
-    plugs?: BrainReplPlugs;
+    plugs?: BrainPlugs;
     role: { briefs?: Artifact<typeof GitFile>[] };
     prompt: string;
     schema: { output: z.Schema<TOutput> };

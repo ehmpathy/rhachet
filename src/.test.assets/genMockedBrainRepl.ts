@@ -37,6 +37,7 @@ export const genMockedBrainRepl = (input?: {
       });
       return new BrainOutput<typeof outputParsed, 'repl'>({
         output: outputParsed,
+        calls: null,
         metrics: genMockedBrainOutputMetrics(),
         episode,
         series,
@@ -59,6 +60,7 @@ export const genMockedBrainRepl = (input?: {
       });
       return new BrainOutput<typeof outputParsed, 'repl'>({
         output: outputParsed,
+        calls: null,
         metrics: genMockedBrainOutputMetrics(),
         episode,
         series,

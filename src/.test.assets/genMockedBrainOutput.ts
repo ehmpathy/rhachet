@@ -45,6 +45,7 @@ export const genMockedBrainOutput = async <
 
   return new BrainOutput({
     output: input.output,
+    calls: null,
     metrics: input.metrics ?? genMockedBrainOutputMetrics(),
     episode,
     series: series as AsBrainOutputSeriesFor<TBrainGrain>,

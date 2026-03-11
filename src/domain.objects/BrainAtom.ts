@@ -4,9 +4,9 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
-import type { BrainAtomPlugs } from './BrainAtomPlugs';
 import type { BrainEpisode } from './BrainEpisode';
 import type { BrainOutput } from './BrainOutput';
+import type { BrainPlugs } from './BrainPlugs';
 import type { BrainSpec } from './BrainSpec';
 
 /**
@@ -46,17 +46,18 @@ export interface BrainAtom {
    * .why = standardizes how all atoms are invoked, regardless of provider
    *
    * .note = `on.episode` enables continuation from a prior episode
+   * .note = TPlugs enables progressive complexity: no tools → no null checks
    */
-  ask: <TOutput>(
+  ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: { episode: BrainEpisode };
-      plugs?: BrainAtomPlugs;
+      plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'atom'>>;
+  ) => Promise<BrainOutput<TOutput, 'atom', TPlugs>>;
 }
 export class BrainAtom extends DomainEntity<BrainAtom> implements BrainAtom {
   public static unique = ['repo', 'slug'] as const;
