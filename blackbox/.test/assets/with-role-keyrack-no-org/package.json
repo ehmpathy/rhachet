@@ -1,7 +1,6 @@
 {
-  "name": "@test-org/test-repo",
-  "version": "1.0.0",
-  "private": true,
+  "name": "no-org-repo",
+  "version": "0.0.0",
   "dependencies": {
     "rhachet-roles-test-repo": "file:./node_modules/rhachet-roles-test-repo"
   }

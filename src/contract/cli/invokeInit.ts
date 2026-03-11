@@ -7,6 +7,7 @@ import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFrom
 import { persistPrepareEntries } from '@src/domain.operations/init/persistPrepareEntries';
 import { showInitUsageInstructions } from '@src/domain.operations/init/showInitUsageInstructions';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
+import { initKeyrackRepoManifest } from '@src/domain.operations/keyrack/initKeyrackRepoManifest';
 
 /**
  * .what = adds the "init" command to the CLI
@@ -28,6 +29,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
       'findsert (default) preserves prior, upsert overwrites',
       'findsert',
     )
+    .option('--keys', 'initialize keyrack manifest (requires --roles)')
     .action(
       async (options: {
         roles?: string[];
@@ -35,6 +37,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         config?: boolean;
         prep?: boolean;
         mode: 'findsert' | 'upsert';
+        keys?: boolean;
       }) => {
         // build context for operations
         const context = await genContextCli({ cwd: process.cwd() });
@@ -47,62 +50,100 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           });
         }
 
-        // route: --roles provided => init roles from packages
+        // validate: --keys requires --roles
+        if (options.keys && (!options.roles || options.roles.length === 0)) {
+          throw new BadRequestError(
+            '--keys requires --roles to specify which role keyracks to extend',
+            {
+              example: 'npx rhachet init --keys --roles mechanic dispatcher',
+            },
+          );
+        }
+
+        // track errors for exit code
+        let hasErrors = false;
+
+        // flag: --roles => init roles from packages
         if (options.roles && options.roles.length > 0) {
           const result = await initRolesFromPackages(
             { specifiers: options.roles },
             context,
           );
-
-          // if --hooks also specified, apply hooks after init
-          let hookErrors: Array<{ source: string; error: Error }> = [];
-          if (options.hooks !== undefined) {
-            const brains =
-              Array.isArray(options.hooks) && options.hooks.length > 0
-                ? options.hooks
-                : undefined;
-            const hookResult = await syncHooksForLinkedRoles(
-              { brains },
-              context,
-            );
-            hookErrors = hookResult.errors;
-          }
-
-          // if --prep specified, persist to package.json
-          if (options.prep) {
-            persistPrepareEntries(
-              {
-                hooks: options.hooks !== undefined,
-                roles: options.roles,
-              },
-              context,
-            );
-          }
-
-          // exit with failure if any errors occurred
-          if (result.errors.length || hookErrors.length) process.exit(1);
-          return;
+          if (result.errors.length) hasErrors = true;
         }
 
-        // route: --hooks alone => reapply hooks for already-linked roles
+        // flag: --keys => init keyrack manifest (after roles)
+        if (options.keys && options.roles && options.roles.length > 0) {
+          const result = await initKeyrackRepoManifest(
+            { roles: options.roles },
+            context,
+          );
+
+          // output tree (use relative path for display)
+          const manifestRelative = result.manifestPath.startsWith(
+            context.gitroot,
+          )
+            ? result.manifestPath.slice(context.gitroot.length + 1)
+            : result.manifestPath;
+
+          console.log('🔑 keyrack init');
+          console.log(`   ├─ org: ${result.org}`);
+          if (result.extends.length > 0) {
+            console.log('   ├─ extends:');
+            result.extends.forEach((path, i) => {
+              const prefix =
+                i === result.extends.length - 1 ? '   │  └─' : '   │  ├─';
+              console.log(`${prefix} ${path}`);
+            });
+          }
+          const effectMessage =
+            result.effect === 'created'
+              ? `created ${manifestRelative}`
+              : result.effect === 'updated'
+                ? `updated ${manifestRelative}`
+                : `found ${manifestRelative} (no changes)`;
+          console.log(`   └─ ${effectMessage}`);
+        }
+
+        // flag: --hooks => apply hooks
         if (options.hooks !== undefined) {
           const brains =
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
               : undefined;
           const hookResult = await syncHooksForLinkedRoles({ brains }, context);
-          if (hookResult.errors.length) process.exit(1);
-          return;
+          if (hookResult.errors.length) hasErrors = true;
         }
 
-        // route: --config provided => generate rhachet.use.ts
+        // flag: --prep => persist to package.json
+        if (options.prep && options.roles) {
+          persistPrepareEntries(
+            {
+              hooks: options.hooks !== undefined,
+              roles: options.roles,
+            },
+            context,
+          );
+        }
+
+        // flag: --config => generate rhachet.use.ts
         if (options.config) {
           await generateRhachetUseTs({ mode: options.mode }, context);
-          return;
         }
 
-        // route: no flags => show usage instructions
-        await showInitUsageInstructions(context);
+        // exit with failure if any errors occurred
+        if (hasErrors) process.exit(1);
+
+        // no flags => show usage instructions
+        const hasAnyFlag =
+          options.roles ||
+          options.keys ||
+          options.hooks !== undefined ||
+          options.prep ||
+          options.config;
+        if (!hasAnyFlag) {
+          await showInitUsageInstructions(context);
+        }
       },
     );
 };

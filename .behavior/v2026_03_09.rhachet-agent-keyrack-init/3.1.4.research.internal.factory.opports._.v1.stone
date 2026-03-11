@@ -1,0 +1,66 @@
+look around your factory — if you could improve one tool, what would help you go faster?
+
+.why = factory improvements compound across all future work.
+
+reference
+- .behavior/v2026_03_09.rhachet-agent-keyrack-init/0.wish.md
+- .behavior/v2026_03_09.rhachet-agent-keyrack-init/1.vision.md (if declared)
+- .behavior/v2026_03_09.rhachet-agent-keyrack-init/3.1.4.research.internal.factory.blockers.*.v1.i1.md (if declared)
+
+---
+
+## the constraint
+
+- what is THE bottleneck? (singular, not a list)
+- if you could fix one problem, what would unblock the most?
+
+---
+
+## flow and queues
+
+- what queues exist in verification?
+- what must you wait for that you can't control?
+- what's the work-in-progress limit before you get stuck?
+
+---
+
+## waste
+
+- what handoffs slow you down?
+- what setup is repeated that could be cached or shared?
+- what partial work sits idle?
+- what do you do manually that's error-prone?
+
+---
+
+## small batches
+
+- can you verify incrementally, or must you wait for completion?
+- what's the smallest verifiable unit?
+- can you get feedback before the whole is done?
+
+---
+
+## autonomy
+
+- do you have all you need to ship independently?
+- who must be consulted or waited on?
+- what external teams block progress?
+
+---
+
+## density
+
+- what % of verification time is actual test execution vs setup/wait?
+- where is time wasted that could be reclaimed?
+
+---
+
+## systems view
+
+- would this improvement help just this behavior, or all future work?
+- are you in a local optimum at the cost of the whole?
+
+---
+
+emit to .behavior/v2026_03_09.rhachet-agent-keyrack-init/3.1.4.research.internal.factory.opports._.v1.i1.md

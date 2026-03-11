@@ -1,51 +1,133 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { BadRequestError } from 'helpful-errors';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { discoverRoleKeyracks } from './discoverRoleKeyracks';
+import { getOrgFromPackageJson } from './getOrgFromPackageJson';
 
 /**
- * .what = initializes a keyrack manifest for a repo
- * .why = enables keyrack init CLI command and role-level keyrack creation
+ * .what = initializes or updates the keyrack manifest for a repo
+ * .why = enables `rhachet init --keys` CLI command
  *
- * .note = when `at` is provided, creates keyrack at custom path (for role-level keyracks)
- * .note = when `at` is absent, creates keyrack at default .agent/keyrack.yml
+ * behavior:
+ * - roles: required, which roles to extend (fail-fast if role lacks keyrack)
+ * - org: auto-detect from package.json only, error if undetectable
+ * - extends: discover keyracks for specified roles, merge with findsert semantics
+ * - env sections: env.prod, env.prep, env.test (present for user to populate)
+ *
+ * .note = returns 'created' if manifest was absent
+ * .note = returns 'updated' if extends were merged
+ * .note = returns 'found' if manifest was present and up-to-date
+ * .note = for custom org, use `keyrack init` instead
  */
-export const initKeyrackRepoManifest = async (input: {
-  gitroot: string;
+export const initKeyrackRepoManifest = async (
+  input: {
+    roles: string[];
+    at?: string | null;
+  },
+  context: { gitroot: string },
+): Promise<{
+  effect: 'created' | 'found' | 'updated';
+  manifestPath: string;
   org: string;
-  at?: string | null;
-}): Promise<{ status: 'created' | 'exists'; path: string }> => {
-  // compute manifest path (custom path or default)
-  const manifestPath = input.at
-    ? path.isAbsolute(input.at)
-      ? input.at
-      : path.join(input.gitroot, input.at)
-    : path.join(input.gitroot, '.agent', 'keyrack.yml');
+  extends: string[];
+}> => {
+  // compute manifest path
+  const manifestPath = (() => {
+    if (!input.at) return join(context.gitroot, '.agent', 'keyrack.yml');
+    if (input.at.startsWith('/')) return input.at;
+    return join(context.gitroot, input.at);
+  })();
 
-  // check if manifest already exists
-  const manifestExists = await fs
-    .access(manifestPath)
-    .then(() => true)
-    .catch(() => false);
+  // detect org: auto-detect from package.json only
+  const org = await (async () => {
+    const detected = await getOrgFromPackageJson({}, context);
+    if (detected) return detected;
+    throw new BadRequestError(
+      'unable to detect org from package.json. use `keyrack init` for custom org.',
+      {
+        note: 'org detection checks: package.json#organization, scoped name (@org/), repository field',
+        hint: 'run `npx rhachet keyrack init --for repo --org your-org` to specify org manually',
+      },
+    );
+  })();
 
-  if (manifestExists) {
-    return { status: 'exists', path: manifestPath };
+  // discover role keyracks for specified roles (skip roles that lack keyrack)
+  const roleKeyracks = await discoverRoleKeyracks(
+    { roles: input.roles },
+    context,
+  );
+
+  // check if manifest already present
+  if (existsSync(manifestPath)) {
+    // read and parse current yaml
+    const content = readFileSync(manifestPath, 'utf8');
+    const parsed = parseYaml(content) as Record<string, unknown>;
+
+    // get current extends (if any)
+    const extendsCurrent = Array.isArray(parsed.extends)
+      ? (parsed.extends as string[])
+      : [];
+
+    // merge extends: findsert semantics (add absent, preserve extant)
+    const extendsSet = new Set([...extendsCurrent, ...roleKeyracks]);
+    const extendsMerged = [...extendsSet].sort();
+
+    // check if extends changed
+    const extendsChanged =
+      extendsMerged.length !== extendsCurrent.length ||
+      extendsMerged.some((path, i) => path !== extendsCurrent[i]);
+
+    if (!extendsChanged) {
+      // no changes needed
+      return {
+        effect: 'found',
+        manifestPath,
+        org: (parsed.org as string) ?? org,
+        extends: extendsMerged,
+      };
+    }
+
+    // update extends in manifest
+    parsed.extends = extendsMerged;
+
+    // write updated yaml
+    writeFileSync(manifestPath, stringifyYaml(parsed), 'utf8');
+
+    return {
+      effect: 'updated',
+      manifestPath,
+      org: (parsed.org as string) ?? org,
+      extends: extendsMerged,
+    };
   }
 
-  // create parent directory if needed
-  const parentDir = path.dirname(manifestPath);
-  await fs.mkdir(parentDir, { recursive: true });
+  // create new manifest
+  const manifest: Record<string, unknown> = {
+    org,
+  };
 
-  // write manifest template
-  const content = `org: ${input.org}
+  // add extends if any role keyracks discovered
+  if (roleKeyracks.length > 0) {
+    manifest.extends = roleKeyracks;
+  }
 
-env.prod:
-  # - AWS_PROFILE
-  # - OPENAI_API_KEY
+  // add env sections (empty for user to populate)
+  manifest['env.prod'] = null;
+  manifest['env.prep'] = null;
+  manifest['env.test'] = null;
 
-env.test:
-  # - AWS_PROFILE
-  # - OPENAI_API_KEY
-`;
-  await fs.writeFile(manifestPath, content, 'utf-8');
+  // ensure parent directory present
+  mkdirSync(dirname(manifestPath), { recursive: true });
 
-  return { status: 'created', path: manifestPath };
+  // write yaml
+  writeFileSync(manifestPath, stringifyYaml(manifest), 'utf8');
+
+  return {
+    effect: 'created',
+    manifestPath,
+    org,
+    extends: roleKeyracks,
+  };
 };
