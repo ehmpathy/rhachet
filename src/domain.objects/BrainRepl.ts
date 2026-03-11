@@ -6,7 +6,7 @@ import type { z } from 'zod';
 
 import type { BrainEpisode } from './BrainEpisode';
 import type { BrainOutput } from './BrainOutput';
-import type { BrainReplPlugs } from './BrainReplPlugs';
+import type { BrainPlugs } from './BrainPlugs';
 import type { BrainSeries } from './BrainSeries';
 import type { BrainSpec } from './BrainSpec';
 
@@ -55,17 +55,18 @@ export interface BrainRepl {
    *   - codex-sdk: --sandbox read-only
    *
    * .note = `on.episode` or `on.series` enables continuation from prior state
+   * .note = TPlugs enables progressive complexity: no tools → no null checks
    */
-  ask: <TOutput>(
+  ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
-      plugs?: BrainReplPlugs;
+      plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'repl'>>;
+  ) => Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
 
   /**
    * .what = read+write action operation (code changes, file edits)
@@ -77,17 +78,18 @@ export interface BrainRepl {
    *   - codex-sdk: --sandbox workspace-write
    *
    * .note = `on.episode` or `on.series` enables continuation from prior state
+   * .note = TPlugs enables progressive complexity: no tools → no null checks
    */
-  act: <TOutput>(
+  act: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
-      plugs?: BrainReplPlugs;
+      plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
       prompt: string;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'repl'>>;
+  ) => Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
 }
 export class BrainRepl extends DomainEntity<BrainRepl> implements BrainRepl {
   public static unique = ['repo', 'slug'] as const;

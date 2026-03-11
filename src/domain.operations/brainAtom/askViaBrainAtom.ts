@@ -4,24 +4,29 @@ import type { Empty } from 'type-fns';
 import type { z } from 'zod';
 
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
-import type { BrainAtomPlugs } from '@src/domain.objects/BrainAtomPlugs';
 import type { BrainOutput } from '@src/domain.objects/BrainOutput';
+import type { BrainPlugs } from '@src/domain.objects/BrainPlugs';
 
 /**
  * .what = invoke a brain atom for single-turn inference
  * .why = provides the core operation for atom-based imagination
  *   with automatic role brief embed and schema enforcement
+ *
+ * .note = TPlugs enables progressive complexity: no tools → no null checks
  */
-export const askViaBrainAtom = async <TOutput>(
+export const askViaBrainAtom = async <
+  TOutput,
+  TPlugs extends BrainPlugs = BrainPlugs,
+>(
   input: {
     atom: BrainAtom;
-    plugs?: BrainAtomPlugs;
+    plugs?: TPlugs;
     role: { briefs?: Artifact<typeof GitFile>[] };
     prompt: string;
     schema: { output: z.Schema<TOutput> };
   },
   context?: Empty,
-): Promise<BrainOutput<TOutput>> => {
+): Promise<BrainOutput<TOutput, 'atom', TPlugs>> => {
   // delegate to the atom's ask implementation
   return input.atom.ask(
     {

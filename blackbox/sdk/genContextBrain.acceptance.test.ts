@@ -20,8 +20,8 @@ describe('genContextBrain', () => {
     const repl = genMockedBrainRepl({ repo: 'anthropic', slug: 'claude-code' });
 
     when('[t0] choice matches an atom', () => {
-      then('brain.choice is that atom', () => {
-        const context = genContextBrain({
+      then('brain.choice is that atom', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: 'xai/grok-3',
         });
@@ -30,8 +30,8 @@ describe('genContextBrain', () => {
     });
 
     when('[t1] choice matches a repl', () => {
-      then('brain.choice is that repl', () => {
-        const context = genContextBrain({
+      then('brain.choice is that repl', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: 'anthropic/claude-code',
         });
@@ -45,13 +45,13 @@ describe('genContextBrain', () => {
     const repl = genMockedBrainRepl({ repo: 'anthropic', slug: 'claude-code' });
 
     when('[t0] typed repl choice provided', () => {
-      then('brain.choice is the repl with correct type', () => {
-        const context = genContextBrain({
+      then('brain.choice is the repl with correct type', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: { repl: 'anthropic/claude-code' },
         });
         // typed choice gives precise type: BrainRepl
-        const choice: BrainRepl = context.brain.choice;
+        const choice: BrainRepl = context.brain.choice!;
         expect(choice).toBe(repl);
         expect(choice.act).toBeDefined();
       });
@@ -63,13 +63,13 @@ describe('genContextBrain', () => {
     const repl = genMockedBrainRepl({ repo: 'anthropic', slug: 'claude-code' });
 
     when('[t0] typed atom choice provided', () => {
-      then('brain.choice is the atom with correct type', () => {
-        const context = genContextBrain({
+      then('brain.choice is the atom with correct type', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: { atom: 'xai/grok-3' },
         });
         // typed choice gives precise type: BrainAtom
-        const choice: BrainAtom = context.brain.choice;
+        const choice: BrainAtom = context.brain.choice!;
         expect(choice).toBe(atom);
         expect(choice.ask).toBeDefined();
       });
@@ -81,8 +81,8 @@ describe('genContextBrain', () => {
     const repl = genMockedBrainRepl({ repo: 'anthropic', slug: 'claude-code' });
 
     when('[t0] context is created without choice', () => {
-      then('brain.choice is null', () => {
-        const context = genContextBrain({
+      then('brain.choice is null', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
         });
         // no choice gives type: null
@@ -97,34 +97,28 @@ describe('genContextBrain', () => {
     const repl = genMockedBrainRepl({ repo: 'anthropic', slug: 'claude-code' });
 
     when('[t0] isBrainAtom guard is used', () => {
-      then('it correctly identifies atoms', () => {
-        const context = genContextBrain({
+      then('it correctly identifies atoms', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: 'xai/grok-3',
         });
 
-        const choice: BrainChoice = context.brain.choice;
-        if (isBrainAtom(choice)) {
-          expect(choice.ask).toBeDefined();
-        } else {
-          fail('expected atom');
-        }
+        const choice = context.brain.choice!;
+        expect(isBrainAtom(choice)).toBe(true);
+        expect((choice as BrainAtom).ask).toBeDefined();
       });
     });
 
     when('[t1] isBrainRepl guard is used', () => {
-      then('it correctly identifies repls', () => {
-        const context = genContextBrain({
+      then('it correctly identifies repls', async () => {
+        const context = await genContextBrain({
           brains: { atoms: [atom], repls: [repl] },
           choice: 'anthropic/claude-code',
         });
 
-        const choice: BrainChoice = context.brain.choice;
-        if (isBrainRepl(choice)) {
-          expect(choice.act).toBeDefined();
-        } else {
-          fail('expected repl');
-        }
+        const choice = context.brain.choice!;
+        expect(isBrainRepl(choice)).toBe(true);
+        expect((choice as BrainRepl).act).toBeDefined();
       });
     });
   });
