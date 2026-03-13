@@ -376,7 +376,9 @@ describe('brainRepl.tool.coordination', () => {
         const execution = await searchTool.execute({ invocation }, {});
 
         expect(execution.signal).toEqual('error:malfunction');
-        expect(execution.output).toEqual({ error: 'no results found' });
+        expect(execution.output).toEqual({
+          error: new Error('no results found'),
+        });
         expect(execution.metrics.cost.time).toBeDefined();
       });
     });
