@@ -7,14 +7,29 @@ import type { z } from 'zod';
 import type { BrainEpisode } from './BrainEpisode';
 import type { BrainOutput } from './BrainOutput';
 import type { BrainPlugs } from './BrainPlugs';
+import type { BrainPlugToolDefinition } from './BrainPlugToolDefinition';
+import type { BrainPlugToolExecution } from './BrainPlugToolExecution';
 import type { BrainSpec } from './BrainSpec';
+
+/**
+ * .what = conditional type for prompt based on whether tools are plugged
+ * .why = enables tool result continuation via BrainPlugToolExecution array
+ *
+ * .note
+ * - string: initial prompt or follow-up question
+ * - BrainPlugToolExecution[]: tool results continuation (always array, even for single tool)
+ */
+export type AsBrainPromptFor<TPlugs extends BrainPlugs> = TPlugs extends {
+  tools: BrainPlugToolDefinition[];
+}
+  ? string | BrainPlugToolExecution[]
+  : string;
 
 /**
  * .what = an LLM inference endpoint capable of creative language imagination
  * .why =
  *   - enables registration of pluggable LLM atoms (e.g., claude, gpt, llama)
  *   - provides a standardized contract for single-turn or multi-turn inference
- *   - enables dynamic swapping of models at runtime
  */
 export interface BrainAtom {
   /**
@@ -47,13 +62,14 @@ export interface BrainAtom {
    *
    * .note = `on.episode` enables continuation from a prior episode
    * .note = TPlugs enables progressive complexity: no tools → no null checks
+   * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
    */
   ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: { episode: BrainEpisode };
       plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
-      prompt: string;
+      prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,

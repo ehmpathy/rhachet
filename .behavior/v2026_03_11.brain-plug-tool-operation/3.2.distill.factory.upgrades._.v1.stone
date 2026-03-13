@@ -1,0 +1,42 @@
+distill factory upgrades needed for
+- .behavior/v2026_03_11.brain-plug-tool-operation/0.wish.md
+- .behavior/v2026_03_11.brain-plug-tool-operation/1.vision.md (if declared)
+
+based on factory research
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.2.research.external.factory.testloops.*.v1.i1.md (if declared)
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.2.research.external.factory.oss.levers.*.v1.i1.md (if declared)
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.2.research.external.factory.templates.*.v1.i1.md (if declared)
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.4.research.internal.factory.blockers.*.v1.i1.md (if declared)
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.4.research.internal.factory.opports.*.v1.i1.md (if declared)
+
+---
+
+## decision
+
+based on what you found:
+- is any factory work required for this behavior?
+- or is the extant factory sufficient?
+
+---
+
+## blockers to address
+
+if blockers were found, list what to build:
+
+| blocker | what to build | priority |
+|---------|---------------|----------|
+| ...     | ...           | ...      |
+
+---
+
+## improvements to make
+
+if opportunities were found worth the effort, list what to build:
+
+| opportunity | what to build | benefit |
+|-------------|---------------|---------|
+| ...         | ...           | ...     |
+
+---
+
+emit into .behavior/v2026_03_11.brain-plug-tool-operation/3.2.distill.factory.upgrades._.v1.i1.md

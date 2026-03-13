@@ -1,0 +1,50 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brainAtom.tool.continuation given: [case1] calculator brain with tool use when: [t2] snapshot the round-trip then: data shapes are captured 1`] = `
+{
+  "answer": "100 subtract 42 = 58",
+  "execution": {
+    "input": {
+      "a": 100,
+      "b": 42,
+      "operation": "subtract",
+    },
+    "output": {
+      "result": 58,
+    },
+    "signal": "success",
+    "slug": "calculator",
+  },
+  "invocation": {
+    "input": {
+      "a": 100,
+      "b": 42,
+      "operation": "subtract",
+    },
+    "slug": "calculator",
+  },
+}
+`;
+
+exports[`brainAtom.tool.continuation given: [case2] weather brain with tool use when: [t1] snapshot the weather round-trip then: data shapes are captured 1`] = `
+{
+  "execution": {
+    "input": {
+      "city": "Seattle",
+    },
+    "output": {
+      "condition": "rainy",
+      "temperature": 55,
+    },
+    "signal": "success",
+    "slug": "get-weather",
+  },
+  "forecast": "Seattle: 55°F, rainy",
+  "invocation": {
+    "input": {
+      "city": "Seattle",
+    },
+    "slug": "get-weather",
+  },
+}
+`;

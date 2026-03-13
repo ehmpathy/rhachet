@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brainRepl.tool.coordination given: [case1] BrainRepl coordinates single tool execution when: [t1] snapshot the coordination flow then: data shapes are captured 1`] = `
+{
+  "execution": {
+    "input": {
+      "email": "alice@example.com",
+    },
+    "output": {
+      "id": "cus_123",
+      "name": "Alice",
+    },
+    "signal": "success",
+    "slug": "customer-lookup",
+  },
+  "invocation": {
+    "input": {
+      "email": "alice@example.com",
+    },
+    "slug": "customer-lookup",
+  },
+  "summary": "found Alice (cus_123) for alice@example.com",
+}
+`;
+
+exports[`brainRepl.tool.coordination given: [case5] full agentic loop pattern (what BrainRepl.act does) when: [t1] snapshot the agentic loop then: multi-turn coordination is captured 1`] = `
+{
+  "finalOutput": {
+    "complete": true,
+    "summary": "refactored hello.ts, tests pass",
+  },
+  "trace": [
+    {
+      "action": "tool_call",
+      "slug": "read-file",
+      "turn": 1,
+    },
+    {
+      "action": "tool_call",
+      "slug": "write-file",
+      "turn": 2,
+    },
+    {
+      "action": "tool_call",
+      "slug": "run-tests",
+      "turn": 3,
+    },
+    {
+      "action": "complete",
+      "turn": 4,
+    },
+  ],
+}
+`;

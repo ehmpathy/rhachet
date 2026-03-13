@@ -1,0 +1,65 @@
+look around your factory — what's broken or absent that would block you?
+
+.why = surface blockers before you start so you don't hit them mid-build.
+- a mechanic halted by absent credentials loses momentum
+- a mechanic without test infra cannot verify their work
+- a mechanic who discovers blockers late wastes effort on rework
+- blockers found upfront can be addressed in parallel with other research
+
+reference
+- .behavior/v2026_03_11.brain-plug-tool-operation/0.wish.md
+- .behavior/v2026_03_11.brain-plug-tool-operation/1.vision.md (if declared)
+- .behavior/v2026_03_11.brain-plug-tool-operation/3.1.3.research.internal.product.*.v1.i1.md (if declared)
+
+---
+
+## test infra
+
+- is there any test infra you need to provision?
+- or is extant test infra sufficient to verify this behavior?
+- what's the bottleneck if you don't provision it?
+- can you verify the behavior end-to-end with what you have?
+
+---
+
+## feedback loops
+
+- is there any way to get a tighter feedback loop on verification?
+- what's the slowest verification step?
+- what would increase velocity?
+- is there manual verification that could be automated?
+
+---
+
+## access and credentials
+
+- are there any new keys or credentials you will need?
+- or are extant credentials sufficient?
+- what's blocked without them?
+- who can provision access?
+
+---
+
+## infra control
+
+- is there any infra you'll need to add or modify?
+- or is extant infra sufficient?
+- what's the constraint if you don't add it?
+- is this a blocker or can it be deferred?
+
+---
+
+## other blockers
+
+what else could block rapid iteration, verification, or construction?
+
+- are there dependencies on other teams, systems, or approvals?
+- is there unclear context, ambiguous requirements, or absent domain knowledge?
+- are there absent examples, patterns, or prior art to reference?
+- is there test data, fixtures, or seed state that needs to be created?
+- are there environment parity issues between local, test, and prod?
+- what else would slow down build-test-learn cycles?
+
+---
+
+emit to .behavior/v2026_03_11.brain-plug-tool-operation/3.1.4.research.internal.factory.blockers._.v1.i1.md
