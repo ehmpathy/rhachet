@@ -375,6 +375,124 @@ roles:
 | `roles.skills.dirs` | path(s) to skills directories           |
 | `roles.inits.dirs`  | path(s) to inits directories (optional) |
 
+---
+
+# 🧠 `brains.<use>`
+
+brains are thought mechanisms. install a supplier, use it directly or via context.
+
+### tldr
+
+```sh
+npm install rhachet-brains-anthropic
+```
+
+```ts
+import { genContextBrain } from 'rhachet/brains';
+
+const context = await genContextBrain({ choice: 'anthropic/claude-sonnet' });
+const result = await context.brain.repl.act({ prompt: 'review the pull request', ... });
+```
+
+### chose
+
+see [howto.use.brain.genContextBrain](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.genContextBrain.md) for full docs.
+
+#### 🔭 discovered brains
+
+auto-discover installed `rhachet-brains-*` packages. useful when you want skills that work with any brain supplier.
+
+```ts
+import { genContextBrain } from 'rhachet/brains';
+
+const context = await genContextBrain({ choice: 'anthropic/claude-sonnet' });
+const result = await context.brain.repl.ask({ prompt: 'hello', ... });
+```
+
+#### 🔬 imported brains
+
+pass brains directly. no discovery. synchronous.
+
+```ts
+import { genContextBrain } from 'rhachet/brains';
+import { genBrainRepl } from 'rhachet-brains-anthropic';
+
+// direct
+const repl = genBrainRepl({ slug: 'anthropic/claude-sonnet' });
+const result = await repl.ask({ prompt: 'hello', ... });
+
+// via context
+const context = genContextBrain({ brains: { repls: [repl] }, choice: 'anthropic/claude-sonnet' });
+const result = await context.brain.repl.ask({ prompt: 'hello', ... });
+```
+
+### use
+
+#### 🔍 brain.atom.ask
+
+```ts
+const result = await context.brain.atom.ask({ role, prompt: 'summarize the changes', ... });
+```
+
+#### 🔍 brain.repl.ask
+
+```ts
+const result = await context.brain.repl.ask({ role, prompt: 'what needs refactor?', ... });
+```
+
+#### 🔨 brain.repl.act
+
+```ts
+const result = await context.brain.repl.act({ role, prompt: 'review the pull request', ... });
+```
+
+#### inputs
+
+| input | what | docs |
+| ----- | ---- | ---- |
+| `role` | the role persona for the brain | [howto.use.brain.role](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.role.md) |
+| `prompt` | the prompt to send | [howto.use.brain.prompt](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.prompt.md) |
+| `plugs` | tools, memory, etc | [howto.use.brain.plugs](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.plugs.md) |
+| `schema` | output schema for structured responses | [howto.use.brain.schema](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.schema.md) |
+| `on` | episode continuation | [howto.use.brain.on](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.on.md) |
+```
+
+### grains
+
+rhachet recognizes two brain grains:
+
+| grain      | symbol | what                 | tool execution            |
+| ---------- | ------ | -------------------- | ------------------------- |
+| BrainAtom  | ○      | single inference     | outputs invocations       |
+| BrainRepl  | ↻      | read-eval-print-loop | executes tools internally |
+
+○ atoms are stateless. one turn in, one turn out. ↻ repls loop until complete.
+
+### tool use
+
+brains can call tools. see brief: [howto.use.brain.tools.md](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.tools.md)
+
+---
+
+# 🧠 `brains.<add>`
+
+## supplier packages
+
+publish brain suppliers as `rhachet-brains-*` packages.
+
+| package | provider | atoms | repls |
+| ------- | -------- | ----- | ----- |
+| `rhachet-brains-anthropic` | anthropic (claude) | ✓ | ✓ |
+| `rhachet-brains-openai` | openai (gpt, codex) | ✓ | ✓ |
+| `rhachet-brains-xai` | xai (grok) | ✓ | - |
+| `rhachet-brains-chutes` | chutes.ai | ✓ | - |
+| `rhachet-brains-bhrain` | bhrain arch1 | - | ✓ |
+
+## create a supplier
+
+create a `BrainAtom` or `BrainRepl` that wraps your inference provider.
+
+see brief: [howto.for.suppliers.md](.agent/repo=.this/role=user/briefs/brains/howto.for.suppliers.md)
 
 ---
 
@@ -542,7 +660,7 @@ skills unlock consistency. 🧠 brains are probabilistic — they won't do the s
 | 🔩 rigid | review pr (fetch = deterministic, analysis = probabilistic) | blended            |
 | 💧 fluid | "what should we refactor?"                                  | 100% probabilistic |
 
-ideally, eject as much work as possible into 🪨 solid skills. use 🔩 rigid when you need to blend deterministic setup with probabilistic thought. reserve 💧 fluid for open-ended exploration.
+ideally, crystallize as much work as possible into 🪨 solid skills. use 🔩 rigid when you need to blend deterministic setup with probabilistic thought. reserve 💧 fluid for open-ended exploration.
 
 ---
 
@@ -574,6 +692,6 @@ for the philosophy behind distributed abundance, see the [postlabor briefs](.age
 
 1. **externalization** — knowledge systematically externalized in skills and briefs, outside of the internalized knowledge of any single brain
 2. **enrollment** — any brain durably enrolled to execute any skill via roles; portable across brains, composable across roles
-3. **determinism** — thought routes iteratively harden from fluid → rigid → solid; reliability and efficiency compound
+3. **crystallization** — thought routes iteratively harden from fluid → rigid → solid; reliability and efficiency compound with increased determinism
 
 each skill published is a click. each brief shared is a click. each thought route hardened is a click. the ratchet only moves forward.

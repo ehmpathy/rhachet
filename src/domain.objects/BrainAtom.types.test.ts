@@ -8,8 +8,11 @@
  */
 import { z } from 'zod';
 
+import { genBrainPlugToolDeclaration } from '@src/domain.operations/brainContinuation/genBrainPlugToolDeclaration';
+
 import type { BrainAtom } from './BrainAtom';
 import type { BrainPlugToolDefinition } from './BrainPlugToolDefinition';
+import type { BrainPlugToolExecution } from './BrainPlugToolExecution';
 import type { BrainPlugToolInvocation } from './BrainPlugToolInvocation';
 import type { BrainRepl } from './BrainRepl';
 
@@ -337,6 +340,290 @@ async () => {
     const _output = result.output;
     const _calls = result.calls;
   }
+};
+
+/**
+ * test: prompt accepts string for initial prompt (no tools)
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+
+  // positive: prompt can be string when no tools
+  await brainAtom.ask({
+    role: {},
+    prompt: 'hello world',
+    schema: { output: schema },
+  });
+};
+
+/**
+ * test: prompt accepts string when tools are plugged
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const tools: BrainPlugToolDefinition[] = [];
+
+  // positive: prompt can be string with tools (initial prompt)
+  await brainAtom.ask({
+    role: {},
+    prompt: 'hello with tools',
+    schema: { output: schema },
+    plugs: { tools },
+  });
+};
+
+/**
+ * test: prompt accepts BrainPlugToolExecution[] when tools are plugged
+ * .why = enables tool result continuation
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const tools: BrainPlugToolDefinition[] = [];
+  const executions: BrainPlugToolExecution[] = [];
+
+  // positive: prompt can be execution array with tools (tool result continuation)
+  await brainAtom.ask({
+    role: {},
+    prompt: executions,
+    schema: { output: schema },
+    plugs: { tools },
+  });
+};
+
+/**
+ * test: prompt does NOT accept BrainPlugToolExecution[] when no tools
+ * .why = type-safe: execution array only valid with tools plugged
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const executions: BrainPlugToolExecution[] = [];
+
+  // negative: prompt cannot be execution array without tools
+  await brainAtom.ask({
+    role: {},
+    // @ts-expect-error - execution array not valid without tools plugged
+    prompt: executions,
+    schema: { output: schema },
+    // no plugs with tools
+  });
+};
+
+/**
+ * test: BrainAtom.ask() returns calls: { tools } | null when tools plugged
+ * .why = atoms return tool invocations for caller to handle
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const tools: BrainPlugToolDefinition[] = [];
+
+  const result = await brainAtom.ask({
+    role: {},
+    prompt: 'hello',
+    schema: { output: schema },
+    plugs: { tools },
+  });
+
+  // positive: calls can be null or have tools
+  if (result.calls !== null) {
+    const _invocations: BrainPlugToolInvocation[] = result.calls.tools;
+  }
+};
+
+/**
+ * test: BrainRepl.ask() returns calls: null always (repl executes tools internally)
+ * .why = repls execute tools via tool.execute(), never return tool invocations
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const tools: BrainPlugToolDefinition[] = [];
+
+  const result = await brainRepl.ask({
+    role: {},
+    prompt: 'hello',
+    schema: { output: schema },
+    plugs: { tools },
+  });
+
+  // positive: calls is always null for repl
+  const _calls: null = result.calls;
+};
+
+/**
+ * test: BrainRepl.act() returns calls: null always
+ * .why = repls execute tools via tool.execute(), never return tool invocations
+ */
+async () => {
+  const schema = z.object({ answer: z.string() });
+  const tools: BrainPlugToolDefinition[] = [];
+
+  const result = await brainRepl.act({
+    role: {},
+    prompt: 'hello',
+    schema: { output: schema },
+    plugs: { tools },
+  });
+
+  // positive: calls is always null for repl
+  const _calls: null = result.calls;
+};
+
+/**
+ * test: BrainPlugToolExecution has typed TInput, TOutput with discriminated union
+ * .why = enables type-safe tool result composition via signal check
+ */
+() => {
+  type CustomerInput = { email: string };
+  type CustomerOutput = { id: string; name: string };
+
+  const execution = {} as BrainPlugToolExecution<CustomerInput, CustomerOutput>;
+
+  // positive: input is typed
+  const _email: string = execution.input.email;
+
+  // positive: signal is constrained
+  const _signal: 'success' | 'error:constraint' | 'error:malfunction' =
+    execution.signal;
+
+  // positive: metrics has time
+  const _time = execution.metrics.cost.time;
+
+  // positive: signal narrows output type
+  if (execution.signal === 'success') {
+    // when success, output is TOutput
+    const _id: string = execution.output.id;
+    const _name: string = execution.output.name;
+  } else {
+    // when error, output is { error: Error }
+    const _error: Error = execution.output.error;
+  }
+
+  // negative: wrong property on input
+  // @ts-expect-error - 'wrong' does not exist on CustomerInput
+  const _wrongInput = execution.input.wrong;
+};
+
+/**
+ * test: BrainPlugToolDefinition for atom has no execute field (via cast)
+ * .why = atoms return tool invocations for caller to handle
+ */
+() => {
+  type CustomerInput = { email: string };
+  type CustomerOutput = { id: string };
+
+  const atomTool = {} as BrainPlugToolDefinition<
+    CustomerInput,
+    CustomerOutput,
+    'atom'
+  >;
+
+  // positive: has slug, name, description, schema
+  const _slug: string = atomTool.slug;
+  const _name: string = atomTool.name;
+  const _description: string = atomTool.description;
+  const _schema = atomTool.schema.input;
+
+  // negative: execute does not exist on atom tool
+  // @ts-expect-error - 'execute' does not exist on atom tool definition
+  const _execute = atomTool.execute;
+};
+
+/**
+ * test: actual atom tool definition cannot have execute field
+ * .why = proves at instantiation that atom tools have no execute
+ */
+() => {
+  // positive: atom tool without execute compiles
+  const atomToolGood: BrainPlugToolDefinition<
+    { email: string },
+    { id: string },
+    'atom'
+  > = {
+    slug: 'lookup-customer',
+    name: 'Lookup Customer',
+    description: 'lookup a customer by email',
+    schema: {
+      input: z.object({ email: z.string() }),
+      output: z.object({ id: z.string() }),
+    },
+    // no execute - correct for atom
+  };
+  void atomToolGood;
+
+  // negative: atom tool with execute errors
+  const atomToolBad: BrainPlugToolDefinition<
+    { email: string },
+    { id: string },
+    'atom'
+  > = {
+    slug: 'lookup-customer',
+    name: 'Lookup Customer',
+    description: 'lookup a customer by email',
+    schema: {
+      input: z.object({ email: z.string() }),
+      output: z.object({ id: z.string() }),
+    },
+    // @ts-expect-error - atom tool cannot have execute field
+    execute: async () => ({ id: '123' }),
+  };
+  void atomToolBad;
+};
+
+/**
+ * test: caller cannot access execute on atom tool
+ * .why = even if a repl tool is passed to atom, execute is inaccessible
+ */
+async () => {
+  // define a repl tool with execute via genBrainPlugToolDeclaration
+  const replTool = genBrainPlugToolDeclaration({
+    slug: 'lookup-customer',
+    name: 'Lookup Customer',
+    description: 'lookup a customer by email',
+    schema: {
+      input: z.object({ email: z.string() }),
+      output: z.object({ id: z.string() }),
+    },
+    execute: async () => ({ id: '123' }),
+  });
+
+  // use it as atom tool (narrowed to 'atom' grain)
+  const atomTools: BrainPlugToolDefinition<
+    { email: string },
+    { id: string },
+    'atom'
+  >[] = [replTool];
+
+  // try to access execute on the atom-typed tool
+  const tool = atomTools[0];
+  if (tool) {
+    // @ts-expect-error - execute is not accessible on atom tool type
+    const _exec = tool.execute;
+    void _exec;
+  }
+};
+
+/**
+ * test: BrainPlugToolDefinition for repl has required execute field
+ * .why = repls execute tools via tool.execute()
+ */
+() => {
+  type CustomerInput = { email: string };
+  type CustomerOutput = { id: string };
+
+  const replTool = {} as BrainPlugToolDefinition<
+    CustomerInput,
+    CustomerOutput,
+    'repl'
+  >;
+
+  // positive: has execute on repl tool
+  const _execute = replTool.execute;
+
+  // positive: execute is callable with invocation and context
+  // note: execute returns BrainPlugToolExecution (wrapped result)
+  const invocation = {} as BrainPlugToolInvocation<CustomerInput>;
+  const _result: Promise<
+    BrainPlugToolExecution<CustomerInput, CustomerOutput>
+  > = replTool.execute({ invocation }, {});
 };
 
 /**

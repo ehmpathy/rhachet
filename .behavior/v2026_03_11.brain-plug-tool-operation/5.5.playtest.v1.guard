@@ -1,0 +1,28 @@
+reviews:
+  self:
+    - slug: has-clear-instructions
+      say: |
+        double-check: are the instructions followable?
+
+        - can the foreman follow without prior context?
+        - are commands copy-pasteable?
+        - are expected outcomes explicit?
+
+    - slug: has-vision-coverage
+      say: |
+        double-check: does the playtest cover all behaviors?
+
+        - is every behavior in 0.wish.md verified?
+        - is every behavior in 1.vision.md verified?
+        - are any requirements left untested?
+
+    - slug: has-edgecase-coverage
+      say: |
+        double-check: are edge cases covered?
+
+        - what could go wrong?
+        - what inputs are unusual but valid?
+        - are boundaries tested?
+
+judges:
+  - npx rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route

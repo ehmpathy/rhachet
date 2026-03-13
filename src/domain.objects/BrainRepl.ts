@@ -4,6 +4,7 @@ import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty, PickOne } from 'type-fns';
 import type { z } from 'zod';
 
+import type { AsBrainPromptFor } from './BrainAtom';
 import type { BrainEpisode } from './BrainEpisode';
 import type { BrainOutput } from './BrainOutput';
 import type { BrainPlugs } from './BrainPlugs';
@@ -11,11 +12,11 @@ import type { BrainSeries } from './BrainSeries';
 import type { BrainSpec } from './BrainSpec';
 
 /**
- * .what = a brain.atom operating behind a REPL (read-execute-print-loop)
+ * .what = a brain.atom behind a REPL (read-execute-print-loop)
  * .why =
  *   - enables registration of pluggable agentic repls (e.g., claude-code, codex)
- *   - provides a standardized contract for agentic tool-using inference
- *   - enables dynamic swapping of agentic systems at runtime
+ *   - provides a standardized contract for agentic tool-use inference
+ *   - enables dynamic swap of agentic systems at runtime
  *
  * .note = repls differ from atoms in that they execute iterative agentic loops
  *   with tool use, rather than single-turn inference
@@ -56,13 +57,14 @@ export interface BrainRepl {
    *
    * .note = `on.episode` or `on.series` enables continuation from prior state
    * .note = TPlugs enables progressive complexity: no tools → no null checks
+   * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
    */
   ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
-      prompt: string;
+      prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,
@@ -79,13 +81,14 @@ export interface BrainRepl {
    *
    * .note = `on.episode` or `on.series` enables continuation from prior state
    * .note = TPlugs enables progressive complexity: no tools → no null checks
+   * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
    */
   act: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: TPlugs;
       role: { briefs?: Artifact<typeof GitFile>[] };
-      prompt: string;
+      prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
     context?: Empty,

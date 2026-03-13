@@ -1,9 +1,11 @@
 import type { BrainGrain } from '@src/domain.objects/BrainGrain';
 import {
+  AsBrainOutputCallsFor,
   AsBrainOutputSeriesFor,
   BrainOutput,
 } from '@src/domain.objects/BrainOutput';
 import { BrainOutputMetrics } from '@src/domain.objects/BrainOutputMetrics';
+import type { BrainPlugs } from '@src/domain.objects/BrainPlugs';
 import { genBrainEpisode } from '@src/domain.operations/brainContinuation/genBrainEpisode';
 import { genBrainExchange } from '@src/domain.operations/brainContinuation/genBrainExchange';
 import { genBrainSeries } from '@src/domain.operations/brainContinuation/genBrainSeries';
@@ -17,11 +19,12 @@ import { genMockedBrainOutputMetrics } from './genMockedBrainOutputMetrics';
 export const genMockedBrainOutput = async <
   TOutput,
   TBrainGrain extends BrainGrain = BrainGrain,
+  TPlugs extends BrainPlugs = BrainPlugs,
 >(input: {
   output: TOutput;
   metrics?: BrainOutputMetrics;
   brainChoice?: TBrainGrain;
-}): Promise<BrainOutput<TOutput, TBrainGrain>> => {
+}): Promise<BrainOutput<TOutput, TBrainGrain, TPlugs>> => {
   const exchange = await genBrainExchange({
     with: {
       input: '__mock_input__',
@@ -45,7 +48,7 @@ export const genMockedBrainOutput = async <
 
   return new BrainOutput({
     output: input.output,
-    calls: null,
+    calls: null as AsBrainOutputCallsFor<TPlugs, TBrainGrain>,
     metrics: input.metrics ?? genMockedBrainOutputMetrics(),
     episode,
     series: series as AsBrainOutputSeriesFor<TBrainGrain>,

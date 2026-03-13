@@ -19,14 +19,48 @@ export type AsBrainOutputSeriesFor<T extends BrainGrain> = T extends 'repl'
     : BrainSeries | null;
 
 /**
- * .what = conditional type for calls based on whether tools are plugged
- * .why = narrows calls to null when no tools, { tools } | null when tools present
+ * .what = extracts TInput from a BrainPlugToolDefinition
+ * .why = enables typed tool invocations in BrainOutput.calls
  */
-export type AsBrainOutputCallsFor<TPlugs extends BrainPlugs> = TPlugs extends {
-  tools: BrainPlugToolDefinition[];
-}
-  ? { tools: BrainPlugToolInvocation[] } | null
-  : null;
+type ExtractToolInput<T> =
+  T extends BrainPlugToolDefinition<infer TInput, unknown, BrainGrain, string>
+    ? TInput
+    : unknown;
+
+/**
+ * .what = extracts union of TInput from array of BrainPlugToolDefinition
+ * .why = enables typed tool invocations when multiple tools are plugged
+ */
+type ExtractToolsInput<T> = T extends readonly BrainPlugToolDefinition[]
+  ? ExtractToolInput<T[number]>
+  : unknown;
+
+/**
+ * .what = conditional type for calls based on grain and whether tools are plugged
+ * .why = narrows calls to null for repl (executes internally), { tools } | null for atom with tools
+ *
+ * .note
+ * - repls never return tool calls (they execute tools via .execute)
+ * - atoms may return tool calls for caller to handle
+ * - invocations are typed with the union of all plugged tool inputs
+ */
+export type AsBrainOutputCallsFor<
+  TPlugs extends BrainPlugs,
+  TGrain extends BrainGrain = BrainGrain,
+> = TGrain extends 'repl'
+  ? null // repls execute tools internally, never return calls
+  : TGrain extends 'atom'
+    ? TPlugs extends {
+        tools: infer TTools extends readonly BrainPlugToolDefinition[];
+      }
+      ? { tools: BrainPlugToolInvocation<ExtractToolsInput<TTools>>[] } | null
+      : null
+    : // fallback for unknown grain
+      TPlugs extends {
+          tools: infer TTools extends readonly BrainPlugToolDefinition[];
+        }
+      ? { tools: BrainPlugToolInvocation<ExtractToolsInput<TTools>>[] } | null
+      : null;
 
 /**
  * .what = conditional type for output based on whether tools are plugged
@@ -60,9 +94,12 @@ export interface BrainOutput<
    * .what = tool invocations the brain requests
    * .why = enables callers to execute tools and continue the episode
    *
-   * .note = null when no tools are plugged or when brain answers directly
+   * .note
+   * - null for repl (repls execute tools internally)
+   * - null when no tools are plugged
+   * - null when brain answers directly (atom with tools)
    */
-  calls: AsBrainOutputCallsFor<TPlugs>;
+  calls: AsBrainOutputCallsFor<TPlugs, TBrainGrain>;
 
   /**
    * .what = size and cost measurements from the invocation

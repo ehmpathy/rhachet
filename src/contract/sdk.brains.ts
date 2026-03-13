@@ -27,6 +27,7 @@ export {
 export { BrainOutputMetrics } from '@src/domain.objects/BrainOutputMetrics';
 export type { BrainPlugs } from '@src/domain.objects/BrainPlugs';
 export type { BrainPlugToolDefinition } from '@src/domain.objects/BrainPlugToolDefinition';
+export type { BrainPlugToolExecution } from '@src/domain.objects/BrainPlugToolExecution';
 export type { BrainPlugToolInvocation } from '@src/domain.objects/BrainPlugToolInvocation';
 export { BrainRepl } from '@src/domain.objects/BrainRepl';
 export { BrainSeries } from '@src/domain.objects/BrainSeries';
