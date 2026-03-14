@@ -103,6 +103,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
                 ? `updated ${manifestRelative}`
                 : `found ${manifestRelative} (no changes)`;
           console.log(`   └─ ${effectMessage}`);
+          console.log('');
         }
 
         // flag: --hooks => apply hooks
