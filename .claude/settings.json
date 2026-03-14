@@ -27,6 +27,12 @@
             "command": "./node_modules/.bin/rhx route.drive --mode hook",
             "timeout": 5,
             "author": "repo=bhrain/role=driver"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present",
+            "timeout": 60,
+            "author": "repo=ehmpathy/role=mechanic"
           }
         ]
       }
@@ -85,6 +91,12 @@
             "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-terms.blocklist",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhx route.bounce --mode hook",
+            "timeout": 5,
+            "author": "repo=bhrain/role=driver"
           }
         ]
       }
@@ -330,12 +342,16 @@
       "Bash(npx rhachet run --skill git.commit.uses set:*)",
       "Bash(sed:*)",
       "Bash(tee:*)",
+      "Edit(**/.route/**)",
       "Edit(.branch/.bind/*)",
       "Edit(.meter/*)",
+      "Edit(.route/**)",
       "EnterPlanMode",
       "Read(.quarantine/*)",
+      "Write(**/.route/**)",
       "Write(.branch/.bind/*)",
-      "Write(.meter/*)"
+      "Write(.meter/*)",
+      "Write(.route/**)"
     ],
     "ask": [
       "Bash(bash:*)",

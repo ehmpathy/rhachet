@@ -26,6 +26,7 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
    ├─ extends:
    │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
    └─ created .agent/keyrack.yml
+
 "
 `;
 
@@ -68,6 +69,7 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
    ├─ extends:
    │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
    └─ found .agent/keyrack.yml (no changes)
+
 "
 `;
 
@@ -94,6 +96,7 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 🔑 keyrack init
    ├─ org: test-org
    └─ created .agent/keyrack.yml
+
 "
 `;
 
