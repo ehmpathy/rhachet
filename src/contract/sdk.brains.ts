@@ -40,7 +40,9 @@ export {
   isBrainAtom,
   isBrainRepl,
 } from '@src/domain.objects/ContextBrain';
+export { asBrainPlugToolDict } from '@src/domain.operations/brainContinuation/asBrainPlugToolDict';
 export { genBrainContinuables } from '@src/domain.operations/brainContinuation/genBrainContinuables';
+export { genBrainPlugToolDeclaration } from '@src/domain.operations/brainContinuation/genBrainPlugToolDeclaration';
 // brain operations
 export { calcBrainOutputCost } from '@src/domain.operations/brainCost/calcBrainOutputCost';
 export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainTokens';
