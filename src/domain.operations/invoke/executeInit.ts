@@ -47,12 +47,15 @@ export const executeInit = (input: {
   init: RoleInitExecutable;
   args: string[];
 }): void => {
-  // build command with args
+  // build command with args, quote any that contain shell metacharacters
+  // use single quotes to prevent all shell interpretation
+  // escape embedded single quotes: ' → '\''
   const command = [input.init.path, ...input.args]
     .map((arg) => {
-      // quote args with spaces
-      if (arg.includes(' ')) return `"${arg}"`;
-      return arg;
+      // safe chars: alphanumerics, underscore, hyphen, dot, forward slash, colon, at, equals
+      if (/^[a-zA-Z0-9_\-./:@=]+$/.test(arg)) return arg;
+      // wrap in single quotes, escape any embedded single quotes
+      return `'${arg.replace(/'/g, "'\\''")}'`;
     })
     .join(' ');
 

@@ -246,6 +246,100 @@ exit 1
       });
     });
 
+    when('args contain shell metacharacters', () => {
+      then('pipe character is not interpreted as shell pipe', () => {
+        const outputFile = 'metachar-pipe-output.txt';
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'echo-metachar-pipe.sh',
+          content: `#!/usr/bin/env bash
+echo "$@" > ${outputFile}
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'echo-metachar-pipe',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        executeSkill({ skill, args: ['--pattern', 'hello|world'] });
+
+        const output = readFileSync(resolve(testDir.path, outputFile), 'utf-8');
+        expect(output.trim()).toBe('--pattern hello|world');
+      });
+
+      then('semicolon is not interpreted as command separator', () => {
+        const outputFile = 'metachar-semi-output.txt';
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'echo-metachar-semi.sh',
+          content: `#!/usr/bin/env bash
+echo "$@" > ${outputFile}
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'echo-metachar-semi',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        executeSkill({ skill, args: ['--cmd', 'foo;bar'] });
+
+        const output = readFileSync(resolve(testDir.path, outputFile), 'utf-8');
+        expect(output.trim()).toBe('--cmd foo;bar');
+      });
+
+      then('dollar sign is not interpreted as variable expansion', () => {
+        const outputFile = 'metachar-dollar-output.txt';
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'echo-metachar-dollar.sh',
+          content: `#!/usr/bin/env bash
+echo "$@" > ${outputFile}
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'echo-metachar-dollar',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        executeSkill({ skill, args: ['--text', 'price$100'] });
+
+        const output = readFileSync(resolve(testDir.path, outputFile), 'utf-8');
+        expect(output.trim()).toBe('--text price$100');
+      });
+
+      then('backticks are not interpreted as command substitution', () => {
+        const outputFile = 'metachar-backtick-output.txt';
+        const { path } = setTestTempAsset({
+          dir: testDir.path,
+          name: 'echo-metachar-backtick.sh',
+          content: `#!/usr/bin/env bash
+echo "$@" > ${outputFile}
+`,
+        });
+
+        const skill = new RoleSkillExecutable({
+          slug: 'echo-metachar-backtick',
+          path,
+          slugRepo: '.this',
+          slugRole: 'test',
+        });
+
+        executeSkill({ skill, args: ['--code', '`echo hi`'] });
+
+        const output = readFileSync(resolve(testDir.path, outputFile), 'utf-8');
+        expect(output.trim()).toBe('--code `echo hi`');
+      });
+    });
+
     when('skill exits with non-zero status in capture mode', () => {
       then('throws SkillExecutionError', () => {
         const { path } = setTestTempAsset({
