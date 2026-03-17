@@ -33,6 +33,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present",
             "timeout": 60,
             "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo ehmpathy --role architect",
+            "timeout": 60,
+            "author": "repo=ehmpathy/role=architect"
           }
         ]
       }
@@ -50,6 +56,12 @@
           {
             "type": "command",
             "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.check-permissions",
+            "timeout": 5,
+            "author": "repo=ehmpathy/role=mechanic"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-suspicious-shell-syntax",
             "timeout": 5,
             "author": "repo=ehmpathy/role=mechanic"
           }
@@ -125,6 +137,10 @@
     "allow": [
       "Write(.agent/.notes/**)",
       "Edit(.agent/.notes/**)",
+      "Write(.route/**)",
+      "Edit(.route/**)",
+      "Write(**/.test/**)",
+      "Edit(**/.test/**)",
       "mcp__ide__getDiagnostics",
       "WebSearch",
       "WebFetch",
@@ -180,6 +196,26 @@
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged ignore)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged include)",
       "Bash(npx rhachet run --skill git.commit.push:*)",
+      "Bash(npx rhachet run --skill git.stage.add:*)",
+      "Bash(npx rhachet run --skill git.stage.add src/file1.ts src/file2.ts)",
+      "Bash(npx rhachet run --skill git.stage.add --glob 'src/**/*.ts')",
+      "Bash(rhx git.stage.add:*)",
+      "Bash(rhx git.stage.add src/file1.ts src/file2.ts)",
+      "Bash(rhx git.stage.add --glob 'src/**/*.ts')",
+      "Bash(npx rhachet run --skill git.rebase.begin:*)",
+      "Bash(npx rhachet run --skill git.rebase.begin)",
+      "Bash(npx rhachet run --skill git.rebase.begin --mode apply)",
+      "Bash(rhx git.rebase.begin:*)",
+      "Bash(rhx git.rebase.begin)",
+      "Bash(rhx git.rebase.begin --mode apply)",
+      "Bash(npx rhachet run --skill git.rebase.continue:*)",
+      "Bash(npx rhachet run --skill git.rebase.continue)",
+      "Bash(rhx git.rebase.continue:*)",
+      "Bash(rhx git.rebase.continue)",
+      "Bash(npx rhachet run --skill git.rebase.abort:*)",
+      "Bash(npx rhachet run --skill git.rebase.abort)",
+      "Bash(rhx git.rebase.abort:*)",
+      "Bash(rhx git.rebase.abort)",
       "Bash(rhx keyrack unlock --owner ehmpath --prikey ~/.ssh/ehmpath --env all)",
       "Bash(npx rhx keyrack unlock --owner ehmpath --prikey ~/.ssh/ehmpath --env all)",
       "Bash(npx rhachet run --skill show.gh.action.logs:*)",
@@ -343,12 +379,14 @@
       "Bash(sed:*)",
       "Bash(tee:*)",
       "Edit(**/.route/**)",
+      "Edit(*/**/.route/**)",
       "Edit(.branch/.bind/*)",
       "Edit(.meter/*)",
       "Edit(.route/**)",
       "EnterPlanMode",
       "Read(.quarantine/*)",
       "Write(**/.route/**)",
+      "Write(*/**/.route/**)",
       "Write(.branch/.bind/*)",
       "Write(.meter/*)",
       "Write(.route/**)"
