@@ -3,12 +3,8 @@ import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
-import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
-import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
-import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
-import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { isBrainAtom, isBrainRepl } from '@src/domain.objects/ContextBrain';
 
 import { genContextBrain } from './genContextBrain';
@@ -201,17 +197,9 @@ describe('genContextBrain', () => {
 
     given('[case6] briefs are passed through to atom', () => {
       let capturedInput: any;
-      const mockAtom = new BrainAtom({
-        repo: '__mock_repo__',
-        slug: '__mock_atom__',
-        description: 'test atom that captures briefs',
-        spec: genSampleBrainSpec(),
-        ask: async (input) => {
+      const mockAtom = genMockedBrainAtom({
+        onAsk: (input) => {
           capturedInput = input;
-          return genMockedBrainOutput({
-            output: input.schema.output.parse({ content: '__mock_response__' }),
-            brainChoice: 'atom',
-          });
         },
       });
       const mockBriefs = [
@@ -236,24 +224,12 @@ describe('genContextBrain', () => {
     given('[case7] briefs are passed through to repl', () => {
       let capturedAskInput: any;
       let capturedActInput: any;
-      const mockRepl = new BrainRepl({
-        repo: '__mock_repo__',
-        slug: '__mock_repl__',
-        description: 'test repl that captures briefs',
-        spec: genSampleBrainSpec(),
-        ask: async (input) => {
+      const mockRepl = genMockedBrainRepl({
+        onAsk: (input) => {
           capturedAskInput = input;
-          return genMockedBrainOutput({
-            output: input.schema.output.parse({ content: '__mock_response__' }),
-            brainChoice: 'repl',
-          });
         },
-        act: async (input) => {
+        onAct: (input) => {
           capturedActInput = input;
-          return genMockedBrainOutput({
-            output: input.schema.output.parse({ content: '__mock_response__' }),
-            brainChoice: 'repl',
-          });
         },
       });
       const mockBriefs = [

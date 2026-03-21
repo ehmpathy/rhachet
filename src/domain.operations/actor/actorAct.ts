@@ -11,14 +11,18 @@ import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
  *
  * .note = skill is pre-resolved by genActor; this just executes
  * .note = TOutput generic enables type flow from genActor
+ * .note = TContext generic allows callers to prescribe context requirements
  */
-export const actorAct = async <TOutput>(input: {
-  role: Role;
-  brain: BrainRepl;
-  skill: ActorRoleSkill<TOutput>;
-  args: Record<string, unknown>;
-}): Promise<BrainOutput<TOutput>> => {
-  // resolve briefs from role
+export const actorAct = async <TOutput, TContext = unknown>(
+  input: {
+    role: Role;
+    brain: BrainRepl;
+    skill: ActorRoleSkill<TOutput>;
+    args: Record<string, unknown>;
+  },
+  context?: TContext,
+): Promise<BrainOutput<TOutput>> => {
+  // derive briefs from role
   const briefs = await getRoleBriefs({
     by: {
       role: { name: input.role.slug },
@@ -27,14 +31,18 @@ export const actorAct = async <TOutput>(input: {
   });
 
   // execute rigid skill with brain
-  const result = await input.brain.act<TOutput>({
-    role: { briefs },
-    prompt: `Execute skill "${input.skill.slug}" with args: ${JSON.stringify(input.args)}`,
-    schema: {
-      output: input.skill.schema.output,
+  // note: cast context to any — actor passes through, brain validates at runtime
+  const result = await input.brain.act<TOutput>(
+    {
+      role: { briefs },
+      prompt: `Execute skill "${input.skill.slug}" with args: ${JSON.stringify(input.args)}`,
+      schema: {
+        output: input.skill.schema.output,
+      },
     },
-  });
+    context as any,
+  );
 
-  // normalize for backwards compat with external brains
+  // cast for backwards compat with external brains
   return asBrainOutput(result);
 };

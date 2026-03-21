@@ -20,15 +20,19 @@ export const ACTOR_ASK_DEFAULT_SCHEMA = {
  *
  * .note = accepts both BrainRepl and BrainAtom since both support .ask()
  * .note = use ACTOR_ASK_DEFAULT_SCHEMA when no custom schema needed
+ * .note = TContext generic allows callers to prescribe context requirements
  *
  * todo: support --interactive mode for cli invocations
  */
-export const actorAsk = async <TOutput>(input: {
-  role: Role;
-  brain: ActorBrain;
-  prompt: string;
-  schema: { output: z.Schema<TOutput> };
-}): Promise<BrainOutput<TOutput>> => {
+export const actorAsk = async <TOutput, TContext = unknown>(
+  input: {
+    role: Role;
+    brain: ActorBrain;
+    prompt: string;
+    schema: { output: z.Schema<TOutput> };
+  },
+  context?: TContext,
+): Promise<BrainOutput<TOutput>> => {
   // resolve briefs from role
   const briefs = await getRoleBriefs({
     by: {
@@ -38,11 +42,15 @@ export const actorAsk = async <TOutput>(input: {
   });
 
   // execute fluid conversation with brain
-  const result = await input.brain.ask({
-    role: { briefs },
-    prompt: input.prompt,
-    schema: input.schema,
-  });
+  // note: cast context to any — actor passes through, brain validates at runtime
+  const result = await input.brain.ask(
+    {
+      role: { briefs },
+      prompt: input.prompt,
+      schema: input.schema,
+    },
+    context as any,
+  );
 
   // normalize for backwards compat with external brains
   return asBrainOutput(result);

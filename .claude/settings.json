@@ -39,6 +39,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --repo ehmpathy --role architect",
             "timeout": 60,
             "author": "repo=ehmpathy/role=architect"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo ehmpathy --role ergonomist",
+            "timeout": 60,
+            "author": "repo=ehmpathy/role=ergonomist"
           }
         ]
       }
@@ -111,6 +117,17 @@
             "author": "repo=bhrain/role=driver"
           }
         ]
+      },
+      {
+        "matcher": "Read|Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhx route.mutate.guard --mode hook",
+            "timeout": 5,
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -178,6 +195,11 @@
       "Bash(npx rhachet run --skill cpsafe:*)",
       "Bash(npx rhachet run --skill mvsafe:*)",
       "Bash(npx rhachet run --skill rmsafe:*)",
+      "Bash(npx rhachet run --skill teesafe:*)",
+      "Bash(rhx teesafe:*)",
+      "Bash(cmd | npx rhachet run --skill teesafe file.txt)",
+      "Bash(cmd | rhx teesafe file.txt)",
+      "Bash(cmd | rhx teesafe --into file.txt --append)",
       "Bash(npx rhachet run --skill symlink:*)",
       "Bash(npx rhachet run --skill git.commit.uses:*)",
       "Bash(npx rhachet run --skill git.commit.uses get)",
@@ -202,20 +224,25 @@
       "Bash(rhx git.stage.add:*)",
       "Bash(rhx git.stage.add src/file1.ts src/file2.ts)",
       "Bash(rhx git.stage.add --glob 'src/**/*.ts')",
-      "Bash(npx rhachet run --skill git.rebase.begin:*)",
-      "Bash(npx rhachet run --skill git.rebase.begin)",
-      "Bash(npx rhachet run --skill git.rebase.begin --mode apply)",
-      "Bash(rhx git.rebase.begin:*)",
-      "Bash(rhx git.rebase.begin)",
-      "Bash(rhx git.rebase.begin --mode apply)",
-      "Bash(npx rhachet run --skill git.rebase.continue:*)",
-      "Bash(npx rhachet run --skill git.rebase.continue)",
-      "Bash(rhx git.rebase.continue:*)",
-      "Bash(rhx git.rebase.continue)",
-      "Bash(npx rhachet run --skill git.rebase.abort:*)",
-      "Bash(npx rhachet run --skill git.rebase.abort)",
-      "Bash(rhx git.rebase.abort:*)",
-      "Bash(rhx git.rebase.abort)",
+      "Bash(npx rhachet run --skill git.branch.rebase:*)",
+      "Bash(rhx git.branch.rebase:*)",
+      "Bash(npx rhachet run --skill git.branch.rebase begin)",
+      "Bash(npx rhachet run --skill git.branch.rebase begin --mode apply)",
+      "Bash(rhx git.branch.rebase begin)",
+      "Bash(rhx git.branch.rebase begin --mode apply)",
+      "Bash(rhx git.branch.rebase continue)",
+      "Bash(rhx git.branch.rebase abort)",
+      "Bash(rhx git.branch.rebase take:*)",
+      "Bash(rhx git.branch.rebase take --whos theirs pnpm-lock.yaml)",
+      "Bash(rhx git.branch.rebase take --whos ours .eslintrc.json)",
+      "Bash(rhx git.branch.rebase take --whos theirs .)",
+      "Bash(npx rhachet run --skill git.repo.get:*)",
+      "Bash(rhx git.repo.get:*)",
+      "Bash(rhx git.repo.get repos --repos 'ehmpathy/*')",
+      "Bash(rhx git.repo.get files --in ehmpathy/domain-objects)",
+      "Bash(rhx git.repo.get lines --in ehmpathy/domain-objects --words 'DomainEntity')",
+      "Bash(rhx git.repo.get lines --in ehmpathy/domain-objects --paths 'src/index.ts')",
+      "Bash(rhx git.repo.get files --repos 'ehmpathy/*' --words 'DomainEntity')",
       "Bash(rhx keyrack unlock --owner ehmpath --prikey ~/.ssh/ehmpath --env all)",
       "Bash(npx rhx keyrack unlock --owner ehmpath --prikey ~/.ssh/ehmpath --env all)",
       "Bash(npx rhachet run --skill show.gh.action.logs:*)",
@@ -230,6 +257,14 @@
       "Bash(npx rhachet run --skill condense --from briefs/rule.md --mode apply)",
       "Bash(npx rhachet run --skill condense --from briefs/rule.md --onVerify restore)",
       "Bash(npx rhachet run --skill condense --from 'briefs/**/*.md' --mode apply)",
+      "Bash(npx rhachet run --skill set.package.install:*)",
+      "Bash(rhx set.package.install:*)",
+      "Bash(echo $REASON | npx rhachet run --skill set.package.install --package zod --at 3.22.4 --for prod --reason @stdin)",
+      "Bash(npx rhachet run --skill set.package.install --package zod --at 3.22.4 --for prod --reason 'runtime validation')",
+      "Bash(npx rhachet run --skill set.package.upgrade:*)",
+      "Bash(rhx set.package.upgrade:*)",
+      "Bash(npx rhachet run --skill set.package.upgrade --package zod --to 3.23.0)",
+      "Bash(npx rhachet run --skill set.package.upgrade --package zod --to @latest)",
       "Bash(npx rhachet run:*)",
       "Bash(npx rhachet:*)",
       "Bash(rhx:*)",
