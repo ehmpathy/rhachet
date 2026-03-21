@@ -34,15 +34,21 @@ export type SkillOutput<TSchema extends RoleSkillSchema> = z.infer<
 /**
  * .what = type for actor.act() method
  * .why = enables type-safe rigid skill invocation
+ *
+ * .note = TContext generic allows callers to prescribe context requirements
  */
 export type ActorActOp<TRole extends Role> = <
   TSkillSlug extends keyof NonNullable<TRole['skills']['rigid']>,
->(input: {
-  brain?: { repo: string; slug: string } | BrainRepl;
-  skill: {
-    [K in TSkillSlug]: SkillInput<NonNullable<TRole['skills']['rigid']>[K]>;
-  };
-}) => Promise<
+  TContext = unknown,
+>(
+  input: {
+    brain?: { repo: string; slug: string } | BrainRepl;
+    skill: {
+      [K in TSkillSlug]: SkillInput<NonNullable<TRole['skills']['rigid']>[K]>;
+    };
+  },
+  context?: TContext,
+) => Promise<
   BrainOutput<SkillOutput<NonNullable<TRole['skills']['rigid']>[TSkillSlug]>>
 >;
 
@@ -63,11 +69,15 @@ export type ActorRunOp<TRole extends Role> = <
  * .why = enables fluid conversation with brain
  *
  * .note = schema is required; use ACTOR_ASK_DEFAULT_SCHEMA for { answer: string }
+ * .note = TContext generic allows callers to prescribe context requirements
  */
-export type ActorAskOp = <TOutput>(input: {
-  prompt: string;
-  schema: { output: z.Schema<TOutput> };
-}) => Promise<BrainOutput<TOutput>>;
+export type ActorAskOp = <TOutput, TContext = unknown>(
+  input: {
+    prompt: string;
+    schema: { output: z.Schema<TOutput> };
+  },
+  context?: TContext,
+) => Promise<BrainOutput<TOutput>>;
 
 /**
  * .what = a role assumed by a brain, ready for invocation

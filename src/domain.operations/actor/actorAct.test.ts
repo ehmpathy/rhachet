@@ -78,6 +78,7 @@ describe('actorAct', () => {
           expect.objectContaining({
             prompt: expect.stringContaining('summarize'),
           }),
+          undefined, // context is undefined when not provided
         );
       });
 
@@ -111,6 +112,7 @@ describe('actorAct', () => {
           expect.objectContaining({
             prompt: expect.stringContaining('different content'),
           }),
+          undefined, // context is undefined when not provided
         );
       });
     });
@@ -132,6 +134,7 @@ describe('actorAct', () => {
               output: testSkill.schema.output,
             }),
           }),
+          undefined, // context is undefined when not provided
         );
       });
     });

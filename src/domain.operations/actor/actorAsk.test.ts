@@ -83,6 +83,7 @@ describe('actorAsk', () => {
           expect.objectContaining({
             prompt: 'what is the meaning of life?',
           }),
+          undefined, // context is undefined when not provided
         );
       });
 
@@ -130,6 +131,7 @@ describe('actorAsk', () => {
           expect.objectContaining({
             prompt: 'what is your favorite color?',
           }),
+          undefined, // context is undefined when not provided
         );
       });
 

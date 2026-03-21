@@ -43,9 +43,9 @@ export const genActor = <TRole extends Role>(input: {
   const defaultBrain = input.brains[0]!;
 
   // create bound .act() method with strong types
-  const act: ActorActOp<TRole> = async (actInput) => {
-    // resolve brain: use provided or default to first
-    const brainResolved = actInput.brain
+  const act: ActorActOp<TRole> = async (actInput, context) => {
+    // derive brain: use provided or default to first
+    const brainDerived = actInput.brain
       ? findActorBrainInAllowlist({
           brain: actInput.brain,
           allowlist: input.brains,
@@ -53,10 +53,10 @@ export const genActor = <TRole extends Role>(input: {
       : defaultBrain;
 
     // validate brain supports .act() (BrainRepl only, not BrainAtom)
-    if (!('act' in brainResolved))
+    if (!('act' in brainDerived))
       throw new BadRequestError(
         'actor.act() requires a BrainRepl brain with .act() method',
-        { brainSlug: brainResolved.slug },
+        { brainSlug: brainDerived.slug },
       );
 
     // extract skill slug and args from skill object
@@ -67,23 +67,26 @@ export const genActor = <TRole extends Role>(input: {
       });
     const [slugSkill, skillArgs] = entries[0]!;
 
-    // resolve skill from role
+    // derive skill from role
     type TOutput = SkillOutput<
       NonNullable<TRole['skills']['rigid']>[typeof slugSkill]
     >;
-    const skillResolved = findActorRoleSkillBySlug<TOutput>({
+    const skillDerived = findActorRoleSkillBySlug<TOutput>({
       slug: slugSkill,
       role: input.role,
       route: 'rigid',
     });
 
-    // delegate to actorAct with pre-resolved skill
-    return actorAct<TOutput>({
-      role: input.role,
-      brain: brainResolved,
-      skill: skillResolved,
-      args: skillArgs as Record<string, unknown>,
-    });
+    // delegate to actorAct with pre-derived skill
+    return actorAct<TOutput>(
+      {
+        role: input.role,
+        brain: brainDerived,
+        skill: skillDerived,
+        args: skillArgs as Record<string, unknown>,
+      },
+      context,
+    );
   };
 
   // create bound .run() method with strong types
@@ -96,32 +99,35 @@ export const genActor = <TRole extends Role>(input: {
       });
     const [slugSkill, skillArgs] = entries[0]!;
 
-    // resolve skill from role
+    // derive skill from role
     type TOutput = SkillOutput<
       NonNullable<TRole['skills']['solid']>[typeof slugSkill]
     >;
-    const skillResolved = findActorRoleSkillBySlug<TOutput>({
+    const skillDerived = findActorRoleSkillBySlug<TOutput>({
       slug: slugSkill,
       role: input.role,
       route: 'solid',
     });
 
-    // delegate to actorRun with pre-resolved skill
+    // delegate to actorRun with pre-derived skill
     return actorRun<TOutput>({
-      skill: skillResolved,
+      skill: skillDerived,
       args: skillArgs as Record<string, unknown>,
     });
   };
 
   // create bound .ask() method with schema passthrough
-  const ask: ActorAskOp = async (askInput) => {
+  const ask: ActorAskOp = async (askInput, context) => {
     // delegate to actorAsk with default brain
-    return actorAsk({
-      role: input.role,
-      brain: defaultBrain,
-      prompt: askInput.prompt,
-      schema: askInput.schema,
-    });
+    return actorAsk(
+      {
+        role: input.role,
+        brain: defaultBrain,
+        prompt: askInput.prompt,
+        schema: askInput.schema,
+      },
+      context,
+    );
   };
 
   // return actor with bound methods via Actor.typed() for strong type preservation

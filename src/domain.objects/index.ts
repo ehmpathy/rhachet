@@ -41,6 +41,7 @@ export * from './BrainSeries';
 export * from './BrainSpec';
 export * from './BrainSpecifier';
 export * from './ContextBrain';
+export * from './ContextBrainSupplier';
 export * from './ContextCli';
 export * from './InvokeOpts';
 export * from './Role';

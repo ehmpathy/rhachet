@@ -11,12 +11,15 @@ import { genSampleBrainSpec } from './genSampleBrainSpec';
  *
  * .note = repls always return calls: null (they execute tools internally via tool.execute())
  * .note = prompt can be string or BrainPlugToolExecution[] for tool result continuation
+ * .note = use `onAsk`/`onAct` to capture input for verification in tests
  */
 export const genMockedBrainRepl = (input?: {
   repo?: string;
   slug?: string;
   description?: string;
   content?: string;
+  onAsk?: (askInput: Parameters<BrainRepl['ask']>[0]) => void;
+  onAct?: (actInput: Parameters<BrainRepl['act']>[0]) => void;
 }): BrainRepl =>
   new BrainRepl({
     repo: input?.repo ?? '__mock_repo__',
@@ -24,6 +27,7 @@ export const genMockedBrainRepl = (input?: {
     description: input?.description ?? 'mocked brain repl for tests',
     spec: genSampleBrainSpec(),
     ask: async (askInput) => {
+      input?.onAsk?.(askInput);
       const outputParsed = askInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });
@@ -53,6 +57,7 @@ export const genMockedBrainRepl = (input?: {
       });
     },
     act: async (actInput) => {
+      input?.onAct?.(actInput);
       const outputParsed = actInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });

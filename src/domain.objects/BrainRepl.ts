@@ -20,8 +20,13 @@ import type { BrainSpec } from './BrainSpec';
  *
  * .note = repls differ from atoms in that they execute iterative agentic loops
  *   with tool use, rather than single-turn inference
+ *
+ * .note = TContext enables typed context injection for brain suppliers
+ *   - suppliers bind their required context at return type
+ *   - callers inject context via genContextBrainSupplier
+ *   - defaults to Empty for backwards compatibility
  */
-export interface BrainRepl {
+export interface BrainRepl<TContext = Empty> {
   /**
    * .what = identifier for the plugin package that provides this repl
    * .example = "anthropic", "openai"
@@ -58,8 +63,9 @@ export interface BrainRepl {
    * .note = `on.episode` or `on.series` enables continuation from prior state
    * .note = TPlugs enables progressive complexity: no tools → no null checks
    * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
+   * .note = method syntax enables bivariance for inline implementations
    */
-  ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
+  ask<TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: TPlugs;
@@ -67,8 +73,8 @@ export interface BrainRepl {
       prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
-    context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
+    context?: TContext,
+  ): Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
 
   /**
    * .what = read+write action operation (code changes, file edits)
@@ -82,8 +88,9 @@ export interface BrainRepl {
    * .note = `on.episode` or `on.series` enables continuation from prior state
    * .note = TPlugs enables progressive complexity: no tools → no null checks
    * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
+   * .note = method syntax enables bivariance for inline implementations
    */
-  act: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
+  act<TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: PickOne<{ episode: BrainEpisode; series: BrainSeries }>;
       plugs?: TPlugs;
@@ -91,9 +98,12 @@ export interface BrainRepl {
       prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
-    context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
+    context?: TContext,
+  ): Promise<BrainOutput<TOutput, 'repl', TPlugs>>;
 }
-export class BrainRepl extends DomainEntity<BrainRepl> implements BrainRepl {
+export class BrainRepl<TContext = Empty>
+  extends DomainEntity<BrainRepl<TContext>>
+  implements BrainRepl<TContext>
+{
   public static unique = ['repo', 'slug'] as const;
 }
