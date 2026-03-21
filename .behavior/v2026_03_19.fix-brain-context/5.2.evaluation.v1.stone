@@ -1,0 +1,88 @@
+evaluate what was implemented against the blueprint
+
+.what = articulate exactly what was implemented, then check for divergences from blueprint.
+
+.why = the blueprint declared what the execution would adhere to.
+- divergences may be intentional improvements or accidental drift
+- each divergence must be either repaired or backed up with rationale
+- this gate prevents silent deviations from approved design
+
+---
+
+reference the blueprint:
+- .behavior/v2026_03_19.fix-brain-context/3.3.1.blueprint.product.v1.i1.md
+
+---
+
+## summary (as implemented)
+
+state what was actually built. mirror the blueprint summary structure.
+
+---
+
+## filediff tree (as implemented)
+
+include a treestruct of filediffs that were actually made.
+
+**legend:**
+- `[+] created` — file created
+- `[~] updated` — file updated
+- `[-] deleted` — file deleted
+
+---
+
+## codepath tree (as implemented)
+
+include a treestruct of codepaths that were actually implemented.
+
+**legend:**
+- `[+]` created — codepath created
+- `[~]` updated — codepath updated
+- `[○]` retained — codepath retained
+- `[-]` deleted — codepath deleted
+- `[←]` reused — codepath reused from elsewhere
+- `[→]` ejected — codepath decomposed for reuse
+
+---
+
+## test coverage (as implemented)
+
+document what tests were actually written:
+- unit tests
+- integration tests
+- acceptance tests
+
+---
+
+## divergence analysis
+
+for each section (summary, filediff, codepath, test coverage), compare:
+- what the blueprint declared
+- what was actually implemented
+
+### divergences found
+
+| section | blueprint declared | actual implemented | divergence type |
+|---------|-------------------|-------------------|-----------------|
+| ... | ... | ... | added/removed/changed |
+
+### divergence resolution
+
+for each divergence, you must either:
+
+**repair** — fix the implementation to match the blueprint:
+- what needs to change to match blueprint?
+- make the change, then update the "as implemented" section above
+
+**backup** — document why the divergence is acceptable:
+- why did the implementation diverge?
+- why is the divergence better than the blueprint?
+- should the blueprint be updated for future reference?
+
+| divergence | resolution | rationale |
+|------------|------------|-----------|
+| ... | repair/backup | ... |
+
+---
+
+emit into .behavior/v2026_03_19.fix-brain-context/5.2.evaluation.v1.i1.md

@@ -11,8 +11,8 @@ import { z } from 'zod';
 
 import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
-import { BrainAtom } from '@src/domain.objects/BrainAtom';
-import { BrainRepl } from '@src/domain.objects/BrainRepl';
+import type { BrainAtom } from '@src/domain.objects/BrainAtom';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { genContextBrain } from './genContextBrain';
 
@@ -44,12 +44,12 @@ describe('genContextBrain.integration', () => {
     when('[t1] atom ask is invoked', () => {
       then('atom ask is called', async () => {
         let askWasCalled = false;
-        const testAtom = new BrainAtom({
+        const testAtom: BrainAtom = {
           repo: '__mock_repo__',
           slug: '__mock_atom__',
           description: 'test atom that verifies ask invocation',
           spec: genSampleBrainSpec(),
-          ask: async (input) => {
+          ask: async (input, _context?) => {
             askWasCalled = true;
             expect(input.prompt).toEqual('test prompt');
             return genMockedBrainOutput({
@@ -59,7 +59,7 @@ describe('genContextBrain.integration', () => {
               brainChoice: 'atom',
             });
           },
-        });
+        };
 
         const context = genContextBrain({
           brains: { atoms: [testAtom], repls: [] },
@@ -79,12 +79,12 @@ describe('genContextBrain.integration', () => {
     when('[t2] repl ask is invoked', () => {
       then('repl ask is called', async () => {
         let askWasCalled = false;
-        const testRepl = new BrainRepl({
+        const testRepl: BrainRepl = {
           repo: '__mock_repo__',
           slug: '__mock_repl__',
           description: 'test repl that verifies ask invocation',
           spec: genSampleBrainSpec(),
-          ask: async (input) => {
+          ask: async (input, _context?) => {
             askWasCalled = true;
             expect(input.prompt).toEqual('test task');
             return genMockedBrainOutput({
@@ -94,14 +94,14 @@ describe('genContextBrain.integration', () => {
               brainChoice: 'repl',
             });
           },
-          act: async (input) =>
+          act: async (input, _context?) =>
             genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
               brainChoice: 'repl',
             }),
-        });
+        };
 
         const context = genContextBrain({
           brains: { atoms: [], repls: [testRepl] },
@@ -121,19 +121,19 @@ describe('genContextBrain.integration', () => {
     when('[t3] repl act is invoked', () => {
       then('repl act is called', async () => {
         let actWasCalled = false;
-        const testRepl = new BrainRepl({
+        const testRepl: BrainRepl = {
           repo: '__mock_repo__',
           slug: '__mock_repl__',
           description: 'test repl that verifies act invocation',
           spec: genSampleBrainSpec(),
-          ask: async (input) =>
+          ask: async (input, _context?) =>
             genMockedBrainOutput({
               output: input.schema.output.parse({
                 content: '__mock_response__',
               }),
               brainChoice: 'repl',
             }),
-          act: async (input) => {
+          act: async (input, _context?) => {
             actWasCalled = true;
             expect(input.prompt).toEqual('test action');
             return genMockedBrainOutput({
@@ -143,7 +143,7 @@ describe('genContextBrain.integration', () => {
               brainChoice: 'repl',
             });
           },
-        });
+        };
 
         const context = genContextBrain({
           brains: { atoms: [], repls: [testRepl] },
@@ -165,12 +165,12 @@ describe('genContextBrain.integration', () => {
     when('[t0] briefs are provided to atom ask', () => {
       then('briefs are forwarded to plugin ask', async () => {
         let receivedBriefs: unknown;
-        const testAtom = new BrainAtom({
+        const testAtom: BrainAtom = {
           repo: '__mock_repo__',
           slug: '__mock_atom__',
           description: 'test atom that captures briefs',
           spec: genSampleBrainSpec(),
-          ask: async (input) => {
+          ask: async (input, _context?) => {
             receivedBriefs = input.role.briefs;
             return genMockedBrainOutput({
               output: input.schema.output.parse({
@@ -179,7 +179,7 @@ describe('genContextBrain.integration', () => {
               brainChoice: 'atom',
             });
           },
-        });
+        };
 
         const mockBriefs = [{ content: 'brief 1' }, { content: 'brief 2' }];
         const context = genContextBrain({ brains: { atoms: [testAtom] } });

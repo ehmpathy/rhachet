@@ -23,7 +23,7 @@ export const genMockedBrainRepl = (input?: {
     slug: input?.slug ?? '__mock_repl__',
     description: input?.description ?? 'mocked brain repl for tests',
     spec: genSampleBrainSpec(),
-    ask: async (askInput) => {
+    ask: async (askInput, _context?) => {
       const outputParsed = askInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });
@@ -52,7 +52,7 @@ export const genMockedBrainRepl = (input?: {
         series,
       });
     },
-    act: async (actInput) => {
+    act: async (actInput, _context?) => {
       const outputParsed = actInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });

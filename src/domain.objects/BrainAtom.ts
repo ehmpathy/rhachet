@@ -30,8 +30,13 @@ export type AsBrainPromptFor<TPlugs extends BrainPlugs> = TPlugs extends {
  * .why =
  *   - enables registration of pluggable LLM atoms (e.g., claude, gpt, llama)
  *   - provides a standardized contract for single-turn or multi-turn inference
+ *
+ * .note = TContext enables typed context injection for brain suppliers
+ *   - suppliers bind their required context at return type
+ *   - callers inject context via genContextBrainSupplier
+ *   - defaults to Empty for backwards compatibility
  */
-export interface BrainAtom {
+export interface BrainAtom<TContext = Empty> {
   /**
    * .what = identifier for the plugin package that provides this atom
    * .example = "anthropic", "openai", "ollama"
@@ -63,8 +68,9 @@ export interface BrainAtom {
    * .note = `on.episode` enables continuation from a prior episode
    * .note = TPlugs enables progressive complexity: no tools → no null checks
    * .note = prompt accepts BrainPlugToolExecution[] when tools are plugged
+   * .note = method syntax enables bivariance for inline implementations
    */
-  ask: <TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
+  ask<TOutput, TPlugs extends BrainPlugs = BrainPlugs>(
     input: {
       on?: { episode: BrainEpisode };
       plugs?: TPlugs;
@@ -72,9 +78,12 @@ export interface BrainAtom {
       prompt: AsBrainPromptFor<TPlugs>;
       schema: { output: z.Schema<TOutput> };
     },
-    context?: Empty,
-  ) => Promise<BrainOutput<TOutput, 'atom', TPlugs>>;
+    context?: TContext,
+  ): Promise<BrainOutput<TOutput, 'atom', TPlugs>>;
 }
-export class BrainAtom extends DomainEntity<BrainAtom> implements BrainAtom {
+export class BrainAtom<TContext = Empty>
+  extends DomainEntity<BrainAtom<TContext>>
+  implements BrainAtom<TContext>
+{
   public static unique = ['repo', 'slug'] as const;
 }

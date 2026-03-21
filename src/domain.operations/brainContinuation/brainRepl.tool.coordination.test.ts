@@ -52,7 +52,7 @@ describe('brainRepl.tool.coordination', () => {
     });
 
     // mock brain atom that returns tool invocations
-    const mockAtom = new BrainAtom({
+    const mockAtom: BrainAtom = new BrainAtom({
       repo: 'test',
       slug: 'mock-atom',
       description: 'mock atom for repl coordination test',
@@ -234,7 +234,7 @@ describe('brainRepl.tool.coordination', () => {
     });
 
     // mock atom that returns multiple tool invocations
-    const mockAtom = new BrainAtom({
+    const mockAtom: BrainAtom = new BrainAtom({
       repo: 'test',
       slug: 'mock-atom-parallel',
       description: 'mock atom for parallel tool test',
@@ -537,7 +537,7 @@ describe('brainRepl.tool.coordination', () => {
     // turn 4: return final output
     let turnCount = 0;
 
-    const mockAtom = new BrainAtom({
+    const mockAtom: BrainAtom = new BrainAtom({
       repo: 'test',
       slug: 'mock-atom-agentic',
       description: 'mock atom for agentic loop test',
