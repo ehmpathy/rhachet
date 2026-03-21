@@ -3,8 +3,12 @@ import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
+import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
+import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
+import type { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { isBrainAtom, isBrainRepl } from '@src/domain.objects/ContextBrain';
 
 import { genContextBrain } from './genContextBrain';
@@ -196,57 +200,81 @@ describe('genContextBrain', () => {
     });
 
     given('[case6] briefs are passed through to atom', () => {
-      let capturedInput: any;
-      const mockAtom = genMockedBrainAtom({
-        onAsk: (input) => {
+      let capturedInput: unknown;
+      const mockAtom: BrainAtom = {
+        repo: '__mock_repo__',
+        slug: '__mock_atom__',
+        description: 'test atom that captures briefs',
+        spec: genSampleBrainSpec(),
+        ask: async (input, _context?) => {
           capturedInput = input;
+          return genMockedBrainOutput({
+            output: input.schema.output.parse({ content: '__mock_response__' }),
+            brainChoice: 'atom',
+          });
         },
-      });
+      };
       const mockBriefs = [
         { content: 'brief 1' },
         { content: 'brief 2' },
-      ] as any[];
+      ] as unknown[];
 
       when('[t0] brain.atom.ask is called with briefs', () => {
         then('briefs are passed through to atom.ask', async () => {
           const context = genContextBrain({ brains: { atoms: [mockAtom] } });
           await context.brain.atom.ask({
             brain: mockAtom,
-            role: { briefs: mockBriefs },
+            role: { briefs: mockBriefs as never },
             prompt: 'test prompt',
             schema: { output: outputSchema },
           });
-          expect(capturedInput.role.briefs).toEqual(mockBriefs);
+          expect(
+            (capturedInput as { role: { briefs: unknown } }).role.briefs,
+          ).toEqual(mockBriefs);
         });
       });
     });
 
     given('[case7] briefs are passed through to repl', () => {
-      let capturedAskInput: any;
-      let capturedActInput: any;
-      const mockRepl = genMockedBrainRepl({
-        onAsk: (input) => {
+      let capturedAskInput: unknown;
+      let capturedActInput: unknown;
+      const mockRepl: BrainRepl = {
+        repo: '__mock_repo__',
+        slug: '__mock_repl__',
+        description: 'test repl that captures briefs',
+        spec: genSampleBrainSpec(),
+        ask: async (input, _context?) => {
           capturedAskInput = input;
+          return genMockedBrainOutput({
+            output: input.schema.output.parse({ content: '__mock_response__' }),
+            brainChoice: 'repl',
+          });
         },
-        onAct: (input) => {
+        act: async (input, _context?) => {
           capturedActInput = input;
+          return genMockedBrainOutput({
+            output: input.schema.output.parse({ content: '__mock_response__' }),
+            brainChoice: 'repl',
+          });
         },
-      });
+      };
       const mockBriefs = [
         { content: 'brief 1' },
         { content: 'brief 2' },
-      ] as any[];
+      ] as unknown[];
 
       when('[t0] brain.repl.ask is called with briefs', () => {
         then('briefs are passed through to repl.ask', async () => {
           const context = genContextBrain({ brains: { repls: [mockRepl] } });
           await context.brain.repl.ask({
             brain: mockRepl,
-            role: { briefs: mockBriefs },
+            role: { briefs: mockBriefs as never },
             prompt: 'test prompt',
             schema: { output: outputSchema },
           });
-          expect(capturedAskInput.role.briefs).toEqual(mockBriefs);
+          expect(
+            (capturedAskInput as { role: { briefs: unknown } }).role.briefs,
+          ).toEqual(mockBriefs);
         });
       });
 
@@ -255,11 +283,13 @@ describe('genContextBrain', () => {
           const context = genContextBrain({ brains: { repls: [mockRepl] } });
           await context.brain.repl.act({
             brain: mockRepl,
-            role: { briefs: mockBriefs },
+            role: { briefs: mockBriefs as never },
             prompt: 'test action',
             schema: { output: outputSchema },
           });
-          expect(capturedActInput.role.briefs).toEqual(mockBriefs);
+          expect(
+            (capturedActInput as { role: { briefs: unknown } }).role.briefs,
+          ).toEqual(mockBriefs);
         });
       });
     });

@@ -11,25 +11,19 @@ import { genSampleBrainSpec } from './genSampleBrainSpec';
  *
  * .note = repls always return calls: null (they execute tools internally via tool.execute())
  * .note = prompt can be string or BrainPlugToolExecution[] for tool result continuation
- * .note = use `onAsk`/`onAct` to capture input for verification in tests
  */
 export const genMockedBrainRepl = (input?: {
   repo?: string;
   slug?: string;
   description?: string;
   content?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onAsk?: (askInput: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onAct?: (actInput: any) => void;
 }): BrainRepl =>
   new BrainRepl({
     repo: input?.repo ?? '__mock_repo__',
     slug: input?.slug ?? '__mock_repl__',
     description: input?.description ?? 'mocked brain repl for tests',
     spec: genSampleBrainSpec(),
-    ask: async (askInput) => {
-      input?.onAsk?.(askInput);
+    ask: async (askInput, _context?) => {
       const outputParsed = askInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });
@@ -58,8 +52,7 @@ export const genMockedBrainRepl = (input?: {
         series,
       });
     },
-    act: async (actInput) => {
-      input?.onAct?.(actInput);
+    act: async (actInput, _context?) => {
       const outputParsed = actInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });

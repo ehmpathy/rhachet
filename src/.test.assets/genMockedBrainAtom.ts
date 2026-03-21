@@ -15,7 +15,6 @@ import { genSampleBrainSpec } from './genSampleBrainSpec';
  * .why = reduces boilerplate in tests and ensures consistent mock behavior
  *
  * .note = use `calls` to simulate tool invocations for tool execution tests
- * .note = use `onAsk` to capture input for verification in tests
  */
 export const genMockedBrainAtom = (input?: {
   repo?: string;
@@ -23,16 +22,13 @@ export const genMockedBrainAtom = (input?: {
   description?: string;
   content?: string;
   calls?: { tools: BrainPlugToolInvocation[] } | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onAsk?: (askInput: any) => void;
 }): BrainAtom =>
   new BrainAtom({
     repo: input?.repo ?? '__mock_repo__',
     slug: input?.slug ?? '__mock_atom__',
     description: input?.description ?? 'mocked brain atom for tests',
     spec: genSampleBrainSpec(),
-    ask: async (askInput) => {
-      input?.onAsk?.(askInput);
+    ask: async (askInput, _context?) => {
       const outputParsed = askInput.schema.output.parse({
         content: input?.content ?? '__mock_response__',
       });
