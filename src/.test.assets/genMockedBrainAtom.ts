@@ -23,7 +23,8 @@ export const genMockedBrainAtom = (input?: {
   description?: string;
   content?: string;
   calls?: { tools: BrainPlugToolInvocation[] } | null;
-  onAsk?: (askInput: Parameters<BrainAtom['ask']>[0]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onAsk?: (askInput: any) => void;
 }): BrainAtom =>
   new BrainAtom({
     repo: input?.repo ?? '__mock_repo__',

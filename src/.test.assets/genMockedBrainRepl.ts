@@ -18,8 +18,10 @@ export const genMockedBrainRepl = (input?: {
   slug?: string;
   description?: string;
   content?: string;
-  onAsk?: (askInput: Parameters<BrainRepl['ask']>[0]) => void;
-  onAct?: (actInput: Parameters<BrainRepl['act']>[0]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onAsk?: (askInput: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onAct?: (actInput: any) => void;
 }): BrainRepl =>
   new BrainRepl({
     repo: input?.repo ?? '__mock_repo__',
