@@ -95,7 +95,6 @@ exports[`keyrack daemon cache given: [case5] mid-session unlock flow when: [t1] 
 
 exports[`keyrack daemon cache given: [case6] unlock via recipient key discovery when: [t0] unlock via recipient key discovery then: unlock stdout matches snapshot 1`] = `
 "
-
 🔓 keyrack unlock
    └─ testorg.test.SECURE_API_KEY
       ├─ env: test

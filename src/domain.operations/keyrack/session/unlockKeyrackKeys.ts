@@ -130,6 +130,7 @@ export const unlockKeyrackKeys = async (
   // collect keys to unlock and track omitted
   const keysToUnlock: KeyrackKeyGrant[] = [];
   const keysOmitted: string[] = [];
+  const effectiveSlugsUnlocked = new Set<string>(); // dedupe by effective slug
 
   for (const slug of slugsForEnv) {
     // find host config for this key — with fallback to env=all
@@ -154,6 +155,13 @@ export const unlockKeyrackKeys = async (
         continue;
       }
     }
+
+    // dedupe: skip if we've already unlocked this effective slug
+    // .note = env.all expansion creates multiple slugs that map to same host key
+    if (effectiveSlugsUnlocked.has(effectiveSlug)) {
+      continue;
+    }
+    effectiveSlugsUnlocked.add(effectiveSlug);
 
     // for non-sudo keys, verify key exists in repoManifest
     const spec = repoManifest?.keys[slug];

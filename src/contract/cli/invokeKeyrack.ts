@@ -26,6 +26,7 @@ import {
 import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { inferKeyrackEnvForSet } from '@src/domain.operations/keyrack/inferKeyrackEnvForSet';
 import { inferKeyrackVaultFromKey } from '@src/domain.operations/keyrack/inferKeyrackVaultFromKey';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
@@ -593,8 +594,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <owner>', 'alias for --owner')
     .option(
       '--env <env>',
-      'target env: prod, prep, test, all, or sudo (default: all)',
-      'all',
+      'target env: prod, prep, test, all, or sudo (inferred from manifest if unambiguous)',
     )
     .option(
       '--org <org>',
@@ -617,7 +617,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         vault: string;
         owner?: string;
         for?: string;
-        env: string;
+        env?: string;
         org: string;
         exid?: string;
         vaultRecipient?: string;
@@ -677,13 +677,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           return inferred;
         })();
 
-        // validate env
-        if (!isValidKeyrackEnv(opts.env)) {
-          throw new BadRequestError(
-            `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
-          );
-        }
-
         // get gitroot to derive org from manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
         const getContext = await genContextKeyrackGrantGet({
@@ -722,6 +715,25 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           return getContext.repoManifest;
         })();
 
+        // infer or validate env
+        const resolvedEnv = (() => {
+          // if --env provided, validate it
+          if (opts.env) {
+            if (!isValidKeyrackEnv(opts.env)) {
+              throw new BadRequestError(
+                `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
+              );
+            }
+            return opts.env;
+          }
+
+          // no --env provided, infer from manifest
+          return inferKeyrackEnvForSet({
+            key: opts.key,
+            manifest: repoManifest,
+          });
+        })();
+
         // expand org from manifest (only if not @all)
         let resolvedOrg: string;
         if (opts.org === '@all') {
@@ -733,7 +745,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           });
         } else {
           // no manifest available
-          if (opts.env === 'sudo') {
+          if (resolvedEnv === 'sudo') {
             console.log('');
             console.log('✋ no keyrack.yml found');
             console.log(
@@ -756,7 +768,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const { results } = await setKeyrackKey(
           {
             key: opts.key,
-            env: opts.env,
+            env: resolvedEnv,
             org: resolvedOrg,
             vault: opts.vault as KeyrackHostVault,
             mech,
