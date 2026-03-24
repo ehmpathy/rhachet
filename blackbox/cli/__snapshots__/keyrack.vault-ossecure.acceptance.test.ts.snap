@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault-ossecure given: [case4.5] set+get roundtrip with os.secure vault when: [t2] unlock then get SECURE_API_KEY (full roundtrip) then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "test",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "encrypted",
+      },
+      "secret": "portable-secure-value-xyz789",
+    },
+    "org": "testorg",
+    "slug": "testorg.test.SECURE_API_KEY",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.secure",
+    },
+  },
+  "status": "granted",
+}
+`;

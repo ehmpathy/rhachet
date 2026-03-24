@@ -33,6 +33,7 @@ describe('setKeyrackKey', () => {
 
           const context: KeyrackHostContext = {
             owner: null,
+            identity: 'test-identity',
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
             vaultAdapters: {
               'os.envvar': genMockVaultAdapter(),
@@ -75,6 +76,7 @@ describe('setKeyrackKey', () => {
 
         const context: KeyrackHostContext = {
           owner: null,
+          identity: 'test-identity',
           hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
@@ -116,6 +118,7 @@ describe('setKeyrackKey', () => {
 
         const context: KeyrackHostContext = {
           owner: null,
+          identity: 'test-identity',
           hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
           repoManifest: {
             org: 'ehmpathy',
@@ -172,6 +175,7 @@ describe('setKeyrackKey', () => {
 
           const context: KeyrackHostContext = {
             owner: null,
+            identity: 'test-identity',
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
             repoManifest: { org: repoManifest.org },
             vaultAdapters: {

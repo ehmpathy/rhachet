@@ -11,17 +11,17 @@ import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
  */
 export const getKeyrackRecipients = async (input: {
   owner: string | null;
-  prikey: string | null;
+  prikeys?: string[];
 }): Promise<KeyrackKeyRecipient[]> => {
-  const { owner, prikey } = input;
+  const { owner, prikeys } = input;
 
   // load manifest (dao handles identity discovery)
-  const manifestFound = await daoKeyrackHostManifest.get({ owner, prikey });
-  if (!manifestFound)
+  const result = await daoKeyrackHostManifest.get({ owner, prikeys });
+  if (!result)
     throw new BadRequestError(
       'keyrack manifest not found; run `rhx keyrack init` first',
       { owner },
     );
 
-  return manifestFound.recipients;
+  return result.manifest.recipients;
 };

@@ -1,7 +1,6 @@
 import { getError, given, then, when } from 'test-fns';
 
 import { withTempHome } from '@src/.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 
@@ -13,6 +12,7 @@ import { setKeyrackRecipient } from './setKeyrackRecipient';
 // test ssh key paths
 const TEST_SSH_KEY_DIR = join(__dirname, '../../../.test/assets/keyrack/ssh');
 const TEST_SSH_PUBKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519.pub');
+const TEST_SSH_PRIKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519');
 
 describe('recipient operations', () => {
   const tempHome = withTempHome({ name: 'recipient-ops' });
@@ -22,7 +22,7 @@ describe('recipient operations', () => {
 
   beforeEach(() => {
     // clear session identity between tests
-    daoKeyrackHostManifest.setSessionIdentity(null);
+    // session identity removed - use _testIdentity in get()
   });
 
   describe('setKeyrackRecipient', () => {
@@ -44,7 +44,7 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           expect(recipient.mech).toBe('age');
@@ -64,12 +64,12 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           const recipients = await getKeyrackRecipients({
             owner: 'set-test-2',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
           expect(recipients).toHaveLength(2);
         });
@@ -88,7 +88,7 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           const { recipient: pubkey3 } = await generateAgeKeyPair();
@@ -98,7 +98,7 @@ describe('recipient operations', () => {
               pubkey: pubkey3,
               label: 'backup', // duplicate
               stanza: null,
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -123,7 +123,7 @@ describe('recipient operations', () => {
             pubkey: sshPubkey,
             label: 'ssh-key',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           expect(recipient.mech).toBe('ssh');
@@ -145,7 +145,7 @@ describe('recipient operations', () => {
               pubkey: 'invalid-pubkey-format',
               label: 'invalid',
               stanza: null,
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -171,7 +171,7 @@ describe('recipient operations', () => {
             pubkey: sshPubkey,
             label: 'ssh-stanza-key',
             stanza: 'ssh',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           // should force mech: 'ssh' (not converted to age1...)
@@ -198,7 +198,7 @@ describe('recipient operations', () => {
               pubkey: agePubkey,
               label: 'age-key',
               stanza: 'ssh',
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -217,7 +217,7 @@ describe('recipient operations', () => {
               pubkey: 'age1...',
               label: 'test',
               stanza: null,
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -240,7 +240,7 @@ describe('recipient operations', () => {
 
           const recipients = await getKeyrackRecipients({
             owner: 'get-test-1',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           expect(recipients).toHaveLength(1);
@@ -264,12 +264,12 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           const recipients = await getKeyrackRecipients({
             owner: 'get-test-2',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           expect(recipients).toHaveLength(2);
@@ -284,7 +284,7 @@ describe('recipient operations', () => {
       when('[t0] attempt to get recipients', () => {
         then('throws error', async () => {
           const error = await getError(
-            getKeyrackRecipients({ owner: 'nonexistent-get', prikey: null }),
+            getKeyrackRecipients({ owner: 'nonexistent-get' }),
           );
 
           expect(error).toBeDefined();
@@ -310,13 +310,13 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           // verify two recipients
           let recipients = await getKeyrackRecipients({
             owner: 'del-test-1',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
           expect(recipients).toHaveLength(2);
 
@@ -324,13 +324,13 @@ describe('recipient operations', () => {
           await delKeyrackRecipient({
             owner: 'del-test-1',
             label: 'backup',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           // verify one recipient
           recipients = await getKeyrackRecipients({
             owner: 'del-test-1',
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
           expect(recipients).toHaveLength(1);
           expect(recipients[0]?.label).toBe('primary');
@@ -350,14 +350,14 @@ describe('recipient operations', () => {
             pubkey: pubkey2,
             label: 'backup',
             stanza: null,
-            prikey: null,
+            prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
           const error = await getError(
             delKeyrackRecipient({
               owner: 'del-test-2',
               label: 'nonexistent',
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -380,7 +380,7 @@ describe('recipient operations', () => {
             delKeyrackRecipient({
               owner: 'last-test',
               label: 'only-one',
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 
@@ -397,7 +397,7 @@ describe('recipient operations', () => {
             delKeyrackRecipient({
               owner: 'nonexistent-del',
               label: 'test',
-              prikey: null,
+              prikeys: [TEST_SSH_PRIKEY_PATH],
             }),
           );
 

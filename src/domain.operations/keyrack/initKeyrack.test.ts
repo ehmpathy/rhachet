@@ -1,7 +1,6 @@
 import { getError, given, then, when } from 'test-fns';
 
 import { withTempHome } from '@src/.test/infra/withTempHome';
-import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,7 +19,7 @@ describe('initKeyrack', () => {
 
   beforeEach(() => {
     // clear session identity between tests
-    daoKeyrackHostManifest.setSessionIdentity(null);
+    // session identity removed - use _testIdentity in get()
   });
 
   given('[case1] explicit pubkey path (private key path)', () => {

@@ -45,6 +45,7 @@ export interface KeyrackHostVaultAdapter {
    * .what = store a credential in the vault
    * .why = enables set flow for credential storage
    *
+   * .note = vault prompts for its own secret via stdin; callers never supply it
    * .note = env and org are required; callers must derive them before the vault adapter call
    * .note = exid is optional; only 1password requires it
    * .note = expiresAt is optional; enables ephemeral grant cache (os.direct only)
@@ -55,7 +56,6 @@ export interface KeyrackHostVaultAdapter {
    */
   set: (input: {
     slug: string;
-    secret: string | null;
     env: string;
     org: string;
     exid?: string | null;

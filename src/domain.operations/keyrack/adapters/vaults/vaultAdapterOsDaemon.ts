@@ -1,4 +1,3 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
 import { asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
@@ -9,6 +8,7 @@ import {
   isDaemonReachable,
 } from '@src/domain.operations/keyrack/daemon/sdk';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 /**
  * .what = vault adapter for os.daemon storage
@@ -57,19 +57,14 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
   /**
    * .what = store a credential in the daemon
    * .why = enables set flow for credential storage
+   *
+   * .note = vault prompts for its own secret via stdin
    */
-  set: async (input: {
-    slug: string;
-    secret: string | null;
-    env: string;
-    org: string;
-    expiresAt?: string | null;
-  }) => {
-    // secret is required for os.daemon vault
-    if (!input.secret)
-      throw new UnexpectedCodePathError('secret required for os.daemon vault', {
-        slug: input.slug,
-      });
+  set: async (input) => {
+    // vault always prompts for its own secret via stdin
+    const secret = await promptHiddenInput({
+      prompt: `enter secret for ${input.slug}: `,
+    });
 
     // infer grade for os.daemon (always encrypted + transient)
     const grade = inferKeyGrade({
@@ -87,7 +82,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
       keys: [
         {
           slug: input.slug,
-          key: { secret: input.secret, grade },
+          key: { secret, grade },
           source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
           env: input.env,
           org: input.org,

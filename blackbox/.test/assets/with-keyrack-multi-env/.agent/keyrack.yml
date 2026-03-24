@@ -2,6 +2,14 @@ org: testorg
 
 env.all:
   - SHARED_API_KEY
+  - ALL_ENV_KEY
+  - UNIVERSAL_KEY
+  - DEFAULT_ALL_KEY
+  - LOCKED_KEY
+  - MIXED_KEY
+
+env.test:
+  - MIXED_KEY
 
 env.prod:
   - AWS_PROFILE: ephemeral

@@ -21,7 +21,7 @@ describe('unlockKeyrackKeys.integration', () => {
   afterAll(() => tempHome.teardown());
 
   beforeEach(() => {
-    daoKeyrackHostManifest.setSessionIdentity(null);
+    // session identity removed - use _testIdentity in get()
   });
 
   given('[case1] sudo credential with 30min default TTL', () => {
@@ -29,7 +29,7 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretValue = 'sudo-secret-value-123';
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+      // identity is passed via _testIdentity in get()
 
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
@@ -63,7 +63,7 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t0] unlock called with env=sudo and --key', () => {
       then('unlocks single key with 30min TTL', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+        // identity is passed via _testIdentity in get()
 
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
@@ -106,7 +106,7 @@ describe('unlockKeyrackKeys.integration', () => {
       });
 
       then('stores key in daemon', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+        // identity is passed via _testIdentity in get()
 
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
@@ -148,7 +148,7 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretValue = 'api-key-value-456';
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+      // identity is passed via _testIdentity in get()
 
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
@@ -182,7 +182,7 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t0] unlock called without --env (defaults to all)', () => {
       then('uses 9h default TTL', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+        // identity is passed via _testIdentity in get()
 
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.all.API_KEY': secretValue },
@@ -236,7 +236,7 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretValue = 'sensitive-value-789';
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+      // identity is passed via _testIdentity in get()
 
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
@@ -270,7 +270,7 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t0] unlock called with duration that exceeds maxDuration', () => {
       then('caps TTL to maxDuration and warns', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+        // identity is passed via _testIdentity in get()
 
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.SENSITIVE_KEY': secretValue },
@@ -328,7 +328,7 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretValue = 'custom-duration-value';
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+      // identity is passed via _testIdentity in get()
 
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
@@ -362,7 +362,7 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t0] unlock called with duration below maxDuration', () => {
       then('uses requested duration', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
+        // identity is passed via _testIdentity in get()
 
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.SHORT_LIVED_KEY': secretValue },
@@ -415,8 +415,6 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretValueB = 'owner-b-secret';
 
     const manifestA = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPairA.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPairA.recipient,
@@ -448,8 +446,6 @@ describe('unlockKeyrackKeys.integration', () => {
     });
 
     const manifestB = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPairB.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPairB.recipient,
@@ -482,8 +478,6 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t0] ownerA unlocks their key', () => {
       then('key is stored in ownerA daemon only', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPairA.identity);
-
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.TOKEN_A': secretValueA },
         });
@@ -529,8 +523,6 @@ describe('unlockKeyrackKeys.integration', () => {
 
     when('[t1] ownerB unlocks their key', () => {
       then('key is stored in ownerB daemon only', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPairB.identity);
-
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'ehmpathy.sudo.TOKEN_B': secretValueB },
         });

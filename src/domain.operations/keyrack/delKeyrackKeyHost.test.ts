@@ -36,6 +36,7 @@ describe('delKeyrackKeyHost', () => {
     const vaultAdapter = genMockVaultAdapter();
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'testorg.prod.MY_KEY': {
@@ -78,6 +79,7 @@ describe('delKeyrackKeyHost', () => {
   given('[case2] key does not exist in manifest', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: { org: 'testorg' },
       vaultAdapters: {
@@ -110,6 +112,7 @@ describe('delKeyrackKeyHost', () => {
     const vaultAdapter = genMockVaultAdapter();
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'testorg.sudo.SECRET_TOKEN': {

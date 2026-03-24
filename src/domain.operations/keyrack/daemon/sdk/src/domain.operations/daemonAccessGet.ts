@@ -15,8 +15,9 @@ import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/
  * .why = reads credentials from daemon memory for tool access
  *
  * .note = org filter: only returns keys where key.org matches requested org OR key.org is '@all'
- * .note = env filter: only returns keys where key.env matches requested env
+ * .note = env filter: only returns keys where key.env matches requested env OR key.env is 'all'
  * .note = owner derives socketPath if socketPath not provided
+ * .note = daemon implements env=all fallback: org.test.KEY → org.all.KEY
  */
 export const daemonAccessGet = async (input: {
   slugs: string[];

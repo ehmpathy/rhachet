@@ -1,6 +1,8 @@
 import { BadRequestError } from 'helpful-errors';
 import readline from 'readline';
 
+import { getStdoutPrefix } from '@src/infra/withStdoutPrefix';
+
 import {
   doesAwsProfileExist,
   getAwsSsoProfileConfig,
@@ -14,16 +16,22 @@ import {
 /**
  * .what = prompts user for input via readline
  * .why = interactive cli input for guided setup flows
+ *
+ * .note = prepends stdout prefix from withStdoutPrefix via getStdoutPrefix()
+ * .note = this ensures readline knows the full prompt length for cursor position
  */
 const promptUser = (question: string): Promise<string> => {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  // prepend stdout prefix if set (from withStdoutPrefix)
+  const prefix = getStdoutPrefix();
+  const fullQuestion = prefix + question;
+  return new Promise((accept) => {
+    rl.question(fullQuestion, (answer) => {
       rl.close();
-      resolve(answer.trim());
+      accept(answer.trim());
     });
   });
 };

@@ -3,13 +3,20 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
-import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+} from 'node:fs';
 import {
   daemonAccessGet,
   daemonAccessRelock,
   daemonAccessStatus,
   daemonAccessUnlock,
   isDaemonReachable,
+  pruneKeyrackDaemon,
 } from './sdk';
 import { createKeyrackDaemonServer, spawnKeyrackDaemonBackground } from './svc';
 
@@ -528,11 +535,172 @@ describe('keyrack daemon integration', () => {
       });
     });
   });
+
+  given('[case8] pruneKeyrackDaemon', () => {
+    // override XDG_RUNTIME_DIR and HOME to control socket paths
+    const testRuntimeDir = `/tmp/keyrack-prune-test-${process.pid}`;
+    const testHomeDir = `/tmp/keyrack-prune-home-${process.pid}`;
+    const originalXdgRuntimeDir = process.env['XDG_RUNTIME_DIR'];
+    const originalHome = process.env['HOME'];
+
+    beforeAll(() => {
+      // create test directories
+      if (!existsSync(testRuntimeDir)) mkdirSync(testRuntimeDir);
+      if (!existsSync(testHomeDir)) mkdirSync(testHomeDir);
+      // override env
+      process.env['XDG_RUNTIME_DIR'] = testRuntimeDir;
+      process.env['HOME'] = testHomeDir;
+    });
+
+    afterAll(() => {
+      // restore env
+      if (originalXdgRuntimeDir) {
+        process.env['XDG_RUNTIME_DIR'] = originalXdgRuntimeDir;
+      } else {
+        delete process.env['XDG_RUNTIME_DIR'];
+      }
+      if (originalHome) {
+        process.env['HOME'] = originalHome;
+      } else {
+        delete process.env['HOME'];
+      }
+      // cleanup test directories
+      if (existsSync(testRuntimeDir))
+        rmSync(testRuntimeDir, { recursive: true, force: true });
+      if (existsSync(testHomeDir))
+        rmSync(testHomeDir, { recursive: true, force: true });
+    });
+
+    when('[t0] prune with no daemon active', () => {
+      then('returns empty pruned array', () => {
+        const result = pruneKeyrackDaemon({ owner: null });
+        expect(result.pruned).toEqual([]);
+      });
+    });
+
+    when('[t1] prune default owner daemon', () => {
+      then('kills daemon and returns pruned entry', async () => {
+        // spawn daemon without explicit socketPath (uses env-derived path)
+        spawnKeyrackDaemonBackground();
+
+        // get expected socket path via the infra helper
+        const { getKeyrackDaemonSocketPath } = await import('./infra');
+        const expectedSocketPath = getKeyrackDaemonSocketPath({ owner: null });
+        const expectedPidPath = expectedSocketPath.replace(/\.sock$/, '.pid');
+
+        // wait for daemon to become reachable
+        let reachable = false;
+        for (let i = 0; i < 50 && !reachable; i++) {
+          reachable = await isDaemonReachable({
+            socketPath: expectedSocketPath,
+          });
+          if (!reachable) await sleep(100);
+        }
+        expect(reachable).toBe(true);
+
+        // get daemon pid
+        const daemonPid = parseInt(readFileSync(expectedPidPath, 'utf-8'), 10);
+        expect(isProcessAlive(daemonPid)).toBe(true);
+
+        // prune via pruneKeyrackDaemon (the function under test)
+        const result = pruneKeyrackDaemon({ owner: null });
+        expect(result.pruned.length).toBe(1);
+        expect(result.pruned[0]?.owner).toBe(null);
+        expect(result.pruned[0]?.pid).toBe(daemonPid);
+
+        // verify daemon is gone
+        await sleep(100); // give time for SIGTERM
+        expect(isProcessAlive(daemonPid)).toBe(false);
+        expect(existsSync(expectedSocketPath)).toBe(false);
+        expect(existsSync(expectedPidPath)).toBe(false);
+      });
+    });
+
+    when('[t2] prune specific owner daemon', () => {
+      then('kills only that owner daemon', async () => {
+        // spawn daemon with specific owner
+        const { getKeyrackDaemonSocketPath } = await import('./infra');
+        const ownerSocketPath = getKeyrackDaemonSocketPath({
+          owner: 'testowner',
+        });
+        spawnKeyrackDaemonBackground({ socketPath: ownerSocketPath });
+
+        const ownerPidPath = ownerSocketPath.replace(/\.sock$/, '.pid');
+
+        // wait for daemon to become reachable
+        let reachable = false;
+        for (let i = 0; i < 50 && !reachable; i++) {
+          reachable = await isDaemonReachable({ socketPath: ownerSocketPath });
+          if (!reachable) await sleep(100);
+        }
+        expect(reachable).toBe(true);
+
+        // get daemon pid
+        const daemonPid = parseInt(readFileSync(ownerPidPath, 'utf-8'), 10);
+        expect(isProcessAlive(daemonPid)).toBe(true);
+
+        // prune via pruneKeyrackDaemon with owner
+        const result = pruneKeyrackDaemon({ owner: 'testowner' });
+        expect(result.pruned.length).toBe(1);
+        expect(result.pruned[0]?.owner).toBe('testowner');
+        expect(result.pruned[0]?.pid).toBe(daemonPid);
+
+        // verify daemon is gone
+        await sleep(100);
+        expect(isProcessAlive(daemonPid)).toBe(false);
+        expect(existsSync(ownerSocketPath)).toBe(false);
+        expect(existsSync(ownerPidPath)).toBe(false);
+      });
+    });
+
+    when('[t3] prune @all mode with multiple daemons', () => {
+      then('kills all daemons for current session', async () => {
+        const { getKeyrackDaemonSocketPath } = await import('./infra');
+
+        // spawn default daemon
+        const defaultSocketPath = getKeyrackDaemonSocketPath({ owner: null });
+        spawnKeyrackDaemonBackground({ socketPath: defaultSocketPath });
+
+        // spawn owner daemon
+        const ownerSocketPath = getKeyrackDaemonSocketPath({
+          owner: 'ehmpath',
+        });
+        spawnKeyrackDaemonBackground({ socketPath: ownerSocketPath });
+
+        // wait for both to be reachable
+        for (const socketPath of [defaultSocketPath, ownerSocketPath]) {
+          let reachable = false;
+          for (let i = 0; i < 50 && !reachable; i++) {
+            reachable = await isDaemonReachable({ socketPath });
+            if (!reachable) await sleep(100);
+          }
+          expect(reachable).toBe(true);
+        }
+
+        // get pids
+        const defaultPidPath = defaultSocketPath.replace(/\.sock$/, '.pid');
+        const ownerPidPath = ownerSocketPath.replace(/\.sock$/, '.pid');
+        const defaultPid = parseInt(readFileSync(defaultPidPath, 'utf-8'), 10);
+        const ownerPid = parseInt(readFileSync(ownerPidPath, 'utf-8'), 10);
+
+        // prune @all
+        const result = pruneKeyrackDaemon({ owner: '@all' });
+        expect(result.pruned.length).toBe(2);
+
+        // verify both daemons are gone
+        await sleep(100);
+        expect(isProcessAlive(defaultPid)).toBe(false);
+        expect(isProcessAlive(ownerPid)).toBe(false);
+        expect(existsSync(defaultSocketPath)).toBe(false);
+        expect(existsSync(ownerSocketPath)).toBe(false);
+      });
+    });
+  });
 });
 
 /**
  * .what = sleep for a duration
- * .why = simple async delay for test timing
+ * .why = simple async delay for test time control
  */
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => setTimeout(r, ms));

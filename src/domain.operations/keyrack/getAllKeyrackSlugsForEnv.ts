@@ -13,9 +13,10 @@ export const getAllKeyrackSlugsForEnv = (input: {
   // env=all returns all slugs
   if (input.env === 'all') return Object.keys(input.manifest.keys);
 
-  // filter to slugs where spec.env matches OR spec.env is 'all'
-  // (env='all' keys are accessible from any environment)
+  // filter to slugs where spec.env matches the requested env
+  // note: env.all keys are already expanded to env-specific slugs via hydration
+  //       so we exclude .all. slugs here to avoid duplicates
   return Object.entries(input.manifest.keys)
-    .filter(([, spec]) => spec.env === input.env || spec.env === 'all')
+    .filter(([, spec]) => spec.env === input.env)
     .map(([slug]) => slug);
 };

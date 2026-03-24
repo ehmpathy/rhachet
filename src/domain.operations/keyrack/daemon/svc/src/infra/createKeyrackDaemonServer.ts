@@ -33,8 +33,9 @@ export const createKeyrackDaemonServer = (input: {
   // cleanup stale socket file if present
   try {
     unlinkSync(socketPath);
-  } catch {
-    // ignore if file does not exist
+  } catch (error) {
+    // allow expected errors: ENOENT = file does not exist
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
 
   // create the server

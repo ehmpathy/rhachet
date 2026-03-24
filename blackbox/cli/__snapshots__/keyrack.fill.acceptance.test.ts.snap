@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack fill cli given: [case1] any repo when: [t0] rhx keyrack fill --help then: stdout matches snapshot 1`] = `
+"Usage: rhachet keyrack fill [options]
+
+fill keyrack keys from repo manifest
+
+Options:
+  --env <env>         environment to fill (test, prod, all)
+  --owner <owner...>  owner(s) to fill (default: default) (default: ["default"])
+  --prikey <path...>  prikey(s) to consider for manifest decryption
+  --key <key>         specific key to fill (default: all)
+  --refresh           refresh even if already set
+  --repair            overwrite blocked keys (e.g., rotate dangerous tokens)
+  --allow-dangerous   allow blocked keys through (e.g., accept dangerous tokens
+                      as-is)
+  -h, --help          display help for command
+"
+`;
+
+exports[`keyrack fill cli given: [case4] repo with keyrack manifest (test keys only) when: [t0] rhx keyrack fill --env prod (no prod keys exist) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack fill (env: prod)
+   └─ no keys found
+
+"
+`;
+
+exports[`keyrack fill cli given: [case6] repo with env.test key already set as env=all when: [t0] rhx keyrack fill --env test then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, FILL_TEST_KEY, for 1 owner
+   └─ for owner default
+      └─ 🟢 found vaulted under testorg.all.FILL_TEST_KEY
+
+🔑 key 2/2, ANOTHER_TEST_KEY, for 1 owner
+   └─ for owner default
+      └─ 🟢 found vaulted under testorg.all.ANOTHER_TEST_KEY
+
+🔐 keyrack fill complete (2/2 keys verified)
+
+"
+`;

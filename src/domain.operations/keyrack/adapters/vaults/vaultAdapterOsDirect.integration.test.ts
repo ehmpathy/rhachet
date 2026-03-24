@@ -1,9 +1,16 @@
 import { given, then, when } from 'test-fns';
 
+import {
+  genMockPromptHiddenInput,
+  setMockPromptValues,
+} from '@src/.test/infra/mockPromptHiddenInput';
 import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+
+jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
+
 import { vaultAdapterOsDirect } from './vaultAdapterOsDirect';
 
 describe('vaultAdapterOsDirect', () => {
@@ -43,9 +50,9 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t2] set called with new key', () => {
       then('creates store file', async () => {
+        setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -63,9 +70,9 @@ describe('vaultAdapterOsDirect', () => {
       });
 
       then('stores key value', async () => {
+        setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
         });
@@ -78,15 +85,14 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case2] store has keys', () => {
     beforeEach(async () => {
+      setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        secret: 'value-a',
         env: 'test',
         org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        secret: 'value-b',
         env: 'test',
         org: 'testorg',
       });
@@ -104,9 +110,9 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t1] set called to update key', () => {
       then('updates value', async () => {
+        setMockPromptValues('new-value-a');
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -116,9 +122,9 @@ describe('vaultAdapterOsDirect', () => {
       });
 
       then('does not affect other keys', async () => {
+        setMockPromptValues('new-value-a');
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
         });
@@ -157,15 +163,14 @@ describe('vaultAdapterOsDirect', () => {
 
   given('[case3] store file format', () => {
     beforeEach(async () => {
+      setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        secret: 'value-a',
         env: 'test',
         org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        secret: 'value-b',
         env: 'test',
         org: 'testorg',
       });
@@ -210,10 +215,10 @@ describe('vaultAdapterOsDirect', () => {
   given('[case4] ephemeral entries with expiry', () => {
     when('[t0] set called with expiresAt', () => {
       then('stores entry with expiry', async () => {
+        setMockPromptValues('ghs_token123');
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          secret: 'ghs_token123',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -238,10 +243,10 @@ describe('vaultAdapterOsDirect', () => {
       });
 
       then('get returns value when not expired', async () => {
+        setMockPromptValues('ghs_token123');
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          secret: 'ghs_token123',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -256,10 +261,10 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t1] get called for expired entry', () => {
       then('returns null', async () => {
+        setMockPromptValues('expired_token');
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          secret: 'expired_token',
           env: 'test',
           org: 'testorg',
           expiresAt,
@@ -270,10 +275,10 @@ describe('vaultAdapterOsDirect', () => {
       });
 
       then('deletes expired entry from store', async () => {
+        setMockPromptValues('expired_token');
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          secret: 'expired_token',
           env: 'test',
           org: 'testorg',
           expiresAt,

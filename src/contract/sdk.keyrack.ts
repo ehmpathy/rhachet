@@ -103,7 +103,7 @@ export const keyrack = {
   }) => {
     const context = await genKeyrackHostContext({
       owner: input.owner ?? null,
-      prikey: input.prikey ?? null,
+      prikeys: input.prikey ? [input.prikey] : undefined,
     });
     return setKeyrackKeyHost(
       {

@@ -1,0 +1,141 @@
+distill user experience reproductions for
+- .behavior/v2026_03_19.keyrack-fill/0.wish.md
+- .behavior/v2026_03_19.keyrack-fill/1.vision.md (if declared)
+
+---
+
+## experience reproductions
+
+for each user experience in the vision, define how it will be reproduced in tests.
+
+| experience | entry point | user actions | expected outcome | test type |
+|------------|-------------|--------------|------------------|-----------|
+| ...        | ...         | ...          | ...              | ...       |
+
+---
+
+## journey test sketches
+
+for each experience, sketch the journey test with full BDD structure.
+
+### structure
+
+journey tests use `given/when/then` blocks with `[tN]` labels:
+
+```
+given('[case1] {scenario description}')
+  when('[t0] before any changes')
+    then('{precondition holds}')
+    then('input/output matches snapshot')  ← snapshot!
+  when('[t1] {first action}')
+    then('{expected outcome}')
+    then('input/output matches snapshot')  ← snapshot!
+  when('[t2] {second action}')
+    then('{expected outcome}')
+    then('input/output matches snapshot')  ← snapshot!
+```
+
+### step table
+
+for each journey, create a step table:
+
+| step | action | user sees |
+|------|--------|-----------|
+| t0 | before any changes | {describe what user sees} |
+| t1 | {first action} | {describe what user sees} |
+| t2 | {second action} | {describe what user sees} |
+
+### input/output pairs
+
+for each step, document:
+- **input**: what the caller provides
+- **output**: what the caller receives (terminal, screen, response)
+
+example (CLI):
+```
+#### t1 success case (snapshot target)
+$ rhx init.behavior --name my-feature
+
+init.behavior
+
+created .behavior/v2024_03_12.my-feature/
+   ├─ 0.wish.md
+   └─ ... (more files)
+```
+
+example (SDK):
+```
+#### t1 success case (snapshot target)
+// input
+const customer = await sdk.createCustomer({ email: 'test@example.com' });
+
+// output
+{ id: 'cus_abc123', email: 'test@example.com', status: 'active' }
+```
+
+### snapshot coverage plan
+
+mark which outputs need `.snap` files:
+
+- [ ] t0 before state → `.snap`
+- [ ] t1 success input/output → `.snap`
+- [ ] t1 error input/output → `.snap`
+- [ ] t2 after state → `.snap`
+
+### file convention
+
+journey test files use `.play.test.ts` suffix:
+- `feature.play.test.ts` — journey test
+- `feature.play.integration.test.ts` — journey test run as integration
+- `feature.play.acceptance.test.ts` — journey test run as acceptance
+
+this distinguishes journey tests from unit tests (`.test.ts`).
+
+---
+
+## critical paths
+
+identify the happy paths that must be frictionless.
+
+| critical path | description | why critical |
+|---------------|-------------|--------------|
+| {path 1} | {what user does} | {why this must work} |
+| {path 2} | {what user does} | {why this must work} |
+
+critical paths are the "golden paths" — the main flows that most users take.
+if these fail or have friction, the product fails.
+
+---
+
+## ergonomics review
+
+for each input/output pair, review:
+- does the input feel natural? is it what the user would expect to provide?
+- does the output feel natural? is it what the user would expect to see?
+- is there friction? what could be smoother?
+
+| journey | input ergonomics | output ergonomics | friction notes |
+|---------|------------------|-------------------|----------------|
+| {journey 1} | {natural / awkward} | {natural / awkward} | {any friction} |
+
+---
+
+## reproduction feasibility
+
+for each experience, confirm it can be reproduced:
+- what test utilities are available?
+- what setup is required?
+- show a concrete test sketch (use journey structure above)
+
+---
+
+## gaps
+
+if any experience cannot be reproduced, declare:
+- what is blocked?
+- what is required to unblock?
+- is this a blocker or can it be deferred?
+
+---
+
+emit to .behavior/v2026_03_19.keyrack-fill/3.2.distill.repros.experience._.v1.i1.md

@@ -2,7 +2,11 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import { parse as parseYaml } from 'yaml';
 
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import {
+  createTestHomeWithSshKey,
+  TEST_SSH_AGE_IDENTITY,
+  TEST_SSH_AGE_RECIPIENT,
+} from '@src/.test/infra';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
@@ -16,19 +20,19 @@ import type { KeyrackHostContext } from './genKeyrackHostContext';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 describe('setKeyrackKeyHost.integration', () => {
-  const tempHome = withTempHome({ name: 'setKeyrackKeyHost-integration' });
-
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
-
-  beforeEach(() => {
-    daoKeyrackHostManifest.setSessionIdentity(null);
+  // use test home with SSH key in ~/.ssh/id_ed25519
+  // dao will discover this key naturally via default discovery
+  const testHome = createTestHomeWithSshKey({
+    name: 'setKeyrackKeyHost-integration',
   });
 
+  beforeAll(() => testHome.setup());
+  afterAll(() => testHome.teardown());
+
   given('[case1] set --env sudo', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
     const repo = useBeforeAll(async () => {
-      const root = join(tempHome.path, 'repo-case1');
+      const root = join(testHome.path, 'repo-case1');
       mkdirSync(join(root, '.agent'), { recursive: true });
 
       // create keyrack.yml with org
@@ -41,11 +45,9 @@ describe('setKeyrackKeyHost.integration', () => {
     });
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -62,10 +64,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with env=sudo', () => {
       then('stores in encrypted host manifest', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: null,
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           gitroot: repo.path,
@@ -94,17 +95,16 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.env).toEqual('sudo');
         expect(result.org).toEqual('ehmpathy');
 
-        // verify stored in host manifest
+        // verify stored in host manifest - dao discovers key naturally
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: null,
-          prikey: null,
         });
         expect(
-          manifestAfter?.hosts['ehmpathy.sudo.SECRET_TOKEN'],
+          manifestAfter?.manifest.hosts['ehmpathy.sudo.SECRET_TOKEN'],
         ).toBeDefined();
-        expect(manifestAfter?.hosts['ehmpathy.sudo.SECRET_TOKEN']?.env).toEqual(
-          'sudo',
-        );
+        expect(
+          manifestAfter?.manifest.hosts['ehmpathy.sudo.SECRET_TOKEN']?.env,
+        ).toEqual('sudo');
       });
 
       then('does NOT appear in keyrack.yml', async () => {
@@ -129,9 +129,9 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case2] set --env all', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
     const repo = useBeforeAll(async () => {
-      const root = join(tempHome.path, 'repo-case2');
+      const root = join(testHome.path, 'repo-case2');
       mkdirSync(join(root, '.agent'), { recursive: true });
 
       // create keyrack.yml with org and env.all section
@@ -144,11 +144,9 @@ describe('setKeyrackKeyHost.integration', () => {
     });
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -165,10 +163,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with env=all', () => {
       then('stores in encrypted host manifest', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: 'case2',
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           gitroot: repo.path,
@@ -197,12 +194,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.env).toEqual('all');
         expect(result.org).toEqual('ehmpathy');
 
-        // verify stored in host manifest
+        // verify stored in host manifest - dao discovers key naturally
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case2',
-          prikey: null,
         });
-        expect(manifestAfter?.hosts['ehmpathy.all.API_KEY']).toBeDefined();
+        expect(
+          manifestAfter?.manifest.hosts['ehmpathy.all.API_KEY'],
+        ).toBeDefined();
       });
 
       then('ALSO appears in keyrack.yml', async () => {
@@ -220,14 +218,12 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case3] set --org @all', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -244,10 +240,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with org=@all', () => {
       then('stores with org: @all (not resolved)', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: 'case3',
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -274,12 +269,11 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.slug).toEqual('global.sudo.CROSS_ORG_KEY');
         expect(result.org).toEqual('@all');
 
-        // verify stored in host manifest with @all org
+        // verify stored in host manifest with @all org - dao discovers key naturally
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case3',
-          prikey: null,
         });
-        const host = manifestAfter?.hosts['global.sudo.CROSS_ORG_KEY'];
+        const host = manifestAfter?.manifest.hosts['global.sudo.CROSS_ORG_KEY'];
         expect(host).toBeDefined();
         expect(host?.org).toEqual('@all');
       });
@@ -287,15 +281,14 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case4] set with vaultRecipient for os.secure', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    // separate keypair for vault recipient (different from manifest recipient)
     const vaultKeyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -312,10 +305,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with vaultRecipient', () => {
       then('stores vaultRecipient in KeyrackKeyHost', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: 'case4',
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -342,26 +334,23 @@ describe('setKeyrackKeyHost.integration', () => {
 
         expect(result.vaultRecipient).toEqual(vaultKeyPair.recipient);
 
-        // verify stored in host manifest
+        // verify stored in host manifest - dao discovers key naturally
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case4',
-          prikey: null,
         });
-        const host = manifestAfter?.hosts['ehmpathy.sudo.SECURE_KEY'];
+        const host = manifestAfter?.manifest.hosts['ehmpathy.sudo.SECURE_KEY'];
         expect(host?.vaultRecipient).toEqual(vaultKeyPair.recipient);
       });
     });
   });
 
   given('[case5] set with maxDuration', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -378,10 +367,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with maxDuration', () => {
       then('stores maxDuration in KeyrackKeyHost', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: 'case5',
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'ehmpathy' },
           vaultAdapters: {
@@ -408,21 +396,21 @@ describe('setKeyrackKeyHost.integration', () => {
 
         expect(result.maxDuration).toEqual('5m');
 
-        // verify stored in host manifest
+        // verify stored in host manifest - dao discovers key naturally
         const manifestAfter = await daoKeyrackHostManifest.get({
           owner: 'case5',
-          prikey: null,
         });
-        const host = manifestAfter?.hosts['ehmpathy.sudo.SENSITIVE_KEY'];
+        const host =
+          manifestAfter?.manifest.hosts['ehmpathy.sudo.SENSITIVE_KEY'];
         expect(host?.maxDuration).toEqual('5m');
       });
     });
   });
 
   given('[case6] set --at custom keyrack path', () => {
-    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
     const repo = useBeforeAll(async () => {
-      const root = join(tempHome.path, 'repo-case6');
+      const root = join(testHome.path, 'repo-case6');
       mkdirSync(join(root, '.agent'), { recursive: true });
       mkdirSync(join(root, 'custom', 'role'), { recursive: true });
 
@@ -443,11 +431,9 @@ describe('setKeyrackKeyHost.integration', () => {
     });
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: keyPair.recipient,
+        pubkey: testRecipient,
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -464,10 +450,9 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with --at custom path', () => {
       then('writes key to custom keyrack at specified path', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const context: KeyrackHostContext = {
           owner: 'case6',
+          identity: TEST_SSH_AGE_IDENTITY,
           hostManifest: manifest,
           repoManifest: { org: 'customorg' },
           gitroot: repo.path,

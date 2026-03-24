@@ -46,14 +46,14 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 🔐 keyrack
    └─ testorg.test.SECRET_KEY
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key SECRET_KEY --env all --vault <vault>[0m
+      └─ [2mtip: rhx keyrack set --key SECRET_KEY --env test --vault <vault>[0m
 
 "
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1] get --key SECRET_KEY (on host but NOT in allowlist) then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key SECRET_KEY --env all --vault <vault>",
+  "fix": "rhx keyrack set --key SECRET_KEY --env test --vault <vault>",
   "message": "credential 'testorg.test.SECRET_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.SECRET_KEY",
   "status": "absent",
@@ -62,7 +62,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t2] get --key NONEXISTENT_KEY (not in allowlist, not on host) then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env all --vault <vault>",
+  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env test --vault <vault>",
   "message": "credential 'testorg.test.NONEXISTENT_KEY' not found in repo manifest (keyrack.yml)",
   "slug": "testorg.test.NONEXISTENT_KEY",
   "status": "absent",

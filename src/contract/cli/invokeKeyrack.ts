@@ -15,9 +15,18 @@ import {
   getKeyrackKeyGrant,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
+import { asKeyrackKeySlug } from '@src/domain.operations/keyrack/asKeyrackKeySlug';
 import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
+import {
+  isValidKeyrackEnv,
+  KEYRACK_VALID_ENVS,
+} from '@src/domain.operations/keyrack/constants';
+import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
+import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { inferKeyrackEnvForSet } from '@src/domain.operations/keyrack/inferKeyrackEnvForSet';
 import { inferKeyrackVaultFromKey } from '@src/domain.operations/keyrack/inferKeyrackVaultFromKey';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
@@ -27,7 +36,6 @@ import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyr
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlockKeyrackKeys';
 import { inferMechFromVault } from '@src/infra/inferMechFromVault';
-import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -82,8 +90,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // --owner takes precedence; --for is alias
         const owner = opts.owner ?? opts.for ?? null;
         // get gitroot to check for repo manifest
+        // note: null is valid when not in a git repo; other errors propagate
         const gitroot = await getGitRepoRoot({ from: process.cwd() }).catch(
-          () => null,
+          (error) => {
+            // allow "not a git repo" case - return null
+            if (error instanceof Error && error.message.includes('not a git'))
+              return null;
+            // propagate other errors (permissions, git not installed, etc)
+            throw error;
+          },
         );
 
         // --prikey takes precedence over --pubkey (both accept private key paths)
@@ -201,7 +216,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           pubkey: opts.pubkey,
           label: opts.label,
           stanza: (opts.stanza as 'ssh' | undefined) ?? null,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         if (opts.json) {
@@ -240,7 +255,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         const recipients = await getKeyrackRecipients({
           owner,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         if (opts.json) {
@@ -290,7 +305,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         await delKeyrackRecipient({
           owner,
           label: opts.label,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         if (opts.json) {
@@ -391,43 +406,39 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             for (let i = 0; i < attempts.length; i++) {
               const attempt = attempts[i]!;
               const isLast = i === attempts.length - 1;
-              const prefix = isLast ? '   └─' : '   ├─';
-              const indent = isLast ? '      ' : '   │  ';
 
               if (attempt.status === 'granted') {
-                console.log(`${prefix} ${attempt.grant.slug}`);
-                console.log(`${indent}├─ vault: ${attempt.grant.source.vault}`);
-                console.log(`${indent}├─ mech: ${attempt.grant.source.mech}`);
-                console.log(`${indent}└─ status: granted 🔑`);
+                emitKeyrackKeyBranch({
+                  entry: { type: 'granted', grant: attempt.grant },
+                  isLast,
+                });
               } else if (attempt.status === 'blocked') {
-                console.log(`${prefix} ${attempt.slug}`);
-                console.log(`${indent}├─ status: blocked 🚫`);
-                for (let j = 0; j < attempt.reasons.length; j++) {
-                  const reason = attempt.reasons[j]!;
-                  const isLastReason = j === attempt.reasons.length - 1;
-                  console.log(
-                    `${indent}│  ${isLastReason ? '└' : '├'}─ ${reason}`,
-                  );
-                }
-                console.log(
-                  `${indent}└─ \x1b[2mtip: --allow-dangerous if you must\x1b[0m`,
-                );
+                emitKeyrackKeyBranch({
+                  entry: {
+                    type: 'blocked',
+                    slug: attempt.slug,
+                    reasons: attempt.reasons,
+                  },
+                  isLast,
+                });
               } else if (attempt.status === 'locked') {
-                console.log(`${prefix} ${attempt.slug}`);
-                console.log(
-                  `${indent}${attempt.fix ? '├' : '└'}─ status: locked 🔒`,
-                );
-                if (attempt.fix) {
-                  console.log(`${indent}└─ \x1b[2mtip: ${attempt.fix}\x1b[0m`);
-                }
+                emitKeyrackKeyBranch({
+                  entry: {
+                    type: 'locked',
+                    slug: attempt.slug,
+                    tip: attempt.fix ?? null,
+                  },
+                  isLast,
+                });
               } else {
-                console.log(`${prefix} ${attempt.slug}`);
-                console.log(
-                  `${indent}${attempt.fix ? '├' : '└'}─ status: absent 🫧`,
-                );
-                if (attempt.fix) {
-                  console.log(`${indent}└─ \x1b[2mtip: ${attempt.fix}\x1b[0m`);
-                }
+                emitKeyrackKeyBranch({
+                  entry: {
+                    type: 'absent',
+                    slug: attempt.slug,
+                    tip: attempt.fix ?? null,
+                  },
+                  isLast,
+                });
               }
             }
             console.log('');
@@ -459,20 +470,30 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             });
           }
 
-          // detect if opts.key is already a full slug (org.env.key format)
-          // full slug format: $org.$env.$key where env is one of the valid env values
-          // note: we detect by format, not by hostManifest lookup, because manifest may be empty
-          //       (e.g., when daemon has cached keys but manifest decryption fails)
-          const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
-          const parts = opts.key.split('.');
-          const isFullSlug =
-            parts.length >= 3 && validEnvs.includes(parts[1] ?? '');
+          // construct slug: use asKeyrackKeySlug when manifest exists and not @all
+          // when @all, skip manifest validation and use inline format detection
+          const { slug, env } = (() => {
+            if (context.repoManifest && opts.org !== '@all') {
+              // use asKeyrackKeySlug for full validation (org match, env extraction)
+              return asKeyrackKeySlug({
+                key: opts.key,
+                env: opts.env ?? null,
+                manifest: context.repoManifest,
+              });
+            }
 
-          // construct slug: use as-is if full slug, otherwise $org.$env.$key
-          const env = opts.env ?? 'all';
-          const slug = isFullSlug
-            ? opts.key
-            : `${resolvedOrg}.${env}.${opts.key}`;
+            // fallback: inline format detection for @all or no manifest
+            const parts = opts.key.split('.');
+            const isFullSlug =
+              parts.length >= 3 && isValidKeyrackEnv(parts[1] ?? '');
+            const envFallback = opts.env ?? 'all';
+            return {
+              slug: isFullSlug
+                ? opts.key
+                : `${resolvedOrg}.${envFallback}.${opts.key}`,
+              env: isFullSlug ? (parts[1] ?? envFallback) : envFallback,
+            };
+          })();
 
           const attempt = await getKeyrackKeyGrant(
             { for: { key: slug }, allowDangerous: opts.allowDangerous },
@@ -510,45 +531,37 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             console.log('');
             console.log('🔐 keyrack');
             if (attemptResolved.status === 'granted') {
-              console.log(`   └─ ${attemptResolved.grant.slug}`);
-              console.log(
-                `      ├─ vault: ${attemptResolved.grant.source.vault}`,
-              );
-              console.log(
-                `      ├─ mech: ${attemptResolved.grant.source.mech}`,
-              );
-              console.log(`      └─ status: granted 🔑`);
+              emitKeyrackKeyBranch({
+                entry: { type: 'granted', grant: attemptResolved.grant },
+                isLast: true,
+              });
             } else if (attemptResolved.status === 'blocked') {
-              console.log(`   └─ ${attemptResolved.slug}`);
-              console.log(`      ├─ status: blocked 🚫`);
-              for (let j = 0; j < attemptResolved.reasons.length; j++) {
-                const reason = attemptResolved.reasons[j]!;
-                const isLastReason = j === attemptResolved.reasons.length - 1;
-                console.log(`      │  ${isLastReason ? '└' : '├'}─ ${reason}`);
-              }
-              console.log(
-                `      └─ \x1b[2mtip: --allow-dangerous if you must\x1b[0m`,
-              );
+              emitKeyrackKeyBranch({
+                entry: {
+                  type: 'blocked',
+                  slug: attemptResolved.slug,
+                  reasons: attemptResolved.reasons,
+                },
+                isLast: true,
+              });
             } else if (attemptResolved.status === 'locked') {
-              console.log(`   └─ ${attemptResolved.slug}`);
-              console.log(
-                `      ${attemptResolved.fix ? '├' : '└'}─ status: locked 🔒`,
-              );
-              if (attemptResolved.fix) {
-                console.log(
-                  `      └─ \x1b[2mtip: ${attemptResolved.fix}\x1b[0m`,
-                );
-              }
+              emitKeyrackKeyBranch({
+                entry: {
+                  type: 'locked',
+                  slug: attemptResolved.slug,
+                  tip: attemptResolved.fix ?? null,
+                },
+                isLast: true,
+              });
             } else {
-              console.log(`   └─ ${attemptResolved.slug}`);
-              console.log(
-                `      ${attemptResolved.fix ? '├' : '└'}─ status: absent 🫧`,
-              );
-              if (attemptResolved.fix) {
-                console.log(
-                  `      └─ \x1b[2mtip: ${attemptResolved.fix}\x1b[0m`,
-                );
-              }
+              emitKeyrackKeyBranch({
+                entry: {
+                  type: 'absent',
+                  slug: attemptResolved.slug,
+                  tip: attemptResolved.fix ?? null,
+                },
+                isLast: true,
+              });
             }
             console.log('');
           }
@@ -581,8 +594,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <owner>', 'alias for --owner')
     .option(
       '--env <env>',
-      'target env: prod, prep, test, all, or sudo (default: all)',
-      'all',
+      'target env: prod, prep, test, all, or sudo (inferred from manifest if unambiguous)',
     )
     .option(
       '--org <org>',
@@ -605,7 +617,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         vault: string;
         owner?: string;
         for?: string;
-        env: string;
+        env?: string;
         org: string;
         exid?: string;
         vaultRecipient?: string;
@@ -665,23 +677,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           return inferred;
         })();
 
-        // grab secret from stdin for vaults that require secret input (some vaults fetch it themselves via guided flows)
-        let secret: string | null = null;
-        const vaultsNeedSecret: KeyrackHostVault[] = ['os.secure', 'os.direct'];
-        if (vaultsNeedSecret.includes(opts.vault as KeyrackHostVault)) {
-          secret = await promptHiddenInput({
-            prompt: `enter secret for ${opts.key}: `,
-          });
-        }
-
-        // validate env
-        const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
-        if (!validEnvs.includes(opts.env)) {
-          throw new BadRequestError(
-            `invalid --env: must be one of ${validEnvs.join(', ')}`,
-          );
-        }
-
         // get gitroot to derive org from manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
         const getContext = await genContextKeyrackGrantGet({
@@ -690,7 +685,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
         const hostContext = await genKeyrackHostContext({
           owner,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
@@ -720,6 +715,25 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           return getContext.repoManifest;
         })();
 
+        // infer or validate env
+        const resolvedEnv = (() => {
+          // if --env provided, validate it
+          if (opts.env) {
+            if (!isValidKeyrackEnv(opts.env)) {
+              throw new BadRequestError(
+                `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
+              );
+            }
+            return opts.env;
+          }
+
+          // no --env provided, infer from manifest
+          return inferKeyrackEnvForSet({
+            key: opts.key,
+            manifest: repoManifest,
+          });
+        })();
+
         // expand org from manifest (only if not @all)
         let resolvedOrg: string;
         if (opts.org === '@all') {
@@ -731,7 +745,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           });
         } else {
           // no manifest available
-          if (opts.env === 'sudo') {
+          if (resolvedEnv === 'sudo') {
             console.log('');
             console.log('✋ no keyrack.yml found');
             console.log(
@@ -750,14 +764,14 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         }
 
         // delegate to domain operation
+        // note: vault adapters prompt for their own secrets via stdin (per rule.require.vault-fetches-own-secrets)
         const { results } = await setKeyrackKey(
           {
             key: opts.key,
-            env: opts.env,
+            env: resolvedEnv,
             org: resolvedOrg,
             vault: opts.vault as KeyrackHostVault,
             mech,
-            secret,
             exid: opts.exid ?? null,
             vaultRecipient: opts.vaultRecipient ?? null,
             maxDuration: opts.maxDuration ?? null,
@@ -829,10 +843,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const owner = opts.owner ?? opts.for ?? null;
 
         // validate env
-        const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
-        if (!validEnvs.includes(opts.env)) {
+        if (!isValidKeyrackEnv(opts.env)) {
           throw new BadRequestError(
-            `invalid --env: must be one of ${validEnvs.join(', ')}`,
+            `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
           );
         }
 
@@ -847,7 +860,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
         const hostContext = await genKeyrackHostContext({
           owner,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         // provide repoManifest and gitroot to hostContext for keyrack.yml writes
@@ -954,10 +967,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // validate env if provided
         if (opts.env) {
-          const validEnvs = ['sudo', 'prod', 'prep', 'test', 'all'];
-          if (!validEnvs.includes(opts.env)) {
+          if (!isValidKeyrackEnv(opts.env)) {
             throw new BadRequestError(
-              `invalid --env: must be one of ${validEnvs.join(', ')}`,
+              `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
             );
           }
         }
@@ -979,11 +991,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const context = await genContextKeyrackGrantUnlock({
           owner,
           gitroot,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
 
         // unlock keys and send to daemon
-        const { unlocked } = await unlockKeyrackKeys(
+        const { unlocked, omitted } = await unlockKeyrackKeys(
           {
             owner,
             env: opts.env,
@@ -995,27 +1007,39 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // output results
         if (opts.json) {
-          console.log(JSON.stringify({ unlocked }, null, 2));
+          console.log(JSON.stringify({ unlocked, omitted }, null, 2));
         } else {
-          console.log('');
           console.log('🔓 keyrack unlock');
-          for (let i = 0; i < unlocked.length; i++) {
-            const key = unlocked[i]!;
-            const isLast = i === unlocked.length - 1;
-            const prefix = isLast ? '   └─' : '   ├─';
-            const indent = isLast ? '      ' : '   │  ';
-            const expiresIn = key.expiresAt
-              ? Math.round(
-                  (new Date(key.expiresAt).getTime() - Date.now()) / 1000 / 60,
-                )
-              : null;
-            console.log(`${prefix} ${key.slug}`);
-            console.log(`${indent}├─ env: ${key.env}`);
-            console.log(`${indent}├─ org: ${key.org}`);
-            console.log(`${indent}├─ vault: ${key.source.vault}`);
-            console.log(
-              `${indent}└─ expires in: ${expiresIn !== null ? `${expiresIn}m` : 'never'}`,
-            );
+
+          // combine all entries for tree output
+          const allEntries = [
+            ...unlocked.map((k) => ({ type: 'unlocked' as const, key: k })),
+            ...omitted.map((slug) => ({ type: 'omitted' as const, slug })),
+          ];
+
+          for (let i = 0; i < allEntries.length; i++) {
+            const entry = allEntries[i]!;
+            const isLast = i === allEntries.length - 1;
+
+            if (entry.type === 'unlocked') {
+              emitKeyrackKeyBranch({
+                entry: { type: 'unlocked', grant: entry.key },
+                isLast,
+              });
+            } else {
+              // omitted key — mirror `get --for repo` format
+              const slug = entry.slug;
+              const keyName = slug.split('.').slice(2).join('.');
+              const slugEnv = slug.split('.')[1];
+              emitKeyrackKeyBranch({
+                entry: {
+                  type: 'absent',
+                  slug,
+                  tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
+                },
+                isLast,
+              });
+            }
           }
           console.log('');
         }
@@ -1157,7 +1181,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // generate context (use owner from --owner flag)
         const context = await genKeyrackHostContext({
           owner,
-          prikey: opts.prikey ?? null,
+          prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
         const hosts = context.hostManifest.hosts;
         const slugs = Object.keys(hosts).sort();
@@ -1187,4 +1211,111 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         }
       },
     );
+
+  // keyrack fill --env <env> [--owner owner...] [--prikey path...] [--key key] [--refresh]
+  keyrack
+    .command('fill')
+    .description('fill keyrack keys from repo manifest')
+    .requiredOption('--env <env>', 'environment to fill (test, prod, all)')
+    .option('--owner <owner...>', 'owner(s) to fill (default: default)', [
+      'default',
+    ])
+    .option(
+      '--prikey <path...>',
+      'prikey(s) to consider for manifest decryption',
+    )
+    .option('--key <key>', 'specific key to fill (default: all)')
+    .option('--refresh', 'refresh even if already set')
+    .option(
+      '--repair',
+      'overwrite blocked keys (e.g., rotate dangerous tokens)',
+    )
+    .option(
+      '--allow-dangerous',
+      'allow blocked keys through (e.g., accept dangerous tokens as-is)',
+    )
+    .action(
+      async (opts: {
+        env: string;
+        owner: string[];
+        prikey?: string[];
+        key?: string;
+        refresh?: boolean;
+        repair?: boolean;
+        allowDangerous?: boolean;
+      }) => {
+        // get gitroot for repo manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+
+        // fill keyrack keys
+        await fillKeyrackKeys(
+          {
+            env: opts.env,
+            owners: opts.owner,
+            prikeys: opts.prikey ?? [],
+            key: opts.key ?? null,
+            refresh: opts.refresh ?? false,
+            repair: opts.repair ?? false,
+            allowDangerous: opts.allowDangerous ?? false,
+          },
+          { gitroot },
+        );
+      },
+    );
+
+  // keyrack daemon prune [--owner owner]
+  const daemon = keyrack
+    .command('daemon')
+    .description('manage keyrack daemon lifecycle');
+
+  daemon
+    .command('prune')
+    .description('kill daemon process so next command starts fresh')
+    .option(
+      '--owner <owner>',
+      'owner identity (default: default, @all for all daemons)',
+    )
+    .option('--for <owner>', 'alias for --owner')
+    .option('--json', 'output as json (robot mode)')
+    .action(async (opts: { owner?: string; for?: string; json?: boolean }) => {
+      // --owner takes precedence; --for is alias; default is null (default owner)
+      const ownerInput = opts.owner ?? opts.for ?? null;
+
+      // prune daemon(s)
+      const { pruned } = pruneKeyrackDaemon({ owner: ownerInput });
+
+      // output results
+      if (opts.json) {
+        console.log(JSON.stringify({ pruned }, null, 2));
+      } else {
+        console.log('');
+        console.log('🔐 keyrack daemon prune');
+
+        if (pruned.length === 0) {
+          // no daemon found
+          const ownerLabel =
+            ownerInput === '@all'
+              ? 'any owner'
+              : `owner=${ownerInput ?? 'default'}`;
+          console.log(`   └─ no daemon active for ${ownerLabel}`);
+        } else if (pruned.length === 1) {
+          // single daemon pruned
+          const { owner, pid } = pruned[0]!;
+          const ownerLabel = owner ?? 'default';
+          console.log(
+            `   └─ pruned daemon for owner=${ownerLabel} (pid: ${pid})`,
+          );
+        } else {
+          // multiple daemons pruned
+          for (const { owner, pid } of pruned) {
+            const ownerLabel = owner ?? 'default';
+            console.log(
+              `   ├─ pruned daemon for owner=${ownerLabel} (pid: ${pid})`,
+            );
+          }
+          console.log(`   └─ pruned ${pruned.length} daemons`);
+        }
+        console.log('');
+      }
+    });
 };

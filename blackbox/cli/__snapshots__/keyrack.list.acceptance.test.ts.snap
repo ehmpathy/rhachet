@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack list given: [case9] list with multi-env repo when: [t0] keyrack list then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack list
+   ├─ testorg.prep.AWS_PROFILE
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.prep.SHARED_API_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.prod.AWS_PROFILE
+   │  ├─ env: prod
+   │  ├─ org: testorg
+   │  ├─ mech: REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.prod.SHARED_API_KEY
+      ├─ env: prod
+      ├─ org: testorg
+      ├─ mech: REPLICA
+      └─ vault: os.direct
+"
+`;

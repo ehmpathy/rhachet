@@ -62,7 +62,6 @@ describe('vaultAdapter1Password', () => {
         const error = await getError(
           vaultAdapter1Password.set({
             slug: 'TEST_KEY',
-            secret: 'test-value',
             env: 'test',
             org: 'testorg',
           }),
