@@ -11,7 +11,6 @@ import {
   findDefaultSshKey,
   isAgeCLIAvailable,
   readSshPubkey,
-  sshPrikeyToAgeIdentity,
   sshPubkeyToAgeRecipient,
 } from '@src/infra/ssh';
 
@@ -98,25 +97,21 @@ export const initKeyrack = async (input: {
       path: keyPaths.pubkeyPath,
     });
 
-  // convert private key to age identity for decryption (session only)
-  const ageIdentity = sshPrikeyToAgeIdentity({ keyPath: keyPaths.prikeyPath });
-  daoKeyrackHostManifest.setSessionIdentity(ageIdentity);
-
   // check if already initialized (idempotent)
   if (existsSync(manifestPath)) {
-    // load manifest to get recipient
-    const manifestFound = await daoKeyrackHostManifest.get({
+    // load manifest to get recipient (pass prikey as supplement for decryption)
+    const manifestResult = await daoKeyrackHostManifest.get({
       owner,
-      prikey: null,
+      prikeys: [keyPaths.prikeyPath],
     });
-    if (!manifestFound)
+    if (!manifestResult)
       throw new UnexpectedCodePathError(
         'manifest file present but could not be read',
         { manifestPath, owner },
       );
 
     // return extant recipient
-    const recipientFound = manifestFound.recipients[0];
+    const recipientFound = manifestResult.manifest.recipients[0];
     if (!recipientFound)
       throw new UnexpectedCodePathError(
         'manifest present but has no recipients',

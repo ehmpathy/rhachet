@@ -55,12 +55,11 @@ export const setKeyrackKeyHost = async (
     return orgInput;
   })();
 
-  // store secret in vault (upsert — always call adapter)
+  // store secret in vault (vault prompts for its own secret via stdin)
   const envValue = input.env ?? 'all';
   const adapter = context.vaultAdapters[input.vault];
   const setResult = await adapter.set({
     slug: input.slug,
-    secret: input.secret ?? null,
     exid: input.exid ?? null,
     env: envValue,
     org: orgExpanded,

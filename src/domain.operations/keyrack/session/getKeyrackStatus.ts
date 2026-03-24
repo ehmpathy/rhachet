@@ -36,9 +36,8 @@ export const getKeyrackStatus = async (input?: {
   }
 
   // fetch host manifest for recipient info
-  const hostManifest = await daoKeyrackHostManifest.get({
+  const hostManifestResult = await daoKeyrackHostManifest.get({
     owner: input?.owner ?? null,
-    prikey: null,
   });
 
   return {
@@ -49,7 +48,7 @@ export const getKeyrackStatus = async (input?: {
       expiresAt: k.expiresAt,
       ttlLeftMs: k.ttlLeftMs,
     })),
-    recipients: hostManifest?.recipients ?? [],
+    recipients: hostManifestResult?.manifest.recipients ?? [],
     owner: input?.owner ?? null,
     socketPath,
   };

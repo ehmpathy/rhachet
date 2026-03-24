@@ -26,6 +26,19 @@ import { vaultAdapterAwsIamSso } from './vaultAdapterAwsIamSso';
 const execMock = exec as jest.MockedFunction<typeof exec>;
 const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
 
+/**
+ * .what = create error with exit code to match child_process.exec behavior
+ * .why = exec errors include `code` property for exit code
+ */
+const genExecError = (
+  message: string,
+  code: number = 1,
+): Error & { code: number } => {
+  const error = new Error(message) as Error & { code: number };
+  error.code = code;
+  return error;
+};
+
 describe('vaultAdapterAwsIamSso', () => {
   beforeEach(() => {
     execMock.mockClear();
@@ -124,7 +137,7 @@ describe('vaultAdapterAwsIamSso', () => {
     when('[t2] isUnlocked with expired sso session', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(new Error('SSO session expired'), null);
+          callback(genExecError('SSO session expired'), null);
           return {} as any;
         });
       });
@@ -159,7 +172,7 @@ describe('vaultAdapterAwsIamSso', () => {
     when('[t1] unlock called with expired session', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(new Error('SSO session expired'), null);
+          callback(genExecError('SSO session expired'), null);
           return {} as any;
         });
 
@@ -197,7 +210,7 @@ describe('vaultAdapterAwsIamSso', () => {
     when('[t2] unlock called but aws sso login fails', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(new Error('SSO session expired'), null);
+          callback(genExecError('SSO session expired'), null);
           return {} as any;
         });
 
@@ -225,12 +238,12 @@ describe('vaultAdapterAwsIamSso', () => {
       });
     });
 
-    when('[t0] set called with secret (profile name)', () => {
+    when('[t0] set called with exid (profile name)', () => {
       then('completes without error', async () => {
         await expect(
           vaultAdapterAwsIamSso.set({
             slug: 'acme.prod.AWS_PROFILE',
-            secret: 'acme-prod',
+            exid: 'acme-prod',
             env: 'prod',
             org: 'acme',
           }),
@@ -243,7 +256,6 @@ describe('vaultAdapterAwsIamSso', () => {
         await expect(
           vaultAdapterAwsIamSso.set({
             slug: 'acme.prod.AWS_PROFILE',
-            secret: null,
             env: 'prod',
             org: 'acme',
             exid: 'acme-prod',
@@ -252,13 +264,12 @@ describe('vaultAdapterAwsIamSso', () => {
       });
     });
 
-    when('[t2] set called without secret or exid and not TTY', () => {
+    when('[t2] set called without exid and not TTY', () => {
       then('throws error', async () => {
         // stdin.isTTY is false in test context
         await expect(
           vaultAdapterAwsIamSso.set({
             slug: 'acme.prod.AWS_PROFILE',
-            secret: null,
             env: 'prod',
             org: 'acme',
           }),
@@ -271,7 +282,7 @@ describe('vaultAdapterAwsIamSso', () => {
     when('[t3] set called with invalid profile (validation fails)', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(new Error('profile not found'), null);
+          callback(genExecError('profile not found'), null);
           return {} as any;
         });
       });
@@ -280,7 +291,7 @@ describe('vaultAdapterAwsIamSso', () => {
         await expect(
           vaultAdapterAwsIamSso.set({
             slug: 'acme.prod.AWS_PROFILE',
-            secret: 'bogus-profile',
+            exid: 'bogus-profile',
             env: 'prod',
             org: 'acme',
           }),
@@ -324,7 +335,7 @@ describe('vaultAdapterAwsIamSso', () => {
     when('[t1] relock called but aws sso logout fails', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(new Error('Already logged out'), null);
+          callback(genExecError('Already logged out'), null);
           return {} as any;
         });
       });

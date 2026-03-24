@@ -1,6 +1,11 @@
 import { execSync, spawn } from 'node:child_process';
-import { chmodSync, existsSync, unlinkSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+
+import {
+  sshPrikeyToAgeIdentity,
+  sshPubkeyToAgeRecipient,
+} from '@src/infra/ssh';
 
 /**
  * .what = path to the committed test ssh key
@@ -16,6 +21,26 @@ export const TEST_SSH_KEY_PATH = join(
  * .why = portable, deterministic pubkey for all tests
  */
 export const TEST_SSH_PUBKEY_PATH = `${TEST_SSH_KEY_PATH}.pub`;
+
+/**
+ * .what = age recipient derived from test ssh pubkey
+ * .why = enables tests to encrypt manifests to the test ssh key
+ *
+ * .note = computed at module load from the committed pubkey
+ */
+export const TEST_SSH_AGE_RECIPIENT = sshPubkeyToAgeRecipient({
+  pubkey: readFileSync(TEST_SSH_PUBKEY_PATH, 'utf8'),
+});
+
+/**
+ * .what = age identity derived from test ssh private key
+ * .why = enables tests to decrypt manifests encrypted to the test ssh key
+ *
+ * .note = computed at module load from the committed private key
+ */
+export const TEST_SSH_AGE_IDENTITY = sshPrikeyToAgeIdentity({
+  keyPath: TEST_SSH_KEY_PATH,
+});
 
 /**
  * .what = spawns an isolated ssh-agent, loads the test key, runs fn, then cleans up
@@ -62,16 +87,18 @@ export const withTestSshAgent = async <T>(
     // kill the agent
     try {
       process.kill(parseInt(agentEnv.SSH_AGENT_PID, 10), 'SIGTERM');
-    } catch {
-      // agent may already be dead
+    } catch (error) {
+      // allow expected errors: ESRCH = no such process (already dead)
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
     }
 
     // cleanup socket file if it exists
     if (existsSync(agentEnv.SSH_AUTH_SOCK)) {
       try {
         unlinkSync(agentEnv.SSH_AUTH_SOCK);
-      } catch {
-        // socket may already be cleaned up
+      } catch (error) {
+        // allow expected errors: ENOENT = file already cleaned up
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }
     }
 

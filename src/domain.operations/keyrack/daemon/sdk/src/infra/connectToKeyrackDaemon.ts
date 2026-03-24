@@ -38,7 +38,10 @@ export const isDaemonReachable = async (input?: {
     const socket = await connectToKeyrackDaemon(input);
     socket.destroy();
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // allow expected errors: ENOENT/ECONNREFUSED = daemon not active
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ECONNREFUSED') return false;
+    throw error;
   }
 };

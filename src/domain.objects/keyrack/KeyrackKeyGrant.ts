@@ -13,8 +13,12 @@ import type { KeyrackKey } from './KeyrackKey';
  */
 export interface KeyrackKeyGrant {
   /**
-   * .what = unique identifier for the key
-   * .example = 'XAI_API_KEY', 'GITHUB_APP_CREDS'
+   * .what = unique identifier for the key (source slug)
+   * .example = 'testorg.all.API_KEY', 'ehmpathy.prod.SECRET'
+   *
+   * .note = this is the SOURCE slug — shows where the key actually came from
+   *         for env=all fallback, this shows .all. so user sees transparency
+   * .note = env=all fallback is handled at daemon lookup time, not storage time
    */
   slug: string;
 

@@ -18,9 +18,11 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
   try {
     await execAsync(`aws sts get-caller-identity --profile "${profileName}"`);
     return true;
-  } catch {
-    // command failed = session expired or profile invalid
-    return false;
+  } catch (error) {
+    // allow expected errors: command failed = session expired or profile invalid
+    // .note = aws cli exits non-zero for expired sessions and invalid profiles
+    if (error instanceof Error && 'code' in error) return false;
+    throw error;
   }
 };
 
@@ -120,15 +122,15 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
 
   /**
    * .what = derive profile name for storage in host manifest
-   * .why = derives profile name from secret, exid, or guided setup
+   * .why = derives profile name from exid or guided setup
    *
    * .note = the caller (setKeyrackKeyHost) persists the exid to the encrypted host manifest
-   * .note = if secret is empty, falls back to exid; if both empty and stdin is TTY, runs guided setup
+   * .note = vault handles its own input: uses exid if present, else runs guided setup
    * .note = expiresAt is ignored (sso tokens self-expire)
    */
   set: async (input) => {
-    // derive profile name: from secret, exid, or guided setup
-    let profileName = input.secret ?? input.exid ?? null;
+    // derive profile name: from exid or guided setup
+    let profileName = input.exid ?? null;
     if (!profileName && process.stdin.isTTY) {
       const result = await setupAwsSsoWithGuide({ org: input.org });
       profileName = result.profileName;
@@ -151,7 +153,7 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
 
     // extended roundtrip validation for guided setup (interactive TTY)
     // proves unlock + get + relock work; triggers one-time OAuth registration
-    const cameFromGuide = !input.secret && !input.exid;
+    const cameFromGuide = !input.exid;
     if (cameFromGuide) {
       console.log('   │');
       console.log('   └─ perfect, now lets verify...');
@@ -210,8 +212,11 @@ export const vaultAdapterAwsIamSso: KeyrackHostVaultAdapter = {
     // aws sso logout clears both cache locations
     try {
       await execAsync(`aws sso logout --profile "${profileName}"`);
-    } catch {
-      // logout may fail if already logged out — that's fine
+    } catch (error) {
+      // allow expected errors: command failed = already logged out
+      // .note = aws cli exits non-zero when no active sso session
+      if (error instanceof Error && 'code' in error) return;
+      throw error;
     }
   },
 };

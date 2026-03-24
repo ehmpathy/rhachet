@@ -1,4 +1,5 @@
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKeySlugEqual';
 
 /**
  * .what = a cached grant stored in daemon memory with TTL
@@ -21,6 +22,9 @@ export const createDaemonKeyStore = () => {
   /**
    * .what = store a grant with TTL
    * .why = called by UNLOCK command to cache credentials
+   *
+   * .note = stores under actual grant.slug (true identity)
+   *         env=all fallback is handled at lookup time, not storage time
    */
   const set = (input: { grant: CachedGrant }): void => {
     store.set(input.grant.slug, input.grant);
@@ -31,21 +35,35 @@ export const createDaemonKeyStore = () => {
    * .why = called by GET command to return credentials
    *
    * .note = purges expired grant on read
+   * .note = implements env=all fallback: if org.test.KEY not found, tries org.all.KEY
    */
   const get = (input: { slug: string }): CachedGrant | null => {
-    const cachedGrant = store.get(input.slug);
-    if (!cachedGrant) return null;
+    // helper to check TTL and purge if expired
+    const getIfValid = (slug: string): CachedGrant | null => {
+      const cachedGrant = store.get(slug);
+      if (!cachedGrant) return null;
 
-    // check TTL (ISO timestamps are lexicographically sortable)
-    if (!cachedGrant.expiresAt) return cachedGrant; // no expiration — always valid
-    const now = new Date().toISOString();
-    if (now >= cachedGrant.expiresAt) {
-      // expired — purge and return null
-      store.delete(input.slug);
-      return null;
-    }
+      // check TTL (ISO timestamps are lexicographically sortable)
+      if (!cachedGrant.expiresAt) return cachedGrant; // no expiration — always valid
+      const now = new Date().toISOString();
+      if (now >= cachedGrant.expiresAt) {
+        // expired — purge and return null
+        store.delete(slug);
+        return null;
+      }
 
-    return cachedGrant;
+      return cachedGrant;
+    };
+
+    // exact match first
+    const exact = getIfValid(input.slug);
+    if (exact) return exact;
+
+    // env=all fallback: org.test.KEY → org.all.KEY
+    const allSlug = getEnvAllFallbackSlug({ for: { slug: input.slug } });
+    if (allSlug) return getIfValid(allSlug);
+
+    return null;
   };
 
   /**

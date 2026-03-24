@@ -19,8 +19,9 @@ export const genMockVaultAdapter = (input?: {
     },
     isUnlocked: async () => unlocked,
     get: async ({ slug }) => storage[slug] ?? null,
-    set: async ({ slug, secret }) => {
-      if (secret) storage[slug] = secret;
+    set: async ({ slug }) => {
+      // mock vault does not prompt; tests must pre-populate storage
+      storage[slug] = storage[slug] ?? '__mock_secret__';
     },
     del: async ({ slug }) => {
       delete storage[slug];

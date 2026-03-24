@@ -1,6 +1,7 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
 import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -139,18 +140,18 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
    * .what = store a credential in the plaintext store
    * .why = enables set flow for credential storage
    *
+   * .note = vault prompts for its own secret via stdin
    * .note = expiresAt enables ephemeral grant cache
    */
   set: async (input) => {
-    // secret is required for os.direct vault
-    if (!input.secret)
-      throw new UnexpectedCodePathError('secret required for os.direct vault', {
-        slug: input.slug,
-      });
+    // vault always prompts for its own secret via stdin
+    const secret = await promptHiddenInput({
+      prompt: `enter secret for ${input.slug}: `,
+    });
 
     const owner = input.owner ?? null;
     const store = readDirectStore({ owner });
-    const entry: DirectStoreEntry = { value: input.secret };
+    const entry: DirectStoreEntry = { value: secret };
     if (input.expiresAt) {
       entry.expiresAt = input.expiresAt;
     }

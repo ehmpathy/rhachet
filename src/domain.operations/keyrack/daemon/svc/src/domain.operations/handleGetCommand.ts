@@ -6,7 +6,8 @@ import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/s
  * .why = returns credentials from daemon memory if TTL is valid
  *
  * .note = org filter: only returns grants where grant.org matches requested org OR grant.org is '@all'
- * .note = env filter: only returns grants where grant.env matches requested env
+ * .note = env filter: only returns grants where grant.env matches requested env OR grant.env is 'all'
+ * .note = keyStore.get() implements env=all fallback: org.test.KEY → org.all.KEY
  */
 export const handleGetCommand = (
   input: {
@@ -34,8 +35,10 @@ export const handleGetCommand = (
     )
       continue;
 
-    // filter by env: only return if grant.env matches request
-    if (input.env && cachedGrant.env !== input.env) continue;
+    // filter by env: only return if grant.env matches request OR grant.env is 'all'
+    // .note = env=all grants satisfy any specific env request
+    if (input.env && cachedGrant.env !== input.env && cachedGrant.env !== 'all')
+      continue;
 
     keys.push(cachedGrant);
   }

@@ -3,23 +3,28 @@ import { BadRequestError } from 'helpful-errors';
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import { asKeyrackKeyName } from './asKeyrackKeyName';
+import { isValidKeyrackEnv } from './constants';
 
 /**
  * .what = detect if a string is a full slug (org.env.key) or raw key name
- * .why = cli accepts both formats; need to know which to resolve
+ * .why = cli accepts both formats; need to know which to extract
+ *
+ * .note = returns parsed parts if full slug, null if raw key
  */
-const isFullSlug = (input: {
+const parseFullSlug = (input: {
   key: string;
-  manifest: KeyrackRepoManifest;
-}): boolean => {
-  // check if the key matches any slug in the manifest exactly
-  if (input.manifest.keys[input.key]) return true;
-
-  // check if it has the org.env.key pattern (at least 2 dots with org prefix)
+}): { org: string; env: string; keyName: string } | null => {
   const parts = input.key.split('.');
-  if (parts.length >= 3 && parts[0] === input.manifest.org) return true;
+  if (parts.length < 3) return null;
 
-  return false;
+  const org = parts[0]!;
+  const env = parts[1]!;
+  const keyName = parts.slice(2).join('.');
+
+  // must have valid env to be a full slug
+  if (!isValidKeyrackEnv(env)) return null;
+
+  return { org, env, keyName };
 };
 
 /**
@@ -44,34 +49,48 @@ const findEnvsForKey = (input: {
 };
 
 /**
- * .what = resolve a key input (raw name or full slug) to a full slug
- * .why = cli allows users to pass either format; need canonical slug for grant
+ * .what = convert key input (raw name or full slug) to canonical slug + env
+ * .why = cli accepts both formats; need to extract env and validate org
  *
- * resolution rules:
- * - if input is already a full slug, return as-is
- * - if input is a raw key name and --env provided, construct slug
- * - if input is a raw key name and key only in one env, infer that env
- * - if input is a raw key name and key in multiple envs, fail fast
- * - if input is a raw key name and key not in any env, return as-is (let downstream fail)
+ * rules:
+ * - full slug: extract env, validate org matches manifest
+ * - raw key with --env: construct slug from manifest.org + env + key
+ * - raw key, no --env, unique env: infer env
+ * - raw key, no --env, multiple envs: fail fast
+ * - raw key, no --env, zero envs: passthrough (downstream fails)
  */
 export const asKeyrackKeySlug = (input: {
   key: string;
   env: string | null;
-  manifest: KeyrackRepoManifest | null;
-}): { slug: string; env: string | null } => {
-  // if no manifest, can't resolve - return as-is
-  if (!input.manifest) {
-    return { slug: input.key, env: input.env };
-  }
-
-  // if already a full slug, return as-is
-  if (isFullSlug({ key: input.key, manifest: input.manifest })) {
-    return { slug: input.key, env: input.env };
-  }
-
-  // it's a raw key name - need to resolve to full slug
-  const keyName = input.key;
+  manifest: KeyrackRepoManifest;
+}): { slug: string; env: string } => {
   const org = input.manifest.org;
+
+  // check if full slug format
+  const parsed = parseFullSlug({ key: input.key });
+
+  if (parsed) {
+    // validate org matches manifest
+    if (parsed.org !== org) {
+      throw new BadRequestError(
+        `slug org '${parsed.org}' does not match manifest org '${org}'`,
+        { code: 'ORG_MISMATCH', slugOrg: parsed.org, manifestOrg: org },
+      );
+    }
+
+    // validate --env matches slug env (if both provided)
+    if (input.env && input.env !== parsed.env) {
+      throw new BadRequestError(
+        `--env '${input.env}' conflicts with slug env '${parsed.env}'`,
+        { code: 'ENV_CONFLICT', flagEnv: input.env, slugEnv: parsed.env },
+      );
+    }
+
+    return { slug: input.key, env: parsed.env };
+  }
+
+  // raw key name - construct slug
+  const keyName = input.key;
 
   // if --env provided, construct slug directly
   if (input.env) {
@@ -84,9 +103,12 @@ export const asKeyrackKeySlug = (input: {
   // no --env provided - try to infer from manifest
   const envs = findEnvsForKey({ keyName, manifest: input.manifest });
 
-  // key not in any env - return as-is (let downstream fail with good message)
+  // key not in any env - fail fast with clear message
   if (envs.length === 0) {
-    return { slug: input.key, env: null };
+    throw new BadRequestError(
+      `key '${keyName}' not found in manifest. specify --env or use full slug.`,
+      { code: 'KEY_NOT_FOUND', keyName },
+    );
   }
 
   // key in exactly one env - infer it
@@ -101,5 +123,6 @@ export const asKeyrackKeySlug = (input: {
   // key in multiple envs - ambiguous, fail fast
   throw new BadRequestError(
     `key '${keyName}' found in multiple envs: ${envs.join(', ')}. specify --env to disambiguate.`,
+    { code: 'AMBIGUOUS_KEY', keyName, envs },
   );
 };

@@ -24,17 +24,18 @@ export const setKeyrackRecipient = async (input: {
   pubkey: string;
   label: string;
   stanza: 'ssh' | null;
-  prikey: string | null;
+  prikeys?: string[];
 }): Promise<KeyrackKeyRecipient> => {
-  const { owner, prikey } = input;
+  const { owner, prikeys } = input;
 
   // load manifest (dao handles identity discovery)
-  const manifestFound = await daoKeyrackHostManifest.get({ owner, prikey });
-  if (!manifestFound)
+  const result = await daoKeyrackHostManifest.get({ owner, prikeys });
+  if (!result)
     throw new BadRequestError(
       'keyrack manifest not found; run `rhx keyrack init` first',
       { owner },
     );
+  const manifestFound = result.manifest;
 
   // check for duplicate label
   const labelFound = manifestFound.recipients.find(

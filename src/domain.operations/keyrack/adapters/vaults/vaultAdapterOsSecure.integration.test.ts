@@ -4,10 +4,17 @@ import {
   TEST_AGE_IDENTITY,
   TEST_AGE_RECIPIENT,
 } from '@src/.test/assets/keyrack/age/testAgeKeys';
+import {
+  genMockPromptHiddenInput,
+  setMockPromptValues,
+} from '@src/.test/infra/mockPromptHiddenInput';
 import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+
+jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
+
 import {
   setOsSecureSessionIdentity,
   vaultAdapterOsSecure,
@@ -85,9 +92,9 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t2] set called with new key', () => {
       then('creates encrypted file', async () => {
+        setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
           vaultRecipient: testRecipient,
@@ -109,9 +116,9 @@ describe('vaultAdapterOsSecure', () => {
       });
 
       then('round-trips correctly', async () => {
+        setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsSecure.set({
           slug: 'XAI_API_KEY',
-          secret: 'xai-test-key-123',
           env: 'test',
           org: 'testorg',
           vaultRecipient: testRecipient,
@@ -127,16 +134,16 @@ describe('vaultAdapterOsSecure', () => {
     beforeEach(async () => {
       setOsSecureSessionIdentity(testIdentity);
       await vaultAdapterOsSecure.unlock({ identity: null });
+
+      setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsSecure.set({
         slug: 'KEY_A',
-        secret: 'value-a',
         env: 'test',
         org: 'testorg',
         vaultRecipient: testRecipient,
       });
       await vaultAdapterOsSecure.set({
         slug: 'KEY_B',
-        secret: 'value-b',
         env: 'test',
         org: 'testorg',
         vaultRecipient: testRecipient,
@@ -155,9 +162,9 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t1] set called to update key', () => {
       then('updates encrypted value', async () => {
+        setMockPromptValues('new-value-a');
         await vaultAdapterOsSecure.set({
           slug: 'KEY_A',
-          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
           vaultRecipient: testRecipient,
@@ -168,9 +175,9 @@ describe('vaultAdapterOsSecure', () => {
       });
 
       then('does not affect other keys', async () => {
+        setMockPromptValues('new-value-a');
         await vaultAdapterOsSecure.set({
           slug: 'KEY_A',
-          secret: 'new-value-a',
           env: 'test',
           org: 'testorg',
           vaultRecipient: testRecipient,
@@ -202,9 +209,10 @@ describe('vaultAdapterOsSecure', () => {
     beforeEach(async () => {
       setOsSecureSessionIdentity(testIdentity);
       await vaultAdapterOsSecure.unlock({ identity: null });
+
+      setMockPromptValues('super-secret-value');
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',
-        secret: 'super-secret-value',
         env: 'test',
         org: 'testorg',
         vaultRecipient: testRecipient,

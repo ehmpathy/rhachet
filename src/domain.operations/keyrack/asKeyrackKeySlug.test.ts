@@ -1,11 +1,12 @@
-import { getError, given, then, when } from 'test-fns';
+import { BadRequestError, getError } from 'helpful-errors';
+import { given, then, when } from 'test-fns';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import { asKeyrackKeySlug } from './asKeyrackKeySlug';
 
 /**
- * .what = mock manifest for test slug resolution
+ * .what = mock manifest for test slug operations
  */
 const genMockManifest = (): KeyrackRepoManifest => ({
   org: 'ehmpathy',
@@ -36,47 +37,83 @@ const genMockManifest = (): KeyrackRepoManifest => ({
 });
 
 describe('asKeyrackKeySlug', () => {
-  given('[case1] no manifest provided', () => {
-    when('[t0] key is passed', () => {
-      then('returns key as-is', () => {
-        const result = asKeyrackKeySlug({
-          key: 'AWS_PROFILE',
-          env: null,
-          manifest: null,
-        });
-        expect(result.slug).toEqual('AWS_PROFILE');
-        expect(result.env).toBeNull();
-      });
-    });
-  });
-
-  given('[case2] key is already a full slug', () => {
+  given('[case1] key is a full slug', () => {
     const manifest = genMockManifest();
 
     when('[t0] slug exists in manifest', () => {
-      then('returns slug as-is', () => {
+      then('returns slug as-is with env extracted', () => {
         const result = asKeyrackKeySlug({
           key: 'ehmpathy.test.AWS_PROFILE',
           env: null,
           manifest,
         });
         expect(result.slug).toEqual('ehmpathy.test.AWS_PROFILE');
+        expect(result.env).toEqual('test');
       });
     });
 
-    when('[t1] slug has org.env.key pattern', () => {
-      then('returns slug as-is', () => {
+    when('[t1] slug has valid org.env.key pattern but not in manifest', () => {
+      then('returns slug as-is with env extracted', () => {
         const result = asKeyrackKeySlug({
           key: 'ehmpathy.prep.SOME_KEY',
           env: null,
           manifest,
         });
         expect(result.slug).toEqual('ehmpathy.prep.SOME_KEY');
+        expect(result.env).toEqual('prep');
+      });
+    });
+
+    when('[t2] slug org does not match manifest org', () => {
+      then('throws BadRequestError with ORG_MISMATCH code', async () => {
+        const error = await getError(
+          Promise.resolve().then(() =>
+            asKeyrackKeySlug({
+              key: 'other-org.test.SOME_KEY',
+              env: null,
+              manifest,
+            }),
+          ),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error!.message).toContain('other-org');
+        expect(error!.message).toContain('ehmpathy');
+        expect(error!.message).toContain('ORG_MISMATCH');
+      });
+    });
+
+    when('[t3] --env conflicts with slug env', () => {
+      then('throws BadRequestError with ENV_CONFLICT code', async () => {
+        const error = await getError(
+          Promise.resolve().then(() =>
+            asKeyrackKeySlug({
+              key: 'ehmpathy.test.AWS_PROFILE',
+              env: 'prod',
+              manifest,
+            }),
+          ),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error!.message).toContain('prod');
+        expect(error!.message).toContain('test');
+        expect(error!.message).toContain('ENV_CONFLICT');
+      });
+    });
+
+    when('[t4] --env matches slug env', () => {
+      then('returns slug as-is (no conflict)', () => {
+        const result = asKeyrackKeySlug({
+          key: 'ehmpathy.test.AWS_PROFILE',
+          env: 'test',
+          manifest,
+        });
+        expect(result.slug).toEqual('ehmpathy.test.AWS_PROFILE');
+        expect(result.env).toEqual('test');
       });
     });
   });
 
-  given('[case3] raw key name with --env provided', () => {
+  given('[case2] raw key name with --env provided', () => {
     const manifest = genMockManifest();
 
     when('[t0] env is specified', () => {
@@ -92,7 +129,7 @@ describe('asKeyrackKeySlug', () => {
     });
   });
 
-  given('[case4] raw key name found in exactly one env', () => {
+  given('[case3] raw key name found in exactly one env', () => {
     const manifest = genMockManifest();
 
     when('[t0] GITHUB_TOKEN only exists in test env', () => {
@@ -108,11 +145,11 @@ describe('asKeyrackKeySlug', () => {
     });
   });
 
-  given('[case5] raw key name found in multiple envs', () => {
+  given('[case4] raw key name found in multiple envs', () => {
     const manifest = genMockManifest();
 
     when('[t0] AWS_PROFILE exists in test and prod', () => {
-      then('throws BadRequestError that asks for --env', async () => {
+      then('throws BadRequestError with AMBIGUOUS_KEY code', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asKeyrackKeySlug({
@@ -122,8 +159,8 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeDefined();
-        expect(error!.message).toContain('found in multiple envs');
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error!.message).toContain('AMBIGUOUS_KEY');
         expect(error!.message).toContain('test');
         expect(error!.message).toContain('prod');
         expect(error!.message).toContain('--env');
@@ -131,18 +168,24 @@ describe('asKeyrackKeySlug', () => {
     });
   });
 
-  given('[case6] raw key name not found in any env', () => {
+  given('[case5] raw key name not found in any env', () => {
     const manifest = genMockManifest();
 
-    when('[t0] UNKNOWN_KEY does not exist', () => {
-      then('returns key as-is (let downstream fail)', () => {
-        const result = asKeyrackKeySlug({
-          key: 'UNKNOWN_KEY',
-          env: null,
-          manifest,
-        });
-        expect(result.slug).toEqual('UNKNOWN_KEY');
-        expect(result.env).toBeNull();
+    when('[t0] UNKNOWN_KEY does not exist in manifest', () => {
+      then('throws BadRequestError with KEY_NOT_FOUND code', async () => {
+        const error = await getError(
+          Promise.resolve().then(() =>
+            asKeyrackKeySlug({
+              key: 'UNKNOWN_KEY',
+              env: null,
+              manifest,
+            }),
+          ),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error!.message).toContain('KEY_NOT_FOUND');
+        expect(error!.message).toContain('UNKNOWN_KEY');
+        expect(error!.message).toContain('--env');
       });
     });
   });

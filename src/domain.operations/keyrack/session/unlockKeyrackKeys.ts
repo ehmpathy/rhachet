@@ -8,6 +8,7 @@ import {
   daemonAccessUnlock,
   findsertKeyrackDaemon,
 } from '@src/domain.operations/keyrack/daemon/sdk';
+import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKeySlugEqual';
 import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
@@ -29,6 +30,7 @@ export const unlockKeyrackKeys = async (
   context: ContextKeyrackGrantUnlock,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
+  omitted: string[];
 }> => {
   // resolve socket path based on owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
@@ -114,17 +116,43 @@ export const unlockKeyrackKeys = async (
           (slug) => slug === keyInput || slug.endsWith(`.${keyInput}`),
         )
       : allSlugsForEnv;
+
+    // fail-fast if specific key requested but not found in repo manifest
+    if (keyInput && slugsForEnv.length === 0) {
+      throw new BadRequestError(`key not found in manifest: ${keyInput}`, {
+        env,
+        note: `key '${keyInput}' is not declared in keyrack.yml for env=${env}`,
+        fix: `rhx keyrack set --key ${keyInput} --env ${env}`,
+      });
+    }
   }
 
-  // collect keys to unlock
+  // collect keys to unlock and track omitted
   const keysToUnlock: KeyrackKeyGrant[] = [];
+  const keysOmitted: string[] = [];
 
   for (const slug of slugsForEnv) {
-    // find host config for this key
-    const hostConfig = context.hostManifest.hosts[slug];
+    // find host config for this key — with fallback to env=all
+    let hostConfig = context.hostManifest.hosts[slug];
+    let effectiveSlug = slug;
+
     if (!hostConfig) {
-      // key not configured on this host — skip
-      continue;
+      // try fallback to env=all version of the key
+      const allSlug = getEnvAllFallbackSlug({ for: { slug } });
+
+      if (allSlug) {
+        hostConfig = context.hostManifest.hosts[allSlug];
+        if (hostConfig) {
+          // found env=all fallback
+          effectiveSlug = allSlug;
+        }
+      }
+
+      if (!hostConfig) {
+        // key not configured on this host — track as omitted
+        keysOmitted.push(slug);
+        continue;
+      }
     }
 
     // for non-sudo keys, verify key exists in repoManifest
@@ -149,7 +177,7 @@ export const unlockKeyrackKeys = async (
 
     // get secret from vault
     const secret = await adapter.get({
-      slug,
+      slug: effectiveSlug,
       exid: hostConfig.exid,
       owner: input.owner ?? null,
     });
@@ -157,7 +185,7 @@ export const unlockKeyrackKeys = async (
       throw new UnexpectedCodePathError(
         'vault file absent for key that exists in manifest',
         {
-          slug,
+          slug: effectiveSlug,
           vault,
           env: hostConfig.env,
           fix: `re-run: keyrack set --key ... --env ${hostConfig.env} --vault ${vault}`,
@@ -177,7 +205,7 @@ export const unlockKeyrackKeys = async (
         // cap to maxDuration and warn
         effectiveDurationMs = maxDurationMs;
         console.warn(
-          `⚠️ duration capped to ${hostConfig.maxDuration} for key ${slug} (maxDuration limit)`,
+          `⚠️ duration capped to ${hostConfig.maxDuration} for key ${effectiveSlug} (maxDuration limit)`,
         );
       }
     }
@@ -187,17 +215,18 @@ export const unlockKeyrackKeys = async (
 
     // derive env and org for daemon storage
     // for sudo keys: use hostConfig (has env/org set)
-    // for regular keys: derive from slug or input.env (hostConfig may not have them)
-    const slugParts = slug.split('.');
-    const slugOrg = slugParts[0]!;
-    const slugEnv = slugParts[1]!;
+    // for regular keys: derive from effectiveSlug or input.env (hostConfig may not have them)
+    const effectiveSlugParts = effectiveSlug.split('.');
+    const slugOrg = effectiveSlugParts[0]!;
+    const slugEnv = effectiveSlugParts[1]!;
     const keyEnv = hostConfig.env ?? slugEnv ?? env;
     const keyOrg = hostConfig.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
 
     // collect key for daemon
+    // .note = env=all fallback handled at daemon lookup time, not storage time
     keysToUnlock.push(
       new KeyrackKeyGrant({
-        slug,
+        slug: effectiveSlug,
         key: { secret, grade },
         source: { vault, mech },
         env: keyEnv,
@@ -215,7 +244,7 @@ export const unlockKeyrackKeys = async (
     });
   }
 
-  return { unlocked: keysToUnlock };
+  return { unlocked: keysToUnlock, omitted: keysOmitted };
 };
 
 /**

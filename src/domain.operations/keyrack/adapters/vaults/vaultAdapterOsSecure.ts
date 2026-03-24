@@ -9,6 +9,7 @@ import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 import {
   existsSync,
@@ -150,11 +151,10 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
    * .why = encrypts with age to recipients and writes to disk
    */
   set: async (input) => {
-    // secret is required for os.secure vault
-    if (!input.secret)
-      throw new UnexpectedCodePathError('secret required for os.secure vault', {
-        slug: input.slug,
-      });
+    // vault always prompts for its own secret via stdin
+    const secret = await promptHiddenInput({
+      prompt: `enter secret for ${input.slug}: `,
+    });
 
     // ensure directory exists
     const owner = input.owner ?? null;
@@ -169,7 +169,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     if (input.vaultRecipient) {
       const mech = input.vaultRecipient.startsWith('ssh-') ? 'ssh' : 'age';
       const ciphertext = await encryptToRecipients({
-        plaintext: input.secret,
+        plaintext: secret,
         recipients: [
           new KeyrackKeyRecipient({
             mech,
@@ -186,7 +186,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     // if recipients array provided (from manifest), use those
     if (input.recipients && input.recipients.length > 0) {
       const ciphertext = await encryptToRecipients({
-        plaintext: input.secret,
+        plaintext: secret,
         recipients: input.recipients,
       });
       writeFileSync(path, ciphertext, 'utf8');

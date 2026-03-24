@@ -41,30 +41,35 @@ export interface ContextKeyrackGrantUnlock {
  * .what = generate full context for keyrack unlock operations
  * .why = constructs runtime context with manifests and all adapters
  *
- * .note = prikey when provided, uses it directly for manifest decryption
+ * .note = prikeys extends discovery for manifest decryption
  * .note = may prompt for passphrase on manifest decryption
  */
 export const genContextKeyrackGrantUnlock = async (input: {
   owner: string | null;
   gitroot: string;
-  prikey: string | null;
+  /**
+   * .what = supplemental prikeys to consider for manifest decryption
+   * .why = extends default discovery (ssh-agent, ~/.ssh/id_ed25519, etc)
+   */
+  prikeys?: string[];
 }): Promise<ContextKeyrackGrantUnlock> => {
-  const { owner, prikey } = input;
+  const { owner, prikeys } = input;
 
   // load host manifest (fail fast if not found)
-  const hostManifest = await daoKeyrackHostManifest.get({ owner, prikey });
-  if (!hostManifest)
+  const hostManifestResult = await daoKeyrackHostManifest.get({
+    owner,
+    prikeys,
+  });
+  if (!hostManifestResult)
     throw new UnexpectedCodePathError(
       'host manifest not found. run: rhx keyrack init',
       { owner },
     );
+  const { manifest: hostManifest, identity } = hostManifestResult;
 
-  // sync identity from manifest DAO to os.secure vault adapter
+  // sync identity to os.secure vault adapter
   // this enables vault decryption with the same identity used for manifest decryption
-  const manifestIdentity = daoKeyrackHostManifest.getSessionIdentity();
-  if (manifestIdentity) {
-    setOsSecureSessionIdentity(manifestIdentity);
-  }
+  setOsSecureSessionIdentity(identity);
 
   // load repo manifest (may not exist)
   const repoManifest = await daoKeyrackRepoManifest.get({

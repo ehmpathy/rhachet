@@ -251,7 +251,106 @@ describe('unlockKeyrackKeys', () => {
     });
   });
 
-  given('[case6] sudo key not found', () => {
+  /**
+   * [case6] env=all fallback when key set with env=all but unlocked for specific env
+   *
+   * .scenario:
+   *   - repo manifest has `testorg.test.API_KEY` (expanded from env.all declaration)
+   *   - host manifest has only `testorg.all.API_KEY` (key was SET with env=all)
+   *   - unlock for env=test should find env=all fallback
+   */
+  given('[case6] env=all fallback for specific env unlock', () => {
+    const vaultAdapter = genMockVaultAdapter({
+      storage: { 'testorg.all.API_KEY': 'all-env-api-key-value' },
+    });
+    const context: ContextKeyrackGrantUnlock = {
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          // key was SET with env=all — only .all. slug in hostManifest
+          'testorg.all.API_KEY': {
+            mech: 'REPLICA',
+            vault: 'os.direct',
+            env: 'all',
+            org: 'testorg',
+          },
+        },
+      }),
+      repoManifest: {
+        org: 'testorg',
+        envs: ['test', 'prod'],
+        keys: {
+          // repo manifest has env=all key expanded for each declared env
+          'testorg.all.API_KEY': {
+            slug: 'testorg.all.API_KEY',
+            mech: 'REPLICA',
+            env: 'all',
+            name: 'API_KEY',
+            grade: null,
+          },
+          'testorg.test.API_KEY': {
+            slug: 'testorg.test.API_KEY',
+            mech: 'REPLICA',
+            env: 'test',
+            name: 'API_KEY',
+            grade: null,
+          },
+          'testorg.prod.API_KEY': {
+            slug: 'testorg.prod.API_KEY',
+            mech: 'REPLICA',
+            env: 'prod',
+            name: 'API_KEY',
+            grade: null,
+          },
+        },
+      },
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': vaultAdapter,
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.iam.sso': genMockVaultAdapter(),
+      },
+      mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
+    };
+
+    when('[t0] unlock called with env=test (fallback to env=all)', () => {
+      then('finds env=all key via fallback', async () => {
+        const result = await unlockKeyrackKeys({ env: 'test' }, context);
+
+        // should unlock the env=all key (fallback)
+        expect(result.unlocked.length).toBe(1);
+        const key = result.unlocked[0]!;
+        expect(key.slug).toEqual('testorg.all.API_KEY');
+        expect(key.env).toEqual('all');
+        expect(key.key.secret).toEqual('all-env-api-key-value');
+
+        // .note = env=all fallback handled at daemon lookup time, not storage time
+
+        // should NOT have omitted keys (fallback succeeded)
+        expect(result.omitted.length).toBe(0);
+      });
+    });
+
+    when('[t1] unlock called with env=prod (fallback to env=all)', () => {
+      then('finds env=all key via fallback', async () => {
+        const result = await unlockKeyrackKeys({ env: 'prod' }, context);
+
+        // should unlock the env=all key (fallback)
+        expect(result.unlocked.length).toBe(1);
+        const key = result.unlocked[0]!;
+        expect(key.slug).toEqual('testorg.all.API_KEY');
+        expect(key.env).toEqual('all');
+
+        // .note = env=all fallback handled at daemon lookup time, not storage time
+
+        // should NOT have omitted keys (fallback succeeded)
+        expect(result.omitted.length).toBe(0);
+      });
+    });
+  });
+
+  given('[case7] sudo key not found', () => {
     const context: ContextKeyrackGrantUnlock = {
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: { org: 'ehmpathy', envs: [], keys: {} },

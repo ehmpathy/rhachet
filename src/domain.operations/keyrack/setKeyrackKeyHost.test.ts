@@ -17,6 +17,7 @@ describe('setKeyrackKeyHost', () => {
   given('[case1] new key to configure with @this org', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: { org: 'ehmpathy' },
       vaultAdapters: {
@@ -154,6 +155,7 @@ describe('setKeyrackKeyHost', () => {
   given('[case2] key already exists with same attrs', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
@@ -192,6 +194,7 @@ describe('setKeyrackKeyHost', () => {
   given('[case3] key exists with different attrs', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
@@ -238,6 +241,7 @@ describe('setKeyrackKeyHost', () => {
   given('[case4] org validation', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: { org: 'ehmpathy' },
       vaultAdapters: {
@@ -289,6 +293,7 @@ describe('setKeyrackKeyHost', () => {
   given('[case5] @this without repoManifest', () => {
     const context: KeyrackHostContext = {
       owner: null,
+      identity: 'test-identity',
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: null,
       vaultAdapters: {

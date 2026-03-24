@@ -1,0 +1,66 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack key-expansion given: [case3.5] raw key name expansion with --key when: [t0] get --key AWS_PROFILE without --env (fail-fast) then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack key-expansion given: [case3.5] raw key name expansion with --key when: [t1.5] unlock prep then get --key AWS_PROFILE --env prep then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "prep",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "testorg.prep",
+    },
+    "org": "testorg",
+    "slug": "testorg.prep.AWS_PROFILE",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.direct",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack key-expansion given: [case3] raw key name export via single key get when: [t0.5] unlock prep then get --key testorg.prep.AWS_PROFILE --json then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "prep",
+    "key": {
+      "grade": {
+        "duration": "permanent",
+        "protection": "plaintext",
+      },
+      "secret": "testorg.prep",
+    },
+    "org": "testorg",
+    "slug": "testorg.prep.AWS_PROFILE",
+    "source": {
+      "mech": "REPLICA",
+      "vault": "os.direct",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack key-expansion given: [case3] raw key name export via single key get when: [t0] get --key testorg.prep.AWS_PROFILE --json (without unlock) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env prep --key AWS_PROFILE",
+  "message": "credential 'testorg.prep.AWS_PROFILE' is locked. unlock it first.",
+  "slug": "testorg.prep.AWS_PROFILE",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack key-expansion given: [case3] raw key name export via single key get when: [t1] get --key testorg.prep.AWS_PROFILE (human readable, without unlock) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.prep.AWS_PROFILE
+      ├─ status: locked 🔒
+      └─ [2mtip: rhx keyrack unlock --env prep --key AWS_PROFILE[0m
+
+"
+`;

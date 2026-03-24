@@ -39,22 +39,22 @@ export const killKeyrackDaemon = (input?: {
   try {
     process.kill(pid, 'SIGTERM');
   } catch (error) {
-    // ESRCH = no such process (already dead)
-    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
-      // ignore other errors, continue cleanup
-    }
+    // allow expected errors: ESRCH = no such process (already dead)
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
   }
 
   // cleanup files
   try {
     if (existsSync(socketPath)) unlinkSync(socketPath);
-  } catch {
-    // ignore cleanup errors
+  } catch (error) {
+    // allow expected errors: ENOENT = file already cleaned up
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
   try {
     if (existsSync(pidPath)) unlinkSync(pidPath);
-  } catch {
-    // ignore cleanup errors
+  } catch (error) {
+    // allow expected errors: ENOENT = file already cleaned up
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
 
   return { killed: true, pid };

@@ -9,6 +9,7 @@ import {
 } from '@src/domain.objects/keyrack';
 
 import { daemonAccessGet } from './daemon/sdk';
+import { decideIsKeySlugEqual } from './decideIsKeySlugEqual';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
 
@@ -101,17 +102,26 @@ const attemptGrantKey = async (
     }
 
     // check os.daemon — session cache (in-memory daemon)
+    // .note = daemon implements env=all fallback internally:
+    //         if org.test.KEY not found, tries org.all.KEY
     const daemonResult = await daemonAccessGet({
       slugs: [slug],
       owner: context.owner,
     });
     if (daemonResult) {
-      const keyEntry = daemonResult.keys.find((k) => k.slug === slug);
+      // find exact match or env=all fallback
+      // .note = daemon returns key with its actual slug (e.g., org.all.KEY)
+      //         when it falls back from org.test.KEY → org.all.KEY
+      const keyEntry = daemonResult.keys.find((k) =>
+        decideIsKeySlugEqual({ desired: slug, proposed: k.slug }),
+      );
       if (keyEntry) {
         // preserve original vault from when key was unlocked
         // (e.g., os.direct, os.secure — not 'os.daemon')
+        // .note = keyEntry.slug shows where key actually came from
+        //         e.g., if fallback found env=all key, slug shows .all. for transparency
         return new KeyrackKeyGrant({
-          slug,
+          slug: keyEntry.slug,
           key: keyEntry.key,
           source: keyEntry.source,
           env: keyEntry.env,

@@ -1,0 +1,8 @@
+{
+  "testorg.all.FILL_TEST_KEY": {
+    "value": "sk-test-env-all-value-abc123"
+  },
+  "testorg.all.ANOTHER_TEST_KEY": {
+    "value": "sk-another-env-all-value-xyz789"
+  }
+}
