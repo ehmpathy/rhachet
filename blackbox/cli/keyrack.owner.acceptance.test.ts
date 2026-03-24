@@ -230,7 +230,7 @@ describe('keyrack --owner', () => {
       // write key to default owner
       writeDirectStoreEntry({
         home: repo.path,
-        slug: '@all.all.ISOLATION_KEY',
+        slug: 'testorg.all.ISOLATION_KEY',
         value: 'default-owner-value',
         owner: null,
       });
@@ -238,7 +238,7 @@ describe('keyrack --owner', () => {
       // write key to custom owner
       writeDirectStoreEntry({
         home: repo.path,
-        slug: '@all.all.ISOLATION_KEY',
+        slug: 'testorg.all.ISOLATION_KEY',
         value: 'demo-owner-value',
         owner: 'ehmpath.demo',
       });
@@ -260,7 +260,7 @@ describe('keyrack --owner', () => {
           '--env',
           'all',
           '--org',
-          '@all',
+          '@this',
           '--mech',
           'REPLICA',
           '--vault',
@@ -281,7 +281,7 @@ describe('keyrack --owner', () => {
           '--env',
           'all',
           '--org',
-          '@all',
+          '@this',
           '--mech',
           'REPLICA',
           '--vault',
@@ -300,7 +300,7 @@ describe('keyrack --owner', () => {
     when('[t0] get key from default owner (flag omitted)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', '@all.all.ISOLATION_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.all.ISOLATION_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -321,7 +321,7 @@ describe('keyrack --owner', () => {
             'keyrack',
             'get',
             '--key',
-            '@all.all.ISOLATION_KEY',
+            'testorg.all.ISOLATION_KEY',
             '--owner',
             'ehmpath.demo',
             '--json',
@@ -434,7 +434,7 @@ describe('keyrack --owner', () => {
           '--env',
           'all',
           '--org',
-          '@all',
+          '@this',
           '--mech',
           'REPLICA',
           '--vault',
@@ -602,7 +602,7 @@ describe('keyrack --owner', () => {
           '--env',
           'sudo',
           '--org',
-          '@all',
+          '@this',
           '--mech',
           'REPLICA',
           '--vault',
@@ -637,7 +637,7 @@ describe('keyrack --owner', () => {
     when('[t0] get from default owner (should not find)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['keyrack', 'get', '--key', '@all.sudo.FALLBACK_KEY', '--json'],
+          args: ['keyrack', 'get', '--key', 'testorg.sudo.FALLBACK_KEY', '--json'],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
@@ -656,7 +656,7 @@ describe('keyrack --owner', () => {
             'keyrack',
             'get',
             '--key',
-            '@all.sudo.FALLBACK_KEY',
+            'testorg.sudo.FALLBACK_KEY',
             '--owner',
             'ehmpath.demo',
             '--json',
