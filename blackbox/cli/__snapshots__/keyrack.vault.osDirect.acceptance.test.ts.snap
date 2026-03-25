@@ -32,8 +32,7 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
 `;
 
 exports[`keyrack vault os.direct given: [case2] repo with single key configured when: [t1] keyrack get --key DIRECT_TEST_KEY (human readable, without unlock) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ status: locked 🔒
       └─ [2mtip: rhx keyrack unlock --env test --key DIRECT_TEST_KEY[0m

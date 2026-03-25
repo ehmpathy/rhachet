@@ -454,8 +454,7 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
 `;
 
 exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct vault configured when: [t3] get --for repo --env prep (human readable, without unlock) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    ├─ testorg.prep.SHARED_API_KEY
    │  ├─ status: locked 🔒
    │  └─ [2mtip: rhx keyrack unlock --env prep --key SHARED_API_KEY[0m
