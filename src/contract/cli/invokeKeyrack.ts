@@ -919,6 +919,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         if (isFullSlug) {
           slug = opts.key;
           effectiveEnv = keyParts[1] ?? opts.env;
+          const slugOrg = keyParts[0] ?? '';
+
+          // validate org matches manifest
+          if (derivedOrg !== '@all' && slugOrg !== derivedOrg) {
+            throw new BadRequestError(
+              `slug org '${slugOrg}' does not match manifest org '${derivedOrg}'`,
+            );
+          }
+
           // validate env matches if explicitly provided and differs
           if (opts.env !== 'all' && effectiveEnv !== opts.env) {
             throw new BadRequestError(

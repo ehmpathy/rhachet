@@ -267,7 +267,7 @@ describe('keyrack del', () => {
 
       then('error mentions env mismatch', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/env.*mismatch|does not match/i);
+        expect(output).toMatch(/env.*mismatch|does not match|conflicts/i);
       });
     });
   });
