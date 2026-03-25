@@ -280,7 +280,10 @@ env.prod: []
         // per-env hosting does NOT satisfy other envs — key is omitted
         expect(result.unlocked.length).toBe(0);
         expect(result.omitted.length).toBe(1);
-        expect(result.omitted[0]).toEqual('testorg.prod.API_KEY');
+        expect(result.omitted[0]).toEqual({
+          slug: 'testorg.prod.API_KEY',
+          reason: 'absent',
+        });
       });
     });
   });
