@@ -41,7 +41,7 @@ exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon 
     "org": "@all",
     "slug": "@all.sudo.RELOCK_TEST_KEY",
     "source": {
-      "mech": "PERMANENT_VIA_PERMANENT_VIA_REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.secure",
     },
   },
