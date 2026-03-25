@@ -1,8 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0.1] get --key SAFE_API_KEY (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.SAFE_API_KEY
       ├─ vault: os.direct
       ├─ mech: PERMANENT_VIA_REPLICA
@@ -34,8 +33,7 @@ exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA
 `;
 
 exports[`keyrack firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1.1] get --key GHP_TOKEN (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.GHP_TOKEN
       ├─ status: blocked 🚫
       │  ├─ its dangerous to use long lived tokens via replica mechanisms
