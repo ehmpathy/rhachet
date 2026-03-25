@@ -85,7 +85,7 @@ env.prod: []
                 env: 'all',
                 org: 'testorg',
                 vault: 'os.direct',
-                mech: 'REPLICA',
+                mech: 'PERMANENT_VIA_REPLICA',
                 exid: null,
                 vaultRecipient: null,
                 maxDuration: null,
@@ -224,7 +224,7 @@ env.prod: []
               env: 'test',
               org: 'testorg',
               vault: 'os.direct',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               exid: null,
               vaultRecipient: null,
               maxDuration: null,
@@ -280,7 +280,10 @@ env.prod: []
         // per-env hosting does NOT satisfy other envs — key is omitted
         expect(result.unlocked.length).toBe(0);
         expect(result.omitted.length).toBe(1);
-        expect(result.omitted[0]).toEqual('testorg.prod.API_KEY');
+        expect(result.omitted[0]).toEqual({
+          slug: 'testorg.prod.API_KEY',
+          reason: 'absent',
+        });
       });
     });
   });
@@ -334,7 +337,7 @@ env.prod: []
                 env: 'all',
                 org: 'testorg',
                 vault: 'os.direct',
-                mech: 'REPLICA',
+                mech: 'PERMANENT_VIA_REPLICA',
                 exid: null,
                 vaultRecipient: null,
                 maxDuration: null,
@@ -346,7 +349,7 @@ env.prod: []
                 env: 'test',
                 org: 'testorg',
                 vault: 'os.direct',
-                mech: 'REPLICA',
+                mech: 'PERMANENT_VIA_REPLICA',
                 exid: null,
                 vaultRecipient: null,
                 maxDuration: null,
@@ -457,7 +460,7 @@ env.test:
               env: 'test',
               org: 'testorg',
               vault: 'os.direct',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               exid: null,
               vaultRecipient: null,
               maxDuration: null,
@@ -563,7 +566,7 @@ env.prod: []
               env: 'all',
               org: 'testorg',
               vault: 'os.direct',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               exid: null,
               vaultRecipient: null,
               maxDuration: null,

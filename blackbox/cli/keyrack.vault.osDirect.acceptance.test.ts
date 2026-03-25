@@ -303,10 +303,101 @@ describe('keyrack vault os.direct', () => {
   });
 
   /**
-   * [uc9] findsert semantics
+   * [uc5] lost key: host manifest points to vault but vault no longer has key
+   * unlock should report key as "lost" (not throw error)
+   */
+  given('[case5] key lost from vault', () => {
+    // kill daemon to prevent state leakage from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-direct' }),
+    );
+
+    when('[t0] unlock after vault secret deleted', () => {
+      // delete the key from keyrack.direct.json to simulate "lost" key
+      useBeforeAll(async () => {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const vaultFile = path.join(
+          repo.path,
+          '.rhachet/keyrack/vault/os.direct/owner=default/keyrack.direct.json',
+        );
+        // write empty object to simulate deleted key
+        await fs.writeFile(vaultFile, JSON.stringify({}));
+        return {};
+      });
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0 (graceful omit)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains lost indicator', () => {
+        expect(result.stdout).toContain('lost');
+        expect(result.stdout).toContain('👻');
+      });
+
+      then('output shows key slug', () => {
+        expect(result.stdout).toContain('DIRECT_TEST_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] get after unlock reports lost key as locked', () => {
+      // delete the key from vault first
+      useBeforeAll(async () => {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const vaultFile = path.join(
+          repo.path,
+          '.rhachet/keyrack/vault/os.direct/owner=default/keyrack.direct.json',
+        );
+        await fs.writeFile(vaultFile, JSON.stringify({}));
+        return {};
+      });
+
+      // unlock (will report lost)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.DIRECT_TEST_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is absent (vault lost key, must re-set)', () => {
+        const parsed = JSON.parse(result.stdout);
+        // key was not unlocked (lost) → get returns "absent" (not "locked")
+        // .note = "absent" is correct because unlock can't help — key is gone from vault
+        expect(parsed.status).toEqual('absent');
+      });
+    });
+  });
+
+  /**
+   * [uc6] findsert semantics
    * host found with same attrs returns found
    */
-  given('[case5] findsert semantics', () => {
+  given('[case6] findsert semantics', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-os-direct' }),
     );
@@ -322,7 +413,7 @@ describe('keyrack vault os.direct', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--json',
@@ -340,7 +431,7 @@ describe('keyrack vault os.direct', () => {
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.DIRECT_TEST_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.direct');
       });
 

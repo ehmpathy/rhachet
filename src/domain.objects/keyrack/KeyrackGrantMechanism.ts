@@ -8,20 +8,16 @@
  *
  * variants:
  * - 'PERMANENT_VIA_REPLICA': passthrough, validates not a long-lived token pattern
+ * - 'PERMANENT_VIA_REFERENCE': pointer to external vault (e.g., 1password exid)
+ * - 'EPHEMERAL_VIA_SESSION': lives in daemon memory, dies with session
  * - 'EPHEMERAL_VIA_GITHUB_APP': json blob → short-lived installation token
  * - 'EPHEMERAL_VIA_AWS_SSO': sso profile → temporary session credentials
  * - 'EPHEMERAL_VIA_GITHUB_OIDC': github actions oidc → temporary credentials
- *
- * @deprecated 'REPLICA' - use 'PERMANENT_VIA_REPLICA' instead
- * @deprecated 'GITHUB_APP' - use 'EPHEMERAL_VIA_GITHUB_APP' instead
- * @deprecated 'AWS_SSO' - use 'EPHEMERAL_VIA_AWS_SSO' instead
  */
 export type KeyrackGrantMechanism =
   | 'PERMANENT_VIA_REPLICA'
+  | 'PERMANENT_VIA_REFERENCE'
+  | 'EPHEMERAL_VIA_SESSION'
   | 'EPHEMERAL_VIA_GITHUB_APP'
   | 'EPHEMERAL_VIA_AWS_SSO'
-  | 'EPHEMERAL_VIA_GITHUB_OIDC'
-  // deprecated aliases (backwards compat)
-  | 'REPLICA'
-  | 'GITHUB_APP'
-  | 'AWS_SSO';
+  | 'EPHEMERAL_VIA_GITHUB_OIDC';

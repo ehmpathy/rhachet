@@ -5,7 +5,7 @@
       "slug": "testorg.test.SECURE_API_KEY",
       "exid": null,
       "vault": "os.secure",
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
     }

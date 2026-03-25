@@ -1,12 +1,12 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack set given: [case1] repo without host manifest when: [t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.direct --json then: stdout matches snapshot 1`] = `
+exports[`keyrack set given: [case1] repo without host manifest when: [t0] keyrack set --key NEW_KEY --mech PERMANENT_VIA_REPLICA --vault os.direct --json then: stdout matches snapshot 1`] = `
 {
   "createdAt": "__TIMESTAMP__",
   "env": "test",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.test.NEW_KEY",
   "updatedAt": "__TIMESTAMP__",
@@ -22,7 +22,7 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.ANOTHER_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -34,7 +34,7 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.GITHUB_APP_CREDS",
     "updatedAt": "__TIMESTAMP__",
@@ -46,7 +46,7 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -58,7 +58,7 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.XAI_API_KEY",
     "updatedAt": "__TIMESTAMP__",

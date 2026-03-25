@@ -5,6 +5,7 @@ import {
   daemonAccessGet,
   daemonAccessRelock,
   daemonAccessUnlock,
+  findsertKeyrackDaemon,
   isDaemonReachable,
 } from '@src/domain.operations/keyrack/daemon/sdk';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
@@ -69,7 +70,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
     // infer grade for os.daemon (always encrypted + transient)
     const grade = inferKeyGrade({
       vault: 'os.daemon',
-      mech: 'PERMANENT_VIA_REPLICA',
+      mech: 'EPHEMERAL_VIA_SESSION',
     });
 
     // calculate expiration (default 9 hours if not provided)
@@ -78,12 +79,15 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
       ? asIsoTimeStamp(new Date(input.expiresAt))
       : asIsoTimeStamp(new Date(Date.now() + defaultTtlMs));
 
+    // ensure daemon is alive (auto-start if absent)
+    await findsertKeyrackDaemon();
+
     await daemonAccessUnlock({
       keys: [
         {
           slug: input.slug,
           key: { secret, grade },
-          source: { vault: 'os.daemon', mech: 'PERMANENT_VIA_REPLICA' },
+          source: { vault: 'os.daemon', mech: 'EPHEMERAL_VIA_SESSION' },
           env: input.env,
           org: input.org,
           expiresAt,

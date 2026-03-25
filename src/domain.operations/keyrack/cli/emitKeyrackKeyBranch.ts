@@ -50,6 +50,15 @@ export const emitKeyrackKeyBranch = (input: {
     return;
   }
 
+  if (entry.type === 'lost') {
+    console.log(`${prefix} ${entry.slug}`);
+    console.log(`${indent}${entry.tip ? '├' : '└'}─ status: lost 👻`);
+    if (entry.tip) {
+      console.log(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
+    }
+    return;
+  }
+
   if (entry.type === 'unlocked') {
     const expiresIn = entry.grant.expiresAt
       ? Math.round(
@@ -76,4 +85,5 @@ export type KeyrackKeyBranchEntry =
   | { type: 'blocked'; slug: string; reasons: string[] }
   | { type: 'locked'; slug: string; tip: string | null }
   | { type: 'absent'; slug: string; tip: string | null }
+  | { type: 'lost'; slug: string; tip: string | null }
   | { type: 'unlocked'; grant: KeyrackKeyGrant };

@@ -1,0 +1,74 @@
+why is this needed?
+
+.why = drill to the true cause, not the visible symptom.
+- a mechanic who fixes symptoms creates bandaids that fail later
+- a mechanic who asks "why?" once stops at the surface
+- a mechanic who drills 5 whys finds the real leverage point
+- root cause fixes are durable; symptom fixes regress
+
+reference
+- .behavior/v2026_03_24.fix-keyrack-vaults/0.wish.md
+- .behavior/v2026_03_24.fix-keyrack-vaults/1.vision.md (if declared)
+- .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.audience._.v1.i1.md (if declared)
+
+---
+
+## what is the symptom?
+
+describe the observable problem or desired effect.
+
+- what is broken or absent?
+- how does it manifest?
+- when does it occur?
+
+---
+
+## 5 whys tree
+
+drill down via repeated "why?" questions. branch when multiple causes exist.
+
+### branch 1: [hypothesis]
+
+1. why? → [answer]
+2. why? → [answer]
+3. why? → [answer]
+4. why? → [answer]
+5. why? → **[potential root cause]**
+
+### branch 2: [alternate hypothesis] (if applicable)
+
+1. why? → [answer]
+2. why? → [answer]
+3. why? → [answer]
+4. why? → [answer]
+5. why? → **[potential root cause]** or **[ruled out]**
+
+add more branches as needed.
+
+---
+
+## root cause summary
+
+| layer | issue | is root cause? |
+|-------|-------|----------------|
+| ?     | ?     | ?              |
+| ?     | ?     | ?              |
+| ?     | ?     | **yes** / no   |
+
+---
+
+## recommendation
+
+which layer should we address?
+
+- **address root cause**: [describe fix at deepest layer]
+- **or address symptom**: [if justified, explain why symptom treatment is appropriate]
+
+if we address the symptom instead of root cause, document:
+- why root cause fix is out of scope
+- what follow-up is needed to address root cause later
+- reference to where follow-up is tracked
+
+---
+
+emit to .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.rootcause._.v1.i1.md

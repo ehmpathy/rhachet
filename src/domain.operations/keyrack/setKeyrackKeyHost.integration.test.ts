@@ -83,7 +83,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'ehmpathy.sudo.SECRET_TOKEN',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'sudo',
             org: '@this',
@@ -182,7 +182,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'ehmpathy.all.API_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'all',
             org: '@this',
@@ -258,7 +258,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'global.sudo.CROSS_ORG_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: '1password',
             env: 'sudo',
             org: '@all',
@@ -323,7 +323,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'ehmpathy.sudo.SECURE_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.secure',
             env: 'sudo',
             org: '@this',
@@ -385,7 +385,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'ehmpathy.sudo.SENSITIVE_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'sudo',
             org: '@this',
@@ -469,7 +469,7 @@ describe('setKeyrackKeyHost.integration', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'customorg.prod.CUSTOM_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'prod',
             org: 'customorg',

@@ -6,7 +6,7 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t0] set --key SU
   "env": "sudo",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.sudo.SUDO_TOKEN",
   "updatedAt": "__TIMESTAMP__",
@@ -19,7 +19,7 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t1] set --key SU
 "
 🔐 keyrack set (org: testorg, env: sudo)
    └─ testorg.sudo.SUDO_TOKEN
-      ├─ mech: REPLICA
+      ├─ mech: PERMANENT_VIA_REPLICA
       └─ vault: os.direct
 
    note: sudo credentials are stored in encrypted host manifest only.
@@ -66,27 +66,27 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t0] ke
    ├─ testorg.prep.AWS_PROFILE
    │  ├─ env: prep
    │  ├─ org: testorg
-   │  ├─ mech: REPLICA
+   │  ├─ mech: PERMANENT_VIA_REPLICA
    │  └─ vault: os.direct
    ├─ testorg.prep.SHARED_API_KEY
    │  ├─ env: prep
    │  ├─ org: testorg
-   │  ├─ mech: REPLICA
+   │  ├─ mech: PERMANENT_VIA_REPLICA
    │  └─ vault: os.direct
    ├─ testorg.prod.AWS_PROFILE
    │  ├─ env: prod
    │  ├─ org: testorg
-   │  ├─ mech: REPLICA
+   │  ├─ mech: PERMANENT_VIA_REPLICA
    │  └─ vault: os.direct
    ├─ testorg.prod.SHARED_API_KEY
    │  ├─ env: prod
    │  ├─ org: testorg
-   │  ├─ mech: REPLICA
+   │  ├─ mech: PERMANENT_VIA_REPLICA
    │  └─ vault: os.direct
    └─ testorg.sudo.SUDO_LIST_TEST
       ├─ env: sudo
       ├─ org: testorg
-      ├─ mech: REPLICA
+      ├─ mech: PERMANENT_VIA_REPLICA
       └─ vault: os.direct
 "
 `;
@@ -98,7 +98,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "env": "prep",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.prep.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
@@ -110,7 +110,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "env": "prep",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.prep.SHARED_API_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -122,7 +122,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "env": "prod",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
@@ -134,7 +134,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "env": "prod",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.prod.SHARED_API_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -146,7 +146,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "env": "sudo",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.sudo.SUDO_LIST_TEST",
     "updatedAt": "__TIMESTAMP__",
@@ -162,7 +162,7 @@ exports[`keyrack sudo given: [case8] os.secure vault with vault-recipient when: 
   "env": "sudo",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.sudo.SECURE_TOKEN",
   "updatedAt": "__TIMESTAMP__",

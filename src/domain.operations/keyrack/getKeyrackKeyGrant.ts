@@ -38,13 +38,11 @@ const toKeyrackKey = (input: {
   // infer duration from mechanism
   const duration = (() => {
     if (input.mech === 'PERMANENT_VIA_REPLICA') return 'permanent' as const;
+    if (input.mech === 'PERMANENT_VIA_REFERENCE') return 'permanent' as const;
+    if (input.mech === 'EPHEMERAL_VIA_SESSION') return 'ephemeral' as const;
     if (input.mech === 'EPHEMERAL_VIA_GITHUB_APP') return 'ephemeral' as const;
     if (input.mech === 'EPHEMERAL_VIA_AWS_SSO') return 'ephemeral' as const;
     if (input.mech === 'EPHEMERAL_VIA_GITHUB_OIDC') return 'ephemeral' as const;
-    // deprecated aliases
-    if (input.mech === 'REPLICA') return 'permanent' as const;
-    if (input.mech === 'GITHUB_APP') return 'ephemeral' as const;
-    if (input.mech === 'AWS_SSO') return 'ephemeral' as const;
     return 'permanent' as const; // fallback
   })();
 

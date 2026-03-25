@@ -219,7 +219,7 @@ describe('keyrack validation', () => {
             '--key',
             'TEST',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'invalid_vault',
           ],

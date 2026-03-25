@@ -3,7 +3,7 @@
   "hosts": {
     "testorg.test.ALLOWED_KEY": {
       "slug": "testorg.test.ALLOWED_KEY",
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
       "exid": null,
       "createdAt": "2026-01-01T00:00:00.000Z",
@@ -11,7 +11,7 @@
     },
     "testorg.test.SECRET_KEY": {
       "slug": "testorg.test.SECRET_KEY",
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
       "exid": null,
       "createdAt": "2026-01-01T00:00:00.000Z",

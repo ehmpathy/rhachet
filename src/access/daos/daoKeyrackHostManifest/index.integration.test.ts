@@ -158,7 +158,7 @@ describe('daoKeyrackHostManifest', () => {
         slug: 'ehmpathy.sudo.GITHUB_TOKEN',
         exid: null,
         vault: 'os.direct',
-        mech: 'REPLICA',
+        mech: 'PERMANENT_VIA_REPLICA',
         env: 'sudo',
         org: 'ehmpathy',
         vaultRecipient: null,
@@ -190,7 +190,7 @@ describe('daoKeyrackHostManifest', () => {
         expect(host?.env).toEqual('sudo');
         expect(host?.org).toEqual('ehmpathy');
         expect(host?.vault).toEqual('os.direct');
-        expect(host?.mech).toEqual('REPLICA');
+        expect(host?.mech).toEqual('PERMANENT_VIA_REPLICA');
       });
     });
   });
@@ -365,7 +365,7 @@ describe('daoKeyrackHostManifest', () => {
 
       const oldHost = new KeyrackKeyHost({
         slug: 'OLD_KEY',
-        mech: 'REPLICA',
+        mech: 'PERMANENT_VIA_REPLICA',
         vault: 'os.direct',
         exid: null,
         env: 'all',
@@ -397,7 +397,7 @@ describe('daoKeyrackHostManifest', () => {
 
         const newHost = new KeyrackKeyHost({
           slug: 'NEW_KEY',
-          mech: 'GITHUB_APP',
+          mech: 'EPHEMERAL_VIA_GITHUB_APP',
           vault: '1password',
           exid: 'op://vault/item',
           env: 'all',

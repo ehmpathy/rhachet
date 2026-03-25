@@ -6,7 +6,7 @@ describe('schemaKeyrackHostManifest', () => {
   given('[case1] a legacy manifest entry without env/org fields', () => {
     const legacyEntry = {
       slug: 'testorg.prod.AWS_PROFILE',
-      mech: 'REPLICA',
+      mech: 'PERMANENT_VIA_REPLICA',
       vault: 'os.direct',
       exid: null,
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -40,7 +40,7 @@ describe('schemaKeyrackHostManifest', () => {
       hosts: {
         'testorg.prod.AWS_PROFILE': {
           slug: 'testorg.prod.AWS_PROFILE',
-          mech: 'REPLICA',
+          mech: 'PERMANENT_VIA_REPLICA',
           vault: 'os.direct',
           exid: null,
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -78,7 +78,7 @@ describe('schemaKeyrackHostManifest', () => {
       hosts: {
         'testorg.prod.AWS_PROFILE': {
           slug: 'testorg.prod.AWS_PROFILE',
-          mech: 'REPLICA',
+          mech: 'PERMANENT_VIA_REPLICA',
           vault: 'os.direct',
           exid: null,
           env: 'prod', // set from slug

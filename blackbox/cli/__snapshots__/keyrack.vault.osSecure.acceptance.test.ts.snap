@@ -7,7 +7,7 @@ exports[`keyrack vault os.secure given: [case1] repo with os.secure vault config
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -23,18 +23,18 @@ exports[`keyrack vault os.secure given: [case1] repo with os.secure vault config
    └─ testorg.test.SECURE_API_KEY
       ├─ env: test
       ├─ org: testorg
-      ├─ mech: REPLICA
+      ├─ mech: PERMANENT_VIA_REPLICA
       └─ vault: os.secure
 "
 `;
 
-exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.secure then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case2] repo without host entry for a key when: [t0] keyrack set --key NEW_KEY --mech PERMANENT_VIA_REPLICA --vault os.secure then: stdout matches snapshot 1`] = `
 {
   "createdAt": "__TIMESTAMP__",
   "env": "test",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.test.NEW_KEY",
   "updatedAt": "__TIMESTAMP__",
@@ -50,7 +50,7 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.ANOTHER_SECURE_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -62,7 +62,7 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -74,7 +74,7 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -107,7 +107,7 @@ exports[`keyrack vault os.secure given: [case4] repo with os.secure vault (recip
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.secure",
     },
   },
@@ -121,7 +121,7 @@ exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] se
   "env": "test",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.test.SECURE_API_KEY",
   "updatedAt": "__TIMESTAMP__",
@@ -130,7 +130,17 @@ exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] se
 }
 `;
 
-exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t1] unlock with KEYRACK_PASSPHRASE then get then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case6] key lost from vault when: [t0] unlock after vault secret deleted then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.SECURE_API_KEY
+      ├─ status: lost 👻
+      └─ [2mtip: rhx keyrack set --key SECURE_API_KEY --env test[0m
+
+"
+`;
+
+exports[`keyrack vault os.secure given: [case7] repo with pre-encrypted .age fixture when: [t1] unlock with KEYRACK_PASSPHRASE then get then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",
@@ -144,7 +154,7 @@ exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fix
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.secure",
     },
   },

@@ -15,7 +15,7 @@ describe('keyrack set', () => {
       genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
     );
 
-    when('[t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.direct --json', () => {
+    when('[t0] keyrack set --key NEW_KEY --mech PERMANENT_VIA_REPLICA --vault os.direct --json', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -26,7 +26,7 @@ describe('keyrack set', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--json',
@@ -44,7 +44,7 @@ describe('keyrack set', () => {
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.NEW_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.direct');
       });
 
@@ -72,7 +72,7 @@ describe('keyrack set', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
           ],
@@ -93,7 +93,7 @@ describe('keyrack set', () => {
       then('list shows configured key', () => {
         const parsed = JSON.parse(listResult.stdout);
         expect(parsed['testorg.test.ANOTHER_KEY']).toBeDefined();
-        expect(parsed['testorg.test.ANOTHER_KEY'].mech).toEqual('REPLICA');
+        expect(parsed['testorg.test.ANOTHER_KEY'].mech).toEqual('PERMANENT_VIA_REPLICA');
       });
 
       then('stdout matches snapshot', () => {
@@ -142,7 +142,7 @@ describe('keyrack set', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--at',
@@ -198,7 +198,7 @@ describe('keyrack set', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--at',
@@ -247,7 +247,7 @@ describe('keyrack set', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--json',

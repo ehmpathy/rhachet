@@ -8,7 +8,7 @@
  *
  *   const grants = await keyrack.get({ for: { repo: true } });
  *   const grant = await keyrack.get({ for: { key: 'XAI_API_KEY' } });
- *   await keyrack.set({ slug: 'XAI_API_KEY', mech: 'REPLICA', vault: 'os.direct' });
+ *   await keyrack.set({ slug: 'XAI_API_KEY', mech: 'PERMANENT_VIA_REPLICA', vault: 'os.direct' });
  */
 
 import { getGitRepoRoot } from 'rhachet-artifact-git';

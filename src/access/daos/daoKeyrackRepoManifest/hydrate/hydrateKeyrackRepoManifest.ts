@@ -82,7 +82,7 @@ const extractKeysFromEnvSections = (input: {
     const slug = `${org}.all.${key}`;
     keys[slug] = new KeyrackKeySpec({
       slug,
-      mech: 'REPLICA',
+      mech: 'PERMANENT_VIA_REPLICA',
       env: 'all',
       name: key,
       grade,
@@ -96,7 +96,7 @@ const extractKeysFromEnvSections = (input: {
       const slug = `${org}.${env}.${key}`;
       keys[slug] = new KeyrackKeySpec({
         slug,
-        mech: 'REPLICA',
+        mech: 'PERMANENT_VIA_REPLICA',
         env,
         name: key,
         grade,
@@ -111,7 +111,7 @@ const extractKeysFromEnvSections = (input: {
         const slug = `${org}.${env}.${key}`;
         keys[slug] = new KeyrackKeySpec({
           slug,
-          mech: 'REPLICA',
+          mech: 'PERMANENT_VIA_REPLICA',
           env,
           name: key,
           grade,

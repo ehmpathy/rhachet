@@ -3,7 +3,7 @@
   "hosts": {
     "testorg.test.DIRECT_TEST_KEY": {
       "slug": "testorg.test.DIRECT_TEST_KEY",
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
       "exid": null,
       "createdAt": "2026-01-01T00:00:00.000Z",

@@ -21,7 +21,7 @@ export const genMockKeyrackRepoManifest = (input?: {
 
     keys[slug] = new KeyrackKeySpec({
       slug,
-      mech: partialSpec.mech ?? 'REPLICA',
+      mech: partialSpec.mech ?? 'PERMANENT_VIA_REPLICA',
       env: partialSpec.env ?? env,
       name: partialSpec.name ?? name,
       grade: partialSpec.grade ?? null,

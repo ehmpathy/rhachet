@@ -87,7 +87,7 @@ describe('keyrack vault os.secure', () => {
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
-    when('[t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.secure', () => {
+    when('[t0] keyrack set --key NEW_KEY --mech PERMANENT_VIA_REPLICA --vault os.secure', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -98,7 +98,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
             '--json',
@@ -116,7 +116,7 @@ describe('keyrack vault os.secure', () => {
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.NEW_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.secure');
       });
 
@@ -144,7 +144,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
           ],
@@ -322,7 +322,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
             '--json',
@@ -340,7 +340,7 @@ describe('keyrack vault os.secure', () => {
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.SECURE_API_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.secure');
       });
 
@@ -358,13 +358,119 @@ describe('keyrack vault os.secure', () => {
   });
 
   /**
-   * [uc6] portability: pre-encrypted .age file can be read after unlock
+   * [uc6] lost key: host manifest points to vault but vault no longer has key
+   * unlock should report key as "lost" (not throw error)
+   */
+  given('[case6] key lost from vault', () => {
+    // kill daemon to prevent state leakage from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-secure' }),
+    );
+
+    when('[t0] unlock after vault secret deleted', () => {
+      // delete the .age file to simulate "lost" key (vault no longer has it)
+      useBeforeAll(async () => {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const vaultDir = path.join(
+          repo.path,
+          '.rhachet/keyrack/vault/os.secure/owner=default',
+        );
+        const files = await fs.readdir(vaultDir);
+        for (const file of files) {
+          if (file.endsWith('.age')) {
+            await fs.unlink(path.join(vaultDir, file));
+          }
+        }
+        return {};
+      });
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            KEYRACK_PASSPHRASE: 'test-passphrase-123',
+          },
+        }),
+      );
+
+      then('exits with status 0 (graceful omit)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains lost indicator', () => {
+        expect(result.stdout).toContain('lost');
+        expect(result.stdout).toContain('👻');
+      });
+
+      then('output shows key slug', () => {
+        expect(result.stdout).toContain('SECURE_API_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] get after unlock reports lost key as locked', () => {
+      // delete the .age file first
+      useBeforeAll(async () => {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const vaultDir = path.join(
+          repo.path,
+          '.rhachet/keyrack/vault/os.secure/owner=default',
+        );
+        const files = await fs.readdir(vaultDir);
+        for (const file of files) {
+          if (file.endsWith('.age')) {
+            await fs.unlink(path.join(vaultDir, file));
+          }
+        }
+        return {};
+      });
+
+      // unlock (will report lost)
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            KEYRACK_PASSPHRASE: 'test-passphrase-123',
+          },
+        }),
+      );
+
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', 'testorg.test.SECURE_API_KEY', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is absent (vault lost key, must re-set)', () => {
+        const parsed = JSON.parse(result.stdout);
+        // key was not unlocked (lost) → get returns "absent" (not "locked")
+        // .note = "absent" is correct because unlock can't help — key is gone from vault
+        expect(parsed.status).toEqual('absent');
+      });
+    });
+  });
+
+  /**
+   * [uc7] portability: pre-encrypted .age file can be read after unlock
    * proves that age encryption is portable across systems
    *
    * the pre-encrypted fixture exists at .rhachet/keyrack/vault/os.secure/949203795e1e45ae.age
    * passphrase: test-passphrase-123, value: portable-secure-value-xyz789
    */
-  given('[case6] repo with pre-encrypted .age fixture', () => {
+  given('[case7] repo with pre-encrypted .age fixture', () => {
     // kill daemon to prevent state leakage from prior cases (case3/case4 do unlock)
     beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
 

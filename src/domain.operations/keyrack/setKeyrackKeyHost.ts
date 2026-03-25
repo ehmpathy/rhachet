@@ -79,7 +79,10 @@ export const setKeyrackKeyHost = async (
 
   // invalidate stale daemon cache for this key (if daemon is active)
   // this ensures `get` returns "locked" instead of stale value after `set`
-  await daemonAccessRelock({ slugs: [input.slug], owner: context.owner });
+  // .note = skip for os.daemon vault — daemon IS the source, set already stored there
+  if (input.vault !== 'os.daemon') {
+    await daemonAccessRelock({ slugs: [input.slug], owner: context.owner });
+  }
 
   // check if key already exists in manifest
   const hostFound = context.hostManifest.hosts[input.slug];

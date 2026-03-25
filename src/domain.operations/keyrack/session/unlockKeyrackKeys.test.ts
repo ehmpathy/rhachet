@@ -25,7 +25,7 @@ describe('unlockKeyrackKeys', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SECRET_KEY': {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'sudo',
             org: 'ehmpathy',
@@ -62,7 +62,7 @@ describe('unlockKeyrackKeys', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SECRET_KEY': {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'sudo',
             org: 'ehmpathy',
@@ -113,7 +113,7 @@ describe('unlockKeyrackKeys', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.all.API_KEY': {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'all',
             org: 'ehmpathy',
@@ -126,7 +126,7 @@ describe('unlockKeyrackKeys', () => {
         keys: {
           'ehmpathy.all.API_KEY': {
             slug: 'ehmpathy.all.API_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             env: 'all',
             name: 'API_KEY',
             grade: null,
@@ -172,7 +172,7 @@ describe('unlockKeyrackKeys', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'ehmpathy.sudo.SENSITIVE_KEY': {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'sudo',
             org: 'ehmpathy',
@@ -268,7 +268,7 @@ describe('unlockKeyrackKeys', () => {
         hosts: {
           // key was SET with env=all — only .all. slug in hostManifest
           'testorg.all.API_KEY': {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             env: 'all',
             org: 'testorg',
@@ -282,21 +282,21 @@ describe('unlockKeyrackKeys', () => {
           // repo manifest has env=all key expanded for each declared env
           'testorg.all.API_KEY': {
             slug: 'testorg.all.API_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             env: 'all',
             name: 'API_KEY',
             grade: null,
           },
           'testorg.test.API_KEY': {
             slug: 'testorg.test.API_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             env: 'test',
             name: 'API_KEY',
             grade: null,
           },
           'testorg.prod.API_KEY': {
             slug: 'testorg.prod.API_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             env: 'prod',
             name: 'API_KEY',
             grade: null,

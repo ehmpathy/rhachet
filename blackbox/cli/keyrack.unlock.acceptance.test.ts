@@ -117,7 +117,7 @@ describe('keyrack unlock', () => {
           '--org',
           '@this',
           '--mech',
-          'REPLICA',
+          'PERMANENT_VIA_REPLICA',
           '--vault',
           'os.direct',
           '--owner',

@@ -30,7 +30,7 @@ export const unlockKeyrackKeys = async (
   context: ContextKeyrackGrantUnlock,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
-  omitted: string[];
+  omitted: { slug: string; reason: 'absent' | 'lost' }[];
 }> => {
   // resolve socket path based on owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
@@ -128,8 +128,9 @@ export const unlockKeyrackKeys = async (
   }
 
   // collect keys to unlock and track omitted
+  // .note = omitted includes both "absent" (not in host manifest) and "lost" (in manifest but vault doesn't have it)
   const keysToUnlock: KeyrackKeyGrant[] = [];
-  const keysOmitted: string[] = [];
+  const keysOmitted: { slug: string; reason: 'absent' | 'lost' }[] = [];
   const effectiveSlugsUnlocked = new Set<string>(); // dedupe by effective slug
 
   for (const slug of slugsForEnv) {
@@ -150,8 +151,8 @@ export const unlockKeyrackKeys = async (
       }
 
       if (!hostConfig) {
-        // key not configured on this host — track as omitted
-        keysOmitted.push(slug);
+        // key not configured on this host — track as absent
+        keysOmitted.push({ slug, reason: 'absent' });
         continue;
       }
     }
@@ -184,21 +185,18 @@ export const unlockKeyrackKeys = async (
     }
 
     // get secret from vault
+    // .note = vault may return null if key is absent (e.g., os.daemon after restart, deleted 1password item)
     const secret = await adapter.get({
       slug: effectiveSlug,
       exid: hostConfig.exid,
       owner: input.owner ?? null,
     });
     if (!secret) {
-      throw new UnexpectedCodePathError(
-        'vault file absent for key that exists in manifest',
-        {
-          slug: effectiveSlug,
-          vault,
-          env: hostConfig.env,
-          fix: `re-run: keyrack set --key ... --env ${hostConfig.env} --vault ${vault}`,
-        },
-      );
+      // key exists in host manifest but vault no longer has it — track as lost
+      // .note = this is expected for ephemeral vaults (os.daemon) after session restart
+      // .note = this is expected for refed vaults (1password) if item was deleted
+      keysOmitted.push({ slug: effectiveSlug, reason: 'lost' });
+      continue;
     }
 
     // infer grade from vault and mechanism
