@@ -413,7 +413,7 @@ describe('keyrack vault os.direct', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.direct',
             '--json',
@@ -431,7 +431,7 @@ describe('keyrack vault os.direct', () => {
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.DIRECT_TEST_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.direct');
       });
 

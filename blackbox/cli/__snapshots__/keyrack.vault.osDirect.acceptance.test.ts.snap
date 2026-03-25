@@ -55,7 +55,7 @@ exports[`keyrack vault os.direct given: [case3] repo with vault configured when:
     "org": "testorg",
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
     },
   },
@@ -69,7 +69,7 @@ exports[`keyrack vault os.direct given: [case4] keyrack list when: [t0] keyrack 
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ env: test
       ├─ org: testorg
-      ├─ mech: REPLICA
+      ├─ mech: PERMANENT_VIA_REPLICA
       └─ vault: os.direct
 "
 `;
@@ -81,7 +81,7 @@ exports[`keyrack vault os.direct given: [case4] keyrack list when: [t1] keyrack 
     "env": "test",
     "exid": null,
     "maxDuration": null,
-    "mech": "REPLICA",
+    "mech": "PERMANENT_VIA_REPLICA",
     "org": "testorg",
     "slug": "testorg.test.DIRECT_TEST_KEY",
     "updatedAt": "__TIMESTAMP__",
@@ -107,7 +107,7 @@ exports[`keyrack vault os.direct given: [case6] findsert semantics when: [t0] se
   "env": "test",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.test.DIRECT_TEST_KEY",
   "updatedAt": "2026-01-01T00:00:00.000Z",

@@ -14,7 +14,7 @@ exports[`keyrack vault-ossecure given: [case4.5] set+get roundtrip with os.secur
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.secure",
     },
   },

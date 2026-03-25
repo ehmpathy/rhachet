@@ -87,7 +87,7 @@ describe('keyrack vault os.secure', () => {
       genTestTempRepo({ fixture: 'with-vault-os-secure' }),
     );
 
-    when('[t0] keyrack set --key NEW_KEY --mech REPLICA --vault os.secure', () => {
+    when('[t0] keyrack set --key NEW_KEY --mech PERMANENT_VIA_REPLICA --vault os.secure', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -98,7 +98,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
             '--json',
@@ -116,7 +116,7 @@ describe('keyrack vault os.secure', () => {
       then('output contains configured key', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.NEW_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.secure');
       });
 
@@ -144,7 +144,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
           ],
@@ -322,7 +322,7 @@ describe('keyrack vault os.secure', () => {
             '--env',
             'test',
             '--mech',
-            'REPLICA',
+            'PERMANENT_VIA_REPLICA',
             '--vault',
             'os.secure',
             '--json',
@@ -340,7 +340,7 @@ describe('keyrack vault os.secure', () => {
       then('returns found host config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.slug).toEqual('testorg.test.SECURE_API_KEY');
-        expect(parsed.mech).toEqual('REPLICA');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(parsed.vault).toEqual('os.secure');
       });
 

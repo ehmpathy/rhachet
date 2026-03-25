@@ -16,7 +16,7 @@ exports[`keyrack key-expansion given: [case3.5] raw key name expansion with --ke
     "org": "testorg",
     "slug": "testorg.prep.AWS_PROFILE",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
     },
   },
@@ -38,7 +38,7 @@ exports[`keyrack key-expansion given: [case3] raw key name export via single key
     "org": "testorg",
     "slug": "testorg.prep.AWS_PROFILE",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
     },
   },

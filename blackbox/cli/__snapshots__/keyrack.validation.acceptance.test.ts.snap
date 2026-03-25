@@ -67,7 +67,7 @@ exports[`keyrack validation given: [case2] repo with multiple keys, one absent w
 
 exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack set with invalid --mech then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO
+⛈️ BadRequestError: invalid --mech: must be one of PERMANENT_VIA_PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO
 
 [args] keyrack,set,--key,TEST,--mech,INVALID_MECH,--vault,os.direct
 
@@ -78,7 +78,7 @@ exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack 
 "
 ⛈️ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.iam.sso
 
-[args] keyrack,set,--key,TEST,--mech,REPLICA,--vault,invalid_vault
+[args] keyrack,set,--key,TEST,--mech,PERMANENT_VIA_REPLICA,--vault,invalid_vault
 
 "
 `;

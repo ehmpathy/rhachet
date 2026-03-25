@@ -14,7 +14,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
     "org": "testorg",
     "slug": "testorg.test.ALLOWED_KEY",
     "source": {
-      "mech": "REPLICA",
+      "mech": "PERMANENT_VIA_REPLICA",
       "vault": "os.direct",
     },
   },
@@ -84,7 +84,7 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
       "org": "testorg",
       "slug": "testorg.test.ALLOWED_KEY",
       "source": {
-        "mech": "REPLICA",
+        "mech": "PERMANENT_VIA_REPLICA",
         "vault": "os.direct",
       },
     },
@@ -118,7 +118,7 @@ exports[`keyrack allowlist given: [case2] env var exists but key not in allowlis
     "org": "testorg",
     "slug": "testorg.test.SECRET_FROM_ENV",
     "source": {
-      "mech": "PERMANENT_VIA_REPLICA",
+      "mech": "PERMANENT_VIA_PERMANENT_VIA_REPLICA",
       "vault": "os.envvar",
     },
   },

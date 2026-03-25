@@ -8,7 +8,7 @@ exports[`keyrack org-mismatch given: [case6] set with org mismatch when: [t1] se
   "env": "prod",
   "exid": null,
   "maxDuration": null,
-  "mech": "REPLICA",
+  "mech": "PERMANENT_VIA_REPLICA",
   "org": "testorg",
   "slug": "testorg.prod.AWS_PROFILE",
   "updatedAt": "__TIMESTAMP__",
