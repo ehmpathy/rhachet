@@ -284,10 +284,10 @@ describe('keyrack vault 1password', () => {
   });
 
   /**
-   * [uc5] mech is REFERENCE for 1password vault
+   * [uc5] mech is PERMANENT_VIA_REFERENCE for 1password vault
    * 1password stores a reference (exid), not the secret itself
    */
-  given('[case5] 1password uses REFERENCE mech', () => {
+  given('[case5] 1password uses PERMANENT_VIA_REFERENCE mech', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-1password' }),
     );
@@ -301,9 +301,11 @@ describe('keyrack vault 1password', () => {
         }),
       );
 
-      then('mech is REFERENCE', () => {
+      then('mech is PERMANENT_VIA_REFERENCE', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed['testorg.test.ONEPASSWORD_TEST_KEY'].mech).toEqual('REFERENCE');
+        expect(parsed['testorg.test.ONEPASSWORD_TEST_KEY'].mech).toEqual(
+          'PERMANENT_VIA_REFERENCE',
+        );
       });
     });
   });
