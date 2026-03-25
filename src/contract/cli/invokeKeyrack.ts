@@ -655,7 +655,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             ];
             if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
               throw new BadRequestError(
-                `invalid --mech: must be one of PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO`,
+                `invalid --mech: must be one of ${validMechs.join(', ')}`,
               );
             }
             return opts.mech as KeyrackGrantMechanism;
