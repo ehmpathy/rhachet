@@ -14,15 +14,15 @@ import type {
 import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';
-import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
-import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
-import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';
-import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
-import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
+import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
+import { vaultAdapterAwsIamSso } from './adapters/vaults/aws.iam.sso/vaultAdapterAwsIamSso';
+import { vaultAdapterOsDaemon } from './adapters/vaults/os.daemon/vaultAdapterOsDaemon';
+import { vaultAdapterOsDirect } from './adapters/vaults/os.direct/vaultAdapterOsDirect';
+import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
 import {
   setOsSecureSessionIdentity,
   vaultAdapterOsSecure,
-} from './adapters/vaults/vaultAdapterOsSecure';
+} from './adapters/vaults/os.secure/vaultAdapterOsSecure';
 
 /**
  * .what = full context for keyrack unlock operations
@@ -87,21 +87,16 @@ export const genContextKeyrackGrantUnlock = async (input: {
   };
 
   // assemble mechanism adapters
-  // note: new names (PERMANENT_VIA_*, EPHEMERAL_VIA_*) map to same adapters
-  // deprecated aliases (REPLICA, GITHUB_APP, AWS_SSO) kept for backwards compat
   const mechAdapters: Record<
     KeyrackGrantMechanism,
     KeyrackGrantMechanismAdapter
   > = {
-    // new mechanism names
     PERMANENT_VIA_REPLICA: mechAdapterReplica,
+    PERMANENT_VIA_REFERENCE: mechAdapterReplica, // 1password: passthrough, exid is fetched on unlock
+    EPHEMERAL_VIA_SESSION: mechAdapterReplica, // os.daemon: passthrough, already in daemon
     EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
     EPHEMERAL_VIA_AWS_SSO: mechAdapterAwsSso,
     EPHEMERAL_VIA_GITHUB_OIDC: mechAdapterAwsSso, // TODO: implement dedicated oidc adapter
-    // deprecated aliases (backwards compat)
-    REPLICA: mechAdapterReplica,
-    GITHUB_APP: mechAdapterGithubApp,
-    AWS_SSO: mechAdapterAwsSso,
   };
 
   return {

@@ -91,7 +91,17 @@ exports[`keyrack vault os.direct given: [case4] keyrack list when: [t1] keyrack 
 }
 `;
 
-exports[`keyrack vault os.direct given: [case5] findsert semantics when: [t0] set key that already exists with same attrs then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.direct given: [case5] key lost from vault when: [t0] unlock after vault secret deleted then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.DIRECT_TEST_KEY
+      ├─ status: lost 👻
+      └─ [2mtip: rhx keyrack set --key DIRECT_TEST_KEY --env test[0m
+
+"
+`;
+
+exports[`keyrack vault os.direct given: [case6] findsert semantics when: [t0] set key that already exists with same attrs then: stdout matches snapshot 1`] = `
 {
   "createdAt": "2026-01-01T00:00:00.000Z",
   "env": "test",

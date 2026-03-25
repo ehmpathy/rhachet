@@ -401,7 +401,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             const blocked = attempts.filter((a) => a.status === 'blocked');
             const absent = attempts.filter((a) => a.status === 'absent');
 
-            console.log('');
             console.log('🔐 keyrack');
             for (let i = 0; i < attempts.length; i++) {
               const attempt = attempts[i]!;
@@ -528,7 +527,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           if (opts.json) {
             console.log(JSON.stringify(attemptResolved, null, 2));
           } else {
-            console.log('');
             console.log('🔐 keyrack');
             if (attemptResolved.status === 'granted') {
               emitKeyrackKeyBranch({
@@ -649,13 +647,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             // validate explicit mechanism
             const validMechs: KeyrackGrantMechanism[] = [
               'PERMANENT_VIA_REPLICA',
+              'PERMANENT_VIA_REFERENCE',
+              'EPHEMERAL_VIA_SESSION',
               'EPHEMERAL_VIA_GITHUB_APP',
               'EPHEMERAL_VIA_AWS_SSO',
               'EPHEMERAL_VIA_GITHUB_OIDC',
-              // deprecated aliases (still accepted for backwards compat)
-              'REPLICA',
-              'GITHUB_APP',
-              'AWS_SSO',
             ];
             if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
               throw new BadRequestError(
@@ -708,7 +704,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 "   └─ tip: run 'npx rhachet keyrack init --at <path>' first",
               );
               console.log('');
-              process.exit(1);
+              process.exit(2);
             }
             return loadManifestHydrated({ path: customPath }, { gitroot });
           }
@@ -752,7 +748,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
               '   └─ tip: for sudo credentials without keyrack.yml, use --org @all',
             );
             console.log('');
-            process.exit(1);
+            process.exit(2);
           }
           console.log('');
           console.log('✋ no keyrack.yml found');
@@ -760,7 +756,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
           );
           console.log('');
-          process.exit(1);
+          process.exit(2);
         }
 
         // delegate to domain operation
@@ -893,7 +889,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                   `✋ key '${opts.key}' not found in host manifest for env '${opts.env}'`,
                 );
                 console.log('');
-                process.exit(1);
+                process.exit(2);
               }
             } else {
               console.log('');
@@ -902,7 +898,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 "   └─ tip: run 'npx rhachet keyrack init --org <your-org>' to create one",
               );
               console.log('');
-              process.exit(1);
+              process.exit(2);
             }
           } else {
             derivedOrg = assertKeyrackOrgMatchesManifest({
@@ -912,8 +908,27 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           }
         }
 
-        // construct slug
-        const slug = `${derivedOrg}.${opts.env}.${opts.key}`;
+        // detect if key is already a full slug (org.env.key format)
+        const keyParts = opts.key.split('.');
+        const isFullSlug =
+          keyParts.length >= 3 && isValidKeyrackEnv(keyParts[1] ?? '');
+
+        // construct or use slug
+        let slug: string;
+        let effectiveEnv: string;
+        if (isFullSlug) {
+          slug = opts.key;
+          effectiveEnv = keyParts[1] ?? opts.env;
+          // validate env matches if explicitly provided and differs
+          if (opts.env !== 'all' && effectiveEnv !== opts.env) {
+            throw new BadRequestError(
+              `--env ${opts.env} conflicts with env in slug ${opts.key}`,
+            );
+          }
+        } else {
+          slug = `${derivedOrg}.${opts.env}.${opts.key}`;
+          effectiveEnv = opts.env;
+        }
 
         // delegate to domain operation
         const result = await delKeyrackKey({ slug }, context);
@@ -1014,7 +1029,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           // combine all entries for tree output
           const allEntries = [
             ...unlocked.map((k) => ({ type: 'unlocked' as const, key: k })),
-            ...omitted.map((slug) => ({ type: 'omitted' as const, slug })),
+            ...omitted.map((o) => ({ type: 'omitted' as const, ...o })),
           ];
 
           for (let i = 0; i < allEntries.length; i++) {
@@ -1027,13 +1042,13 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 isLast,
               });
             } else {
-              // omitted key — mirror `get --for repo` format
+              // omitted key — show absent or removed based on reason
               const slug = entry.slug;
               const keyName = slug.split('.').slice(2).join('.');
               const slugEnv = slug.split('.')[1];
               emitKeyrackKeyBranch({
                 entry: {
-                  type: 'absent',
+                  type: entry.reason, // 'absent' or 'removed'
                   slug,
                   tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
                 },

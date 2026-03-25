@@ -130,7 +130,17 @@ exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] se
 }
 `;
 
-exports[`keyrack vault os.secure given: [case6] repo with pre-encrypted .age fixture when: [t1] unlock with KEYRACK_PASSPHRASE then get then: stdout matches snapshot 1`] = `
+exports[`keyrack vault os.secure given: [case6] key lost from vault when: [t0] unlock after vault secret deleted then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.SECURE_API_KEY
+      ├─ status: lost 👻
+      └─ [2mtip: rhx keyrack set --key SECURE_API_KEY --env test[0m
+
+"
+`;
+
+exports[`keyrack vault os.secure given: [case7] repo with pre-encrypted .age fixture when: [t1] unlock with KEYRACK_PASSPHRASE then get then: stdout matches snapshot 1`] = `
 {
   "grant": {
     "env": "test",

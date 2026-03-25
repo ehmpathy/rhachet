@@ -9,7 +9,7 @@ import type {
 import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';
-import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
+import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
 
 /**
  * .what = lightweight context for keyrack get operations
@@ -53,13 +53,11 @@ export const genContextKeyrackGrantGet = async (input: {
   > = {
     // new mechanism names
     PERMANENT_VIA_REPLICA: mechAdapterReplica,
+    PERMANENT_VIA_REFERENCE: mechAdapterReplica, // 1password: passthrough, exid is fetched on unlock
+    EPHEMERAL_VIA_SESSION: mechAdapterReplica, // os.daemon: passthrough, already in daemon
     EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
     EPHEMERAL_VIA_AWS_SSO: mechAdapterAwsSso,
     EPHEMERAL_VIA_GITHUB_OIDC: mechAdapterAwsSso, // TODO: implement dedicated oidc adapter
-    // deprecated aliases (backwards compat)
-    REPLICA: mechAdapterReplica,
-    GITHUB_APP: mechAdapterGithubApp,
-    AWS_SSO: mechAdapterAwsSso,
   };
 
   return {

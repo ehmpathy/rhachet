@@ -4,7 +4,7 @@ import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest'
 import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 import { withStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
-import { setOsSecureSessionIdentity } from './adapters/vaults/vaultAdapterOsSecure';
+import { setOsSecureSessionIdentity } from './adapters/vaults/os.secure/vaultAdapterOsSecure';
 import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { genContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';

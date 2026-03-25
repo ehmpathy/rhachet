@@ -108,7 +108,7 @@ describe('enweaveOneFanout', () => {
     );
   });
 
-  given.only(
+  given(
     'a route with imagine stitchers, parallelized (closer to real world usecase)',
     () => {
       const stitchCodeRead = {

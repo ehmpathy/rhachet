@@ -1,0 +1,69 @@
+who is this for?
+
+.why = ensure we build for real users with real needs, not abstractions.
+- a mechanic who assumes the audience builds the wrong product
+- a mechanic who never asks "why do they care?" misses the motivation
+- a mechanic who skips "how will they experience it?" delivers poor UX
+- audience clarity early prevents costly pivots late
+
+reference
+- .behavior/v2026_03_24.fix-keyrack-vaults/0.wish.md
+- .behavior/v2026_03_24.fix-keyrack-vaults/1.vision.md (if declared)
+
+---
+
+## who is the audience?
+
+identify the humans who will experience this change.
+
+- **primary**: who benefits most directly?
+- **secondary**: who else is affected?
+- **tertiary**: who might care indirectly?
+
+be specific — "users" is too vague. name roles, contexts, constraints.
+
+---
+
+## why do they care?
+
+what motivates them to want this?
+
+- what pain does this relieve?
+- what goal does this enable?
+- what frustration does this eliminate?
+
+---
+
+## how much do they care?
+
+rank the stakes for each audience segment.
+
+| audience | priority | urgency | stakes |
+|----------|----------|---------|--------|
+| primary  | ?        | ?       | ?      |
+| secondary| ?        | ?       | ?      |
+| tertiary | ?        | ?       | ?      |
+
+---
+
+## what do they care about?
+
+what specific aspects matter to them?
+
+- what criteria will they judge success by?
+- what tradeoffs would they accept or reject?
+- what would make them delighted vs disappointed?
+
+---
+
+## how will they experience it?
+
+trace the journey from their perspective.
+
+- what touchpoints will they encounter?
+- what friction points might they hit?
+- what would a smooth experience look like?
+
+---
+
+emit to .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.audience._.v1.i1.md

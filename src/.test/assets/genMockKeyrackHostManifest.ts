@@ -20,7 +20,7 @@ export const genMockKeyrackHostManifest = (input?: {
   for (const [slug, partialHost] of Object.entries(input?.hosts ?? {})) {
     hosts[slug] = new KeyrackKeyHost({
       slug,
-      mech: partialHost.mech ?? 'REPLICA',
+      mech: partialHost.mech ?? 'PERMANENT_VIA_REPLICA',
       vault: partialHost.vault ?? 'os.direct',
       exid: partialHost.exid ?? null,
       env: partialHost.env ?? 'all',

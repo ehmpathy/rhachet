@@ -33,17 +33,25 @@ describe('setKeyrackKeyHost', () => {
     when('[t0] set called with new key', () => {
       then('returns configured key host', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.slug).toEqual('NEW_KEY');
-        expect(result.mech).toEqual('REPLICA');
+        expect(result.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(result.vault).toEqual('os.direct');
       });
 
       then('exid defaults to null', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.exid).toBeNull();
@@ -51,7 +59,11 @@ describe('setKeyrackKeyHost', () => {
 
       then('env defaults to all', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.env).toEqual('all');
@@ -59,7 +71,11 @@ describe('setKeyrackKeyHost', () => {
 
       then('org resolves @this to ehmpathy', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.org).toEqual('ehmpathy');
@@ -67,7 +83,11 @@ describe('setKeyrackKeyHost', () => {
 
       then('timestamps are set', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.createdAt).toBeDefined();
@@ -80,7 +100,7 @@ describe('setKeyrackKeyHost', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'NEW_KEY',
-            mech: 'GITHUB_APP',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
             vault: '1password',
             exid: 'op://vault/item',
           },
@@ -93,7 +113,12 @@ describe('setKeyrackKeyHost', () => {
     when('[t2] set called with env=sudo', () => {
       then('env is sudo', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct', env: 'sudo' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'sudo',
+          },
           context,
         );
         expect(result.env).toEqual('sudo');
@@ -105,7 +130,7 @@ describe('setKeyrackKeyHost', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'SECURE_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.secure',
             vaultRecipient: 'age1testrecipient...',
           },
@@ -118,7 +143,11 @@ describe('setKeyrackKeyHost', () => {
     when('[t4] set called without vaultRecipient', () => {
       then('vaultRecipient defaults to null', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'SECURE_KEY', mech: 'REPLICA', vault: 'os.secure' },
+          {
+            slug: 'SECURE_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+          },
           context,
         );
         expect(result.vaultRecipient).toBeNull();
@@ -130,7 +159,7 @@ describe('setKeyrackKeyHost', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'SENSITIVE_KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.secure',
             env: 'sudo',
             maxDuration: '5m',
@@ -144,7 +173,11 @@ describe('setKeyrackKeyHost', () => {
     when('[t6] set called without maxDuration', () => {
       then('maxDuration defaults to null', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'NEW_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.maxDuration).toBeNull();
@@ -159,7 +192,7 @@ describe('setKeyrackKeyHost', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             exid: null,
             env: 'all',
@@ -181,11 +214,15 @@ describe('setKeyrackKeyHost', () => {
     when('[t0] set called with same attrs (findsert semantics)', () => {
       then('returns found key host without update', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'EXISTING_KEY', mech: 'REPLICA', vault: 'os.direct' },
+          {
+            slug: 'EXISTING_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
           context,
         );
         expect(result.slug).toEqual('EXISTING_KEY');
-        expect(result.mech).toEqual('REPLICA');
+        expect(result.mech).toEqual('PERMANENT_VIA_REPLICA');
         expect(result.vault).toEqual('os.direct');
       });
     });
@@ -198,7 +235,7 @@ describe('setKeyrackKeyHost', () => {
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             exid: null,
             env: 'all',
@@ -220,7 +257,11 @@ describe('setKeyrackKeyHost', () => {
     when('[t0] set called with different vault', () => {
       then('returns updated key host', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'EXISTING_KEY', mech: 'REPLICA', vault: 'os.secure' },
+          {
+            slug: 'EXISTING_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+          },
           context,
         );
         expect(result.vault).toEqual('os.secure');
@@ -230,10 +271,14 @@ describe('setKeyrackKeyHost', () => {
     when('[t1] set called with different mech', () => {
       then('returns updated key host', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'EXISTING_KEY', mech: 'GITHUB_APP', vault: 'os.direct' },
+          {
+            slug: 'EXISTING_KEY',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
+            vault: 'os.direct',
+          },
           context,
         );
-        expect(result.mech).toEqual('GITHUB_APP');
+        expect(result.mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
       });
     });
   });
@@ -257,7 +302,12 @@ describe('setKeyrackKeyHost', () => {
     when('[t0] org is @this', () => {
       then('resolves to ehmpathy', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'KEY', mech: 'REPLICA', vault: 'os.direct', org: '@this' },
+          {
+            slug: 'KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            org: '@this',
+          },
           context,
         );
         expect(result.org).toEqual('ehmpathy');
@@ -267,7 +317,12 @@ describe('setKeyrackKeyHost', () => {
     when('[t1] org is @all', () => {
       then('stores as @all', async () => {
         const result = await setKeyrackKeyHost(
-          { slug: 'KEY', mech: 'REPLICA', vault: 'os.direct', org: '@all' },
+          {
+            slug: 'KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            org: '@all',
+          },
           context,
         );
         expect(result.org).toEqual('@all');
@@ -279,7 +334,7 @@ describe('setKeyrackKeyHost', () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'KEY',
-            mech: 'REPLICA',
+            mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.direct',
             org: 'testorg',
           },
@@ -310,7 +365,7 @@ describe('setKeyrackKeyHost', () => {
       then('throws BadRequestError', async () => {
         const error = await getError(
           setKeyrackKeyHost(
-            { slug: 'KEY', mech: 'REPLICA', vault: 'os.direct' },
+            { slug: 'KEY', mech: 'PERMANENT_VIA_REPLICA', vault: 'os.direct' },
             context,
           ),
         );

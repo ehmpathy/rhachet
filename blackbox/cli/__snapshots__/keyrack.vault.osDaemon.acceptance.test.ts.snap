@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault os.daemon given: [case1] repo with os.daemon vault when: [t0] keyrack set --key DAEMON_KEY --vault os.daemon then: stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "expiresAt": "__TIMESTAMP__",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_SESSION",
+  "org": "testorg",
+  "slug": "testorg.test.DAEMON_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.daemon",
+  "vaultRecipient": null,
+}
+`;
+
+exports[`keyrack vault os.daemon given: [case1] repo with os.daemon vault when: [t1] keyrack get after set --vault os.daemon then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "test",
+    "expiresAt": "__TIMESTAMP__",
+    "key": {
+      "grade": {
+        "duration": "transient",
+        "protection": "encrypted",
+      },
+      "secret": "daemon-get-test-value",
+    },
+    "org": "testorg",
+    "slug": "testorg.test.DAEMON_GET_KEY",
+    "source": {
+      "mech": "EPHEMERAL_VIA_SESSION",
+      "vault": "os.daemon",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack vault os.daemon given: [case3] daemon restart clears ephemeral keys when: [t0] set key then relock then get then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack set --key DAEMON_EPHEMERAL_KEY --env test",
+  "message": "credential 'testorg.test.DAEMON_EPHEMERAL_KEY' does not exist. set it first.",
+  "slug": "testorg.test.DAEMON_EPHEMERAL_KEY",
+  "status": "absent",
+}
+`;
+
+exports[`keyrack vault os.daemon given: [case4] unlock reports lost for cleared daemon keys when: [t0] set key then relock then unlock then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.DAEMON_LOST_KEY
+      ├─ status: lost 👻
+      └─ [2mtip: rhx keyrack set --key DAEMON_LOST_KEY --env test[0m
+
+"
+`;

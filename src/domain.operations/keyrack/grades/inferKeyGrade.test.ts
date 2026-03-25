@@ -112,7 +112,7 @@ describe('inferKeyGrade', () => {
       then('duration is permanent', () => {
         const grade = inferKeyGrade({
           vault: 'os.secure',
-          mech: 'REPLICA',
+          mech: 'PERMANENT_VIA_REPLICA',
         });
         expect(grade.duration).toEqual('permanent');
       });
@@ -122,7 +122,7 @@ describe('inferKeyGrade', () => {
       then('duration is ephemeral', () => {
         const grade = inferKeyGrade({
           vault: 'os.secure',
-          mech: 'GITHUB_APP',
+          mech: 'EPHEMERAL_VIA_GITHUB_APP',
         });
         expect(grade.duration).toEqual('ephemeral');
       });
@@ -132,7 +132,7 @@ describe('inferKeyGrade', () => {
       then('duration is ephemeral', () => {
         const grade = inferKeyGrade({
           vault: 'os.secure',
-          mech: 'AWS_SSO',
+          mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
         expect(grade.duration).toEqual('ephemeral');
       });

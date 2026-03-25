@@ -1,0 +1,74 @@
+how could this fail?
+
+.why = surface risks before they materialize, not after.
+- a mechanic who assumes success ignores failure modes
+- a mechanic who runs a premortem catches blind spots early
+- a mechanic who inverts "how to succeed" into "how to fail" finds hidden risks
+- risks surfaced now can be mitigated; risks found after ship are costly
+
+reference
+- .behavior/v2026_03_24.fix-keyrack-vaults/0.wish.md
+- .behavior/v2026_03_24.fix-keyrack-vaults/1.vision.md (if declared)
+- .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.audience._.v1.i1.md (if declared)
+- .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.rootcause._.v1.i1.md (if declared)
+- .behavior/v2026_03_24.fix-keyrack-vaults/3.3.1.blueprint.product.v1.i1.md (if declared)
+
+---
+
+## premortem: imagine we shipped and it failed
+
+project forward: we shipped this, and it failed badly. why?
+
+list the most plausible failure scenarios:
+
+1. ?
+2. ?
+3. ?
+
+---
+
+## what obvious signs did we ignore?
+
+look back from the imagined failure — what signs were present that we dismissed?
+
+- ?
+- ?
+- ?
+
+---
+
+## what assumptions could turn out wrong?
+
+list the assumptions baked into this approach.
+
+| assumption | what if wrong? | likelihood |
+|------------|----------------|------------|
+| ?          | ?              | ?          |
+| ?          | ?              | ?          |
+| ?          | ?              | ?          |
+
+---
+
+## what is the nightmare scenario?
+
+describe the worst plausible outcome.
+
+- what would make us deeply regret this?
+- what would cause the most damage?
+- what would be hardest to recover from?
+
+---
+
+## what mitigations to consider?
+
+for each significant risk, what could we do to prevent or reduce impact?
+
+| risk | mitigation | cost of mitigation |
+|------|------------|--------------------|
+| ?    | ?          | ?                  |
+| ?    | ?          | ?                  |
+| ?    | ?          | ?                  |
+
+---
+
+emit to .behavior/v2026_03_24.fix-keyrack-vaults/3.1.5.research.reflection.product.premortem._.v1.i1.md

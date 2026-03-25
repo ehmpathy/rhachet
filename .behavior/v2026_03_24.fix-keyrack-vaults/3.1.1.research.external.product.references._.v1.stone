@@ -1,0 +1,42 @@
+research the references required in order to fulfill
+- this wish .behavior/v2026_03_24.fix-keyrack-vaults/0.wish.md
+- this vision .behavior/v2026_03_24.fix-keyrack-vaults/1.vision.md (if declared)
+- this criteria .behavior/v2026_03_24.fix-keyrack-vaults/2.1.criteria.blackbox.md (if declared)
+
+specifically
+- what research could we reference to ground our thoughts and knowledge?
+- what knowledge could we cite to prove our sources?
+- what terms, concepts, demos do they establish that we can leverage to expand our knowledge & thought?
+
+---
+
+enumerate each lesson
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+cite atleast 21 sources, with links and quotes
+
+source diversity
+- require mix of source types: official docs, academic papers, practitioner blogs, conference talks
+- prevents echo chamber from only one type
+
+for each citation include
+- publication date (to assess recency)
+- credibility tag: [official] [academic] [practitioner] [tutorial] [blog] [video] [book]
+
+conflict detection
+- explicitly note when sources disagree
+- "sources [3] and [7] conflict on X — [3] says A, [7] says B"
+
+convergence signal
+- note when multiple independent sources agree
+- stronger confidence when 3+ sources say the same thing
+
+anti-patterns
+- research what NOT to do, not just what to do
+- "sources [4], [9], [12] warn against X because..."
+
+---
+
+emit into .behavior/v2026_03_24.fix-keyrack-vaults/3.1.1.research.external.product.references._.v1.i1.md

@@ -46,7 +46,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.sudo.ADMIN_TOKEN': {
               slug: 'ehmpathy.sudo.ADMIN_TOKEN',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'sudo',
@@ -165,7 +165,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.all.API_KEY': {
               slug: 'ehmpathy.all.API_KEY',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'all',
@@ -196,7 +196,7 @@ describe('unlockKeyrackKeys.integration', () => {
             keys: {
               'ehmpathy.all.API_KEY': {
                 slug: 'ehmpathy.all.API_KEY',
-                mech: 'REPLICA',
+                mech: 'PERMANENT_VIA_REPLICA',
                 env: 'all',
                 name: 'API_KEY',
                 grade: null,
@@ -253,7 +253,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.sudo.SENSITIVE_KEY': {
               slug: 'ehmpathy.sudo.SENSITIVE_KEY',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'sudo',
@@ -345,7 +345,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.sudo.SHORT_LIVED_KEY': {
               slug: 'ehmpathy.sudo.SHORT_LIVED_KEY',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'sudo',
@@ -430,7 +430,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.sudo.TOKEN_A': {
               slug: 'ehmpathy.sudo.TOKEN_A',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'sudo',
@@ -461,7 +461,7 @@ describe('unlockKeyrackKeys.integration', () => {
           hosts: {
             'ehmpathy.sudo.TOKEN_B': {
               slug: 'ehmpathy.sudo.TOKEN_B',
-              mech: 'REPLICA',
+              mech: 'PERMANENT_VIA_REPLICA',
               vault: 'os.direct',
               exid: null,
               env: 'sudo',

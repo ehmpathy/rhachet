@@ -1,29 +1,13 @@
 import { getError, given, then, when } from 'test-fns';
 
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { isOpCliInstalled } from './isOpCliInstalled';
 import { vaultAdapter1Password } from './vaultAdapter1Password';
-
-const execAsync = promisify(exec);
-
-/**
- * .what = check if 1password cli is available
- * .why = tests should skip gracefully if op is not installed
- */
-const isOpCliAvailable = async (): Promise<boolean> => {
-  try {
-    await execAsync('which op');
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 describe('vaultAdapter1Password', () => {
   let opAvailable: boolean;
 
   beforeAll(async () => {
-    opAvailable = await isOpCliAvailable();
+    opAvailable = await isOpCliInstalled();
     if (!opAvailable) {
       console.log('skipped 1password integration tests: op cli not available');
     }
@@ -56,35 +40,23 @@ describe('vaultAdapter1Password', () => {
     });
   });
 
-  given('[case3] set is not supported', () => {
-    when('[t0] set called', () => {
-      then('throws error about unsupported operation', async () => {
-        const error = await getError(
-          vaultAdapter1Password.set({
-            slug: 'TEST_KEY',
-            env: 'test',
-            org: 'testorg',
-          }),
-        );
-        expect(error).toBeDefined();
-        expect(error?.message).toContain('does not support set');
-      });
-    });
-  });
-
-  given('[case4] del is not supported', () => {
+  given('[case3] del is a noop (1password is refed vault)', () => {
     when('[t0] del called', () => {
-      then('throws error about unsupported operation', async () => {
-        const error = await getError(
-          vaultAdapter1Password.del({ slug: 'TEST_KEY' }),
-        );
-        expect(error).toBeDefined();
-        expect(error?.message).toContain('does not support del');
-      });
+      then(
+        'completes without error (keyrack only removes manifest entry)',
+        async () => {
+          // 1password is a refed vault — keyrack stores pointer, not secret
+          // del removes the pointer (manifest entry), not the 1password item
+          // the adapter del is noop; delKeyrackKeyHost handles manifest removal
+          await expect(
+            vaultAdapter1Password.del({ slug: 'TEST_KEY' }),
+          ).resolves.toBeUndefined();
+        },
+      );
     });
   });
 
-  given('[case5] op cli is available (conditional)', () => {
+  given('[case4] op cli is available (conditional)', () => {
     when('[t0] unlock called', () => {
       then('does not throw (noop)', async () => {
         // unlock is a noop for 1password - it relies on biometric or env var
@@ -126,6 +98,29 @@ describe('vaultAdapter1Password', () => {
           exid: 'op://nonexistent-vault/nonexistent-item/password',
         });
         expect(result).toBeNull();
+      });
+    });
+  });
+
+  given('[case5] set validates exid format', () => {
+    when('[t0] set called with invalid exid format', () => {
+      then('throws BadRequestError about invalid format', async () => {
+        if (!opAvailable) {
+          // skip - set exits process if op not installed
+          expect(true).toBe(true);
+          return;
+        }
+
+        const error = await getError(
+          vaultAdapter1Password.set({
+            slug: 'TEST_KEY',
+            env: 'test',
+            org: 'testorg',
+            exid: 'not-a-valid-exid',
+          }),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('secret reference uri');
       });
     });
   });

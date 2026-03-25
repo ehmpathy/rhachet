@@ -7,12 +7,12 @@ import type {
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
 
-import { vaultAdapter1Password } from './adapters/vaults/vaultAdapter1Password';
-import { vaultAdapterAwsIamSso } from './adapters/vaults/vaultAdapterAwsIamSso';
-import { vaultAdapterOsDaemon } from './adapters/vaults/vaultAdapterOsDaemon';
-import { vaultAdapterOsDirect } from './adapters/vaults/vaultAdapterOsDirect';
-import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
-import { vaultAdapterOsSecure } from './adapters/vaults/vaultAdapterOsSecure';
+import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
+import { vaultAdapterAwsIamSso } from './adapters/vaults/aws.iam.sso/vaultAdapterAwsIamSso';
+import { vaultAdapterOsDaemon } from './adapters/vaults/os.daemon/vaultAdapterOsDaemon';
+import { vaultAdapterOsDirect } from './adapters/vaults/os.direct/vaultAdapterOsDirect';
+import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
+import { vaultAdapterOsSecure } from './adapters/vaults/os.secure/vaultAdapterOsSecure';
 
 /**
  * .what = context for host-scoped keyrack operations

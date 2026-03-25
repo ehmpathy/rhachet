@@ -10,7 +10,10 @@ import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
-import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
+import {
+  getKeyrackHostManifestIndexPath,
+  getKeyrackHostManifestPath,
+} from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
 import { listSshAgentKeys, sshPrikeyToAgeIdentity } from '@src/infra/ssh';
 
 import {
@@ -54,6 +57,9 @@ const getAllAvailableIdentities = (input: {
       const identity = sshPrikeyToAgeIdentity({ keyPath });
       if (!identities.includes(identity)) identities.push(identity);
     } catch (error) {
+      // rethrow system errors (permission denied, etc); they are not conversion failures
+      if (error instanceof Error && 'code' in error) throw error;
+
       // track conversion failures for observability (prikey might be unsupported format)
       conversionFailures.push({
         source: 'ssh-agent',
@@ -70,6 +76,9 @@ const getAllAvailableIdentities = (input: {
       const identity = sshPrikeyToAgeIdentity({ keyPath: stdPath });
       if (!identities.includes(identity)) identities.push(identity);
     } catch (error) {
+      // rethrow system errors (permission denied, etc); they are not conversion failures
+      if (error instanceof Error && 'code' in error) throw error;
+
       // track conversion failures for observability (prikey might be unsupported format)
       conversionFailures.push({
         source: 'default',
@@ -86,6 +95,9 @@ const getAllAvailableIdentities = (input: {
       const identity = sshPrikeyToAgeIdentity({ keyPath: prikeyPath });
       if (!identities.includes(identity)) identities.push(identity);
     } catch (error) {
+      // rethrow system errors (permission denied, etc); they are not conversion failures
+      if (error instanceof Error && 'code' in error) throw error;
+
       // track conversion failures for observability (prikey might be unsupported format)
       conversionFailures.push({
         source: 'supplemental',
@@ -309,6 +321,18 @@ export const daoKeyrackHostManifest = {
     // write encrypted content with restricted permissions
     writeFileSync(path, ciphertext, 'utf8');
     chmodSync(path, 0o600);
+
+    // write unencrypted index (slugs only, no secrets)
+    // .why = enables locked/absent detection without manifest decryption
+    // .note = only includes refed vaults (1password, aws.iam.sso) since owned vaults
+    //         have their own storage checks (os.secure .age files, os.direct json store)
+    const indexPath = getKeyrackHostManifestIndexPath({ owner });
+    const refedVaults = ['1password', 'aws.iam.sso'];
+    const slugs = Object.entries(manifestDesired.hosts)
+      .filter(([, host]) => refedVaults.includes(host.vault))
+      .map(([slug]) => slug);
+    writeFileSync(indexPath, JSON.stringify(slugs, null, 2), 'utf8');
+    chmodSync(indexPath, 0o600);
 
     return manifestDesired;
   },

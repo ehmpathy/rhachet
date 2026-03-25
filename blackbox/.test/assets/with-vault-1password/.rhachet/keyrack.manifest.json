@@ -1,0 +1,13 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.test.ONEPASSWORD_TEST_KEY": {
+      "slug": "testorg.test.ONEPASSWORD_TEST_KEY",
+      "mech": "REFERENCE",
+      "vault": "1password",
+      "exid": "op://test-vault/test-item/credential",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

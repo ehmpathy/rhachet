@@ -1,0 +1,4 @@
+org: testorg
+
+env.test:
+  - ONEPASSWORD_TEST_KEY

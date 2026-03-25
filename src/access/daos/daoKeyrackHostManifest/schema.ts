@@ -29,15 +29,12 @@ export const schemaKeyrackKeyHost = z.object({
     'aws.iam.sso',
   ]),
   mech: z.enum([
-    // current mechanism names
     'PERMANENT_VIA_REPLICA',
+    'PERMANENT_VIA_REFERENCE',
+    'EPHEMERAL_VIA_SESSION',
     'EPHEMERAL_VIA_GITHUB_APP',
     'EPHEMERAL_VIA_AWS_SSO',
     'EPHEMERAL_VIA_GITHUB_OIDC',
-    // deprecated aliases (backwards compat)
-    'REPLICA',
-    'GITHUB_APP',
-    'AWS_SSO',
   ]),
   env: z
     .enum(['all', 'sudo', 'prod', 'prep', 'test', 'dev', 'local'])

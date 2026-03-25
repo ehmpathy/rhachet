@@ -2,7 +2,7 @@ import { given, then, when } from 'test-fns';
 
 import { genMockMechAdapter } from '@src/.test/assets/genMockMechAdapter';
 
-import { vaultAdapterOsEnvvar } from './adapters/vaults/vaultAdapterOsEnvvar';
+import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
 import { daemonAccessGet } from './daemon/sdk';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
@@ -14,12 +14,11 @@ jest.mock('./daemon/sdk', () => ({
 
 const mechAdapters: ContextKeyrackGrantGet['mechAdapters'] = {
   PERMANENT_VIA_REPLICA: genMockMechAdapter(),
+  PERMANENT_VIA_REFERENCE: genMockMechAdapter(),
+  EPHEMERAL_VIA_SESSION: genMockMechAdapter(),
   EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
   EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter(),
   EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
-  REPLICA: genMockMechAdapter(),
-  GITHUB_APP: genMockMechAdapter(),
-  AWS_SSO: genMockMechAdapter(),
 };
 
 describe('getKeyrackKeyGrant', () => {
@@ -266,15 +265,11 @@ describe('getKeyrackKeyGrant', () => {
           valid: false,
           invalidReason: 'ghp_ token blocked by firewall',
         }),
+        PERMANENT_VIA_REFERENCE: genMockMechAdapter(),
+        EPHEMERAL_VIA_SESSION: genMockMechAdapter(),
         EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
         EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter(),
         EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
-        REPLICA: genMockMechAdapter({
-          valid: false,
-          invalidReason: 'ghp_ token blocked by firewall',
-        }),
-        GITHUB_APP: genMockMechAdapter(),
-        AWS_SSO: genMockMechAdapter(),
       },
     };
 
@@ -353,15 +348,11 @@ describe('getKeyrackKeyGrant', () => {
           valid: false,
           invalidReason: 'long-lived credential blocked',
         }),
+        PERMANENT_VIA_REFERENCE: genMockMechAdapter(),
+        EPHEMERAL_VIA_SESSION: genMockMechAdapter(),
         EPHEMERAL_VIA_GITHUB_APP: genMockMechAdapter(),
         EPHEMERAL_VIA_AWS_SSO: genMockMechAdapter(),
         EPHEMERAL_VIA_GITHUB_OIDC: genMockMechAdapter(),
-        REPLICA: genMockMechAdapter({
-          valid: false,
-          invalidReason: 'long-lived credential blocked',
-        }),
-        GITHUB_APP: genMockMechAdapter(),
-        AWS_SSO: genMockMechAdapter(),
       },
     };
 
