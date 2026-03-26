@@ -3,11 +3,5 @@ extends:
   - .agent/repo=.this/role=test/keyrack.yml
   - .agent/repo=ehmpathy/role=mechanic/keyrack.yml
 env.prod: []
-env.all:
-  - RELOCK_REGULAR_KEY
-  - REGULAR_KEY
-  - MY_API_KEY
-env.test:
-  - AWS_PROFILE
-  - PLAYTEST_DAEMON_KEY
-  - PLAYTEST_1PASSWORD_KEY
+env.all: []
+env.test: []

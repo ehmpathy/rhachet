@@ -21,6 +21,7 @@ import { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrack
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
+import { sourceAllKeysIntoEnv } from '@src/domain.operations/keyrack/sourceAllKeysIntoEnv';
 
 // domain objects
 export type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
@@ -115,4 +116,13 @@ export const keyrack = {
       context,
     );
   },
+
+  /**
+   * .what = source keyrack keys into process.env (sync)
+   * .why = enables test setup files to fetch credentials without manual `source` commands
+   *
+   * .note = sync because jest setup files run synchronously
+   * .note = keyrack already prefers passthrough (checks env vars first)
+   */
+  source: sourceAllKeysIntoEnv,
 };
