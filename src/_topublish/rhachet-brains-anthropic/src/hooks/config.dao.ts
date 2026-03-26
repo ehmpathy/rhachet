@@ -11,6 +11,7 @@ export interface ClaudeCodeHookEntry {
     type: string;
     command: string;
     timeout?: number;
+    author?: string;
   }>;
 }
 
