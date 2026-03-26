@@ -3,6 +3,15 @@ import { getError, given, then, when } from 'test-fns';
 
 import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
 
+/**
+ * .what = skip in CI, run locally
+ * .why = these tests spawn `claude` CLI; provisioning claude in CI costs
+ *        more than the value of running these tests in CI. locally,
+ *        tests fail fast if claude is absent — no silent passes.
+ */
+const isCI = process.env['CI'] === 'true';
+const describeUnlessCI = isCI ? describe.skip : describe;
+
 import {
   chmodSync,
   existsSync,
@@ -47,7 +56,7 @@ const getRolesFromSettings = (settings: ClaudeCodeSettings): string[] => {
   return roles;
 };
 
-describe('invokeEnroll (integration)', () => {
+describeUnlessCI('invokeEnroll (integration)', () => {
   /**
    * .what = creates a test directory with .agent/ and .claude/ structure
    * .why = isolated test environment with mock roles
@@ -147,44 +156,33 @@ describe('invokeEnroll (integration)', () => {
           const program = new Command();
           invokeEnroll({ program });
 
-          // mock the spawn to prevent actual brain execution
-          const originalExit = process.exit;
-          // @ts-expect-error - mocking process.exit
-          process.exit = jest.fn();
+          // run the command - enrollBrainCli is mocked, so no spawn happens
+          await program.parseAsync(
+            ['enroll', 'claude', '--roles', 'mechanic'],
+            {
+              from: 'user',
+            },
+          );
 
-          try {
-            // run the command - it will spawn and the spawn will fail (no `claude` in test)
-            // but the config should be generated before that
-            await program
-              .parseAsync(['enroll', 'claude', '--roles', 'mechanic'], {
-                from: 'user',
-              })
-              .catch(() => {
-                // swallow spawn errors - we just want to test config generation
-              });
+          // check that settings.enroll.$hash.local.json was created
+          const claudeDir = resolve(testDir, '.claude');
+          const enrollConfigPath = findEnrollmentConfig(claudeDir);
+          expect(enrollConfigPath).not.toBeNull();
+          expect(enrollConfigPath).toMatch(
+            /settings\.enroll\.[a-f0-9]+\.local\.json$/,
+          );
 
-            // check that settings.enroll.$hash.local.json was created
-            const claudeDir = resolve(testDir, '.claude');
-            const enrollConfigPath = findEnrollmentConfig(claudeDir);
-            expect(enrollConfigPath).not.toBeNull();
-            expect(enrollConfigPath).toMatch(
-              /settings\.enroll\.[a-f0-9]+\.local\.json$/,
-            );
+          // parse and verify content
+          const content = readFileSync(enrollConfigPath!, 'utf-8');
+          const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-            // parse and verify content
-            const content = readFileSync(enrollConfigPath!, 'utf-8');
-            const settings = JSON.parse(content) as ClaudeCodeSettings;
+          // with real structure: 1 entry, 1 inner hook for mechanic
+          expect(settings.hooks?.SessionStart).toHaveLength(1);
+          const roles = getRolesFromSettings(settings);
+          expect(roles).toEqual(['mechanic']);
 
-            // with real structure: 1 entry, 1 inner hook for mechanic
-            expect(settings.hooks?.SessionStart).toHaveLength(1);
-            const roles = getRolesFromSettings(settings);
-            expect(roles).toEqual(['mechanic']);
-
-            // snapshot: journey 1 - replace mode with mechanic only
-            expect(settings).toMatchSnapshot('journey1-replace-mechanic');
-          } finally {
-            process.exit = originalExit;
-          }
+          // snapshot: journey 1 - replace mode with mechanic only
+          expect(settings).toMatchSnapshot('journey1-replace-mechanic');
         },
       );
     });
@@ -194,37 +192,28 @@ describe('invokeEnroll (integration)', () => {
         const program = new Command();
         invokeEnroll({ program });
 
-        const originalExit = process.exit;
-        // @ts-expect-error - mocking process.exit
-        process.exit = jest.fn();
+        // run the command - enrollBrainCli is mocked, so no spawn happens
+        await program.parseAsync(['enroll', 'claude', '--roles', '-driver'], {
+          from: 'user',
+        });
 
-        try {
-          await program
-            .parseAsync(['enroll', 'claude', '--roles', '-driver'], {
-              from: 'user',
-            })
-            .catch(() => {});
+        const claudeDir = resolve(testDir, '.claude');
+        const enrollConfigPath = findEnrollmentConfig(claudeDir);
+        expect(enrollConfigPath).not.toBeNull();
 
-          const claudeDir = resolve(testDir, '.claude');
-          const enrollConfigPath = findEnrollmentConfig(claudeDir);
-          expect(enrollConfigPath).not.toBeNull();
+        const content = readFileSync(enrollConfigPath!, 'utf-8');
+        const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-          const content = readFileSync(enrollConfigPath!, 'utf-8');
-          const settings = JSON.parse(content) as ClaudeCodeSettings;
+        // should have mechanic and ergonomist, not driver
+        // with real structure: 1 entry, 2 inner hooks
+        expect(settings.hooks?.SessionStart).toHaveLength(1);
+        const roles = getRolesFromSettings(settings);
+        expect(roles).toContain('mechanic');
+        expect(roles).toContain('ergonomist');
+        expect(roles).not.toContain('driver');
 
-          // should have mechanic and ergonomist, not driver
-          // with real structure: 1 entry, 2 inner hooks
-          expect(settings.hooks?.SessionStart).toHaveLength(1);
-          const roles = getRolesFromSettings(settings);
-          expect(roles).toContain('mechanic');
-          expect(roles).toContain('ergonomist');
-          expect(roles).not.toContain('driver');
-
-          // snapshot: journey 2 - subtract driver from defaults
-          expect(settings).toMatchSnapshot('journey2-subtract-driver');
-        } finally {
-          process.exit = originalExit;
-        }
+        // snapshot: journey 2 - subtract driver from defaults
+        expect(settings).toMatchSnapshot('journey2-subtract-driver');
       });
     });
   });
@@ -445,34 +434,28 @@ describe('invokeEnroll (integration)', () => {
         const program = new Command();
         invokeEnroll({ program });
 
-        const originalExit = process.exit;
-        // @ts-expect-error - mocking process.exit
-        process.exit = jest.fn();
+        // run the command - enrollBrainCli is mocked, so no spawn happens
+        await program.parseAsync(
+          ['enroll', 'claude', '--roles', '+architect'],
+          {
+            from: 'user',
+          },
+        );
 
-        try {
-          await program
-            .parseAsync(['enroll', 'claude', '--roles', '+architect'], {
-              from: 'user',
-            })
-            .catch(() => {});
+        const claudeDir = resolve(testDir, '.claude');
+        const enrollConfigPath = findEnrollmentConfig(claudeDir);
+        expect(enrollConfigPath).not.toBeNull();
 
-          const claudeDir = resolve(testDir, '.claude');
-          const enrollConfigPath = findEnrollmentConfig(claudeDir);
-          expect(enrollConfigPath).not.toBeNull();
+        const content = readFileSync(enrollConfigPath!, 'utf-8');
+        const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-          const content = readFileSync(enrollConfigPath!, 'utf-8');
-          const settings = JSON.parse(content) as ClaudeCodeSettings;
-
-          // all three roles should be present (1 entry with 3 inner hooks)
-          expect(settings.hooks?.SessionStart).toHaveLength(1);
-          const roles = getRolesFromSettings(settings);
-          expect(roles).toContain('mechanic');
-          expect(roles).toContain('driver');
-          expect(roles).toContain('architect');
-          expect(roles).toHaveLength(3); // no extras, no duplicates
-        } finally {
-          process.exit = originalExit;
-        }
+        // all three roles should be present (1 entry with 3 inner hooks)
+        expect(settings.hooks?.SessionStart).toHaveLength(1);
+        const roles = getRolesFromSettings(settings);
+        expect(roles).toContain('mechanic');
+        expect(roles).toContain('driver');
+        expect(roles).toContain('architect');
+        expect(roles).toHaveLength(3); // no extras, no duplicates
       });
     });
 
@@ -483,36 +466,25 @@ describe('invokeEnroll (integration)', () => {
           const program = new Command();
           invokeEnroll({ program });
 
-          const originalExit = process.exit;
-          // @ts-expect-error - mocking process.exit
-          process.exit = jest.fn();
+          // run the command - enrollBrainCli is mocked, so no spawn happens
+          await program.parseAsync(
+            ['enroll', 'claude', '--roles', 'mechanic,architect'],
+            { from: 'user' },
+          );
 
-          try {
-            await program
-              .parseAsync(
-                ['enroll', 'claude', '--roles', 'mechanic,architect'],
-                {
-                  from: 'user',
-                },
-              )
-              .catch(() => {});
+          const claudeDir = resolve(testDir, '.claude');
+          const enrollConfigPath = findEnrollmentConfig(claudeDir);
+          expect(enrollConfigPath).not.toBeNull();
 
-            const claudeDir = resolve(testDir, '.claude');
-            const enrollConfigPath = findEnrollmentConfig(claudeDir);
-            expect(enrollConfigPath).not.toBeNull();
+          const content = readFileSync(enrollConfigPath!, 'utf-8');
+          const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-            const content = readFileSync(enrollConfigPath!, 'utf-8');
-            const settings = JSON.parse(content) as ClaudeCodeSettings;
-
-            // only mechanic and architect, no driver (1 entry with 2 inner hooks)
-            expect(settings.hooks?.SessionStart).toHaveLength(1);
-            const roles = getRolesFromSettings(settings);
-            expect(roles).toContain('mechanic');
-            expect(roles).toContain('architect');
-            expect(roles).not.toContain('driver');
-          } finally {
-            process.exit = originalExit;
-          }
+          // only mechanic and architect, no driver (1 entry with 2 inner hooks)
+          expect(settings.hooks?.SessionStart).toHaveLength(1);
+          const roles = getRolesFromSettings(settings);
+          expect(roles).toContain('mechanic');
+          expect(roles).toContain('architect');
+          expect(roles).not.toContain('driver');
         });
       },
     );
@@ -520,24 +492,16 @@ describe('invokeEnroll (integration)', () => {
     when('[t2] enroll claude (no --roles flag)', () => {
       then('errors about required option (usecase.7)', async () => {
         const program = new Command();
+        program.exitOverride(); // throw instead of process.exit
         invokeEnroll({ program });
 
-        // commander calls process.exit(1) for required options
-        const originalExit = process.exit;
+        // commander throws CommanderError for required options
+        const error = await getError(() =>
+          program.parseAsync(['enroll', 'claude'], { from: 'user' }),
+        );
 
-        // @ts-expect-error - mock process.exit
-        process.exit = jest.fn();
-
-        try {
-          await program.parseAsync(['enroll', 'claude'], { from: 'user' });
-        } catch {
-          // swallow - commander may throw or exit
-        }
-
-        // commander outputs error to stderr and calls exit(1)
-        expect(process.exit).toHaveBeenCalledWith(1);
-
-        process.exit = originalExit;
+        // commander errors contain the absent option name
+        expect(error?.message).toContain('--roles');
       });
     });
   });
@@ -593,33 +557,27 @@ describe('invokeEnroll (integration)', () => {
         const program = new Command();
         invokeEnroll({ program });
 
-        const originalExit = process.exit;
-        // @ts-expect-error - mocking process.exit
-        process.exit = jest.fn();
+        // run the command - enrollBrainCli is mocked, so no spawn happens
+        await program.parseAsync(
+          ['enroll', 'claude', '--roles', '-architect'],
+          {
+            from: 'user',
+          },
+        );
 
-        try {
-          await program
-            .parseAsync(['enroll', 'claude', '--roles', '-architect'], {
-              from: 'user',
-            })
-            .catch(() => {});
+        const claudeDir = resolve(testDir, '.claude');
+        const enrollConfigPath = findEnrollmentConfig(claudeDir);
+        expect(enrollConfigPath).not.toBeNull();
 
-          const claudeDir = resolve(testDir, '.claude');
-          const enrollConfigPath = findEnrollmentConfig(claudeDir);
-          expect(enrollConfigPath).not.toBeNull();
+        const content = readFileSync(enrollConfigPath!, 'utf-8');
+        const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-          const content = readFileSync(enrollConfigPath!, 'utf-8');
-          const settings = JSON.parse(content) as ClaudeCodeSettings;
-
-          // mechanic and driver present, architect removed (1 entry with 2 inner hooks)
-          expect(settings.hooks?.SessionStart).toHaveLength(1);
-          const roles = getRolesFromSettings(settings);
-          expect(roles).toContain('mechanic');
-          expect(roles).toContain('driver');
-          expect(roles).not.toContain('architect');
-        } finally {
-          process.exit = originalExit;
-        }
+        // mechanic and driver present, architect removed (1 entry with 2 inner hooks)
+        expect(settings.hooks?.SessionStart).toHaveLength(1);
+        const roles = getRolesFromSettings(settings);
+        expect(roles).toContain('mechanic');
+        expect(roles).toContain('driver');
+        expect(roles).not.toContain('architect');
       });
     });
 
@@ -628,35 +586,26 @@ describe('invokeEnroll (integration)', () => {
         const program = new Command();
         invokeEnroll({ program });
 
-        const originalExit = process.exit;
-        // @ts-expect-error - mocking process.exit
-        process.exit = jest.fn();
+        // run the command - enrollBrainCli is mocked, so no spawn happens
+        await program.parseAsync(['enroll', 'claude', '--roles', '+mechanic'], {
+          from: 'user',
+        });
 
-        try {
-          await program
-            .parseAsync(['enroll', 'claude', '--roles', '+mechanic'], {
-              from: 'user',
-            })
-            .catch(() => {});
+        const claudeDir = resolve(testDir, '.claude');
+        const enrollConfigPath = findEnrollmentConfig(claudeDir);
+        expect(enrollConfigPath).not.toBeNull();
 
-          const claudeDir = resolve(testDir, '.claude');
-          const enrollConfigPath = findEnrollmentConfig(claudeDir);
-          expect(enrollConfigPath).not.toBeNull();
+        const content = readFileSync(enrollConfigPath!, 'utf-8');
+        const settings = JSON.parse(content) as ClaudeCodeSettings;
 
-          const content = readFileSync(enrollConfigPath!, 'utf-8');
-          const settings = JSON.parse(content) as ClaudeCodeSettings;
-
-          // all three roles still present (no duplicates from re-adding mechanic)
-          // 1 entry with 3 inner hooks
-          expect(settings.hooks?.SessionStart).toHaveLength(1);
-          const roles = getRolesFromSettings(settings);
-          expect(roles).toContain('mechanic');
-          expect(roles).toContain('driver');
-          expect(roles).toContain('architect');
-          expect(roles).toHaveLength(3); // no duplicates of mechanic
-        } finally {
-          process.exit = originalExit;
-        }
+        // all three roles still present (no duplicates from re-adding mechanic)
+        // 1 entry with 3 inner hooks
+        expect(settings.hooks?.SessionStart).toHaveLength(1);
+        const roles = getRolesFromSettings(settings);
+        expect(roles).toContain('mechanic');
+        expect(roles).toContain('driver');
+        expect(roles).toContain('architect');
+        expect(roles).toHaveLength(3); // no duplicates of mechanic
       });
     });
   });
