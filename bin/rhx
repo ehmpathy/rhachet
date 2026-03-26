@@ -18,5 +18,11 @@ if [ "$1" = "upgrade" ]; then
   exec "$SCRIPT_DIR/run.jit" upgrade "$@"
 fi
 
+# short-circuit enroll command (top-level rhachet command, not a skill)
+if [ "$1" = "enroll" ]; then
+  shift
+  exec "$SCRIPT_DIR/run" enroll "$@"
+fi
+
 # default: proxy to run --skill
 exec "$SCRIPT_DIR/run" run --skill "$@"

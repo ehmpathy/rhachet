@@ -8,6 +8,7 @@ import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRol
 import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
+import { invokeEnroll } from './invokeEnroll';
 import { invokeInit } from './invokeInit';
 import { invokeKeyrack } from './invokeKeyrack';
 import { invokeList } from './invokeList';
@@ -54,6 +55,7 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   invokeList({ program }, context);
   invokeReadme({ program }, context);
   invokeRun({ program }); // filesystem only, no context needed
+  invokeEnroll({ program }); // filesystem only, no context needed
   invokeChoose({ program }); // no config needed
   invokeAsk({ program }, context);
   invokeAct({ program }, context);
