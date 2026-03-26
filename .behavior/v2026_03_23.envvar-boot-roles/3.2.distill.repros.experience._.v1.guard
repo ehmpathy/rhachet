@@ -1,0 +1,55 @@
+reviews:
+  self:
+    - slug: has-critical-paths-identified
+      say: |
+        double-check: did you identify the critical paths?
+
+        - are the happy paths marked as critical?
+        - for each critical path, is it clear why it must be frictionless?
+        - did you consider what would happen if each critical path failed?
+
+        for each critical path, verify pit of success:
+        - narrower inputs: can we constrain inputs to prevent misuse?
+        - convenient: can we infer inputs rather than require them?
+        - expressive: does it pull into inferred happy path, but allow expression of differences?
+        - failsafes: what happens when things go wrong? does it recover gracefully?
+        - failfasts: does it fail early and clearly when inputs are invalid?
+        - idempotency: can the operation be retried safely?
+
+        critical paths are the "golden paths" — the flows that most users take.
+        if these aren't frictionless, users will fail. fix the friction now.
+
+    - slug: has-ergonomics-reviewed
+      say: |
+        double-check: did you review the ergonomics?
+
+        for each input/output pair:
+        - does the input feel natural? if not, how can we simplify it?
+        - does the output feel natural? if not, what would be clearer?
+        - is there any friction? if so, how can we remove it?
+
+        pit of success principles:
+        - intuitive design: can users succeed without documentation?
+        - convenient: can we infer inputs rather than require them?
+        - expressive: does it pull into inferred happy path, but allow expression of differences?
+        - composable: can this be combined with other operations easily?
+        - lower trust contracts: do we validate at boundaries?
+        - deeper behavior: do we handle edge cases gracefully?
+
+        awkward inputs and outputs are bugs. fix them now, before implementation.
+        every friction point you leave becomes a support ticket later.
+
+    - slug: has-play-test-convention
+      say: |
+        double-check: are journey tests named correctly?
+
+        journey test files should use `.play.test.ts` suffix:
+        - `feature.play.test.ts` — journey test
+        - `feature.play.integration.test.ts` — if repo requires integration runner
+        - `feature.play.acceptance.test.ts` — if repo requires acceptance runner
+
+        this distinguishes journey tests (step-by-step user experience tests)
+        from unit tests (`.test.ts`) and integration tests (`.integration.test.ts`).
+
+        if the repo doesn't support `.play.test.ts` directly, plan to use
+        `.play.integration.test.ts` or `.play.acceptance.test.ts` instead.

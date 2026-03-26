@@ -89,14 +89,19 @@ the cli powers the most common usecase for rhachet. robots and humans depend on 
 # install role repos
 npm install rhachet-roles-ehmpathy
 
-# init roles
+# init roles (sets defaults for the repo)
 npx rhachet init --roles mechanic
 
 # invoke skills
 npx rhachet run --skill show.gh.test.errors
 
-# use enrolled agents
-claude # will have been enrolled as a mechanic via hooks, from init
+# use enrolled agents (boots with default roles from init)
+claude
+
+# spawn with specific roles (overrides defaults)
+rhx enroll claude --roles mechanic           # only mechanic
+rhx enroll claude --roles +architect         # defaults + architect
+rhx enroll claude --roles -driver            # defaults - driver
 ```
 
 ### init
@@ -141,6 +146,60 @@ the `.agent/` directory is a curated & shared source of truth. robots get their 
 ```
 
 browse the same briefs robots get booted with. invoke the same skills they dispatch. edit and iterate — changes take effect immediately.
+
+### enroll
+
+#### how
+
+spawn a brain with specific roles via `rhx enroll`:
+
+```sh
+rhx enroll <brain> --roles <spec> [passthrough args...]
+```
+
+the `--roles` spec supports three modes:
+
+| mode | syntax | example | result |
+| ---- | ------ | ------- | ------ |
+| replace | `role` or `role1,role2` | `--roles mechanic` | only mechanic |
+| append | `+role` | `--roles +architect` | defaults + architect |
+| subtract | `-role` | `--roles -driver` | defaults - driver |
+| mixed | `+role1,-role2` | `--roles +architect,-driver` | defaults + architect - driver |
+
+```sh
+# spawn with only mechanic role (replace mode)
+rhx enroll claude --roles mechanic
+
+# spawn with defaults plus architect (append mode)
+rhx enroll claude --roles +architect
+
+# spawn with defaults minus driver (subtract mode)
+rhx enroll claude --roles -driver
+
+# spawn with specific combo (replace mode)
+rhx enroll claude --roles mechanic,ergonomist
+
+# passthrough args to brain
+rhx enroll claude --roles mechanic --resume
+
+# pass a prompt directly
+rhx enroll claude --roles mechanic "review this code"
+```
+
+#### why
+
+`init` sets the default roles for a repo — every agent spawned inherits those roles automatically.
+
+`enroll` lets you override those defaults for a single session:
+
+- **focus** — spawn a mechanic-only clone when you just need code, no driver workflow briefs cluttering context
+- **specialization** — add architect role for a deep refactor without changing repo defaults
+- **isolation** — the enrolled brain boots with *only* the specified roles' hooks, no inheritance from user or project configs
+
+under the hood:
+1. generates a unique config (`.claude/settings.enroll.$hash.json`)
+2. filters hooks to only the specified roles
+3. spawns with `--setting-sources local` to skip all default configs
 
 ### use
 

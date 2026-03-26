@@ -1,0 +1,83 @@
+propose a blueprint for how we will upgrade the factory
+- based on .behavior/v2026_03_23.envvar-boot-roles/3.2.distill.factory.upgrades.*.v1.i1.md
+- if no factory work is needed, declare "no factory changes required"
+
+.why = blueprint the factory changes needed to build and verify the product.
+- the factory must be ready before you build the product
+- explicit blueprint prevents "i forgot to provision X" mid-build
+
+follow the patterns already present in this repo.
+
+---
+
+## summary
+
+state the factory changes needed (or "no factory changes required" if none).
+
+---
+
+## filediff tree
+
+if factory changes are needed, include a treestruct of filediffs.
+
+**legend:**
+- `[+] create` — file to create
+- `[~] update` — file to update
+- `[-] delete` — file to delete
+
+---
+
+## codepath tree
+
+if factory changes are needed, include a treestruct of codepaths.
+
+**legend:**
+- `[+]` create — codepath to create
+- `[~]` update — codepath to update
+- `[○]` retain — codepath to retain
+- `[-]` delete — codepath to delete
+- `[←]` reuse — codepath to reuse from elsewhere
+- `[→]` eject — codepath to decompose for reuse
+
+---
+
+## test coverage
+
+if factory changes are needed, declare the test coverage:
+- unit tests for factory utilities
+- integration tests for factory tools
+- manual verification steps if needed
+
+---
+
+## factory readiness
+
+before product blueprint, confirm:
+
+- [ ] test infra ready (can verify end-to-end)
+- [ ] credentials provisioned (no access blocks)
+- [ ] feedback loops acceptable (verification < X minutes)
+- [ ] blockers addressed or deferred with plan
+
+---
+
+remember, the purpose of the blueprint is to declare what the execution will adhere to.
+
+we want to see:
+- what factory changes will be made
+- how the changes enable build and verify cycles
+- what the codepaths are, their ease of maintenance and readability
+
+---
+
+reference
+- .behavior/v2026_03_23.envvar-boot-roles/0.wish.md
+- .behavior/v2026_03_23.envvar-boot-roles/1.vision.md (if declared)
+- .behavior/v2026_03_23.envvar-boot-roles/3.1.2.research.external.factory.testloops.*.v1.i1.md (if declared)
+- .behavior/v2026_03_23.envvar-boot-roles/3.1.2.research.external.factory.oss.levers.*.v1.i1.md (if declared)
+- .behavior/v2026_03_23.envvar-boot-roles/3.1.2.research.external.factory.templates.*.v1.i1.md (if declared)
+- .behavior/v2026_03_23.envvar-boot-roles/3.2.distill.factory.upgrades.*.v1.i1.md (if declared)
+
+---
+
+emit into .behavior/v2026_03_23.envvar-boot-roles/3.3.0.blueprint.factory.v1.i1.md

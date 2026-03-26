@@ -68,17 +68,40 @@ describe('fillKeyrackKeys.integration', () => {
     name: 'fillKeyrackKeys-integration',
   });
 
+  // isolate XDG_RUNTIME_DIR to prevent pruneKeyrackDaemon from kill of real daemons
+  // .note = without this, pruneKeyrackDaemon({ owner: '@all' }) scans the REAL
+  //         runtime dir and kills daemons outside this test's scope
+  const testRuntimeDir = `/tmp/keyrack-fill-test-${process.pid}`;
+  let originalXdgRuntimeDir: string | undefined;
+
   // capture emitted output via context.emit
   let emitSpy: jest.Mock;
 
-  beforeAll(() => testHome.setup());
-  afterAll(() => testHome.teardown());
+  beforeAll(() => {
+    // create isolated runtime dir
+    if (!existsSync(testRuntimeDir)) mkdirSync(testRuntimeDir);
+    originalXdgRuntimeDir = process.env['XDG_RUNTIME_DIR'];
+    process.env['XDG_RUNTIME_DIR'] = testRuntimeDir;
+
+    return testHome.setup();
+  });
+  afterAll(() => {
+    // restore original XDG_RUNTIME_DIR
+    if (originalXdgRuntimeDir !== undefined) {
+      process.env['XDG_RUNTIME_DIR'] = originalXdgRuntimeDir;
+    } else {
+      delete process.env['XDG_RUNTIME_DIR'];
+    }
+
+    return testHome.teardown();
+  });
 
   beforeEach(() => {
     emitSpy = jest.fn();
     // prune all daemons to ensure clean state between tests
     // .note = daemon persists keys in memory; without prune, keys from prior
     //         test runs would cause fill to skip (already granted)
+    // .note = safe because XDG_RUNTIME_DIR is isolated to testRuntimeDir
     pruneKeyrackDaemon({ owner: '@all' });
   });
 
