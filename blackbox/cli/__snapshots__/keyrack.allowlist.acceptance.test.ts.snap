@@ -23,7 +23,8 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t0.6] get --key ALLOWED_KEY (human readable, without unlock) then: stdout matches snapshot 1`] = `
-"🔐 keyrack
+"
+🔐 keyrack
    └─ testorg.test.ALLOWED_KEY
       ├─ status: locked 🔒
       └─ [2mtip: rhx keyrack unlock --env test --key ALLOWED_KEY[0m
@@ -41,7 +42,8 @@ exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that
 `;
 
 exports[`keyrack allowlist given: [case1] repo with allowlist (keyrack.yml) that excludes a key configured on host when: [t1.1] get --key SECRET_KEY (human readable) then: stdout matches snapshot 1`] = `
-"🔐 keyrack
+"
+🔐 keyrack
    └─ testorg.test.SECRET_KEY
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --key SECRET_KEY --env test --vault <vault>[0m
