@@ -106,7 +106,8 @@ exports[`keyrack daemon cache given: [case6] unlock via recipient key discovery 
 `;
 
 exports[`keyrack daemon cache given: [case6] unlock via recipient key discovery when: [t1] get after unlock (human readable) then: get stdout matches snapshot 1`] = `
-"🔐 keyrack
+"
+🔐 keyrack
    └─ testorg.test.SECURE_API_KEY
       ├─ vault: os.secure
       ├─ mech: PERMANENT_VIA_REPLICA
