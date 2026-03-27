@@ -52,11 +52,23 @@ export const daoKeyrackHostManifest = {
 
     // get identity via lazy cached discovery
     const identity = await context.identity.getOne({ for: 'manifest' });
-    if (!identity)
+    if (!identity) {
+      // gather identity info for error message
+      const discovered = await context.identity.getAll.discovered();
+      const prescribed = context.identity.getAll.prescribed;
+      const available = [...prescribed, ...discovered];
       throw new UnexpectedCodePathError(
         'no identity could decrypt manifest; ensure ssh key is available or use --prikey flag',
-        { path, owner },
+        {
+          path,
+          owner,
+          identities: {
+            available,
+            attempted: available, // all available identities were attempted
+          },
+        },
       );
+    }
 
     // read encrypted content
     const ciphertext = readFileSync(path, 'utf8');
