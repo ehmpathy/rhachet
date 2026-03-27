@@ -655,9 +655,8 @@ describe('daoKeyrackHostManifest', () => {
             );
 
             expect(error).toBeDefined();
-            // note: other tests in this suite create ssh keys in temp home
-            // so the error is "failed to decrypt" not "no prikey available"
-            expect(error?.message).toContain('failed to decrypt');
+            // note: discovery finds no identity that can decrypt this manifest
+            expect(error?.message).toContain('no identity could decrypt');
           },
         );
       },
@@ -704,7 +703,7 @@ describe('daoKeyrackHostManifest', () => {
         );
 
         expect(error).toBeDefined();
-        expect(error?.message).toContain('failed to decrypt');
+        expect(error?.message).toContain('no identity could decrypt');
 
         // error should include identities metadata
         const metadata = (error as unknown as Record<string, unknown>)
