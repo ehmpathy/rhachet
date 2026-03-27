@@ -57,70 +57,39 @@ const getCredentialPath = (input: {
 };
 
 /**
- * .what = session state for the age identity
- * .why = tracks the decryption identity for recipient-based encryption
- *
- * .note = identity is held in memory only for the session lifetime
- * .note = identity is set via setOsSecureSessionIdentity from manifest decryption
- */
-let sessionIdentity: string | null = null;
-
-/**
- * .what = get the active identity from session
- * .why = enables identity-based decryption for recipient-encrypted credentials
- */
-const getActiveIdentity = (): string | null => {
-  return sessionIdentity;
-};
-
-/**
- * .what = set the session identity for recipient-based decryption
- * .why = enables vault decryption with same identity as manifest
- */
-export const setOsSecureSessionIdentity = (identity: string | null): void => {
-  sessionIdentity = identity;
-};
-
-/**
  * .what = vault adapter for os-secure storage
  * .why = stores credentials in age-encrypted files with identity-based encryption
  *
- * .note = os.secure requires explicit unlock via identity (ssh key)
+ * .note = os.secure requires identity from context for all operations
  */
 export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
   /**
    * .what = unlock the vault for the current session
-   * .why = captures the identity for subsequent get/set operations
+   * .why = validates identity is available for subsequent operations
    *
-   * .note = identity flows from manifest decryption via setOsSecureSessionIdentity
+   * .note = identity flows through context, not session state
    */
   unlock: async (input: { identity: string | null }) => {
-    // check if identity already available (set via setOsSecureSessionIdentity)
-    if (getActiveIdentity() !== null) return;
-
-    // check input identity
-    if (input.identity !== null) {
-      sessionIdentity = input.identity;
-      return;
+    // identity required for os.secure
+    if (input.identity === null) {
+      throw new UnexpectedCodePathError('os.secure unlock requires identity', {
+        hint: 'use --prikey to specify ssh key or run keyrack init',
+      });
     }
-
-    // no identity available
-    throw new UnexpectedCodePathError('os.secure unlock requires identity', {
-      hint: 'use --prikey to specify ssh key or run keyrack init',
-    });
+    // no-op — identity will be passed to get/isUnlocked via context
   },
 
   /**
    * .what = check if the vault is unlocked
-   * .why = returns true if identity is available
+   * .why = returns true if identity is available in input
    */
-  isUnlocked: async () => {
-    return getActiveIdentity() !== null;
+  isUnlocked: async (input) => {
+    return input?.identity !== null && input?.identity !== undefined;
   },
 
   /**
    * .what = retrieve a credential from the encrypted vault
-   * .why = decrypts the age file with identity
+   * .why = decrypts the age file with identity from input
    */
   get: async (input) => {
     // return null if file does not exist
@@ -129,11 +98,11 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
     if (!existsSync(path)) return null;
 
     // identity required for decryption
-    const identity = getActiveIdentity();
+    const identity = input.identity ?? null;
     if (!identity) {
       throw new UnexpectedCodePathError('os.secure vault is locked', {
         input,
-        hint: 'use --prikey to specify ssh key or run keyrack init',
+        hint: 'identity must be passed via context',
       });
     }
 

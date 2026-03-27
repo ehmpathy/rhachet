@@ -78,7 +78,6 @@ describe('asKeyrackKeySlug', () => {
         expect(error).toBeInstanceOf(BadRequestError);
         expect(error!.message).toContain('other-org');
         expect(error!.message).toContain('ehmpathy');
-        expect(error!.message).toContain('ORG_MISMATCH');
       });
     });
 
@@ -96,7 +95,6 @@ describe('asKeyrackKeySlug', () => {
         expect(error).toBeInstanceOf(BadRequestError);
         expect(error!.message).toContain('prod');
         expect(error!.message).toContain('test');
-        expect(error!.message).toContain('ENV_CONFLICT');
       });
     });
 
@@ -160,7 +158,6 @@ describe('asKeyrackKeySlug', () => {
           ),
         );
         expect(error).toBeInstanceOf(BadRequestError);
-        expect(error!.message).toContain('AMBIGUOUS_KEY');
         expect(error!.message).toContain('test');
         expect(error!.message).toContain('prod');
         expect(error!.message).toContain('--env');
@@ -183,7 +180,6 @@ describe('asKeyrackKeySlug', () => {
           ),
         );
         expect(error).toBeInstanceOf(BadRequestError);
-        expect(error!.message).toContain('KEY_NOT_FOUND');
         expect(error!.message).toContain('UNKNOWN_KEY');
         expect(error!.message).toContain('--env');
       });

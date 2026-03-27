@@ -4,7 +4,7 @@ import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHost
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 
 // mock the daos to avoid filesystem access in unit tests
 jest.mock('../../access/daos/daoKeyrackHostManifest', () => ({
@@ -34,9 +34,12 @@ describe('delKeyrackKeyHost', () => {
 
   given('[case1] key exists in manifest', () => {
     const vaultAdapter = genMockVaultAdapter();
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'testorg.prod.MY_KEY': {
@@ -46,7 +49,7 @@ describe('delKeyrackKeyHost', () => {
           },
         },
       }),
-      repoManifest: { org: 'testorg' },
+      repoManifest: null,
       gitroot: '/tmp/test-repo',
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
@@ -77,11 +80,14 @@ describe('delKeyrackKeyHost', () => {
   });
 
   given('[case2] key does not exist in manifest', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-      repoManifest: { org: 'testorg' },
+      repoManifest: null,
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),
@@ -110,9 +116,12 @@ describe('delKeyrackKeyHost', () => {
 
   given('[case3] sudo key (env=sudo)', () => {
     const vaultAdapter = genMockVaultAdapter();
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           'testorg.sudo.SECRET_TOKEN': {
@@ -122,7 +131,7 @@ describe('delKeyrackKeyHost', () => {
           },
         },
       }),
-      repoManifest: { org: 'testorg' },
+      repoManifest: null,
       gitroot: '/tmp/test-repo',
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),

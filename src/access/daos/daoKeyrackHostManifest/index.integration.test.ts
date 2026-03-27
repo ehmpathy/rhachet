@@ -9,6 +9,10 @@ import {
 } from '@src/domain.objects/keyrack';
 import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import {
+  type ContextKeyrack,
+  genContextKeyrack,
+} from '@src/domain.operations/keyrack/genContextKeyrack';
+import {
   ed25519SeedToAgeIdentity,
   extractEd25519Seed,
 } from '@src/infra/ssh/sshPrikeyToAgeIdentity';
@@ -23,6 +27,22 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { daoKeyrackHostManifest } from './index';
+
+/**
+ * .what = create minimal context for dao test
+ * .why = tests need to provide identity without full context setup
+ */
+const createTestContext = (identity: string | null = null): ContextKeyrack => ({
+  owner: null,
+  identity: {
+    getOne: async () => identity,
+    getAll: {
+      discovered: async () => (identity ? [identity] : []),
+      prescribed: [],
+    },
+  },
+  vaultAdapters: {} as ContextKeyrack['vaultAdapters'],
+});
 
 /**
  * .what = test ed25519 ssh key (unencrypted, no passphrase)
@@ -62,18 +82,13 @@ describe('daoKeyrackHostManifest', () => {
   beforeAll(() => tempHome.setup());
   afterAll(() => tempHome.teardown());
 
-  beforeEach(() => {
-    // clear session identity between tests
-    daoKeyrackHostManifest.setSessionIdentity(null);
-  });
-
   given('[case1] no manifest exists (default owner)', () => {
     when('[t0] get called', () => {
       then('returns null', async () => {
-        const result = await daoKeyrackHostManifest.get({
-          owner: null,
-          prikey: null,
-        });
+        const result = await daoKeyrackHostManifest.get(
+          { owner: null },
+          createTestContext(),
+        );
         expect(result).toBeNull();
       });
     });
@@ -86,8 +101,6 @@ describe('daoKeyrackHostManifest', () => {
 
       when('[t0] set.findsert called with new manifest', () => {
         then('creates encrypted manifest file', async () => {
-          daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
           const recipient = new KeyrackKeyRecipient({
             mech: 'age',
             pubkey: keyPair.recipient,
@@ -142,16 +155,17 @@ describe('daoKeyrackHostManifest', () => {
 
       when('[t1] get with correct identity', () => {
         then('decrypts and returns manifest', async () => {
-          daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-          const result = await daoKeyrackHostManifest.get({
-            owner: null,
-            prikey: null,
-          });
+          const result = await daoKeyrackHostManifest.get(
+            { owner: null },
+            createTestContext(keyPair.identity),
+          );
 
           expect(result).not.toBeNull();
-          expect(result?.owner).toBeNull();
-          expect(result?.recipients).toHaveLength(1);
-          expect(result?.recipients[0]?.pubkey).toEqual(keyPair.recipient);
+          expect(result?.manifest?.owner).toBeNull();
+          expect(result?.manifest?.recipients).toHaveLength(1);
+          expect(result?.manifest?.recipients[0]?.pubkey).toEqual(
+            keyPair.recipient,
+          );
         });
       });
 
@@ -159,19 +173,15 @@ describe('daoKeyrackHostManifest', () => {
         then(
           'attempts discovery and fails with decrypt error (no match)',
           async () => {
-            daoKeyrackHostManifest.setSessionIdentity(null);
             const error = await getError(
-              daoKeyrackHostManifest.get({ owner: null, prikey: null }),
+              daoKeyrackHostManifest.get({ owner: null }, createTestContext()),
             );
             expect(error).toBeDefined();
             // per blueprint 6.4: discovery tries available keys; fails if none match
-            // error is either:
-            // - "no prikey available" (no keys found in temp home or ssh-agent)
-            // - "failed to decrypt" (keys found but none match this manifest)
-            expect(
-              error?.message.includes('no prikey available') ||
-                error?.message.includes('failed to decrypt'),
-            ).toBe(true);
+            // context with null identity triggers "no identity could decrypt" error
+            expect(error?.message.includes('no identity could decrypt')).toBe(
+              true,
+            );
           },
         );
       });
@@ -179,9 +189,11 @@ describe('daoKeyrackHostManifest', () => {
       when('[t3] get with wrong identity', () => {
         then('throws error', async () => {
           const wrongKeyPair = await generateAgeKeyPair();
-          daoKeyrackHostManifest.setSessionIdentity(wrongKeyPair.identity);
           const error = await getError(
-            daoKeyrackHostManifest.get({ owner: null, prikey: null }),
+            daoKeyrackHostManifest.get(
+              { owner: null },
+              createTestContext(wrongKeyPair.identity),
+            ),
           );
           expect(error).toBeDefined();
           expect(error?.message).toContain('failed to decrypt host manifest');
@@ -194,8 +206,6 @@ describe('daoKeyrackHostManifest', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient,
@@ -207,7 +217,7 @@ describe('daoKeyrackHostManifest', () => {
         slug: 'ehmpathy.sudo.GITHUB_TOKEN',
         exid: null,
         vault: 'os.direct',
-        mech: 'REPLICA',
+        mech: 'PERMANENT_VIA_REPLICA',
         env: 'sudo',
         org: 'ehmpathy',
         vaultRecipient: null,
@@ -228,18 +238,19 @@ describe('daoKeyrackHostManifest', () => {
 
     when('[t0] get after upsert', () => {
       then('host is preserved with env and org fields', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-        const result = await daoKeyrackHostManifest.get({
-          owner: null,
-          prikey: null,
-        });
+        const result = await daoKeyrackHostManifest.get(
+          { owner: null },
+          createTestContext(keyPair.identity),
+        );
 
-        expect(result?.hosts['ehmpathy.sudo.GITHUB_TOKEN']).toBeDefined();
-        const host = result?.hosts['ehmpathy.sudo.GITHUB_TOKEN'];
+        expect(
+          result?.manifest?.hosts['ehmpathy.sudo.GITHUB_TOKEN'],
+        ).toBeDefined();
+        const host = result?.manifest?.hosts['ehmpathy.sudo.GITHUB_TOKEN'];
         expect(host?.env).toEqual('sudo');
         expect(host?.org).toEqual('ehmpathy');
         expect(host?.vault).toEqual('os.direct');
-        expect(host?.mech).toEqual('REPLICA');
+        expect(host?.mech).toEqual('PERMANENT_VIA_REPLICA');
       });
     });
   });
@@ -248,8 +259,6 @@ describe('daoKeyrackHostManifest', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient,
@@ -279,12 +288,11 @@ describe('daoKeyrackHostManifest', () => {
       });
 
       then('owner is stored in manifest', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-        const result = await daoKeyrackHostManifest.get({
-          owner: 'mechanic',
-          prikey: null,
-        });
-        expect(result?.owner).toEqual('mechanic');
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'mechanic' },
+          createTestContext(keyPair.identity),
+        );
+        expect(result?.manifest?.owner).toEqual('mechanic');
       });
     });
   });
@@ -293,8 +301,6 @@ describe('daoKeyrackHostManifest', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const firstManifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient,
@@ -314,8 +320,6 @@ describe('daoKeyrackHostManifest', () => {
 
     when('[t0] findsert on same uri', () => {
       then('returns prior manifest without update', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
           pubkey: keyPair.recipient,
@@ -330,9 +334,10 @@ describe('daoKeyrackHostManifest', () => {
           hosts: {},
         });
 
-        const result = await daoKeyrackHostManifest.set({
-          findsert: newManifest,
-        });
+        const result = await daoKeyrackHostManifest.set(
+          { findsert: newManifest },
+          createTestContext(keyPair.identity),
+        );
 
         // label should still be 'test-key' from original findsert
         expect(result.recipients[0]?.label).toEqual('test-key');
@@ -341,8 +346,6 @@ describe('daoKeyrackHostManifest', () => {
 
     when('[t1] findsert on different uri', () => {
       then('throws error', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
           pubkey: keyPair.recipient,
@@ -358,7 +361,10 @@ describe('daoKeyrackHostManifest', () => {
         });
 
         const error = await getError(
-          daoKeyrackHostManifest.set({ findsert: newManifest }),
+          daoKeyrackHostManifest.set(
+            { findsert: newManifest },
+            createTestContext(keyPair.identity),
+          ),
         );
 
         expect(error).toBeDefined();
@@ -367,35 +373,11 @@ describe('daoKeyrackHostManifest', () => {
     });
   });
 
-  given(
-    '[case6] hasIdentity helper (session identity only per blueprint 6.4)',
-    () => {
-      when('[t0] no explicit identity (session only)', () => {
-        then('returns false (discovery is separate)', () => {
-          daoKeyrackHostManifest.setSessionIdentity(null);
-          // per blueprint 6.4: hasIdentity only checks explicit (session)
-          // discovery happens at runtime in get(), not in hasIdentity
-          expect(daoKeyrackHostManifest.hasIdentity()).toBe(false);
-        });
-      });
-
-      when('[t1] session identity set', () => {
-        then('returns true', async () => {
-          const keyPair = await generateAgeKeyPair();
-          daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-          expect(daoKeyrackHostManifest.hasIdentity()).toBe(true);
-        });
-      });
-    },
-  );
-
-  given('[case7] multi-recipient encryption', () => {
+  given('[case6] multi-recipient encryption', () => {
     const keyPair1 = useBeforeAll(async () => generateAgeKeyPair());
     const keyPair2 = useBeforeAll(async () => generateAgeKeyPair());
 
     const manifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair1.identity);
-
       const recipients = [
         new KeyrackKeyRecipient({
           mech: 'age',
@@ -423,31 +405,27 @@ describe('daoKeyrackHostManifest', () => {
 
     when('[t0] both recipients can decrypt', () => {
       then('first recipient can decrypt', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair1.identity);
-        const result = await daoKeyrackHostManifest.get({
-          owner: 'multi',
-          prikey: null,
-        });
-        expect(result?.owner).toEqual('multi');
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'multi' },
+          createTestContext(keyPair1.identity),
+        );
+        expect(result?.manifest?.owner).toEqual('multi');
       });
 
       then('second recipient can decrypt', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair2.identity);
-        const result = await daoKeyrackHostManifest.get({
-          owner: 'multi',
-          prikey: null,
-        });
-        expect(result?.owner).toEqual('multi');
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'multi' },
+          createTestContext(keyPair2.identity),
+        );
+        expect(result?.manifest?.owner).toEqual('multi');
       });
     });
   });
 
-  given('[case8] upsert overwrites manifest', () => {
+  given('[case7] upsert overwrites manifest', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const firstManifest = useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient,
@@ -457,7 +435,7 @@ describe('daoKeyrackHostManifest', () => {
 
       const oldHost = new KeyrackKeyHost({
         slug: 'OLD_KEY',
-        mech: 'REPLICA',
+        mech: 'PERMANENT_VIA_REPLICA',
         vault: 'os.direct',
         exid: null,
         env: 'all',
@@ -480,8 +458,6 @@ describe('daoKeyrackHostManifest', () => {
 
     when('[t0] set.upsert called', () => {
       then('overwrites manifest', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
-
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
           pubkey: keyPair.recipient,
@@ -491,7 +467,7 @@ describe('daoKeyrackHostManifest', () => {
 
         const newHost = new KeyrackKeyHost({
           slug: 'NEW_KEY',
-          mech: 'GITHUB_APP',
+          mech: 'EPHEMERAL_VIA_GITHUB_APP',
           vault: '1password',
           exid: 'op://vault/item',
           env: 'all',
@@ -528,11 +504,10 @@ describe('daoKeyrackHostManifest', () => {
     });
   });
 
-  given('[case9] prikey auto-discovery with owner-specific path', () => {
+  given('[case8] prikey auto-discovery with owner-specific path', () => {
     const sshKeyRecipient = useBeforeAll(async () => ({
       value: await getTestSshKeyAgeRecipient(),
     }));
-    const sshKeyIdentity = getTestSshKeyAgeIdentity();
 
     // setup: write ssh key to ~/.ssh/testowner and create manifest encrypted to it
     useBeforeAll(async () => {
@@ -546,7 +521,6 @@ describe('daoKeyrackHostManifest', () => {
       chmodSync(sshKeyPath, 0o600);
 
       // create manifest encrypted to the ssh key's age recipient
-      daoKeyrackHostManifest.setSessionIdentity(sshKeyIdentity);
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: sshKeyRecipient.value,
@@ -561,46 +535,44 @@ describe('daoKeyrackHostManifest', () => {
           hosts: {},
         }),
       });
-      daoKeyrackHostManifest.setSessionIdentity(null);
       return {};
     });
 
     when('[t0] get called with owner but no explicit identity', () => {
       then('discovers ~/.ssh/$owner and decrypts', async () => {
-        // no explicit identity set
-        daoKeyrackHostManifest.setSessionIdentity(null);
-
-        const result = await daoKeyrackHostManifest.get({
-          owner: 'testowner',
-          prikey: null,
-        });
+        const context = genContextKeyrack({ owner: 'testowner' });
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'testowner' },
+          context,
+        );
 
         expect(result).not.toBeNull();
-        expect(result?.owner).toEqual('testowner');
+        expect(result?.manifest?.owner).toEqual('testowner');
       });
     });
 
     when('[t1] get called with explicit prikey param', () => {
       then('uses explicit prikey instead of discovery', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(null);
-
         const sshKeyPath = join(tempHome.path, '.ssh', 'testowner');
-        const result = await daoKeyrackHostManifest.get({
+        const context = genContextKeyrack({
           owner: 'testowner',
-          prikey: sshKeyPath,
+          prikeys: [sshKeyPath],
         });
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'testowner' },
+          context,
+        );
 
         expect(result).not.toBeNull();
-        expect(result?.owner).toEqual('testowner');
+        expect(result?.manifest?.owner).toEqual('testowner');
       });
     });
   });
 
-  given('[case10] prikey auto-discovery with standard paths', () => {
+  given('[case9] prikey auto-discovery with standard paths', () => {
     const sshKeyRecipient = useBeforeAll(async () => ({
       value: await getTestSshKeyAgeRecipient(),
     }));
-    const sshKeyIdentity = getTestSshKeyAgeIdentity();
 
     // setup: write ssh key to ~/.ssh/id_ed25519 (standard path)
     useBeforeAll(async () => {
@@ -614,7 +586,6 @@ describe('daoKeyrackHostManifest', () => {
       chmodSync(sshKeyPath, 0o600);
 
       // create manifest encrypted to the ssh key's age recipient
-      daoKeyrackHostManifest.setSessionIdentity(sshKeyIdentity);
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: sshKeyRecipient.value,
@@ -629,7 +600,6 @@ describe('daoKeyrackHostManifest', () => {
           hosts: {},
         }),
       });
-      daoKeyrackHostManifest.setSessionIdentity(null);
       return {};
     });
 
@@ -637,27 +607,25 @@ describe('daoKeyrackHostManifest', () => {
       then(
         'discovers standard path ~/.ssh/id_ed25519 and decrypts',
         async () => {
-          daoKeyrackHostManifest.setSessionIdentity(null);
-
           // no owner → no owner-specific path → falls back to standard paths
-          const result = await daoKeyrackHostManifest.get({
-            owner: 'stdpath',
-            prikey: null,
-          });
+          const context = genContextKeyrack({ owner: 'stdpath' });
+          const result = await daoKeyrackHostManifest.get(
+            { owner: 'stdpath' },
+            context,
+          );
 
           expect(result).not.toBeNull();
-          expect(result?.owner).toEqual('stdpath');
+          expect(result?.manifest?.owner).toEqual('stdpath');
         },
       );
     });
   });
 
-  given('[case11] prikey auto-discovery fails with no keys', () => {
+  given('[case10] prikey auto-discovery fails with no keys', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     // setup: create manifest but no ssh keys available
     useBeforeAll(async () => {
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient,
@@ -672,7 +640,6 @@ describe('daoKeyrackHostManifest', () => {
           hosts: {},
         }),
       });
-      daoKeyrackHostManifest.setSessionIdentity(null);
       return {};
     });
 
@@ -682,10 +649,9 @@ describe('daoKeyrackHostManifest', () => {
         then(
           'fails with decrypt error (available keys cannot decrypt this manifest)',
           async () => {
-            daoKeyrackHostManifest.setSessionIdentity(null);
-
+            const context = genContextKeyrack({ owner: 'nokeys' });
             const error = await getError(
-              daoKeyrackHostManifest.get({ owner: 'nokeys', prikey: null }),
+              daoKeyrackHostManifest.get({ owner: 'nokeys' }, context),
             );
 
             expect(error).toBeDefined();
@@ -698,7 +664,7 @@ describe('daoKeyrackHostManifest', () => {
     );
   });
 
-  given('[case12] prikey auto-discovery fails with wrong key', () => {
+  given('[case11] prikey auto-discovery fails with wrong key', () => {
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     // setup: create manifest encrypted to age key, but ssh key is available
@@ -713,7 +679,6 @@ describe('daoKeyrackHostManifest', () => {
       chmodSync(sshKeyPath, 0o600);
 
       // create manifest encrypted to a DIFFERENT age key pair
-      daoKeyrackHostManifest.setSessionIdentity(keyPair.identity);
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: keyPair.recipient, // different from ssh key's recipient
@@ -728,16 +693,14 @@ describe('daoKeyrackHostManifest', () => {
           hosts: {},
         }),
       });
-      daoKeyrackHostManifest.setSessionIdentity(null);
       return {};
     });
 
     when('[t0] get called with key that does not match recipient', () => {
       then('fails with decrypt error and shows attempted paths', async () => {
-        daoKeyrackHostManifest.setSessionIdentity(null);
-
+        const context = genContextKeyrack({ owner: 'wrongkey' });
         const error = await getError(
-          daoKeyrackHostManifest.get({ owner: 'wrongkey', prikey: null }),
+          daoKeyrackHostManifest.get({ owner: 'wrongkey' }, context),
         );
 
         expect(error).toBeDefined();
@@ -755,12 +718,11 @@ describe('daoKeyrackHostManifest', () => {
   });
 
   given(
-    '[case13] owner-specific path takes priority over standard paths',
+    '[case12] owner-specific path takes priority over standard paths',
     () => {
       const sshKeyRecipient = useBeforeAll(async () => ({
         value: await getTestSshKeyAgeRecipient(),
       }));
-      const sshKeyIdentity = getTestSshKeyAgeIdentity();
 
       // setup: write CORRECT key to ~/.ssh/$owner, WRONG key to ~/.ssh/id_ed25519
       useBeforeAll(async () => {
@@ -783,7 +745,6 @@ describe('daoKeyrackHostManifest', () => {
         chmodSync(stdKeyPath, 0o600);
 
         // create manifest encrypted to test ssh key
-        daoKeyrackHostManifest.setSessionIdentity(sshKeyIdentity);
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
           pubkey: sshKeyRecipient.value,
@@ -798,7 +759,6 @@ describe('daoKeyrackHostManifest', () => {
             hosts: {},
           }),
         });
-        daoKeyrackHostManifest.setSessionIdentity(null);
         return {};
       });
 
@@ -806,17 +766,16 @@ describe('daoKeyrackHostManifest', () => {
         then(
           'uses owner-specific path first (ignores standard path)',
           async () => {
-            daoKeyrackHostManifest.setSessionIdentity(null);
-
             // if standard path were tried first, it would fail
             // success proves owner-specific path has priority
-            const result = await daoKeyrackHostManifest.get({
-              owner: 'priorityowner',
-              prikey: null,
-            });
+            const context = genContextKeyrack({ owner: 'priorityowner' });
+            const result = await daoKeyrackHostManifest.get(
+              { owner: 'priorityowner' },
+              context,
+            );
 
             expect(result).not.toBeNull();
-            expect(result?.owner).toEqual('priorityowner');
+            expect(result?.manifest?.owner).toEqual('priorityowner');
           },
         );
       });

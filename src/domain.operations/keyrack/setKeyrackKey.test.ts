@@ -4,7 +4,7 @@ import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHost
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKey } from './setKeyrackKey';
 
 // mock the daos to avoid filesystem access in unit tests
@@ -31,9 +31,15 @@ describe('setKeyrackKey', () => {
           const mockAdapter = genMockVaultAdapter();
           mockAdapter.set = jest.fn();
 
-          const context: KeyrackHostContext = {
+          const context: ContextKeyrack = {
             owner: null,
-            identity: 'test-identity',
+            identity: {
+              getOne: async () => 'test-identity',
+              getAll: {
+                discovered: async () => ['test-identity'],
+                prescribed: [],
+              },
+            },
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
             vaultAdapters: {
               'os.envvar': genMockVaultAdapter(),
@@ -74,9 +80,15 @@ describe('setKeyrackKey', () => {
         const mockAdapter = genMockVaultAdapter();
         mockAdapter.set = jest.fn();
 
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: null,
-          identity: 'test-identity',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
@@ -116,13 +128,17 @@ describe('setKeyrackKey', () => {
         const mockAdapter = genMockVaultAdapter();
         mockAdapter.set = jest.fn();
 
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: null,
-          identity: 'test-identity',
-          hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-          repoManifest: {
-            org: 'ehmpathy',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
           },
+          hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': mockAdapter,
@@ -173,11 +189,17 @@ describe('setKeyrackKey', () => {
             },
           });
 
-          const context: KeyrackHostContext = {
+          const context: ContextKeyrack = {
             owner: null,
-            identity: 'test-identity',
+            identity: {
+              getOne: async () => 'test-identity',
+              getAll: {
+                discovered: async () => ['test-identity'],
+                prescribed: [],
+              },
+            },
             hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-            repoManifest: { org: repoManifest.org },
+            repoManifest: null,
             vaultAdapters: {
               'os.envvar': genMockVaultAdapter(),
               'os.direct': mockAdapter,

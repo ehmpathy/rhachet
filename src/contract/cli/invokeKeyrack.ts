@@ -2,6 +2,8 @@ import type { Command } from 'commander';
 import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import { loadManifestHydrated } from '@src/access/daos/daoKeyrackRepoManifest/hydrate/loadManifestHydrated';
 import type {
   KeyrackGrantMechanism,
@@ -9,9 +11,8 @@ import type {
 } from '@src/domain.objects/keyrack';
 import {
   delKeyrackKey,
+  genContextKeyrack,
   genContextKeyrackGrantGet,
-  genContextKeyrackGrantUnlock,
-  genKeyrackHostContext,
   getKeyrackKeyGrant,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
@@ -401,6 +402,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             const blocked = attempts.filter((a) => a.status === 'blocked');
             const absent = attempts.filter((a) => a.status === 'absent');
 
+            console.log('');
             console.log('🔐 keyrack');
             for (let i = 0; i < attempts.length; i++) {
               const attempt = attempts[i]!;
@@ -527,6 +529,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           if (opts.json) {
             console.log(JSON.stringify(attemptResolved, null, 2));
           } else {
+            console.log('');
             console.log('🔐 keyrack');
             if (attemptResolved.status === 'granted') {
               emitKeyrackKeyBranch({
@@ -675,21 +678,26 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // get gitroot to derive org from manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const getContext = await genContextKeyrackGrantGet({
-          gitroot,
-          owner,
-        });
-        const hostContext = await genKeyrackHostContext({
+        const repoManifestFound = await daoKeyrackRepoManifest.get({ gitroot });
+
+        // create context with lazy identity discovery
+        const context = genContextKeyrack({
           owner,
           prikeys: opts.prikey ? [opts.prikey] : undefined,
+          repoManifest: repoManifestFound ?? null,
+          gitroot,
         });
 
-        // provide repoManifest and gitroot to hostContext for @this resolution and keyrack.yml writes
-        const context = {
-          ...hostContext,
-          repoManifest: getContext.repoManifest,
-          gitroot,
-        };
+        // load host manifest (triggers identity discovery)
+        const hostResult = await daoKeyrackHostManifest.get({ owner }, context);
+        if (!hostResult) {
+          const initTip = owner
+            ? `run: rhx keyrack init --owner ${owner}`
+            : 'run: rhx keyrack init';
+          throw new BadRequestError(`host manifest not found. ${initTip}`, {
+            owner,
+          });
+        }
 
         // load manifest: from --at path if provided, otherwise use default repo manifest
         const repoManifest = (() => {
@@ -708,7 +716,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             }
             return loadManifestHydrated({ path: customPath }, { gitroot });
           }
-          return getContext.repoManifest;
+          return context.repoManifest ?? null;
         })();
 
         // infer or validate env
@@ -848,33 +856,35 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // blank line before passphrase prompt (matches `set` output cadence)
         console.log('');
 
-        // get gitroot to derive org from manifest
+        // get gitroot and repoManifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const getContext = await genContextKeyrackGrantGet({
-          gitroot,
-          owner,
-        });
-        const hostContext = await genKeyrackHostContext({
+        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
+
+        // generate context and load host manifest
+        const context = genContextKeyrack({
           owner,
           prikeys: opts.prikey ? [opts.prikey] : undefined,
-        });
-
-        // provide repoManifest and gitroot to hostContext for keyrack.yml writes
-        const context = {
-          ...hostContext,
-          repoManifest: getContext.repoManifest,
+          repoManifest: repoManifest ?? null,
           gitroot,
-        };
+        });
+        await daoKeyrackHostManifest.get({ owner }, context);
 
         // derive org from manifest
         let derivedOrg: string;
         if (opts.org === '@all') {
           derivedOrg = '@all';
         } else {
-          if (!getContext.repoManifest) {
+          if (!repoManifest) {
             if (opts.env === 'sudo') {
               // for sudo keys, try to find org from host manifest keys
-              const hostSlugs = Object.keys(context.hostManifest.hosts);
+              const hostManifest = context.hostManifest;
+              if (!hostManifest) {
+                console.log('');
+                console.log('✋ no host manifest found');
+                console.log('');
+                process.exit(2);
+              }
+              const hostSlugs = Object.keys(hostManifest.hosts);
               const matchedSlug = hostSlugs.find((s) => {
                 const parts = s.split('.');
                 return (
@@ -902,7 +912,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             }
           } else {
             derivedOrg = assertKeyrackOrgMatchesManifest({
-              manifest: getContext.repoManifest,
+              manifest: repoManifest,
               org: opts.org,
             });
           }
@@ -1005,18 +1015,21 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           });
         }
 
-        // get gitroot for repo manifest
+        // get gitroot and repoManifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
 
         // blank line before passphrase prompt (matches `set` output cadence)
         console.log('');
 
-        // generate full context (decrypts host manifest — may prompt for passphrase)
-        const context = await genContextKeyrackGrantUnlock({
+        // generate context and load host manifest (decrypts — may prompt for passphrase)
+        const context = genContextKeyrack({
           owner,
-          gitroot,
           prikeys: opts.prikey ? [opts.prikey] : undefined,
+          repoManifest: repoManifest ?? null,
+          gitroot,
         });
+        await daoKeyrackHostManifest.get({ owner }, context);
 
         // unlock keys and send to daemon
         const { unlocked, omitted } = await unlockKeyrackKeys(
@@ -1202,11 +1215,20 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // --owner takes precedence; --for is alias
         const owner = opts.owner ?? opts.for ?? null;
 
-        // generate context (use owner from --owner flag)
-        const context = await genKeyrackHostContext({
+        // generate context and load host manifest
+        const context = genContextKeyrack({
           owner,
           prikeys: opts.prikey ? [opts.prikey] : undefined,
         });
+        await daoKeyrackHostManifest.get({ owner }, context);
+
+        // guard for absent host manifest
+        if (!context.hostManifest) {
+          console.log('');
+          console.log('✋ no host manifest found');
+          console.log('');
+          process.exit(2);
+        }
         const hosts = context.hostManifest.hosts;
         const slugs = Object.keys(hosts).sort();
 

@@ -1,9 +1,10 @@
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
+import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 // mock the dao to avoid filesystem access in unit tests
@@ -15,11 +16,14 @@ jest.mock('../../access/daos/daoKeyrackHostManifest', () => ({
 
 describe('setKeyrackKeyHost', () => {
   given('[case1] new key to configure with @this org', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-      repoManifest: { org: 'ehmpathy' },
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),
@@ -186,9 +190,12 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case2] key already exists with same attrs', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
@@ -200,7 +207,7 @@ describe('setKeyrackKeyHost', () => {
           },
         },
       }),
-      repoManifest: { org: 'ehmpathy' },
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),
@@ -229,9 +236,12 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case3] key exists with different attrs', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({
         hosts: {
           EXISTING_KEY: {
@@ -243,7 +253,7 @@ describe('setKeyrackKeyHost', () => {
           },
         },
       }),
-      repoManifest: { org: 'ehmpathy' },
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),
@@ -284,11 +294,14 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case4] org validation', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-      repoManifest: { org: 'ehmpathy' },
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),
@@ -346,9 +359,12 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case5] @this without repoManifest', () => {
-    const context: KeyrackHostContext = {
+    const context: ContextKeyrack = {
       owner: null,
-      identity: 'test-identity',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
       repoManifest: null,
       vaultAdapters: {

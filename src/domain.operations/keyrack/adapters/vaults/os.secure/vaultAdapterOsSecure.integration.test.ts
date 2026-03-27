@@ -15,10 +15,7 @@ import { join } from 'node:path';
 
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 
-import {
-  setOsSecureSessionIdentity,
-  vaultAdapterOsSecure,
-} from './vaultAdapterOsSecure';
+import { vaultAdapterOsSecure } from './vaultAdapterOsSecure';
 
 describe('vaultAdapterOsSecure', () => {
   const tempHome = withTempHome({ name: 'vaultAdapterOsSecure' });
@@ -39,53 +36,60 @@ describe('vaultAdapterOsSecure', () => {
       'owner=default',
     );
     rmSync(vaultDir, { recursive: true, force: true });
-
-    // reset session identity to ensure clean state between tests
-    setOsSecureSessionIdentity(null);
   });
 
-  given('[case1] vault is locked', () => {
-    when('[t0] isUnlocked called', () => {
+  given('[case1] vault without identity', () => {
+    when('[t0] isUnlocked called without identity', () => {
       then('returns false', async () => {
-        // force lock by unlock with new passphrase then check locked state
-        // but first test needs fresh module state, so we check against a fresh load
-        const result = await vaultAdapterOsSecure.isUnlocked();
-        // note: in a fresh session this would be false, but due to module cache
-        // across tests, we accept current state
-        expect(typeof result).toBe('boolean');
+        const result = await vaultAdapterOsSecure.isUnlocked({});
+        expect(result).toBe(false);
       });
     });
 
-    when('[t1] get called without unlock', () => {
-      then('throws error about vault locked', async () => {
-        // ensure locked state
-        // note: due to module-level state, we need to test in isolation
-        // for now, we test the unlock/get flow instead
-        const error = await getError(async () => {
-          // create a new context where vault is locked
-          // this test verifies the behavior documented in the code
-          expect(true).toBe(true); // placeholder - real test below
+    when('[t1] isUnlocked called with null identity', () => {
+      then('returns false', async () => {
+        const result = await vaultAdapterOsSecure.isUnlocked({
+          identity: null,
         });
+        expect(result).toBe(false);
+      });
+    });
+
+    when('[t2] get called without identity', () => {
+      then('throws error about vault locked', async () => {
+        // first set a key so we can test get
+        setMockPromptValues('test-value');
+        await vaultAdapterOsSecure.set({
+          slug: 'TEST_KEY',
+          env: 'test',
+          org: 'testorg',
+          vaultRecipient: testRecipient,
+        });
+
+        const error = await getError(
+          vaultAdapterOsSecure.get({ slug: 'TEST_KEY' }),
+        );
+        expect(error.message).toContain('vault is locked');
       });
     });
   });
 
-  given('[case2] vault is unlocked', () => {
-    beforeEach(async () => {
-      setOsSecureSessionIdentity(testIdentity);
-      await vaultAdapterOsSecure.unlock({ identity: null });
-    });
-
-    when('[t0] isUnlocked called', () => {
+  given('[case2] vault with identity', () => {
+    when('[t0] isUnlocked called with identity', () => {
       then('returns true', async () => {
-        const result = await vaultAdapterOsSecure.isUnlocked();
+        const result = await vaultAdapterOsSecure.isUnlocked({
+          identity: testIdentity,
+        });
         expect(result).toBe(true);
       });
     });
 
-    when('[t1] get called for nonexistent key', () => {
+    when('[t1] get called for nonexistent key with identity', () => {
       then('returns null', async () => {
-        const result = await vaultAdapterOsSecure.get({ slug: 'NONEXISTENT' });
+        const result = await vaultAdapterOsSecure.get({
+          slug: 'NONEXISTENT',
+          identity: testIdentity,
+        });
         expect(result).toBeNull();
       });
     });
@@ -124,7 +128,10 @@ describe('vaultAdapterOsSecure', () => {
           vaultRecipient: testRecipient,
         });
 
-        const result = await vaultAdapterOsSecure.get({ slug: 'XAI_API_KEY' });
+        const result = await vaultAdapterOsSecure.get({
+          slug: 'XAI_API_KEY',
+          identity: testIdentity,
+        });
         expect(result).toEqual('xai-test-key-123');
       });
     });
@@ -132,9 +139,6 @@ describe('vaultAdapterOsSecure', () => {
 
   given('[case3] vault has stored keys', () => {
     beforeEach(async () => {
-      setOsSecureSessionIdentity(testIdentity);
-      await vaultAdapterOsSecure.unlock({ identity: null });
-
       setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsSecure.set({
         slug: 'KEY_A',
@@ -152,10 +156,16 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t0] get called for stored key', () => {
       then('returns decrypted value', async () => {
-        const resultA = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
+        const resultA = await vaultAdapterOsSecure.get({
+          slug: 'KEY_A',
+          identity: testIdentity,
+        });
         expect(resultA).toEqual('value-a');
 
-        const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
+        const resultB = await vaultAdapterOsSecure.get({
+          slug: 'KEY_B',
+          identity: testIdentity,
+        });
         expect(resultB).toEqual('value-b');
       });
     });
@@ -170,7 +180,10 @@ describe('vaultAdapterOsSecure', () => {
           vaultRecipient: testRecipient,
         });
 
-        const result = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
+        const result = await vaultAdapterOsSecure.get({
+          slug: 'KEY_A',
+          identity: testIdentity,
+        });
         expect(result).toEqual('new-value-a');
       });
 
@@ -183,7 +196,10 @@ describe('vaultAdapterOsSecure', () => {
           vaultRecipient: testRecipient,
         });
 
-        const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
+        const resultB = await vaultAdapterOsSecure.get({
+          slug: 'KEY_B',
+          identity: testIdentity,
+        });
         expect(resultB).toEqual('value-b');
       });
     });
@@ -192,14 +208,20 @@ describe('vaultAdapterOsSecure', () => {
       then('removes encrypted file', async () => {
         await vaultAdapterOsSecure.del({ slug: 'KEY_A' });
 
-        const result = await vaultAdapterOsSecure.get({ slug: 'KEY_A' });
+        const result = await vaultAdapterOsSecure.get({
+          slug: 'KEY_A',
+          identity: testIdentity,
+        });
         expect(result).toBeNull();
       });
 
       then('does not affect other keys', async () => {
         await vaultAdapterOsSecure.del({ slug: 'KEY_A' });
 
-        const resultB = await vaultAdapterOsSecure.get({ slug: 'KEY_B' });
+        const resultB = await vaultAdapterOsSecure.get({
+          slug: 'KEY_B',
+          identity: testIdentity,
+        });
         expect(resultB).toEqual('value-b');
       });
     });
@@ -207,9 +229,6 @@ describe('vaultAdapterOsSecure', () => {
 
   given('[case4] encryption security', () => {
     beforeEach(async () => {
-      setOsSecureSessionIdentity(testIdentity);
-      await vaultAdapterOsSecure.unlock({ identity: null });
-
       setMockPromptValues('super-secret-value');
       await vaultAdapterOsSecure.set({
         slug: 'SECRET_KEY',

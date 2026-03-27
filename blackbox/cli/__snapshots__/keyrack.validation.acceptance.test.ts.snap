@@ -19,7 +19,7 @@ UnexpectedCodePathError: UnexpectedCodePathError: host manifest not found. run: 
 {
   "owner": null
 }
-    at genContextKeyrackGrantUnlock (/PATH_STRIPPED)
+    at unlockKeyrackKeys (/PATH_STRIPPED)
     at async Command.<anonymous> (/PATH_STRIPPED)
     at async Command.parseAsync (/PATH_STRIPPED)
     at async _invoke (/PATH_STRIPPED)

@@ -1,6 +1,13 @@
 import { spawnSync } from 'child_process';
+import { resolve } from 'path';
 
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
+
+/**
+ * .what = absolute path to rhx binary
+ * .why = relative path ./node_modules/.bin/rhx fails in temp directories with symlinked node_modules
+ */
+const RHX_BIN = resolve(__dirname, '../../../bin/rhx');
 
 const getSlug = (k: KeyrackGrantAttempt): string =>
   k.status === 'granted' ? k.grant.slug : k.slug;
@@ -41,13 +48,13 @@ export const sourceAllKeysIntoEnv = (input: {
   ];
 
   // call keyrack get --json to get structured data
-  const jsonResult = spawnSync('./node_modules/.bin/rhx', [...args, '--json'], {
+  const jsonResult = spawnSync(RHX_BIN, [...args, '--json'], {
     encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
   });
 
   // if command failed to execute, get formatted output and exit
   if (jsonResult.error) {
-    const formatted = spawnSync('./node_modules/.bin/rhx', args, {
+    const formatted = spawnSync(RHX_BIN, args, {
       encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
     });
     process.stdout.write(formatted.stdout || '');
@@ -61,7 +68,7 @@ export const sourceAllKeysIntoEnv = (input: {
     keys = JSON.parse(jsonResult.stdout);
   } catch {
     // JSON parse failed - get formatted output and forward it
-    const formatted = spawnSync('./node_modules/.bin/rhx', args, {
+    const formatted = spawnSync(RHX_BIN, args, {
       encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
     });
     process.stdout.write(formatted.stdout || jsonResult.stdout);
@@ -77,7 +84,7 @@ export const sourceAllKeysIntoEnv = (input: {
   const keysNotGranted = keysForEnv.filter((k) => k.status !== 'granted');
   if (mode === 'strict' && keysNotGranted.length > 0) {
     // get formatted output (same stdout as CLI) and forward it
-    const formatted = spawnSync('./node_modules/.bin/rhx', args, {
+    const formatted = spawnSync(RHX_BIN, args, {
       encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
     });
     const output = [

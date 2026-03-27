@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
@@ -10,7 +10,7 @@ import {
 } from '@src/domain.objects/keyrack';
 
 import { daemonAccessRelock } from './daemon/sdk';
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 
 /**
  * .what = configure storage for a credential key on this host
@@ -33,8 +33,16 @@ export const setKeyrackKeyHost = async (
     secret?: string | null;
     at?: string | null;
   },
-  context: KeyrackHostContext,
+  context: ContextKeyrack,
 ): Promise<KeyrackKeyHost> => {
+  // guard: host manifest required
+  if (!context.hostManifest)
+    throw new UnexpectedCodePathError(
+      'hostManifest required for set; call daoKeyrackHostManifest.get() first',
+      { slug: input.slug },
+    );
+  const hostManifest = context.hostManifest;
+
   const now = new Date().toISOString();
 
   // expand org — accepts @this (expands from manifest), @all, or already-expanded org name
@@ -66,9 +74,7 @@ export const setKeyrackKeyHost = async (
     vaultRecipient: input.vaultRecipient ?? null,
     owner: context.owner,
     // when no explicit vaultRecipient, use manifest recipients
-    recipients: input.vaultRecipient
-      ? undefined
-      : context.hostManifest.recipients,
+    recipients: input.vaultRecipient ? undefined : hostManifest.recipients,
   });
 
   // if adapter derived an exid (e.g., aws.iam.sso guided setup), use it for the manifest entry
@@ -85,7 +91,7 @@ export const setKeyrackKeyHost = async (
   }
 
   // check if key already exists in manifest
-  const hostFound = context.hostManifest.hosts[input.slug];
+  const hostFound = hostManifest.hosts[input.slug];
   if (hostFound) {
     // if found with same attrs, return found (findsert semantics)
     if (
@@ -116,12 +122,12 @@ export const setKeyrackKeyHost = async (
 
   // update manifest with new/updated key host
   const hostsUpdated = {
-    ...context.hostManifest.hosts,
+    ...hostManifest.hosts,
     [input.slug]: keyHost,
   };
 
   const manifestUpdated = new KeyrackHostManifest({
-    ...context.hostManifest,
+    ...hostManifest,
     hosts: hostsUpdated,
   });
 

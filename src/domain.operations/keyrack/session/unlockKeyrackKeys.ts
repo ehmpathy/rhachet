@@ -9,7 +9,7 @@ import {
   findsertKeyrackDaemon,
 } from '@src/domain.operations/keyrack/daemon/sdk';
 import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKeySlugEqual';
-import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
@@ -27,16 +27,24 @@ export const unlockKeyrackKeys = async (
     key?: string;
     duration?: string;
   },
-  context: ContextKeyrackGrantUnlock,
+  context: ContextKeyrack,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
   omitted: { slug: string; reason: 'absent' | 'lost' }[];
 }> => {
-  // resolve socket path based on owner
+  // derive socket path from owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
 
   // ensure daemon is alive
   await findsertKeyrackDaemon({ socketPath });
+
+  // fail fast if hostManifest not loaded
+  if (!context.hostManifest)
+    throw new UnexpectedCodePathError(
+      'host manifest not found. run: rhx keyrack init',
+      { owner: input.owner },
+    );
+  const hostManifest = context.hostManifest;
 
   // parse duration (default: 30min for sudo, 9h for others)
   const defaultDuration = input.env === 'sudo' ? '30m' : '9h';
@@ -45,7 +53,7 @@ export const unlockKeyrackKeys = async (
   // determine which keys to unlock
   const repoManifest = context.repoManifest;
 
-  // resolve env (null if not provided; assertKeyrackEnvIsSpecified will validate)
+  // env from input (null if not provided; assertKeyrackEnvIsSpecified will validate)
   const env = input.env ?? null;
 
   // for sudo keys, find matched keys in hostManifest by key name suffix
@@ -64,10 +72,9 @@ export const unlockKeyrackKeys = async (
     const keyInput = input.key;
 
     // detect if keyInput is a full slug (org.env.key format) or just key name
-    const isFullSlug =
-      keyInput.includes('.') && context.hostManifest.hosts[keyInput];
+    const isFullSlug = keyInput.includes('.') && hostManifest.hosts[keyInput];
 
-    slugsForEnv = Object.entries(context.hostManifest.hosts)
+    slugsForEnv = Object.entries(hostManifest.hosts)
       .filter(([slug, hostConfig]) => {
         // slug format: $org.$env.$key (key may contain dots)
         const parts = slug.split('.');
@@ -135,7 +142,7 @@ export const unlockKeyrackKeys = async (
 
   for (const slug of slugsForEnv) {
     // find host config for this key — with fallback to env=all
-    let hostConfig = context.hostManifest.hosts[slug];
+    let hostConfig = hostManifest.hosts[slug];
     let effectiveSlug = slug;
 
     if (!hostConfig) {
@@ -143,7 +150,7 @@ export const unlockKeyrackKeys = async (
       const allSlug = getEnvAllFallbackSlug({ for: { slug } });
 
       if (allSlug) {
-        hostConfig = context.hostManifest.hosts[allSlug];
+        hostConfig = hostManifest.hosts[allSlug];
         if (hostConfig) {
           // found env=all fallback
           effectiveSlug = allSlug;
@@ -175,11 +182,17 @@ export const unlockKeyrackKeys = async (
       throw new UnexpectedCodePathError('vault adapter not found', { vault });
     }
 
+    // get identity from context for vault operations
+    const identity = await context.identity.getOne({ for: 'manifest' });
+
     // unlock vault if needed
-    const isUnlocked = await adapter.isUnlocked({ exid: hostConfig.exid });
+    const isUnlocked = await adapter.isUnlocked({
+      exid: hostConfig.exid,
+      identity,
+    });
     if (!isUnlocked) {
       await adapter.unlock({
-        identity: null, // identity already set in session via genKeyrackHostContext
+        identity,
         exid: hostConfig.exid,
       });
     }
@@ -190,6 +203,7 @@ export const unlockKeyrackKeys = async (
       slug: effectiveSlug,
       exid: hostConfig.exid,
       owner: input.owner ?? null,
+      identity,
     });
     if (!secret) {
       // key exists in host manifest but vault no longer has it — track as lost

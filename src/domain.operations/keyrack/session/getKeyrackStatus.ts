@@ -2,6 +2,7 @@ import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest'
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
+import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 /**
  * .what = get status of unlocked keys in daemon
@@ -11,6 +12,7 @@ import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
  */
 export const getKeyrackStatus = async (input?: {
   owner?: string | null;
+  prikeys?: string[];
 }): Promise<{
   keys: Array<{
     slug: string;
@@ -23,10 +25,10 @@ export const getKeyrackStatus = async (input?: {
   owner: string | null;
   socketPath: string;
 } | null> => {
-  // resolve socket path based on owner
-  const socketPath = getKeyrackDaemonSocketPath({
-    owner: input?.owner ?? null,
-  });
+  const owner = input?.owner ?? null;
+
+  // derive socket path from owner
+  const socketPath = getKeyrackDaemonSocketPath({ owner });
 
   const result = await daemonAccessStatus({ socketPath });
 
@@ -35,10 +37,14 @@ export const getKeyrackStatus = async (input?: {
     return null;
   }
 
+  // create context with identity discovery
+  const context = genContextKeyrack({ owner, prikeys: input?.prikeys });
+
   // fetch host manifest for recipient info
-  const hostManifestResult = await daoKeyrackHostManifest.get({
-    owner: input?.owner ?? null,
-  });
+  const hostManifestResult = await daoKeyrackHostManifest.get(
+    { owner },
+    context,
+  );
 
   return {
     keys: result.keys.map((k) => ({
@@ -49,7 +55,7 @@ export const getKeyrackStatus = async (input?: {
       ttlLeftMs: k.ttlLeftMs,
     })),
     recipients: hostManifestResult?.manifest.recipients ?? [],
-    owner: input?.owner ?? null,
+    owner,
     socketPath,
   };
 };

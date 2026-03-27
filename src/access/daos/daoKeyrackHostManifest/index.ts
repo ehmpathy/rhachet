@@ -10,8 +10,8 @@ import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
-import { listSshAgentKeys, sshPrikeyToAgeIdentity } from '@src/infra/ssh';
 
 import {
   chmodSync,
@@ -20,217 +20,57 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { schemaKeyrackHostManifest } from './schema';
-
-/**
- * .what = session state for the age identity
- * .why = tracks the decryption identity for the current session
- *
- * .note = identity is held in memory only for the session lifetime
- * .note = per blueprint amendment 6.4: identity files were removed; discovery is at runtime
- */
-let sessionIdentity: string | null = null;
-
-/**
- * .what = get the active identity from session or env
- * .why = provides explicit identity; discovery is the fallback
- *
- * .note = per blueprint amendment 6.4: identity files removed
- * .note = discovery happens at runtime via getAllAvailableIdentities
- */
-const getExplicitIdentity = (): string | null => {
-  // check session identity (in-memory for this process)
-  if (sessionIdentity) return sessionIdentity;
-
-  return null;
-};
-
-/**
- * .what = get all available prikey paths to try for decryption
- * .why = enables trial-decryption when no identity is explicitly set
- *
- * .note = checks owner-specific path first (most likely to be correct)
- * .note = then checks ssh-agent keys (if path comment is available)
- * .note = then checks standard ssh paths (~/.ssh/id_ed25519, etc)
- */
-const getAllAvailablePrikeyPaths = (owner?: string | null): string[] => {
-  const paths: string[] = [];
-  const home = process.env.HOME ?? homedir();
-
-  // check owner-specific path first (e.g., ~/.ssh/ehmpath) — most likely to be correct
-  if (owner) {
-    const ownerPath = join(home, '.ssh', owner);
-    if (existsSync(ownerPath) && !paths.includes(ownerPath)) {
-      paths.push(ownerPath);
-    }
-  }
-
-  // check ssh-agent keys (path from comment)
-  const agentKeys = listSshAgentKeys();
-  for (const agentKey of agentKeys) {
-    const keyPath = agentKey.comment;
-    if (keyPath && existsSync(keyPath) && !paths.includes(keyPath)) {
-      paths.push(keyPath);
-    }
-  }
-
-  // check standard ssh paths
-  const standardPaths = [
-    join(home, '.ssh', 'id_ed25519'),
-    join(home, '.ssh', 'id_rsa'),
-    join(home, '.ssh', 'id_ecdsa'),
-  ];
-  for (const stdPath of standardPaths) {
-    if (existsSync(stdPath) && !paths.includes(stdPath)) {
-      paths.push(stdPath);
-    }
-  }
-
-  return paths;
-};
 
 /**
  * .what = persistence for the per-machine host manifest
  * .why = stores key hosts in encrypted age file at ~/.rhachet/keyrack/keyrack.host.age
  *
  * .note = manifest is encrypted to all recipients listed in manifest.recipients
- * .note = decryption requires an age identity (private key) via session or runtime discovery
+ * .note = decryption via context.identity.getOne({ for: 'manifest' }) — lazy cached
  */
 export const daoKeyrackHostManifest = {
-  /**
-   * .what = set the session identity for decryption
-   * .why = enables manifest decryption without env var
-   */
-  setSessionIdentity: (identity: string | null): void => {
-    sessionIdentity = identity;
-  },
-
-  /**
-   * .what = get the current session identity
-   * .why = enables vault adapters to use the same identity for decryption
-   *
-   * .note = returns the identity after successful manifest decryption
-   * .note = includes discovered identity from runtime discovery
-   */
-  getSessionIdentity: (): string | null => {
-    return sessionIdentity;
-  },
-
-  /**
-   * .what = check if an explicit identity is available for decryption
-   * .why = callers can check before get; note: discovery may still find keys
-   *
-   * .note = per blueprint 6.4: only checks session/env, not discovery
-   * .note = discovery happens at runtime in get() if no explicit identity
-   */
-  hasIdentity: (): boolean => {
-    return getExplicitIdentity() !== null;
-  },
-
   /**
    * .what = read the host manifest from disk
    * .why = loads credential storage config for this machine
    *
-   * .note = decrypts with session identity, runtime discovery, or explicit prikey
-   * .note = if prikey provided, uses it directly instead of discovery
+   * .note = uses context.identity.getOne({ for: 'manifest' }) to discover identity
+   * .note = sets context.hostManifest after successful decryption
    */
-  get: async (input: {
-    owner: string | null;
-    prikey: string | null;
-  }): Promise<KeyrackHostManifest | null> => {
-    const { owner, prikey } = input;
+  get: async (
+    input: {
+      owner: string | null;
+    },
+    context: ContextKeyrack,
+  ): Promise<{ manifest: KeyrackHostManifest } | null> => {
+    const { owner } = input;
     const path = getKeyrackHostManifestPath({ owner });
 
     // return null if file does not exist
     if (!existsSync(path)) return null;
 
+    // get identity via lazy cached discovery
+    const identity = await context.identity.getOne({ for: 'manifest' });
+    if (!identity)
+      throw new UnexpectedCodePathError(
+        'no identity could decrypt manifest; ensure ssh key is available or use --prikey flag',
+        { path, owner },
+      );
+
     // read encrypted content
     const ciphertext = readFileSync(path, 'utf8');
 
-    // get identity for decryption — try prikey first, then explicit, then discover
-    let explicitIdentity: string | null = null;
-    if (prikey) {
-      // user provided explicit prikey path — use it directly
-      explicitIdentity = sshPrikeyToAgeIdentity({ keyPath: prikey });
-    } else {
-      explicitIdentity = getExplicitIdentity();
-    }
-
-    // decrypt with explicit identity if available
-    let plaintext: string | undefined;
-    if (explicitIdentity) {
-      try {
-        plaintext = await decryptWithIdentity({
-          ciphertext,
-          identity: explicitIdentity,
-        });
-        // save explicit identity for subsequent operations (e.g., vault decryption)
-        sessionIdentity = explicitIdentity;
-      } catch (error) {
-        throw new BadRequestError('failed to decrypt host manifest', {
-          path,
-          owner,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    } else {
-      // no explicit identity — try all available prikey paths (discovery)
-      const availablePaths = getAllAvailablePrikeyPaths(owner);
-      if (availablePaths.length === 0)
-        throw new UnexpectedCodePathError(
-          'no prikey available for manifest decryption; call setSessionIdentity, ensure ssh key is available, or use --prikey flag',
-          { path, owner },
-        );
-
-      // try each prikey path until one decrypts
-      let discoveredIdentity: string | null = null;
-      const triedPaths: string[] = [];
-      const ignoredPaths: string[] = [];
-
-      for (const prikeyPath of availablePaths) {
-        // convert prikey to age identity
-        let identity: string;
-        try {
-          identity = sshPrikeyToAgeIdentity({ keyPath: prikeyPath });
-        } catch {
-          // skip keys that can't be converted (non-ed25519, passphrase-protected, etc)
-          ignoredPaths.push(prikeyPath);
-          continue;
-        }
-
-        triedPaths.push(prikeyPath);
-
-        // try to decrypt with this identity
-        try {
-          plaintext = await decryptWithIdentity({ ciphertext, identity });
-          discoveredIdentity = identity;
-          break;
-        } catch {
-          // continue to next prikey
-        }
-      }
-
-      // save discovered identity for subsequent operations (e.g., vault decryption)
-      if (discoveredIdentity) {
-        sessionIdentity = discoveredIdentity;
-      }
-
-      // check if decryption succeeded (plaintext will be set if any identity worked)
-      if (plaintext === undefined)
-        throw new BadRequestError(
-          'failed to decrypt host manifest with any available identity; use --prikey to specify the correct key',
-          {
-            path,
-            owner,
-            identities: {
-              available: availablePaths,
-              attempted: triedPaths,
-              ignored: ignoredPaths,
-            },
-          },
-        );
+    // decrypt with discovered identity
+    let plaintext: string;
+    try {
+      plaintext = await decryptWithIdentity({ ciphertext, identity });
+    } catch (error) {
+      throw new BadRequestError('failed to decrypt host manifest', {
+        path,
+        owner,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // parse json
@@ -280,12 +120,17 @@ export const daoKeyrackHostManifest = {
         }),
     );
 
-    return new KeyrackHostManifest({
+    const manifest = new KeyrackHostManifest({
       uri: result.data.uri,
       owner: result.data.owner,
       recipients,
       hosts,
     });
+
+    // set hostManifest on context for caller access
+    context.hostManifest = manifest;
+
+    return { manifest };
   },
 
   /**
@@ -294,14 +139,16 @@ export const daoKeyrackHostManifest = {
    *
    * .note = encrypts to all recipients in manifest.recipients
    * .note = supports findsert (no update on match) and upsert (update on match)
+   * .note = context required for findsert (to read extant manifest)
    */
   set: async (
     input: PickOne<{
       findsert: KeyrackHostManifest;
       upsert: KeyrackHostManifest;
     }>,
+    context?: ContextKeyrack,
   ): Promise<KeyrackHostManifest> => {
-    // resolve which manifest to persist
+    // extract manifest to persist
     const manifestDesired = input.findsert ?? input.upsert;
     if (!manifestDesired)
       throw new UnexpectedCodePathError(
@@ -309,16 +156,16 @@ export const daoKeyrackHostManifest = {
         { input },
       );
 
-    // resolve owner from manifest
+    // extract owner from manifest
     const owner = manifestDesired.owner;
     const path = getKeyrackHostManifestPath({ owner });
 
-    // check if manifest already exists (need identity to decrypt for findsert check)
+    // check if manifest already exists (need context to decrypt for findsert check)
     let manifestFound: KeyrackHostManifest | null = null;
-    if (input.findsert && existsSync(path)) {
+    if (input.findsert && existsSync(path) && context) {
       // for findsert, we need to read the extant manifest
-      // if no explicit identity, discovery will be attempted in get()
-      manifestFound = await daoKeyrackHostManifest.get({ owner, prikey: null });
+      const result = await daoKeyrackHostManifest.get({ owner }, context);
+      manifestFound = result?.manifest ?? null;
     }
 
     // handle findsert: return found if exists with same uri

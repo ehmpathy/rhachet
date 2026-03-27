@@ -3,8 +3,7 @@
 exports[`keyrack.source given: [case1] all keys granted via env passthrough when: [t1] rhx keyrack get (formatted) with env vars set then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack.source given: [case1] all keys granted via env passthrough when: [t1] rhx keyrack get (formatted) with env vars set then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    ├─ testorg.test.__TEST_SOURCE_KEY_1__
    │  ├─ vault: os.envvar
    │  ├─ mech: PERMANENT_VIA_REPLICA
@@ -20,8 +19,7 @@ exports[`keyrack.source given: [case1] all keys granted via env passthrough when
 exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted) when: [t1] rhx keyrack get (formatted) with one env var set then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted) when: [t1] rhx keyrack get (formatted) with one env var set then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    ├─ testorg.test.__TEST_SOURCE_PRESENT__
    │  ├─ vault: os.envvar
    │  ├─ mech: PERMANENT_VIA_REPLICA
@@ -47,8 +45,7 @@ exports[`keyrack.source given: [case3] no keyrack.yml in repo (no keys required)
 exports[`keyrack.source given: [case4] key truly absent (never set, no env var) when: [t1] rhx keyrack get (formatted) without env var (isolated daemon) then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack.source given: [case4] key truly absent (never set, no env var) when: [t1] rhx keyrack get (formatted) without env var (isolated daemon) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_NOTAVAIL__
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --key __TEST_SOURCE_NOTAVAIL__ --env test[0m
@@ -59,12 +56,7 @@ exports[`keyrack.source given: [case4] key truly absent (never set, no env var) 
 exports[`keyrack.source given: [case5] keys in env.all count for test env when: [t1] rhx keyrack get (formatted) for test env then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack.source given: [case5] keys in env.all count for test env when: [t1] rhx keyrack get (formatted) for test env then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
-   ├─ testorg.all.__TEST_SOURCE_ALL__
-   │  ├─ vault: os.envvar
-   │  ├─ mech: PERMANENT_VIA_REPLICA
-   │  └─ status: granted 🔑
+"🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_ALL__
       ├─ vault: os.envvar
       ├─ mech: PERMANENT_VIA_REPLICA
@@ -76,8 +68,7 @@ exports[`keyrack.source given: [case5] keys in env.all count for test env when: 
 exports[`keyrack.source given: [case6] key locked (set to os.secure but daemon not unlocked) when: [t1] rhx keyrack get (formatted) without unlock (isolated daemon) then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack.source given: [case6] key locked (set to os.secure but daemon not unlocked) when: [t1] rhx keyrack get (formatted) without unlock (isolated daemon) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_LOCKED__
       ├─ status: locked 🔒
       └─ [2mtip: rhx keyrack unlock --env test --key __TEST_SOURCE_LOCKED__[0m
@@ -86,8 +77,7 @@ exports[`keyrack.source given: [case6] key locked (set to os.secure but daemon n
 `;
 
 exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (strict mode) when: [t0] keyrack.source() called then: stderr matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
@@ -98,8 +88,7 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 `;
 
 exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (strict mode) when: [t0] keyrack.source() called then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack
+"🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
