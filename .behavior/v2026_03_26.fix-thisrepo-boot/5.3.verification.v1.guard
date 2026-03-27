@@ -1,0 +1,161 @@
+artifacts:
+  # track verification progress
+  - "$route/5.3.verification.v1.i1.md"
+  # track actual implementation in src/
+  - "src/**/*"
+
+reviews:
+  self:
+    - slug: has-behavior-coverage
+      say: |
+        double-check: does the verification checklist show every behavior from wish/vision has a test?
+
+        - is every behavior in 0.wish.md covered?
+        - is every behavior in 1.vision.md covered?
+        - can you point to each test file in the checklist?
+
+    - slug: has-zero-test-skips
+      say: |
+        double-check: did you verify zero skips?
+
+        - no .skip() or .only() found?
+        - no silent credential bypasses?
+        - no prior failures carried forward?
+
+    - slug: has-all-tests-passed
+      say: |
+        double-check: did all tests pass?
+
+        - did you run `npm run test`?
+        - did types, lint, unit, integration, acceptance all pass?
+        - if any failed, did you fix them or emit a handoff?
+
+        zero tolerance for extant failures:
+        - "it was already broken" is not an excuse — fix it
+        - "it's unrelated to my changes" is not an excuse — fix it
+        - flaky tests must be stabilized, not tolerated
+        - every failure is your responsibility now
+
+    - slug: has-preserved-test-intentions
+      say: |
+        double-check: did you preserve test intentions?
+
+        for every test you touched:
+        - what did this test verify before?
+        - does it still verify the same behavior after?
+        - did you change what the test asserts, or fix why it failed?
+
+        forbidden:
+        - weaken assertions to make tests pass
+        - remove test cases that "no longer apply"
+        - change expected values to match broken output
+        - delete tests that fail instead of fix code
+
+        the test knew a truth. if it failed, either:
+        - the code is wrong — fix the code
+        - the test has a bug — fix the bug, keep the intention
+        - requirements changed — document why, get approval
+
+        to "fix tests" via changed intent is not a fix — it is at worst
+        malicious deception, at best reckless negligence. unacceptable.
+
+    - slug: has-journey-tests-from-repros
+      say: |
+        double-check: did you implement each journey sketched in repros?
+
+        look back at the repros artifact:
+        - .behavior/v2026_03_26.fix-thisrepo-boot/3.2.distill.repros.experience.*.md
+
+        for each journey test sketch in repros:
+        - is there a test file for it?
+        - does the test follow the BDD given/when/then structure?
+        - does each `when([tN])` step exist?
+
+        if any journey was planned but not implemented, go back and add it.
+
+    - slug: has-contract-output-variants-snapped
+      say: |
+        double-check: does each public contract have snapshots for all output variants?
+
+        for each new or modified public contract (cli command, sdk method, api endpoint):
+        - is there a dedicated snapshot file with `.toMatchSnapshot()` or equivalent?
+        - does the snapshot capture what the caller would actually see?
+        - does it exercise the success case?
+        - does it exercise error cases?
+        - does it exercise edge cases and variants (e.g., --help, empty input)?
+
+        output types to capture:
+        - for CLI: stdout/stderr
+        - for UI: screens
+        - for SDK: responses
+
+        why this matters:
+        - snapshots enable vibecheck in prs — reviewers see actual output without execute
+        - snapshots detect drift over time — output changes surface in diffs
+        - absent variants mean blind spots in review
+
+        if a contract lacks variant coverage, add the test cases now.
+
+    - slug: has-snap-changes-rationalized
+      say: |
+        double-check: is every `.snap` file change intentional and justified?
+
+        for each `.snap` file in git diff:
+        1. what changed? (added, modified, deleted)
+        2. was this change intended or accidental?
+        3. if intended: what is the rationale?
+        4. if accidental: revert it or explain why the new output is an improvement
+
+        common regressions caught here:
+        - output format degraded (lost alignment, lost structure)
+        - error messages became less helpful
+        - timestamps or ids leaked into snapshots (flaky)
+        - extra output added unintentionally
+
+        forbidden:
+        - "updated snapshots" without per-file rationale
+        - bulk snapshot updates without review
+        - regressions accepted without justification
+
+        every snap change tells a story. make sure the story is intentional.
+
+    - slug: has-critical-paths-frictionless
+      say: |
+        double-check: are the critical paths frictionless in practice?
+
+        look back at the repros artifact for critical paths:
+        - .behavior/v2026_03_26.fix-thisrepo-boot/3.2.distill.repros.experience.*.md
+
+        for each critical path:
+        - run through it manually — is it smooth?
+        - are there unexpected errors?
+        - does it feel effortless to the user?
+
+        critical paths must "just work." if there's friction, fix it now.
+
+    - slug: has-ergonomics-validated
+      say: |
+        double-check: does the actual input/output match what felt right at repros?
+
+        compare the implemented input/output to what was sketched in repros:
+        - does the actual input match the planned input?
+        - does the actual output match the planned output?
+        - did the design change between repros and implementation?
+
+        if the ergonomics drifted, either:
+        - update repros to reflect the better design, or
+        - fix the implementation to match the planned ergonomics
+
+    - slug: has-play-test-convention
+      say: |
+        double-check: are journey test files named correctly?
+
+        journey tests should use `.play.test.ts` suffix:
+        - `feature.play.test.ts` — journey test
+        - `feature.play.integration.test.ts` — if repo requires integration runner
+        - `feature.play.acceptance.test.ts` — if repo requires acceptance runner
+
+        verify:
+        - are journey tests in the right location?
+        - do they have the `.play.` suffix?
+        - if not supported, is the fallback convention used?
