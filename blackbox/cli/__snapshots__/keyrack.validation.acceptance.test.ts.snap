@@ -19,7 +19,7 @@ UnexpectedCodePathError: UnexpectedCodePathError: host manifest not found. run: 
 {
   "owner": null
 }
-    at genContextKeyrackGrantUnlock (/PATH_STRIPPED)
+    at unlockKeyrackKeys (/PATH_STRIPPED)
     at async Command.<anonymous> (/PATH_STRIPPED)
     at async Command.parseAsync (/PATH_STRIPPED)
     at async _invoke (/PATH_STRIPPED)
@@ -39,7 +39,8 @@ exports[`keyrack validation given: [case1] repo with manifest but no host config
 `;
 
 exports[`keyrack validation given: [case1] repo with manifest but no host config when: [t1] keyrack get --key XAI_API_KEY (human readable) then: stdout matches snapshot 1`] = `
-"🔐 keyrack
+"
+🔐 keyrack
    └─ testorg.test.XAI_API_KEY
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --key XAI_API_KEY --env test[0m

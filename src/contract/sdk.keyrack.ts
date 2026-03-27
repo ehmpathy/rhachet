@@ -13,14 +13,16 @@
 
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
 import type { KeyrackHostVault } from '@src/domain.objects/keyrack/KeyrackHostVault';
 import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
+import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
-import { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
+import { sourceAllKeysIntoEnv } from '@src/domain.operations/keyrack/sourceAllKeysIntoEnv';
 
 // domain objects
 export type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
@@ -37,13 +39,11 @@ export { KeyrackKeyHost } from '@src/domain.objects/keyrack/KeyrackKeyHost';
 export { KeyrackKeySpec } from '@src/domain.objects/keyrack/KeyrackKeySpec';
 export { KeyrackRepoManifest } from '@src/domain.objects/keyrack/KeyrackRepoManifest';
 // context types
-export type { ContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
+export type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 // low-level operations (for advanced usage)
+export { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+export type { ContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
 export { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
-export type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
-export { genContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
-export type { KeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
-export { genKeyrackHostContext } from '@src/domain.operations/keyrack/genKeyrackHostContext';
 export { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 export { setKeyrackKeyHost } from '@src/domain.operations/keyrack/setKeyrackKeyHost';
 /**
@@ -101,10 +101,12 @@ export const keyrack = {
     owner?: string | null;
     prikey?: string | null;
   }) => {
-    const context = await genKeyrackHostContext({
-      owner: input.owner ?? null,
+    const owner = input.owner ?? null;
+    const context = genContextKeyrack({
+      owner,
       prikeys: input.prikey ? [input.prikey] : undefined,
     });
+    await daoKeyrackHostManifest.get({ owner }, context);
     return setKeyrackKeyHost(
       {
         slug: input.slug,
@@ -115,4 +117,13 @@ export const keyrack = {
       context,
     );
   },
+
+  /**
+   * .what = source keyrack keys into process.env (sync)
+   * .why = enables test setup files to fetch credentials without manual `source` commands
+   *
+   * .note = sync because jest setup files run synchronously
+   * .note = keyrack already prefers passthrough (checks env vars first)
+   */
+  source: sourceAllKeysIntoEnv,
 };

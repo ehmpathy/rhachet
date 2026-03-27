@@ -2,7 +2,4 @@
 
 exports[`keyrack flat-keys given: [case7] repo with old flat keys: format when: [t0] get --for repo --json then: stdout matches snapshot 1`] = `""`;
 
-exports[`keyrack flat-keys given: [case7] repo with old flat keys: format when: [t1] unlock then: stdout matches snapshot 1`] = `
-"
-"
-`;
+exports[`keyrack flat-keys given: [case7] repo with old flat keys: format when: [t1] unlock then: stdout matches snapshot 1`] = `""`;

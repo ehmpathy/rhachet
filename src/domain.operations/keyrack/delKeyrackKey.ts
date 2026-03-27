@@ -1,5 +1,5 @@
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 
 /**
  * .what = orchestrates the full keyrack del flow
@@ -11,7 +11,7 @@ export const delKeyrackKey = async (
   input: {
     slug: string;
   },
-  context: KeyrackHostContext,
+  context: ContextKeyrack,
 ): Promise<{ effect: 'deleted' | 'not_found' }> => {
   return delKeyrackKeyHost(input, context);
 };

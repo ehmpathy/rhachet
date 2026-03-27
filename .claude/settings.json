@@ -45,6 +45,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --role keyrack",
             "timeout": 60,
             "author": "vlad"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present",
+            "timeout": 60,
+            "author": "repo=ehmpathy/role=mechanic"
           }
         ]
       }

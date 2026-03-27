@@ -7,6 +7,7 @@ import {
   TEST_SSH_AGE_RECIPIENT,
 } from '@src/.test/infra';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
@@ -15,10 +16,36 @@ import {
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { genContextKeyrack } from './genContextKeyrack';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
-import { genContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 import { unlockKeyrackKeys } from './session/unlockKeyrackKeys';
+
+/**
+ * .what = helper to create context for unlock tests
+ * .why = replaces deleted createUnlockContext with new unified pattern
+ */
+const createUnlockContext = async (input: {
+  owner: string;
+  gitroot: string;
+}) => {
+  const repoManifest = await daoKeyrackRepoManifest.get({
+    gitroot: input.gitroot,
+  });
+  const context = genContextKeyrack({
+    owner: input.owner,
+    repoManifest,
+    gitroot: input.gitroot,
+  });
+  const hostResult = await daoKeyrackHostManifest.get(
+    { owner: input.owner },
+    context,
+  );
+  if (hostResult) {
+    context.hostManifest = hostResult.manifest;
+  }
+  return context;
+};
 
 /**
  * .what = acceptance tests for env=all hosting strategies
@@ -103,7 +130,7 @@ env.prod: []
             storage: { 'testorg.all.API_KEY': secretValue },
           });
 
-          const context = await genContextKeyrackGrantUnlock({
+          const context = await createUnlockContext({
             owner: 'case1',
             gitroot: repo.path,
           });
@@ -127,7 +154,7 @@ env.prod: []
             storage: { 'testorg.all.API_KEY': secretValue },
           });
 
-          const context = await genContextKeyrackGrantUnlock({
+          const context = await createUnlockContext({
             owner: 'case1',
             gitroot: repo.path,
           });
@@ -153,7 +180,7 @@ env.prod: []
               storage: { 'testorg.all.API_KEY': secretValue },
             });
 
-            const context = await genContextKeyrackGrantUnlock({
+            const context = await createUnlockContext({
               owner: 'case1',
               gitroot: repo.path,
             });
@@ -242,7 +269,7 @@ env.prod: []
           storage: { 'testorg.test.API_KEY': secretValue },
         });
 
-        const context = await genContextKeyrackGrantUnlock({
+        const context = await createUnlockContext({
           owner: 'case2',
           gitroot: repo.path,
         });
@@ -266,7 +293,7 @@ env.prod: []
           storage: { 'testorg.test.API_KEY': secretValue },
         });
 
-        const context = await genContextKeyrackGrantUnlock({
+        const context = await createUnlockContext({
           owner: 'case2',
           gitroot: repo.path,
         });
@@ -370,7 +397,7 @@ env.prod: []
             },
           });
 
-          const context = await genContextKeyrackGrantUnlock({
+          const context = await createUnlockContext({
             owner: 'case3',
             gitroot: repo.path,
           });
@@ -397,7 +424,7 @@ env.prod: []
             },
           });
 
-          const context = await genContextKeyrackGrantUnlock({
+          const context = await createUnlockContext({
             owner: 'case3',
             gitroot: repo.path,
           });
@@ -478,7 +505,7 @@ env.test:
           storage: { 'testorg.test.API_KEY': secretValue },
         });
 
-        const context = await genContextKeyrackGrantUnlock({
+        const context = await createUnlockContext({
           owner: 'case4',
           gitroot: repo.path,
         });
@@ -500,7 +527,7 @@ env.test:
           storage: { 'testorg.test.API_KEY': secretValue },
         });
 
-        const context = await genContextKeyrackGrantUnlock({
+        const context = await createUnlockContext({
           owner: 'case4',
           gitroot: repo.path,
         });
@@ -587,7 +614,7 @@ env.prod: []
           });
 
           // unlock with env=test (will find universal via fallback)
-          const unlockContext = await genContextKeyrackGrantUnlock({
+          const unlockContext = await createUnlockContext({
             owner: 'case5',
             gitroot: repo.path,
           });

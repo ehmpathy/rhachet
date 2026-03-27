@@ -5,7 +5,7 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 /**
@@ -29,7 +29,7 @@ export const setKeyrackKey = async (
     repoManifest?: KeyrackRepoManifest;
     at?: string | null;
   },
-  context: KeyrackHostContext,
+  context: ContextKeyrack,
 ): Promise<{
   results: KeyrackKeyHost[];
 }> => {

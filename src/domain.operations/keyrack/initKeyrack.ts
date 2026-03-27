@@ -16,6 +16,7 @@ import {
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { genContextKeyrack } from './genContextKeyrack';
 import { getKeyrackHostManifestPath } from './getKeyrackHostManifestPath';
 
 /**
@@ -99,19 +100,20 @@ export const initKeyrack = async (input: {
 
   // check if already initialized (idempotent)
   if (existsSync(manifestPath)) {
-    // load manifest to get recipient (pass prikey as supplement for decryption)
-    const manifestResult = await daoKeyrackHostManifest.get({
+    // load manifest to get recipient (pass prikey for decryption)
+    const context = genContextKeyrack({
       owner,
       prikeys: [keyPaths.prikeyPath],
     });
-    if (!manifestResult)
+    const result = await daoKeyrackHostManifest.get({ owner }, context);
+    if (!result)
       throw new UnexpectedCodePathError(
         'manifest file present but could not be read',
         { manifestPath, owner },
       );
 
     // return extant recipient
-    const recipientFound = manifestResult.manifest.recipients[0];
+    const recipientFound = result.manifest.recipients[0];
     if (!recipientFound)
       throw new UnexpectedCodePathError(
         'manifest present but has no recipients',

@@ -14,7 +14,11 @@ import { withStitchTrail } from '@src/domain.operations/stitch/withStitchTrail';
 
 import { enweaveOneStitcher } from './enweaveOneStitcher';
 
-export class StitcherHaltedError extends HelpfulError {}
+export class StitcherHaltedError extends HelpfulError<{
+  reason: string;
+  threshold: unknown;
+  progress: unknown;
+}> {}
 
 /**
  * .what = executes a StitchCycle by looping repeatee until the decider chooses to stop
@@ -59,8 +63,12 @@ export const enweaveOneCycle = withStitchTrail(
       const deadline = addDuration(progress.beganAt, threshold.duration);
       return now > deadline;
     };
-    const throwHalted = ({ reason }: { reason: 'DECIDED' | 'BREACHED' }) =>
-      StitcherHaltedError.throw(
+    const throwHalted = ({
+      reason,
+    }: {
+      reason: 'DECIDED' | 'BREACHED';
+    }): never => {
+      throw new StitcherHaltedError(
         `Cycle halted due to ${
           reason === 'DECIDED' ? 'decider output.' : 'threshold breach'
         } (${reason}). See the log event stream output for details.`,
@@ -80,6 +88,7 @@ export const enweaveOneCycle = withStitchTrail(
           },
         },
       );
+    };
 
     // loop until the decider chooses to stop
     while (true) {

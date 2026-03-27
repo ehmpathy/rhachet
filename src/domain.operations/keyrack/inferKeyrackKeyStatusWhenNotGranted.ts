@@ -2,7 +2,6 @@ import { asHashSha256Sync } from 'hash-fns';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getKeyrackHostManifestIndexPath } from './getKeyrackHostManifestPath';
 
 /**
  * .what = check if os.secure vault file exists for a slug
@@ -54,36 +53,8 @@ const doesOsDirectVaultExist = (input: {
     const content = readFileSync(storePath, 'utf8');
     const store = JSON.parse(content) as Record<string, unknown>;
     return input.slug in store;
-  } catch (error) {
-    // corrupt JSON is expected (treat as absent); rethrow other errors
-    if (error instanceof SyntaxError) return false;
-    throw error;
-  }
-};
-
-/**
- * .what = check if host manifest index has an entry for a slug
- * .why = enables locked detection for non-local vaults (1password, aws.iam.sso)
- *
- * .note = index is unencrypted, contains only slugs (no secrets)
- * .note = index is written alongside encrypted manifest by daoKeyrackHostManifest.set
- */
-const doesHostManifestIndexHaveEntry = (input: {
-  slug: string;
-  owner: string | null;
-}): boolean => {
-  const indexPath = getKeyrackHostManifestIndexPath({ owner: input.owner });
-
-  if (!existsSync(indexPath)) return false;
-
-  try {
-    const content = readFileSync(indexPath, 'utf8');
-    const slugs = JSON.parse(content) as string[];
-    return slugs.includes(input.slug);
-  } catch (error) {
-    // corrupt JSON is expected (treat as absent); rethrow other errors
-    if (error instanceof SyntaxError) return false;
-    throw error;
+  } catch {
+    return false;
   }
 };
 
@@ -93,10 +64,14 @@ const doesHostManifestIndexHaveEntry = (input: {
  *
  * .when = call this ONLY when a key could not be granted (not in daemon/envvar)
  *
- * .note = checks vault file/entry existence and host manifest index
- * .note = host manifest index is unencrypted (slugs only, no secrets)
- * .note = returns 'locked' if key exists in vault or manifest (needs unlock)
- * .note = returns 'absent' if no entry anywhere (needs set)
+ * .note = checks vault file/entry existence, not host manifest
+ * .note = host manifest is encrypted, we avoid decrypt here
+ * .note = returns 'locked' if vault has the key (needs unlock)
+ * .note = returns 'absent' if vault has no entry (needs set)
+ *
+ * .caveat = only checks os.secure and os.direct vaults
+ * .caveat = keys in other vaults (1password, etc) will mislead with 'absent'
+ * .caveat = best we can do without manifest decrypt
  */
 export const inferKeyrackKeyStatusWhenNotGranted = (input: {
   slug: string;
@@ -112,13 +87,6 @@ export const inferKeyrackKeyStatusWhenNotGranted = (input: {
 
   // check os.direct vault (plaintext json store)
   if (doesOsDirectVaultExist({ slug: input.slug, owner: input.owner, home })) {
-    return 'locked';
-  }
-
-  // check host manifest index (handles 1password, aws.iam.sso, etc)
-  if (
-    doesHostManifestIndexHaveEntry({ slug: input.slug, owner: input.owner })
-  ) {
     return 'locked';
   }
 

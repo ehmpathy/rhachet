@@ -233,6 +233,9 @@ jobs:
       - name: build
         run: npm run build
 
+      - name: prepare:rhachet # links the .agent/**/role=*/keyrack.yml's that may be needed
+        run: npm run prepare:rhachet
+
       - name: test:integration (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
         run: |
@@ -312,6 +315,9 @@ jobs:
 
       - name: build
         run: npm run build
+
+      - name: prepare:rhachet # links the .agent/**/role=*/keyrack.yml's that may be needed
+        run: npm run prepare:rhachet
 
       - name: test:acceptance (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'

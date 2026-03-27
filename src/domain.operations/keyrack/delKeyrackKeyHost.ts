@@ -1,11 +1,11 @@
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
 
 import { daemonAccessRelock } from './daemon/sdk';
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import type { ContextKeyrack } from './genContextKeyrack';
 
 /**
  * .what = remove a credential key from this host
@@ -18,10 +18,18 @@ export const delKeyrackKeyHost = async (
   input: {
     slug: string;
   },
-  context: KeyrackHostContext,
+  context: ContextKeyrack,
 ): Promise<{ effect: 'deleted' | 'not_found' }> => {
+  // guard: host manifest required
+  if (!context.hostManifest)
+    throw new UnexpectedCodePathError(
+      'hostManifest required for del; call daoKeyrackHostManifest.get() first',
+      { slug: input.slug },
+    );
+  const hostManifest = context.hostManifest;
+
   // check if key exists in manifest
-  const hostFound = context.hostManifest.hosts[input.slug];
+  const hostFound = hostManifest.hosts[input.slug];
   if (!hostFound) return { effect: 'not_found' };
 
   // remove from vault
@@ -38,11 +46,11 @@ export const delKeyrackKeyHost = async (
   await daemonAccessRelock({ slugs: [input.slug] });
 
   // remove from host manifest
-  const hostsUpdated = { ...context.hostManifest.hosts };
+  const hostsUpdated = { ...hostManifest.hosts };
   delete hostsUpdated[input.slug];
 
   const manifestUpdated = new KeyrackHostManifest({
-    ...context.hostManifest,
+    ...hostManifest,
     hosts: hostsUpdated,
   });
 

@@ -1,5 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import { withTempHome } from '@src/.test/infra/withTempHome';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
@@ -10,7 +11,7 @@ import {
 import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessGet } from '@src/domain.operations/keyrack/daemon/sdk';
-import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
@@ -69,9 +70,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: null,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -80,7 +89,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrackKeys(
@@ -112,9 +120,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.ADMIN_TOKEN': secretValue },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: null,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -123,7 +139,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrackKeys({ env: 'sudo', key: 'ADMIN_TOKEN' }, context);
@@ -188,21 +203,20 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.all.API_KEY': secretValue },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
-          hostManifest: manifest,
-          repoManifest: {
-            org: 'ehmpathy',
-            envs: [],
-            keys: {
-              'ehmpathy.all.API_KEY': {
-                slug: 'ehmpathy.all.API_KEY',
-                mech: 'PERMANENT_VIA_REPLICA',
-                env: 'all',
-                name: 'API_KEY',
-                grade: null,
-              },
+        const context: ContextKeyrack = {
+          owner: 'case2',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
             },
           },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({
+            org: 'ehmpathy',
+            keys: { 'ehmpathy.all.API_KEY': {} },
+          }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -211,7 +225,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrackKeys({ owner: 'case2' }, context);
@@ -276,9 +289,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.SENSITIVE_KEY': secretValue },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: 'case3',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -287,7 +308,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         // capture console.warn
@@ -368,9 +388,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.SHORT_LIVED_KEY': secretValue },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: 'case4',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -379,7 +407,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         const result = await unlockKeyrackKeys(
@@ -482,9 +509,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.TOKEN_A': secretValueA },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: 'ownerA',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifestA,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -493,7 +528,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrackKeys(
@@ -527,9 +561,17 @@ describe('unlockKeyrackKeys.integration', () => {
           storage: { 'ehmpathy.sudo.TOKEN_B': secretValueB },
         });
 
-        const context: ContextKeyrackGrantUnlock = {
+        const context: ContextKeyrack = {
+          owner: 'ownerB',
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
           hostManifest: manifestB,
-          repoManifest: { org: 'ehmpathy', envs: [], keys: {} },
+          repoManifest: null,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -538,7 +580,6 @@ describe('unlockKeyrackKeys.integration', () => {
             '1password': genMockVaultAdapter(),
             'aws.iam.sso': genMockVaultAdapter(),
           },
-          mechAdapters: {} as ContextKeyrackGrantUnlock['mechAdapters'],
         };
 
         await unlockKeyrackKeys(

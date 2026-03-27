@@ -56,7 +56,8 @@ exports[`keyrack key-expansion given: [case3] raw key name export via single key
 `;
 
 exports[`keyrack key-expansion given: [case3] raw key name export via single key get when: [t1] get --key testorg.prep.AWS_PROFILE (human readable, without unlock) then: stdout matches snapshot 1`] = `
-"🔐 keyrack
+"
+🔐 keyrack
    └─ testorg.prep.AWS_PROFILE
       ├─ status: locked 🔒
       └─ [2mtip: rhx keyrack unlock --env prep --key AWS_PROFILE[0m

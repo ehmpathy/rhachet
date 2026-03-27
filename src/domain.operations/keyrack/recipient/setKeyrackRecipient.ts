@@ -5,6 +5,7 @@ import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
+import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 /**
  * .what = add a recipient to the host manifest
@@ -28,8 +29,11 @@ export const setKeyrackRecipient = async (input: {
 }): Promise<KeyrackKeyRecipient> => {
   const { owner, prikeys } = input;
 
-  // load manifest (dao handles identity discovery)
-  const result = await daoKeyrackHostManifest.get({ owner, prikeys });
+  // create context with identity discovery
+  const context = genContextKeyrack({ owner, prikeys });
+
+  // load manifest (context handles identity discovery)
+  const result = await daoKeyrackHostManifest.get({ owner }, context);
   if (!result)
     throw new BadRequestError(
       'keyrack manifest not found; run `rhx keyrack init` first',

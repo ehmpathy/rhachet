@@ -256,18 +256,18 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('returns locked status (aws.iam.sso in index, needs unlock)', () => {
+      then('returns absent status (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = refed vaults (aws.iam.sso, 1password) are in the host manifest index
-        // .note = status is 'locked' because key exists but needs unlock
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
 
-      then('fix mentions unlock', () => {
+      then('fix mentions set', () => {
         const parsed = JSON.parse(result.stdout);
         const fix = parsed.fix?.toLowerCase() ?? '';
-        // .note = since status is 'locked', fix suggests unlock (not set)
-        expect(fix).toContain('unlock');
+        // .note = since status is 'absent', fix suggests set (not unlock)
+        expect(fix).toContain('set');
       });
 
       then('stdout matches snapshot', () => {
@@ -1030,11 +1030,11 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is locked (aws.iam.sso in index, needs unlock)', () => {
+      then('status is absent (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = refed vaults (aws.iam.sso, 1password) are in the host manifest index
-        // .note = status is 'locked' because key exists but needs unlock
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
     });
 
@@ -1105,11 +1105,11 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is locked again (aws.iam.sso in index, needs unlock)', () => {
+      then('status is absent again (aws.iam.sso vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = refed vaults (aws.iam.sso, 1password) are in the host manifest index
-        // .note = status is 'locked' because key exists but needs unlock
-        expect(parsed.status).toEqual('locked');
+        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
+        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        expect(parsed.status).toEqual('absent');
       });
     });
   });

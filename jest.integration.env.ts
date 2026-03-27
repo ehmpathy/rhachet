@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import util from 'util';
 
+import { keyrack } from 'rhachet/keyrack';
+
 // eslint-disable-next-line no-undef
 jest.setTimeout(180000); // since we call downstream apis w/ retries
 
@@ -84,36 +86,12 @@ if (requiresTestDb) {
 }
 
 /**
- * .what = verify that required api keys are present; otherwise, fail fast
+ * .what = source api keys from keyrack into process.env; otherwise, fail fast
  * .why =
- *   - prevent time wasted waiting on tests to fail due to missing api keys
- *   - prevent agents from giving up when they have access to credentials
+ *   - prevent time wasted on tests that fail due to absent api keys
+ *   - prevent agents from quit when they have access to credentials
+ *
+ * .note = hardcoded to --owner ehmpath because we expect only ehmpaths to work in this repo
+ * .note = keyrack already prefers passthrough (checks env vars first)
  */
-const apikeysConfigPath = join(
-  process.cwd(),
-  '.agent/repo=.this/role=any/skills/use.apikeys.json',
-);
-if (existsSync(apikeysConfigPath)) {
-  // direct import via require (json resolves automatically)
-  const config = require(apikeysConfigPath);
-  const requiredKeys: string[] = config?.apikeys?.required ?? [];
-  const keysAbsent = requiredKeys.filter((key) => !process.env[key]);
-
-  if (keysAbsent.length > 0) {
-    throw new Error(`
-⛈️  apikeys required to run these integration tests were not supplied.
-
-   absent keys: ${keysAbsent.join(', ')}
-
-   you have access to these keys - you just forgot to source them.
-
-   run:
-     source .agent/repo=.this/role=any/skills/use.apikeys.sh && npm run test:integration
-
-   you must run these tests with these api keys.
-   you're forbidden to give up.
-   if you don't have privs to run use.apikeys.sh, ask a human for support.
-   chances are, you already have privs to do so though.
-`);
-  }
-}
+keyrack.source({ env: 'test', owner: 'ehmpath' });

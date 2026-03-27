@@ -1,14 +1,14 @@
 import { BadRequestError } from 'helpful-errors';
 
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 import { withStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
-import { setOsSecureSessionIdentity } from './adapters/vaults/os.secure/vaultAdapterOsSecure';
 import { asKeyrackKeyName } from './asKeyrackKeyName';
+import type { ContextKeyrack } from './genContextKeyrack';
+import { genContextKeyrack } from './genContextKeyrack';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
-import { genContextKeyrackGrantUnlock } from './genContextKeyrackGrantUnlock';
-import { genKeyrackHostContext } from './genKeyrackHostContext';
 import { getAllKeyrackSlugsForEnv } from './getAllKeyrackSlugsForEnv';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 import { inferKeyrackVaultFromKey } from './inferKeyrackVaultFromKey';
@@ -100,26 +100,29 @@ export const fillKeyrackKeys = async (
     owner: string | null;
     ownerInput: string;
     ownerLabel: string;
-    host: Awaited<ReturnType<typeof genKeyrackHostContext>>;
-    unlock: Awaited<ReturnType<typeof genContextKeyrackGrantUnlock>>;
-    get: Awaited<ReturnType<typeof genContextKeyrackGrantGet>>;
+    contextKeyrack: ContextKeyrack;
+    contextGet: Awaited<ReturnType<typeof genContextKeyrackGrantGet>>;
   };
   const contextsByOwner = new Map<string, OwnerContexts>();
   for (const ownerInput of input.owners) {
     const owner = ownerInput === 'default' ? null : ownerInput;
     const ownerLabel = owner ?? 'default';
     try {
+      // generate keyrack context and load host manifest
+      const contextKeyrack = genContextKeyrack({
+        owner,
+        prikeys: input.prikeys,
+        repoManifest: repoManifest ?? null,
+        gitroot: context.gitroot,
+      });
+      await daoKeyrackHostManifest.get({ owner }, contextKeyrack);
+
       contextsByOwner.set(ownerInput, {
         owner,
         ownerInput,
         ownerLabel,
-        host: await genKeyrackHostContext({ owner, prikeys: input.prikeys }),
-        unlock: await genContextKeyrackGrantUnlock({
-          owner,
-          gitroot: context.gitroot,
-          prikeys: input.prikeys,
-        }),
-        get: await genContextKeyrackGrantGet({
+        contextKeyrack,
+        contextGet: await genContextKeyrackGrantGet({
           owner,
           gitroot: context.gitroot,
         }),
@@ -152,13 +155,7 @@ export const fillKeyrackKeys = async (
     for (let ownerIdx = 0; ownerIdx < input.owners.length; ownerIdx++) {
       const ownerInput = input.owners[ownerIdx]!;
       const contexts = contextsByOwner.get(ownerInput)!;
-      const {
-        owner,
-        ownerLabel,
-        host: hostContext,
-        unlock: unlockContext,
-        get: getContext,
-      } = contexts;
+      const { owner, ownerLabel, contextKeyrack, contextGet } = contexts;
       const isLastOwner = ownerIdx === input.owners.length - 1;
       const ownerPrefix = isLastOwner ? '└─' : '├─';
       const branchContinue = isLastOwner ? '   ' : '│  ';
@@ -172,16 +169,12 @@ export const fillKeyrackKeys = async (
           ? input.prikeys.map((p) => ` --prikey ${p}`).join('')
           : '';
 
-      // set the identity for this owner before vault operations
-      // .note = sessionIdentity is global; must be set per-owner before each unlock/set
-      setOsSecureSessionIdentity(hostContext.identity);
-
       // try unlock → get to check if key is already configured
       // .note = unlock may fail (vault file absent), but daemon may still have key from prior session
       try {
         await unlockKeyrackKeys(
           { owner, env: input.env, key: keyName },
-          unlockContext,
+          contextKeyrack,
         );
       } catch (error) {
         // allow expected errors: vault file absent, key not configured, decryption failure
@@ -200,7 +193,7 @@ export const fillKeyrackKeys = async (
       // check if daemon has key (even if unlock failed — daemon may have it from prior session)
       const checkGrant = await getKeyrackKeyGrant(
         { for: { key: slug } },
-        getContext,
+        contextGet,
       );
 
       // handle blocked keys — fail-fast unless user opts in
@@ -266,7 +259,7 @@ export const fillKeyrackKeys = async (
             mech,
             repoManifest,
           },
-          hostContext,
+          contextKeyrack,
         );
       });
 
@@ -279,20 +272,16 @@ export const fillKeyrackKeys = async (
         `   ${branchContinue}└─ get after set, to verify`,
       );
 
-      // regenerate unlock context after set
+      // reload host manifest after set
       // .note = setKeyrackKey updated the host manifest on disk
-      // .note = the cached unlockContext has the OLD manifest (before set)
+      // .note = contextKeyrack.hostManifest has the OLD manifest (before set)
       // .note = we must reload to see the newly set key
-      const unlockContextAfterSet = await genContextKeyrackGrantUnlock({
-        owner,
-        gitroot: context.gitroot,
-        prikeys: input.prikeys,
-      });
+      await daoKeyrackHostManifest.get({ owner }, contextKeyrack);
 
       // unlock key
       await unlockKeyrackKeys(
         { owner, env: input.env, key: keyName },
-        unlockContextAfterSet,
+        contextKeyrack,
       );
       (context.emit ?? console.log)(
         `   ${branchContinue}   ├─ ✓ rhx keyrack unlock --key ${keyName} --env ${input.env}${ownerFlag}${prikeyFlag}`,
@@ -301,7 +290,7 @@ export const fillKeyrackKeys = async (
       // verify roundtrip via get
       const attempt = await getKeyrackKeyGrant(
         { for: { key: slug } },
-        getContext,
+        contextGet,
       );
 
       // fail-fast if roundtrip verification fails — this is a defect, not recoverable

@@ -23,8 +23,12 @@ export interface KeyrackHostVaultAdapter {
    * .why = enables skip of unlock prompt if already unlocked
    *
    * .note = exid is optional; aws.iam.sso uses it to validate sso session for the profile
+   * .note = identity is optional; os.secure uses it for session state check
    */
-  isUnlocked: (input?: { exid?: string | null }) => Promise<boolean>;
+  isUnlocked: (input?: {
+    exid?: string | null;
+    identity?: string | null;
+  }) => Promise<boolean>;
 
   /**
    * .what = retrieve a credential from the vault
@@ -33,12 +37,14 @@ export interface KeyrackHostVaultAdapter {
    * .note = exid is optional; only 1password requires it
    * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
    * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
+   * .note = identity is optional; os.secure uses it for age decryption
    */
   get: (input: {
     slug: string;
     exid?: string | null;
     vaultRecipient?: string | null;
     owner?: string | null;
+    identity?: string | null;
   }) => Promise<string | null>;
 
   /**

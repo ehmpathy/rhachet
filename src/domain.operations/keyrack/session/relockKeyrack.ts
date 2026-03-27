@@ -1,6 +1,6 @@
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessRelock } from '@src/domain.operations/keyrack/daemon/sdk';
-import type { ContextKeyrackGrantUnlock } from '@src/domain.operations/keyrack/genContextKeyrackGrantUnlock';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 /**
  * .what = relock keyrack keys by prune from daemon memory and clear vault caches
@@ -18,11 +18,11 @@ export const relockKeyrack = async (
     slugs?: string[];
     env?: string;
   },
-  context?: ContextKeyrackGrantUnlock,
+  context?: ContextKeyrack,
 ): Promise<{
   relocked: string[];
 }> => {
-  // resolve socket path based on owner
+  // derive socket path from owner
   const socketPath = getKeyrackDaemonSocketPath({
     owner: input?.owner ?? null,
   });
@@ -35,10 +35,11 @@ export const relockKeyrack = async (
   const relocked = result?.relocked ?? [];
 
   // if context provided, call vault adapter relock for each slug
-  if (context && relocked.length > 0) {
+  const hostManifest = context?.hostManifest;
+  if (context && hostManifest && relocked.length > 0) {
     for (const slug of relocked) {
       // find which vault this slug uses from host manifest
-      const keyHost = context.hostManifest.hosts[slug];
+      const keyHost = hostManifest.hosts[slug];
       if (!keyHost) continue;
 
       // get the vault adapter

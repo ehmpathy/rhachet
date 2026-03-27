@@ -1,6 +1,7 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 import { parse as parseYaml } from 'yaml';
 
+import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import {
   createTestHomeWithSshKey,
@@ -16,7 +17,7 @@ import {
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
-import type { KeyrackHostContext } from './genKeyrackHostContext';
+import { type ContextKeyrack, genContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 describe('setKeyrackKeyHost.integration', () => {
@@ -64,11 +65,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with env=sudo', () => {
       then('stores in encrypted host manifest', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: null,
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           gitroot: repo.path,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
@@ -96,9 +103,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.org).toEqual('ehmpathy');
 
         // verify stored in host manifest - dao discovers key naturally
-        const manifestAfter = await daoKeyrackHostManifest.get({
-          owner: null,
-        });
+        const contextForGet = genContextKeyrack({ owner: null });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          {
+            owner: null,
+          },
+          contextForGet,
+        );
         expect(
           manifestAfter?.manifest.hosts['ehmpathy.sudo.SECRET_TOKEN'],
         ).toBeDefined();
@@ -163,11 +174,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with env=all', () => {
       then('stores in encrypted host manifest', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: 'case2',
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           gitroot: repo.path,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
@@ -195,9 +212,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.org).toEqual('ehmpathy');
 
         // verify stored in host manifest - dao discovers key naturally
-        const manifestAfter = await daoKeyrackHostManifest.get({
-          owner: 'case2',
-        });
+        const contextForGet = genContextKeyrack({ owner: 'case2' });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          {
+            owner: 'case2',
+          },
+          contextForGet,
+        );
         expect(
           manifestAfter?.manifest.hosts['ehmpathy.all.API_KEY'],
         ).toBeDefined();
@@ -240,11 +261,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with org=@all', () => {
       then('stores with org: @all (not resolved)', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: 'case3',
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': genMockVaultAdapter(),
@@ -270,9 +297,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.org).toEqual('@all');
 
         // verify stored in host manifest with @all org - dao discovers key naturally
-        const manifestAfter = await daoKeyrackHostManifest.get({
-          owner: 'case3',
-        });
+        const contextForGet = genContextKeyrack({ owner: 'case3' });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          {
+            owner: 'case3',
+          },
+          contextForGet,
+        );
         const host = manifestAfter?.manifest.hosts['global.sudo.CROSS_ORG_KEY'];
         expect(host).toBeDefined();
         expect(host?.org).toEqual('@all');
@@ -305,11 +336,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with vaultRecipient', () => {
       then('stores vaultRecipient in KeyrackKeyHost', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: 'case4',
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': genMockVaultAdapter(),
@@ -335,9 +372,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.vaultRecipient).toEqual(vaultKeyPair.recipient);
 
         // verify stored in host manifest - dao discovers key naturally
-        const manifestAfter = await daoKeyrackHostManifest.get({
-          owner: 'case4',
-        });
+        const contextForGet = genContextKeyrack({ owner: 'case4' });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          {
+            owner: 'case4',
+          },
+          contextForGet,
+        );
         const host = manifestAfter?.manifest.hosts['ehmpathy.sudo.SECURE_KEY'];
         expect(host?.vaultRecipient).toEqual(vaultKeyPair.recipient);
       });
@@ -367,11 +408,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with maxDuration', () => {
       then('stores maxDuration in KeyrackKeyHost', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: 'case5',
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'ehmpathy' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': genMockVaultAdapter(),
@@ -397,9 +444,13 @@ describe('setKeyrackKeyHost.integration', () => {
         expect(result.maxDuration).toEqual('5m');
 
         // verify stored in host manifest - dao discovers key naturally
-        const manifestAfter = await daoKeyrackHostManifest.get({
-          owner: 'case5',
-        });
+        const contextForGet = genContextKeyrack({ owner: 'case5' });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          {
+            owner: 'case5',
+          },
+          contextForGet,
+        );
         const host =
           manifestAfter?.manifest.hosts['ehmpathy.sudo.SENSITIVE_KEY'];
         expect(host?.maxDuration).toEqual('5m');
@@ -450,11 +501,17 @@ describe('setKeyrackKeyHost.integration', () => {
 
     when('[t0] set called with --at custom path', () => {
       then('writes key to custom keyrack at specified path', async () => {
-        const context: KeyrackHostContext = {
+        const context: ContextKeyrack = {
           owner: 'case6',
-          identity: TEST_SSH_AGE_IDENTITY,
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
           hostManifest: manifest,
-          repoManifest: { org: 'customorg' },
+          repoManifest: genMockKeyrackRepoManifest({ org: 'customorg' }),
           gitroot: repo.path,
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
