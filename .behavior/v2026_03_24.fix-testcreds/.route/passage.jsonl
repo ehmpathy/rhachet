@@ -26,3 +26,4 @@
 {"stone":"5.3.verification.v1","status":"blocked"}
 {"stone":"5.3.verification.v1","status":"passed"}
 {"stone":"5.5.playtest.v1","status":"blocked","blocker":"review.self","reason":"review.self required: has-clear-instructions"}
+{"stone":"5.5.playtest.v1","status":"blocked","blocker":"approval","reason":"wait for human approval"}
