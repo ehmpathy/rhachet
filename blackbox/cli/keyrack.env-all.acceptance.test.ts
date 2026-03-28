@@ -593,14 +593,14 @@ describe('keyrack env=all roundtrip', () => {
   });
 
   /**
-   * [uc6] get returns absent when env=all key exists but env=test does not
+   * [uc6] get returns locked when env=all key exists but env=test does not
    *
-   * .note = get does NOT do fallback (per spec.key-get-behavior.md)
-   *         - env=all key exists but env=test key does not
-   *         - get --env test returns "absent" (not "locked")
-   *         - user must unlock --env test (which DOES fallback) first
+   * .note = get does NOT do daemon fallback (per spec.key-get-behavior.md)
+   *         - but status inference DOES check env=all vault to determine locked vs absent
+   *         - if env=all key exists in vault, status is "locked" (not "absent")
+   *         - fix suggests "unlock" (not "set") because key exists
    */
-  given('[case6] get returns absent when only env=all exists (get no fallback)', () => {
+  given('[case6] get returns locked when only env=all exists (inference checks env=all)', () => {
     beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
 
     const repo = useBeforeAll(async () => {
@@ -637,7 +637,7 @@ describe('keyrack env=all roundtrip', () => {
       });
     });
 
-    when('[t1] get with --env test (no fallback to env=all)', () => {
+    when('[t1] get with --env test (inference finds env=all in vault)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -655,14 +655,14 @@ describe('keyrack env=all roundtrip', () => {
         }),
       );
 
-      then('status is absent (get does not fallback to env=all)', () => {
+      then('status is locked (inference finds env=all key in vault)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('absent');
+        expect(parsed.status).toEqual('locked');
       });
 
-      then('fix suggests keyrack set (because env=test key is absent)', () => {
+      then('fix suggests keyrack unlock (because key exists)', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.fix).toContain('set');
+        expect(parsed.fix).toContain('unlock');
       });
     });
   });

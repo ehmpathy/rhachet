@@ -1,4 +1,20 @@
 /**
+ * .what = decide if a slug satisfies a request for a given env
+ * .why = centralizes env match with env=all fallback
+ *
+ * .note = returns true if slug's env matches requested env OR slug's env is 'all'
+ */
+export const decideIsKeySlugForEnv = (input: {
+  slug: string;
+  env: string;
+}): boolean => {
+  const parts = input.slug.split('.');
+  if (parts.length < 3) return false;
+  const slugEnv = parts[1];
+  return slugEnv === input.env || slugEnv === 'all';
+};
+
+/**
  * .what = decide if a proposed slug satisfies a desired slug, with env=all fallback
  * .why = centralizes the env=all fallback match logic in one place
  *
@@ -23,6 +39,21 @@ export const decideIsKeySlugEqual = (input: {
 };
 
 /**
+ * .what = substitute the env segment of a key slug
+ * .why = enables callers to construct slug for a different env
+ *
+ * .note = returns null if slug is malformed (fewer than 3 segments)
+ */
+export const getKeySlugWithEnv = (input: {
+  slug: string;
+  env: string;
+}): string | null => {
+  const parts = input.slug.split('.');
+  if (parts.length < 3) return null;
+  return `${parts[0]}.${input.env}.${parts.slice(2).join('.')}`;
+};
+
+/**
  * .what = compute the env=all fallback slug for a given slug
  * .why = enables callers to check for env=all keys directly
  *
@@ -35,5 +66,5 @@ export const getEnvAllFallbackSlug = (input: {
   if (parts.length < 3) return null;
   if (parts[1] === 'all') return null;
 
-  return `${parts[0]}.all.${parts.slice(2).join('.')}`;
+  return getKeySlugWithEnv({ slug: input.for.slug, env: 'all' });
 };

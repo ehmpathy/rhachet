@@ -2,6 +2,7 @@ import { asHashSha256Sync } from 'hash-fns';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getEnvAllFallbackSlug } from './decideIsKeySlugEqual';
 
 /**
  * .what = check if os.secure vault file exists for a slug
@@ -80,13 +81,28 @@ export const inferKeyrackKeyStatusWhenNotGranted = (input: {
   const home = process.env.HOME;
   if (!home) return 'absent';
 
+  // compute env=all fallback slug (e.g., ehmpathy.test.KEY → ehmpathy.all.KEY)
+  const fallbackSlug = getEnvAllFallbackSlug({ for: { slug: input.slug } });
+
   // check os.secure vault (encrypted .age files)
   if (doesOsSecureVaultExist({ slug: input.slug, owner: input.owner, home })) {
+    return 'locked';
+  }
+  if (
+    fallbackSlug &&
+    doesOsSecureVaultExist({ slug: fallbackSlug, owner: input.owner, home })
+  ) {
     return 'locked';
   }
 
   // check os.direct vault (plaintext json store)
   if (doesOsDirectVaultExist({ slug: input.slug, owner: input.owner, home })) {
+    return 'locked';
+  }
+  if (
+    fallbackSlug &&
+    doesOsDirectVaultExist({ slug: fallbackSlug, owner: input.owner, home })
+  ) {
     return 'locked';
   }
 
