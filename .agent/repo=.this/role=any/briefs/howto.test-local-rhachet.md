@@ -1,73 +1,47 @@
-# howto: test local rhachet upgrades
+# howto: test local rhachet changes
 
-## .what
+## .tldr
 
-when you develop rhachet itself, use `./bin/rhx` and `./bin/run` to test local changes before they're published to npm.
+| command | what it runs | when to use |
+|---------|--------------|-------------|
+| `rhx` | global install | **avoid** — may differ from local |
+| `npx rhachet` | local via link | normal operations |
+| `./bin/rhx` | local source | only after you change CLI code |
 
-## .why
+## .the problem
 
-- `npx rhachet` uses the installed npm version from `node_modules/`
-- `./bin/rhx` and `./bin/run` use the local source code directly
-- local tests catch issues before release
+`rhx` runs whatever is installed globally. in this repo, global may not match local.
 
-## .paths
+## .the solution
 
-| command | resolves to | use case |
-|---------|-------------|----------|
-| `npx rhachet` | `node_modules/.bin/rhachet` | test installed version |
-| `./bin/rhx` | local bun binary | test local skills |
-| `./bin/run` | local bun/jit dispatcher | test local CLI commands |
-
-## .examples
-
-### test a local skill
+use `npx rhachet` for normal operations:
 
 ```bash
-# via npm (uses installed version)
 npx rhachet run --skill say-hello
+npx rhachet roles boot --repo .this --role any
+```
 
-# via local binary (uses local source)
+this runs the local version because package.json declares `"rhachet": "link:."`.
+
+## .when to use `./bin/rhx`
+
+only after you change CLI source code (e.g., files in `src/contract/cli/`).
+
+```bash
+# you changed src/contract/cli/invokeRun.ts
+# now test your change:
 ./bin/rhx say-hello
+./bin/run roles boot --repo .this --role any
 ```
 
-### test a local CLI command
-
-```bash
-# via npm (uses installed version)
-npx rhachet enroll claude --roles mechanic
-
-# via local binary (uses local source)
-./bin/run enroll claude --roles mechanic
-```
-
-### test with JIT path (for commands that need npm package imports)
-
-```bash
-# JIT path transpiles typescript on demand
-./bin/run.jit enroll claude --roles mechanic --mode plan
-```
-
-## .when to use each
-
-| scenario | command |
-|----------|---------|
-| verify installed package works | `npx rhachet` |
-| develop new skill | `./bin/rhx` |
-| develop new CLI command | `./bin/run` |
-| debug npm import issues | `./bin/run.jit` |
+if you did not change CLI code, do not use `./bin/`. use `npx rhachet` instead.
 
 ## .permissions
 
-the `.claude/settings.json` must include these permissions:
+to use `./bin/rhx` or `./bin/run`, add to `.claude/settings.json`:
 
 ```json
 "Bash(./bin/rhx:*)",
 "Bash(./bin/run:*)"
 ```
 
-if the permission is not present, the command will be blocked. in that case:
-1. the first attempt will show the block message
-2. retry the same command — the second attempt triggers a human approval prompt
-3. human can grant the permission, which adds it to settings
-
-alternatively, add the permissions to `.claude/settings.json` directly.
