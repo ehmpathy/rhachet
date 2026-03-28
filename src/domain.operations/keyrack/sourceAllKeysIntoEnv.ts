@@ -3,6 +3,8 @@ import { resolve } from 'path';
 
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
 
+import { decideIsKeySlugForEnv } from './decideIsKeySlugEqual';
+
 /**
  * .what = absolute path to rhx binary
  * .why = relative path ./node_modules/.bin/rhx fails in temp directories with symlinked node_modules
@@ -76,8 +78,10 @@ export const sourceAllKeysIntoEnv = (input: {
     process.exit(2);
   }
 
-  // filter to keys for the requested env
-  const keysForEnv = keys.filter((k) => getSlug(k).includes(`.${input.env}.`));
+  // filter to keys for the requested env (include env=all fallback)
+  const keysForEnv = keys.filter((k) =>
+    decideIsKeySlugForEnv({ slug: getSlug(k), env: input.env }),
+  );
 
   // check if all keys are granted (strict mode enabled by default)
   const mode = input.mode ?? 'strict';
