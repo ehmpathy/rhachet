@@ -9,7 +9,7 @@ import {
 
 describe('translateHook', () => {
   describe('translateHookToClaudeCode', () => {
-    given('[case1] onBoot hook', () => {
+    given('[case1] onBoot hook without filter', () => {
       const hook: BrainHook = {
         author: 'repo=test/role=tester',
         event: 'onBoot',
@@ -94,6 +94,82 @@ describe('translateHook', () => {
 
         then('timeout is 500 milliseconds', () => {
           expect(result.entry.hooks[0]?.timeout).toEqual(500);
+        });
+      });
+    });
+
+    given('[case5] onBoot hook with filter.what=PostCompact', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onBoot',
+        command: 'echo "post"',
+        timeout: 'PT30S',
+        filter: { what: 'PostCompact' },
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookToClaudeCode({ hook });
+
+        then('event is PostCompact', () => {
+          expect(result.event).toEqual('PostCompact');
+        });
+
+        then('entry matcher is wildcard', () => {
+          expect(result.entry.matcher).toEqual('*');
+        });
+      });
+    });
+
+    given('[case6] onBoot hook with filter.what=PreCompact', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onBoot',
+        command: 'echo "pre"',
+        timeout: 'PT30S',
+        filter: { what: 'PreCompact' },
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookToClaudeCode({ hook });
+
+        then('event is PreCompact', () => {
+          expect(result.event).toEqual('PreCompact');
+        });
+      });
+    });
+
+    given('[case7] onBoot hook with filter.what=SessionStart', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onBoot',
+        command: 'echo "session"',
+        timeout: 'PT30S',
+        filter: { what: 'SessionStart' },
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookToClaudeCode({ hook });
+
+        then('event is SessionStart', () => {
+          expect(result.event).toEqual('SessionStart');
+        });
+      });
+    });
+
+    given('[case8] onBoot hook with invalid filter.what', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onBoot',
+        command: 'echo "invalid"',
+        timeout: 'PT30S',
+        filter: { what: 'InvalidEvent' },
+      };
+
+      when('[t0] translated', () => {
+        then('throws UnexpectedCodePathError', () => {
+          expect(() => translateHookToClaudeCode({ hook })).toThrow(
+            'invalid filter.what value for onBoot: InvalidEvent',
+          );
         });
       });
     });
@@ -207,7 +283,63 @@ describe('translateHook', () => {
       });
     });
 
-    given('[case5] timeout formats', () => {
+    given('[case5] PostCompact entry', () => {
+      const entry = {
+        matcher: '*',
+        hooks: [{ type: 'command', command: 'echo "compact"', timeout: 30000 }],
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookFromClaudeCode({
+          event: 'PostCompact',
+          entry,
+          author: 'repo=test/role=tester',
+        });
+
+        then('returns one hook', () => {
+          expect(result).toHaveLength(1);
+        });
+
+        then('event is onBoot', () => {
+          expect(result[0]?.event).toEqual('onBoot');
+        });
+
+        then('filter.what is PostCompact', () => {
+          expect(result[0]?.filter?.what).toEqual('PostCompact');
+        });
+      });
+    });
+
+    given('[case6] PreCompact entry', () => {
+      const entry = {
+        matcher: '*',
+        hooks: [
+          { type: 'command', command: 'echo "precompact"', timeout: 30000 },
+        ],
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookFromClaudeCode({
+          event: 'PreCompact',
+          entry,
+          author: 'repo=test/role=tester',
+        });
+
+        then('returns one hook', () => {
+          expect(result).toHaveLength(1);
+        });
+
+        then('event is onBoot', () => {
+          expect(result[0]?.event).toEqual('onBoot');
+        });
+
+        then('filter.what is PreCompact', () => {
+          expect(result[0]?.filter?.what).toEqual('PreCompact');
+        });
+      });
+    });
+
+    given('[case7] timeout formats', () => {
       when('[t0] timeout divisible by 1000', () => {
         const result = translateHookFromClaudeCode({
           event: 'SessionStart',

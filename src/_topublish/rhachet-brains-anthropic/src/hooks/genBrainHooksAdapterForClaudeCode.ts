@@ -1,5 +1,4 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
-import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 
 import {
@@ -108,13 +107,18 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
           // translate to claude code format
           const { event, entry } = translateHookToClaudeCode({ hook });
 
-          // tag entry with author for later identification
-          entry.matcher = `# author=${hook.author} ${entry.matcher}`;
-
           // ensure hooks section exists
-          const hooksSection = settings.hooks ?? {};
-          const eventHooks =
-            hooksSection[event as keyof typeof hooksSection] ?? [];
+          let hooksSection = { ...settings.hooks } ?? {};
+
+          // tag entry with author for later identification
+          const taggedEntry = {
+            ...entry,
+            matcher: `# author=${hook.author} ${entry.matcher}`,
+          };
+
+          const eventHooks = [
+            ...(hooksSection[event as keyof typeof hooksSection] ?? []),
+          ];
 
           // find and replace or append
           const hookIndex = eventHooks.findIndex(
@@ -124,18 +128,20 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
           );
 
           if (hookIndex >= 0) {
-            eventHooks[hookIndex] = entry;
+            eventHooks[hookIndex] = taggedEntry;
           } else {
-            eventHooks.push(entry);
+            eventHooks.push(taggedEntry);
           }
+
+          hooksSection = {
+            ...hooksSection,
+            [event]: eventHooks,
+          };
 
           // write back
           const settingsUpdated: ClaudeCodeSettings = {
             ...settings,
-            hooks: {
-              ...hooksSection,
-              [event]: eventHooks,
-            },
+            hooks: hooksSection,
           };
 
           await writeClaudeCodeSettings({
@@ -155,35 +161,45 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
         const { author, event, command } = query.by.unique;
         const settings = await readClaudeCodeSettings({ from: repoPath });
 
-        // map event to claude code event name
-        const eventMap: Record<BrainHookEvent, string> = {
-          onBoot: 'SessionStart',
-          onTool: 'PreToolUse',
-          onStop: 'Stop',
-        };
-        const claudeEvent = eventMap[event];
+        // determine which claude code event buckets to search
+        // for onBoot, search all boot event buckets (hook may be in any)
+        const claudeEvents: string[] =
+          event === 'onBoot'
+            ? ['SessionStart', 'PreCompact', 'PostCompact']
+            : event === 'onTool'
+              ? ['PreToolUse']
+              : ['Stop'];
 
-        // find and remove
-        const hooksSection = settings.hooks ?? {};
-        const eventHooks =
-          hooksSection[claudeEvent as keyof typeof hooksSection] ?? [];
+        // find and remove from all relevant buckets
+        let hooksSection = { ...settings.hooks } ?? {};
+        let changed = false;
 
-        const filtered = eventHooks.filter(
-          (e) =>
-            !(
-              e.matcher.includes(`author=${author}`) &&
-              e.hooks.some((h) => h.command === command)
-            ),
-        );
+        for (const claudeEvent of claudeEvents) {
+          const eventHooks =
+            hooksSection[claudeEvent as keyof typeof hooksSection] ?? [];
 
-        // write back if changed
-        if (filtered.length !== eventHooks.length) {
-          const settingsUpdated: ClaudeCodeSettings = {
-            ...settings,
-            hooks: {
+          const filtered = eventHooks.filter(
+            (e) =>
+              !(
+                e.matcher.includes(`author=${author}`) &&
+                e.hooks.some((h) => h.command === command)
+              ),
+          );
+
+          if (filtered.length !== eventHooks.length) {
+            changed = true;
+            hooksSection = {
               ...hooksSection,
               [claudeEvent]: filtered,
-            },
+            };
+          }
+        }
+
+        // write back if changed
+        if (changed) {
+          const settingsUpdated: ClaudeCodeSettings = {
+            ...settings,
+            hooks: hooksSection,
           };
 
           await writeClaudeCodeSettings({

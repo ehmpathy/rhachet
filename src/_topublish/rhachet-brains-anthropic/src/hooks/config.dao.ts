@@ -18,6 +18,8 @@ export interface ClaudeCodeHookEntry {
 export interface ClaudeCodeSettings {
   hooks?: {
     SessionStart?: ClaudeCodeHookEntry[];
+    PreCompact?: ClaudeCodeHookEntry[];
+    PostCompact?: ClaudeCodeHookEntry[];
     PreToolUse?: ClaudeCodeHookEntry[];
     PostToolUse?: ClaudeCodeHookEntry[];
     Stop?: ClaudeCodeHookEntry[];
