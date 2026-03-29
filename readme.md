@@ -514,6 +514,7 @@ const result = await context.brain.repl.act({ role, prompt: 'review the pull req
 | `plugs` | tools, memory, etc | [howto.use.brain.plugs](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.plugs.md) |
 | `schema` | output schema for structured responses | [howto.use.brain.schema](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.schema.md) |
 | `on` | episode continuation | [howto.use.brain.on](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.on.md) |
+| `hooks` | brain lifecycle hooks | [howto.use.brain.hooks](.agent/repo=.this/role=user/briefs/brains/howto.use.brain.hooks.md) |
 ```
 
 ### grains

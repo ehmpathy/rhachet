@@ -1,0 +1,11 @@
+{
+  "protections": [
+    {
+      "glob": "src/**/*",
+      "stone": "3.3.1.blueprint.product.v1",
+      "guard": ".behavior/v2026_03_29.fix-brain-hooks-postcompact/3.3.1.blueprint.product.v1.guard",
+      "route": ".behavior/v2026_03_29.fix-brain-hooks-postcompact",
+      "passed": true
+    }
+  ]
+}
