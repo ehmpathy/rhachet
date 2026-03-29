@@ -1,0 +1,17 @@
+# .agent/repo=.this/role=any/boot.yml
+#
+# controls which briefs are said (inline) vs reffed (pointer only).
+# unmatched briefs become refs automatically.
+
+briefs:
+  say:
+    # core identity - always boot these
+    - briefs/define.rhachet.v3.md
+    - briefs/define.agent-dir.md
+    # actively used patterns
+    - briefs/howto.test-local-rhachet.md
+    - briefs/bin.dispatcher.pattern.md
+    - briefs/run.executable.lookup.pattern.md
+    # test patterns (frequently referenced)
+    - briefs/code.test.accept.blackbox.md
+    - briefs/rule.require.shared-test-fixtures.md

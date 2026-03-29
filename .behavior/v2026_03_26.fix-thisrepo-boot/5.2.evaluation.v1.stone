@@ -1,0 +1,90 @@
+evaluate what was implemented against the blueprint
+
+.what = articulate exactly what was implemented, then check for divergences from blueprint.
+
+.why = the blueprint declared what the execution would adhere to.
+- divergences are NOT allowed
+- default action is REPAIR — fix implementation to match blueprint
+- if repair is impossible, raise BLOCKER and request human approval
+- this gate prevents silent deviations from approved design
+
+---
+
+reference the blueprint:
+- .behavior/v2026_03_26.fix-thisrepo-boot/3.3.1.blueprint.product.v1.i1.md
+
+---
+
+## summary (as implemented)
+
+state what was actually built. mirror the blueprint summary structure.
+
+---
+
+## filediff tree (as implemented)
+
+include a treestruct of filediffs that were actually made.
+
+**legend:**
+- `[+] created` — file created
+- `[~] updated` — file updated
+- `[-] deleted` — file deleted
+
+---
+
+## codepath tree (as implemented)
+
+include a treestruct of codepaths that were actually implemented.
+
+**legend:**
+- `[+]` created — codepath created
+- `[~]` updated — codepath updated
+- `[○]` retained — codepath retained
+- `[-]` deleted — codepath deleted
+- `[←]` reused — codepath reused from elsewhere
+- `[→]` ejected — codepath decomposed for reuse
+
+---
+
+## test coverage (as implemented)
+
+document what tests were actually written:
+- unit tests
+- integration tests
+- acceptance tests
+
+---
+
+## divergence analysis
+
+for each section (summary, filediff, codepath, test coverage), compare:
+- what the blueprint declared
+- what was actually implemented
+
+### divergences found
+
+| section | blueprint declared | actual implemented | divergence type |
+|---------|-------------------|-------------------|-----------------|
+| ... | ... | ... | added/removed/changed |
+
+### divergence resolution
+
+for each divergence:
+
+**repair** (default) — fix the implementation to match the blueprint:
+- what needs to change to match blueprint?
+- make the change, then update the "as implemented" section above
+
+**blocker** (only if repair is impossible) — request human approval:
+- why is repair impossible?
+- what constraint prevents adherence to blueprint?
+- run `rhx route.stone.set --as blocked` to declare yourself blocked and request human approval
+- STOP and await human decision before you proceed
+
+| divergence | resolution | rationale |
+|------------|------------|-----------|
+| ... | repair/blocker | ... |
+
+---
+
+emit into .behavior/v2026_03_26.fix-thisrepo-boot/5.2.evaluation.v1.i1.md
