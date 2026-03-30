@@ -78,7 +78,9 @@ export const createDaemonKeyStore = () => {
     const result: CachedGrant[] = [];
 
     for (const [slug, cachedGrant] of store.entries()) {
-      if (cachedGrant.expiresAt && now >= cachedGrant.expiresAt) {
+      const isExpired = cachedGrant.expiresAt && now >= cachedGrant.expiresAt;
+
+      if (isExpired) {
         // expired — purge
         store.delete(slug);
       } else {
