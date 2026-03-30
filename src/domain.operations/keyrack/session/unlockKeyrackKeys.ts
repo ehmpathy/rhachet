@@ -229,9 +229,9 @@ export const unlockKeyrackKeys = async (
         );
       }
     }
-    const expiresAt = asIsoTimeStamp(
-      new Date(Date.now() + effectiveDurationMs),
-    );
+    const nowMs = Date.now();
+    const expiresAtDate = new Date(nowMs + effectiveDurationMs);
+    const expiresAt = asIsoTimeStamp(expiresAtDate);
 
     // derive env and org for daemon storage
     // for sudo keys: use hostConfig (has env/org set)
