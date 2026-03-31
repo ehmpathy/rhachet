@@ -13,13 +13,16 @@ import {
   delKeyrackKey,
   genContextKeyrack,
   genContextKeyrackGrantGet,
-  getKeyrackKeyGrant,
+  getAllKeyrackGrantsByRepo,
+  getOneKeyrackGrantByKey,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
-import { asKeyrackKeySlug } from '@src/domain.operations/keyrack/asKeyrackKeySlug';
-import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
+import {
+  formatKeyrackGetAllOutput,
+  formatKeyrackGetOneOutput,
+} from '@src/domain.operations/keyrack/cli/formatKeyrackGetOneOutput';
 import {
   isValidKeyrackEnv,
   KEYRACK_VALID_ENVS,
@@ -368,27 +371,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // handle grant
         if (opts.for === 'repo') {
-          // resolve slugs from repo manifest
-          if (!context.repoManifest) {
-            throw new BadRequestError(
-              'no keyrack.yml found in repo. --for repo requires keyrack.yml',
-            );
-          }
-          const resolvedEnv = assertKeyrackEnvIsSpecified({
-            manifest: context.repoManifest,
-            env: opts.env ?? null,
-          });
-          const slugs = getAllKeyrackSlugsForEnv({
-            manifest: context.repoManifest,
-            env: resolvedEnv,
-          });
-
-          const attempts = await getKeyrackKeyGrant(
+          const attempts = await getAllKeyrackGrantsByRepo(
             {
-              for: { repo: true },
-              env: opts.env,
-              slugs,
-              allowDangerous: opts.allowDangerous,
+              env: opts.env ?? null,
+              allow: { dangerous: opts.allowDangerous },
             },
             context,
           );
@@ -397,52 +383,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           if (opts.json) {
             console.log(JSON.stringify(attempts, null, 2));
           } else {
-            // count stats
-            const granted = attempts.filter((a) => a.status === 'granted');
-            const blocked = attempts.filter((a) => a.status === 'blocked');
-            const absent = attempts.filter((a) => a.status === 'absent');
-
-            console.log('');
-            console.log('🔐 keyrack');
-            for (let i = 0; i < attempts.length; i++) {
-              const attempt = attempts[i]!;
-              const isLast = i === attempts.length - 1;
-
-              if (attempt.status === 'granted') {
-                emitKeyrackKeyBranch({
-                  entry: { type: 'granted', grant: attempt.grant },
-                  isLast,
-                });
-              } else if (attempt.status === 'blocked') {
-                emitKeyrackKeyBranch({
-                  entry: {
-                    type: 'blocked',
-                    slug: attempt.slug,
-                    reasons: attempt.reasons,
-                  },
-                  isLast,
-                });
-              } else if (attempt.status === 'locked') {
-                emitKeyrackKeyBranch({
-                  entry: {
-                    type: 'locked',
-                    slug: attempt.slug,
-                    tip: attempt.fix ?? null,
-                  },
-                  isLast,
-                });
-              } else {
-                emitKeyrackKeyBranch({
-                  entry: {
-                    type: 'absent',
-                    slug: attempt.slug,
-                    tip: attempt.fix ?? null,
-                  },
-                  isLast,
-                });
-              }
-            }
-            console.log('');
+            console.log(formatKeyrackGetAllOutput({ attempts }));
           }
 
           // exit 2 if any key was not granted (blocked by constraints)
@@ -451,55 +392,24 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             process.exit(2);
           }
         } else if (opts.key) {
-          // resolve org from manifest (or use @all directly)
-          let resolvedOrg: string;
-          if (opts.org === '@all') {
-            resolvedOrg = '@all';
-          } else {
-            if (!context.repoManifest) {
-              // for sudo keys, guide user to use @all
-              if (opts.env === 'sudo') {
-                throw new BadRequestError(
-                  'no keyrack.yml found in repo. for sudo credentials without keyrack.yml, use --org @all',
-                );
-              }
-              throw new BadRequestError('no keyrack.yml found in repo');
-            }
-            resolvedOrg = assertKeyrackOrgMatchesManifest({
-              manifest: context.repoManifest,
-              org: opts.org,
-            });
-          }
-
-          // construct slug: use asKeyrackKeySlug when manifest exists and not @all
-          // when @all, skip manifest validation and use inline format detection
-          const { slug, env } = (() => {
-            if (context.repoManifest && opts.org !== '@all') {
-              // use asKeyrackKeySlug for full validation (org match, env extraction)
-              return asKeyrackKeySlug({
-                key: opts.key,
-                env: opts.env ?? null,
-                manifest: context.repoManifest,
-              });
-            }
-
-            // fallback: inline format detection for @all or no manifest
-            const parts = opts.key.split('.');
-            const isFullSlug =
-              parts.length >= 3 && isValidKeyrackEnv(parts[1] ?? '');
-            const envFallback = opts.env ?? 'all';
-            return {
-              slug: isFullSlug
-                ? opts.key
-                : `${resolvedOrg}.${envFallback}.${opts.key}`,
-              env: isFullSlug ? (parts[1] ?? envFallback) : envFallback,
-            };
-          })();
-
-          const attempt = await getKeyrackKeyGrant(
-            { for: { key: slug }, allowDangerous: opts.allowDangerous },
+          // grant key via domain operation
+          // .note = org parameter bypasses manifest validation (for @all)
+          const attempt = await getOneKeyrackGrantByKey(
+            {
+              key: opts.key,
+              env: opts.env ?? null,
+              org: opts.org === '@all' ? '@all' : undefined,
+              allow: { dangerous: opts.allowDangerous },
+            },
             context,
           );
+
+          // extract env and slug from attempt for downstream logic
+          const slug =
+            attempt.status === 'granted'
+              ? attempt.grant.slug
+              : (attempt as { slug: string }).slug;
+          const env = slug.split('.')[1] ?? opts.env ?? 'all';
 
           // promote locked/absent → absent for non-sudo keys not in repo manifest (allowlist)
           // envvar passthrough and daemon results are unaffected (they return granted/blocked)
@@ -529,42 +439,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           if (opts.json) {
             console.log(JSON.stringify(attemptResolved, null, 2));
           } else {
-            console.log('');
-            console.log('🔐 keyrack');
-            if (attemptResolved.status === 'granted') {
-              emitKeyrackKeyBranch({
-                entry: { type: 'granted', grant: attemptResolved.grant },
-                isLast: true,
-              });
-            } else if (attemptResolved.status === 'blocked') {
-              emitKeyrackKeyBranch({
-                entry: {
-                  type: 'blocked',
-                  slug: attemptResolved.slug,
-                  reasons: attemptResolved.reasons,
-                },
-                isLast: true,
-              });
-            } else if (attemptResolved.status === 'locked') {
-              emitKeyrackKeyBranch({
-                entry: {
-                  type: 'locked',
-                  slug: attemptResolved.slug,
-                  tip: attemptResolved.fix ?? null,
-                },
-                isLast: true,
-              });
-            } else {
-              emitKeyrackKeyBranch({
-                entry: {
-                  type: 'absent',
-                  slug: attemptResolved.slug,
-                  tip: attemptResolved.fix ?? null,
-                },
-                isLast: true,
-              });
-            }
-            console.log('');
+            console.log(
+              formatKeyrackGetOneOutput({ attempt: attemptResolved }),
+            );
           }
 
           // exit 2 if key was not granted (blocked by constraints)
