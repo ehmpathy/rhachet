@@ -68,14 +68,16 @@ export const keyrack = {
    *
    * .note = returns emit.stdout for ready-to-use CLI output
    */
-  get: async (input: {
-    for: { repo: true } | { key: string };
+  get: async <T extends { repo: true } | { key: string }>(input: {
+    for: T;
     env?: string;
+    org?: string;
     owner?: string | null;
     allow?: { dangerous?: boolean };
   }): Promise<
-    | (KeyrackGrantAttempt & { emit: { stdout: string } })
-    | (KeyrackGrantAttempt[] & { emit: { stdout: string } })
+    T extends { repo: true }
+      ? { attempts: KeyrackGrantAttempt[]; emit: { stdout: string } }
+      : { attempt: KeyrackGrantAttempt; emit: { stdout: string } }
   > => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
     const context = await genContextKeyrackGrantGet({
@@ -89,19 +91,24 @@ export const keyrack = {
         context,
       );
       const stdout = formatKeyrackGetAllOutput({ attempts });
-      return Object.assign(attempts, { emit: { stdout } });
+      return { attempts, emit: { stdout } } as T extends { repo: true }
+        ? { attempts: KeyrackGrantAttempt[]; emit: { stdout: string } }
+        : { attempt: KeyrackGrantAttempt; emit: { stdout: string } };
     }
 
     const attempt = await getOneKeyrackGrantByKey(
       {
         key: input.for.key,
         env: input.env ?? null,
+        org: input.org,
         allow: input.allow,
       },
       context,
     );
     const stdout = formatKeyrackGetOneOutput({ attempt });
-    return { ...attempt, emit: { stdout } };
+    return { attempt, emit: { stdout } } as T extends { repo: true }
+      ? { attempts: KeyrackGrantAttempt[]; emit: { stdout: string } }
+      : { attempt: KeyrackGrantAttempt; emit: { stdout: string } };
   },
 
   /**

@@ -393,12 +393,18 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           }
         } else if (opts.key) {
           // grant key via domain operation
-          // .note = org parameter bypasses manifest validation (for @all)
+          // .note = org parameter passed through to enable:
+          //   - @all bypass for sudo access
+          //   - org mismatch fail-fast (security enforcement)
+          //   - slug construction without manifest
+          // .note = @this means "use manifest org" — pass undefined to let domain op handle
+          const orgForDomainOp =
+            opts.org === '@this' ? undefined : (opts.org ?? undefined);
           const attempt = await getOneKeyrackGrantByKey(
             {
               key: opts.key,
               env: opts.env ?? null,
-              org: opts.org === '@all' ? '@all' : undefined,
+              org: orgForDomainOp,
               allow: { dangerous: opts.allowDangerous },
             },
             context,

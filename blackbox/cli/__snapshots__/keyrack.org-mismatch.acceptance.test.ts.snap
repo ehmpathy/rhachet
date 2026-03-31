@@ -1,8 +1,8 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack org-mismatch given: [case6] set with org mismatch when: [t0] set --key AWS_PROFILE --org foreign-org --json then: stdout matches snapshot 1`] = `""`;
+exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t0] set --key AWS_PROFILE --org foreign-org --json then: stdout matches snapshot 1`] = `""`;
 
-exports[`keyrack org-mismatch given: [case6] set with org mismatch when: [t1] set --key AWS_PROFILE --org @this (valid match) then: stdout matches snapshot 1`] = `
+exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t1] set --key AWS_PROFILE --org @this (valid match) then: stdout matches snapshot 1`] = `
 {
   "createdAt": "__TIMESTAMP__",
   "env": "prod",
