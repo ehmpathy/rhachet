@@ -399,7 +399,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           //   - slug construction without manifest
           // .note = @this means "use manifest org" — pass undefined to let domain op handle
           const orgForDomainOp =
-            opts.org === '@this' ? undefined : opts.org ?? undefined;
+            opts.org === '@this' ? undefined : (opts.org ?? undefined);
           const attempt = await getOneKeyrackGrantByKey(
             {
               key: opts.key,
