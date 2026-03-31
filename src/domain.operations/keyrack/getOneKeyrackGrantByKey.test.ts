@@ -16,14 +16,16 @@ import { getOneKeyrackGrantByKey } from './getOneKeyrackGrantByKey';
  */
 describe('getOneKeyrackGrantByKey', () => {
   // minimal mock context for slug construction tests
+  // uses type assertion since we only test slug construction, not actual grant
   const genMockContext = (
     manifest: KeyrackRepoManifest | null,
-  ): ContextKeyrackGrantGet => ({
-    repoManifest: manifest,
-    owner: null,
-    envvarAdapter: { get: async () => null },
-    mechAdapters: {},
-  });
+  ): ContextKeyrackGrantGet =>
+    ({
+      repoManifest: manifest,
+      owner: null,
+      envvarAdapter: { get: async () => null },
+      mechAdapters: {},
+    }) as unknown as ContextKeyrackGrantGet;
 
   given('[security] cross-org access prevention', () => {
     /**
@@ -44,6 +46,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t0] full slug org does not match manifest org', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'orgA',
+        envs: [],
         keys: {},
       });
 
@@ -71,6 +74,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t1] @all org is specified', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'orgA',
+        envs: [],
         keys: {},
       });
 
@@ -95,10 +99,14 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t2] no org override and manifest exists', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'myorg',
+        envs: ['test'],
         keys: {
           'myorg.test.API_KEY': {
+            slug: 'myorg.test.API_KEY',
+            name: 'API_KEY',
             env: 'test',
             mech: 'PERMANENT_VIA_REPLICA',
+            grade: null,
           },
         },
       });
