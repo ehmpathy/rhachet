@@ -78,7 +78,16 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
       console.error(``);
       console.error(`[args] ${input.args}`);
       console.error(``);
-      process.exit(1);
+      // use error's exit code if available (e.g., ConstraintError = 2)
+      const exitCode =
+        'code' in error &&
+        typeof error.code === 'object' &&
+        error.code !== null &&
+        'exit' in error.code &&
+        typeof error.code.exit === 'number'
+          ? error.code.exit
+          : 1;
+      process.exit(exitCode);
     }
     throw error;
   });

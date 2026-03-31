@@ -351,7 +351,90 @@ console.log(JSON.stringify(result, null, 2));
     });
   });
 
-  given('[case4] no manifest throws ConstraintError', () => {
+  /**
+   * SECURITY: org mismatch is a fail-fast constraint
+   *
+   * prevents cross-org credential access — if a user passes org param
+   * that doesn't match the manifest's org, reject immediately.
+   * this ensures credentials stay within their declared org boundary.
+   */
+  given('[case4] org mismatch throws ConstraintError', () => {
+    when('[t0] keyrack.get with org that does not match manifest', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-org-mismatch',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with org: testorg
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.test:
+  - API_KEY
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.get with WRONG org
+        const modulePath = join(testDir, 'test-org-mismatch.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+try {
+  const result = await keyrack.get({ for: { key: 'API_KEY' }, env: 'test', org: 'wrongorg' });
+  console.log('unexpected success:', JSON.stringify(result));
+} catch (error) {
+  console.log('error.name:', error.name);
+  console.log('error.message:', error.message);
+  process.exit(error.code?.exit ?? 1);
+}
+`,
+        );
+
+        // run module
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 2 (constraint error)', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('error is ConstraintError', () => {
+        expect(result.stdout).toContain('ConstraintError');
+      });
+
+      then('error message mentions org mismatch', () => {
+        expect(result.stdout).toContain("org 'wrongorg' does not match manifest org 'testorg'");
+      });
+    });
+  });
+
+  given('[case5] no manifest throws ConstraintError', () => {
     when('[t0] keyrack.get with raw key and no keyrack.yml', () => {
       const result = useBeforeAll(async () => {
         // create temp repo with node_modules symlink and git init - NO keyrack.yml
