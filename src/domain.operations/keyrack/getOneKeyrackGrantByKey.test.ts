@@ -174,5 +174,43 @@ describe('getOneKeyrackGrantByKey', () => {
         expect((result as { slug: string }).slug).toBe('someorg.test.API_KEY');
       });
     });
+
+    when('[t6] org param does not match manifest org', () => {
+      const manifest = new KeyrackRepoManifest({
+        org: 'orgA',
+        envs: ['test'],
+        keys: {},
+      });
+
+      then('fails fast with org mismatch error', async () => {
+        const context = genMockContext(manifest);
+
+        try {
+          await getOneKeyrackGrantByKey(
+            { key: 'API_KEY', env: 'test', org: 'orgB' },
+            context,
+          );
+          throw new Error('expected to throw');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect((error as ConstraintError).message).toContain(
+            "org 'orgB' does not match manifest org 'orgA'",
+          );
+        }
+      });
+    });
+
+    when('[t7] org param provided without manifest', () => {
+      then('constructs slug from org param', async () => {
+        const context = genMockContext(null);
+
+        const result = await getOneKeyrackGrantByKey(
+          { key: 'API_KEY', env: 'test', org: 'myorg' },
+          context,
+        );
+
+        expect((result as { slug: string }).slug).toBe('myorg.test.API_KEY');
+      });
+    });
   });
 });

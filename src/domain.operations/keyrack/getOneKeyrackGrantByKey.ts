@@ -39,6 +39,12 @@ export const getOneKeyrackGrantByKey = async (
 
     // if manifest exists, use asKeyrackKeySlug for full validation
     if (context.repoManifest) {
+      // fail fast if org param doesn't match manifest org
+      if (input.org && input.org !== context.repoManifest.org) {
+        throw new ConstraintError(
+          `org '${input.org}' does not match manifest org '${context.repoManifest.org}'`,
+        );
+      }
       return asKeyrackKeySlug({
         key: input.key,
         env: input.env,
@@ -53,7 +59,13 @@ export const getOneKeyrackGrantByKey = async (
       return { slug: input.key };
     }
 
-    // no manifest, no full slug - cannot construct
+    // no manifest but org provided - construct slug
+    if (input.org) {
+      const envFallback = input.env ?? 'all';
+      return { slug: `${input.org}.${envFallback}.${input.key}` };
+    }
+
+    // no manifest, no full slug, no org - cannot construct
     // provide sudo-specific hint when env is sudo
     if (input.env === 'sudo') {
       throw new ConstraintError(
