@@ -4,7 +4,7 @@
 #
 # .note = keyrack is short-circuited to avoid skill proxy overhead
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 # short-circuit keyrack commands (via jit path, not bun binary)
 if [ "$1" = "keyrack" ]; then

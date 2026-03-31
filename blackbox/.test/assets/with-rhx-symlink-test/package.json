@@ -1,0 +1,8 @@
+{
+  "name": "test-rhx-symlink",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet": "file:../../../../"
+  }
+}
