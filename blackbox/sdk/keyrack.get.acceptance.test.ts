@@ -99,6 +99,13 @@ console.log(JSON.stringify(result, null, 2));
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant?.key?.secret).toEqual(envValue);
       });
+
+      then('emit.stdout contains formatted output', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.emit?.stdout).toBeDefined();
+        expect(parsed.emit.stdout).toContain('🔐 keyrack');
+        expect(parsed.emit.stdout).toContain('granted');
+      });
     });
   });
 
@@ -257,6 +264,13 @@ console.log(JSON.stringify(result, null, 2));
         expect(parsed.reasons.some((r: string) => r.includes('ghp_'))).toBe(
           true,
         );
+      });
+
+      then('emit.stdout contains blocked status', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.emit?.stdout).toBeDefined();
+        expect(parsed.emit.stdout).toContain('🔐 keyrack');
+        expect(parsed.emit.stdout).toContain('blocked');
       });
     });
 

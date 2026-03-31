@@ -14,8 +14,13 @@
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
 import type { KeyrackHostVault } from '@src/domain.objects/keyrack/KeyrackHostVault';
+import {
+  formatKeyrackGetAllOutput,
+  formatKeyrackGetOneOutput,
+} from '@src/domain.operations/keyrack/cli/formatKeyrackGetOneOutput';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
 import { getAllKeyrackGrantsByRepo } from '@src/domain.operations/keyrack/getAllKeyrackGrantsByRepo';
@@ -60,13 +65,18 @@ export const keyrack = {
   /**
    * .what = get credentials from keyrack
    * .why = grants keys from vault via configured mechanism
+   *
+   * .note = returns emit.stdout for ready-to-use CLI output
    */
   get: async (input: {
     for: { repo: true } | { key: string };
     env?: string;
     owner?: string | null;
     allow?: { dangerous?: boolean };
-  }) => {
+  }): Promise<
+    | (KeyrackGrantAttempt & { emit: { stdout: string } })
+    | (KeyrackGrantAttempt[] & { emit: { stdout: string } })
+  > => {
     const gitroot = await getGitRepoRoot({ from: process.cwd() });
     const context = await genContextKeyrackGrantGet({
       gitroot,
@@ -74,13 +84,15 @@ export const keyrack = {
     });
 
     if ('repo' in input.for) {
-      return getAllKeyrackGrantsByRepo(
+      const attempts = await getAllKeyrackGrantsByRepo(
         { env: input.env ?? null, allow: input.allow },
         context,
       );
+      const stdout = formatKeyrackGetAllOutput({ attempts });
+      return Object.assign(attempts, { emit: { stdout } });
     }
 
-    return getOneKeyrackGrantByKey(
+    const attempt = await getOneKeyrackGrantByKey(
       {
         key: input.for.key,
         env: input.env ?? null,
@@ -88,6 +100,8 @@ export const keyrack = {
       },
       context,
     );
+    const stdout = formatKeyrackGetOneOutput({ attempt });
+    return { ...attempt, emit: { stdout } };
   },
 
   /**
