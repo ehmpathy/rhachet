@@ -87,17 +87,17 @@ console.log(JSON.stringify(result, null, 2));
 
       then('slug uses sudo env', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant?.slug).toEqual(`testorg.sudo.${envKey}`);
+        expect(parsed.attempt?.grant?.slug).toEqual(`testorg.sudo.${envKey}`);
       });
 
       then('status is granted', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.attempt?.status).toEqual('granted');
       });
 
       then('secret value matches env var', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant?.key?.secret).toEqual(envValue);
+        expect(parsed.attempt?.grant?.key?.secret).toEqual(envValue);
       });
 
       then('emit.stdout contains formatted output', () => {
@@ -175,12 +175,12 @@ console.log(JSON.stringify(result, null, 2));
 
       then('slug uses prep env', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant?.slug).toEqual(`testorg.prep.${envKey}`);
+        expect(parsed.attempt?.grant?.slug).toEqual(`testorg.prep.${envKey}`);
       });
 
       then('status is granted', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.attempt?.status).toEqual('granted');
       });
     });
   });
@@ -254,16 +254,16 @@ console.log(JSON.stringify(result, null, 2));
 
       then('status is blocked', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('blocked');
+        expect(parsed.attempt?.status).toEqual('blocked');
       });
 
       then('reasons mention dangerous token', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.reasons).toBeDefined();
-        expect(parsed.reasons.length).toBeGreaterThan(0);
-        expect(parsed.reasons.some((r: string) => r.includes('ghp_'))).toBe(
-          true,
-        );
+        expect(parsed.attempt?.reasons).toBeDefined();
+        expect(parsed.attempt.reasons.length).toBeGreaterThan(0);
+        expect(
+          parsed.attempt.reasons.some((r: string) => r.includes('ghp_')),
+        ).toBe(true);
       });
 
       then('emit.stdout contains blocked status', () => {
@@ -341,12 +341,12 @@ console.log(JSON.stringify(result, null, 2));
 
       then('status is granted', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.status).toEqual('granted');
+        expect(parsed.attempt?.status).toEqual('granted');
       });
 
       then('secret value is returned', () => {
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant?.key?.secret).toEqual(result.dangerousValue);
+        expect(parsed.attempt?.grant?.key?.secret).toEqual(result.dangerousValue);
       });
     });
   });

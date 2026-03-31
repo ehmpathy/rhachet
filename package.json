@@ -93,7 +93,7 @@
     "preversion": "npm run prepush",
     "postversion": "git push origin HEAD --tags --no-verify",
     "prepare:husky": "husky install && chmod ug+x .husky/*",
-    "prepare:rhachet": "rhachet init --hooks --roles behaver driver mechanic reviewer architect ergonomist librarian",
+    "prepare:rhachet": "npm run build && rhachet init --hooks --roles mechanic behaver driver reviewer librarian ergonomist architect reflector dreamer dispatcher",
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi",
     "upgrade:rhachet": "rhachet upgrade"
   },
