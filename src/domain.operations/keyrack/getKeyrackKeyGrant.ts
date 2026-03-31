@@ -59,10 +59,10 @@ const toKeyrackKey = (input: {
  * .note = resolution order: os.envvar (ci passthrough) -> os.daemon (session cache) -> locked
  * .note = never reads from vault — vault access is exclusively via unlock
  * .note = firewall validation applies uniformly to all granted keys, regardless of source
- * .note = allowDangerous bypasses firewall validation (for known-dangerous credentials)
+ * .note = allow.dangerous bypasses firewall validation (for known-dangerous credentials)
  */
 const attemptGrantKey = async (
-  input: { slug: string; allowDangerous?: boolean },
+  input: { slug: string; allow?: { dangerous?: boolean } },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt> => {
   const { slug } = input;
@@ -154,8 +154,8 @@ const attemptGrantKey = async (
     };
   }
 
-  // apply firewall validation uniformly to all granted keys (unless allowDangerous)
-  if (!input.allowDangerous) {
+  // apply firewall validation uniformly to all granted keys (unless allow.dangerous)
+  if (!input.allow?.dangerous) {
     const mech = grantFound.source.mech;
     const mechAdapter = context.mechAdapters[mech];
     if (!mechAdapter)
@@ -184,19 +184,19 @@ const attemptGrantKey = async (
  *
  * .note = uses all-or-none semantics for repo grants
  * .note = env filter scopes which keys are resolved
- * .note = allowDangerous bypasses firewall validation (for known-dangerous credentials)
+ * .note = allow.dangerous bypasses firewall validation (for known-dangerous credentials)
  */
 export async function getKeyrackKeyGrant(
   input: {
     for: { repo: true };
     env?: string;
     slugs: string[];
-    allowDangerous?: boolean;
+    allow?: { dangerous?: boolean };
   },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt[]>;
 export async function getKeyrackKeyGrant(
-  input: { for: { key: string }; allowDangerous?: boolean },
+  input: { for: { key: string }; allow?: { dangerous?: boolean } },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt>;
 export async function getKeyrackKeyGrant(
@@ -205,27 +205,27 @@ export async function getKeyrackKeyGrant(
         for: { repo: true };
         env?: string;
         slugs: string[];
-        allowDangerous?: boolean;
+        allow?: { dangerous?: boolean };
       }
-    | { for: { key: string }; allowDangerous?: boolean },
+    | { for: { key: string }; allow?: { dangerous?: boolean } },
   context: ContextKeyrackGrantGet,
 ): Promise<KeyrackGrantAttempt | KeyrackGrantAttempt[]> {
   // handle single key grant
   if ('key' in input.for) {
     return attemptGrantKey(
-      { slug: input.for.key, allowDangerous: input.allowDangerous },
+      { slug: input.for.key, allow: input.allow },
       context,
     );
   }
 
-  // handle repo grant — resolve all slugs
-  const { slugs, allowDangerous } = input as {
+  // handle repo grant — all slugs
+  const { slugs, allow } = input as {
     slugs: string[];
-    allowDangerous?: boolean;
+    allow?: { dangerous?: boolean };
   };
   const attempts: KeyrackGrantAttempt[] = [];
   for (const slug of slugs) {
-    const attempt = await attemptGrantKey({ slug, allowDangerous }, context);
+    const attempt = await attemptGrantKey({ slug, allow }, context);
     attempts.push(attempt);
   }
 
