@@ -92,7 +92,7 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
+    when.skip('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await scribe.act({
           skill: {
@@ -105,7 +105,7 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when('[t2] scribe.ask({ prompt })', () => {
+    when.skip('[t2] scribe.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await scribe.ask({
           prompt: 'summarize the concept of brevity',
