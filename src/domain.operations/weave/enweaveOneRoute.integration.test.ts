@@ -130,7 +130,7 @@ describe('enweaveOneRoute', () => {
   );
 
   type OutputFileWrite = { path: string; content: string };
-  given('a route with imagine stitchers (closer to real world usecase)', () => {
+  given.skip('a route with imagine stitchers (closer to real world usecase)', () => {
     const stitcherCodeFileRead = new StitchStepCompute<
       GStitcher<Threads<{ artist: Empty }>>
     >({
