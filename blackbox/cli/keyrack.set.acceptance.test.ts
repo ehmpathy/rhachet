@@ -282,4 +282,110 @@ describe('keyrack set', () => {
       });
     });
   });
+
+  /**
+   * [uc-multiline] multiline json via stdin roundtrips correctly
+   * fixes bug where only first line was read from piped stdin
+   */
+  given('[case5] multiline json via stdin', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
+    );
+
+    // multiline json with embedded newlines (like RSA key content)
+    const multilineJson = JSON.stringify(
+      {
+        appId: '3234162',
+        privateKey:
+          '-----BEGIN RSA PRIVATE KEY-----\nMIIE...line2\nline3\n-----END RSA PRIVATE KEY-----',
+        installationId: '120377098',
+      },
+      null,
+      2,
+    );
+
+    when('[t0] set with multiline json piped via stdin', () => {
+      const setResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'MULTILINE_JSON_KEY',
+            '--env',
+            'test',
+            '--mech',
+            'PERMANENT_VIA_REPLICA',
+            '--vault',
+            'os.direct',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: multilineJson,
+        }),
+      );
+
+      then('set exits with status 0', () => {
+        expect(setResult.status).toEqual(0);
+      });
+
+      then('set output contains configured key', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        expect(parsed.slug).toEqual('testorg.test.MULTILINE_JSON_KEY');
+      });
+    });
+
+    when('[t1] unlock and get the key', () => {
+      // unlock the key
+      useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'unlock',
+            '--key',
+            'MULTILINE_JSON_KEY',
+            '--env',
+            'test',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      const getResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'MULTILINE_JSON_KEY',
+            '--env',
+            'test',
+            '--allow-dangerous',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('get exits with status 0', () => {
+        expect(getResult.status).toEqual(0);
+      });
+
+      then('secret matches exact input (round-trip)', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        expect(parsed.grant.key.secret).toEqual(multilineJson);
+      });
+
+      then('secret is parseable json with all fields', () => {
+        const parsed = JSON.parse(getResult.stdout);
+        const secret = JSON.parse(parsed.grant.key.secret);
+        expect(secret.appId).toEqual('3234162');
+        expect(secret.privateKey).toContain('BEGIN RSA');
+        expect(secret.installationId).toEqual('120377098');
+      });
+    });
+  });
 });

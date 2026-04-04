@@ -11,26 +11,14 @@ export const promptVisibleInput = async (input: {
 }): Promise<string> => {
   // skip if stdin is not a tty (e.g., piped input)
   if (!process.stdin.isTTY) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      terminal: false,
-    });
-    return new Promise((resolve) => {
-      let resolved = false;
-      rl.once('line', (line) => {
-        if (resolved) return;
-        resolved = true;
-        rl.close();
-        resolve(line.trim());
-      });
-      // handle stdin close without input (e.g., CI environment)
-      rl.once('close', () => {
-        if (resolved) return;
-        resolved = true;
-        resolve('');
-      });
-    });
+    // read ALL stdin content, not just first line
+    const chunks: string[] = [];
+    process.stdin.setEncoding('utf8');
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk as string);
+    }
+    // trim whitespace to match extant .trim() behavior
+    return chunks.join('').trim();
   }
 
   // interactive terminal
