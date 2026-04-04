@@ -1,5 +1,3 @@
-import * as readline from 'node:readline';
-
 /**
  * .what = prompts user for input with hidden echo (for passwords)
  * .why = enables secure passphrase entry without exposure to shell history or process lists
@@ -12,27 +10,15 @@ export const promptHiddenInput = async (input: {
 }): Promise<string> => {
   // skip if stdin is not a tty (e.g., piped input)
   if (!process.stdin.isTTY) {
-    // read from stdin as a line
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      terminal: false,
-    });
-    return new Promise((resolve) => {
-      let resolved = false;
-      rl.once('line', (line) => {
-        if (resolved) return;
-        resolved = true;
-        rl.close();
-        resolve(line);
-      });
-      // handle stdin close without input (e.g., CI environment)
-      rl.once('close', () => {
-        if (resolved) return;
-        resolved = true;
-        resolve('');
-      });
-    });
+    // read ALL stdin content, not just first line
+    const chunks: string[] = [];
+    process.stdin.setEncoding('utf8');
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk as string);
+    }
+    const content = chunks.join('');
+    // trim final newline if present (stdin often ends with \n)
+    return content.endsWith('\n') ? content.slice(0, -1) : content;
   }
 
   return new Promise((resolve, reject) => {
