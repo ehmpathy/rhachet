@@ -655,4 +655,91 @@ env.test:
       });
     });
   });
+
+  given('[case8] cross-org extends (root=ahbode, extended=rhight)', () => {
+    const repo = useBeforeAll(async () => {
+      const root = join(testHome.path, 'repo-case8-crossorg');
+
+      // create extended keyrack (org: rhight)
+      const roleDir = join(root, '.agent', 'repo=rhight', 'role=patenter');
+      mkdirSync(roleDir, { recursive: true });
+      writeFileSync(
+        join(roleDir, 'keyrack.yml'),
+        `org: rhight
+env.prod:
+  - USPTO_ODP_API_KEY
+`,
+        'utf8',
+      );
+
+      // create root keyrack (org: ahbode, extends rhight)
+      // .note = extends paths are relative to gitroot
+      writeFileSync(
+        join(root, '.agent', 'keyrack.yml'),
+        `org: ahbode
+extends:
+  - .agent/repo=rhight/role=patenter/keyrack.yml
+env.prod:
+  - DB_PASSWORD
+`,
+        'utf8',
+      );
+
+      return { path: root };
+    });
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: TEST_SSH_AGE_RECIPIENT,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      // empty host manifest (no keys set yet)
+      const manifestResult = await daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case8.age',
+          owner: 'case8',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+
+      return manifestResult;
+    });
+
+    when('[t0] fill is called with env=prod', () => {
+      then('stores USPTO_ODP_API_KEY under rhight org', async () => {
+        // provide mock stdin values for both keys
+        setMockPromptValues(['db-password-value', 'uspto-key-value']);
+
+        const result = await fillKeyrackKeys(
+          {
+            env: 'prod',
+            owners: ['case8'],
+            prikeys: [],
+            key: null,
+            refresh: false,
+            repair: false,
+            allowDangerous: false,
+          },
+          { gitroot: repo.path, emit: emitSpy },
+        );
+
+        // verify both keys set
+        expect(result.summary.set).toEqual(2);
+        expect(result.summary.failed).toEqual(0);
+
+        // verify slugs in results show correct orgs
+        const slugs = result.results.map((r) => r.slug);
+
+        // USPTO_ODP_API_KEY from extended manifest should be under rhight org
+        expect(slugs).toContain('rhight.prod.USPTO_ODP_API_KEY');
+
+        // DB_PASSWORD from root manifest should be under ahbode org
+        expect(slugs).toContain('ahbode.prod.DB_PASSWORD');
+      });
+    });
+  });
 });

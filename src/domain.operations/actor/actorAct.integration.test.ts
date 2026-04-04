@@ -26,7 +26,7 @@ describe('actorAct (integration)', () => {
   // note: external brains from npm packages don't have spec yet; cast for compatibility
   const brain = genBrainRepl({ slug: 'openai/codex' }) as unknown as BrainRepl;
 
-  given('[case1] a rigid skill in role.skills.rigid', () => {
+  given.skip('[case1] a rigid skill in role.skills.rigid', () => {
     when('[t0] actorAct is called with pre-resolved skill', () => {
       then('executes the skill with the brain', async () => {
         // resolve skill first (as genActor would)

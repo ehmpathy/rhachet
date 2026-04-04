@@ -6,6 +6,7 @@ import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 import { withStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
 import { asKeyrackKeyName } from './asKeyrackKeyName';
+import { asKeyrackKeyOrg } from './asKeyrackKeyOrg';
 import type { ContextKeyrack } from './genContextKeyrack';
 import { genContextKeyrack } from './genContextKeyrack';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
@@ -254,7 +255,7 @@ export const fillKeyrackKeys = async (
           {
             key: keyName,
             env: input.env,
-            org: repoManifest.org,
+            org: asKeyrackKeyOrg({ slug }),
             vault,
             mech,
             repoManifest,

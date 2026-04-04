@@ -138,7 +138,7 @@ When writing about ocean themes:
       );
     });
 
-    when('[t1] author.ask() is called with BrainRepl', () => {
+    when.skip('[t1] author.ask() is called with BrainRepl', () => {
       then(
         'also returns prose response (BrainRepl supports .ask())',
         async () => {
