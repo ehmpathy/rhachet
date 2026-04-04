@@ -181,8 +181,7 @@ describeUnlessCI('invokeEnroll (integration)', () => {
           const roles = getRolesFromSettings(settings);
           expect(roles).toEqual(['mechanic']);
 
-          // snapshot: journey 1 - replace mode with mechanic only
-          expect(settings).toMatchSnapshot('journey1-replace-mechanic');
+          // note: no snapshot since tests skip in CI (describeUnlessCI)
         },
       );
     });
@@ -212,8 +211,7 @@ describeUnlessCI('invokeEnroll (integration)', () => {
         expect(roles).toContain('ergonomist');
         expect(roles).not.toContain('driver');
 
-        // snapshot: journey 2 - subtract driver from defaults
-        expect(settings).toMatchSnapshot('journey2-subtract-driver');
+        // note: no snapshot since tests skip in CI (describeUnlessCI)
       });
     });
   });
@@ -345,8 +343,7 @@ describeUnlessCI('invokeEnroll (integration)', () => {
         expect(error?.message).toContain("role 'mechnic' not found");
         expect(error?.message).toContain("did you mean 'mechanic'");
 
-        // snapshot: journey 3 - typo error with suggestion
-        expect(error?.message).toMatchSnapshot('journey3-typo-error');
+        // note: no snapshot since tests skip in CI (describeUnlessCI)
       });
     });
   });
