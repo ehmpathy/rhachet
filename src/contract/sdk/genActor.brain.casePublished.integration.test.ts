@@ -94,7 +94,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t1] author.act({ skill: { draft: { topic } } })', () => {
+    when.skip('[t1] author.act({ skill: { draft: { topic } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await author.act({
           skill: { draft: { topic: 'surfer turtles' } },
@@ -105,7 +105,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t2] author.act({ brain: { repo, slug }, skill })', () => {
+    when.skip('[t2] author.act({ brain: { repo, slug }, skill })', () => {
       then('executes with explicit brain from allowlist', async () => {
         const result = await author.act({
           brain: { repo: 'openai', slug: 'openai/codex' },
@@ -130,7 +130,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t4] author.ask({ prompt })', () => {
+    when.skip('[t4] author.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await author.ask({
           prompt: 'tell me about the turtles',

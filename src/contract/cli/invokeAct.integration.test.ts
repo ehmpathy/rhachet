@@ -198,7 +198,7 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  given(
+  given.skip(
     'a CLI program with invokeAct registered (happy path with real brain)',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;

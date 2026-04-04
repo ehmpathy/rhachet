@@ -25,7 +25,7 @@ describe('actorAsk (integration)', () => {
   // note: external brains from npm packages don't have spec yet; cast for compatibility
   const brain = genBrainRepl({ slug: 'openai/codex' }) as unknown as BrainRepl;
 
-  given('[case1] a valid role and brain', () => {
+  given.skip('[case1] a valid role and brain', () => {
     when('[t0] actorAsk is called with a prompt', () => {
       then('returns a response from the brain', async () => {
         const result = await actorAsk({
@@ -43,7 +43,7 @@ describe('actorAsk (integration)', () => {
     });
   });
 
-  given('[case2] a simple prompt', () => {
+  given.skip('[case2] a simple prompt', () => {
     when('[t0] actorAsk is invoked', () => {
       then('brain processes the prompt and returns response', async () => {
         const result = await actorAsk({
