@@ -1,6 +1,14 @@
 import { getError, given, then, when } from 'test-fns';
 
-import { vaultAdapter1Password } from './vaultAdapter1Password';
+import {
+  asAccountErrorMessage,
+  asVaultErrorMessage,
+  asVaultNameFromExid,
+  isKeyrackAccount,
+  REQUIRED_ACCOUNT_NAME,
+  REQUIRED_VAULT_NAME,
+  vaultAdapter1Password,
+} from './vaultAdapter1Password';
 
 describe('vaultAdapter1Password', () => {
   given('[case1] vault unlock behavior', () => {
@@ -39,6 +47,175 @@ describe('vaultAdapter1Password', () => {
           ).resolves.toBeUndefined();
         },
       );
+    });
+  });
+
+  given('[case4] vault scope enforcement via asVaultNameFromExid', () => {
+    when('[t0] exid references keyrack vault', () => {
+      then('extracts vault name correctly', () => {
+        const vault = asVaultNameFromExid({
+          exid: `op://${REQUIRED_VAULT_NAME}/stripe-key/credential`,
+        });
+        expect(vault).toEqual(REQUIRED_VAULT_NAME);
+      });
+    });
+
+    when('[t1] exid references non-keyrack vault', () => {
+      then('extracts vault name (enforcement happens elsewhere)', () => {
+        const vault = asVaultNameFromExid({
+          exid: 'op://Personal/stripe-key/credential',
+        });
+        expect(vault).toEqual('Personal');
+      });
+    });
+
+    when('[t2] exid has invalid format', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(
+          Promise.resolve().then(() =>
+            asVaultNameFromExid({ exid: 'invalid-exid' }),
+          ),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('invalid 1password exid format');
+      });
+    });
+
+    when('[t3] exid is missing vault segment', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(
+          Promise.resolve().then(() => asVaultNameFromExid({ exid: 'op://' })),
+        );
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('invalid 1password exid format');
+      });
+    });
+  });
+
+  given('[case5] account scope enforcement via isKeyrackAccount', () => {
+    when('[t0] account url includes keyrack', () => {
+      then('returns true', () => {
+        const result = isKeyrackAccount({
+          url: `https://${REQUIRED_ACCOUNT_NAME}.1password.com`,
+          email: 'user@example.com',
+        });
+        expect(result).toBe(true);
+      });
+    });
+
+    when('[t1] account email includes keyrack', () => {
+      then('returns true', () => {
+        const result = isKeyrackAccount({
+          url: 'https://personal.1password.com',
+          email: `${REQUIRED_ACCOUNT_NAME}@example.com`,
+        });
+        expect(result).toBe(true);
+      });
+    });
+
+    when('[t2] account url includes keyrack (case insensitive)', () => {
+      then('returns true', () => {
+        const result = isKeyrackAccount({
+          url: 'https://KEYRACK.1password.com',
+          email: 'user@example.com',
+        });
+        expect(result).toBe(true);
+      });
+    });
+
+    when('[t3] neither url nor email includes keyrack', () => {
+      then('returns false', () => {
+        const result = isKeyrackAccount({
+          url: 'https://personal.1password.com',
+          email: 'vlad@example.com',
+        });
+        expect(result).toBe(false);
+      });
+    });
+  });
+
+  given('[case6] required constants are correct', () => {
+    when('[t0] checking required vault name', () => {
+      then('is keyrack', () => {
+        expect(REQUIRED_VAULT_NAME).toEqual('keyrack');
+      });
+    });
+
+    when('[t1] checking required account name', () => {
+      then('is keyrack', () => {
+        expect(REQUIRED_ACCOUNT_NAME).toEqual('keyrack');
+      });
+    });
+  });
+
+  given('[case7] vault error message output', () => {
+    when('[t0] exid references non-keyrack vault', () => {
+      then('error message matches snapshot', () => {
+        const message = asVaultErrorMessage({
+          exid: 'op://Personal/stripe-key/credential',
+        });
+        expect(message.join('\n')).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] error message includes the provided exid', () => {
+      then('shows user what they provided', () => {
+        const message = asVaultErrorMessage({
+          exid: 'op://Work/api-token/password',
+        });
+        expect(message.join('\n')).toContain(
+          'provided: op://Work/api-token/password',
+        );
+      });
+    });
+
+    when('[t2] error message includes fix instructions', () => {
+      then('shows how to fix', () => {
+        const message = asVaultErrorMessage({
+          exid: 'op://Personal/test/field',
+        });
+        const text = message.join('\n');
+        expect(text).toContain('to fix:');
+        expect(text).toContain("create a vault named 'keyrack'");
+        expect(text).toContain('op://keyrack/item/field');
+      });
+    });
+  });
+
+  given('[case8] account error message output', () => {
+    when('[t0] account is not keyrack', () => {
+      then('error message matches snapshot', () => {
+        const message = asAccountErrorMessage({
+          email: 'vlad@example.com',
+          url: 'https://personal.1password.com',
+        });
+        expect(message.join('\n')).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] error message includes the authenticated account', () => {
+      then('shows user what they are authenticated as', () => {
+        const message = asAccountErrorMessage({
+          email: 'user@company.com',
+          url: 'https://company.1password.com',
+        });
+        expect(message.join('\n')).toContain(
+          'provided: user@company.com (https://company.1password.com)',
+        );
+      });
+    });
+
+    when('[t2] error message includes fix instructions', () => {
+      then('shows how to fix', () => {
+        const message = asAccountErrorMessage({
+          email: 'vlad@example.com',
+          url: 'https://personal.1password.com',
+        });
+        const text = message.join('\n');
+        expect(text).toContain('to fix:');
+        expect(text).toContain("create a 1password account with 'keyrack'");
+        expect(text).toContain('op signin --account keyrack');
+      });
     });
   });
 });
