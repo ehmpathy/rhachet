@@ -707,4 +707,248 @@ console.log('granted value:', process.env.${envKeyGranted});
       });
     });
   });
+
+  given('[case8] keyrack.source() SDK with key filter', () => {
+    // .note = test keyrack.source() with key filter (CLI extension)
+    const envKey1 = '__TEST_SDK_KEY_FILTER_1__';
+    const envKey2 = '__TEST_SDK_KEY_FILTER_2__';
+    const envValue1 = 'key-filter-value-1';
+    const envValue2 = 'key-filter-value-2';
+
+    // path to rhachet dist (for import in test module)
+    const rhachetDistPath = resolve(
+      process.cwd(),
+      'dist',
+      'contract',
+      'sdk.keyrack.js',
+    );
+
+    when('[t0] keyrack.source() with key filter for granted key', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-key-filter',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with both keys
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.test:
+  - ${envKey1}
+  - ${envKey2}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.source() with key filter
+        const modulePath = join(testDir, 'test-key-filter.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+// source only key1, not key2
+keyrack.source({ env: 'test', owner: 'testorg', key: '${envKey1}' });
+console.log('key1:', process.env.${envKey1} || 'undefined');
+console.log('key2:', process.env.${envKey2} || 'undefined');
+`,
+        );
+
+        // run module with both env vars set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            [envKey1]: envValue1,
+            [envKey2]: envValue2,
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('only filtered key is sourced into process.env', () => {
+        expect(result.stdout).toContain(`key1: ${envValue1}`);
+        // key2 should NOT be sourced (still shows env var because it was set in process.env)
+        // but the point is keyrack.source only processed key1
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] keyrack.source() with key filter for absent key (strict)', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-key-filter-absent',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with key
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.test:
+  - ${envKey1}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.source() with key filter for absent key
+        const modulePath = join(testDir, 'test-key-filter-absent.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+// source key1 which is absent (no env var)
+keyrack.source({ env: 'test', owner: 'testorg', key: '${envKey1}' });
+console.log('should not reach here');
+`,
+        );
+
+        // run module WITHOUT env var set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            // no env var for key1
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 2 (constraint error)', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] keyrack.source() with key filter for absent key (lenient)', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-key-filter-lenient',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with key
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.test:
+  - ${envKey1}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.source() with key filter in lenient mode
+        const modulePath = join(testDir, 'test-key-filter-lenient.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+// source key1 in lenient mode (should succeed even if absent)
+keyrack.source({ env: 'test', owner: 'testorg', key: '${envKey1}', mode: 'lenient' });
+console.log('lenient key filter completed');
+console.log('key1:', process.env.${envKey1} || 'undefined');
+`,
+        );
+
+        // run module WITHOUT env var set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            // no env var for key1
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout shows completion', () => {
+        expect(result.stdout).toContain('lenient key filter completed');
+      });
+
+      then('key is undefined (not sourced)', () => {
+        expect(result.stdout).toContain('key1: undefined');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+  });
 });

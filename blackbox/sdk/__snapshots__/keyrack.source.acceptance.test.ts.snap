@@ -118,3 +118,43 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 "granted value: granted-test-value
 "
 `;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t0] keyrack.source() with key filter for granted key then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t0] keyrack.source() with key filter for granted key then: stdout matches snapshot 1`] = `
+"key1: key-filter-value-1
+key2: key-filter-value-2
+"
+`;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t1] keyrack.source() with key filter for absent key (strict) then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+"
+`;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t1] keyrack.source() with key filter for absent key (strict) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+"
+`;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t2] keyrack.source() with key filter for absent key (lenient) then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t2] keyrack.source() with key filter for absent key (lenient) then: stdout matches snapshot 1`] = `
+"lenient key filter completed
+key1: undefined
+"
+`;

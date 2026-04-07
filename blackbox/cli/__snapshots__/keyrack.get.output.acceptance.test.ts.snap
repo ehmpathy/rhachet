@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack get --output modes given: [case1] key granted via env passthrough when: [t2] --output json outputs JSON structure then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.__TEST_OUTPUT_GRANTED__",
+    "key": {
+      "secret": "test-secret-value-123",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.envvar",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack get --output modes given: [case1] key granted via env passthrough when: [t3] --output vibes outputs treestruct then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_OUTPUT_GRANTED__
+      ├─ vault: os.envvar
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get --output modes given: [case1] key granted via env passthrough when: [t5] --value piped to variable has no extra whitespace then: stdout matches snapshot 1`] = `"test-secret-value-123"`;
+
+exports[`keyrack get --output modes given: [case2] key locked (not unlocked) when: [t0] --value with locked key then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_OUTPUT_LOCKED__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key __TEST_OUTPUT_LOCKED__ --env test[0m
+
+"
+`;
+
+exports[`keyrack get --output modes given: [case3] key absent when: [t0] --value with absent key then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_OUTPUT_ABSENT__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key __TEST_OUTPUT_ABSENT__ --env test[0m
+
+"
+`;
