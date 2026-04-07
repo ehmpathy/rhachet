@@ -17,7 +17,9 @@ import {
   getOneKeyrackGrantByKey,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
+import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { asShellEscapedSecret } from '@src/domain.operations/keyrack/cli/asShellEscapedSecret';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
 import {
   formatKeyrackGetAllOutput,
@@ -342,6 +344,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       'bypass firewall for blocked long-lived tokens',
     )
     .option('--json', 'output as json (robot mode)')
+    .option(
+      '--output <mode>',
+      'output mode: value (raw secret), json, vibes (default)',
+    )
+    .option('--value', 'shorthand for --output value')
     .action(
       async (opts: {
         for?: string;
@@ -351,7 +358,19 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         org: string;
         allowDangerous?: boolean;
         json?: boolean;
+        output?: 'value' | 'json' | 'vibes';
+        value?: boolean;
       }) => {
+        // derive output mode: --value and --json are shorthands
+        const outputMode: 'value' | 'json' | 'vibes' = opts.value
+          ? 'value'
+          : (opts.output ?? (opts.json ? 'json' : 'vibes'));
+
+        // validate: --value requires --key
+        if (outputMode === 'value' && !opts.key) {
+          throw new BadRequestError('--value requires --key (single key only)');
+        }
+
         // validate: must specify either --for repo or --key
         if (!opts.for && !opts.key) {
           throw new BadRequestError('must specify --for repo or --key <slug>');
@@ -379,8 +398,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             context,
           );
 
-          // output results
-          if (opts.json) {
+          // output results based on mode
+          // .note = 'value' mode already rejected via validation above
+          if (outputMode === 'json') {
             console.log(JSON.stringify(attempts, null, 2));
           } else {
             console.log(formatKeyrackGetAllOutput({ attempts }));
@@ -441,19 +461,130 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             };
           })();
 
-          // output results
-          if (opts.json) {
-            console.log(JSON.stringify(attemptResolved, null, 2));
-          } else {
-            console.log(
-              formatKeyrackGetOneOutput({ attempt: attemptResolved }),
-            );
+          // output results based on mode
+          switch (outputMode) {
+            case 'value': {
+              // for value mode: exit 2 with vibes on stderr if not granted
+              if (attemptResolved.status !== 'granted') {
+                console.error(
+                  formatKeyrackGetOneOutput({ attempt: attemptResolved }),
+                );
+                process.exit(2);
+              }
+              // output raw secret with no final newline
+              process.stdout.write(attemptResolved.grant.key.secret);
+              break;
+            }
+            case 'json': {
+              console.log(JSON.stringify(attemptResolved, null, 2));
+              // exit 2 if not granted
+              if (attemptResolved.status !== 'granted') {
+                process.exit(2);
+              }
+              break;
+            }
+            case 'vibes':
+            default: {
+              console.log(
+                formatKeyrackGetOneOutput({ attempt: attemptResolved }),
+              );
+              // exit 2 if not granted
+              if (attemptResolved.status !== 'granted') {
+                process.exit(2);
+              }
+              break;
+            }
           }
+        }
+      },
+    );
 
-          // exit 2 if key was not granted (blocked by constraints)
-          if (attemptResolved.status !== 'granted') {
-            process.exit(2);
+  // keyrack source --env <env> --owner <owner> [--key <key>] [--strict|--lenient]
+  keyrack
+    .command('source')
+    .description('output export statements for shell eval')
+    .option('--key <keyname>', 'single key to source (omit for all repo keys)')
+    .requiredOption('--env <env>', 'target env: prod, prep, test, all')
+    .requiredOption('--owner <owner>', 'owner identity (required)')
+    .option('--for <owner>', 'alias for --owner')
+    .option('--strict', 'fail if any key not granted (default)')
+    .option('--lenient', 'skip absent keys silently')
+    .action(
+      async (opts: {
+        key?: string;
+        env: string;
+        owner?: string;
+        for?: string;
+        strict?: boolean;
+        lenient?: boolean;
+      }) => {
+        // --owner takes precedence; --for is alias
+        const owner = opts.owner ?? opts.for ?? null;
+
+        // validate: --owner is required
+        if (!owner) {
+          throw new BadRequestError('--owner is required');
+        }
+
+        // validate: --strict and --lenient are mutually exclusive
+        if (opts.strict && opts.lenient) {
+          throw new BadRequestError(
+            '--strict and --lenient are mutually exclusive',
+          );
+        }
+
+        // default to strict mode
+        const isLenient = opts.lenient ?? false;
+
+        // get gitroot for repo manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+
+        // generate lightweight context (no manifest decryption, no passphrase prompt)
+        const context = await genContextKeyrackGrantGet({
+          gitroot,
+          owner,
+        });
+
+        // get keys
+        const attempts = opts.key
+          ? [
+              await getOneKeyrackGrantByKey(
+                { key: opts.key, env: opts.env, org: undefined, allow: {} },
+                context,
+              ),
+            ]
+          : await getAllKeyrackGrantsByRepo(
+              { env: opts.env, allow: {} },
+              context,
+            );
+
+        // filter to granted keys
+        const granted = attempts.filter((a) => a.status === 'granted');
+        const notGranted = attempts.filter((a) => a.status !== 'granted');
+
+        // strict mode: fail if any not granted
+        if (!isLenient && notGranted.length > 0) {
+          // no stdout (prevent partial eval)
+          // emit status to stderr
+          for (const a of notGranted) {
+            const slug = 'slug' in a ? a.slug : 'unknown';
+            console.error(`not granted: ${slug} (${a.status})`);
           }
+          console.error('');
+          console.error(
+            'hint: use --lenient if partial results are acceptable',
+          );
+          process.exit(2);
+        }
+
+        // emit export statements for granted keys
+        for (const attempt of granted) {
+          if (attempt.status !== 'granted') continue;
+          const keyName = asKeyrackKeyName({ slug: attempt.grant.slug });
+          const escaped = asShellEscapedSecret({
+            secret: attempt.grant.key.secret,
+          });
+          console.log(`export ${keyName}=${escaped}`);
         }
       },
     );

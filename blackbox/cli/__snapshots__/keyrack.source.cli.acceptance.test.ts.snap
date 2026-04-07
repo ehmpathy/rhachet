@@ -1,0 +1,39 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack source CLI given: [case1] all keys granted via env passthrough when: [t0] source outputs export statements then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_CLI_KEY1__='secret-value-1'
+export __TEST_SOURCE_CLI_KEY2__='secret-value-2'
+"
+`;
+
+exports[`keyrack source CLI given: [case1] all keys granted via env passthrough when: [t1] source --key outputs single export then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_CLI_KEY1__='secret-value-1'
+"
+`;
+
+exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) when: [t1] stderr shows which keys not granted then: stderr matches snapshot 1`] = `
+"not granted: testorg.test.__TEST_SOURCE_STRICT_ABSENT__ (absent)
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack source CLI given: [case3] some keys not granted (lenient mode) when: [t0] source --lenient outputs partial exports then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_LENIENT_GRANTED__='lenient-granted-value'
+"
+`;
+
+exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t0] secret with single quote then: export statement matches snapshot 1`] = `
+"export __TEST_SOURCE_ESCAPE__='sec'\\''ret'
+"
+`;
+
+exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t1] secret with newline then: export statement matches snapshot 1`] = `
+"export __TEST_SOURCE_ESCAPE__=$'line1\\nline2'
+"
+`;
+
+exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t2] secret with backslash then: export statement matches snapshot 1`] = `
+"export __TEST_SOURCE_ESCAPE__='path\\name'
+"
+`;

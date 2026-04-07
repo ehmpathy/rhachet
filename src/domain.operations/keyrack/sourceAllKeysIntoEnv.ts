@@ -34,20 +34,37 @@ export const sourceAllKeysIntoEnv = (input: {
   owner: string;
 
   /**
+   * optional: source only this specific key (otherwise sources all repo keys)
+   */
+  key?: string;
+
+  /**
    * when 'strict', failfast if any keys are not granted (default: 'strict')
    */
   mode?: 'strict' | 'lenient';
 }): void => {
-  const args = [
-    'keyrack',
-    'get',
-    '--for',
-    'repo',
-    '--env',
-    input.env,
-    '--owner',
-    input.owner,
-  ];
+  // build args based on whether key filter is provided
+  const args = input.key
+    ? [
+        'keyrack',
+        'get',
+        '--key',
+        input.key,
+        '--env',
+        input.env,
+        '--owner',
+        input.owner,
+      ]
+    : [
+        'keyrack',
+        'get',
+        '--for',
+        'repo',
+        '--env',
+        input.env,
+        '--owner',
+        input.owner,
+      ];
 
   // call keyrack get --json to get structured data
   const jsonResult = spawnSync(RHX_BIN, [...args, '--json'], {
@@ -64,10 +81,11 @@ export const sourceAllKeysIntoEnv = (input: {
     process.exit(2);
   }
 
-  // parse JSON response
+  // parse JSON response (single key returns object, repo returns array)
   let keys: KeyrackGrantAttempt[];
   try {
-    keys = JSON.parse(jsonResult.stdout);
+    const parsed = JSON.parse(jsonResult.stdout);
+    keys = Array.isArray(parsed) ? parsed : [parsed];
   } catch {
     // JSON parse failed - get formatted output and forward it
     const formatted = spawnSync(RHX_BIN, args, {
