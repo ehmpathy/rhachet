@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+######################################################################
+# .what = mock gh CLI for acceptance tests
+# .why  = enables github app guided setup flow test without real credentials
+#
+# responds to known subcommands with canned JSON output.
+# placed on PATH ahead of real gh CLI via env override.
+######################################################################
+
+# join args for pattern matching
+ARGS="$*"
+
+case "$ARGS" in
+  "auth status")
+    # success (exit 0 = authenticated)
+    exit 0
+    ;;
+  "api /user/orgs --jq .[].login")
+    echo "testorg"
+    echo "otherorg"
+    ;;
+  "api /orgs/testorg/installations --jq .installations[] | {id: .id, app_id: .app_id, slug: .app_slug}")
+    echo '{"id":12345678,"app_id":123456,"slug":"my-test-app"}'
+    echo '{"id":87654321,"app_id":654321,"slug":"other-app"}'
+    ;;
+  "api /orgs/otherorg/installations --jq .installations[] | {id: .id, app_id: .app_id, slug: .app_slug}")
+    echo '{"id":11111111,"app_id":111111,"slug":"other-org-app"}'
+    ;;
+  *)
+    echo "mock gh: unknown command: $ARGS" >&2
+    exit 1
+    ;;
+esac

@@ -8,14 +8,13 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 import { decryptWithIdentity } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { discoverIdentities } from '@src/domain.operations/keyrack/discoverIdentities';
 import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
-import { listSshAgentKeys, sshPrikeyToAgeIdentity } from '@src/infra/ssh';
+import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
 
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
-import { vaultAdapterAwsIamSso } from './adapters/vaults/aws.iam.sso/vaultAdapterAwsIamSso';
+import { vaultAdapterAwsConfig } from './adapters/vaults/aws.config/vaultAdapterAwsConfig';
 import { vaultAdapterOsDaemon } from './adapters/vaults/os.daemon/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/os.direct/vaultAdapterOsDirect';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
@@ -77,7 +76,7 @@ export const genContextKeyrack = (input: {
 
   // getAll.discovered: lazy cached identity discovery
   const discovered = withSimpleCache(
-    async () => discoverIdentities({ owner }),
+    async () => discoverIdentities({ owner: input.owner }),
     { cache: createCache() },
   );
 
@@ -119,68 +118,9 @@ export const genContextKeyrack = (input: {
       'os.secure': vaultAdapterOsSecure,
       'os.daemon': vaultAdapterOsDaemon,
       '1password': vaultAdapter1Password,
-      'aws.iam.sso': vaultAdapterAwsIamSso,
+      'aws.config': vaultAdapterAwsConfig,
     },
   };
-};
-
-/**
- * .what = discover identities from ssh-agent and filesystem
- * .why = builds pool of identities to try for manifest decryption
- *
- * .note = checks owner-specific path first (e.g., ~/.ssh/ehmpath)
- * .note = then checks ssh-agent keys (if path comment is available)
- * .note = then checks standard paths (~/.ssh/id_ed25519, etc)
- */
-const discoverIdentities = (input: { owner: string | null }): string[] => {
-  const identities: string[] = [];
-  const home = process.env.HOME ?? homedir();
-
-  // check owner-specific path first (e.g., ~/.ssh/ehmpath) — most likely to be correct
-  if (input.owner) {
-    const ownerPath = join(home, '.ssh', input.owner);
-    if (existsSync(ownerPath)) {
-      try {
-        const identity = sshPrikeyToAgeIdentity({ keyPath: ownerPath });
-        if (!identities.includes(identity)) identities.push(identity);
-      } catch {
-        // skip keys that fail to convert
-      }
-    }
-  }
-
-  // check ssh-agent keys (path from comment)
-  const agentKeys = listSshAgentKeys();
-  for (const agentKey of agentKeys) {
-    const keyPath = agentKey.comment;
-    if (keyPath && existsSync(keyPath)) {
-      try {
-        const identity = sshPrikeyToAgeIdentity({ keyPath });
-        if (!identities.includes(identity)) identities.push(identity);
-      } catch {
-        // skip keys that fail to convert
-      }
-    }
-  }
-
-  // check standard ssh paths
-  const standardPaths = [
-    join(home, '.ssh', 'id_ed25519'),
-    join(home, '.ssh', 'id_rsa'),
-    join(home, '.ssh', 'id_ecdsa'),
-  ];
-  for (const stdPath of standardPaths) {
-    if (existsSync(stdPath)) {
-      try {
-        const identity = sshPrikeyToAgeIdentity({ keyPath: stdPath });
-        if (!identities.includes(identity)) identities.push(identity);
-      } catch {
-        // skip keys that fail to convert
-      }
-    }
-  }
-
-  return identities;
 };
 
 /**

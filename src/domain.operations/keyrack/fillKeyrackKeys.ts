@@ -2,7 +2,6 @@ import { BadRequestError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
-import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 import { withStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
 import { asKeyrackKeyName } from './asKeyrackKeyName';
@@ -236,12 +235,11 @@ export const fillKeyrackKeys = async (
         continue;
       }
 
-      // infer vault if not prescribed
+      // infer vault if not prescribed; mech inferred by vault adapter
       const keySpec = repoManifest.keys[slug];
       const vaultInferred = inferKeyrackVaultFromKey({ keyName });
       const vault = vaultInferred ?? 'os.secure';
-      const mechInferred = inferMechFromVault({ vault });
-      const mech = keySpec?.mech ?? mechInferred ?? 'PERMANENT_VIA_REPLICA';
+      const mech = keySpec?.mech ?? null; // vault adapter handles inference
 
       // emit "set the key" section with treebucket open
       (context.emit ?? console.log)(`   ${branchContinue}├─ set the key`);

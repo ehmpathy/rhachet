@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+######################################################################
+# .what = mock op CLI for acceptance tests
+# .why  = enables 1password vault flow test without real credentials
+#
+# responds to known subcommands with canned output.
+# stores written values in temp file for roundtrip verification.
+# placed on PATH ahead of real op CLI via env override.
+######################################################################
+
+# join args for pattern match
+ARGS="$*"
+
+# temp storage for written values (shared between mock invocations)
+MOCK_STORAGE="${TMPDIR:-/tmp}/mock-op-storage"
+
+case "$ARGS" in
+  "--version")
+    echo "2.30.0"
+    ;;
+  "whoami")
+    echo "Account: test@example.com"
+    echo "User: Test User"
+    ;;
+  item\ edit\ *)
+    # extract field=value from args
+    # format: item edit <item> --vault=<vault> <field>=<value>
+    for arg in "$@"; do
+      if [[ "$arg" == *"="* && "$arg" != "--vault="* ]]; then
+        # this is the field=value part
+        VALUE="${arg#*=}"
+        # store for later read
+        echo "$VALUE" > "$MOCK_STORAGE"
+        exit 0
+      fi
+    done
+    echo "mock op: could not parse item edit args: $ARGS" >&2
+    exit 1
+    ;;
+  read\ op://*)
+    # read from mock storage
+    if [[ -f "$MOCK_STORAGE" ]]; then
+      cat "$MOCK_STORAGE"
+    else
+      echo "mock op: no stored value" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "mock op: unknown command: $ARGS" >&2
+    exit 1
+    ;;
+esac

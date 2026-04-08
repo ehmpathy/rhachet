@@ -9,6 +9,11 @@ import {
   setMockPromptValues,
 } from '@src/.test/infra/mockPromptHiddenInput';
 import { withTempHome } from '@src/.test/infra/withTempHome';
+import {
+  KeyrackHostManifest,
+  KeyrackKeyRecipient,
+} from '@src/domain.objects/keyrack';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,6 +21,38 @@ import { join } from 'node:path';
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 
 import { vaultAdapterOsSecure } from './vaultAdapterOsSecure';
+
+/**
+ * .what = generates test context with identity and recipients
+ * .why = vault set requires context for identity pool and recipients
+ */
+const genTestContext = (input: {
+  identity: string;
+  recipient: string;
+}): ContextKeyrack =>
+  ({
+    owner: null,
+    identity: {
+      getAll: {
+        prescribed: [],
+        discovered: async () => [input.identity],
+      },
+    },
+    hostManifest: new KeyrackHostManifest({
+      uri: '~/.rhachet/keyrack/keyrack.host.age',
+      owner: null,
+      recipients: [
+        new KeyrackKeyRecipient({
+          mech: 'age',
+          pubkey: input.recipient,
+          label: 'test-key',
+          addedAt: new Date().toISOString(),
+        }),
+      ],
+      hosts: {},
+    }),
+    vaultAdapters: {},
+  }) as unknown as ContextKeyrack;
 
 describe('vaultAdapterOsSecure', () => {
   const tempHome = withTempHome({ name: 'vaultAdapterOsSecure' });
@@ -59,12 +96,10 @@ describe('vaultAdapterOsSecure', () => {
       then('throws error about vault locked', async () => {
         // first set a key so we can test get
         setMockPromptValues('test-value');
-        await vaultAdapterOsSecure.set({
-          slug: 'TEST_KEY',
-          env: 'test',
-          org: 'testorg',
-          vaultRecipient: testRecipient,
-        });
+        await vaultAdapterOsSecure.set(
+          { slug: 'TEST_KEY', mech: 'PERMANENT_VIA_REPLICA' },
+          genTestContext({ identity: testIdentity, recipient: testRecipient }),
+        );
 
         const error = await getError(
           vaultAdapterOsSecure.get({ slug: 'TEST_KEY' }),
@@ -97,12 +132,10 @@ describe('vaultAdapterOsSecure', () => {
     when('[t2] set called with new key', () => {
       then('creates encrypted file', async () => {
         setMockPromptValues('xai-test-key-123');
-        await vaultAdapterOsSecure.set({
-          slug: 'XAI_API_KEY',
-          env: 'test',
-          org: 'testorg',
-          vaultRecipient: testRecipient,
-        });
+        await vaultAdapterOsSecure.set(
+          { slug: 'XAI_API_KEY', mech: 'PERMANENT_VIA_REPLICA' },
+          genTestContext({ identity: testIdentity, recipient: testRecipient }),
+        );
 
         const vaultDir = join(
           tempHome.path,
@@ -121,12 +154,10 @@ describe('vaultAdapterOsSecure', () => {
 
       then('round-trips correctly', async () => {
         setMockPromptValues('xai-test-key-123');
-        await vaultAdapterOsSecure.set({
-          slug: 'XAI_API_KEY',
-          env: 'test',
-          org: 'testorg',
-          vaultRecipient: testRecipient,
-        });
+        await vaultAdapterOsSecure.set(
+          { slug: 'XAI_API_KEY', mech: 'PERMANENT_VIA_REPLICA' },
+          genTestContext({ identity: testIdentity, recipient: testRecipient }),
+        );
 
         const result = await vaultAdapterOsSecure.get({
           slug: 'XAI_API_KEY',
@@ -140,18 +171,18 @@ describe('vaultAdapterOsSecure', () => {
   given('[case3] vault has stored keys', () => {
     beforeEach(async () => {
       setMockPromptValues(['value-a', 'value-b']);
-      await vaultAdapterOsSecure.set({
-        slug: 'KEY_A',
-        env: 'test',
-        org: 'testorg',
-        vaultRecipient: testRecipient,
+      const context = genTestContext({
+        identity: testIdentity,
+        recipient: testRecipient,
       });
-      await vaultAdapterOsSecure.set({
-        slug: 'KEY_B',
-        env: 'test',
-        org: 'testorg',
-        vaultRecipient: testRecipient,
-      });
+      await vaultAdapterOsSecure.set(
+        { slug: 'KEY_A', mech: 'PERMANENT_VIA_REPLICA' },
+        context,
+      );
+      await vaultAdapterOsSecure.set(
+        { slug: 'KEY_B', mech: 'PERMANENT_VIA_REPLICA' },
+        context,
+      );
     });
 
     when('[t0] get called for stored key', () => {
@@ -173,12 +204,10 @@ describe('vaultAdapterOsSecure', () => {
     when('[t1] set called to update key', () => {
       then('updates encrypted value', async () => {
         setMockPromptValues('new-value-a');
-        await vaultAdapterOsSecure.set({
-          slug: 'KEY_A',
-          env: 'test',
-          org: 'testorg',
-          vaultRecipient: testRecipient,
-        });
+        await vaultAdapterOsSecure.set(
+          { slug: 'KEY_A', mech: 'PERMANENT_VIA_REPLICA' },
+          genTestContext({ identity: testIdentity, recipient: testRecipient }),
+        );
 
         const result = await vaultAdapterOsSecure.get({
           slug: 'KEY_A',
@@ -189,12 +218,10 @@ describe('vaultAdapterOsSecure', () => {
 
       then('does not affect other keys', async () => {
         setMockPromptValues('new-value-a');
-        await vaultAdapterOsSecure.set({
-          slug: 'KEY_A',
-          env: 'test',
-          org: 'testorg',
-          vaultRecipient: testRecipient,
-        });
+        await vaultAdapterOsSecure.set(
+          { slug: 'KEY_A', mech: 'PERMANENT_VIA_REPLICA' },
+          genTestContext({ identity: testIdentity, recipient: testRecipient }),
+        );
 
         const resultB = await vaultAdapterOsSecure.get({
           slug: 'KEY_B',
@@ -230,12 +257,10 @@ describe('vaultAdapterOsSecure', () => {
   given('[case4] encryption security', () => {
     beforeEach(async () => {
       setMockPromptValues('super-secret-value');
-      await vaultAdapterOsSecure.set({
-        slug: 'SECRET_KEY',
-        env: 'test',
-        org: 'testorg',
-        vaultRecipient: testRecipient,
-      });
+      await vaultAdapterOsSecure.set(
+        { slug: 'SECRET_KEY', mech: 'PERMANENT_VIA_REPLICA' },
+        genTestContext({ identity: testIdentity, recipient: testRecipient }),
+      );
     });
 
     when('[t0] encrypted file read directly', () => {

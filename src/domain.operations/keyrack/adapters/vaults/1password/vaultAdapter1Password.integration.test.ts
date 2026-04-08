@@ -114,8 +114,6 @@ describe('vaultAdapter1Password', () => {
         const error = await getError(
           vaultAdapter1Password.set({
             slug: 'TEST_KEY',
-            env: 'test',
-            org: 'testorg',
             exid: 'not-a-valid-exid',
           }),
         );

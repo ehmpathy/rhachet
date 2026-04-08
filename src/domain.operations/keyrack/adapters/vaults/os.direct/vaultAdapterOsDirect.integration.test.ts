@@ -53,8 +53,6 @@ describe('vaultAdapterOsDirect', () => {
         setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          env: 'test',
-          org: 'testorg',
         });
 
         const storePath = join(
@@ -73,8 +71,6 @@ describe('vaultAdapterOsDirect', () => {
         setMockPromptValues('xai-test-key-123');
         await vaultAdapterOsDirect.set({
           slug: 'XAI_API_KEY',
-          env: 'test',
-          org: 'testorg',
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'XAI_API_KEY' });
@@ -88,13 +84,9 @@ describe('vaultAdapterOsDirect', () => {
       setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        env: 'test',
-        org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        env: 'test',
-        org: 'testorg',
       });
     });
 
@@ -113,8 +105,6 @@ describe('vaultAdapterOsDirect', () => {
         setMockPromptValues('new-value-a');
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          env: 'test',
-          org: 'testorg',
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
@@ -125,8 +115,6 @@ describe('vaultAdapterOsDirect', () => {
         setMockPromptValues('new-value-a');
         await vaultAdapterOsDirect.set({
           slug: 'KEY_A',
-          env: 'test',
-          org: 'testorg',
         });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
@@ -166,13 +154,9 @@ describe('vaultAdapterOsDirect', () => {
       setMockPromptValues(['value-a', 'value-b']);
       await vaultAdapterOsDirect.set({
         slug: 'KEY_A',
-        env: 'test',
-        org: 'testorg',
       });
       await vaultAdapterOsDirect.set({
         slug: 'KEY_B',
-        env: 'test',
-        org: 'testorg',
       });
     });
 
@@ -219,8 +203,6 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          env: 'test',
-          org: 'testorg',
           expiresAt,
         });
 
@@ -247,8 +229,6 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
         await vaultAdapterOsDirect.set({
           slug: 'EPHEMERAL_KEY',
-          env: 'test',
-          org: 'testorg',
           expiresAt,
         });
 
@@ -265,8 +245,6 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          env: 'test',
-          org: 'testorg',
           expiresAt,
         });
 
@@ -279,8 +257,6 @@ describe('vaultAdapterOsDirect', () => {
         const expiresAt = new Date(Date.now() - 1000).toISOString(); // 1 second ago
         await vaultAdapterOsDirect.set({
           slug: 'EXPIRED_KEY',
-          env: 'test',
-          org: 'testorg',
           expiresAt,
         });
 

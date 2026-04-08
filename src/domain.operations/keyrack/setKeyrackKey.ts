@@ -21,7 +21,7 @@ export const setKeyrackKey = async (
     env: string;
     org: string;
     vault: KeyrackHostVault;
-    mech: KeyrackGrantMechanism;
+    mech?: KeyrackGrantMechanism | null;
     secret?: string | null;
     exid?: string | null;
     vaultRecipient?: string | null;

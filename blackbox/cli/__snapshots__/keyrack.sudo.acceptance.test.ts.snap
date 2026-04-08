@@ -16,8 +16,7 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t0] set --key SU
 `;
 
 exports[`keyrack sudo given: [case1] sudo credential set when: [t1] set --key SUDO_TOKEN --env sudo (human readable) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack set (org: testorg, env: sudo)
+"🔐 keyrack set (org: testorg, env: sudo)
    └─ testorg.sudo.SUDO_TOKEN
       ├─ mech: PERMANENT_VIA_REPLICA
       └─ vault: os.direct

@@ -199,8 +199,10 @@ export const unlockKeyrackKeys = async (
 
     // get secret from vault
     // .note = vault may return null if key is absent (e.g., os.daemon after restart, deleted 1password item)
+    // .note = mech passed for transformation (vault calls mech.deliverForGet internally)
     const secret = await adapter.get({
       slug: effectiveSlug,
+      mech: hostConfig.mech,
       exid: hostConfig.exid,
       owner: input.owner ?? null,
       identity,

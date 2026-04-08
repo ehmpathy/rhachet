@@ -54,10 +54,10 @@ describe('inferKeyGrade', () => {
       });
     });
 
-    when('[t5] vault is aws.iam.sso', () => {
+    when('[t5] vault is aws.config', () => {
       then('protection is reference', () => {
         const grade = inferKeyGrade({
-          vault: 'aws.iam.sso',
+          vault: 'aws.config',
           mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
         expect(grade.protection).toEqual('reference');
@@ -201,10 +201,10 @@ describe('inferKeyGrade', () => {
       });
     });
 
-    when('[t3] aws.iam.sso with EPHEMERAL_VIA_AWS_SSO', () => {
+    when('[t3] aws.config with EPHEMERAL_VIA_AWS_SSO', () => {
       then('grade is reference + ephemeral', () => {
         const grade = inferKeyGrade({
-          vault: 'aws.iam.sso',
+          vault: 'aws.config',
           mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
         expect(grade).toEqual({

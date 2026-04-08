@@ -32,6 +32,13 @@ case "$1 $2" in
   "sts get-caller-identity")
     echo '{"UserId":"MOCK:session","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/session"}'
     ;;
+  "configure export-credentials")
+    # returns env-no-export format credentials for sso profile
+    echo "AWS_ACCESS_KEY_ID=AKIAMOCKACCESSKEY123"
+    echo "AWS_SECRET_ACCESS_KEY=MockSecretAccessKey123456789"
+    echo "AWS_SESSION_TOKEN=MockSessionToken123456789012345678901234567890"
+    echo "AWS_CREDENTIAL_EXPIRATION=2099-12-31T23:59:59Z"
+    ;;
   "sso logout")
     ;;
   *)

@@ -29,7 +29,7 @@ describe('keyrack roundtrip', () => {
       return r;
     });
 
-    when('[t0] set --key SUDO_SECURE_KEY --env sudo --vault os.secure', () => {
+    when('[t0] set --key SUDO_SECURE_KEY --env sudo --vault os.secure --mech PERMANENT_VIA_REPLICA', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -41,6 +41,8 @@ describe('keyrack roundtrip', () => {
             'sudo',
             '--vault',
             'os.secure',
+            '--mech',
+            'PERMANENT_VIA_REPLICA',
             '--vault-recipient',
             TEST_SSH_AGE_RECIPIENT,
             '--org',
@@ -527,7 +529,7 @@ describe('keyrack roundtrip', () => {
       return r;
     });
 
-    when('[t0] set --key REGULAR_SECURE_KEY --env prod --vault os.secure', () => {
+    when('[t0] set --key REGULAR_SECURE_KEY --env prod --vault os.secure --mech PERMANENT_VIA_REPLICA', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -539,6 +541,8 @@ describe('keyrack roundtrip', () => {
             'prod',
             '--vault',
             'os.secure',
+            '--mech',
+            'PERMANENT_VIA_REPLICA',
             '--vault-recipient',
             TEST_SSH_AGE_RECIPIENT,
             '--json',

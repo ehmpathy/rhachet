@@ -41,7 +41,6 @@ import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/se
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlockKeyrackKeys';
-import { inferMechFromVault } from '@src/infra/inferMechFromVault';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -650,7 +649,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           'os.daemon',
           'os.envvar',
           '1password',
-          'aws.iam.sso',
+          'aws.config',
         ];
         if (!validVaults.includes(opts.vault as KeyrackHostVault)) {
           throw new BadRequestError(
@@ -658,36 +657,25 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           );
         }
 
-        // infer mech from vault if not provided
-        const mech: KeyrackGrantMechanism = (() => {
-          if (opts.mech) {
-            // validate explicit mechanism
-            const validMechs: KeyrackGrantMechanism[] = [
-              'PERMANENT_VIA_REPLICA',
-              'PERMANENT_VIA_REFERENCE',
-              'EPHEMERAL_VIA_SESSION',
-              'EPHEMERAL_VIA_GITHUB_APP',
-              'EPHEMERAL_VIA_AWS_SSO',
-              'EPHEMERAL_VIA_GITHUB_OIDC',
-            ];
-            if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
-              throw new BadRequestError(
-                `invalid --mech: must be one of ${validMechs.join(', ')}`,
-              );
-            }
-            return opts.mech as KeyrackGrantMechanism;
-          }
+        // validate mech if provided; otherwise let vault adapter handle inference
+        const mech: KeyrackGrantMechanism | null = (() => {
+          if (!opts.mech) return null; // vault adapter will infer
 
-          // infer from vault
-          const inferred = inferMechFromVault({
-            vault: opts.vault as KeyrackHostVault,
-          });
-          if (!inferred) {
+          // validate explicit mechanism
+          const validMechs: KeyrackGrantMechanism[] = [
+            'PERMANENT_VIA_REPLICA',
+            'PERMANENT_VIA_REFERENCE',
+            'EPHEMERAL_VIA_SESSION',
+            'EPHEMERAL_VIA_GITHUB_APP',
+            'EPHEMERAL_VIA_AWS_SSO',
+            'EPHEMERAL_VIA_GITHUB_OIDC',
+          ];
+          if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
             throw new BadRequestError(
-              `--mech required for vault ${opts.vault}`,
+              `invalid --mech: must be one of ${validMechs.join(', ')}`,
             );
           }
-          return inferred;
+          return opts.mech as KeyrackGrantMechanism;
         })();
 
         // get gitroot to derive org from manifest
@@ -809,7 +797,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             ),
           );
         } else {
-          console.log('');
           console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
           for (const result of results) {
             console.log(`   └─ ${result.slug}`);

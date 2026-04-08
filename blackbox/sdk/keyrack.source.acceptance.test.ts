@@ -409,6 +409,8 @@ env.test:
           'test',
           '--vault',
           'os.secure',
+          '--mech',
+          'PERMANENT_VIA_REPLICA',
           '--vault-recipient',
           TEST_SSH_AGE_RECIPIENT,
           '--org',

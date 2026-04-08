@@ -1,7 +1,13 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
-import { promptHiddenInput } from '@src/infra/promptHiddenInput';
+import type {
+  KeyrackGrantMechanism,
+  KeyrackGrantMechanismAdapter,
+  KeyrackHostVaultAdapter,
+} from '@src/domain.objects/keyrack';
+import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -90,12 +96,36 @@ const isExpired = (entry: DirectStoreEntry): boolean => {
 };
 
 /**
+ * .what = lookup mech adapter by mechanism name
+ * .why = vault needs to call mech.acquireForSet for guided setup
+ */
+const getMechAdapter = (
+  mech: KeyrackGrantMechanism,
+): KeyrackGrantMechanismAdapter => {
+  const adapters: Partial<
+    Record<KeyrackGrantMechanism, KeyrackGrantMechanismAdapter>
+  > = {
+    PERMANENT_VIA_REPLICA: mechAdapterReplica,
+  };
+
+  const adapter = adapters[mech];
+  if (!adapter) {
+    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+  }
+  return adapter;
+};
+
+/**
  * .what = vault adapter for os-direct storage
  * .why = stores credentials in plaintext json file
  *
  * .note = os.direct requires no unlock — file is always accessible
  */
 export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
+  mechs: {
+    supported: ['PERMANENT_VIA_REPLICA'],
+  },
+
   /**
    * .what = unlock the vault for the current session
    * .why = os.direct requires no unlock — file is always accessible
@@ -117,6 +147,10 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
    * .why = core operation for grant flow
    *
    * .note = if entry is expired, deletes it and returns null
+   * .note = vault encapsulates mech transformation:
+   *         1. retrieve source from storage
+   *         2. call mech.deliverForGet({ source }) if mech supplied
+   *         3. return translated secret (or source if no mech)
    */
   get: async (input) => {
     const owner = input.owner ?? null;
@@ -133,23 +167,53 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
       return null;
     }
 
-    return entry.value;
+    const source = entry.value;
+
+    // if no mech supplied, return source as-is
+    if (!input.mech) return source;
+
+    // transform source → usable secret via mech
+    const mechAdapter = getMechAdapter(input.mech);
+    const { secret } = await mechAdapter.deliverForGet({ source });
+    return secret;
   },
 
   /**
    * .what = store a credential in the plaintext store
    * .why = enables set flow for credential storage
    *
-   * .note = vault prompts for its own secret via stdin
+   * .note = vault encapsulates mech calls:
+   *         1. infers mech if not supplied
+   *         2. checks mech compat (os.direct only supports PERMANENT_VIA_REPLICA)
+   *         3. calls mech.acquireForSet for guided setup
+   *         4. stores source credential
    * .note = expiresAt enables ephemeral grant cache
    */
-  set: async (input) => {
-    // vault always prompts for its own secret via stdin
-    const secret = await promptHiddenInput({
-      prompt: `enter secret for ${input.slug}: `,
+  set: async (input, context?: ContextKeyrack) => {
+    // infer mech if not supplied
+    const mech =
+      input.mech ??
+      (await inferKeyrackMechForSet({ vault: vaultAdapterOsDirect }));
+
+    // check mech compat (os.direct only supports permanent mechs — cannot secure ephemeral sources)
+    if (!vaultAdapterOsDirect.mechs.supported.includes(mech)) {
+      throw new UnexpectedCodePathError(
+        `os.direct does not support mech: ${mech}`,
+        {
+          mech,
+          supported: vaultAdapterOsDirect.mechs.supported,
+          hint: 'os.direct cannot secure ephemeral source credentials; try --vault os.secure',
+        },
+      );
+    }
+
+    // acquire source credential via mech guided setup
+    const mechAdapter = getMechAdapter(mech);
+    const { source: secret } = await mechAdapter.acquireForSet({
+      keySlug: input.slug,
     });
 
-    const owner = input.owner ?? null;
+    const owner = context?.owner ?? null;
     const store = readDirectStore({ owner });
     const entry: DirectStoreEntry = { value: secret };
     if (input.expiresAt) {
@@ -157,6 +221,8 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
     }
     store[input.slug] = entry;
     writeDirectStore({ store, owner });
+
+    return { mech };
   },
 
   /**

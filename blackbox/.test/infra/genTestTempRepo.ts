@@ -237,10 +237,10 @@ const convertLegacyManifest = async (input: {
 
   // write unencrypted index (slugs only, no secrets)
   // .why = enables locked/absent detection without manifest decryption
-  // .note = only includes refed vaults (1password, aws.iam.sso) since owned vaults
+  // .note = only includes refed vaults (1password, aws.config) since owned vaults
   //         have their own storage checks (os.secure .age files, os.direct json store)
   const indexPath = join(newDir, 'keyrack.host.index.json');
-  const refedVaults = ['1password', 'aws.iam.sso'];
+  const refedVaults = ['1password', 'aws.config'];
   const slugs = Object.entries(newManifest.hosts)
     .filter(([, host]) => refedVaults.includes((host as { vault?: string }).vault ?? ''))
     .map(([slug]) => slug);

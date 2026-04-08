@@ -92,11 +92,7 @@ export const withStdoutPrefix = async <T>(
       } else {
         // regular character: add prefix if at line start
         if (atLineStart) {
-          // skip prefix if line already starts with it (e.g., readline prompt with prefix)
-          const remaining = str.slice(i);
-          if (!remaining.startsWith(prefix)) {
-            output += prefix;
-          }
+          output += prefix;
           atLineStart = false;
         }
         hasContent = true;

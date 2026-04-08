@@ -19,6 +19,10 @@ import { promptHiddenInput } from '@src/infra/promptHiddenInput';
  * .note = uses daemon SDK for all operations
  */
 export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
+  mechs: {
+    supported: ['EPHEMERAL_VIA_SESSION'],
+  },
+
   /**
    * .what = unlock the vault for the current session
    * .why = os.daemon doesn't need explicit unlock — daemon handles auth per-connection
@@ -62,6 +66,9 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
    * .note = vault prompts for its own secret via stdin
    */
   set: async (input) => {
+    // os.daemon only supports EPHEMERAL_VIA_SESSION (keys die on logout/crash)
+    const mech = input.mech ?? 'EPHEMERAL_VIA_SESSION';
+
     // vault always prompts for its own secret via stdin
     const secret = await promptHiddenInput({
       prompt: `enter secret for ${input.slug}: `,
@@ -82,18 +89,25 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
     // ensure daemon is alive (auto-start if absent)
     await findsertKeyrackDaemon();
 
+    // extract org and env from slug (format: org.env.keyName)
+    const slugParts = input.slug.split('.');
+    const org = slugParts[0] ?? 'unknown';
+    const env = slugParts[1] ?? 'all';
+
     await daemonAccessUnlock({
       keys: [
         {
           slug: input.slug,
           key: { secret, grade },
           source: { vault: 'os.daemon', mech: 'EPHEMERAL_VIA_SESSION' },
-          env: input.env,
-          org: input.org,
+          env,
+          org,
           expiresAt,
         },
       ],
     });
+
+    return { mech };
   },
 
   /**

@@ -6,7 +6,7 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
-import { mechAdapterAwsSso } from './adapters/mechanisms/mechAdapterAwsSso';
+import { mechAdapterAwsSso } from './adapters/mechanisms/aws.sso/mechAdapterAwsSso';
 import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';

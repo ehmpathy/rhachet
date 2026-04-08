@@ -25,10 +25,10 @@ describe('mechAdapterReplica', () => {
       });
     });
 
-    when('[t2] translate called with secret', () => {
+    when('[t2] deliverForGet called with source', () => {
       then('returns secret unchanged with no expiry', async () => {
-        const result = await mechAdapterReplica.translate({
-          secret: 'my-api-key-123',
+        const result = await mechAdapterReplica.deliverForGet({
+          source: 'my-api-key-123',
         });
         expect(result.secret).toEqual('my-api-key-123');
         expect(result.expiresAt).toBeUndefined();

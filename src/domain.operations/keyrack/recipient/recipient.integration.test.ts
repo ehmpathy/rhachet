@@ -1,5 +1,6 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { assertDepAgeIsInstalled } from '@src/.test/infra/assertDepAgeIsInstalled';
 import { withTempHome } from '@src/.test/infra/withTempHome';
 import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
@@ -8,6 +9,9 @@ import { join } from 'node:path';
 import { delKeyrackRecipient } from './delKeyrackRecipient';
 import { getKeyrackRecipients } from './getKeyrackRecipients';
 import { setKeyrackRecipient } from './setKeyrackRecipient';
+
+// fail-fast: require age cli (--stanza ssh tests need it)
+assertDepAgeIsInstalled();
 
 // test ssh key paths
 const TEST_SSH_KEY_DIR = join(__dirname, '../../../.test/assets/keyrack/ssh');
@@ -108,7 +112,7 @@ describe('recipient operations', () => {
       });
 
       when('[t2] add ssh pubkey', () => {
-        then('accepts ssh pubkey with mech: ssh', async () => {
+        then('converts to age format (enables npm library path)', async () => {
           await initKeyrack({
             owner: 'ssh-test',
             pubkey: TEST_SSH_PUBKEY_PATH,
@@ -126,8 +130,9 @@ describe('recipient operations', () => {
             prikeys: [TEST_SSH_PRIKEY_PATH],
           });
 
-          expect(recipient.mech).toBe('ssh');
-          expect(recipient.pubkey).toMatch(/^ssh-ed25519/);
+          // ssh pubkey is converted to age format by default
+          expect(recipient.mech).toBe('age');
+          expect(recipient.pubkey).toMatch(/^age1/);
           expect(recipient.label).toBe('ssh-key');
         });
       });

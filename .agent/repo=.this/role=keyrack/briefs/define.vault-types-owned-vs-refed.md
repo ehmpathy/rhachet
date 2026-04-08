@@ -7,7 +7,7 @@ keyrack vaults fall into two categories:
 | type | description | examples |
 |------|-------------|----------|
 | **owned** | keyrack manages the secret directly | os.secure, os.direct, os.daemon |
-| **refed** | keyrack points to an external source of truth | 1password, aws.iam.sso |
+| **refed** | keyrack points to an external source of truth | 1password, aws.config |
 
 ## .owned vaults
 
