@@ -5,6 +5,7 @@ import * as readline from 'node:readline';
  * .why = enables interactive input for non-secret values (e.g., uris, names)
  *
  * .note = differs from promptHiddenInput — this shows what user types
+ * .note = non-TTY mode reads ALL stdin for multiline content support
  */
 export const promptVisibleInput = async (input: {
   prompt: string;
@@ -14,26 +15,14 @@ export const promptVisibleInput = async (input: {
   // .note = writes to stderr so it doesn't corrupt JSON output on stdout (unix convention)
   if (!process.stdin.isTTY) {
     process.stderr.write(input.prompt);
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      terminal: false,
-    });
-    return new Promise((resolve) => {
-      let resolved = false;
-      rl.once('line', (line) => {
-        if (resolved) return;
-        resolved = true;
-        rl.close();
-        resolve(line.trim());
-      });
-      // handle stdin close without input (e.g., CI environment)
-      rl.once('close', () => {
-        if (resolved) return;
-        resolved = true;
-        resolve('');
-      });
-    });
+    // read ALL stdin content, not just first line (supports multiline json, etc)
+    const chunks: string[] = [];
+    process.stdin.setEncoding('utf8');
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk as string);
+    }
+    // trim whitespace to match extant .trim() behavior
+    return chunks.join('').trim();
   }
 
   // interactive terminal
