@@ -6,5 +6,6 @@
  *   - onBoot → SessionStart (claudecode), session.created (opencode)
  *   - onTool → PreToolUse/PostToolUse (claudecode), tool.execute.before/after (opencode)
  *   - onStop → Stop (claudecode), session.idle (opencode)
+ *   - onTalk → UserPromptSubmit (claudecode), chat.message (opencode)
  */
-export type BrainHookEvent = 'onBoot' | 'onTool' | 'onStop';
+export type BrainHookEvent = 'onBoot' | 'onTool' | 'onStop' | 'onTalk';

@@ -163,12 +163,13 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
 
         // determine which claude code event buckets to search
         // for onBoot, search all boot event buckets (hook may be in any)
-        const claudeEvents: string[] =
-          event === 'onBoot'
-            ? ['SessionStart', 'PreCompact', 'PostCompact']
-            : event === 'onTool'
-              ? ['PreToolUse']
-              : ['Stop'];
+        const claudeEvents: string[] = (() => {
+          if (event === 'onBoot')
+            return ['SessionStart', 'PreCompact', 'PostCompact'];
+          if (event === 'onTool') return ['PreToolUse'];
+          if (event === 'onTalk') return ['UserPromptSubmit'];
+          return ['Stop'];
+        })();
 
         // find and remove from all relevant buckets
         let hooksSection = { ...settings.hooks } ?? {};

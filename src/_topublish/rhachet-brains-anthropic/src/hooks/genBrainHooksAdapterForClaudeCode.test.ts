@@ -288,4 +288,57 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
       });
     });
   });
+
+  given('[case6] del onTalk hook', () => {
+    const repo = useBeforeAll(async () => {
+      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
+      await fs.mkdir(dir, { recursive: true });
+
+      // create onTalk hook
+      const adapter = genBrainHooksAdapterForClaudeCode({ repoPath: dir });
+      await adapter.dao.set.upsert({
+        hook: {
+          author: 'repo=test/role=tester',
+          event: 'onTalk',
+          command: 'echo "talk"',
+          timeout: 'PT5S',
+        },
+      });
+
+      return { path: dir };
+    });
+
+    when('[t0] del is called for onTalk hook', () => {
+      const scene = useBeforeAll(async () => {
+        const adapter = genBrainHooksAdapterForClaudeCode({
+          repoPath: repo.path,
+        });
+
+        // verify hook exists before delete
+        const hooksBefore = await adapter.dao.get.all();
+
+        await adapter.dao.del({
+          by: {
+            unique: {
+              author: 'repo=test/role=tester',
+              event: 'onTalk',
+              command: 'echo "talk"',
+            },
+          },
+        });
+
+        const hooksAfter = await adapter.dao.get.all();
+        return { hooksBefore, hooksAfter };
+      });
+
+      then('hook existed before delete', () => {
+        expect(scene.hooksBefore.length).toBe(1);
+        expect(scene.hooksBefore[0]?.event).toBe('onTalk');
+      });
+
+      then('hook is removed after delete', () => {
+        expect(scene.hooksAfter.length).toBe(0);
+      });
+    });
+  });
 });

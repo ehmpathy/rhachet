@@ -38,7 +38,7 @@ export const parsePluginFileName = (
   filename: string,
 ): { author: string; event: string } | null => {
   const match = filename.match(
-    /^rhachet-(.+)-(onBoot|onTool|onStop)-[a-zA-Z0-9_-]+\.ts$/,
+    /^rhachet-(.+)-(onBoot|onTool|onStop|onTalk)-[a-zA-Z0-9_-]+\.ts$/,
   );
   if (!match) return null;
   return {
@@ -112,6 +112,14 @@ const getHookImplementation = (meta: OpencodePluginMeta): string => {
   if (event === 'onStop') {
     return `    session: {
       idle: async () => {
+        execSync(${JSON.stringify(command)}, { stdio: "inherit", timeout: ${timeoutMs} });
+      },
+    },`;
+  }
+
+  if (event === 'onTalk') {
+    return `    chat: {
+      message: async () => {
         execSync(${JSON.stringify(command)}, { stdio: "inherit", timeout: ${timeoutMs} });
       },
     },`;

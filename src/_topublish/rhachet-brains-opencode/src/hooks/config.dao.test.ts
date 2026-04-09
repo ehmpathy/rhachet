@@ -70,6 +70,20 @@ describe('config.dao', () => {
         });
       });
     });
+
+    given('[case3] valid onTalk filename', () => {
+      when('[t0] parsed', () => {
+        const result = parsePluginFileName(
+          'rhachet-repo-test-role-tester-onTalk-ZWNobyAidGFsayI.ts',
+        );
+
+        then('returns author and event', () => {
+          expect(result).not.toBeNull();
+          expect(result?.author).toBe('repo-test-role-tester');
+          expect(result?.event).toBe('onTalk');
+        });
+      });
+    });
   });
 
   describe('generatePluginContent', () => {
@@ -133,6 +147,34 @@ describe('config.dao', () => {
         then('includes session.idle hook', () => {
           expect(content).toContain('session:');
           expect(content).toContain('idle:');
+        });
+      });
+    });
+
+    given('[case4] onTalk hook', () => {
+      when('[t0] generated', () => {
+        const content = generatePluginContent({
+          author: 'repo=test/role=tester',
+          event: 'onTalk',
+          command: 'echo "talk"',
+          timeout: 5000,
+        });
+
+        then('includes header with metadata', () => {
+          expect(content).toContain('author: repo=test/role=tester');
+          expect(content).toContain('event: onTalk');
+          expect(content).toContain('command: echo "talk"');
+        });
+
+        then('includes chat.message hook', () => {
+          expect(content).toContain('chat:');
+          expect(content).toContain('message:');
+        });
+
+        then('includes execSync call with timeout', () => {
+          expect(content).toContain('execSync');
+          expect(content).toContain('"echo \\"talk\\""');
+          expect(content).toContain('timeout: 5000');
         });
       });
     });

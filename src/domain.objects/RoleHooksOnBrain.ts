@@ -10,6 +10,7 @@ export interface RoleHooksOnBrain {
   onBoot?: RoleHookOnBrain[];
   onTool?: RoleHookOnBrain[];
   onStop?: RoleHookOnBrain[];
+  onTalk?: RoleHookOnBrain[];
 }
 
 export class RoleHooksOnBrain
@@ -20,5 +21,6 @@ export class RoleHooksOnBrain
     onBoot: RoleHookOnBrain,
     onTool: RoleHookOnBrain,
     onStop: RoleHookOnBrain,
+    onTalk: RoleHookOnBrain,
   };
 }

@@ -23,6 +23,7 @@ export interface ClaudeCodeSettings {
     PreToolUse?: ClaudeCodeHookEntry[];
     PostToolUse?: ClaudeCodeHookEntry[];
     Stop?: ClaudeCodeHookEntry[];
+    UserPromptSubmit?: ClaudeCodeHookEntry[];
   };
   [key: string]: unknown;
 }
