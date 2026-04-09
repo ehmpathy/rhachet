@@ -131,6 +131,19 @@ const extractDeclaredHooks = (input: {
     );
   }
 
+  // extract onTalk hooks
+  for (const h of onBrain.onTalk ?? []) {
+    hooks.push(
+      new BrainHook({
+        author,
+        event: 'onTalk',
+        command: h.command,
+        timeout: h.timeout,
+        filter: h.filter,
+      }),
+    );
+  }
+
   return hooks;
 };
 

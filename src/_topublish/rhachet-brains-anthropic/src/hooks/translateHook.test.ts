@@ -173,6 +173,35 @@ describe('translateHook', () => {
         });
       });
     });
+
+    given('[case9] onTalk hook', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onTalk',
+        command: 'echo "talk"',
+        timeout: 'PT5S',
+      };
+
+      when('[t0] translated', () => {
+        const { event, entry } = translateHookToClaudeCode({ hook });
+
+        then('event is UserPromptSubmit', () => {
+          expect(event).toEqual('UserPromptSubmit');
+        });
+
+        then('matcher is wildcard', () => {
+          expect(entry.matcher).toEqual('*');
+        });
+
+        then('command is preserved', () => {
+          expect(entry.hooks[0]?.command).toEqual('echo "talk"');
+        });
+
+        then('timeout is converted to milliseconds', () => {
+          expect(entry.hooks[0]?.timeout).toEqual(5000);
+        });
+      });
+    });
   });
 
   describe('translateHookFromClaudeCode', () => {
@@ -382,6 +411,41 @@ describe('translateHook', () => {
 
         then('defaults to 30 seconds IsoDuration', () => {
           expect(result[0]?.timeout).toEqual({ seconds: 30 });
+        });
+      });
+    });
+
+    given('[case8] UserPromptSubmit entry', () => {
+      const entry = {
+        matcher: '*',
+        hooks: [{ type: 'command', command: 'echo "talk"', timeout: 5000 }],
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookFromClaudeCode({
+          event: 'UserPromptSubmit',
+          entry,
+          author: 'repo=test/role=tester',
+        });
+
+        then('returns one hook', () => {
+          expect(result).toHaveLength(1);
+        });
+
+        then('event is onTalk', () => {
+          expect(result[0]?.event).toEqual('onTalk');
+        });
+
+        then('author is set', () => {
+          expect(result[0]?.author).toEqual('repo=test/role=tester');
+        });
+
+        then('command is preserved', () => {
+          expect(result[0]?.command).toEqual('echo "talk"');
+        });
+
+        then('timeout is IsoDuration object', () => {
+          expect(result[0]?.timeout).toEqual({ milliseconds: 5000 });
         });
       });
     });

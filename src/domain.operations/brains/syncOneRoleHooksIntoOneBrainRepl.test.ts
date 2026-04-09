@@ -182,4 +182,52 @@ describe('syncOneRoleHooksIntoOneBrainRepl', () => {
       });
     });
   });
+
+  given('[case4] role with onTalk hooks', () => {
+    const role: HasRepo<Role> = {
+      ...new Role({
+        slug: 'achiever',
+        name: 'Achiever',
+        purpose: 'test role',
+        readme: { uri: 'readme.md' },
+        traits: [],
+        skills: { dirs: { uri: 'skills' }, refs: [] },
+        briefs: { dirs: { uri: 'briefs' } },
+        hooks: {
+          onBrain: {
+            onTalk: [{ command: 'echo "accumulate ask"', timeout: 'PT5S' }],
+          },
+        },
+      }),
+      repo: 'test-registry',
+    };
+
+    const adapter = createMockAdapter([]);
+
+    const result = useBeforeAll(async () =>
+      syncOneRoleHooksIntoOneBrainRepl({ role, adapter }),
+    );
+
+    when('[t0] sync is executed', () => {
+      then('creates 1 hook', () => {
+        expect(result.hooks.created).toHaveLength(1);
+      });
+
+      then('created hook is onTalk event', () => {
+        expect(result.hooks.created[0]?.event).toEqual('onTalk');
+      });
+
+      then('created hook has correct command', () => {
+        expect(result.hooks.created[0]?.command).toEqual(
+          'echo "accumulate ask"',
+        );
+      });
+
+      then('created hook has correct author', () => {
+        expect(result.hooks.created[0]?.author).toEqual(
+          'repo=test-registry/role=achiever',
+        );
+      });
+    });
+  });
 });

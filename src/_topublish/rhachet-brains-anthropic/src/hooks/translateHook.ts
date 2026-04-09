@@ -24,6 +24,7 @@ const EVENT_MAP: Record<BrainHookEvent, string> = {
   onBoot: 'SessionStart',
   onTool: 'PreToolUse',
   onStop: 'Stop',
+  onTalk: 'UserPromptSubmit',
 };
 
 /**
