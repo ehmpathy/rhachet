@@ -45,7 +45,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -86,7 +86,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -146,7 +146,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -198,7 +198,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -251,7 +251,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -310,7 +310,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 
@@ -365,7 +365,7 @@ describe('unlockKeyrackKeys', () => {
         'os.secure': genMockVaultAdapter(),
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
-        'aws.iam.sso': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
       },
     };
 

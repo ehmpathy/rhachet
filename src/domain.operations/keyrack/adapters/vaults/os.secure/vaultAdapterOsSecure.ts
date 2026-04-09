@@ -1,15 +1,20 @@
 import { asHashSha256Sync } from 'hash-fns';
 import { UnexpectedCodePathError } from 'helpful-errors';
 
-import {
-  type KeyrackHostVaultAdapter,
-  KeyrackKeyRecipient,
+import type {
+  KeyrackGrantMechanism,
+  KeyrackGrantMechanismAdapter,
+  KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
 import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
-import { promptHiddenInput } from '@src/infra/promptHiddenInput';
+import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
+import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
 
 import {
   existsSync,
@@ -57,12 +62,37 @@ const getCredentialPath = (input: {
 };
 
 /**
+ * .what = lookup mech adapter by mechanism name
+ * .why = vault needs to call mech.acquireForSet for guided setup
+ */
+const getMechAdapter = (
+  mech: KeyrackGrantMechanism,
+): KeyrackGrantMechanismAdapter => {
+  const adapters: Partial<
+    Record<KeyrackGrantMechanism, KeyrackGrantMechanismAdapter>
+  > = {
+    PERMANENT_VIA_REPLICA: mechAdapterReplica,
+    EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
+  };
+
+  const adapter = adapters[mech];
+  if (!adapter) {
+    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+  }
+  return adapter;
+};
+
+/**
  * .what = vault adapter for os-secure storage
  * .why = stores credentials in age-encrypted files with identity-based encryption
  *
  * .note = os.secure requires identity from context for all operations
  */
 export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
+  mechs: {
+    supported: ['PERMANENT_VIA_REPLICA', 'EPHEMERAL_VIA_GITHUB_APP'],
+  },
+
   /**
    * .what = unlock the vault for the current session
    * .why = validates identity is available for subsequent operations
@@ -90,6 +120,11 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
   /**
    * .what = retrieve a credential from the encrypted vault
    * .why = decrypts the age file with identity from input
+   *
+   * .note = vault encapsulates mech transformation:
+   *         1. retrieve source from storage (decrypt)
+   *         2. call mech.deliverForGet({ source }) if mech supplied
+   *         3. return translated secret (or source if no mech)
    */
   get: async (input) => {
     // return null if file does not exist
@@ -108,25 +143,63 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
 
     // decrypt with identity (recipient-encrypted credentials)
     const ciphertextArmored = readFileSync(path, 'utf8');
-    const plaintext = await decryptWithIdentity({
+    const source = await decryptWithIdentity({
       ciphertext: ciphertextArmored,
       identity,
     });
-    return plaintext;
+
+    // if no mech supplied, return source as-is
+    if (!input.mech) return source;
+
+    // transform source → usable secret via mech
+    const mechAdapter = getMechAdapter(input.mech);
+    const { secret } = await mechAdapter.deliverForGet({ source });
+    return secret;
   },
 
   /**
    * .what = store a credential in the encrypted vault
    * .why = encrypts with age to recipients and writes to disk
+   *
+   * .note = vault encapsulates mech calls:
+   *         1. infers mech if not supplied
+   *         2. checks mech compat
+   *         3. calls mech.acquireForSet for guided setup
+   *         4. stores source credential
    */
-  set: async (input) => {
-    // vault always prompts for its own secret via stdin
-    const secret = await promptHiddenInput({
-      prompt: `enter secret for ${input.slug}: `,
+  set: async (input, context?: ContextKeyrack) => {
+    // infer mech if not supplied
+    const mech =
+      input.mech ??
+      (await inferKeyrackMechForSet({ vault: vaultAdapterOsSecure }));
+
+    // check mech compat
+    if (!vaultAdapterOsSecure.mechs.supported.includes(mech)) {
+      throw new UnexpectedCodePathError(
+        `os.secure does not support mech: ${mech}`,
+        {
+          mech,
+          supported: vaultAdapterOsSecure.mechs.supported,
+          hint: 'try --vault aws.config for aws sso',
+        },
+      );
+    }
+
+    // acquire source credential via mech guided setup
+    const mechAdapter = getMechAdapter(mech);
+
+    // emit vault header for ephemeral mechs (they have guided setup)
+    if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
+      console.log(`🔐 keyrack set ${input.slug} via ${mech}`);
+    }
+
+    // mech guided setup continues the tree
+    const { source: secret } = await mechAdapter.acquireForSet({
+      keySlug: input.slug,
     });
 
     // ensure directory exists
-    const owner = input.owner ?? null;
+    const owner = context?.owner ?? null;
     const dir = getSecureVaultDir({ owner });
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -134,42 +207,54 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
 
     const path = getCredentialPath({ slug: input.slug, owner });
 
-    // if vaultRecipient specified, use recipient-based encryption (single recipient)
-    if (input.vaultRecipient) {
-      const mech = input.vaultRecipient.startsWith('ssh-') ? 'ssh' : 'age';
-      const ciphertext = await encryptToRecipients({
-        plaintext: secret,
-        recipients: [
-          new KeyrackKeyRecipient({
-            mech,
-            pubkey: input.vaultRecipient,
-            label: 'vault-recipient',
-            addedAt: new Date().toISOString(),
-          }),
-        ],
-      });
-      writeFileSync(path, ciphertext, 'utf8');
-      return;
+    // encrypt with recipients from context.hostManifest
+    const recipients = context?.hostManifest?.recipients;
+    if (!recipients || recipients.length === 0) {
+      throw new UnexpectedCodePathError(
+        'os.secure set requires recipients from host manifest',
+        {
+          slug: input.slug,
+          hint: 'run keyrack init to add recipients',
+        },
+      );
     }
+    const ciphertext = await encryptToRecipients({
+      plaintext: secret,
+      recipients,
+    });
 
-    // if recipients array provided (from manifest), use those
-    if (input.recipients && input.recipients.length > 0) {
-      const ciphertext = await encryptToRecipients({
-        plaintext: secret,
-        recipients: input.recipients,
-      });
-      writeFileSync(path, ciphertext, 'utf8');
-      return;
-    }
+    // write encrypted credential
+    writeFileSync(path, ciphertext, 'utf8');
 
-    // no recipients available
-    throw new UnexpectedCodePathError(
-      'os.secure set requires recipients (vaultRecipient or manifest recipients)',
+    // roundtrip verification
+    const { verified } = await verifyRoundtripDecryption(
       {
-        slug: input.slug,
-        hint: 'use --prikey to specify ssh key or run keyrack init',
+        expected: {
+          ciphertext: readFileSync(path, 'utf8'),
+          plaintext: secret,
+        },
+        owner,
       },
+      context,
     );
+    if (!verified) {
+      throw new UnexpectedCodePathError(
+        'os.secure roundtrip verification failed',
+        {
+          slug: input.slug,
+          hint: 'no identity could decrypt the credential',
+        },
+      );
+    }
+
+    // emit verification success for ephemeral mech tree output
+    if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
+      console.log('   │');
+      console.log('   └─ ✓ roundtrip verified');
+      console.log('\u2800'); // braille blank for visual space (survives PTY)
+    }
+
+    return { mech };
   },
 
   /**

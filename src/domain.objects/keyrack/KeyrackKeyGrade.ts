@@ -3,7 +3,7 @@
  * .why = enables grade enforcement and degradation prevention
  *
  * protection:
- * - 'reference': only a reference stored, no secret touches keyrack (aws.iam.sso)
+ * - 'reference': only a reference stored, no secret touches keyrack (aws.config)
  * - 'encrypted': stored in encrypted vault (os.secure, 1password, os.daemon)
  * - 'plaintext': stored in plaintext (os.direct)
  *

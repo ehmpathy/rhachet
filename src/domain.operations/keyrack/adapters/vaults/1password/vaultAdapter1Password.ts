@@ -1,23 +1,54 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
-import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+import type {
+  KeyrackGrantMechanism,
+  KeyrackGrantMechanismAdapter,
+  KeyrackHostVaultAdapter,
+} from '@src/domain.objects/keyrack';
+import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
+import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 import { promptVisibleInput } from '@src/infra/promptVisibleInput';
 
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { isOpCliInstalled } from './isOpCliInstalled';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * .what = execute an `op` cli command
  * .why = wraps subprocess execution with error handler
+ *
+ * .note = uses execFile (not exec) to avoid shell interpretation
+ *         this preserves json quotes and special characters in args
  */
 const execOp = async (
   args: string[],
 ): Promise<{ stdout: string; stderr: string }> => {
-  const command = ['op', ...args].join(' ');
-  return execAsync(command);
+  return execFileAsync('op', args);
+};
+
+/**
+ * .what = lookup mech adapter by mechanism name
+ * .why = vault needs to call mech.deliverForGet for secret transformation
+ */
+const getMechAdapter = (
+  mech: KeyrackGrantMechanism,
+): KeyrackGrantMechanismAdapter => {
+  const adapters: Partial<
+    Record<KeyrackGrantMechanism, KeyrackGrantMechanismAdapter>
+  > = {
+    PERMANENT_VIA_REPLICA: mechAdapterReplica,
+    PERMANENT_VIA_REFERENCE: mechAdapterReplica, // passthrough, exid is fetched by vault
+    EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
+  };
+
+  const adapter = adapters[mech];
+  if (!adapter) {
+    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+  }
+  return adapter;
 };
 
 /**
@@ -174,6 +205,14 @@ const assertAccountIsKeyrack = async (): Promise<void> => {
  * .note = requires 1password cli to be installed and authenticated
  */
 export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
+  mechs: {
+    supported: [
+      'PERMANENT_VIA_REPLICA',
+      'PERMANENT_VIA_REFERENCE', // 1password is "refed" vault — pointer to external item
+      'EPHEMERAL_VIA_GITHUB_APP',
+    ],
+  },
+
   /**
    * .what = unlock the vault for the current session
    * .why = 1password cli handles auth via biometric or service account token
@@ -202,6 +241,11 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
   /**
    * .what = retrieve a credential from 1password
    * .why = uses `op read` with a secret reference uri
+   *
+   * .note = vault encapsulates mech transformation:
+   *         1. retrieve source from 1password via op read
+   *         2. call mech.deliverForGet({ source }) if mech supplied
+   *         3. return translated secret (or source if no mech)
    */
   get: async (input) => {
     // exid is the 1password secret reference uri
@@ -218,9 +262,10 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
     // failfast: vault must be 'keyrack'
     assertVaultIsKeyrack({ exid: input.exid });
 
+    let source: string;
     try {
       const { stdout } = await execOp(['read', input.exid]);
-      return stdout.trim();
+      source = stdout.trim();
     } catch (error) {
       // op read returns error if item not found
       if (
@@ -231,17 +276,49 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
       }
       throw error;
     }
+
+    // if no mech supplied, return source as-is
+    if (!input.mech) return source;
+
+    // transform source → usable secret via mech
+    const mechAdapter = getMechAdapter(input.mech);
+    const { secret } = await mechAdapter.deliverForGet({ source });
+    return secret;
   },
 
   /**
-   * .what = store a 1password reference in keyrack
-   * .why = 1password is source of truth; keyrack stores pointer (exid)
+   * .what = store a credential in 1password
+   * .why = supports both refed mode (pointer to extant item) and owned mode (guided setup)
    *
-   * .note = prompts for exid if not provided
+   * .note = vault encapsulates mech calls:
+   *         1. infers mech if not supplied
+   *         2. checks mech compat
+   *         3. for ephemeral mechs: runs mech.acquireForSet(), stores result
+   *         4. for permanent mechs: prompts for exid (refed mode)
    * .note = validates roundtrip via `op read $exid`
    * .note = fails fast if op cli not installed
    */
   set: async (input) => {
+    // infer mech if not supplied
+    // .note = if exid is provided, default to PERMANENT_VIA_REFERENCE (pointer to external item)
+    // .note = only prompt for mech if no exid and no mech provided
+    const mech =
+      input.mech ??
+      (input.exid ? 'PERMANENT_VIA_REFERENCE' : null) ??
+      (await inferKeyrackMechForSet({ vault: vaultAdapter1Password }));
+
+    // check mech compat
+    if (!vaultAdapter1Password.mechs.supported.includes(mech)) {
+      throw new UnexpectedCodePathError(
+        `1password does not support mech: ${mech}`,
+        {
+          mech,
+          supported: vaultAdapter1Password.mechs.supported,
+          hint: 'try --vault aws.config for aws sso',
+        },
+      );
+    }
+
     // fail fast if op cli not installed
     const opInstalled = await isOpCliInstalled();
     if (!opInstalled) {
@@ -281,6 +358,115 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
       process.exit(2);
     }
 
+    // handle ephemeral mechs via guided setup
+    if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
+      // emit vault header
+      console.log(`🔐 keyrack set ${input.slug} via ${mech}`);
+
+      // mech guided setup continues the tree
+      const mechAdapter = getMechAdapter(mech);
+      const { source } = await mechAdapter.acquireForSet({
+        keySlug: input.slug,
+      });
+
+      // prompt for exid if not provided (where to store in 1password)
+      let exid = input.exid ?? null;
+      if (!exid) {
+        console.log('   │');
+        console.log('   ├─ where to store in 1password?');
+        console.log('   │  ├─ create item in 1password app first');
+        console.log('   │  │  ├─ e.g., "Secure Note" named GITHUB_APP_CREDS');
+        console.log(
+          '   │  │  └─ then right-click field → "Copy Secret Reference"',
+        );
+        console.log('   │  └─ paste the uri below');
+        exid = await promptVisibleInput({
+          prompt: '   │     └─ ',
+        });
+      }
+
+      // strip quotes (users may paste with them)
+      exid = exid?.replace(/^["']|["']$/g, '') ?? null;
+
+      // validate exid format
+      if (!exid || !exid.startsWith('op://')) {
+        throw new BadRequestError(
+          '1password exid must be a secret reference uri (op://vault/item/field)',
+          { exid },
+        );
+      }
+
+      // parse exid to get vault/item/field parts
+      // format: op://vault/item/field
+      const parts = exid.replace('op://', '').split('/');
+      if (parts.length < 3) {
+        throw new BadRequestError(
+          '1password exid must include field (op://vault/item/field)',
+          { exid, parts },
+        );
+      }
+      // safe to assert: guard above ensures at least 3 elements
+      const [vaultName, itemName, ...fieldParts] = parts as [
+        string,
+        string,
+        ...string[],
+      ];
+      const field = fieldParts.join('/'); // field may contain slashes
+
+      // store the json blob in 1password
+      // use op item edit to update the field
+      try {
+        await execOp([
+          'item',
+          'edit',
+          itemName,
+          `--vault=${vaultName}`,
+          `${field}=${source}`,
+        ]);
+      } catch (error) {
+        console.log('');
+        console.log('🔐 keyrack set');
+        console.log('   └─ ✗ failed to store in 1password');
+        console.log('');
+        console.log('   verify:');
+        console.log('   - item exists in 1password');
+        console.log('   - field name matches the exid');
+        console.log('   - op cli is authenticated (run: op whoami)');
+        console.log('');
+        if (error instanceof Error) {
+          console.log(`   error: ${error.message}`);
+          console.log('');
+        }
+        // exit 2 = constraint error (user must fix before retry)
+        process.exit(2);
+      }
+
+      // validate roundtrip
+      console.log('   │');
+      console.log('   └─ perfect, now lets verify...');
+      try {
+        const { stdout } = await execOp(['read', exid]);
+        if (stdout.trim() !== source) {
+          throw new UnexpectedCodePathError(
+            'roundtrip failed: read returned different value',
+            {
+              exid,
+              expected: source.slice(0, 50),
+              actual: stdout.trim().slice(0, 50),
+            },
+          );
+        }
+        console.log('      └─ ✓ roundtrip verified');
+        console.log('\u2800'); // braille blank for visual space (survives PTY)
+      } catch (error) {
+        console.log('      └─ ✗ roundtrip failed');
+        throw error;
+      }
+
+      return { mech, exid };
+    }
+
+    // handle permanent mechs (refed mode - pointer to extant item)
     // prompt for exid if not provided
     let exid = input.exid ?? null;
     if (!exid) {
@@ -331,8 +517,8 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter = {
       process.exit(2);
     }
 
-    // return exid for host manifest storage
-    return { exid };
+    // return mech and exid for host manifest storage
+    return { mech, exid };
   },
 
   /**

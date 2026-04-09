@@ -83,8 +83,8 @@ const attemptGrantKey = async (
           mech,
         });
 
-      // translate value via mechanism
-      const translated = await mechAdapter.translate({ secret: envValue });
+      // deliver usable secret via mechanism
+      const translated = await mechAdapter.deliverForGet({ source: envValue });
 
       return new KeyrackKeyGrant({
         slug,
@@ -155,6 +155,7 @@ const attemptGrantKey = async (
   }
 
   // apply firewall validation uniformly to all granted keys (unless allow.dangerous)
+  // .note = validates cached value, not source (daemon stores transformed secrets)
   if (!input.allow?.dangerous) {
     const mech = grantFound.source.mech;
     const mechAdapter = context.mechAdapters[mech];
@@ -162,7 +163,7 @@ const attemptGrantKey = async (
       throw new UnexpectedCodePathError('mechanism adapter not found', {
         mech,
       });
-    const validation = mechAdapter.validate({ source: grantFound.key.secret });
+    const validation = mechAdapter.validate({ cached: grantFound.key.secret });
     if (!validation.valid) {
       return {
         status: 'blocked',

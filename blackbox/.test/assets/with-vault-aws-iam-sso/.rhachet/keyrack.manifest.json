@@ -4,7 +4,7 @@
     "testorg.prod.AWS_PROFILE": {
       "slug": "testorg.prod.AWS_PROFILE",
       "exid": "testorg-prod",
-      "vault": "aws.iam.sso",
+      "vault": "aws.config",
       "mech": "EPHEMERAL_VIA_AWS_SSO",
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -12,7 +12,7 @@
     "testorg.test.AWS_PROFILE": {
       "slug": "testorg.test.AWS_PROFILE",
       "exid": "testorg-test",
-      "vault": "aws.iam.sso",
+      "vault": "aws.config",
       "mech": "EPHEMERAL_VIA_AWS_SSO",
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"

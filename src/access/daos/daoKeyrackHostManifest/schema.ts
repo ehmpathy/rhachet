@@ -26,7 +26,7 @@ export const schemaKeyrackKeyHost = z.object({
     'os.secure',
     'os.daemon',
     '1password',
-    'aws.iam.sso',
+    'aws.config',
   ]),
   mech: z.enum([
     'PERMANENT_VIA_REPLICA',

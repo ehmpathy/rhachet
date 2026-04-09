@@ -29,7 +29,6 @@ describe('setKeyrackKey', () => {
         'it should delegate to setKeyrackKeyHost with correct slug',
         async () => {
           const mockAdapter = genMockVaultAdapter();
-          mockAdapter.set = jest.fn();
 
           const context: ContextKeyrack = {
             owner: null,
@@ -47,7 +46,7 @@ describe('setKeyrackKey', () => {
               'os.secure': genMockVaultAdapter(),
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
-              'aws.iam.sso': genMockVaultAdapter(),
+              'aws.config': genMockVaultAdapter(),
             },
           };
 
@@ -74,11 +73,12 @@ describe('setKeyrackKey', () => {
     });
   });
 
-  given('[case2] aws.iam.sso vault', () => {
-    when('[t0] called with aws.iam.sso vault and exid', () => {
+  given('[case2] aws.config vault', () => {
+    when('[t0] called with aws.config vault and exid', () => {
       then('it should pass exid through to setKeyrackKeyHost', async () => {
-        const mockAdapter = genMockVaultAdapter();
-        mockAdapter.set = jest.fn();
+        const mockAdapter = genMockVaultAdapter({
+          supportedMechs: ['EPHEMERAL_VIA_AWS_SSO'],
+        });
 
         const context: ContextKeyrack = {
           owner: null,
@@ -96,7 +96,7 @@ describe('setKeyrackKey', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
-            'aws.iam.sso': mockAdapter,
+            'aws.config': mockAdapter,
           },
         };
 
@@ -105,7 +105,7 @@ describe('setKeyrackKey', () => {
             key: 'AWS_PROFILE',
             env: 'test',
             org: 'ehmpathy',
-            vault: 'aws.iam.sso',
+            vault: 'aws.config',
             mech: 'EPHEMERAL_VIA_AWS_SSO',
             exid: 'test-profile',
           },
@@ -115,7 +115,7 @@ describe('setKeyrackKey', () => {
         expect(result.results).toHaveLength(1);
         expect(result.results[0]).toMatchObject({
           slug: 'ehmpathy.test.AWS_PROFILE',
-          vault: 'aws.iam.sso',
+          vault: 'aws.config',
           mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
       });
@@ -126,7 +126,6 @@ describe('setKeyrackKey', () => {
     when('[t0] called with env=all', () => {
       then('it should store under $org.all.$key only', async () => {
         const mockAdapter = genMockVaultAdapter();
-        mockAdapter.set = jest.fn();
 
         const context: ContextKeyrack = {
           owner: null,
@@ -145,7 +144,7 @@ describe('setKeyrackKey', () => {
             'os.secure': genMockVaultAdapter(),
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
-            'aws.iam.sso': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
           },
         };
 
@@ -177,7 +176,6 @@ describe('setKeyrackKey', () => {
       () => {
         then('it should NOT expand to multiple slugs', async () => {
           const mockAdapter = genMockVaultAdapter();
-          mockAdapter.set = jest.fn();
 
           // create repo manifest with multiple envs and prior keys
           const repoManifest = genMockKeyrackRepoManifest({
@@ -206,7 +204,7 @@ describe('setKeyrackKey', () => {
               'os.secure': genMockVaultAdapter(),
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
-              'aws.iam.sso': genMockVaultAdapter(),
+              'aws.config': genMockVaultAdapter(),
             },
           };
 

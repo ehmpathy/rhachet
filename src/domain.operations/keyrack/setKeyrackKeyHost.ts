@@ -23,7 +23,7 @@ import type { ContextKeyrack } from './genContextKeyrack';
 export const setKeyrackKeyHost = async (
   input: {
     slug: string;
-    mech: KeyrackGrantMechanism;
+    mech?: KeyrackGrantMechanism | null;
     vault: KeyrackHostVault;
     exid?: string | null;
     env?: string;
@@ -63,25 +63,26 @@ export const setKeyrackKeyHost = async (
     return orgInput;
   })();
 
-  // store secret in vault (vault prompts for its own secret via stdin)
-  const envValue = input.env ?? 'all';
-  const adapter = context.vaultAdapters[input.vault];
-  const setResult = await adapter.set({
-    slug: input.slug,
-    exid: input.exid ?? null,
-    env: envValue,
-    org: orgExpanded,
-    vaultRecipient: input.vaultRecipient ?? null,
-    owner: context.owner,
-    // when no explicit vaultRecipient, use manifest recipients
-    recipients: input.vaultRecipient ? undefined : hostManifest.recipients,
-  });
+  // extract env from slug (format: org.env.keyName)
+  const envFromSlug = input.slug.split('.')[1] ?? 'all';
 
-  // if adapter derived an exid (e.g., aws.iam.sso guided setup), use it for the manifest entry
-  const exidForManifest =
-    (setResult && 'exid' in setResult ? setResult.exid : null) ??
-    input.exid ??
-    null;
+  // store secret in vault
+  // .note = vault encapsulates mech calls: infers mech if absent, checks compat, calls mech.acquireForSet
+  const adapter = context.vaultAdapters[input.vault];
+  const setResult = await adapter.set(
+    {
+      slug: input.slug,
+      mech: input.mech ?? null,
+      exid: input.exid ?? null,
+    },
+    context,
+  );
+
+  // use mech from vault.set result (may have been inferred)
+  const mechForManifest = setResult.mech;
+
+  // if adapter derived an exid (e.g., aws.config guided setup), use it for the manifest entry
+  const exidForManifest = setResult.exid ?? input.exid ?? null;
 
   // invalidate stale daemon cache for this key (if daemon is active)
   // this ensures `get` returns "locked" instead of stale value after `set`
@@ -95,7 +96,7 @@ export const setKeyrackKeyHost = async (
   if (hostFound) {
     // if found with same attrs, return found (findsert semantics)
     if (
-      hostFound.mech === input.mech &&
+      hostFound.mech === mechForManifest &&
       hostFound.vault === input.vault &&
       hostFound.exid === exidForManifest &&
       hostFound.env === (input.env ?? 'all') &&
@@ -106,10 +107,10 @@ export const setKeyrackKeyHost = async (
     }
   }
 
-  // construct key host with derived exid
+  // construct key host with derived mech and exid
   const keyHost = new KeyrackKeyHost({
     slug: input.slug,
-    mech: input.mech,
+    mech: mechForManifest,
     vault: input.vault,
     exid: exidForManifest,
     env: input.env ?? 'all',
@@ -135,13 +136,13 @@ export const setKeyrackKeyHost = async (
   await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
 
   // for non-sudo keys: also write to keyrack.yml (if gitroot available)
-  if (envValue !== 'sudo' && context.gitroot) {
+  if (envFromSlug !== 'sudo' && context.gitroot) {
     // extract key name from slug (format: $org.$env.$key)
     const keyName = input.slug.split('.').slice(2).join('.');
     await daoKeyrackRepoManifest.set.findsertKeyToEnv({
       gitroot: context.gitroot,
       key: keyName,
-      env: envValue,
+      env: envFromSlug,
       at: input.at ?? undefined,
     });
   }

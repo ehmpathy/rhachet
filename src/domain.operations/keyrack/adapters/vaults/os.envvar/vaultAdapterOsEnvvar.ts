@@ -12,6 +12,10 @@ import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyNam
  * .note = always checked first in grant flow (see getKeyrackKeyGrant)
  */
 export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter = {
+  mechs: {
+    supported: ['PERMANENT_VIA_REPLICA'],
+  },
+
   /**
    * .what = os.envvar vault is always unlocked
    * .why = env vars are already in memory, no auth needed

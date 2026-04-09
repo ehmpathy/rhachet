@@ -37,15 +37,15 @@ const envWithMockAws = (home: string) => ({
   PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
 });
 
-describe('keyrack vault aws.iam.sso', () => {
+describe('keyrack vault aws.config', () => {
   // ensure mock aws executable is chmod +x (git may not preserve permissions)
   beforeAll(() => chmodSync(`${MOCK_AWS_CLI_DIR}/aws`, 0o755));
 
   /**
-   * [uc1] list command with aws.iam.sso vault
+   * [uc1] list command with aws.config vault
    * shows configured keys with vault type
    */
-  given('[case1] repo with aws.iam.sso vault configured', () => {
+  given('[case1] repo with aws.config vault configured', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
@@ -67,10 +67,10 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       });
 
-      then('json contains AWS_PROFILE with aws.iam.sso vault', () => {
+      then('json contains AWS_PROFILE with aws.config vault', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed['testorg.test.AWS_PROFILE']).toBeDefined();
-        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.iam.sso');
+        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.config');
       });
 
       then('json contains EPHEMERAL_VIA_AWS_SSO mech', () => {
@@ -114,8 +114,8 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(result.stdout).toContain('AWS_PROFILE');
       });
 
-      then('output contains aws.iam.sso', () => {
-        expect(result.stdout).toContain('aws.iam.sso');
+      then('output contains aws.config', () => {
+        expect(result.stdout).toContain('aws.config');
       });
 
       then('stdout matches snapshot', () => {
@@ -125,14 +125,14 @@ describe('keyrack vault aws.iam.sso', () => {
   });
 
   /**
-   * [uc2] set command creates new aws.iam.sso host entry
+   * [uc2] set command creates new aws.config host entry
    */
   given('[case2] repo without host entry for a key', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
 
-    when('[t0] keyrack set --key NEW_AWS_KEY --mech EPHEMERAL_VIA_AWS_SSO --vault aws.iam.sso', () => {
+    when('[t0] keyrack set --key NEW_AWS_KEY --mech EPHEMERAL_VIA_AWS_SSO --vault aws.config', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -145,7 +145,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--mech',
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
             '--json',
@@ -165,7 +165,7 @@ describe('keyrack vault aws.iam.sso', () => {
         const entry = Array.isArray(parsed) ? parsed[0] : parsed;
         expect(entry.slug).toEqual('testorg.test.NEW_AWS_KEY');
         expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
-        expect(entry.vault).toEqual('aws.iam.sso');
+        expect(entry.vault).toEqual('aws.config');
       });
 
       then('stdout matches snapshot', () => {
@@ -194,7 +194,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--mech',
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
           ],
@@ -215,7 +215,7 @@ describe('keyrack vault aws.iam.sso', () => {
         const parsed = JSON.parse(listResult.stdout);
         expect(parsed['testorg.test.ANOTHER_AWS_KEY']).toBeDefined();
         expect(parsed['testorg.test.ANOTHER_AWS_KEY'].vault).toEqual(
-          'aws.iam.sso',
+          'aws.config',
         );
       });
 
@@ -238,10 +238,10 @@ describe('keyrack vault aws.iam.sso', () => {
   });
 
   /**
-   * [uc3] get with aws.iam.sso shows locked when session cannot be validated
+   * [uc3] get with aws.config shows locked when session cannot be validated
    * (no real aws cli available in test env)
    */
-  given('[case3] repo with aws.iam.sso vault', () => {
+  given('[case3] repo with aws.config vault', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
@@ -256,10 +256,10 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('returns absent status (aws.iam.sso vault not checked)', () => {
+      then('returns absent status (aws.config vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
         // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        // .note = aws.config vault returns 'absent' since we cant check without decrypt
         expect(parsed.status).toEqual('absent');
       });
 
@@ -278,7 +278,7 @@ describe('keyrack vault aws.iam.sso', () => {
   });
 
   /**
-   * [uc4] findsert semantics with aws.iam.sso
+   * [uc4] findsert semantics with aws.config
    * set key that already has same attrs returns found
    */
   given('[case4] findsert semantics', () => {
@@ -299,7 +299,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--mech',
             'EPHEMERAL_VIA_AWS_SSO',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
             '--json',
@@ -318,7 +318,7 @@ describe('keyrack vault aws.iam.sso', () => {
         const entry = Array.isArray(parsed) ? parsed[0] : parsed;
         expect(entry.slug).toEqual('testorg.test.AWS_PROFILE');
         expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
-        expect(entry.vault).toEqual('aws.iam.sso');
+        expect(entry.vault).toEqual('aws.config');
       });
 
       then('stdout matches snapshot', () => {
@@ -335,7 +335,7 @@ describe('keyrack vault aws.iam.sso', () => {
   });
 
   /**
-   * [uc5] multiple envs with aws.iam.sso
+   * [uc5] multiple envs with aws.config
    * verifies both prod and test AWS_PROFILE keys are listed
    */
   given('[case5] repo with multiple envs configured', () => {
@@ -359,27 +359,27 @@ describe('keyrack vault aws.iam.sso', () => {
       then('json contains prod AWS_PROFILE', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed['testorg.prod.AWS_PROFILE']).toBeDefined();
-        expect(parsed['testorg.prod.AWS_PROFILE'].vault).toEqual('aws.iam.sso');
+        expect(parsed['testorg.prod.AWS_PROFILE'].vault).toEqual('aws.config');
       });
 
       then('json contains test AWS_PROFILE', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed['testorg.test.AWS_PROFILE']).toBeDefined();
-        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.iam.sso');
+        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.config');
       });
     });
   });
 
   /**
    * [uc6] mech inference from vault
-   * --vault aws.iam.sso without --mech should infer EPHEMERAL_VIA_AWS_SSO
+   * --vault aws.config without --mech should infer EPHEMERAL_VIA_AWS_SSO
    */
-  given('[case6] mech inference from aws.iam.sso vault', () => {
+  given('[case6] mech inference from aws.config vault', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
 
-    when('[t0] keyrack set --key INFERRED_KEY --vault aws.iam.sso (no --mech)', () => {
+    when('[t0] keyrack set --key INFERRED_KEY --vault aws.config (no --mech)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -390,7 +390,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
             '--json',
@@ -410,10 +410,10 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(entry.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
       });
 
-      then('vault is aws.iam.sso', () => {
+      then('vault is aws.config', () => {
         const parsed = JSON.parse(result.stdout);
         const entry = Array.isArray(parsed) ? parsed[0] : parsed;
-        expect(entry.vault).toEqual('aws.iam.sso');
+        expect(entry.vault).toEqual('aws.config');
       });
 
       then('stdout matches snapshot', () => {
@@ -440,7 +440,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
           ],
@@ -470,8 +470,8 @@ describe('keyrack vault aws.iam.sso', () => {
    * [uc7] profile storage with --exid
    * --exid stores profile name in vault storage for pre-configured profiles
    */
-  // skip: --exid roundtrip validation needs rework (see behavior v2026_02_16)
-  given.skip('[case7] profile storage with --exid', () => {
+  // note: --exid roundtrip validation reworked in behavior v2026_02_16
+  given('[case7] profile storage with --exid', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
@@ -487,7 +487,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'my-preconfigured-profile',
             '--json',
@@ -505,13 +505,17 @@ describe('keyrack vault aws.iam.sso', () => {
         const parsed = JSON.parse(result.stdout);
         // note: set command returns slug/vault/mech, exid is in host manifest
         // exid is verified via list command in [t1]
-        expect(parsed[0].slug).toEqual('testorg.test.AWS_PROFILE_EXID');
-        expect(parsed[0].vault).toEqual('aws.iam.sso');
+        // note: output may be array or object depending on command path
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        expect(entry.slug).toEqual('testorg.test.AWS_PROFILE_EXID');
+        expect(entry.vault).toEqual('aws.config');
       });
 
       then('stdout matches snapshot', () => {
         const parsed = JSON.parse(result.stdout);
-        const snapped = parsed.map((entry: Record<string, unknown>) => ({
+        // cast to array for consistent snapshot handling
+        const entries = Array.isArray(parsed) ? parsed : [parsed];
+        const snapped = entries.map((entry: Record<string, unknown>) => ({
           ...entry,
           createdAt: '__TIMESTAMP__',
           updatedAt: '__TIMESTAMP__',
@@ -532,7 +536,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'another-profile',
           ],
@@ -559,13 +563,13 @@ describe('keyrack vault aws.iam.sso', () => {
   });
 
   /**
-   * [uc8] unlock command with aws.iam.sso vault
+   * [uc8] unlock command with aws.config vault
    * verifies unlock behavior when sso session is not valid
    *
    * note: aws sso requires browser auth which cannot be automated in ci.
    * this test verifies that unlock attempts validation and fails gracefully.
    */
-  given('[case8] unlock with aws.iam.sso vault (no valid sso session)', () => {
+  given('[case8] unlock with aws.config vault (no valid sso session)', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
@@ -614,7 +618,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
             '--json',
@@ -665,7 +669,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'test',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-test',
             '--json',
@@ -724,7 +728,7 @@ describe('keyrack vault aws.iam.sso', () => {
             '--env',
             'prep',
             '--vault',
-            'aws.iam.sso',
+            'aws.config',
             '--exid',
             'testorg-prep',
             '--json',
@@ -906,7 +910,7 @@ describe('keyrack vault aws.iam.sso', () => {
      */
     const envMockAws = () => envWithMockAws(repo.path);
 
-    when('[t0] keyrack set --vault aws.iam.sso via guided wizard (pseudo-TTY)', () => {
+    when('[t0] keyrack set --vault aws.config via guided wizard (pseudo-TTY)', () => {
       const result = useBeforeAll(async () => {
         // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
         // helper detects "choice" prompts in stdout and sends answers on detection (not timing)
@@ -915,7 +919,7 @@ describe('keyrack vault aws.iam.sso', () => {
           'node',
           [
             PTY_WITH_ANSWERS,
-            `${RHACHET_BIN} keyrack set --key AWS_PROFILE --env test --vault aws.iam.sso`,
+            `${RHACHET_BIN} keyrack set --key AWS_PROFILE --env test --vault aws.config`,
             'choice',
             '1', '1', '1', '',
           ],
@@ -975,9 +979,7 @@ describe('keyrack vault aws.iam.sso', () => {
         const treeStart = stripped.indexOf('\u{1F510}');
         const clean = stripped
           .slice(treeStart >= 0 ? treeStart : 0)
-          .split('\n')
-          .filter((line: string) => line.trim().length > 0)
-          .join('\n');
+          .trim();
         expect(clean).toMatchSnapshot();
       });
     });
@@ -995,10 +997,10 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('list contains AWS_PROFILE with aws.iam.sso vault', () => {
+      then('list contains AWS_PROFILE with aws.config vault', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed['testorg.test.AWS_PROFILE']).toBeDefined();
-        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.iam.sso');
+        expect(parsed['testorg.test.AWS_PROFILE'].vault).toEqual('aws.config');
         expect(parsed['testorg.test.AWS_PROFILE'].mech).toEqual(
           'EPHEMERAL_VIA_AWS_SSO',
         );
@@ -1030,10 +1032,10 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is absent (aws.iam.sso vault not checked)', () => {
+      then('status is absent (aws.config vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
         // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        // .note = aws.config vault returns 'absent' since we cant check without decrypt
         expect(parsed.status).toEqual('absent');
       });
     });
@@ -1070,9 +1072,12 @@ describe('keyrack vault aws.iam.sso', () => {
         expect(parsed.status).toEqual('granted');
       });
 
-      then('value is the profile name', () => {
+      then('value is the transformed credentials json', () => {
+        // .note = AWS SSO mech transforms profile name → credentials JSON
         const parsed = JSON.parse(result.stdout);
-        expect(parsed.grant.key.secret).toEqual('testorg.dev');
+        const creds = JSON.parse(parsed.grant.key.secret);
+        expect(creds.AWS_ACCESS_KEY_ID).toBeDefined();
+        expect(creds.AWS_SECRET_ACCESS_KEY).toBeDefined();
       });
 
       then('stdout matches snapshot', () => {
@@ -1105,10 +1110,10 @@ describe('keyrack vault aws.iam.sso', () => {
         }),
       );
 
-      then('status is absent again (aws.iam.sso vault not checked)', () => {
+      then('status is absent again (aws.config vault not checked)', () => {
         const parsed = JSON.parse(result.stdout);
         // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.iam.sso vault returns 'absent' since we cant check without decrypt
+        // .note = aws.config vault returns 'absent' since we cant check without decrypt
         expect(parsed.status).toEqual('absent');
       });
     });

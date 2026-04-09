@@ -1,9 +1,36 @@
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 import { isOpCliInstalled } from '@src/domain.operations/keyrack/adapters/vaults/1password/isOpCliInstalled';
+
+/**
+ * .what = path to mock gh CLI executable
+ * .why = placed on PATH ahead of real gh CLI for guided setup tests
+ */
+const MOCK_GH_CLI_DIR = resolve(__dirname, '../.test/assets/mock-gh-cli');
+
+/**
+ * .what = path to mock op CLI executable
+ * .why = placed on PATH ahead of real op CLI for 1password vault tests
+ */
+const MOCK_OP_CLI_DIR = resolve(__dirname, '../.test/assets/mock-op-cli');
+
+/**
+ * .what = path to the rhachet binary
+ * .why = needed for pseudo-TTY invocation via the pty-with-answers wrapper
+ */
+const RHACHET_BIN = resolve(__dirname, '../../bin/run');
+
+/**
+ * .what = path to the PTY answer-feeder helper
+ * .why = watches stdout for prompt patterns and sends answers on detection (not timing)
+ */
+const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js');
 
 describe('keyrack vault 1password', () => {
   // kill daemon from prior test runs to prevent state leakage
@@ -383,6 +410,194 @@ describe('keyrack vault 1password: op cli not installed', () => {
         }
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/install|1password/i);
+      });
+    });
+  });
+});
+
+/**
+ * .what = tests for EPHEMERAL_VIA_GITHUB_APP mech with 1password vault
+ * .why = usecase.2 from blackbox criteria - github app credentials stored in 1password
+ *
+ * .note = uses mock op CLI and mock gh CLI for portable tests without real credentials
+ */
+describe('keyrack vault 1password with EPHEMERAL_VIA_GITHUB_APP', () => {
+  // ensure mock CLIs are executable (git may not preserve permissions)
+  beforeAll(() => {
+    chmodSync(`${MOCK_GH_CLI_DIR}/gh`, 0o755);
+    chmodSync(`${MOCK_OP_CLI_DIR}/op`, 0o755);
+  });
+
+  // kill daemon between tests
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+  /**
+   * .what = env vars with mock CLIs on PATH
+   * .why = acceptance tests must be fully portable without real credentials
+   */
+  const envWithMocks = (home: string) => ({
+    HOME: home,
+    PATH: `${MOCK_OP_CLI_DIR}:${MOCK_GH_CLI_DIR}:${process.env.PATH}`,
+  });
+
+  /**
+   * [uc2] github app set with 1password vault
+   * verifies org -> app -> pem -> exid flow with pseudo-TTY
+   */
+  given('[case1] guided setup with mock gh CLI and mock op CLI', () => {
+    // cleanup daemon between cases
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init (creates encrypted manifest + ssh key discovery)
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path, PATH: `${MOCK_OP_CLI_DIR}:${process.env.PATH}` },
+      });
+
+      // write repo manifest so org is known
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - GITHUB_TOKEN\n',
+        'utf-8',
+      );
+
+      // create mock .pem file in the repo
+      writeFileSync(
+        `${r.path}/mock-app.pem`,
+        [
+          '-----BEGIN RSA PRIVATE KEY-----',
+          'MIIEpQIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx',
+          'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
+          'N6VOJB3Bz3B3L3gB7epYcKpf1KJCi2Vl3qT3L3L3L3L3L3L3L3L3L3L3L3L3L3L3',
+          'L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3L3',
+          '-----END RSA PRIVATE KEY-----',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] keyrack set --vault 1password --mech EPHEMERAL_VIA_GITHUB_APP via guided wizard (pseudo-TTY)', () => {
+      const result = useBeforeAll(async () => {
+        // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
+        // helper detects prompts in stdout and sends answers on detection (not timing)
+        // answers: 1 (testorg), 1 (my-test-app), ./mock-app.pem (pem path), op://test-vault/github-app/credential (exid)
+        const r = spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault 1password --mech EPHEMERAL_VIA_GITHUB_APP`,
+            'choice|.pem|1password',
+            '1', '1', './mock-app.pem', 'op://test-vault/github-app/credential',
+          ],
+          {
+            encoding: 'utf-8',
+            cwd: repo.path,
+            env: { ...process.env, ...envWithMocks(repo.path) },
+            timeout: 60000,
+          },
+        );
+        return r;
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains guided setup prompts', () => {
+        const out = result.stdout;
+        expect(out).toContain('which github org');
+        expect(out).toContain('which github app');
+        expect(out).toContain('.pem');
+      });
+
+      then('output contains 1password exid prompt', () => {
+        const out = result.stdout;
+        expect(out).toMatch(/1password|op:\/\//i);
+      });
+
+      then('host manifest has entry with EPHEMERAL_VIA_GITHUB_APP mech and 1password vault', () => {
+        const listResult = invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: envWithMocks(repo.path),
+        });
+        const parsed = JSON.parse(listResult.stdout);
+        const entry = parsed['testorg.test.GITHUB_TOKEN'];
+        expect(entry).toBeDefined();
+        expect(entry.mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
+        expect(entry.vault).toEqual('1password');
+      });
+
+      then('exid is stored as op:// uri', () => {
+        const listResult = invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: envWithMocks(repo.path),
+        });
+        const parsed = JSON.parse(listResult.stdout);
+        const entry = parsed['testorg.test.GITHUB_TOKEN'];
+        expect(entry.exid).toMatch(/^op:\/\//);
+      });
+
+      then('stdout matches snapshot', () => {
+        // strip ANSI escape codes and PTY control sequences for stable snapshot
+        const stripped = result.stdout
+          .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '') // ANSI escape sequences
+          .replace(/\x1B\]/g, '') // OSC sequences
+          .replace(/\r/g, '') // carriage returns from PTY
+          .replace(/·/g, '') // middle dots from PTY
+          .replace(/\s+$/gm, ''); // trim end-of-line whitespace
+        // trim PTY echo noise before tree header
+        const treeStart = stripped.indexOf('\u{1F510}');
+        const clean = stripped
+          .slice(treeStart >= 0 ? treeStart : 0)
+          .trim();
+        expect(clean).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] keyrack list --json after guided set', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: envWithMocks(repo.path),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('list contains GITHUB_TOKEN with 1password vault', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed['testorg.test.GITHUB_TOKEN']).toBeDefined();
+        expect(parsed['testorg.test.GITHUB_TOKEN'].vault).toEqual('1password');
+      });
+
+      then('list contains EPHEMERAL_VIA_GITHUB_APP mech', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed['testorg.test.GITHUB_TOKEN'].mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            { ...(v as Record<string, unknown>), createdAt: '__TIMESTAMP__', updatedAt: '__TIMESTAMP__' },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });

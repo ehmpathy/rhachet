@@ -6,6 +6,7 @@ import {
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { sshPubkeyToAgeRecipient } from '@src/infra/ssh/sshPubkeyToAgeRecipient';
 
 /**
  * .what = add a recipient to the host manifest
@@ -51,27 +52,32 @@ export const setKeyrackRecipient = async (input: {
       owner,
     });
 
-  // resolve pubkey and determine mech
-  const pubkey = input.pubkey.trim();
+  // determine pubkey format and mech
+  const pubkeyRaw = input.pubkey.trim();
   let mech: 'age' | 'ssh';
+  let pubkey: string;
 
-  // if --stanza ssh is specified, force ssh mech (skip cipher-aware conversion)
+  // if --stanza ssh is specified, force ssh mech (skip conversion to age)
   // this is for ssh-keygen -p prevention flow: add ssh stanza while key is still passwordless
   if (input.stanza === 'ssh') {
-    if (!pubkey.startsWith('ssh-'))
+    if (!pubkeyRaw.startsWith('ssh-'))
       throw new BadRequestError(
         '--stanza ssh requires ssh pubkey (ssh-ed25519, ssh-rsa, etc.)',
-        { pubkey },
+        { pubkeyRaw },
       );
     mech = 'ssh';
-  } else if (pubkey.startsWith('age1')) {
+    pubkey = pubkeyRaw;
+  } else if (pubkeyRaw.startsWith('age1')) {
     mech = 'age';
-  } else if (pubkey.startsWith('ssh-')) {
-    mech = 'ssh';
+    pubkey = pubkeyRaw;
+  } else if (pubkeyRaw.startsWith('ssh-')) {
+    // convert ssh pubkey to age format (enables npm library encryption path)
+    mech = 'age';
+    pubkey = sshPubkeyToAgeRecipient({ pubkey: pubkeyRaw });
   } else {
     throw new BadRequestError(
       'pubkey must be age (age1...) or ssh (ssh-ed25519, ssh-rsa, etc.)',
-      { pubkey },
+      { pubkeyRaw },
     );
   }
 

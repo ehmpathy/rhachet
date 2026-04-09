@@ -11,21 +11,27 @@ export const genMockMechAdapter = (input?: {
   valid?: boolean;
   /** reason string when invalid */
   invalidReason?: string;
-  /** transform function for translate (default: identity) */
+  /** transform function for deliverForGet (default: identity) */
   transform?: (value: string) => string;
-  /** expiresAt to return from translate (default: undefined) */
+  /** expiresAt to return from deliverForGet (default: undefined) */
   expiresAt?: IsoTimeStamp;
+  /** source value to return from acquireForSet (default: '__mock_source__') */
+  acquiredSource?: string;
 }): KeyrackGrantMechanismAdapter => {
   const valid = input?.valid ?? true;
   const invalidReason = input?.invalidReason ?? 'mock validation failed';
   const transform = input?.transform ?? ((v) => v);
   const expiresAt = input?.expiresAt;
+  const acquiredSource = input?.acquiredSource ?? '__mock_source__';
 
   return {
     validate: () =>
       valid ? { valid: true } : { valid: false, reasons: [invalidReason] },
-    translate: async ({ secret }) => ({
-      secret: transform(secret),
+    acquireForSet: async () => ({
+      source: acquiredSource,
+    }),
+    deliverForGet: async ({ source }) => ({
+      secret: transform(source),
       expiresAt,
     }),
   };

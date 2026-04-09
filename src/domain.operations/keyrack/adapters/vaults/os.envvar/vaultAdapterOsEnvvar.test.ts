@@ -61,8 +61,6 @@ describe('vaultAdapterOsEnvvar', () => {
         const error = await getError(
           vaultAdapterOsEnvvar.set({
             slug: 'ANY_KEY',
-            env: 'test',
-            org: 'testorg',
           }),
         );
         expect(error).toBeDefined();

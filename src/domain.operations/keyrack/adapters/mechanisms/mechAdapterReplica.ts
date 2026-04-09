@@ -1,4 +1,5 @@
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
+import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
 /**
  * .what = patterns that indicate long-lived tokens
@@ -82,12 +83,31 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
   },
 
   /**
-   * .what = passthrough translation for replica credentials
-   * .why = replica credentials require no transformation
+   * .what = acquire source credential via guided setup
+   * .why = prompts user for secret via stdin
+   *
+   * .note = keySlug is fully qualified (org.env.name) for display in prompts
+   * .note = uses promptHiddenInput for secure password entry
+   */
+  acquireForSet: async (input) => {
+    // extract key name from slug for user-friendly prompt
+    const keyName = input.keySlug.split('.').pop() ?? input.keySlug;
+
+    // prompt for secret via hidden input (handles TTY and piped stdin)
+    const source = await promptHiddenInput({
+      prompt: `enter secret for ${keyName}: `,
+    });
+
+    return { source };
+  },
+
+  /**
+   * .what = deliver usable secret from stored source credential
+   * .why = replica credentials require no transformation (identity)
    *
    * .note = replica never sets expiresAt — the credential is used as-is
    */
-  translate: async (input) => {
-    return { secret: input.secret };
+  deliverForGet: async (input) => {
+    return { secret: input.source };
   },
 };

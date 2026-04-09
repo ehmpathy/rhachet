@@ -1,0 +1,100 @@
+emit a playtest for foreman byhand verification
+
+---
+
+## .what
+
+this is the playtest gate. you emit a step-by-step byhand quality assurance checklist that your crew can walk through to verify the deliverable feels right.
+
+automated tests prove the code works. the playtest proves the experience works.
+
+## .why
+
+**your crew deserves confidence.** they're about to approve work they didn't do themselves. the playtest gives them a path to verify with their own hands.
+
+**automated tests have blind spots.** they verify behavior but miss ux friction, unclear flows, edge cases that "work" but feel wrong. the playtest catches what tests can't.
+
+**the playtest is a contract.** it says: "if you follow these steps and everything works as described, the deliverable is complete." it's explicit proof, not implicit trust.
+
+## .how
+
+reference the below for full context
+- .behavior/v2026_03_31.fix-keyrack-tie-prompts-to-mechs/0.wish.md
+- .behavior/v2026_03_31.fix-keyrack-tie-prompts-to-mechs/1.vision.md
+- .behavior/v2026_03_31.fix-keyrack-tie-prompts-to-mechs/2.1.criteria.blackbox.md (if declared)
+
+---
+
+### step 1: identify behaviors to verify
+
+walk through wish and vision:
+- list every behavior your crew should verify by hand
+- include edge cases and boundary conditions
+- what could go wrong? what inputs are unusual but valid?
+
+**ask yourself:**
+- what would your crew want to try first?
+- what would make them confident the feature works?
+- what would make them nervous if untested?
+
+---
+
+### step 2: write step-by-step instructions
+
+**each step must be:**
+- clear and unambiguous
+- followable by a foreman without prior context
+- commands are copy-pasteable
+- expected outcomes are explicit
+
+**the test:** could someone who has never seen this codebase follow these steps? if not, add more detail.
+
+---
+
+### step 3: include pass/fail criteria
+
+for each step:
+- what does success look like?
+- what would indicate failure?
+
+**be specific.** "it works" is not a pass criterion. "the output shows X and contains Y" is.
+
+---
+
+### step 4: emit the playtest
+
+emit to
+- .behavior/v2026_03_31.fix-keyrack-tie-prompts-to-mechs/5.5.playtest.v1.i1.md
+
+**playtest structure:**
+
+```
+## playtest: {behavior name}
+
+### prerequisites
+- what your crew needs before start (dependencies, setup, access)
+
+### sandbox
+- all os.fileops (file creates, writes, deletes) must target `@gitroot/.temp/`
+- never pollute the repo root or other directories in playtest steps
+
+### happy paths
+1. [action] → [expected outcome]
+2. [action] → [expected outcome]
+...
+
+### edgey paths
+- [edge case 1] → [expected behavior]
+- [edge case 2] → [expected behavior]
+...
+
+### pass/fail criteria
+- ✓ pass if: {specific observable outcome}
+- ✗ fail if: {specific failure indicator}
+```
+
+---
+
+the guard will block until the foreman approves after the playtest run.
+
+your crew runs the playtest, verifies each step, and approves when satisfied.
