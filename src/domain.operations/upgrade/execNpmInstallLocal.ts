@@ -28,14 +28,14 @@ export const detectPackageManager = (input: {
 };
 
 /**
- * .what = executes package install for packages at latest version
- * .why = enables upgrade of rhachet and role packages
+ * .what = executes local package install for packages at latest version
+ * .why = enables upgrade of rhachet and role packages in project
  *
  * .note = appends @latest to each package name
  * .note = inherits stdio for real-time install output
  * .note = detects pnpm vs npm via lock file presence
  */
-export const execNpmInstall = (
+export const execNpmInstallLocal = (
   input: { packages: string[] },
   context: ContextCli,
 ): void => {

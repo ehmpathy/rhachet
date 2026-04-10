@@ -9,6 +9,7 @@ Options:
   --self                upgrade rhachet itself
   --roles <roles...>    role specifiers to upgrade (* for all installed)
   --brains <brains...>  brain specifiers to upgrade (* for all installed)
+  --which <which>       which installs to upgrade: local, global, or both
   -h, --help            display help for command
 "
 `;

@@ -4,14 +4,14 @@ import { genTestTempDir } from '@src/.test/infra/genTestTempDir';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execNpmInstall } from './execNpmInstall';
+import { execNpmInstallLocal } from './execNpmInstallLocal';
 import { UpgradeExecutionError } from './UpgradeExecutionError';
 
-describe('execNpmInstall', () => {
+describe('execNpmInstallLocal', () => {
   given('a directory with package.json', () => {
     const testDir = genTestTempDir({
       base: __dirname,
-      name: 'execNpmInstall',
+      name: 'execNpmInstallLocal',
     });
 
     beforeAll(() => {
@@ -28,7 +28,7 @@ describe('execNpmInstall', () => {
 
     afterAll(() => testDir.teardown());
 
-    when('execNpmInstall is called with a valid package', () => {
+    when('execNpmInstallLocal is called with a valid package', () => {
       then('npm install succeeds and package is added', () => {
         const context = new ContextCli({
           cwd: testDir.path,
@@ -36,7 +36,7 @@ describe('execNpmInstall', () => {
         });
 
         // install a small, fast package
-        execNpmInstall({ packages: ['is-odd'] }, context);
+        execNpmInstallLocal({ packages: ['is-odd'] }, context);
 
         // verify package was added
         const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -44,7 +44,7 @@ describe('execNpmInstall', () => {
       });
     });
 
-    when('execNpmInstall is called with empty packages array', () => {
+    when('execNpmInstallLocal is called with empty packages array', () => {
       then('returns early without error', () => {
         const context = new ContextCli({
           cwd: testDir.path,
@@ -52,7 +52,7 @@ describe('execNpmInstall', () => {
         });
 
         // should not throw
-        execNpmInstall({ packages: [] }, context);
+        execNpmInstallLocal({ packages: [] }, context);
       });
     });
   });
@@ -60,7 +60,7 @@ describe('execNpmInstall', () => {
   given('a directory with package.json but invalid package name', () => {
     const testDir = genTestTempDir({
       base: __dirname,
-      name: 'execNpmInstall-invalid-pkg',
+      name: 'execNpmInstallLocal-invalid-pkg',
     });
 
     beforeAll(() => {
@@ -77,7 +77,7 @@ describe('execNpmInstall', () => {
 
     afterAll(() => testDir.teardown());
 
-    when('execNpmInstall is called with nonexistent package', () => {
+    when('execNpmInstallLocal is called with nonexistent package', () => {
       then('throws UpgradeExecutionError', () => {
         const context = new ContextCli({
           cwd: testDir.path,
@@ -85,7 +85,7 @@ describe('execNpmInstall', () => {
         });
 
         expect(() => {
-          execNpmInstall(
+          execNpmInstallLocal(
             { packages: ['@rhachet/this-package-does-not-exist-12345'] },
             context,
           );

@@ -1,24 +1,33 @@
-import {
-  type BrainSupplierSlug,
-  toBrainSupplierSlug,
-} from '@src/domain.objects/BrainSupplierSlug';
+import type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
 
-import { execNpmInstall } from './execNpmInstall';
+import { detectInvocationMethod } from './detectInvocationMethod';
+import { execNpmInstallGlobal } from './execNpmInstallGlobal';
+import { execNpmInstallLocal } from './execNpmInstallLocal';
 import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
+import { getGlobalRhachetVersion } from './getGlobalRhachetVersion';
 import { getLocalRefDependencies } from './getLocalRefDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
+import {
+  buildRoleSpecifiers,
+  determineUpgradeScope,
+  getSkippedPackages,
+  getUpgradedBrains,
+  getUpgradedRoles,
+} from './transformers';
 
 /**
  * .what = result of upgrade operation
  * .why = provides structured summary of what was upgraded
  */
 export interface UpgradeResult {
-  upgradedSelf: boolean;
+  upgradedSelf: {
+    local: boolean;
+    global: { upgraded: boolean; error?: string } | null;
+  };
   upgradedRoles: RoleSupplierSlug[];
   upgradedBrains: BrainSupplierSlug[];
 }
@@ -57,27 +66,51 @@ const buildInstallList = (input: {
   return list;
 };
 
+type WhichTarget = 'local' | 'global';
+
+/**
+ * .what = determines which upgrade targets based on input and invocation method
+ * .why = npx invocation defaults to local only, global invocation defaults to both
+ */
+const getWhichTargets = (input: {
+  which?: 'local' | 'global' | 'both';
+}): WhichTarget[] => {
+  if (input.which === 'local') return ['local'];
+  if (input.which === 'global') return ['global'];
+  if (input.which === 'both') return ['local', 'global'];
+  // default based on invocation method
+  const method = detectInvocationMethod();
+  if (method === 'npx') return ['local'];
+  return ['local', 'global'];
+};
+
 /**
  * .what = executes upgrade of rhachet, role packages, and/or brain packages
  * .why = enables `npx rhachet upgrade` workflow
  *
  * .note = defaults to upgrade all when no flags provided
  * .note = re-initializes roles after upgrade (link + init)
+ * .note = which='both' upgrades local and global installs
+ * .note = global failure does not block local upgrade (per criteria usecase.3)
  */
 export const execUpgrade = async (
-  input: { self?: boolean; roleSpecs?: string[]; brainSpecs?: string[] },
+  input: {
+    self?: boolean;
+    roleSpecs?: string[];
+    brainSpecs?: string[];
+    which?: 'local' | 'global' | 'both';
+  },
   context: ContextCli,
 ): Promise<UpgradeResult> => {
+  // determine upgrade targets
+  const whichTargets = getWhichTargets({ which: input.which });
+
   // determine what to upgrade (default = --self --roles * --brains *)
-  const upgradeSelf =
-    input.self ??
-    (input.roleSpecs === undefined && input.brainSpecs === undefined);
-  const roleSpecs =
-    input.roleSpecs ??
-    (input.self === true || input.brainSpecs !== undefined ? [] : ['*']);
-  const brainSpecs =
-    input.brainSpecs ??
-    (input.self === true || input.roleSpecs !== undefined ? [] : ['*']);
+  const { upgradeSelf, roleSpecs, brainSpecs } = determineUpgradeScope({
+    self: input.self,
+    roleSpecs: input.roleSpecs,
+    brainSpecs: input.brainSpecs,
+  });
 
   // expand role specs to packages and linked roles
   const roleExpanded = await expandRoleSupplierSlugs(
@@ -96,10 +129,12 @@ export const execUpgrade = async (
 
   // log skipped packages
   if (localRefDeps.size > 0) {
-    const allPackages = [...roleExpanded.packages, ...brainPackages];
-    const skipped = [...localRefDeps].filter(
-      (pkg) => allPackages.includes(pkg) || (upgradeSelf && pkg === 'rhachet'),
-    );
+    const skipped = getSkippedPackages({
+      rolePackages: roleExpanded.packages,
+      brainPackages,
+      upgradeSelf,
+      localRefDeps,
+    });
     if (skipped.length > 0) {
       console.log(`🫧 skip (local refs): ${skipped.join(', ')}`);
     }
@@ -113,16 +148,46 @@ export const execUpgrade = async (
     exclude: localRefDeps,
   });
 
-  // execute npm install (fail fast)
-  if (installList.length > 0) {
-    execNpmInstall({ packages: installList }, context);
+  // execute local npm install (fail fast)
+  if (whichTargets.includes('local') && installList.length > 0) {
+    execNpmInstallLocal({ packages: installList }, context);
+  }
+
+  // global upgrade (if requested) — happens right after local, before roles
+  // .note = per criteria usecase.3, global failure should NOT block local upgrade
+  // .note = this is intentional warn-and-continue, NOT fail-hide:
+  //         - error is logged visibly
+  //         - error is returned in result.upgradedGlobal.error
+  //         - caller can inspect and act on the failure
+  let upgradedGlobal: { upgraded: boolean; error?: string } | null = null;
+  if (whichTargets.includes('global')) {
+    const globalVersion = getGlobalRhachetVersion();
+    if (globalVersion !== null) {
+      // global rhachet is installed — upgrade it
+      try {
+        upgradedGlobal = execNpmInstallGlobal({ packages: ['rhachet'] });
+      } catch (error) {
+        // warn and continue (criteria usecase.3: exits with success sothat local not blocked)
+        const message = error instanceof Error ? error.message : String(error);
+        const isPermissionError =
+          message.includes('EACCES') || message.includes('EPERM');
+        console.log('');
+        console.log('❌ rhachet upgrade globally failed');
+        console.log(
+          `   └── ${isPermissionError ? 'permission denied' : message}`,
+        );
+        console.log('');
+        upgradedGlobal = { upgraded: false, error: message };
+      }
+    }
+    // if globalVersion is null, global rhachet not installed — skip silently
   }
 
   // re-init only linked roles (not all roles in upgraded packages)
-  if (roleExpanded.linkedRoles.length > 0) {
-    const specifiers: RoleSpecifier[] = roleExpanded.linkedRoles.map(
-      (r) => `${r.repo}/${r.role}`,
-    );
+  if (whichTargets.includes('local') && roleExpanded.linkedRoles.length > 0) {
+    const specifiers = buildRoleSpecifiers({
+      linkedRoles: roleExpanded.linkedRoles,
+    });
     await initRolesFromPackages({ specifiers }, context);
 
     // sync hooks for linked roles (always on for upgrade)
@@ -130,19 +195,21 @@ export const execUpgrade = async (
   }
 
   // extract slugs from brain packages for result
-  const upgradedBrains = brainPackages
-    .filter((pkg) => !localRefDeps.has(pkg))
-    .map((pkg) => toBrainSupplierSlug(pkg));
+  const upgradedBrains = getUpgradedBrains({ brainPackages, localRefDeps });
 
   // filter role slugs for packages that were actually upgraded (not excluded)
-  const upgradedRoles = roleExpanded.slugs.filter(
-    (slug) => !localRefDeps.has(`rhachet-roles-${slug.split('/')[0]}`),
-  );
+  const upgradedRoles = getUpgradedRoles({
+    roleSlugs: roleExpanded.slugs,
+    localRefDeps,
+  });
 
   // report success
   return {
-    upgradedSelf: upgradeSelf,
-    upgradedRoles,
-    upgradedBrains,
+    upgradedSelf: {
+      local: whichTargets.includes('local') ? upgradeSelf : false,
+      global: upgradedGlobal,
+    },
+    upgradedRoles: whichTargets.includes('local') ? upgradedRoles : [],
+    upgradedBrains: whichTargets.includes('local') ? upgradedBrains : [],
   };
 };
