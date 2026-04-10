@@ -22,11 +22,16 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
       '--brains <brains...>',
       'brain specifiers to upgrade (* for all installed)',
     )
+    .option(
+      '--which <which>',
+      'which installs to upgrade: local, global, or both',
+    )
     .action(
       async (options: {
         self?: boolean;
         roles?: string[];
         brains?: string[];
+        which?: 'local' | 'global' | 'both';
       }) => {
         const context = await genContextCli({ cwd: process.cwd() });
         const result = await execUpgrade(
@@ -34,14 +39,15 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
             self: options.self,
             roleSpecs: options.roles,
             brainSpecs: options.brains,
+            which: options.which,
           },
           context,
         );
 
         // summary
         console.log('');
-        if (result.upgradedSelf) {
-          console.log('✨ rhachet upgraded');
+        if (result.upgradedSelf.local) {
+          console.log('✨ rhachet upgraded locally');
         }
         if (result.upgradedRoles.length > 0) {
           console.log(
@@ -52,6 +58,9 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
           console.log(
             `✨ ${result.upgradedBrains.length} brain(s) upgraded: ${result.upgradedBrains.join(', ')}`,
           );
+        }
+        if (result.upgradedSelf.global?.upgraded) {
+          console.log('✨ rhachet upgraded globally');
         }
         console.log('');
       },

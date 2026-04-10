@@ -11,11 +11,20 @@ jest.mock('./expandRoleSupplierSlugs', () => ({
 jest.mock('./resolveBrainsToPackages', () => ({
   resolveBrainsToPackages: jest.fn(),
 }));
-jest.mock('./execNpmInstall', () => ({
-  execNpmInstall: jest.fn(),
+jest.mock('./execNpmInstallLocal', () => ({
+  execNpmInstallLocal: jest.fn(),
+}));
+jest.mock('./execNpmInstallGlobal', () => ({
+  execNpmInstallGlobal: jest.fn(),
 }));
 jest.mock('./getLocalRefDependencies', () => ({
   getLocalRefDependencies: jest.fn(),
+}));
+jest.mock('./getGlobalRhachetVersion', () => ({
+  getGlobalRhachetVersion: jest.fn(),
+}));
+jest.mock('./detectInvocationMethod', () => ({
+  detectInvocationMethod: jest.fn(),
 }));
 jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
   initRolesFromPackages: jest.fn(),
@@ -23,8 +32,11 @@ jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
 
 import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
 
-import { execNpmInstall } from './execNpmInstall';
+import { detectInvocationMethod } from './detectInvocationMethod';
+import { execNpmInstallGlobal } from './execNpmInstallGlobal';
+import { execNpmInstallLocal } from './execNpmInstallLocal';
 import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
+import { getGlobalRhachetVersion } from './getGlobalRhachetVersion';
 import { getLocalRefDependencies } from './getLocalRefDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
 
@@ -36,13 +48,22 @@ const mockResolveBrainsToPackages =
   resolveBrainsToPackages as jest.MockedFunction<
     typeof resolveBrainsToPackages
   >;
-const mockExecNpmInstall = execNpmInstall as jest.MockedFunction<
-  typeof execNpmInstall
+const mockExecNpmInstallLocal = execNpmInstallLocal as jest.MockedFunction<
+  typeof execNpmInstallLocal
+>;
+const mockExecNpmInstallGlobal = execNpmInstallGlobal as jest.MockedFunction<
+  typeof execNpmInstallGlobal
 >;
 const mockGetLocalRefDependencies =
   getLocalRefDependencies as jest.MockedFunction<
     typeof getLocalRefDependencies
   >;
+const mockGetGlobalRhachetVersion =
+  getGlobalRhachetVersion as jest.MockedFunction<
+    typeof getGlobalRhachetVersion
+  >;
+const mockDetectInvocationMethod =
+  detectInvocationMethod as jest.MockedFunction<typeof detectInvocationMethod>;
 const mockInitRolesFromPackages = initRolesFromPackages as jest.MockedFunction<
   typeof initRolesFromPackages
 >;
@@ -64,6 +85,10 @@ describe('execUpgrade', () => {
       rolesInitialized: [],
       errors: [],
     });
+    // default: global rhachet installed, invoked via global (not npx)
+    mockGetGlobalRhachetVersion.mockReturnValue('1.39.10');
+    mockDetectInvocationMethod.mockReturnValue('global');
+    mockExecNpmInstallGlobal.mockReturnValue({ upgraded: true });
   });
 
   given('no flags provided', () => {
@@ -74,7 +99,7 @@ describe('execUpgrade', () => {
           await execUpgrade({}, context);
 
           // should upgrade rhachet + discovered roles + discovered brains
-          expect(mockExecNpmInstall).toHaveBeenCalledWith(
+          expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
             {
               packages: [
                 'rhachet',
@@ -97,7 +122,7 @@ describe('execUpgrade', () => {
 
       then('returns upgradedSelf=true and upgradedBrains', async () => {
         const result = await execUpgrade({}, context);
-        expect(result.upgradedSelf).toBe(true);
+        expect(result.upgradedSelf.local).toBe(true);
         expect(result.upgradedBrains).toEqual(['anthropic']);
       });
     });
@@ -118,7 +143,7 @@ describe('execUpgrade', () => {
       then('upgrades rhachet only, no roles, no brains', async () => {
         await execUpgrade({ self: true }, context);
 
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet'] },
           context,
         );
@@ -145,7 +170,7 @@ describe('execUpgrade', () => {
           { specs: ['*'] },
           context,
         );
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet-roles-ehmpathy'] },
           context,
         );
@@ -162,7 +187,7 @@ describe('execUpgrade', () => {
 
       then('returns upgradedSelf=false and no brains upgraded', async () => {
         const result = await execUpgrade({ roleSpecs: ['*'] }, context);
-        expect(result.upgradedSelf).toBe(false);
+        expect(result.upgradedSelf.local).toBe(false);
         expect(result.upgradedBrains).toEqual([]);
       });
 
@@ -230,7 +255,7 @@ describe('execUpgrade', () => {
       then('upgrades both rhachet and roles', async () => {
         await execUpgrade({ self: true, roleSpecs: ['mechanic'] }, context);
 
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet', 'rhachet-roles-ehmpathy'] },
           context,
         );
@@ -291,7 +316,7 @@ describe('execUpgrade', () => {
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
         // should NOT include rhachet-roles-ehmpathy
-        expect(mockExecNpmInstall).not.toHaveBeenCalled();
+        expect(mockExecNpmInstallLocal).not.toHaveBeenCalled();
       });
 
       then(
@@ -325,7 +350,7 @@ describe('execUpgrade', () => {
         await execUpgrade({ self: true }, context);
 
         // should NOT call execNpmInstall at all
-        expect(mockExecNpmInstall).not.toHaveBeenCalled();
+        expect(mockExecNpmInstallLocal).not.toHaveBeenCalled();
       });
     });
   });
@@ -351,7 +376,7 @@ describe('execUpgrade', () => {
         await execUpgrade({ roleSpecs: ['*'] }, context);
 
         // should only include rhachet-roles-bhuild
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet-roles-bhuild'] },
           context,
         );
@@ -380,7 +405,7 @@ describe('execUpgrade', () => {
           { specs: ['*'] },
           context,
         );
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet-brains-anthropic', 'rhachet-brains-opencode'] },
           context,
         );
@@ -395,7 +420,7 @@ describe('execUpgrade', () => {
       then('does NOT upgrade self or roles', async () => {
         const result = await execUpgrade({ brainSpecs: ['*'] }, context);
 
-        expect(result.upgradedSelf).toBe(false);
+        expect(result.upgradedSelf.local).toBe(false);
         expect(result.upgradedRoles).toEqual([]);
       });
     });
@@ -421,7 +446,7 @@ describe('execUpgrade', () => {
           { specs: ['anthropic'] },
           context,
         );
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet-brains-anthropic'] },
           context,
         );
@@ -449,7 +474,7 @@ describe('execUpgrade', () => {
       then('upgrades both roles and brains', async () => {
         await execUpgrade({ roleSpecs: ['*'], brainSpecs: ['*'] }, context);
 
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           {
             packages: ['rhachet-roles-ehmpathy', 'rhachet-brains-anthropic'],
           },
@@ -463,7 +488,7 @@ describe('execUpgrade', () => {
           context,
         );
 
-        expect(result.upgradedSelf).toBe(false);
+        expect(result.upgradedSelf.local).toBe(false);
         expect(result.upgradedRoles).toEqual(['ehmpathy/*']);
         expect(result.upgradedBrains).toEqual(['anthropic']);
       });
@@ -490,7 +515,7 @@ describe('execUpgrade', () => {
         await execUpgrade({ brainSpecs: ['*'] }, context);
 
         // should NOT call execNpmInstall since only package is excluded
-        expect(mockExecNpmInstall).not.toHaveBeenCalled();
+        expect(mockExecNpmInstallLocal).not.toHaveBeenCalled();
       });
 
       then('excludes file:. brains from upgradedBrains result', async () => {
@@ -523,7 +548,7 @@ describe('execUpgrade', () => {
         await execUpgrade({ brainSpecs: ['*'] }, context);
 
         // should only include rhachet-brains-opencode
-        expect(mockExecNpmInstall).toHaveBeenCalledWith(
+        expect(mockExecNpmInstallLocal).toHaveBeenCalledWith(
           { packages: ['rhachet-brains-opencode'] },
           context,
         );
@@ -534,6 +559,130 @@ describe('execUpgrade', () => {
 
         expect(result.upgradedBrains).toEqual(['opencode']);
       });
+    });
+  });
+
+  // --which flag tests
+  given('--which local flag', () => {
+    when('execUpgrade is called with --which local', () => {
+      then('upgrades local only, skips global', async () => {
+        const result = await execUpgrade({ which: 'local' }, context);
+
+        expect(mockExecNpmInstallLocal).toHaveBeenCalled();
+        expect(mockExecNpmInstallGlobal).not.toHaveBeenCalled();
+        expect(result.upgradedSelf.global).toBeNull();
+      });
+    });
+  });
+
+  given('--which global flag', () => {
+    beforeEach(() => {
+      mockExpandRoleSupplierSlugs.mockResolvedValue({
+        packages: [],
+        linkedRoles: [],
+        slugs: [],
+      });
+      mockResolveBrainsToPackages.mockResolvedValue([]);
+    });
+
+    when('execUpgrade is called with --which global', () => {
+      then('upgrades global only, skips local', async () => {
+        const result = await execUpgrade({ which: 'global' }, context);
+
+        expect(mockExecNpmInstallLocal).not.toHaveBeenCalled();
+        expect(mockExecNpmInstallGlobal).toHaveBeenCalledWith({
+          packages: ['rhachet'],
+        });
+        expect(result.upgradedSelf.global).toEqual({ upgraded: true });
+        expect(result.upgradedSelf.local).toBe(false);
+        expect(result.upgradedRoles).toEqual([]);
+        expect(result.upgradedBrains).toEqual([]);
+      });
+    });
+
+    when('global rhachet is not installed', () => {
+      beforeEach(() => {
+        mockGetGlobalRhachetVersion.mockReturnValue(null);
+      });
+
+      then('skips global upgrade silently', async () => {
+        const result = await execUpgrade({ which: 'global' }, context);
+
+        expect(mockExecNpmInstallGlobal).not.toHaveBeenCalled();
+        expect(result.upgradedSelf.global).toBeNull();
+      });
+    });
+  });
+
+  given('--which both flag', () => {
+    when('execUpgrade is called with --which both', () => {
+      then('upgrades both local and global', async () => {
+        const result = await execUpgrade({ which: 'both' }, context);
+
+        expect(mockExecNpmInstallLocal).toHaveBeenCalled();
+        expect(mockExecNpmInstallGlobal).toHaveBeenCalledWith({
+          packages: ['rhachet'],
+        });
+        expect(result.upgradedSelf.global).toEqual({ upgraded: true });
+      });
+    });
+  });
+
+  given('no --which flag (default behavior)', () => {
+    when('invoked via npx', () => {
+      beforeEach(() => {
+        mockDetectInvocationMethod.mockReturnValue('npx');
+      });
+
+      then('defaults to local only', async () => {
+        const result = await execUpgrade({}, context);
+
+        expect(mockExecNpmInstallLocal).toHaveBeenCalled();
+        expect(mockExecNpmInstallGlobal).not.toHaveBeenCalled();
+        expect(result.upgradedSelf.global).toBeNull();
+      });
+    });
+
+    when('invoked via global install (rhx)', () => {
+      beforeEach(() => {
+        mockDetectInvocationMethod.mockReturnValue('global');
+      });
+
+      then('defaults to both local and global', async () => {
+        const result = await execUpgrade({}, context);
+
+        expect(mockExecNpmInstallLocal).toHaveBeenCalled();
+        expect(mockExecNpmInstallGlobal).toHaveBeenCalledWith({
+          packages: ['rhachet'],
+        });
+        expect(result.upgradedSelf.global).toEqual({ upgraded: true });
+      });
+    });
+  });
+
+  given('global upgrade fails with permission error', () => {
+    beforeEach(() => {
+      mockExecNpmInstallGlobal.mockImplementation(() => {
+        throw new Error('global install failed: npm ERR! code EACCES');
+      });
+    });
+
+    when('execUpgrade is called with --which both', () => {
+      then(
+        'warns and continues — local not blocked by global failure',
+        async () => {
+          const result = await execUpgrade({ which: 'both' }, context);
+
+          // local upgrade should succeed
+          expect(result.upgradedSelf.local).toBe(true);
+
+          // global upgrade should report failure
+          expect(result.upgradedSelf.global).toEqual({
+            upgraded: false,
+            error: 'global install failed: npm ERR! code EACCES',
+          });
+        },
+      );
     });
   });
 });
