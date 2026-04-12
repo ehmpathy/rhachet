@@ -13,6 +13,7 @@ import { invokeInit } from './invokeInit';
 import { invokeKeyrack } from './invokeKeyrack';
 import { invokeList } from './invokeList';
 import { invokeReadme } from './invokeReadme';
+import { invokeRepoCompile } from './invokeRepoCompile';
 import { invokeRepoIntrospect } from './invokeRepoIntrospect';
 import { invokeRoles } from './invokeRoles';
 import { invokeRun } from './invokeRun';
@@ -51,6 +52,7 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
 
   invokeInit({ program });
   invokeRepoIntrospect({ program }); // self-contained, no context needed
+  invokeRepoCompile({ program }); // self-contained, no context needed
   invokeRoles({ program }, context);
   invokeList({ program }, context);
   invokeReadme({ program }, context);
@@ -73,12 +75,9 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   // invoke it
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {
     if (error instanceof BadRequestError) {
-      // check if error class has emoji (already included in message by helpful-errors)
-      const classHasEmoji = 'emoji' in error.constructor;
-      // add ⛈️ prefix only for errors without built-in emoji
-      const prefix = classHasEmoji ? '' : '⛈️ ';
+      // HelpfulError already includes emoji + class name in message (e.g., "✋ ConstraintError: ...")
       console.error(``);
-      console.error(`${prefix}${error.message}`);
+      console.error(error.message);
       console.error(``);
       console.error(`[args] ${input.args}`);
       console.error(``);

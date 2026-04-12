@@ -1,0 +1,140 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeRepoCompile.integration given: [case1] rhachet-roles-* package with briefs when: [t0] repo compile is invoked then: stdout shows compile progress 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 1 role(s)...
+   └─ test-role: 2 file(s)
+       ├─ test-role/briefs/guide.md
+       └─ test-role/briefs/rule.md
+
+🌊 Done, compiled 2 file(s) to dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case6] briefs with --include to rescue test files when: [t5] repo compile is invoked with --include then: stdout shows rescued file 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 1 role(s)...
+   └─ test-role: 2 file(s)
+       ├─ test-role/briefs/rule.md
+       └─ test-role/briefs/rule.test.md
+
+🌊 Done, compiled 2 file(s) to dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case7] briefs with --exclude when: [t6] repo compile is invoked with --exclude then: stdout shows only non-excluded files 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 1 role(s)...
+   └─ test-role: 1 file(s)
+       └─ test-role/briefs/rule.md
+
+🌊 Done, compiled 1 file(s) to dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case8] --from dir not found when: [t7] repo compile is invoked with nonexistent --from then: stderr output 1`] = `
+"
+✋ ConstraintError: --from directory not found
+
+{
+  "from": "nonexistent"
+}
+
+[args] repo,compile,--from,nonexistent,--into,dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case9] not a rhachet-roles-* package when: [t8] repo compile is invoked then: stderr output 1`] = `
+"
+✋ ConstraintError: repo compile must be run inside a rhachet-roles-* package
+
+{
+  "packageName": "some-other-package"
+}
+
+[args] repo,compile,--from,src,--into,dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case10] role with skills when: [t9] repo compile is invoked then: stdout shows skills filetree 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 1 role(s)...
+   └─ test-role: 2 file(s)
+       ├─ test-role/skills/config.jsonc
+       └─ test-role/skills/tool.sh
+
+🌊 Done, compiled 2 file(s) to dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case13] role with inits when: [t12] repo compile is invoked then: stdout shows inits filetree 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 1 role(s)...
+   └─ test-role: 2 file(s)
+       ├─ test-role/inits/config.jsonc
+       └─ test-role/inits/setup.sh
+
+🌊 Done, compiled 2 file(s) to dist
+
+"
+`;
+
+exports[`invokeRepoCompile.integration given: [case14] comprehensive: 2 roles, deep nest (4 levels), all artifact types, include/exclude when: [t13] repo compile with --include *.test.md *.test.sh and --exclude *.wip.md then: stdout shows filetree for 2 roles with all artifacts 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+📦 Compile artifacts for 2 role(s)...
+   ├─ mechanic: 27 file(s)
+   │   ├─ mechanic/briefs/practices/code.prod/evolvable.architecture/rule.prefer.wet-over-dry.md
+   │   ├─ mechanic/briefs/practices/code.prod/evolvable.architecture/rule.require.bounded-contexts.md
+   │   ├─ mechanic/briefs/practices/code.test/frames.behavior/howto.write-bdd.md
+   │   ├─ mechanic/briefs/practices/howto.test.md
+   │   ├─ mechanic/briefs/practices/rule.require.tests.min
+   │   ├─ mechanic/briefs/rule.md
+   │   ├─ mechanic/briefs/rule.test.md
+   │   ├─ mechanic/inits/claude.hooks/config.jsonc
+   │   ├─ mechanic/inits/claude.hooks/pretooluse.validate.sh
+   │   ├─ mechanic/inits/claude.hooks/sessionstart.notify.sh
+   │   ├─ mechanic/inits/setup.sh
+   │   ├─ mechanic/skills/git.commit/templates/nested/deep/template.guard
+   │   ├─ mechanic/skills/git.commit/templates/nested/deep/template.stone
+   │   ├─ mechanic/skills/git.commit/templates/message.txt
+   │   ├─ mechanic/skills/git.commit/config.jsonc
+   │   ├─ mechanic/skills/git.commit/git.commit.operations.sh
+   │   ├─ mechanic/skills/git.commit/git.commit.push.sh
+   │   ├─ mechanic/skills/git.commit/git.commit.set.sh
+   │   ├─ mechanic/skills/git.commit/git.commit.set.test.sh
+   │   ├─ mechanic/skills/git.commit/output.sh
+   │   ├─ mechanic/skills/git.release/templates/pr-body.md
+   │   ├─ mechanic/skills/git.release/git.release.sh
+   │   ├─ mechanic/skills/deploy.sh
+   │   ├─ mechanic/skills/deploy.test.sh
+   │   ├─ mechanic/boot.yml
+   │   ├─ mechanic/keyrack.yml
+   │   └─ mechanic/readme.md
+   └─ architect: 4 file(s)
+       ├─ architect/briefs/practices/rule.require.ubiqlang.md
+       ├─ architect/briefs/define.bounded-contexts.md
+       ├─ architect/skills/review/config.jsonc
+       └─ architect/skills/review.sh
+
+🌊 Done, compiled 31 file(s) to dist
+
+"
+`;
