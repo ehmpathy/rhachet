@@ -10,6 +10,11 @@ import {
   vaultAdapter1Password,
 } from './vaultAdapter1Password';
 
+/**
+ * .note = no mocks used here — tests pure logic of exid parse and validation
+ * .note = no snapshot coverage because 1password adapter is internal vault contract, not user-faced
+ */
+
 describe('vaultAdapter1Password', () => {
   given('[case1] vault unlock behavior', () => {
     when('[t0] unlock called', () => {

@@ -1,0 +1,13 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.test.GITHUB_SECRET_KEY": {
+      "slug": "testorg.test.GITHUB_SECRET_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "github.secrets",
+      "exid": "testorg/testrepo",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

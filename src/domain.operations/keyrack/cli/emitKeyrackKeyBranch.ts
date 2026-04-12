@@ -1,4 +1,5 @@
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { asExpiresInMinutes } from '@src/domain.operations/keyrack/asExpiresInMinutes';
 
 /**
  * .what = format a keyrack key status as a tree branch
@@ -61,11 +62,9 @@ export const formatKeyrackKeyBranch = (input: {
   }
 
   if (entry.type === 'unlocked') {
-    const expiresIn = entry.grant.expiresAt
-      ? Math.round(
-          (new Date(entry.grant.expiresAt).getTime() - Date.now()) / 1000 / 60,
-        )
-      : null;
+    const expiresIn = asExpiresInMinutes({
+      expiresAt: entry.grant.expiresAt ?? null,
+    });
     lines.push(`${prefix} ${entry.grant.slug}`);
     lines.push(`${indent}├─ env: ${entry.grant.env}`);
     lines.push(`${indent}├─ org: ${entry.grant.org}`);
@@ -73,6 +72,15 @@ export const formatKeyrackKeyBranch = (input: {
     lines.push(
       `${indent}└─ expires in: ${expiresIn !== null ? `${expiresIn}m` : 'never'}`,
     );
+    return lines;
+  }
+
+  if (entry.type === 'remote') {
+    lines.push(`${prefix} ${entry.slug}`);
+    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: remote 🌐`);
+    if (entry.tip) {
+      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
+    }
     return lines;
   }
 
@@ -101,4 +109,5 @@ export type KeyrackKeyBranchEntry =
   | { type: 'locked'; slug: string; tip: string | null }
   | { type: 'absent'; slug: string; tip: string | null }
   | { type: 'lost'; slug: string; tip: string | null }
+  | { type: 'remote'; slug: string; tip: string | null }
   | { type: 'unlocked'; grant: KeyrackKeyGrant };

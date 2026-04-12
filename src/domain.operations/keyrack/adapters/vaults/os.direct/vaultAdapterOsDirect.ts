@@ -121,7 +121,7 @@ const getMechAdapter = (
  *
  * .note = os.direct requires no unlock — file is always accessible
  */
-export const vaultAdapterOsDirect: KeyrackHostVaultAdapter = {
+export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA'],
   },

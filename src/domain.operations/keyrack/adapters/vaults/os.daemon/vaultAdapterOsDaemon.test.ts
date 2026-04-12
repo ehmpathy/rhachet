@@ -2,6 +2,11 @@ import { given, then, when } from 'test-fns';
 
 import { vaultAdapterOsDaemon } from './vaultAdapterOsDaemon';
 
+/**
+ * .note = no mocks used — tests real daemon connectivity (may or may not be active)
+ * .note = no snapshot coverage because os.daemon is internal vault adapter, not user-faced contract
+ */
+
 describe('vaultAdapterOsDaemon', () => {
   given('[case1] vault unlock state', () => {
     when('[t0] unlock called', () => {

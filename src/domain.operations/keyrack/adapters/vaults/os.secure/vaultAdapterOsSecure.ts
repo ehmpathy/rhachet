@@ -88,7 +88,7 @@ const getMechAdapter = (
  *
  * .note = os.secure requires identity from context for all operations
  */
-export const vaultAdapterOsSecure: KeyrackHostVaultAdapter = {
+export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA', 'EPHEMERAL_VIA_GITHUB_APP'],
   },

@@ -1,0 +1,4 @@
+org: testorg
+
+env.test:
+  - GITHUB_SECRET_KEY

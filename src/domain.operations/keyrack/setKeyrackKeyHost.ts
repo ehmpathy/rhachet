@@ -84,6 +84,26 @@ export const setKeyrackKeyHost = async (
   // if adapter derived an exid (e.g., aws.config guided setup), use it for the manifest entry
   const exidForManifest = setResult.exid ?? input.exid ?? null;
 
+  // write-only vaults (get === null) are passthrough — skip manifest write
+  // .why = write-only vaults cannot be used for subsequent keyrack get/unlock
+  //        so its equivalent to them never been present on this host
+  // .bonus = enables push to write-only vaults without risk of erasure of usable host keys
+  if (adapter.get === null) {
+    // return a transient KeyrackKeyHost (not persisted) for CLI output
+    return new KeyrackKeyHost({
+      slug: input.slug,
+      mech: mechForManifest,
+      vault: input.vault,
+      exid: exidForManifest,
+      env: input.env ?? 'all',
+      org: orgExpanded,
+      vaultRecipient: input.vaultRecipient ?? null,
+      maxDuration: input.maxDuration ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   // invalidate stale daemon cache for this key (if daemon is active)
   // this ensures `get` returns "locked" instead of stale value after `set`
   // .note = skip for os.daemon vault — daemon IS the source, set already stored there

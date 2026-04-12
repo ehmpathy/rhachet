@@ -8,6 +8,9 @@ import {
   KeyrackKeyGrant,
 } from '@src/domain.objects/keyrack';
 
+import { asKeyrackKeyEnv } from './asKeyrackKeyEnv';
+import { asKeyrackKeyName } from './asKeyrackKeyName';
+import { asKeyrackKeyOrg } from './asKeyrackKeyOrg';
 import { daemonAccessGet } from './daemon/sdk';
 import { decideIsKeySlugEqual } from './decideIsKeySlugEqual';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
@@ -68,12 +71,17 @@ const attemptGrantKey = async (
   const { slug } = input;
 
   // extract env and org from slug (format: $org.$env.$key)
-  const orgFromSlug = slug.split('.')[0] ?? 'unknown';
-  const envFromSlug = slug.split('.')[1] ?? 'all';
+  const orgFromSlug = asKeyrackKeyOrg({ slug }) || 'unknown';
+  const envFromSlug = asKeyrackKeyEnv({ slug }) || 'all';
 
   // attempt to locate the key from available sources (envvar, daemon)
   const grantFound = await (async (): Promise<KeyrackKeyGrant | null> => {
     // check os.envvar first — passthrough for ci and local env
+    if (!context.envvarAdapter.get) {
+      throw new UnexpectedCodePathError('envvarAdapter.get is not defined', {
+        hint: 'os.envvar adapter must implement get method',
+      });
+    }
     const envValue = await context.envvarAdapter.get({ slug });
     if (envValue !== null) {
       const mech: KeyrackGrantMechanism = 'PERMANENT_VIA_REPLICA';
@@ -143,14 +151,14 @@ const attemptGrantKey = async (
         status: 'locked',
         slug,
         message: `credential '${slug}' is locked. unlock it first.`,
-        fix: `rhx keyrack unlock --env ${envFromSlug} --key ${slug.split('.').slice(2).join('.')}`,
+        fix: `rhx keyrack unlock --env ${envFromSlug} --key ${asKeyrackKeyName({ slug })}`,
       };
     }
     return {
       status: 'absent',
       slug,
       message: `credential '${slug}' does not exist. set it first.`,
-      fix: `rhx keyrack set --key ${slug.split('.').slice(2).join('.')} --env ${envFromSlug}`,
+      fix: `rhx keyrack set --key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}`,
     };
   }
 

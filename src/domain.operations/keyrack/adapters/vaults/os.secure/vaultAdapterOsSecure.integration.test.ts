@@ -18,6 +18,11 @@ import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKe
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * .note = mocks promptHiddenInput to simulate user secret input in tests
+ * .why = integration tests need controlled input without real stdin
+ * .note = no snapshot coverage because os.secure is internal vault adapter, not user-faced contract
+ */
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 
 import { vaultAdapterOsSecure } from './vaultAdapterOsSecure';

@@ -4,4 +4,3 @@ extends:
   - .agent/repo=ehmpathy/role=mechanic/keyrack.yml
 env.prod: []
 env.all: []
-env.test: []

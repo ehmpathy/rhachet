@@ -73,8 +73,12 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   // invoke it
   await program.parseAsync(input.args, { from: 'user' }).catch((error) => {
     if (error instanceof BadRequestError) {
+      // check if error class has emoji (already included in message by helpful-errors)
+      const classHasEmoji = 'emoji' in error.constructor;
+      // add ⛈️ prefix only for errors without built-in emoji
+      const prefix = classHasEmoji ? '' : '⛈️ ';
       console.error(``);
-      console.error(`⛈️ ${error.message}`);
+      console.error(`${prefix}${error.message}`);
       console.error(``);
       console.error(`[args] ${input.args}`);
       console.error(``);

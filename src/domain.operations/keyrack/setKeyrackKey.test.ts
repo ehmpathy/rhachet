@@ -47,6 +47,7 @@ describe('setKeyrackKey', () => {
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
               'aws.config': genMockVaultAdapter(),
+              'github.secrets': genMockVaultAdapter(),
             },
           };
 
@@ -97,6 +98,7 @@ describe('setKeyrackKey', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': mockAdapter,
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -145,6 +147,7 @@ describe('setKeyrackKey', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -205,6 +208,7 @@ describe('setKeyrackKey', () => {
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
               'aws.config': genMockVaultAdapter(),
+              'github.secrets': genMockVaultAdapter(),
             },
           };
 

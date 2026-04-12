@@ -88,6 +88,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -138,6 +139,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -224,6 +226,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -307,6 +310,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -406,6 +410,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -527,6 +532,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 
@@ -579,6 +585,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
           },
         };
 

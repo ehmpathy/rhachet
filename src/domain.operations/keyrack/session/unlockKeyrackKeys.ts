@@ -1,16 +1,25 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
-import { asIsoTimeStamp } from 'iso-time';
+import {
+  BadRequestError,
+  ConstraintError,
+  UnexpectedCodePathError,
+} from 'helpful-errors';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
+import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
+import { asKeyrackKeyOrg } from '@src/domain.operations/keyrack/asKeyrackKeyOrg';
 import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
+import { computeExpiresAt } from '@src/domain.operations/keyrack/computeExpiresAt';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import {
   daemonAccessUnlock,
   findsertKeyrackDaemon,
 } from '@src/domain.operations/keyrack/daemon/sdk';
 import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKeySlugEqual';
+import { filterSlugsByKeyInput } from '@src/domain.operations/keyrack/filterSlugsByKeyInput';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { getAllSudoSlugsForKey } from '@src/domain.operations/keyrack/getAllSudoSlugsForKey';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
 /**
@@ -30,7 +39,7 @@ export const unlockKeyrackKeys = async (
   context: ContextKeyrack,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
-  omitted: { slug: string; reason: 'absent' | 'lost' }[];
+  omitted: { slug: string; reason: 'absent' | 'lost' | 'remote' }[];
 }> => {
   // derive socket path from owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
@@ -48,7 +57,9 @@ export const unlockKeyrackKeys = async (
 
   // parse duration (default: 30min for sudo, 9h for others)
   const defaultDuration = input.env === 'sudo' ? '30m' : '9h';
-  const requestedDurationMs = parseDuration(input.duration ?? defaultDuration);
+  const requestedDurationMs = asDurationMs({
+    duration: input.duration ?? defaultDuration,
+  });
 
   // determine which keys to unlock
   const repoManifest = context.repoManifest;
@@ -69,30 +80,13 @@ export const unlockKeyrackKeys = async (
     }
 
     // find all slugs in hostManifest that match the key and have env=sudo
-    const keyInput = input.key;
-
-    // detect if keyInput is a full slug (org.env.key format) or just key name
-    const isFullSlug = keyInput.includes('.') && hostManifest.hosts[keyInput];
-
-    slugsForEnv = Object.entries(hostManifest.hosts)
-      .filter(([slug, hostConfig]) => {
-        // slug format: $org.$env.$key (key may contain dots)
-        const parts = slug.split('.');
-        const slugEnv = parts[1];
-        const slugKey = parts.slice(2).join('.');
-
-        // if full slug provided, match exactly
-        if (isFullSlug) {
-          return slug === keyInput && slugEnv === 'sudo';
-        }
-
-        // otherwise match by key name suffix
-        return slugEnv === 'sudo' && slugKey === keyInput;
-      })
-      .map(([slug]) => slug);
+    slugsForEnv = getAllSudoSlugsForKey({
+      hostManifest,
+      keyInput: input.key,
+    });
 
     if (slugsForEnv.length === 0) {
-      throw new BadRequestError(`sudo key not found: ${keyInput}`, {
+      throw new BadRequestError(`sudo key not found: ${input.key}`, {
         note: 'run: rhx keyrack set --key X --env sudo --vault ... to configure',
       });
     }
@@ -117,19 +111,17 @@ export const unlockKeyrackKeys = async (
     });
 
     // filter by key: match full slug or key name suffix
-    const keyInput = input.key;
-    slugsForEnv = keyInput
-      ? allSlugsForEnv.filter(
-          (slug) => slug === keyInput || slug.endsWith(`.${keyInput}`),
-        )
-      : allSlugsForEnv;
+    slugsForEnv = filterSlugsByKeyInput({
+      slugs: allSlugsForEnv,
+      keyInput: input.key ?? null,
+    });
 
     // fail-fast if specific key requested but not found in repo manifest
-    if (keyInput && slugsForEnv.length === 0) {
-      throw new BadRequestError(`key not found in manifest: ${keyInput}`, {
+    if (input.key && slugsForEnv.length === 0) {
+      throw new BadRequestError(`key not found in manifest: ${input.key}`, {
         env,
-        note: `key '${keyInput}' is not declared in keyrack.yml for env=${env}`,
-        fix: `rhx keyrack set --key ${keyInput} --env ${env}`,
+        note: `key '${input.key}' is not declared in keyrack.yml for env=${env}`,
+        fix: `rhx keyrack set --key ${input.key} --env ${env}`,
       });
     }
   }
@@ -137,7 +129,8 @@ export const unlockKeyrackKeys = async (
   // collect keys to unlock and track omitted
   // .note = omitted includes both "absent" (not in host manifest) and "lost" (in manifest but vault doesn't have it)
   const keysToUnlock: KeyrackKeyGrant[] = [];
-  const keysOmitted: { slug: string; reason: 'absent' | 'lost' }[] = [];
+  const keysOmitted: { slug: string; reason: 'absent' | 'lost' | 'remote' }[] =
+    [];
   const effectiveSlugsUnlocked = new Set<string>(); // dedupe by effective slug
 
   for (const slug of slugsForEnv) {
@@ -182,6 +175,22 @@ export const unlockKeyrackKeys = async (
       throw new UnexpectedCodePathError('vault adapter not found', { vault });
     }
 
+    // handle write-only vaults (e.g., github.secrets)
+    // .note = write-only vaults have adapter.get === null
+    if (adapter.get === null) {
+      if (input.key) {
+        // specific key requested on write-only vault → failfast
+        throw new ConstraintError(`${vault} cannot be unlocked`, {
+          slug: effectiveSlug,
+          vault,
+          hint: 'write-only vault; secrets cannot be retrieved via api',
+        });
+      }
+      // bulk unlock → skip silently, add to omitted
+      keysOmitted.push({ slug: effectiveSlug, reason: 'remote' });
+      continue;
+    }
+
     // get identity from context for vault operations
     const identity = await context.identity.getOne({ for: 'manifest' });
 
@@ -220,27 +229,20 @@ export const unlockKeyrackKeys = async (
     const grade = inferKeyGrade({ vault, mech });
 
     // calculate expiresAt with maxDuration cap
-    let effectiveDurationMs = requestedDurationMs;
-    if (hostConfig.maxDuration) {
-      const maxDurationMs = parseDuration(hostConfig.maxDuration);
-      if (requestedDurationMs > maxDurationMs) {
-        // cap to maxDuration and warn
-        effectiveDurationMs = maxDurationMs;
-        console.warn(
-          `⚠️ duration capped to ${hostConfig.maxDuration} for key ${effectiveSlug} (maxDuration limit)`,
-        );
-      }
-    }
-    const nowMs = Date.now();
-    const expiresAtDate = new Date(nowMs + effectiveDurationMs);
-    const expiresAt = asIsoTimeStamp(expiresAtDate);
+    const { expiresAt } = computeExpiresAt({
+      requestedDurationMs,
+      maxDurationMs: hostConfig.maxDuration
+        ? asDurationMs({ duration: hostConfig.maxDuration })
+        : null,
+      effectiveSlug,
+      maxDurationLabel: hostConfig.maxDuration ?? null,
+    });
 
     // derive env and org for daemon storage
     // for sudo keys: use hostConfig (has env/org set)
     // for regular keys: derive from effectiveSlug or input.env (hostConfig may not have them)
-    const effectiveSlugParts = effectiveSlug.split('.');
-    const slugOrg = effectiveSlugParts[0]!;
-    const slugEnv = effectiveSlugParts[1]!;
+    const slugOrg = asKeyrackKeyOrg({ slug: effectiveSlug });
+    const slugEnv = asKeyrackKeyEnv({ slug: effectiveSlug });
     const keyEnv = hostConfig.env ?? slugEnv ?? env;
     const keyOrg = hostConfig.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
 
@@ -267,32 +269,4 @@ export const unlockKeyrackKeys = async (
   }
 
   return { unlocked: keysToUnlock, omitted: keysOmitted };
-};
-
-/**
- * .what = parse duration string to milliseconds
- * .why = supports human-readable duration formats
- */
-const parseDuration = (duration: string): number => {
-  const match = duration.match(/^(\d+)(h|m|s)$/);
-  if (!match) {
-    throw new UnexpectedCodePathError('invalid duration format', {
-      duration,
-      note: 'expected format: 1h, 30m, 60s',
-    });
-  }
-
-  const value = parseInt(match[1]!, 10);
-  const unit = match[2]!;
-
-  switch (unit) {
-    case 'h':
-      return value * 60 * 60 * 1000;
-    case 'm':
-      return value * 60 * 1000;
-    case 's':
-      return value * 1000;
-    default:
-      throw new UnexpectedCodePathError('invalid duration unit', { unit });
-  }
 };

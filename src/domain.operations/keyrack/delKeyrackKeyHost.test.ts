@@ -58,6 +58,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
       },
     };
 
@@ -95,6 +96,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
       },
     };
 
@@ -140,6 +142,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
       },
     };
 

@@ -650,6 +650,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           'os.envvar',
           '1password',
           'aws.config',
+          'github.secrets',
         ];
         if (!validVaults.includes(opts.vault as KeyrackHostVault)) {
           throw new BadRequestError(
