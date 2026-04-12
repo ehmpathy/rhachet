@@ -35,7 +35,7 @@ exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted)
 
 exports[`keyrack.source given: [case3] no keyrack.yml in repo (no keys required) when: [t0] rhx keyrack get --json called then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
 
 [args] keyrack,get,--for,repo,--env,test,--json
 
