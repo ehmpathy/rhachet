@@ -7,11 +7,9 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_ARTIFACT_EXCLUSIONS = [
-  '**/.test/**', // match .test at any depth
+  '**/.*', // match dotfiles/dotdirs at any depth (e.g., .hidden.md, .test)
+  '**/.*/**', // match files inside dotdirs at any depth (e.g., .test/fixture.md)
   '**/__test_*/**', // match __test_* at any depth
-  '**/.route/**', // match .route at any depth
-  '**/.scratch/**', // match .scratch at any depth
-  '**/.behavior/**', // match .behavior at any depth
   '**/*.test.*', // match *.test.* at any depth
 ];
 
