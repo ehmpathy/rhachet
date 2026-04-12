@@ -2,6 +2,11 @@ import { getError, given, then, when } from 'test-fns';
 
 import { vaultAdapterOsEnvvar } from './vaultAdapterOsEnvvar';
 
+/**
+ * .note = no mocks used — tests pure env var access
+ * .note = no snapshot coverage because os.envvar is internal vault adapter, not user-faced contract
+ */
+
 describe('vaultAdapterOsEnvvar', () => {
   given('[case1] vault unlock state', () => {
     when('[t0] isUnlocked called', () => {

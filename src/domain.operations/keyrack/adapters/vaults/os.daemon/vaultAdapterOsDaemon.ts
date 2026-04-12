@@ -18,7 +18,7 @@ import { promptHiddenInput } from '@src/infra/promptHiddenInput';
  * .note = os.daemon is session-time only; keys die on logout or crash
  * .note = uses daemon SDK for all operations
  */
-export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter = {
+export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['EPHEMERAL_VIA_SESSION'],
   },

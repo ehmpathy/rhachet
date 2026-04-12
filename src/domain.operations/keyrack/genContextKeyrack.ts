@@ -1,3 +1,4 @@
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 import { createCache } from 'simple-in-memory-cache';
 import { withSimpleCache } from 'with-simple-cache';
 
@@ -15,6 +16,7 @@ import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
 import { existsSync, readFileSync } from 'node:fs';
 import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
 import { vaultAdapterAwsConfig } from './adapters/vaults/aws.config/vaultAdapterAwsConfig';
+import { vaultAdapterGithubSecrets } from './adapters/vaults/github.secrets/vaultAdapterGithubSecrets';
 import { vaultAdapterOsDaemon } from './adapters/vaults/os.daemon/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/os.direct/vaultAdapterOsDirect';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
@@ -119,6 +121,7 @@ export const genContextKeyrack = (input: {
       'os.daemon': vaultAdapterOsDaemon,
       '1password': vaultAdapter1Password,
       'aws.config': vaultAdapterAwsConfig,
+      'github.secrets': vaultAdapterGithubSecrets,
     },
   };
 };
@@ -150,8 +153,13 @@ const trialDecryptManifest = async (input: {
     try {
       await decryptWithIdentity({ ciphertext, identity });
       return identity;
-    } catch {
-      // continue to next identity
+    } catch (error) {
+      // rethrow our own error types (code defects, invalid requests)
+      if (error instanceof UnexpectedCodePathError) throw error;
+      if (error instanceof BadRequestError) throw error;
+
+      // expected: decryption failure with wrong identity (continue to next)
+      // .note = age-encryption throws generic Error for decryption failures
     }
   }
 

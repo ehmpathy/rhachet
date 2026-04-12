@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -65,6 +65,10 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
     await execAsync(`aws sts get-caller-identity --profile "${profileName}"`);
     return true;
   } catch (error) {
+    // rethrow our own error types (code defects, invalid requests)
+    if (error instanceof UnexpectedCodePathError) throw error;
+    if (error instanceof BadRequestError) throw error;
+
     // allow expected errors: command failed = session expired or profile invalid
     // .note = aws cli exits non-zero for expired sessions and invalid profiles
     if (error instanceof Error && 'code' in error) return false;
@@ -118,7 +122,7 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
  * .note = unlock validates sso sessions, triggers login for expired
  * .note = profile names are 'reference' protection (no secrets touch keyrack)
  */
-export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter = {
+export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['EPHEMERAL_VIA_AWS_SSO'],
   },
@@ -310,6 +314,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter = {
     try {
       await execAsync(`aws sso logout --profile "${profileName}"`);
     } catch (error) {
+      // rethrow our own error types (code defects, invalid requests)
+      if (error instanceof UnexpectedCodePathError) throw error;
+      if (error instanceof BadRequestError) throw error;
+
       // allow expected errors: command failed = already logged out
       // .note = aws cli exits non-zero when no active sso session
       if (error instanceof Error && 'code' in error) return;

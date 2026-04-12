@@ -6,6 +6,7 @@ import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 
 /**
@@ -201,12 +202,14 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
       const pemPath = await question('   │  └─ private key path (.pem): ');
 
       // read and format pem content
+      // expand ~ to home directory (shell feature not available in Node.js fs)
+      const pemPathExpanded = pemPath.trim().replace(/^~(?=$|\/)/, homedir());
       let privateKey: string;
       try {
-        privateKey = readFileSync(pemPath.trim(), 'utf-8');
+        privateKey = readFileSync(pemPathExpanded, 'utf-8');
       } catch (err) {
         throw new UnexpectedCodePathError('failed to read pem file', {
-          pemPath,
+          pemPath: pemPathExpanded,
           error: err,
         });
       }

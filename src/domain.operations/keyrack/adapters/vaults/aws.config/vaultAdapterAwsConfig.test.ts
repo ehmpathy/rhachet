@@ -1,5 +1,13 @@
 import { given, then, when } from 'test-fns';
 
+/**
+ * .note = mocks child_process (exec, spawn) and fs to simulate aws cli behavior
+ * .why = aws sso requires browser-based oauth flow — cannot be automated in tests
+ *        see: aws sso uses interactive browser auth to approve access
+ *        mocks allow test of adapter logic without real aws credentials
+ * .note = no snapshot coverage because aws.config is internal vault adapter, not user-faced contract
+ */
+
 // mock child_process.exec and spawn before import
 jest.mock('node:child_process', () => {
   const originalModule = jest.requireActual('node:child_process');

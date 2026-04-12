@@ -9,6 +9,11 @@ import { withTempHome } from '@src/.test/infra/withTempHome';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * .note = mocks promptHiddenInput to simulate user input in tests
+ * .why = integration tests need controlled secret input without real stdin
+ * .note = no snapshot coverage because os.direct is internal vault adapter, not user-faced contract
+ */
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 
 import { vaultAdapterOsDirect } from './vaultAdapterOsDirect';

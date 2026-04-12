@@ -11,7 +11,7 @@ import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyNam
  * .note = always unlocked — no authentication required
  * .note = always checked first in grant flow (see getKeyrackKeyGrant)
  */
-export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter = {
+export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA'],
   },

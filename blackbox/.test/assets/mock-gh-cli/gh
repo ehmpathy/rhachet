@@ -26,6 +26,17 @@ case "$ARGS" in
   "api /orgs/otherorg/installations --jq .installations[] | {id: .id, app_id: .app_id, slug: .app_slug}")
     echo '{"id":11111111,"app_id":111111,"slug":"other-org-app"}'
     ;;
+  "secret set "*)
+    # gh secret set NAME --repo OWNER/REPO
+    # reads secret from stdin, succeeds silently
+    cat > /dev/null  # consume stdin
+    exit 0
+    ;;
+  "secret delete "*)
+    # gh secret delete NAME --repo OWNER/REPO
+    # succeeds silently
+    exit 0
+    ;;
   *)
     echo "mock gh: unknown command: $ARGS" >&2
     exit 1

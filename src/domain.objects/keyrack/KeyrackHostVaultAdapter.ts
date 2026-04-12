@@ -3,14 +3,34 @@ import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKe
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
 
 /**
- * .what = interface for vault-specific operations
+ * .what = get method signature for readable vaults
+ * .why = extracted for reuse in generic and type guards
+ */
+type KeyrackHostVaultGetMethod = (input: {
+  slug: string;
+  mech?: KeyrackGrantMechanism | null;
+  exid?: string | null;
+  vaultRecipient?: string | null;
+  owner?: string | null;
+  identity?: string | null;
+}) => Promise<string | null>;
+
+/**
+ * .what = vault adapter for keyrack storage backends
  * .why = adapter pattern enables support for multiple storage backends
+ *
+ * .note = TMode generic:
+ *         - 'readwrite' = can read and write (get is a method)
+ *         - 'onlywrite' = write-only vault (get is null)
+ *         - union = unknown (for generic contexts)
  *
  * .note = vaults encapsulate secret operations:
  *         - set calls mech.acquireForSet internally; secret never exposed to caller
  *         - get calls mech.deliverForGet internally; transforms source → usable secret
  */
-export interface KeyrackHostVaultAdapter {
+export interface KeyrackHostVaultAdapter<
+  TMode extends 'readwrite' | 'onlywrite' = 'readwrite' | 'onlywrite',
+> {
   /**
    * .what = mechanisms supported by this vault
    * .why = enables mech inference and fail-fast for incompatible mechs
@@ -18,6 +38,7 @@ export interface KeyrackHostVaultAdapter {
   mechs: {
     supported: KeyrackGrantMechanism[];
   };
+
   /**
    * .what = unlock the vault for the current session
    * .why = enables subsequent get operations without re-authentication
@@ -47,24 +68,16 @@ export interface KeyrackHostVaultAdapter {
    * .what = retrieve a credential from the vault
    * .why = core operation for grant flow
    *
+   * .note = TMode determines type:
+   *         - 'readwrite': get is a method that retrieves secrets
+   *         - 'onlywrite': get is null (write-only vault)
+   *
    * .note = vault encapsulates mech transformation:
    *         1. retrieve source from storage
    *         2. call mech.deliverForGet({ source }) if mech supplied
    *         3. return translated secret (or source if no mech)
-   * .note = mech is optional; if not supplied, returns source as-is
-   * .note = exid is optional; only 1password requires it
-   * .note = vaultRecipient is optional; only os.secure uses it for recipient-based encryption
-   * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
-   * .note = identity is optional; os.secure uses it for age decryption
    */
-  get: (input: {
-    slug: string;
-    mech?: KeyrackGrantMechanism | null;
-    exid?: string | null;
-    vaultRecipient?: string | null;
-    owner?: string | null;
-    identity?: string | null;
-  }) => Promise<string | null>;
+  get: TMode extends 'readwrite' ? KeyrackHostVaultGetMethod : null;
 
   /**
    * .what = store a credential in the vault
