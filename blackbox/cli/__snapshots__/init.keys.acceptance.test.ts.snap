@@ -32,7 +32,7 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
 
 exports[`rhachet init --keys given: [case2] --keys without --roles (fail-fast) when: [t0] init --keys without --roles then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: --keys requires --roles to specify which role keyracks to extend
+BadRequestError: --keys requires --roles to specify which role keyracks to extend
 
 {
   "example": "npx rhachet init --keys --roles mechanic dispatcher"
@@ -102,7 +102,7 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 
 exports[`rhachet init --keys given: [case6] org not detectable when: [t0] init --keys --roles tester (org undetectable) then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: unable to detect org from package.json. use \`keyrack init\` for custom org.
+BadRequestError: unable to detect org from package.json. use \`keyrack init\` for custom org.
 
 {
   "note": "org detection checks: package.json#organization, scoped name (@org/), repository field",

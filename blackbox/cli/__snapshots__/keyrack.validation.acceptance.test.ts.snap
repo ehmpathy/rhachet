@@ -2,7 +2,7 @@
 
 exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t0] keyrack get --for repo then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
 
 [args] keyrack,get,--for,repo
 
@@ -67,7 +67,7 @@ exports[`keyrack validation given: [case2] repo with multiple keys, one absent w
 
 exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack set with invalid --mech then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT_VIA_REFERENCE, EPHEMERAL_VIA_SESSION, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO, EPHEMERAL_VIA_GITHUB_OIDC
+BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT_VIA_REFERENCE, EPHEMERAL_VIA_SESSION, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO, EPHEMERAL_VIA_GITHUB_OIDC
 
 [args] keyrack,set,--key,TEST,--mech,INVALID_MECH,--vault,os.direct
 
@@ -76,7 +76,7 @@ exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack 
 
 exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack set with invalid --vault then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, github.secrets
+BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, github.secrets
 
 [args] keyrack,set,--key,TEST,--mech,PERMANENT_VIA_REPLICA,--vault,invalid_vault
 
@@ -85,7 +85,7 @@ exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack 
 
 exports[`keyrack validation given: [case3] validation errors when: [t2] keyrack get without --for or --key then: stderr matches snapshot 1`] = `
 "
-⛈️ BadRequestError: must specify --for repo or --key <slug>
+BadRequestError: must specify --for repo or --key <slug>
 
 [args] keyrack,get
 

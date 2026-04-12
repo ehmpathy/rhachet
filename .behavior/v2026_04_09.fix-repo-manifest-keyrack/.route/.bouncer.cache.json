@@ -1,0 +1,11 @@
+{
+  "protections": [
+    {
+      "glob": "src/**/*",
+      "stone": "3.3.1.blueprint.product",
+      "guard": ".behavior/v2026_04_09.fix-repo-manifest-keyrack/3.3.1.blueprint.product.guard",
+      "route": ".behavior/v2026_04_09.fix-repo-manifest-keyrack",
+      "passed": true
+    }
+  ]
+}
