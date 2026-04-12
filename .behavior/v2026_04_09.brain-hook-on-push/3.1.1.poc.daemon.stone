@@ -1,0 +1,185 @@
+# stone: poc.daemon
+
+## .goal
+
+prove filesystem watcher + socket client can deliver messages to pty wrapper.
+
+## .success criteria
+
+1. daemon watches `.agent/.comms/$topic/` directories
+2. daemon detects new files
+3. daemon parses message JSON
+4. daemon connects to actor socket
+5. daemon writes message to socket
+6. message arrives at pty wrapper → claude stdin
+
+## .deliverables
+
+```
+refs/poc.daemon/
+  daemon.ts        # filesystem watcher + socket client
+  drop-message.ts  # utility to drop test messages
+  readme.md        # usage instructions
+```
+
+## .implementation
+
+### daemon.ts
+
+```typescript
+import { watch, readFileSync, readdirSync, mkdirSync } from 'fs';
+import { createConnection, Socket } from 'net';
+import { join, basename } from 'path';
+
+const commsDir = '.agent/.comms';
+const socketsDir = '.agent/.sockets';
+
+// track which files we've seen (simple in-memory for POC)
+const seen = new Set<string>();
+
+// ensure dirs exist
+mkdirSync(commsDir, { recursive: true });
+mkdirSync(socketsDir, { recursive: true });
+
+// find all actor sockets
+const getActorSockets = (): string[] => {
+  try {
+    return readdirSync(socketsDir)
+      .filter(f => f.startsWith('for.actor=') && f.endsWith('.sock'))
+      .map(f => join(socketsDir, f));
+  } catch {
+    return [];
+  }
+};
+
+// send message to all actors (broadcast for POC)
+const broadcast = (content: string) => {
+  const sockets = getActorSockets();
+  console.log(`[daemon] broadcast to ${sockets.length} actors`);
+
+  for (const socketPath of sockets) {
+    const client = createConnection(socketPath, () => {
+      console.log(`[daemon] connected to ${socketPath}`);
+      client.write(content);
+      client.end();
+    });
+    client.on('error', (err) => {
+      console.error(`[daemon] failed to connect to ${socketPath}: ${err.message}`);
+    });
+  }
+};
+
+// process new message file
+const processMessage = (filePath: string) => {
+  if (seen.has(filePath)) return;
+  seen.add(filePath);
+
+  console.log(`[daemon] new message: ${filePath}`);
+
+  try {
+    const raw = readFileSync(filePath, 'utf-8');
+    const msg = JSON.parse(raw);
+
+    // format injection content
+    const content = [
+      `\n[push notification from ${msg.from?.system || 'unknown'}]`,
+      msg.payload?.content || JSON.stringify(msg.payload),
+      '\n',
+    ].join('\n');
+
+    broadcast(content);
+  } catch (err) {
+    console.error(`[daemon] failed to process ${filePath}: ${err}`);
+  }
+};
+
+// watch comms directory for new files
+const watchComms = () => {
+  console.log(`[daemon] watch ${commsDir}`);
+
+  // watch for new topic directories
+  watch(commsDir, { recursive: true }, (event, filename) => {
+    if (!filename || !filename.endsWith('.json')) return;
+    const filePath = join(commsDir, filename);
+    processMessage(filePath);
+  });
+};
+
+// scan for extant files on startup (mark as seen, don't process)
+const scanExtant = () => {
+  const topics = readdirSync(commsDir, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => d.name);
+
+  for (const topic of topics) {
+    const topicDir = join(commsDir, topic);
+    const files = readdirSync(topicDir).filter(f => f.endsWith('.json'));
+    for (const file of files) {
+      seen.add(join(topicDir, file));
+    }
+  }
+  console.log(`[daemon] marked ${seen.size} extant files as seen`);
+};
+
+// main
+scanExtant();
+watchComms();
+console.log('[daemon] ready');
+```
+
+### drop-message.ts
+
+```typescript
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+
+const topic = process.argv[2] || 'test';
+const content = process.argv[3] || 'hello from daemon test';
+
+const commsDir = '.agent/.comms';
+const topicDir = join(commsDir, topic);
+
+mkdirSync(topicDir, { recursive: true });
+
+const id = `msg-${Date.now()}`;
+const filePath = join(topicDir, `${id}.json`);
+
+const message = {
+  id,
+  for: {
+    roles: '+mechanic',
+  },
+  from: {
+    actor: 'test-harness',
+    system: 'cli',
+  },
+  payload: {
+    type: 'test',
+    content,
+  },
+  timestamp: new Date().toISOString(),
+};
+
+writeFileSync(filePath, JSON.stringify(message, null, 2));
+console.log(`dropped: ${filePath}`);
+```
+
+## .test procedure
+
+1. terminal A: `npx tsx refs/poc.pty-wrapper/wrapper.ts` (from POC #1)
+2. terminal B: `npx tsx refs/poc.daemon/daemon.ts`
+3. terminal C: `npx tsx refs/poc.daemon/drop-message.ts test "please summarize what you are up to"`
+4. observe: daemon detects file, connects to socket, claude receives message
+
+## .dependencies
+
+- node.js fs.watch (built-in)
+- net module (built-in)
+- poc.pty-wrapper must be complete first
+
+## .questions to answer
+
+1. does fs.watch work reliably on linux/mac?
+2. what's the latency from file drop to socket delivery?
+3. how to handle socket connection failures?
+4. how to implement role filter match logic?

@@ -1,0 +1,120 @@
+# stone: poc.pty-wrapper
+
+## .goal
+
+prove node-pty can wrap claude and accept socket writes that inject into claude's stdin.
+
+## .success criteria
+
+1. wrapper spawns claude via pty
+2. wrapper creates unix socket at `.agent/.sockets/for.actor=$id.sock`
+3. socket accepts connections
+4. data written to socket appears on claude's stdin
+5. claude responds to injected input
+
+## .deliverables
+
+```
+refs/poc.pty-wrapper/
+  wrapper.ts       # pty wrapper with socket server
+  test-inject.ts   # test client that writes to socket
+  readme.md        # usage instructions
+```
+
+## .implementation
+
+### wrapper.ts
+
+```typescript
+import { spawn } from 'node-pty';
+import { createServer } from 'net';
+import { mkdirSync } from 'fs';
+
+const actorId = process.env.ACTOR_ID || 'test-actor';
+const socketDir = '.agent/.sockets';
+const socketPath = `${socketDir}/for.actor=${actorId}.sock`;
+
+// ensure socket dir exists
+mkdirSync(socketDir, { recursive: true });
+
+// spawn claude via pty
+const pty = spawn('claude', ['--resume'], {
+  name: 'xterm-256color',
+  cols: process.stdout.columns || 80,
+  rows: process.stdout.rows || 24,
+  cwd: process.cwd(),
+  env: process.env,
+});
+
+// pipe pty to stdout
+pty.onData((data) => process.stdout.write(data));
+
+// pipe stdin to pty
+process.stdin.setRawMode?.(true);
+process.stdin.on('data', (data) => pty.write(data.toString()));
+
+// create socket server for injection
+const server = createServer((conn) => {
+  console.error(`[wrapper] socket connection from client`);
+  conn.on('data', (data) => {
+    const msg = data.toString();
+    console.error(`[wrapper] inject: ${msg.slice(0, 50)}...`);
+    pty.write(msg);  // write to pty master → claude's stdin
+  });
+  conn.on('close', () => {
+    console.error(`[wrapper] client disconnected`);
+  });
+});
+
+server.listen(socketPath, () => {
+  console.error(`[wrapper] socket ready at ${socketPath}`);
+});
+
+// cleanup on exit
+const cleanup = () => {
+  server.close();
+  pty.kill();
+  process.exit(0);
+};
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+```
+
+### test-inject.ts
+
+```typescript
+import { createConnection } from 'net';
+
+const actorId = process.argv[2] || 'test-actor';
+const socketPath = `.agent/.sockets/for.actor=${actorId}.sock`;
+const message = process.argv[3] || 'hello from socket injection\n';
+
+const client = createConnection(socketPath, () => {
+  console.log(`connected to ${socketPath}`);
+  client.write(message);
+  client.end();
+});
+
+client.on('error', (err) => {
+  console.error(`failed to connect: ${err.message}`);
+  process.exit(1);
+});
+```
+
+## .test procedure
+
+1. terminal A: `npx tsx refs/poc.pty-wrapper/wrapper.ts`
+2. terminal B: `npx tsx refs/poc.pty-wrapper/test-inject.ts test-actor "what is 2+2?\n"`
+3. observe: claude receives "what is 2+2?" and responds
+
+## .dependencies
+
+- node-pty (npm package for pty)
+- claude cli installed and authenticated
+
+## .questions to answer
+
+1. does node-pty work on linux/mac?
+2. does stdin injection wake claude from idle-at-prompt?
+3. what happens if claude is mid-response when injection occurs?
+4. does --resume work as expected?
