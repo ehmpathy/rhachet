@@ -47,6 +47,15 @@ const parseGradeShorthand = (gradeStr: unknown): KeyrackKeySpec['grade'] => {
 };
 
 /**
+ * .what = extract env names from section keys (env.* sections except env.all)
+ * .why = transforms 'env.test' -> 'test', 'env.prod' -> 'prod'; ignores 'env.all'
+ */
+const asEnvNamesFromSectionKeys = (input: {
+  sectionKeys: string[];
+}): string[] =>
+  input.sectionKeys.filter((k) => k !== 'env.all').map((k) => k.slice(4)); // remove 'env.' prefix
+
+/**
  * .what = extract keys from env sections of a manifest
  * .why = reusable key extraction for both root and extended manifests
  *
@@ -61,9 +70,9 @@ const extractKeysFromEnvSections = (input: {
   const { org, envSections } = input;
 
   // identify declared envs (env.* sections except env.all)
-  const declaredEnvs = Object.keys(envSections)
-    .filter((k) => k !== 'env.all')
-    .map((k) => k.slice(4)); // remove 'env.' prefix
+  const declaredEnvs = asEnvNamesFromSectionKeys({
+    sectionKeys: Object.keys(envSections),
+  });
 
   // extract env.all entries
   const envAllEntries: Array<{
@@ -82,7 +91,7 @@ const extractKeysFromEnvSections = (input: {
     const slug = `${org}.all.${key}`;
     keys[slug] = new KeyrackKeySpec({
       slug,
-      mech: 'PERMANENT_VIA_REPLICA',
+      mech: null,
       env: 'all',
       name: key,
       grade,
@@ -96,7 +105,7 @@ const extractKeysFromEnvSections = (input: {
       const slug = `${org}.${env}.${key}`;
       keys[slug] = new KeyrackKeySpec({
         slug,
-        mech: 'PERMANENT_VIA_REPLICA',
+        mech: null,
         env,
         name: key,
         grade,
@@ -111,7 +120,7 @@ const extractKeysFromEnvSections = (input: {
         const slug = `${org}.${env}.${key}`;
         keys[slug] = new KeyrackKeySpec({
           slug,
-          mech: 'PERMANENT_VIA_REPLICA',
+          mech: null,
           env,
           name: key,
           grade,
@@ -206,13 +215,13 @@ export const hydrateKeyrackRepoManifest = (
   const finalKeys = { ...mergedKeys, ...rootKeys };
 
   // extract declared envs from root manifest
-  const envSections = Object.keys(explicit.envSections)
-    .filter((k) => k !== 'env.all')
-    .map((k) => k.slice(4));
+  const envNames = asEnvNamesFromSectionKeys({
+    sectionKeys: Object.keys(explicit.envSections),
+  });
 
   return new KeyrackRepoManifest({
     org: explicit.org,
-    envs: envSections,
+    envs: envNames,
     keys: finalKeys,
     extends: extendsChain.length > 0 ? extendsChain : undefined,
   });

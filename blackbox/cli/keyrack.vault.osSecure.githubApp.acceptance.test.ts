@@ -329,12 +329,13 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       const result = useBeforeAll(async () => {
         // answers: 2 (EPHEMERAL_VIA_GITHUB_APP is option 2), then guided setup answers
         // but without mock gh, it will fall back to manual input
+        // .note = withStdoutPrefix handles indentation; prompts have no hardcoded indent
         const r = spawnSync(
           'node',
           [
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault os.secure`,
-            '   choice: |enter secret for',
+            'choice: |enter secret for',
             '1', // select PERMANENT_VIA_REPLICA (simpler - just needs stdin value)
             'test-secret-value',
           ],

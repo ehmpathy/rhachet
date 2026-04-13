@@ -201,9 +201,12 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
       console.log('   ├─ which github app secret?');
       const pemPath = await question('   │  └─ private key path (.pem): ');
 
-      // read and format pem content
-      // expand ~ to home directory (shell feature not available in Node.js fs)
-      const pemPathExpanded = pemPath.trim().replace(/^~(?=$|\/)/, homedir());
+      // expand ~ to home directory (node doesn't do this automatically)
+      const pemPathExpanded = pemPath
+        .trim()
+        .replace(/^~(?=$|\/|\\)/, homedir());
+
+      // read pem content
       let privateKey: string;
       try {
         privateKey = readFileSync(pemPathExpanded, 'utf-8');

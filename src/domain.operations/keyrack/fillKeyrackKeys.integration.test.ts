@@ -8,6 +8,10 @@ import {
   genMockPromptHiddenInput,
   setMockPromptValues,
 } from '@src/.test/infra/mockPromptHiddenInput';
+import {
+  genMockPromptLineInput,
+  setMockPromptLineValues,
+} from '@src/.test/infra/mockPromptLineInput';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
@@ -22,6 +26,8 @@ import { fillKeyrackKeys } from './fillKeyrackKeys';
 
 // mock stdin prompts for vault adapters
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
+// mock stdin prompts for mech selection
+jest.mock('@src/infra/promptLineInput', () => genMockPromptLineInput());
 
 /**
  * .what = writes a secret directly to os.direct vault storage
@@ -191,6 +197,12 @@ env.test:
           (l) => typeof l === 'string' && l.includes('found vaulted under'),
         );
         expect(skipLog).toContain('testorg.all.API_KEY');
+
+        // snapshot the tree output for visual proof in PRs
+        const treeOutput = logCalls
+          .filter((l) => typeof l === 'string')
+          .join('\n');
+        expect(treeOutput).toMatchSnapshot();
       });
     });
   });
@@ -236,7 +248,9 @@ env.test:
 
     when('[t0] fill is called with env=test', () => {
       then('sets all 2 keys via prompts', async () => {
-        // provide mock stdin values for both keys
+        // provide mock stdin values: mech selection (line) + secret (hidden)
+        // '1' = PERMANENT_VIA_REPLICA (2 keys = 2 mech prompts)
+        setMockPromptLineValues(['1', '1']);
         setMockPromptValues(['api-key-value-1', 'secret-token-value-2']);
 
         const result = await fillKeyrackKeys(
@@ -264,6 +278,12 @@ env.test:
         );
         expect(keyLogs.some((l) => l.includes('API_KEY'))).toBe(true);
         expect(keyLogs.some((l) => l.includes('SECRET_TOKEN'))).toBe(true);
+
+        // snapshot the tree output for visual proof in PRs
+        const treeOutput = logCalls
+          .filter((l) => typeof l === 'string')
+          .join('\n');
+        expect(treeOutput).toMatchSnapshot();
       });
     });
   });
@@ -316,7 +336,9 @@ env.test:
 
     when('[t0] fill is called with 2 owners', () => {
       then('sets the key for both owners', async () => {
-        // provide mock stdin values for each owner (same key, prompted twice)
+        // provide mock stdin values: mech selection (line) + secret (hidden)
+        // '1' = PERMANENT_VIA_REPLICA (2 owners = 2 mech prompts)
+        setMockPromptLineValues(['1', '1']);
         setMockPromptValues(['api-key-for-ownerA', 'api-key-for-ownerB']);
 
         const result = await fillKeyrackKeys(
@@ -409,7 +431,9 @@ env.test:
 
     when('[t0] fill is called with --refresh', () => {
       then('re-sets the key despite already configured', async () => {
-        // provide mock stdin value for the set prompt
+        // provide mock stdin values: mech selection (line) + secret (hidden)
+        // '1' = PERMANENT_VIA_REPLICA
+        setMockPromptLineValues('1');
         setMockPromptValues('new-api-key-value');
 
         const result = await fillKeyrackKeys(
@@ -618,7 +642,9 @@ env.test:
 
     when('[t0] fill is called with --refresh and 2 owners', () => {
       then('re-sets the key for both owners', async () => {
-        // provide mock stdin values for both owners (refresh prompts for each)
+        // provide mock stdin values: mech selection (line) + secret (hidden)
+        // '1' = PERMANENT_VIA_REPLICA (2 owners = 2 mech prompts)
+        setMockPromptLineValues(['1', '1']);
         setMockPromptValues(['new-api-key-ownerA', 'new-api-key-ownerB']);
 
         const result = await fillKeyrackKeys(
@@ -711,7 +737,9 @@ env.prod:
 
     when('[t0] fill is called with env=prod', () => {
       then('stores USPTO_ODP_API_KEY under rhight org', async () => {
-        // provide mock stdin values for both keys
+        // provide mock stdin values: mech selection (line) + secret (hidden)
+        // '1' = PERMANENT_VIA_REPLICA (2 keys = 2 mech prompts)
+        setMockPromptLineValues(['1', '1']);
         setMockPromptValues(['db-password-value', 'uspto-key-value']);
 
         const result = await fillKeyrackKeys(

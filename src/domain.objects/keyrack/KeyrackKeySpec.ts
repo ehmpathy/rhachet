@@ -14,10 +14,11 @@ export interface KeyrackKeySpec {
   slug: string;
 
   /**
-   * .what = mechanism constraint for this key
+   * .what = mechanism constraint for this key, or null if not declared
    * .why = enables firewall to block long-lived tokens when short-lived alternatives exist
+   * .note = null means no constraint — vault adapter will prompt for mech selection
    */
-  mech: KeyrackGrantMechanism;
+  mech: KeyrackGrantMechanism | null;
 
   /**
    * .what = which env this key belongs to
