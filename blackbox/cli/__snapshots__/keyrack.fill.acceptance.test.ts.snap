@@ -42,3 +42,24 @@ exports[`keyrack fill cli given: [case6] repo with env.test key already set as e
 
 "
 `;
+
+exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (pseudo-TTY) when: [t0] keyrack fill --env test via pseudo-TTY (prompts for mech) then: stdout matches snapshot 1`] = `
+"🔐 keyrack fill (env: test, keys: 1, owners: 1)
+🔑 key 1/1, API_KEY, for 1 owner
+   └─ for owner default
+[keyrack-daemon] spawned background daemon (pid: __PID__)
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for API_KEY: **********************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key API_KEY --env test --owner default
+🔐 keyrack fill complete (1/1 keys verified)"
+`;

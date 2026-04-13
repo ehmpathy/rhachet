@@ -1,5 +1,6 @@
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 import { promptHiddenInput } from '@src/infra/promptHiddenInput';
+import { getStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
 /**
  * .what = patterns that indicate long-lived tokens
@@ -93,7 +94,14 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
     // extract key name from slug for user-friendly prompt
     const keyName = input.keySlug.split('.').pop() ?? input.keySlug;
 
+    // emit newline to ensure we're on a fresh line after PTY echo
+    // .note = PTY echoes input directly (bypasses Node), so withStdoutPrefix doesn't
+    //         know cursor moved to new line; newline resets atLineStart state
+    // .note = withStdoutPrefix will auto-add prefix since atLineStart is now true
+    if (getStdoutPrefix()) process.stdout.write('\n');
+
     // prompt for secret via hidden input (handles TTY and piped stdin)
+    // .note = no manual prefix needed; withStdoutPrefix auto-prefixes when atLineStart
     const source = await promptHiddenInput({
       prompt: `enter secret for ${keyName}: `,
     });

@@ -1,9 +1,10 @@
+import { BadRequestError } from 'helpful-errors';
+
 import type {
   KeyrackGrantMechanism,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
-
-import { createInterface } from 'node:readline';
+import { promptLineInput } from '@src/infra/promptLineInput';
 
 /**
  * .what = human-friendly descriptions for each mechanism
@@ -36,41 +37,24 @@ export const inferKeyrackMechForSet = async (input: {
   }
 
   // multiple mechs: prompt via stdin
-  // .note = always use terminal: false for consistent behavior with pty-with-answers
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    terminal: false,
+  // build options list with treestruct markers
+  // .note = withStdoutPrefix adds the base indent; we add tree markers only
+  console.log('');
+  console.log('which mechanism?');
+  supported.forEach((mech, i) => {
+    const isLast = i === supported.length - 1;
+    const marker = isLast ? '└─' : '├─';
+    console.log(`${marker} ${i + 1}. ${mech} — ${MECH_DESCRIPTIONS[mech]}`);
   });
 
-  return new Promise((accept, reject) => {
-    // build options list
-    const options = supported
-      .map((mech, i) => `   ${i + 1}. ${mech} — ${MECH_DESCRIPTIONS[mech]}`)
-      .join('\n');
-
-    console.log('');
-    console.log('   which mechanism?');
-    console.log(options);
-    console.log('');
-
-    // write prompt explicitly (readline with terminal:false doesn't emit prompt)
-    process.stdout.write('   choice: ');
-
-    rl.once('line', (answer) => {
-      rl.close();
-
-      const choice = parseInt(answer, 10);
-      if (isNaN(choice) || choice < 1 || choice > supported.length) {
-        reject(
-          new Error(
-            `invalid choice: ${answer}; expected 1-${supported.length}`,
-          ),
-        );
-        return;
-      }
-
-      accept(supported[choice - 1]!);
+  const answer = await promptLineInput({ prompt: 'choice: ' });
+  const choice = parseInt(answer, 10);
+  if (isNaN(choice) || choice < 1 || choice > supported.length) {
+    throw new BadRequestError('invalid mechanism choice', {
+      answer,
+      expected: `1-${supported.length}`,
     });
-  });
+  }
+
+  return supported[choice - 1]!;
 };

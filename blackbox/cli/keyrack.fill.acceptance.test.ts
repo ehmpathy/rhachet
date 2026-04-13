@@ -1,7 +1,23 @@
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
+
+/**
+ * .what = path to the rhachet binary
+ * .why = needed for pseudo-TTY invocation via the pty-with-answers wrapper
+ */
+const RHACHET_BIN = resolve(__dirname, '../../bin/run');
+
+/**
+ * .what = path to the PTY answer-feeder helper
+ * .why = watches stdout for prompt patterns and sends answers on detection (not timing)
+ */
+const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js');
 
 describe('keyrack fill cli', () => {
   /**
@@ -217,6 +233,97 @@ describe('keyrack fill cli', () => {
 
       then('stdout matches snapshot', () => {
         expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * test case: fill prompts for mechanism selection via PTY
+   * verifies that fill shows "which mechanism?" prompt when vault supports multiple mechs
+   * .note = this is the key acceptance test for the mech inference fix
+   */
+  given('[case7] fill prompts for mechanism selection (pseudo-TTY)', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init (creates encrypted manifest + ssh key discovery)
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest with key in env.test
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - API_KEY\n',
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] keyrack fill --env test via pseudo-TTY (prompts for mech)', () => {
+      const result = useBeforeAll(async () => {
+        // invoke via pseudo-TTY so interactive prompts work
+        // prompt pattern: "choice" for mech selection, "enter secret for" for secret input
+        // answers: 1 (PERMANENT_VIA_REPLICA), then the secret value
+        // .note = withStdoutPrefix handles indentation; prompts have no hardcoded indent
+        const r = spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack fill --env test`,
+            'choice: |enter secret for',
+            '1', // select PERMANENT_VIA_REPLICA
+            'test-fill-secret-value',
+          ],
+          {
+            encoding: 'utf-8',
+            cwd: repo.path,
+            env: { ...process.env, HOME: repo.path },
+            timeout: 60000,
+          },
+        );
+        return r;
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains mechanism selection prompt', () => {
+        const out = result.stdout;
+        // should show "which mechanism?" and available mechs
+        expect(out).toContain('which mechanism');
+        expect(out).toMatch(/PERMANENT_VIA_REPLICA|EPHEMERAL_VIA_GITHUB_APP/i);
+      });
+
+      then('output shows key was set', () => {
+        const out = result.stdout;
+        expect(out).toContain('API_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        // strip ANSI escape codes and PTY control sequences for stable snapshot
+        const stripped = result.stdout
+          .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '') // ANSI escape sequences
+          .replace(/\x1B\]/g, '') // OSC sequences
+          .replace(/\r/g, '') // carriage returns from PTY
+          .replace(/·/g, '') // middle dots from PTY
+          .replace(/\s+$/gm, '') // trim end-of-line whitespace
+          .replace(/\(pid: \d+\)/g, '(pid: __PID__)'); // redact daemon PID
+        // trim PTY echo noise before tree header
+        const treeStart = stripped.indexOf('\u{1F510}');
+        const clean = stripped
+          .slice(treeStart >= 0 ? treeStart : 0)
+          .trim();
+        expect(clean).toMatchSnapshot();
       });
     });
   });
