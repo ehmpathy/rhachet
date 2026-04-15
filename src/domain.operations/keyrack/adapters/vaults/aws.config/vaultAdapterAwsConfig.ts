@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -67,7 +67,7 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
   } catch (error) {
     // rethrow our own error types (code defects, invalid requests)
     if (error instanceof UnexpectedCodePathError) throw error;
-    if (error instanceof BadRequestError) throw error;
+    if (error instanceof ConstraintError) throw error;
 
     // allow expected errors: command failed = session expired or profile invalid
     // .note = aws cli exits non-zero for expired sessions and invalid profiles
@@ -95,9 +95,10 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
         accept();
       } else {
         reject(
-          new UnexpectedCodePathError('aws sso login failed', {
+          new ConstraintError('aws sso login failed', {
             profileName,
             exitCode: code,
+            hint: 'complete browser auth to continue',
           }),
         );
       }
@@ -105,9 +106,10 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
 
     child.on('error', (error) => {
       reject(
-        new UnexpectedCodePathError('aws sso login failed', {
+        new ConstraintError('aws sso login failed', {
           profileName,
           error,
+          hint: 'ensure aws cli is installed',
         }),
       );
     });
@@ -180,10 +182,12 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
     // if no mech supplied, return source as-is
     if (!input.mech) return source;
 
-    // transform source → usable secret via mech
+    // validate sso session via mech (triggers browser login if expired)
     const mechAdapter = getMechAdapter(input.mech);
-    const { secret } = await mechAdapter.deliverForGet({ source });
-    return secret;
+    await mechAdapter.deliverForGet({ source });
+
+    // return profile name (AWS SDK resolves credentials from profile)
+    return source;
   },
 
   /**
@@ -202,14 +206,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
 
     // check mech compat (aws.config only supports aws sso mech)
     if (!vaultAdapterAwsConfig.mechs.supported.includes(mech)) {
-      throw new UnexpectedCodePathError(
-        `aws.config does not support mech: ${mech}`,
-        {
-          mech,
-          supported: vaultAdapterAwsConfig.mechs.supported,
-          hint: 'aws.config is for aws sso only; try --vault os.secure for other mechs',
-        },
-      );
+      throw new ConstraintError(`aws.config does not support mech: ${mech}`, {
+        mech,
+        supported: vaultAdapterAwsConfig.mechs.supported,
+        hint: 'aws.config is for aws sso only; try --vault os.secure for other mechs',
+      });
     }
 
     // derive profile name: from exid or guided setup via mech adapter
@@ -222,9 +223,12 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       profileName = result.source;
     }
     if (!profileName) {
-      throw new UnexpectedCodePathError(
+      throw new ConstraintError(
         'aws.config set requires a profile name (--exid or guided setup)',
-        { slug: input.slug },
+        {
+          slug: input.slug,
+          hint: 'provide --exid or run in tty for guided setup',
+        },
       );
     }
 
@@ -236,18 +240,22 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       // --exid case: just verify profile exists in config file
       const profileExists = checkProfileExists(profileName);
       if (!profileExists) {
-        throw new UnexpectedCodePathError(
-          `aws profile '${profileName}' not found in ~/.aws/config. check the profile name.`,
-          { slug: input.slug, profileName },
+        throw new ConstraintError(
+          `aws profile '${profileName}' not found in ~/.aws/config`,
+          { slug: input.slug, profileName, hint: 'check the profile name' },
         );
       }
     } else {
       // guided setup: validate sso session is active (user just completed browser auth)
       const profileValid = await validateSsoSession(profileName);
       if (!profileValid) {
-        throw new UnexpectedCodePathError(
-          `aws profile '${profileName}' is not valid or has no active sso session. check ~/.aws/config for the profile name.`,
-          { slug: input.slug, profileName },
+        throw new ConstraintError(
+          `aws profile '${profileName}' is not valid or has no active sso session`,
+          {
+            slug: input.slug,
+            profileName,
+            hint: 'check ~/.aws/config for the profile name',
+          },
         );
       }
     }
@@ -316,7 +324,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
     } catch (error) {
       // rethrow our own error types (code defects, invalid requests)
       if (error instanceof UnexpectedCodePathError) throw error;
-      if (error instanceof BadRequestError) throw error;
+      if (error instanceof ConstraintError) throw error;
 
       // allow expected errors: command failed = already logged out
       // .note = aws cli exits non-zero when no active sso session

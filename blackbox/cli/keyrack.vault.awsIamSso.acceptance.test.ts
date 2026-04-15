@@ -1072,12 +1072,11 @@ describe('keyrack vault aws.config', () => {
         expect(parsed.status).toEqual('granted');
       });
 
-      then('value is the transformed credentials json', () => {
-        // .note = AWS SSO mech transforms profile name → credentials JSON
+      then('value is the profile name (not credentials json)', () => {
+        // .note = vault adapter returns profile name; AWS SDK resolves creds from profile
+        // .note = user sets AWS_PROFILE=$(rhx keyrack get --key AWS_PROFILE --env test)
         const parsed = JSON.parse(result.stdout);
-        const creds = JSON.parse(parsed.grant.key.secret);
-        expect(creds.AWS_ACCESS_KEY_ID).toBeDefined();
-        expect(creds.AWS_SECRET_ACCESS_KEY).toBeDefined();
+        expect(parsed.grant.key.secret).toEqual('testorg.dev');
       });
 
       then('stdout matches snapshot', () => {

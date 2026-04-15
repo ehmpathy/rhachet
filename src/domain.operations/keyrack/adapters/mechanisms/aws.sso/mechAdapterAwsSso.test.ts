@@ -176,13 +176,11 @@ describe('mechAdapterAwsSso', () => {
     );
   });
 
-  given('[case4] cached credentials validation', () => {
-    when('[t0] validate called with valid cached credentials', () => {
-      const cached = JSON.stringify({
-        AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
-        AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        AWS_SESSION_TOKEN: 'token123',
-      });
+  given('[case4] cached profile name validation', () => {
+    // .note = cached values are now profile names (not JSON credentials)
+    // .note = user sets AWS_PROFILE=$(rhx keyrack get ...), AWS SDK resolves creds from profile
+    when('[t0] validate called with valid cached profile name', () => {
+      const cached = 'myorg-prod';
       const result = mechAdapterAwsSso.validate({ cached });
 
       then('validation passes', () => {
@@ -194,56 +192,40 @@ describe('mechAdapterAwsSso', () => {
       });
     });
 
-    when(
-      '[t1] validate called with cached credentials that lack access key',
-      () => {
-        const cached = JSON.stringify({
-          AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        });
-        const result = mechAdapterAwsSso.validate({ cached });
+    when('[t1] validate called with profile name that has dots', () => {
+      const cached = 'myorg.dev';
+      const result = mechAdapterAwsSso.validate({ cached });
 
-        then('validation fails', () => {
-          expect(result.valid).toBe(false);
-        });
+      then('validation passes', () => {
+        expect(result.valid).toBe(true);
+      });
+    });
 
-        then('reason mentions lack access key', () => {
-          if (!result.valid) {
-            expect(result.reasons?.[0]).toContain('AWS_ACCESS_KEY_ID');
-          }
-        });
-      },
-    );
-
-    when(
-      '[t2] validate called with cached credentials that lack secret key',
-      () => {
-        const cached = JSON.stringify({
-          AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
-        });
-        const result = mechAdapterAwsSso.validate({ cached });
-
-        then('validation fails', () => {
-          expect(result.valid).toBe(false);
-        });
-
-        then('reason mentions lack secret key', () => {
-          if (!result.valid) {
-            expect(result.reasons?.[0]).toContain('AWS_SECRET_ACCESS_KEY');
-          }
-        });
-      },
-    );
-
-    when('[t3] validate called with invalid json', () => {
-      const result = mechAdapterAwsSso.validate({ cached: 'not-json' });
+    when('[t2] validate called with invalid profile name (starts with dash)', () => {
+      const cached = '-invalid-profile';
+      const result = mechAdapterAwsSso.validate({ cached });
 
       then('validation fails', () => {
         expect(result.valid).toBe(false);
       });
 
-      then('reason mentions invalid json', () => {
+      then('reason mentions invalid profile name', () => {
         if (!result.valid) {
-          expect(result.reasons?.[0]).toContain('not valid json');
+          expect(result.reasons?.[0]).toContain('not a valid aws profile name');
+        }
+      });
+    });
+
+    when('[t3] validate called with invalid profile name (has spaces)', () => {
+      const result = mechAdapterAwsSso.validate({ cached: 'profile with spaces' });
+
+      then('validation fails', () => {
+        expect(result.valid).toBe(false);
+      });
+
+      then('reason mentions invalid profile name', () => {
+        if (!result.valid) {
+          expect(result.reasons?.[0]).toContain('not a valid aws profile name');
         }
       });
     });

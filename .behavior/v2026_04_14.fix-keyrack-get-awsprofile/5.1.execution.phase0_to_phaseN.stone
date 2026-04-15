@@ -1,0 +1,24 @@
+bootup your mechanic's role via `npx rhachet roles boot --repo ehmpathy --role mechanic`
+
+then, start or continue to execute
+- phase0 to phaseN
+of roadmap
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/4.1.roadmap.yield.md
+
+ref:
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/0.wish.md
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/1.vision.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/2.1.criteria.blackbox.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/2.3.criteria.blueprint.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/3.2.distill.domain.*.yield.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/3.2.distill.repros.experience.*.yield.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/3.3.0.blueprint.factory.yield.md (if declared)
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/3.3.1.blueprint.product.yield.md
+
+
+---
+
+track your progress
+
+emit todos and check them off into
+- .behavior/v2026_04_14.fix-keyrack-get-awsprofile/5.1.execution.phase0_to_phaseN.yield.md
