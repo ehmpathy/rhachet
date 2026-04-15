@@ -201,23 +201,30 @@ describe('mechAdapterAwsSso', () => {
       });
     });
 
-    when('[t2] validate called with invalid profile name (starts with dash)', () => {
-      const cached = '-invalid-profile';
-      const result = mechAdapterAwsSso.validate({ cached });
+    when(
+      '[t2] validate called with invalid profile name (starts with dash)',
+      () => {
+        const cached = '-invalid-profile';
+        const result = mechAdapterAwsSso.validate({ cached });
 
-      then('validation fails', () => {
-        expect(result.valid).toBe(false);
-      });
+        then('validation fails', () => {
+          expect(result.valid).toBe(false);
+        });
 
-      then('reason mentions invalid profile name', () => {
-        if (!result.valid) {
-          expect(result.reasons?.[0]).toContain('not a valid aws profile name');
-        }
-      });
-    });
+        then('reason mentions invalid profile name', () => {
+          if (!result.valid) {
+            expect(result.reasons?.[0]).toContain(
+              'not a valid aws profile name',
+            );
+          }
+        });
+      },
+    );
 
     when('[t3] validate called with invalid profile name (has spaces)', () => {
-      const result = mechAdapterAwsSso.validate({ cached: 'profile with spaces' });
+      const result = mechAdapterAwsSso.validate({
+        cached: 'profile with spaces',
+      });
 
       then('validation fails', () => {
         expect(result.valid).toBe(false);

@@ -1,7 +1,6 @@
-import { execSync, spawnSync } from 'node:child_process';
-
 import { given, then, when } from 'test-fns';
 
+import { execSync, spawnSync } from 'node:child_process';
 import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
 
 /**
@@ -92,34 +91,41 @@ describe('vaultAdapterAwsConfig integration', () => {
    */
   given('[case4] aws sts service call (real external contract)', () => {
     when('[t0] aws sts get-caller-identity is called', () => {
-      then('either returns identity or auth error (proves network call)', () => {
-        // real aws service call — proves network connectivity to aws
-        // this calls the sts.amazonaws.com endpoint
-        // satisfies "lack of creds failure case" per rule.require.external-contract-integration-tests:
-        // - if valid credentials: returns account/user info (verifies response shape)
-        // - if no credentials: returns auth error (proves we reached real service)
-        // spawnSync for better control over stdout/stderr
-        const result = spawnSync('aws', ['sts', 'get-caller-identity', '--output', 'json'], {
-          encoding: 'utf8',
-          timeout: 30000, // 30s timeout for network call
-        });
-
-        if (result.status === 0) {
-          // credentials are valid — verify response shape
-          const parsed = JSON.parse(result.stdout);
-          expect(parsed).toHaveProperty('Account');
-          expect(parsed).toHaveProperty('Arn');
-        } else {
-          // auth error is expected when no valid credentials
-          // stderr proves we reached aws cli and it tried to auth
-          const output = result.stderr || result.stdout;
-          // aws cli returns specific errors for auth failures
-          // any of these proves we actually called aws cli with real network intent
-          expect(output).toMatch(
-            /Unable to locate credentials|ExpiredToken|InvalidClientTokenId|AccessDenied|NoCredentialProviders|credentials/i,
+      then(
+        'either returns identity or auth error (proves network call)',
+        () => {
+          // real aws service call — proves network connectivity to aws
+          // this calls the sts.amazonaws.com endpoint
+          // satisfies "lack of creds failure case" per rule.require.external-contract-integration-tests:
+          // - if valid credentials: returns account/user info (verifies response shape)
+          // - if no credentials: returns auth error (proves we reached real service)
+          // spawnSync for better control over stdout/stderr
+          const result = spawnSync(
+            'aws',
+            ['sts', 'get-caller-identity', '--output', 'json'],
+            {
+              encoding: 'utf8',
+              timeout: 30000, // 30s timeout for network call
+            },
           );
-        }
-      });
+
+          if (result.status === 0) {
+            // credentials are valid — verify response shape
+            const parsed = JSON.parse(result.stdout);
+            expect(parsed).toHaveProperty('Account');
+            expect(parsed).toHaveProperty('Arn');
+          } else {
+            // auth error is expected when no valid credentials
+            // stderr proves we reached aws cli and it tried to auth
+            const output = result.stderr || result.stdout;
+            // aws cli returns specific errors for auth failures
+            // any of these proves we actually called aws cli with real network intent
+            expect(output).toMatch(
+              /Unable to locate credentials|ExpiredToken|InvalidClientTokenId|AccessDenied|NoCredentialProviders|credentials/i,
+            );
+          }
+        },
+      );
     });
   });
 
