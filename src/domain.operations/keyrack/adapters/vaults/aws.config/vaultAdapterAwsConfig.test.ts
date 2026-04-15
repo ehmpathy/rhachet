@@ -1,11 +1,23 @@
 import { given, then, when } from 'test-fns';
 
 /**
- * .note = mocks child_process (exec, spawn) and fs to simulate aws cli behavior
- * .why = aws sso requires browser-based oauth flow — cannot be automated in tests
- *        see: aws sso uses interactive browser auth to approve access
- *        mocks allow test of adapter logic without real aws credentials
- * .note = no snapshot coverage because aws.config is internal vault adapter, not user-faced contract
+ * .what = unit tests for vaultAdapterAwsConfig
+ *
+ * .why = verify adapter logic without real aws credentials
+ *
+ * .scope = internal vault adapter (NOT user-faced contract)
+ *   - vaultAdapterAwsConfig is infrastructure in domain.operations/keyrack/adapters/
+ *   - user-faced contracts are CLI commands tested in blackbox/cli/keyrack.vault.awsIamSso.acceptance.test.ts
+ *   - therefore: no snapshot coverage required per rule.require.contract-snapshot-exhaustiveness
+ *
+ * .rule-compliance:
+ *   - rule.require.contract-snapshot-exhaustiveness: NOT APPLICABLE
+ *     - this is an internal adapter, not a user-faced contract
+ *     - user-faced contracts (CLI) have snapshot coverage in acceptance tests
+ *
+ * .mocks = child_process (exec, spawn) and fs to simulate aws cli behavior
+ *   - aws sso requires browser-based oauth flow — cannot be automated
+ *   - mocks allow test of adapter logic without real credentials
  */
 
 // mock child_process.exec and spawn before import
@@ -143,6 +155,33 @@ describe('vaultAdapterAwsConfig', () => {
         const result = await vaultAdapterAwsConfig.get({
           slug: 'acme.prod.AWS_PROFILE',
           exid: 'acme-prod',
+        });
+        expect(result).toEqual('acme-prod');
+      });
+    });
+
+    when('[t0.5] get called with exid and mech', () => {
+      beforeEach(() => {
+        // mock aws configure export-credentials output (mech.deliverForGet calls this)
+        execMock.mockImplementation((cmd: string, callback: any) => {
+          callback(null, {
+            stdout: [
+              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+              'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
+              'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
+            ].join('\n'),
+            stderr: '',
+          });
+          return {} as any;
+        });
+      });
+
+      then('returns the exid (profile name), not credentials', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+          mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
         expect(result).toEqual('acme-prod');
       });

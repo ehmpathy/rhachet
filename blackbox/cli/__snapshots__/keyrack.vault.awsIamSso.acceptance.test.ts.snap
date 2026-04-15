@@ -279,7 +279,7 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
         "duration": "ephemeral",
         "protection": "reference",
       },
-      "secret": "{"AWS_ACCESS_KEY_ID":"AKIAMOCKACCESSKEY123","AWS_SECRET_ACCESS_KEY":"MockSecretAccessKey123456789","AWS_SESSION_TOKEN":"MockSessionToken123456789012345678901234567890","AWS_CREDENTIAL_EXPIRATION":"2099-12-31T23:59:59Z"}",
+      "secret": "testorg.dev",
     },
     "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",

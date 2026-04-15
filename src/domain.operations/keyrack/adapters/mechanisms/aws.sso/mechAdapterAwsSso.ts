@@ -55,17 +55,25 @@ const isValidCachedCredentials = (
 
 export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
   /**
-   * .what = validate that value is a valid aws profile name or cached credentials
-   * .why = ensures stored value can be used for sso refresh or cached creds are valid
+   * .what = validate that value is a valid aws profile name
+   * .why = ensures stored value can be used with aws cli --profile flag
    *
-   * .note = source expects profile name (alphanumeric with dashes/underscores)
-   * .note = cached expects json with AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-   * .note = source validation includes sso session check via sts get-caller-identity
+   * .note = source and cached both expect profile name (alphanumeric with dashes/underscores/dots)
+   * .note = sso session validation happens at access time, not at cache validation time
+   * .note = profile name is returned by keyrack get, user sets AWS_PROFILE env var directly
    */
   validate: (input) => {
-    // validate cached ephemeral (credentials json)
+    // validate cached value (profile name)
+    // .note = vault adapter now returns profile name, not credentials json
+    // .note = user sets AWS_PROFILE=$(rhx keyrack get ...), AWS SDK resolves creds from profile
     if (input.cached) {
-      return isValidCachedCredentials(input.cached);
+      if (!isValidProfileName(input.cached)) {
+        return {
+          valid: false,
+          reasons: ['aws_sso: cached value is not a valid aws profile name'],
+        };
+      }
+      return { valid: true };
     }
 
     // validate source credential (profile name)
