@@ -1,0 +1,51 @@
+reviews:
+  self:
+    - slug: has-complete-implementation-record
+      say: |
+        double-check: did you document everything that was implemented?
+
+        - is every file change recorded in the filediff tree?
+        - is every codepath change recorded in the codepath tree?
+        - is every test recorded in the test coverage section?
+
+        silent changes are dangerous. if it's not documented, it didn't happen.
+        go back and check git diff against origin/main.
+
+    - slug: has-divergence-analysis
+      say: |
+        double-check: did you find all the divergences?
+
+        compare blueprint vs implementation for each section:
+        - summary: does the actual match the declared?
+        - filediff: are all files accounted for?
+        - codepath: are all codepaths accounted for?
+        - test coverage: are all tests accounted for?
+
+        be skeptical. assume you missed something.
+        what would a hostile reviewer find that you overlooked?
+
+    - slug: has-divergence-addressed
+      say: |
+        double-check: did you address each divergence properly?
+
+        for each divergence:
+        - if repaired: did you actually make the fix? is it visible in git?
+        - if backed up: is the rationale convincing? would a skeptic accept it?
+
+        question each backup skeptically:
+        - is this truly an improvement, or just laziness?
+        - did we just not want to do the work the blueprint required?
+        - could this divergence cause problems later?
+
+        a backup without strong rationale is a defect. repair it instead.
+
+    - slug: has-no-silent-scope-creep
+      say: |
+        double-check: did any scope creep into the implementation?
+
+        - did you add features not in the blueprint?
+        - did you change things "while you were in there"?
+        - did you refactor code unrelated to the wish?
+
+        scope creep is a divergence. document it and address it.
+        enumerate each with [repair] or [backup] decision in the review file.

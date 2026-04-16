@@ -1,0 +1,27 @@
+# 3.1.1.research.internal.q9.keyrack-glob-support
+
+## question
+
+does keyrack unlock support glob patterns like `--key 'CLAUDE_OAUTH_TOKEN_*'`?
+
+## options
+
+- yes, glob works today
+- no, need to implement
+- partial (some commands support, others don't)
+
+## why it matters
+
+glob support enables clean UX: `rhx keyrack unlock --key 'TOKEN_*'` instead of N separate commands.
+
+## research approach
+
+check keyrack source code, test with glob pattern, verify behavior.
+
+## note
+
+this is internal research — check rhachet codebase.
+
+## .status
+
+awaited

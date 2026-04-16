@@ -1,0 +1,24 @@
+# 3.1.1.research.external.q5.token-validity-period
+
+## question
+
+what is the validity period of tokens from `claude setup-token`?
+
+## options
+
+- 1 year (claimed in docs)
+- shorter (days/weeks)
+- longer (indefinite)
+- configurable
+
+## why it matters
+
+determines token refresh ceremony frequency.
+
+## research approach
+
+check docs, inspect generated token (JWT claims if applicable), empirical test.
+
+## .status
+
+awaited
