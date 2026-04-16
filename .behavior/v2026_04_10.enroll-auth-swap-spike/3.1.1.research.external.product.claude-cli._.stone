@@ -1,0 +1,84 @@
+# 3.1.1.research.external.product.claude-cli
+
+## .what
+
+external research on claude cli behavior for auth-pool implementation.
+
+## .why
+
+the blueprint has open research blockers that must be answered before implementation can proceed. these questions require inspection of claude cli source code or behavior, not this codebase.
+
+---
+
+## questions
+
+### q1: rate limit http code
+
+**question:** what http status code does claude api return when subscription hits rate limit?
+
+**options:**
+- 401 unauthorized (auth-like error)
+- 429 too many requests (explicit rate limit)
+- other?
+
+**why it matters:** determines how `isAuthPoolTokenRateLimited` detects exhaustion.
+
+**research approach:** check claude cli error handle logic, anthropic api docs, or test empirically.
+
+---
+
+### q2: apiKeyHelper trigger scope
+
+**question:** when does claude cli's `apiKeyHelper` get invoked?
+
+**options:**
+- on every request (hot path)
+- only on startup (cold path)
+- only when token is absent or expired
+
+**why it matters:** determines if we can inject via env var dynamically or need restart.
+
+**research approach:** read claude cli source code, search for `apiKeyHelper` usage.
+
+---
+
+### q3: env var for subscription tokens
+
+**question:** which env var does claude cli read for subscription auth tokens?
+
+**options:**
+- `ANTHROPIC_API_KEY` (standard api key)
+- `CLAUDE_AUTH_TOKEN` (subscription-specific)
+- other?
+
+**why it matters:** determines which env var auth-pool must set for token injection.
+
+**research approach:** check claude cli source, test with different env vars.
+
+---
+
+### q4: token format and validity
+
+**question:** what is the format of claude subscription tokens and how long are they valid?
+
+**options:**
+- jwt with expiry claim
+- opaque token with server-side expiry
+- long-lived with no expiry
+
+**why it matters:** determines if auth-pool needs to handle token refresh or just rotation.
+
+**research approach:** inspect token format after `/login`, check jwt claims if applicable.
+
+---
+
+## acceptance criteria
+
+each question answered with:
+- [ ] verified answer
+- [ ] source citation (docs, code, or empirical test)
+- [ ] implications for implementation
+
+## .status
+
+awaited

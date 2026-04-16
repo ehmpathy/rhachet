@@ -1,0 +1,23 @@
+# 3.1.1.research.external.q7.per-brain-isolation
+
+## question
+
+how does auth swap per enrolled brain without impact to global auth state? does apiKeyHelper scope to process, or system-wide?
+
+## options
+
+- process-scoped (each terminal can have different auth)
+- system-wide (all terminals share auth)
+- configurable
+
+## why it matters
+
+determines if rotation in one terminal affects others. if system-wide, need coordination.
+
+## research approach
+
+check apiKeyHelper docs, test with multiple terminals, verify isolation.
+
+## .status
+
+awaited

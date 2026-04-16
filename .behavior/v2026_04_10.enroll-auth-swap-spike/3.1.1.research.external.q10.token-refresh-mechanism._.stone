@@ -1,0 +1,24 @@
+# 3.1.1.research.external.q10.token-refresh-mechanism
+
+## question
+
+how does Claude Code refresh auth tokens for an ALREADY ACTIVE session? does it re-read env vars, or only use apiKeyHelper?
+
+## options
+
+- env vars read once at spawn (cached) — rotation via env var won't work mid-session
+- env vars re-read periodically — rotation via env var will work mid-session
+- apiKeyHelper called periodically — rotation via helper works mid-session
+- combination
+
+## why it matters
+
+if Claude Code caches env var at spawn, we CANNOT swap auth mid-session by env var changes. we MUST use apiKeyHelper.
+
+## research approach
+
+check Claude Code auth docs, test empirically, verify token refresh behavior for active sessions.
+
+## .status
+
+awaited

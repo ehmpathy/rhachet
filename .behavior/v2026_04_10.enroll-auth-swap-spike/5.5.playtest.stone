@@ -1,0 +1,133 @@
+emit a playtest for foreman byhand verification — fix all gaps found
+
+---
+
+## .what
+
+this is the playtest gate — the **final buttonup phase**.
+
+you emit a step-by-step byhand quality assurance checklist that your crew can walk through to verify the deliverable feels right.
+
+automated tests prove the code works. the playtest proves the experience works. **if the playtest reveals gaps, you fix them.**
+
+## .the buttonup mandate: zero omissions
+
+**this is not a detection phase. this is a completion phase.**
+
+when you find a gap — while you write the playtest OR while you run it yourself — you **fix it**.
+
+| gap type | action |
+|----------|--------|
+| playtest step lacks acceptance test | write the acceptance test NOW |
+| playtest reveals broken behavior | fix the behavior NOW |
+| playtest reveals UX friction | fix the UX NOW |
+| playtest step is ambiguous | clarify it NOW |
+
+**if you detect it, you fix it. no exceptions.**
+
+## .strictness: zero tolerance, zero exceptions
+
+**this gate enforces absolute standards. there is no leniency.**
+
+| constraint | definition |
+|------------|------------|
+| zero unproven steps | every step must cite the acceptance test that verifies it |
+| zero untested paths | every playtest step must have automated coverage |
+| zero self-skip | you must run the playtest yourself before emit |
+| zero ambiguity | every step must be copy-pasteable with explicit expected output |
+| zero omissions | if playtest reveals a gap, you fix it before you emit |
+
+**every playtest step maps to an acceptance test.** if a step lacks automated coverage, write the test first.
+
+## .why
+
+**your crew deserves confidence.** they're about to approve work they didn't do themselves. the playtest gives them a path to verify with their own hands.
+
+**automated tests have blind spots.** they verify behavior but miss ux friction, unclear flows, edge cases that "work" but feel wrong. the playtest catches what tests can't.
+
+**the playtest is a contract.** it says: "if you follow these steps and all pass as described, the deliverable is complete." it's explicit proof, not implicit trust.
+
+**test coverage enforces prod coverage.** every playtest step must trace to an acceptance test. if you cannot cite the test, the behavior is unproven. unproven = incomplete = fix it.
+
+## .how
+
+reference the below for full context
+- .behavior/v2026_04_10.enroll-auth-swap/0.wish.md
+- .behavior/v2026_04_10.enroll-auth-swap/1.vision.md
+- .behavior/v2026_04_10.enroll-auth-swap/2.1.criteria.blackbox.md (if declared)
+
+---
+
+### step 1: identify behaviors to verify
+
+walk through wish and vision:
+- list every behavior your crew should verify by hand
+- include edge cases and boundary conditions
+- what could go wrong? what inputs are unusual but valid?
+
+**ask yourself:**
+- what would your crew want to try first?
+- what would make them confident the feature works?
+- what would make them nervous if untested?
+
+---
+
+### step 2: write step-by-step instructions
+
+**each step must be:**
+- clear and unambiguous
+- followable by a foreman without prior context
+- commands are copy-pasteable
+- expected outcomes are explicit
+
+**the test:** could someone who has never seen this codebase follow these steps? if not, add more detail.
+
+---
+
+### step 3: include pass/fail criteria
+
+for each step:
+- what does success look like?
+- what would indicate failure?
+
+**be specific.** "it works" is not a pass criterion. "the output shows X and contains Y" is.
+
+---
+
+### step 4: emit the playtest
+
+emit to
+- .behavior/v2026_04_10.enroll-auth-swap/5.5.playtest.yield.md
+
+**playtest structure:**
+
+```
+## playtest: {behavior name}
+
+### prerequisites
+- what your crew needs before start (dependencies, setup, access)
+
+### sandbox
+- all os.fileops (file creates, writes, deletes) must target `@gitroot/.temp/`
+- never pollute the repo root or other directories in playtest steps
+
+### happy paths
+1. [action] → [expected outcome]
+2. [action] → [expected outcome]
+...
+
+### edgey paths
+- [edge case 1] → [expected behavior]
+- [edge case 2] → [expected behavior]
+...
+
+### pass/fail criteria
+- ✓ pass if: {specific observable outcome}
+- ✗ fail if: {specific failure indicator}
+```
+
+---
+
+the guard will block until the foreman approves after the playtest run.
+
+your crew runs the playtest, verifies each step, and approves when satisfied.

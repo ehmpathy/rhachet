@@ -1,0 +1,23 @@
+# 3.1.1.research.external.q4.setup-token-exists
+
+## question
+
+does `claude setup-token` command exist? what does it do?
+
+## options
+
+- exists and generates long-lived OAuth token
+- does not exist (need fallback to ~/.claude/.credentials.json extraction)
+- exists but different behavior
+
+## why it matters
+
+determines token generation ceremony for pool setup.
+
+## research approach
+
+run `claude setup-token --help`, check docs, verify command exists.
+
+## .status
+
+awaited

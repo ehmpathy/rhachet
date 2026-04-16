@@ -1,0 +1,23 @@
+# 3.1.1.research.external.q1.rate-limit-http-code
+
+## question
+
+what http status code does claude api return when subscription hits rate limit?
+
+## options
+
+- 401 unauthorized (auth-like error)
+- 429 too many requests (explicit rate limit)
+- other?
+
+## why it matters
+
+determines how `isAuthPoolTokenRateLimited` detects exhaustion.
+
+## research approach
+
+check claude cli error handle logic, anthropic api docs, or test empirically.
+
+## .status
+
+awaited
