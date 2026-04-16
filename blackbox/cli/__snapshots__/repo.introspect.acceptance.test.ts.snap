@@ -113,7 +113,7 @@ fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
 `;
 
 exports[`rhachet repo introspect given: [case6] rhachet-roles package with orphan .md.min in briefs when: [t0] repo introspect then: error output matches snapshot 1`] = `
-"/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18
+"<src>/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18
   throw new Error(
         ^
 
@@ -121,12 +121,12 @@ Error: orphan .md.min file(s) detected without .md source:
   - <testDir>/roles/mechanic/briefs/orphan.md.min
 
 each .md.min file must have a matched .md source file.
-    at assertZeroOrphanMinifiedBriefs (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18:9)
-    at assertRegistryHasNoOrphanBriefs (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts:29:37)
-    at Command.<anonymous> (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/src/contract/cli/invokeRepoIntrospect.ts:88:38)
-    at async Command.parseAsync (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/node_modules/[4m.pnpm[24m/commander@14.0.0/node_modules/[4mcommander[24m/lib/command.js:1123:5)
-    at async _invoke (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/src/contract/cli/invoke.ts:76:3)
-    at async withEmojiSpaceShim (/home/vlad/git/ehmpathy/_worktrees/rhachet.vlad.fix-repo-manifest-boothook/node_modules/[4m.pnpm[24m/emoji-space-shim@0.1.3/node_modules/[4memoji-space-shim[24m/src/contract/sdk/withEmojiSpaceShim.ts:15:12)
+    at assertZeroOrphanMinifiedBriefs (<src>/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18:9)
+    at assertRegistryHasNoOrphanBriefs (<src>/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts:29:37)
+    at Command.<anonymous> (<src>/contract/cli/invokeRepoIntrospect.ts:88:38)
+    at async Command.parseAsync (<node_modules>/[4mcommander[24m/lib/command.js:1123:5)
+    at async _invoke (<src>/contract/cli/invoke.ts:76:3)
+    at async withEmojiSpaceShim (<src>/contract/sdk/withEmojiSpaceShim.ts:15:12)
 
 Node.js v22.21.0
 "

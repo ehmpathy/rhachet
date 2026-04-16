@@ -296,10 +296,10 @@ describe('rhachet repo introspect', () => {
       });
 
       then('error output matches snapshot', () => {
-        const normalized = result.stderr.replace(
-          new RegExp(repo.path, 'g'),
-          '<testDir>',
-        );
+        const normalized = result.stderr
+          .replace(new RegExp(repo.path, 'g'), '<testDir>')
+          .replace(/\/home\/[^\s]+\/src\//g, '<src>/')
+          .replace(/\/home\/[^\s]+\/node_modules\//g, '<node_modules>/');
         expect(normalized).toMatchSnapshot();
       });
     });
