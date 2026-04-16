@@ -3,14 +3,14 @@ import { BadRequestError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistry } from '@src/domain.objects';
+import { assertRegistryBootHooksDeclared } from '@src/domain.operations/manifest/assertRegistryBootHooksDeclared';
+import { assertRegistryHasNoOrphanBriefs } from '@src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs';
 import { assertRegistrySkillsExecutable } from '@src/domain.operations/manifest/assertRegistrySkillsExecutable';
 import {
   castIntoRoleRegistryManifest,
   serializeRoleRegistryManifest,
 } from '@src/domain.operations/manifest/castIntoRoleRegistryManifest';
-import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
-import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
-import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
+import { findsertPackageJsonManifestConfig } from '@src/domain.operations/manifest/findsertPackageJsonManifestConfig';
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -81,20 +81,11 @@ export const invokeRepoIntrospect = ({
       // fail fast if any skills are not executable
       assertRegistrySkillsExecutable({ registry });
 
+      // fail fast if any role has bootable content but no boot hook
+      assertRegistryBootHooksDeclared({ registry });
+
       // fail fast if any role has orphan .md.min briefs
-      for (const role of registry.roles) {
-        const briefsDirs = Array.isArray(role.briefs.dirs)
-          ? role.briefs.dirs
-          : [role.briefs.dirs];
-        for (const briefsDir of briefsDirs) {
-          const briefFiles = getAllFilesFromDir(briefsDir.uri).sort();
-          const { orphans } = getRoleBriefRefs({
-            briefFiles,
-            briefsDir: briefsDir.uri,
-          });
-          assertZeroOrphanMinifiedBriefs({ orphans });
-        }
-      }
+      assertRegistryHasNoOrphanBriefs({ registry });
 
       // generate manifest
       console.log(``);
@@ -115,34 +106,14 @@ export const invokeRepoIntrospect = ({
         writeFileSync(outputPath, yaml, 'utf8');
         console.log(`   + ${options.output}`);
 
-        // track package.json changes to write once at end
-        let packageJsonChanged = false;
-
-        // findsert rhachet.repo.yml into package.json files array
-        const filesArray: string[] = packageJson.files ?? [];
-        const manifestFilename = 'rhachet.repo.yml';
-        const filesArrayContainsManifest =
-          filesArray.includes(manifestFilename);
-        if (!filesArrayContainsManifest) {
-          packageJson.files = [...filesArray, manifestFilename];
-          packageJsonChanged = true;
-          console.log(`   + package.json:.files += "${manifestFilename}"`);
+        // findsert manifest config into package.json
+        const { changed, additions } = findsertPackageJsonManifestConfig({
+          packageJson,
+        });
+        for (const addition of additions) {
+          console.log(`   + ${addition}`);
         }
-
-        // findsert ./package.json into exports (required for esm compatibility)
-        const exportsField: Record<string, string> | undefined =
-          packageJson.exports;
-        if (exportsField && !exportsField['./package.json']) {
-          packageJson.exports = {
-            ...exportsField,
-            './package.json': './package.json',
-          };
-          packageJsonChanged = true;
-          console.log(`   + package.json:.exports += "./package.json"`);
-        }
-
-        // write package.json if changed
-        if (packageJsonChanged) {
+        if (changed) {
           writeFileSync(
             packageJsonPath,
             JSON.stringify(packageJson, null, 2) + '\n',

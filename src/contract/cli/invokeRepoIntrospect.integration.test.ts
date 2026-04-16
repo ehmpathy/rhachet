@@ -65,6 +65,11 @@ const mechanic = new Role({
     dirs: { uri: testDir + '/src/roles/mechanic/skills' },
     refs: [],
   },
+  hooks: {
+    onBrain: {
+      onBoot: [{ command: 'npx rhachet roles boot --role mechanic' }],
+    },
+  },
 });
 
 const registry = new RoleRegistry({
@@ -127,6 +132,7 @@ exports.getRoleRegistry = () => registry;
         const outputPath = resolve(testDir, 'rhachet.repo.yml');
         const content = readFileSync(outputPath, 'utf8');
         expect(content).toContain('slug: ehmpathy');
+        expect(content).toMatchSnapshot('yaml-output');
       });
 
       then('yaml contains mechanic role', async () => {
@@ -164,6 +170,7 @@ exports.getRoleRegistry = () => registry;
         const logs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
         expect(logs).toContain('slug: ehmpathy');
         expect(logs).toContain('slug: mechanic');
+        expect(logs).toMatchSnapshot('stdout-output');
       });
 
       then('does not create file', async () => {
@@ -564,6 +571,10 @@ exports.getRoleRegistry = () => registry;
         expect(error).toBeDefined();
         expect(error?.message).toContain('non-executable skill files detected');
         expect(error?.message).toContain(skillPath);
+        // snapshot with path normalized for portability
+        expect(
+          error?.message?.replace(new RegExp(testDir, 'g'), '<testDir>'),
+        ).toMatchSnapshot('non-executable-error');
       });
 
       then('error includes fix hint', async () => {
@@ -619,6 +630,10 @@ exports.getRoleRegistry = () => registry;
         expect(error).toBeDefined();
         expect(error?.message).toContain(skillPath1);
         expect(error?.message).toContain(skillPath2);
+        // snapshot with paths normalized for portability
+        expect(
+          error?.message?.replace(new RegExp(testDir, 'g'), '<testDir>'),
+        ).toMatchSnapshot('multiple-non-executable-error');
       });
     });
 

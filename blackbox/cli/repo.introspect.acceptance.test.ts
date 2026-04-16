@@ -12,6 +12,29 @@ import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet repo introspect', () => {
+  given('[case0] --help is invoked', () => {
+    when('[t0] repo introspect --help', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect', '--help'],
+          cwd: process.cwd(),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains command description', () => {
+        expect(result.stdout).toContain('introspect');
+      });
+
+      then('help output matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
   given('[case1] repo with rhachet.use.ts that defines roles', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-roles-package' }),
@@ -45,6 +68,12 @@ describe('rhachet repo introspect', () => {
         const content = readFileSync(manifestPath, 'utf-8');
         expect(content).toContain('roles:');
       });
+
+      then('yml content matches snapshot', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toMatchSnapshot();
+      });
     });
 
     when('[t1] repo introspect --output - (stdout)', () => {
@@ -62,6 +91,10 @@ describe('rhachet repo introspect', () => {
       then('stdout contains yaml content', () => {
         expect(result.stdout).toContain('slug:');
         expect(result.stdout).toContain('roles:');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
   });
@@ -93,6 +126,10 @@ describe('rhachet repo introspect', () => {
 
       then('stderr contains error about getRoleRegistry', () => {
         expect(result.stderr).toContain('getRoleRegistry');
+      });
+
+      then('error output matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
       });
     });
   });
@@ -126,6 +163,12 @@ describe('rhachet repo introspect', () => {
       then('creates rhachet.repo.yml', () => {
         const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
         expect(existsSync(manifestPath)).toBe(true);
+      });
+
+      then('yml content matches snapshot', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toMatchSnapshot();
       });
     });
   });
@@ -164,6 +207,14 @@ describe('rhachet repo introspect', () => {
       then('stderr includes fix hint', () => {
         expect(result.stderr).toContain('chmod +x');
       });
+
+      then('error output matches snapshot', () => {
+        const normalized = result.stderr.replace(
+          new RegExp(repo.path, 'g'),
+          '<testDir>',
+        );
+        expect(normalized).toMatchSnapshot();
+      });
     });
   });
 
@@ -201,6 +252,14 @@ describe('rhachet repo introspect', () => {
         expect(result.stderr).toContain('broken1.sh');
         expect(result.stderr).toContain('broken2.sh');
       });
+
+      then('error output matches snapshot', () => {
+        const normalized = result.stderr.replace(
+          new RegExp(repo.path, 'g'),
+          '<testDir>',
+        );
+        expect(normalized).toMatchSnapshot();
+      });
     });
   });
 
@@ -234,6 +293,14 @@ describe('rhachet repo introspect', () => {
 
       then('stderr names the orphan file', () => {
         expect(result.stderr).toContain('orphan.md.min');
+      });
+
+      then('error output matches snapshot', () => {
+        const normalized = result.stderr.replace(
+          new RegExp(repo.path, 'g'),
+          '<testDir>',
+        );
+        expect(normalized).toMatchSnapshot();
       });
     });
   });
@@ -270,6 +337,16 @@ const registry = {
       skills: {
         dirs: { uri: path.join(packageRoot, 'roles/mechanic/skills') },
         refs: [],
+      },
+      hooks: {
+        onBrain: {
+          onBoot: [
+            {
+              command: 'npx rhachet roles boot --role mechanic',
+              timeout: 'PT60S',
+            },
+          ],
+        },
       },
       boot: { uri: path.join(packageRoot, 'roles/mechanic/boot.yml') },
       keyrack: { uri: path.join(packageRoot, 'roles/mechanic/keyrack.yml') },
@@ -308,6 +385,12 @@ exports.getRoleRegistry = () => registry;
         expect(content).toContain('keyrack:');
         expect(content).toContain('roles/mechanic/keyrack.yml');
       });
+
+      then('yml content matches snapshot', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toMatchSnapshot();
+      });
     });
   });
 
@@ -339,6 +422,52 @@ exports.getRoleRegistry = () => registry;
       then('creates rhachet.repo.yml', () => {
         const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
         expect(existsSync(manifestPath)).toBe(true);
+      });
+
+      then('yml content matches snapshot', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case9] rhachet-roles package with bootable content but no boot hook', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-roles-package-no-hook' }),
+    );
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr includes bummer dude message', () => {
+        expect(result.stderr).toContain('bummer dude');
+      });
+
+      then('stderr includes role slug', () => {
+        expect(result.stderr).toContain('mechanic');
+      });
+
+      then('stderr includes no-hook-declared reason', () => {
+        expect(result.stderr).toContain('no-hook-declared');
+      });
+
+      then('stderr includes hint about boot hook', () => {
+        expect(result.stderr).toContain('roles boot --role');
+      });
+
+      then('error output matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
       });
     });
   });
