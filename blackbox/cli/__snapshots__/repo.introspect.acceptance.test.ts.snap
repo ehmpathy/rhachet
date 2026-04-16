@@ -1,0 +1,197 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet repo introspect given: [case0] --help is invoked when: [t0] repo introspect --help then: help output matches snapshot 1`] = `
+"Usage: rhachet repo introspect [options]
+
+generate rhachet.repo.yml from package getRoleRegistry export
+
+Options:
+  -o, --output <path>  output path (default: rhachet.repo.yml, use "-" for
+                       stdout) (default: "rhachet.repo.yml")
+  -h, --help           display help for command
+"
+`;
+
+exports[`rhachet repo introspect given: [case1] repo with rhachet.use.ts that defines roles when: [t0] repo introspect with default output then: yml content matches snapshot 1`] = `
+"slug: test
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+"
+`;
+
+exports[`rhachet repo introspect given: [case1] repo with rhachet.use.ts that defines roles when: [t1] repo introspect --output - (stdout) then: stdout matches snapshot 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+✨ Generate manifest for "test"...
+
+slug: test
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case2] rhachet-roles package without getRoleRegistry export when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+BadRequestError: package does not export getRoleRegistry
+
+{
+  "packageName": "rhachet-roles-test"
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case3] rhachet-roles package with executable .sh skill when: [t0] repo introspect then: yml content matches snapshot 1`] = `
+"slug: test
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+"
+`;
+
+exports[`rhachet repo introspect given: [case4] rhachet-roles package with non-executable .sh skill when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+BadRequestError: non-executable skill files detected
+
+these .sh files in skills directories are not marked executable:
+  - <testDir>/roles/mechanic/skills/broken-skill.sh
+
+fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
+
+{
+  "nonExecutablePaths": [
+    "<testDir>/roles/mechanic/skills/broken-skill.sh"
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case5] rhachet-roles package with multiple non-executable .sh skills when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+BadRequestError: non-executable skill files detected
+
+these .sh files in skills directories are not marked executable:
+  - <testDir>/roles/mechanic/skills/broken1.sh
+  - <testDir>/roles/mechanic/skills/broken2.sh
+
+fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
+
+{
+  "nonExecutablePaths": [
+    "<testDir>/roles/mechanic/skills/broken1.sh",
+    "<testDir>/roles/mechanic/skills/broken2.sh"
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case6] rhachet-roles package with orphan .md.min in briefs when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"<src>/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18
+  throw new Error(
+        ^
+
+Error: orphan .md.min file(s) detected without .md source:
+  - <testDir>/roles/mechanic/briefs/orphan.md.min
+
+each .md.min file must have a matched .md source file.
+    at assertZeroOrphanMinifiedBriefs (<src>/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18:9)
+    at assertRegistryHasNoOrphanBriefs (<src>/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts:29:37)
+    at Command.<anonymous> (<src>/contract/cli/invokeRepoIntrospect.ts:88:38)
+    at async Command.parseAsync (<node_modules>/[4mcommander[24m/lib/command.js:1123:5)
+    at async _invoke (<src>/contract/cli/invoke.ts:76:3)
+    at async withEmojiSpaceShim (<src>/contract/sdk/withEmojiSpaceShim.ts:15:12)
+
+Node.js v22.21.0
+"
+`;
+
+exports[`rhachet repo introspect given: [case7] rhachet-roles package with role that has boot and keyrack when: [t0] repo introspect then: yml content matches snapshot 1`] = `
+"slug: test
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+    boot: roles/mechanic/boot.yml
+    keyrack: roles/mechanic/keyrack.yml
+"
+`;
+
+exports[`rhachet repo introspect given: [case8] rhachet-roles package with only .ts/.md files in skills when: [t0] repo introspect then: yml content matches snapshot 1`] = `
+"slug: test
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
+"
+`;
+
+exports[`rhachet repo introspect given: [case9] rhachet-roles package with bootable content but no boot hook when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+BadRequestError: 🐢 bummer dude...
+
+🔐 repo introspect
+   └─ ✗ roles with bootable content but no valid boot hook
+
+   these roles declare briefs or skills but lack a valid boot hook:
+
+   └─ mechanic
+      ├─ has: briefs.dirs, skills.dirs
+      ├─ reason: no-hook-declared
+      └─ hint: add hooks.onBrain.onBoot with 'npx rhachet roles boot --role mechanic'
+
+   why:
+   roles with briefs.dirs or skills.dirs have content to boot on session start.
+   the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.
+
+   if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.
+
+{
+  "violations": [
+    {
+      "roleSlug": "mechanic",
+      "hasBriefsDirs": true,
+      "hasSkillsDirs": true,
+      "reason": "no-hook-declared"
+    }
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;

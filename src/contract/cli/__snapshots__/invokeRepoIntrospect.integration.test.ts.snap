@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t0] repo introspect is invoked with default output then: yaml contains registry slug: yaml-output 1`] = `
+"slug: ehmpathy
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: src/roles/mechanic/readme.md
+    briefs:
+      dirs: src/roles/mechanic/briefs
+    skills:
+      dirs: src/roles/mechanic/skills
+"
+`;
+
+exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t1] repo introspect is invoked with stdout output then: outputs yaml to stdout: stdout-output 1`] = `
+"
+🔭 Load getRoleRegistry from rhachet-roles-test...
+
+✨ Generate manifest for "ehmpathy"...
+
+slug: ehmpathy
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: src/roles/mechanic/readme.md
+    briefs:
+      dirs: src/roles/mechanic/briefs
+    skills:
+      dirs: src/roles/mechanic/skills
+"
+`;
+
+exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t12] skills dir with non-executable .sh file then: command fails with error that includes path: non-executable-error 1`] = `
+"BadRequestError: non-executable skill files detected
+
+these .sh files in skills directories are not marked executable:
+  - <testDir>/src/roles/mechanic/skills/broken-skill.sh
+
+fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
+
+{
+  "nonExecutablePaths": [
+    "<testDir>/src/roles/mechanic/skills/broken-skill.sh"
+  ]
+}"
+`;
+
+exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t13] skills dir with multiple non-executable .sh files then: error lists all paths: multiple-non-executable-error 1`] = `
+"BadRequestError: non-executable skill files detected
+
+these .sh files in skills directories are not marked executable:
+  - <testDir>/src/roles/mechanic/skills/broken1.sh
+  - <testDir>/src/roles/mechanic/skills/broken2.sh
+
+fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
+
+{
+  "nonExecutablePaths": [
+    "<testDir>/src/roles/mechanic/skills/broken1.sh",
+    "<testDir>/src/roles/mechanic/skills/broken2.sh"
+  ]
+}"
+`;
