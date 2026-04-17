@@ -1,0 +1,19 @@
+# accept.blackbox test strategy
+
+acceptance tests validate external contracts as black-boxes:
+- cli: subprocess invocation, assert stdout/stderr/status
+- sdk: import dist/, call functions, assert returns
+- api: http calls, assert responses
+
+structure:
+- `accept.blackbox/.test/assets/` — fixture templates (minimal, with-skills, with-briefs, with-registry)
+- `accept.blackbox/.test/infra/` — genTestTempRepo.ts, invokeRhachetCliBinary.ts
+- `accept.blackbox/cli/` — cli acceptance tests
+- `accept.blackbox/sdk/` — sdk acceptance tests
+
+principles:
+- test only through contract layer, no internal imports
+- use `genTempDir` from 'test-fns' for isolation (never raw os.tmpdir)
+- invoke cli as subprocess via invokeRhachetCli
+- assert on observable outputs
+- fixture-based setup via genTestTempRepo

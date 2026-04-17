@@ -51,7 +51,7 @@ all external contracts must have acceptance test coverage:
 
 ## .pattern: genTestTempRepo
 
-creates isolated test environments in `os.tmpdir()`:
+creates isolated test environments via `genTempDir` from 'test-fns':
 - clones example repos with proper `.agent/` structure
 - leverages OS temp directory cleanup (no manual teardown needed)
 - ensures each test gets a fresh, isolated workspace
@@ -72,7 +72,7 @@ expect(result.status).toEqual(0);
 ## .principles
 
 1. **only test through contract layer** - no internal imports allowed in acceptance tests
-2. **use os.tmpdir()** - maximally portable and isolated, OS handles cleanup
+2. **use `genTempDir` from 'test-fns'** - never raw os.tmpdir(); portable, isolated, OS handles cleanup
 3. **invoke CLI as subprocess** - uses `invokeRhachetCli` helper
 4. **assert on observable outputs** - stdout/stderr/status for cli, return values for sdk
 5. **fixture-based setup** - reusable test repo templates

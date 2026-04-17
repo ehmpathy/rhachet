@@ -1,0 +1,13 @@
+# rule.require.shared-test-fixtures
+
+fixture generators must be in shared infra, not duplicated inline.
+
+locations:
+- unit/integration: `src/.test/assets/`
+- acceptance: `accept.blackbox/.test/assets/`
+
+extract when: 2+ files use same shape, non-trivial setup, core domain concept
+
+name patterns:
+- `genMocked*` — mock with defaults
+- `genSample*` — realistic sample
