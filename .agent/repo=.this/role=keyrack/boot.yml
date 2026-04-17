@@ -1,0 +1,11 @@
+# .agent/repo=.this/role=keyrack/boot.yml
+#
+# controls which briefs are said (inline) vs reffed (pointer only).
+# unmatched briefs become refs automatically.
+
+briefs:
+  say:
+    # core identity
+    - briefs/define.keyrack-identity.md
+    - briefs/define.vault-types-owned-vs-refed.md
+    - briefs/define.vault-mech-adapters.md

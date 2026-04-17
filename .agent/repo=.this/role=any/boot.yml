@@ -2,6 +2,7 @@
 #
 # controls which briefs are said (inline) vs reffed (pointer only).
 # unmatched briefs become refs automatically.
+# note: .md.min versions are auto-preferred when they exist.
 
 briefs:
   say:

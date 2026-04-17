@@ -1,0 +1,16 @@
+# bin/run dispatcher pattern
+
+routes commands to bun (fast) or jit (flexible):
+
+| path | commands | startup |
+|------|----------|---------|
+| bun | `run --skill/--init`, `roles boot/cost` | ~35-70ms |
+| jit | `roles link/init`, `act`, `ask` | ~300ms+ |
+
+why: bun binaries embed module lookup at compile time, can't find npm packages from target repo. `.agent/` pattern solves this: `roles link` pays npm cost once, creates symlinks, all other commands read from symlinks.
+
+binaries:
+- `bin/run.bun` — shell dispatcher
+- `bin/run.bun.rhachet-run.bc` — bun binary for `run`
+- `bin/run.bun.rhachet-roles.bc` — bun binary for `roles`
+- `bin/run.jit` — tsx entry for jit path

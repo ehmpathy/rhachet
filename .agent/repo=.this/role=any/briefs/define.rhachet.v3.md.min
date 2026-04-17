@@ -1,0 +1,45 @@
+# rhachet
+
+framework for reliable thought.
+
+register 🧢 roles + 🧠 brains → produce 🎭 actors who clone that thought.
+
+## core objects
+
+| concept | emoji | what |
+|---------|-------|------|
+| role | 🧢 | bundle of skills + briefs |
+| brain | 🧠 | inference provider |
+| actor | 🎭 | brain enrolled in a role |
+| skill | 💪 | executable capability |
+| brief | 📚 | curated knowledge |
+
+## thought routes
+
+| route | emoji | what |
+|-------|-------|------|
+| solid | 🪨 | deterministic throughout (`.run()`) |
+| rigid | 🔩 | harness controls, brain augments (`.act()`) |
+| fluid | 💧 | brain decides path (`.ask()`) |
+
+## enrollment
+
+pair 🧠 brain with 🧢 role → 🎭 actor
+
+- 📚 briefs flavor the brain (suffix system prompt, shape thought gravity)
+- 💪 skills offload work from imagine-cost to compute-cost
+
+roles are portable across brains. define once, enroll any brain, clone that thought.
+
+## 🪐 concept planets
+
+🧠 brains navigate concept space like ships in galactic space. 📚 briefs register concept planets with gravity that pulls thought toward them.
+
+unenrolled brain → drifts toward whatever it absorbed (java idioms, verbose comments, foreign patterns).
+
+enrolled brain → gravity from brief planets shapes navigation:
+- 🪐 "arrow functions only"
+- 🪐 "input-context pattern"
+- 🪐 "fail fast via HelpfulError"
+
+enrollment shapes the gravity of concepts the brain navigates to.

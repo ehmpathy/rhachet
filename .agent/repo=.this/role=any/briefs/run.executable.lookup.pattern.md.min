@@ -1,0 +1,13 @@
+# run executable lookup
+
+`run --skill` and `run --init` auto-discover from `.agent/`:
+
+1. scan `.agent/repo=*/role=*/skills/*.sh` (or `inits/`)
+2. filter by name
+3. one match → execute
+4. zero matches → "not found"
+5. multiple matches → "ambiguous, specify --repo and/or --role"
+
+disambiguation:
+- `--repo <slug>` — filter to repo
+- `--role <slug>` — filter to role

@@ -1,0 +1,27 @@
+# .agent/ directory
+
+shared source of truth for humans and robots. browse same briefs, invoke same skills.
+
+```
+.agent/
+  repo=.this/           # native to this repo
+    role=any/           # applies to everyone
+      briefs/           # curated knowledge
+      skills/           # executable capabilities
+  repo=$slug/           # linked from rhachet-roles-$slug
+    role=$name/ →       # symlink to node_modules/...
+```
+
+## benefits
+
+- **transparency** — see exactly what robots see
+- **parity** — humans invoke same skills robots dispatch
+- **speed** — bun reads from filesystem (~35-70ms), no package lookup
+- **experimentation** — edit directly, changes take effect immediately
+
+## how roles get there
+
+- **native**: create in `.agent/repo=.this/`
+- **linked**: `npx rhachet init --roles $role` symlinks from packages
+
+no hidden config. answer is always `.agent/`.

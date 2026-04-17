@@ -1,0 +1,19 @@
+# define.keyrack-identity
+
+keyrack is **not a vault**. keyrack is:
+- **firewall** — controls which keys are accessible, to whom, in which env
+- **dispatcher** — routes unlock requests to the correct vault
+- **broker** — daemon holds unlocked keys for your session
+
+layers:
+- **repo.manifest** — which keys are required (narrows what gets unlocked)
+- **host.manifest** — which & where keys can be found
+- **vault** — holds the secret (owned) or pointer to external (refed)
+- **daemon** — session keyrack, ephemeral cache of unlocked keys
+
+commands:
+- **set** — configures where a key lives (writes to host.manifest + vault)
+- **unlock** — populates daemon from vaults
+- **get** — grabs from daemon at access time
+
+flow: repo.manifest filters → host.manifest maps to vaults → unlock fetches → daemon caches → get retrieves

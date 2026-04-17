@@ -1,0 +1,24 @@
+# define.vault-mech-adapters
+
+two adapter types separate storage from transformation:
+
+| adapter | responsibility | examples |
+|---------|----------------|----------|
+| **vault** | storage backend | os.secure, os.direct, 1password, aws.config |
+| **mech** | credential transformation + guided setup | PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO |
+
+vault adapter owns:
+- where to store (`~/.keyrack/secrets/`, `op://`, `~/.aws/config`)
+- how to encrypt (age, plaintext, 1password, ini)
+
+mech adapter owns:
+- `acquireForSet()` — guided setup → source credential
+- `deliverForGet()` — source → usable secret (identity for permanent, transform for ephemeral)
+
+key insight: vault.set encapsulates secret ops (orchestrator never sees secret), vault.get encapsulates transformation. mechs are portable across vaults.
+
+compatibility:
+- os.secure: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+- os.direct: PERMANENT_VIA_REPLICA only
+- 1password: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+- aws.config: EPHEMERAL_VIA_AWS_SSO only
