@@ -1137,67 +1137,109 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       },
     );
 
-  // keyrack status [--owner owner]
+  // keyrack status [--owner owner] [--env env]
   keyrack
     .command('status')
     .description('show status of unlocked keys in daemon')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
+    .option('--env <env>', 'filter by env: prod, prep, test, all, or sudo')
     .option('--json', 'output as json (robot mode)')
-    .action(async (opts: { owner?: string; for?: string; json?: boolean }) => {
-      // --owner takes precedence; --for is alias
-      const owner = opts.owner ?? opts.for ?? null;
+    .action(
+      async (opts: {
+        owner?: string;
+        for?: string;
+        env?: string;
+        json?: boolean;
+      }) => {
+        // --owner takes precedence; --for is alias
+        const owner = opts.owner ?? opts.for ?? null;
 
-      // get status
-      const status = await getKeyrackStatus({ owner });
-
-      // output results
-      if (opts.json) {
-        console.log(JSON.stringify(status, null, 2));
-      } else {
-        console.log('');
-        console.log('🔐 keyrack status');
-        if (!status) {
-          console.log('   └─ daemon: not found');
-          console.log('      └─ run `rhx keyrack unlock` to start session');
-        } else {
-          // show owner
-          const ownerLabel = status.owner ?? '(default)';
-          console.log(`   ├─ owner: ${ownerLabel}`);
-
-          // show recipients
-          if (status.recipients.length > 0) {
-            console.log('   ├─ recipients:');
-            for (let i = 0; i < status.recipients.length; i++) {
-              const recipient = status.recipients[i]!;
-              const isLastRecipient = i === status.recipients.length - 1;
-              const prefix = isLastRecipient ? '   │  └─' : '   │  ├─';
-              console.log(`${prefix} ${recipient.label} (${recipient.mech})`);
-            }
-          }
-
-          // show daemon status
-          if (status.keys.length === 0) {
-            console.log('   └─ daemon: active ✨');
-            console.log('      └─ (no keys unlocked)');
-          } else {
-            console.log('   ├─ daemon: active ✨');
-            for (let i = 0; i < status.keys.length; i++) {
-              const key = status.keys[i]!;
-              const isLast = i === status.keys.length - 1;
-              const prefix = isLast ? '   └─' : '   ├─';
-              const indent = isLast ? '      ' : '   │  ';
-              const ttlMinutes = Math.round(key.ttlLeftMs / 1000 / 60);
-              console.log(`${prefix} ${key.slug}`);
-              console.log(`${indent}├─ env: ${key.env}`);
-              console.log(`${indent}├─ org: ${key.org}`);
-              console.log(`${indent}└─ expires in: ${ttlMinutes}m`);
-            }
-          }
+        // validate env if provided
+        if (opts.env && !isValidKeyrackEnv(opts.env)) {
+          throw new BadRequestError(
+            `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
+          );
         }
-        console.log('');
-      }
-    });
+
+        // get status
+        const status = await getKeyrackStatus({ owner });
+
+        // filter keys by env if specified
+        const filteredKeys = opts.env
+          ? (status?.keys ?? []).filter((k) => k.env === opts.env)
+          : (status?.keys ?? []);
+
+        // compute hint for when no keys in filtered env
+        const getEnvHint = (): string | null => {
+          if (!opts.env) return null;
+          if (!status || status.keys.length === 0) return null;
+          // find other envs that have keys (exclude sudo from hints)
+          const otherEnvs = [...new Set(status.keys.map((k) => k.env))].filter(
+            (e) => e !== opts.env && e !== 'sudo',
+          );
+          if (otherEnvs.length === 0) return null;
+          return `try --env ${otherEnvs.join(' or --env ')}`;
+        };
+
+        // output results
+        if (opts.json) {
+          const output = status ? { ...status, keys: filteredKeys } : status;
+          console.log(JSON.stringify(output, null, 2));
+        } else {
+          console.log('');
+          console.log('🔐 keyrack status');
+          if (!status) {
+            console.log('   └─ daemon: not found');
+            console.log('      └─ run `rhx keyrack unlock` to start session');
+          } else {
+            // show owner
+            const ownerLabel = status.owner ?? '(default)';
+            console.log(`   ├─ owner: ${ownerLabel}`);
+
+            // show recipients
+            if (status.recipients.length > 0) {
+              console.log('   ├─ recipients:');
+              for (let i = 0; i < status.recipients.length; i++) {
+                const recipient = status.recipients[i]!;
+                const isLastRecipient = i === status.recipients.length - 1;
+                const prefix = isLastRecipient ? '   │  └─' : '   │  ├─';
+                console.log(`${prefix} ${recipient.label} (${recipient.mech})`);
+              }
+            }
+
+            // show daemon status
+            if (filteredKeys.length === 0) {
+              console.log('   └─ daemon: active ✨');
+              const envHint = getEnvHint();
+              if (opts.env && envHint) {
+                console.log(
+                  `      └─ (no keys in --env ${opts.env}, ${envHint})`,
+                );
+              } else if (opts.env) {
+                console.log(`      └─ (no keys in --env ${opts.env})`);
+              } else {
+                console.log('      └─ (no keys unlocked)');
+              }
+            } else {
+              console.log('   ├─ daemon: active ✨');
+              for (let i = 0; i < filteredKeys.length; i++) {
+                const key = filteredKeys[i]!;
+                const isLast = i === filteredKeys.length - 1;
+                const prefix = isLast ? '   └─' : '   ├─';
+                const indent = isLast ? '      ' : '   │  ';
+                const ttlMinutes = Math.round(key.ttlLeftMs / 1000 / 60);
+                console.log(`${prefix} ${key.slug}`);
+                console.log(`${indent}├─ env: ${key.env}`);
+                console.log(`${indent}├─ org: ${key.org}`);
+                console.log(`${indent}└─ expires in: ${ttlMinutes}m`);
+              }
+            }
+          }
+          console.log('');
+        }
+      },
+    );
 
   // keyrack list [--owner owner]
   keyrack
