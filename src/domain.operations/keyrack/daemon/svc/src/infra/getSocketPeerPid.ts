@@ -56,15 +56,28 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
 
   // step 2: use ss to find peer connection by inode
   // ss -xp shows unix sockets with process info
+  //
+  // .note = ss displays socket identifiers as signed 32-bit integers
+  // .note = /proc/self/fd shows them as unsigned
+  // .note = when inode > 2^31, they differ: unsigned 2367234854 vs signed -1927732442
+  // .note = we grep for both representations to handle this mismatch
+  const inodeNum = parseInt(inode, 10);
+  const INT32_MAX = 2147483647; // 2^31 - 1
+  const UINT32_MAX = 4294967296; // 2^32
+  const signedInode = inodeNum > INT32_MAX ? inodeNum - UINT32_MAX : inodeNum;
+  const grepPattern =
+    inodeNum > INT32_MAX ? `(${inode}|${signedInode})` : inode;
+
   let ssOutput: string;
   try {
-    ssOutput = execSync(`ss -xp 2>/dev/null | grep "${inode}" || true`, {
+    ssOutput = execSync(`ss -xp | grep -E "${grepPattern}" || true`, {
       encoding: 'utf-8',
       timeout: 5000,
     });
   } catch (error) {
     throw new UnexpectedCodePathError('ss command failed', {
       inode,
+      signedInode,
       cause: error instanceof Error ? error : undefined,
     });
   }
