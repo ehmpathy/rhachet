@@ -1,5 +1,5 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 /**
  * .what = strip machine-specific content from CLI output for snapshots
@@ -46,8 +46,18 @@ export const invokeRhachetCliBinary = (input: {
   logOnError?: boolean;
   /** optional env vars to merge with process.env */
   env?: Record<string, string | undefined>;
+  /** invoke via node_modules/.bin symlink instead of absolute path (tests symlink resolution) */
+  viaSymlink?: boolean;
 }): SpawnSyncReturns<string> => {
-  const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
+  // determine binary path
+  const binPath = (() => {
+    if (input.viaSymlink) {
+      // use symlink in node_modules/.bin (created by npm/pnpm install)
+      const binName = input.binary === 'rhx' ? 'rhx' : 'rhachet';
+      return join(input.cwd, 'node_modules', '.bin', binName);
+    }
+    return input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
+  })();
   const result = spawnSync(binPath, input.args, {
     cwd: input.cwd,
     input: input.stdin,

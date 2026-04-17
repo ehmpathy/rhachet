@@ -71,6 +71,8 @@ export const genTestTempRepo = async (input: {
   suffix?: string;
   /** run pnpm install after copy (for fixtures with package.json) */
   install?: boolean;
+  /** package manager to use for install (default: 'bun') */
+  packageManager?: 'bun' | 'npm' | 'pnpm';
 }): Promise<{
   /** absolute path to the test repo */
   path: string;
@@ -109,7 +111,6 @@ export const genTestTempRepo = async (input: {
   });
 
   // install dependencies if requested and package.json exists
-  // use bun install for bun-compatible node_modules structure
   if (input.install && existsSync(join(repoPath, 'package.json'))) {
     // parse package.json to get expected dependencies
     const pkgJson = JSON.parse(
@@ -117,11 +118,16 @@ export const genTestTempRepo = async (input: {
     );
     const expectedDeps = Object.keys(pkgJson.dependencies ?? {});
 
+    // determine install command based on package manager
+    const pm = input.packageManager ?? 'bun';
+    const installCmd =
+      pm === 'npm' ? 'npm install' : pm === 'pnpm' ? 'pnpm install' : 'bun install';
+
     // retry install up to 3 times (transient registry issues)
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        execSync('bun install', {
+        execSync(installCmd, {
           cwd: repoPath,
           stdio: 'inherit',
           timeout: 120000, // 2 minute timeout
@@ -134,7 +140,7 @@ export const genTestTempRepo = async (input: {
         );
         if (depsAbsent.length > 0) {
           throw new Error(
-            `bun install completed but packages are absent: ${depsAbsent.join(', ')}`,
+            `${installCmd} completed but packages are absent: ${depsAbsent.join(', ')}`,
           );
         }
 
@@ -154,7 +160,7 @@ export const genTestTempRepo = async (input: {
     // fail if all retries exhausted
     if (lastError) {
       throw new Error(
-        `bun install failed after 3 attempts: ${lastError.message}`,
+        `${installCmd} failed after 3 attempts: ${lastError.message}`,
       );
     }
   }
