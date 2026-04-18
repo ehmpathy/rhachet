@@ -86,7 +86,7 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -98,7 +98,7 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test[0m
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -132,7 +132,7 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -144,7 +144,7 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test[0m
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
