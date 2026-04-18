@@ -146,19 +146,20 @@ const attemptGrantKey = async (
       slug,
       owner: context.owner,
     });
+    const ownerFlag = context.owner ? `--owner ${context.owner} ` : '';
     if (status === 'locked') {
       return {
         status: 'locked',
         slug,
         message: `credential '${slug}' is locked. unlock it first.`,
-        fix: `rhx keyrack unlock --env ${envFromSlug} --key ${asKeyrackKeyName({ slug })}`,
+        fix: `rhx keyrack unlock ${ownerFlag}--env ${envFromSlug} --key ${asKeyrackKeyName({ slug })}`,
       };
     }
     return {
       status: 'absent',
       slug,
       message: `credential '${slug}' does not exist. set it first.`,
-      fix: `rhx keyrack set --key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}`,
+      fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}`,
     };
   }
 
