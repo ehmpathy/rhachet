@@ -32,6 +32,11 @@ import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
  *   - adapter behavior with real profile lookup
  *   - unit tests in .test.ts cover mocked scenarios
  *
+ * .provides-integration-coverage-for:
+ *   - vaultAdapterAwsConfig.test.ts - vault adapter unit tests
+ *   - mechAdapterAwsSso.test.ts - mech adapter exercised via vault.get() in [case4]
+ *   - setupAwsSsoProfile.test.ts - setup operations exercised via vault adapter
+ *
  * .ref = https://docs.aws.amazon.com/singlesignon/latest/userguide/
  */
 describe('vaultAdapterAwsConfig integration', () => {

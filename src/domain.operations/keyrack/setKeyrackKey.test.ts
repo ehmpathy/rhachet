@@ -22,6 +22,11 @@ jest.mock('../../access/daos/daoKeyrackRepoManifest', () => ({
   },
 }));
 
+// mock daemon SDK to avoid real socket calls in unit tests
+jest.mock('./daemon/sdk', () => ({
+  daemonAccessRelock: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe('setKeyrackKey', () => {
   given('[case1] single env key', () => {
     when('[t0] called with specific env', () => {

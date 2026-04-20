@@ -12,16 +12,7 @@ on:
         required: false
         type: string
         default: "us-east-1"
-    secrets:
-      openai-api-key:
-        description: "api key for openai, used in integration tests"
-        required: true
-      anthropic-api-key:
-        description: "api key for anthropic, used in integration tests"
-        required: true
-      xai-api-key:
-        description: "api key for xai, used in integration tests"
-        required: true
+    # secrets: inherit from caller — keyrack firewall filters to .agent/keyrack.yml
 
 permissions:
   id-token: write # required for oidc
@@ -236,15 +227,16 @@ jobs:
       - name: prepare:rhachet # links the .agent/**/role=*/keyrack.yml's that may be needed
         run: npm run prepare:rhachet
 
+      - name: keyrack firewall
+        run: npx rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+
       - name: test:integration (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
         run: |
           patterns='${{ join(matrix.shard.patterns, '|') }}'
           THOROUGH=true npm run test:integration -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
-        env:
-          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
-          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
-          XAI_API_KEY: ${{ secrets.xai-api-key }}
 
       - name: test:integration (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
         if: matrix.shard.type == 'dynamic'
@@ -255,10 +247,6 @@ jobs:
           else
             THOROUGH=true npm run test:integration -- --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
           fi
-        env:
-          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
-          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
-          XAI_API_KEY: ${{ secrets.xai-api-key }}
 
       - name: report slow tests
         if: always() && hashFiles('jest-results.json') != ''
@@ -319,15 +307,16 @@ jobs:
       - name: prepare:rhachet # links the .agent/**/role=*/keyrack.yml's that may be needed
         run: npm run prepare:rhachet
 
+      - name: keyrack firewall
+        run: npx rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+
       - name: test:acceptance (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
         run: |
           patterns='${{ join(matrix.shard.patterns, '|') }}'
           THOROUGH=true npm run test:acceptance -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
-        env:
-          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
-          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
-          XAI_API_KEY: ${{ secrets.xai-api-key }}
 
       - name: test:acceptance (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
         if: matrix.shard.type == 'dynamic'
@@ -338,10 +327,6 @@ jobs:
           else
             THOROUGH=true npm run test:acceptance -- --shard=${{ matrix.shard.shard }}/${{ matrix.shard.total }} --json --outputFile=jest-results.json
           fi
-        env:
-          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
-          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
-          XAI_API_KEY: ${{ secrets.xai-api-key }}
 
       - name: report slow tests
         if: always() && hashFiles('jest-results.json') != ''

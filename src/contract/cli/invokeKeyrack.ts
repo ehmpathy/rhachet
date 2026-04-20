@@ -17,8 +17,19 @@ import {
   getOneKeyrackGrantByKey,
   setKeyrackKey,
 } from '@src/domain.operations/keyrack';
+import {
+  asAttemptsByStatus,
+  asNotGrantedAttempts,
+  isAllAttemptsGranted,
+} from '@src/domain.operations/keyrack/asAttemptsByStatus';
+import { asKeyrackFirewallSource } from '@src/domain.operations/keyrack/asKeyrackFirewallSource';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
+import { asResolvedAttempt } from '@src/domain.operations/keyrack/asResolvedAttempt';
+import { asResolvedEnvForSet } from '@src/domain.operations/keyrack/asResolvedEnvForSet';
+import { asSortedHostSlugs } from '@src/domain.operations/keyrack/asSortedHostSlugs';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { asKeyrackListTreestruct } from '@src/domain.operations/keyrack/cli/asKeyrackListTreestruct';
 import { asShellEscapedSecret } from '@src/domain.operations/keyrack/cli/asShellEscapedSecret';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
 import {
@@ -31,10 +42,12 @@ import {
 } from '@src/domain.operations/keyrack/constants';
 import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
+import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
-import { inferKeyrackEnvForSet } from '@src/domain.operations/keyrack/inferKeyrackEnvForSet';
-import { inferKeyrackVaultFromKey } from '@src/domain.operations/keyrack/inferKeyrackVaultFromKey';
+import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
+import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
+import { isKeyrackSlugFormat } from '@src/domain.operations/keyrack/isKeyrackSlugFormat';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
 import { getKeyrackRecipients } from '@src/domain.operations/keyrack/recipient/getKeyrackRecipients';
 import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/setKeyrackRecipient';
@@ -406,8 +419,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           }
 
           // exit 2 if any key was not granted (blocked by constraints)
-          const allGranted = attempts.every((a) => a.status === 'granted');
-          if (!allGranted) {
+          if (!isAllAttemptsGranted({ attempts })) {
             process.exit(2);
           }
         } else if (opts.key) {
@@ -434,31 +446,17 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             attempt.status === 'granted'
               ? attempt.grant.slug
               : (attempt as { slug: string }).slug;
-          const env = slug.split('.')[1] ?? opts.env ?? 'all';
+          const slugParts = asKeyrackSlugParts({ slug });
+          const env = slugParts.env || opts.env || 'all';
 
           // promote locked/absent → absent for non-sudo keys not in repo manifest (allowlist)
-          // envvar passthrough and daemon results are unaffected (they return granted/blocked)
-          // .note = 'absent' status can occur when no vault file exists for the key
-          const attemptResolved: typeof attempt = (() => {
-            if (attempt.status !== 'locked' && attempt.status !== 'absent')
-              return attempt;
-            if (env === 'sudo') return attempt;
-            if (!context.repoManifest) return attempt;
-            const repoSlugs = getAllKeyrackSlugsForEnv({
-              manifest: context.repoManifest,
-              env,
-            });
-            if (repoSlugs.includes(slug)) return attempt;
-            const keyName = slug.split('.').slice(2).join('.');
-            const vaultHint =
-              inferKeyrackVaultFromKey({ keyName }) ?? '<vault>';
-            return {
-              status: 'absent',
-              slug,
-              message: `credential '${slug}' not found in repo manifest (keyrack.yml)`,
-              fix: `rhx keyrack set --key ${keyName} --env ${env} --vault ${vaultHint}`,
-            };
-          })();
+          const attemptResolved = asResolvedAttempt({
+            attempt,
+            slug,
+            keyName: slugParts.keyName,
+            env,
+            repoManifest: context.repoManifest,
+          });
 
           // output results based on mode
           switch (outputMode) {
@@ -558,8 +556,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             );
 
         // filter to granted keys
-        const granted = attempts.filter((a) => a.status === 'granted');
-        const notGranted = attempts.filter((a) => a.status !== 'granted');
+        const granted = asAttemptsByStatus({ attempts, status: 'granted' });
+        const notGranted = asNotGrantedAttempts({ attempts });
 
         // strict mode: fail if any not granted
         if (!isLenient && notGranted.length > 0) {
@@ -723,23 +721,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         })();
 
         // infer or validate env
-        const resolvedEnv = (() => {
-          // if --env provided, validate it
-          if (opts.env) {
-            if (!isValidKeyrackEnv(opts.env)) {
-              throw new BadRequestError(
-                `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
-              );
-            }
-            return opts.env;
-          }
-
-          // no --env provided, infer from manifest
-          return inferKeyrackEnvForSet({
-            key: opts.key,
-            manifest: repoManifest,
-          });
-        })();
+        const resolvedEnv = asResolvedEnvForSet({
+          env: opts.env,
+          key: opts.key,
+          manifest: repoManifest,
+        });
 
         // expand org from manifest (only if not @all)
         let resolvedOrg: string;
@@ -887,14 +873,14 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
                 process.exit(2);
               }
               const hostSlugs = Object.keys(hostManifest.hosts);
-              const matchedSlug = hostSlugs.find((s) => {
-                const parts = s.split('.');
-                return (
-                  parts[1] === opts.env && parts.slice(2).join('.') === opts.key
-                );
+              const matchedSlug = findSlugByEnvAndKeyName({
+                slugs: hostSlugs,
+                env: opts.env,
+                keyName: opts.key,
               });
               if (matchedSlug) {
-                derivedOrg = matchedSlug.split('.')[0] ?? '@all';
+                derivedOrg =
+                  asKeyrackSlugParts({ slug: matchedSlug }).org || '@all';
               } else {
                 console.log('');
                 console.log(
@@ -921,17 +907,16 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         }
 
         // detect if key is already a full slug (org.env.key format)
-        const keyParts = opts.key.split('.');
-        const isFullSlug =
-          keyParts.length >= 3 && isValidKeyrackEnv(keyParts[1] ?? '');
+        const isFullSlug = isKeyrackSlugFormat({ value: opts.key });
 
         // construct or use slug
         let slug: string;
         let effectiveEnv: string;
         if (isFullSlug) {
           slug = opts.key;
-          effectiveEnv = keyParts[1] ?? opts.env;
-          const slugOrg = keyParts[0] ?? '';
+          const keySlugParts = asKeyrackSlugParts({ slug: opts.key });
+          effectiveEnv = keySlugParts.env || opts.env;
+          const slugOrg = keySlugParts.org;
 
           // validate org matches manifest
           if (derivedOrg !== '@all' && slugOrg !== derivedOrg) {
@@ -1068,8 +1053,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             } else {
               // omitted key — show absent or removed based on reason
               const slug = entry.slug;
-              const keyName = slug.split('.').slice(2).join('.');
-              const slugEnv = slug.split('.')[1];
+              const { env: slugEnv, keyName } = asKeyrackSlugParts({ slug });
               emitKeyrackKeyBranch({
                 entry: {
                   type: entry.reason, // 'absent' or 'removed'
@@ -1274,29 +1258,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           process.exit(2);
         }
         const hosts = context.hostManifest.hosts;
-        const slugs = Object.keys(hosts).sort();
+        const slugs = asSortedHostSlugs({ hosts });
 
         // output results
         if (opts.json) {
           console.log(JSON.stringify(hosts, null, 2));
         } else {
-          console.log('');
-          console.log('🔐 keyrack list');
-          if (slugs.length === 0) {
-            console.log('   └─ (no keys configured on host)');
-          } else {
-            for (let i = 0; i < slugs.length; i++) {
-              const slug = slugs[i]!;
-              const host = hosts[slug]!;
-              const isLast = i === slugs.length - 1;
-              const prefix = isLast ? '   └─' : '   ├─';
-              const indent = isLast ? '      ' : '   │  ';
-              console.log(`${prefix} ${slug}`);
-              console.log(`${indent}├─ env: ${host.env}`);
-              console.log(`${indent}├─ org: ${host.org}`);
-              console.log(`${indent}├─ mech: ${host.mech}`);
-              console.log(`${indent}└─ vault: ${host.vault}`);
-            }
+          const lines = asKeyrackListTreestruct({ hosts });
+          for (const line of lines) {
+            console.log(line);
           }
         }
       },
@@ -1408,4 +1378,135 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         console.log('');
       }
     });
+
+  // keyrack firewall --env <env> --from <source> --into <format> [--owner <owner>]
+  keyrack
+    .command('firewall')
+    .description('translate and validate secrets for CI environments')
+    .requiredOption('--env <env>', 'which env to grant (test, prod, prep, all)')
+    .requiredOption(
+      '--from <source>',
+      'input source slug (e.g., json(env://SECRETS), json(stdin://*))',
+    )
+    .requiredOption('--into <format>', 'output format (github.actions, json)')
+    .option('--owner <owner>', 'keyrack owner (default: "default")')
+    .action(
+      async (opts: {
+        env: string;
+        from: string;
+        into: string;
+        owner?: string;
+      }) => {
+        // validate --env
+        if (!isValidKeyrackEnv(opts.env)) {
+          throw new BadRequestError('invalid --env value', {
+            env: opts.env,
+            valid: KEYRACK_VALID_ENVS,
+          });
+        }
+
+        // validate --into
+        if (opts.into !== 'github.actions' && opts.into !== 'json') {
+          throw new BadRequestError('invalid --into value', {
+            into: opts.into,
+            valid: ['github.actions', 'json'],
+          });
+        }
+
+        // parse --from source
+        const source = asKeyrackFirewallSource({ slug: opts.from });
+
+        // read secrets from source
+        let rawJson: string;
+        if (source.type === 'env') {
+          rawJson = process.env[source.envVar!] ?? '';
+          if (!rawJson) {
+            throw new BadRequestError('env var not set', {
+              envVar: source.envVar,
+              hint: `set ${source.envVar} or use --from 'json(stdin://*)'`,
+            });
+          }
+        } else if (source.type === 'stdin') {
+          // read all stdin
+          const chunks: Buffer[] = [];
+          for await (const chunk of process.stdin) {
+            chunks.push(chunk);
+          }
+          rawJson = Buffer.concat(chunks).toString('utf8');
+        } else {
+          throw new BadRequestError('unsupported source type', { source });
+        }
+
+        // parse JSON
+        let secrets: Record<string, string>;
+        try {
+          secrets = JSON.parse(rawJson);
+        } catch {
+          throw new BadRequestError('malformed secrets JSON', {
+            source,
+            hint: 'ensure the input is valid JSON object',
+          });
+        }
+
+        // inject secrets into process.env
+        for (const [key, value] of Object.entries(secrets)) {
+          if (typeof value === 'string') {
+            process.env[key] = value;
+          }
+        }
+
+        // get gitroot and repo manifest
+        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
+        if (!repoManifest) {
+          throw new BadRequestError('keyrack.yml not found', {
+            hint: 'run `rhx keyrack init` to create keyrack.yml',
+          });
+        }
+
+        // get slugs for this env
+        const slugs = getAllKeyrackSlugsForEnv({
+          manifest: repoManifest,
+          env: opts.env,
+        });
+
+        // generate context for grant get
+        const owner = opts.owner ?? 'default';
+        const context = await genContextKeyrackGrantGet({
+          gitroot,
+          owner: owner === 'default' ? null : owner,
+        });
+
+        // PHASE 1: COLLECT (atomicity: gather all attempts first)
+        const attempts = await getKeyrackKeyGrant(
+          { for: { repo: true }, env: opts.env, slugs },
+          context,
+        );
+
+        // PHASE 2: VALIDATE (fail fast if any blocked)
+        const blocked = asAttemptsByStatus({ attempts, status: 'blocked' });
+        if (blocked.length > 0) {
+          // emit output with blocked keys visible
+          getKeyrackFirewallOutput({
+            attempts,
+            grants: [],
+            into: opts.into as 'github.actions' | 'json',
+          });
+          process.exit(2);
+        }
+
+        // PHASE 3: EMIT (only if all passed validation)
+        const grantedAttempts = asAttemptsByStatus({
+          attempts,
+          status: 'granted',
+        });
+        const grants = grantedAttempts.map((a) => a.grant);
+
+        getKeyrackFirewallOutput({
+          attempts,
+          grants,
+          into: opts.into as 'github.actions' | 'json',
+        });
+      },
+    );
 };

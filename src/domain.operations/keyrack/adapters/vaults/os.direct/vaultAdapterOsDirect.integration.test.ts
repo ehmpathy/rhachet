@@ -79,7 +79,7 @@ describe('vaultAdapterOsDirect', () => {
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'XAI_API_KEY' });
-        expect(result).toEqual('xai-test-key-123');
+        expect(result?.key.secret).toEqual('xai-test-key-123');
       });
     });
   });
@@ -98,10 +98,10 @@ describe('vaultAdapterOsDirect', () => {
     when('[t0] get called for stored key', () => {
       then('returns value', async () => {
         const resultA = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
-        expect(resultA).toEqual('value-a');
+        expect(resultA?.key.secret).toEqual('value-a');
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
 
@@ -113,7 +113,7 @@ describe('vaultAdapterOsDirect', () => {
         });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
-        expect(result).toEqual('new-value-a');
+        expect(result?.key.secret).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
@@ -123,7 +123,7 @@ describe('vaultAdapterOsDirect', () => {
         });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
 
@@ -139,7 +139,7 @@ describe('vaultAdapterOsDirect', () => {
         await vaultAdapterOsDirect.del({ slug: 'KEY_A' });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
 
@@ -149,7 +149,7 @@ describe('vaultAdapterOsDirect', () => {
 
         // verify store is unchanged
         const resultA = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
-        expect(resultA).toEqual('value-a');
+        expect(resultA?.key.secret).toEqual('value-a');
       });
     });
   });
@@ -240,7 +240,7 @@ describe('vaultAdapterOsDirect', () => {
         const result = await vaultAdapterOsDirect.get({
           slug: 'EPHEMERAL_KEY',
         });
-        expect(result).toEqual('ghs_token123');
+        expect(result?.key.secret).toEqual('ghs_token123');
       });
     });
 

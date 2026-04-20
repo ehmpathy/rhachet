@@ -1,6 +1,8 @@
-import { asIsoTimeStamp } from 'iso-time';
+import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 
 import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -44,8 +46,10 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
   /**
    * .what = retrieve a credential from the daemon
    * .why = core operation for grant flow
+   *
+   * .note = returns full KeyrackKeyGrant from daemon cache
    */
-  get: async (input: { slug: string }) => {
+  get: async (input) => {
     const result = await daemonAccessGet({ slugs: [input.slug] });
 
     // daemon not reachable — return null
@@ -55,8 +59,19 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
     const keyEntry = result.keys.find((k) => k.slug === input.slug);
     if (!keyEntry) return null;
 
-    // return just the secret (adapter interface returns string)
-    return keyEntry.key.secret;
+    // return full KeyrackKeyGrant from daemon cache
+    // .note = daemon stores expiresAt as number (timestamp), convert to IsoTimeStamp
+    const expiresAt: IsoTimeStamp | undefined = keyEntry.expiresAt
+      ? asIsoTimeStamp(new Date(keyEntry.expiresAt))
+      : undefined;
+    return new KeyrackKeyGrant({
+      slug: keyEntry.slug,
+      key: keyEntry.key,
+      source: keyEntry.source,
+      env: keyEntry.env,
+      org: keyEntry.org,
+      expiresAt,
+    });
   },
 
   /**
@@ -90,9 +105,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
     await findsertKeyrackDaemon();
 
     // extract org and env from slug (format: org.env.keyName)
-    const slugParts = input.slug.split('.');
-    const org = slugParts[0] ?? 'unknown';
-    const env = slugParts[1] ?? 'all';
+    const { org, env } = asKeyrackSlugParts({ slug: input.slug });
 
     await daemonAccessUnlock({
       keys: [

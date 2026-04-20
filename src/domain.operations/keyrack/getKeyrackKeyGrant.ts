@@ -2,9 +2,6 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 
 import {
   type KeyrackGrantAttempt,
-  type KeyrackGrantMechanism,
-  type KeyrackHostVault,
-  type KeyrackKey,
   KeyrackKeyGrant,
 } from '@src/domain.objects/keyrack';
 
@@ -15,45 +12,6 @@ import { daemonAccessGet } from './daemon/sdk';
 import { decideIsKeySlugEqual } from './decideIsKeySlugEqual';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
-
-/**
- * .what = construct KeyrackKey from secret and source info
- * .why = bundles secret with grade inferred from vault and mechanism
- *
- * .note = placeholder grade logic — real inference in Phase B (grades/)
- * .note = vault determines protection, mechanism determines duration
- */
-const toKeyrackKey = (input: {
-  secret: string;
-  vault: KeyrackHostVault;
-  mech: KeyrackGrantMechanism;
-}): KeyrackKey => {
-  // infer protection from vault
-  const protection = (() => {
-    if (input.vault === 'os.envvar') return 'plaintext' as const;
-    if (input.vault === 'os.direct') return 'plaintext' as const;
-    if (input.vault === 'os.secure') return 'encrypted' as const;
-    if (input.vault === 'os.daemon') return 'encrypted' as const;
-    if (input.vault === '1password') return 'encrypted' as const;
-    return 'plaintext' as const; // fallback
-  })();
-
-  // infer duration from mechanism
-  const duration = (() => {
-    if (input.mech === 'PERMANENT_VIA_REPLICA') return 'permanent' as const;
-    if (input.mech === 'PERMANENT_VIA_REFERENCE') return 'permanent' as const;
-    if (input.mech === 'EPHEMERAL_VIA_SESSION') return 'ephemeral' as const;
-    if (input.mech === 'EPHEMERAL_VIA_GITHUB_APP') return 'ephemeral' as const;
-    if (input.mech === 'EPHEMERAL_VIA_AWS_SSO') return 'ephemeral' as const;
-    if (input.mech === 'EPHEMERAL_VIA_GITHUB_OIDC') return 'ephemeral' as const;
-    return 'permanent' as const; // fallback
-  })();
-
-  return {
-    secret: input.secret,
-    grade: { protection, duration },
-  };
-};
 
 /**
  * .what = attempt to grant a single key from unlocked sources
@@ -77,34 +35,15 @@ const attemptGrantKey = async (
   // attempt to locate the key from available sources (envvar, daemon)
   const grantFound = await (async (): Promise<KeyrackKeyGrant | null> => {
     // check os.envvar first — passthrough for ci and local env
+    // .note = vault now handles mech inference + translation + grant construction
     if (!context.envvarAdapter.get) {
       throw new UnexpectedCodePathError('envvarAdapter.get is not defined', {
         hint: 'os.envvar adapter must implement get method',
       });
     }
-    const envValue = await context.envvarAdapter.get({ slug });
-    if (envValue !== null) {
-      const mech: KeyrackGrantMechanism = 'PERMANENT_VIA_REPLICA';
-      const mechAdapter = context.mechAdapters[mech];
-      if (!mechAdapter)
-        throw new UnexpectedCodePathError('mechanism adapter not found', {
-          mech,
-        });
-
-      // deliver usable secret via mechanism
-      const translated = await mechAdapter.deliverForGet({ source: envValue });
-
-      return new KeyrackKeyGrant({
-        slug,
-        key: toKeyrackKey({
-          secret: translated.secret,
-          vault: 'os.envvar',
-          mech,
-        }),
-        source: { vault: 'os.envvar', mech },
-        env: envFromSlug,
-        org: orgFromSlug,
-      });
+    const envGrant = await context.envvarAdapter.get({ slug });
+    if (envGrant !== null) {
+      return envGrant;
     }
 
     // check os.daemon — session cache (in-memory daemon)

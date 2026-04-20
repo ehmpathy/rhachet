@@ -5,7 +5,10 @@ import type {
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 
 import { exec, spawn } from 'node:child_process';
@@ -170,24 +173,33 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
    * .what = retrieve credential from aws.config vault
    * .why = profile name stored as exid; mech transforms to usable secret
    *
-   * .note = vault encapsulates mech transformation:
-   *         1. retrieve source (profile name) from exid
-   *         2. call mech.deliverForGet({ source }) if mech supplied
-   *         3. return translated secret (or source if no mech)
+   * .note = returns full KeyrackKeyGrant with profile name as secret
+   * .note = AWS SDK resolves actual credentials from profile at usage time
    */
   get: async (input) => {
     const source = input.exid ?? null;
     if (!source) return null;
 
-    // if no mech supplied, return source as-is
-    if (!input.mech) return source;
+    const mech = input.mech ?? 'EPHEMERAL_VIA_AWS_SSO';
 
     // validate sso session via mech (triggers browser login if expired)
-    const mechAdapter = getMechAdapter(input.mech);
-    await mechAdapter.deliverForGet({ source });
+    const mechAdapter = getMechAdapter(mech);
+    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
 
-    // return profile name (AWS SDK resolves credentials from profile)
-    return source;
+    // compute grade from vault + mech
+    const grade = inferKeyGrade({ vault: 'aws.config', mech });
+
+    // extract env/org from slug
+    const { env, org } = asKeyrackSlugParts({ slug: input.slug });
+
+    return new KeyrackKeyGrant({
+      slug: input.slug,
+      key: { secret, grade },
+      source: { vault: 'aws.config', mech },
+      env,
+      org,
+      expiresAt,
+    });
   },
 
   /**
@@ -275,14 +287,18 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       console.log('      ├─ ✓ unlock');
 
       // 2. get — prove stored profile name matches
-      const profileRead = await vaultAdapterAwsConfig.get({
+      const grantRead = await vaultAdapterAwsConfig.get({
         slug: input.slug,
         exid: profileName,
       });
-      if (profileRead !== profileName) {
+      if (!grantRead || grantRead.key.secret !== profileName) {
         throw new UnexpectedCodePathError(
           'roundtrip failed: get returned different profile',
-          { slug: input.slug, expected: profileName, actual: profileRead },
+          {
+            slug: input.slug,
+            expected: profileName,
+            actual: grantRead?.key.secret ?? null,
+          },
         );
       }
       console.log('      ├─ ✓ get');
