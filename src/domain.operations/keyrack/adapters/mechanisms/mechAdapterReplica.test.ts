@@ -19,9 +19,12 @@ describe('mechAdapterReplica', () => {
         source: 'ghs_abc123',
       });
 
-      then('validation passes (ghs_* are ephemeral server-to-server tokens)', () => {
-        expect(result.valid).toBe(true);
-      });
+      then(
+        'validation passes (ghs_* are ephemeral server-to-server tokens)',
+        () => {
+          expect(result.valid).toBe(true);
+        },
+      );
     });
 
     when('[t1.1] validate called with short ghp_* token', () => {
