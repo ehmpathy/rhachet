@@ -228,7 +228,7 @@ jobs:
         run: npm run prepare:rhachet
 
       - name: keyrack firewall
-        run: npx rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
+        run: ./node_modules/.bin/rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
         env:
           SECRETS_JSON: ${{ toJSON(secrets) }}
 
@@ -308,7 +308,7 @@ jobs:
         run: npm run prepare:rhachet
 
       - name: keyrack firewall
-        run: npx rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
+        run: ./node_modules/.bin/rhx keyrack firewall --env test --owner ehmpath --from 'json(env://SECRETS_JSON)' --into github.actions
         env:
           SECRETS_JSON: ${{ toJSON(secrets) }}
 
