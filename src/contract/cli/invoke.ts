@@ -7,6 +7,7 @@ import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRol
 
 import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
+import { invokeBrainsAuth } from './invokeBrainsAuth';
 import { invokeChoose } from './invokeChoose';
 import { invokeEnroll } from './invokeEnroll';
 import { invokeInit } from './invokeInit';
@@ -64,6 +65,7 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   invokeUpgrade({ program });
   invokeUpdate({ program });
   invokeKeyrack({ program }); // filesystem only, no context needed
+  invokeBrainsAuth({ program }); // filesystem + keyrack, no context needed
 
   // assure unique roles when explicit config is available
   if (context.config.usage.isExplicit()) {

@@ -1,0 +1,28 @@
+# 3.1.1.research.external.q6.rate-limit-scope
+
+## question
+
+is rate limit purely per-token, or does IP/device factor in?
+
+## options
+
+- per-token only (rotation will work)
+- per-IP (rotation won't help from same machine)
+- per-device/fingerprint
+- combination
+
+## why it matters
+
+if rate limit is per-IP, token rotation won't help. design premise fails.
+
+## research approach
+
+check anthropic rate limit docs, empirical test with multiple tokens from same IP.
+
+## note
+
+marked as [wisher] in vision — may require empirical validation.
+
+## .status
+
+awaited

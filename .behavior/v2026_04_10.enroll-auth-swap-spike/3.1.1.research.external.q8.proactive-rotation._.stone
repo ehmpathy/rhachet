@@ -1,0 +1,28 @@
+# 3.1.1.research.external.q8.proactive-rotation
+
+## question
+
+how to detect limit approach before error? is there a quota API, or must we infer from rate limit response?
+
+## options
+
+- quota API exists (can check left)
+- headers in response (X-RateLimit-Left style)
+- no visibility (must wait for 429)
+- usage API endpoint
+
+## why it matters
+
+proactive rotation (before limit hit) would be smoother than reactive (after 429).
+
+## research approach
+
+check anthropic api docs for rate limit headers, quota endpoints.
+
+## note
+
+may be out of scope for spike — reactive rotation acceptable for MVP.
+
+## .status
+
+awaited
