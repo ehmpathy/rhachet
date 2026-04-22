@@ -243,11 +243,17 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       return true;
     } catch (error) {
       // allowlist: CLI not installed (ENOENT) → not unlocked
-      if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+      // note: spawn errors surface as "spawn op ENOENT" in message
+      const message = error instanceof Error ? error.message : '';
+      if (
+        (error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT') ||
+        message.includes('ENOENT')
+      )
         return false;
 
       // allowlist: not signed in → not unlocked
-      const message = error instanceof Error ? error.message : '';
       const notSignedInPatterns = [
         'not currently signed in',
         'session expired',

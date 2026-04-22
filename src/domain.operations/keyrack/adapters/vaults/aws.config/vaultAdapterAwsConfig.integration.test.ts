@@ -75,16 +75,17 @@ describe('vaultAdapterAwsConfig integration', () => {
     });
   });
 
-  given('[case3] adapter get with profile name (no mech)', () => {
-    when('[t0] get is called with exid but no mech', () => {
-      then('returns the profile name as-is', async () => {
-        // real adapter call — proves get returns exid when no mech
+  given('[case3] adapter get with PERMANENT_VIA_REPLICA mech', () => {
+    when('[t0] get is called with replica mech', () => {
+      then('returns grant with profile name as secret', async () => {
+        // real adapter call — proves get returns profile via replica mech
+        // note: PERMANENT_VIA_REPLICA returns source as-is, no AWS auth needed
         const result = await vaultAdapterAwsConfig.get({
           slug: 'test.all.AWS_PROFILE',
           exid: 'some-profile-name',
-          mech: null,
+          mech: 'PERMANENT_VIA_REPLICA',
         });
-        expect(result).toEqual('some-profile-name');
+        expect(result?.key.secret).toEqual('some-profile-name');
       });
     });
   });
