@@ -513,6 +513,7 @@ describe('keyrack firewall', () => {
           cwd: repo.path,
           env: {
             HOME: repo.path,
+            GITHUB_ENV: undefined, // explicitly unset (CI env leaks otherwise)
             SECRETS_JSON: JSON.stringify({
               SAFE_API_KEY: 'sk-safe-api-key-abc123',
             }),
