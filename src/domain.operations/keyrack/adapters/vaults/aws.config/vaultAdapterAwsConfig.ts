@@ -171,10 +171,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
 
   /**
    * .what = retrieve credential from aws.config vault
-   * .why = profile name stored as exid; mech transforms to usable secret
+   * .why = profile name stored as exid; AWS SDK resolves credentials at usage time
    *
-   * .note = returns full KeyrackKeyGrant with profile name as secret
-   * .note = AWS SDK resolves actual credentials from profile at usage time
+   * .note = returns profile name as secret, not credentials
+   * .note = validates sso session is active (triggers browser login if expired)
+   * .note = AWS SDK resolves actual credentials from profile when used
    */
   get: async (input) => {
     const source = input.exid ?? null;
@@ -184,7 +185,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
 
     // validate sso session via mech (triggers browser login if expired)
     const mechAdapter = getMechAdapter(mech);
-    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
+    const { expiresAt } = await mechAdapter.deliverForGet({ source });
 
     // compute grade from vault + mech
     const grade = inferKeyGrade({ vault: 'aws.config', mech });
@@ -192,9 +193,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
     // extract env/org from slug
     const { env, org } = asKeyrackSlugParts({ slug: input.slug });
 
+    // return profile name as secret — AWS SDK resolves credentials from profile
     return new KeyrackKeyGrant({
       slug: input.slug,
-      key: { secret, grade },
+      key: { secret: source, grade },
       source: { vault: 'aws.config', mech },
       env,
       org,
@@ -286,16 +288,20 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       });
       console.log('      ├─ ✓ unlock');
 
-      // 2. get — prove profile returns a grant (secret is credentials, not profile name)
+      // 2. get — prove stored profile name matches
       const grantRead = await vaultAdapterAwsConfig.get({
         slug: input.slug,
         exid: profileName,
       });
-      if (!grantRead) {
-        throw new UnexpectedCodePathError('roundtrip failed: get returned null', {
-          slug: input.slug,
-          exid: profileName,
-        });
+      if (!grantRead || grantRead.key.secret !== profileName) {
+        throw new UnexpectedCodePathError(
+          'roundtrip failed: get returned different profile',
+          {
+            slug: input.slug,
+            expected: profileName,
+            actual: grantRead?.key.secret ?? null,
+          },
+        );
       }
       console.log('      ├─ ✓ get');
 
