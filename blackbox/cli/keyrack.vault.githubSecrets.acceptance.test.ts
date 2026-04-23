@@ -250,7 +250,10 @@ describe('keyrack.vault.githubSecrets', () => {
         // error may appear in stdout or stderr depending on how it's reported
         const output = `${result.stdout}\n${result.stderr}`;
         const cleaned = cleanPtyOutput(output);
-        expect(cleaned).toMatchSnapshot();
+        // assert on error content, not full snapshot (stdin echo varies by PTY env)
+        expect(cleaned).toContain('ConstraintError');
+        expect(cleaned).toContain('package.json.repository required');
+        expect(cleaned).toContain('github.secrets vault');
       });
     });
   });
