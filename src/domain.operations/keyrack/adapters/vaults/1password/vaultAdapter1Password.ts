@@ -1,12 +1,20 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import {
+  BadRequestError,
+  ConstraintError,
+  UnexpectedCodePathError,
+} from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
+import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 import { promptVisibleInput } from '@src/infra/promptVisibleInput';
 
@@ -230,11 +238,37 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = uses `op whoami` to detect if 1password is authenticated
    */
   isUnlocked: async () => {
+    // fast-path: if op cli isn't installed, return false (no throw)
+    const opInstalled = await isOpCliInstalled();
+    if (!opInstalled) return false;
+
     try {
       await execOp(['whoami']);
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+
+      // allowlist: not signed in → not unlocked
+      const notSignedInPatterns = [
+        'not currently signed in',
+        'session expired',
+        'authentication required',
+        'no account found',
+      ];
+      if (notSignedInPatterns.some((p) => message.toLowerCase().includes(p)))
+        return false;
+
+      // allowlist: exit code 1 without specific message typically means auth issue
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error as NodeJS.ErrnoException).code === undefined &&
+        message.includes('Command failed')
+      )
+        return false;
+
+      // rethrow unexpected errors
+      throw error;
     }
   },
 
@@ -242,10 +276,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
    * .what = retrieve a credential from 1password
    * .why = uses `op read` with a secret reference uri
    *
-   * .note = vault encapsulates mech transformation:
-   *         1. retrieve source from 1password via op read
-   *         2. call mech.deliverForGet({ source }) if mech supplied
-   *         3. return translated secret (or source if no mech)
+   * .note = returns full KeyrackKeyGrant with grade, env, org
    */
   get: async (input) => {
     // exid is the 1password secret reference uri
@@ -277,13 +308,47 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       throw error;
     }
 
-    // if no mech supplied, return source as-is
-    if (!input.mech) return source;
+    // detect mech from value (JSON blob or plain string)
+    const inferredMech = inferKeyrackMechForGet({ value: source });
+
+    // validate mech consistency when both sources specify
+    if (
+      input.mech &&
+      inferredMech !== 'PERMANENT_VIA_REPLICA' &&
+      input.mech !== inferredMech
+    ) {
+      throw new ConstraintError(
+        'mech mismatch: host manifest and blob disagree',
+        {
+          hostManifestMech: input.mech,
+          blobMech: inferredMech,
+          slug: input.slug,
+          hint: 'update host manifest or blob to match',
+        },
+      );
+    }
+
+    // determine mech: input.mech takes precedence, else use inferred
+    const mech = input.mech ?? inferredMech;
 
     // transform source → usable secret via mech
-    const mechAdapter = getMechAdapter(input.mech);
-    const { secret } = await mechAdapter.deliverForGet({ source });
-    return secret;
+    const mechAdapter = getMechAdapter(mech);
+    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
+
+    // compute grade from vault + mech
+    const grade = inferKeyGrade({ vault: '1password', mech });
+
+    // extract env/org from slug
+    const { env, org } = asKeyrackSlugParts({ slug: input.slug });
+
+    return new KeyrackKeyGrant({
+      slug: input.slug,
+      key: { secret, grade },
+      source: { vault: '1password', mech },
+      env,
+      org,
+      expiresAt,
+    });
   },
 
   /**

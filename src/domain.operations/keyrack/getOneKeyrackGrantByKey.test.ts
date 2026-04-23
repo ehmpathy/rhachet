@@ -6,6 +6,11 @@ import { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getOneKeyrackGrantByKey } from './getOneKeyrackGrantByKey';
 
+// mock daemon SDK to avoid real socket calls in unit tests
+jest.mock('./daemon/sdk', () => ({
+  daemonAccessGet: jest.fn().mockResolvedValue(null),
+}));
+
 /**
  * .what = unit tests for getOneKeyrackGrantByKey
  * .why = verify slug construction and security constraints

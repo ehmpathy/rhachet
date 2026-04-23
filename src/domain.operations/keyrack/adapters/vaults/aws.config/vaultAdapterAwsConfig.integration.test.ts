@@ -32,6 +32,11 @@ import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
  *   - adapter behavior with real profile lookup
  *   - unit tests in .test.ts cover mocked scenarios
  *
+ * .provides-integration-coverage-for:
+ *   - vaultAdapterAwsConfig.test.ts - vault adapter unit tests
+ *   - mechAdapterAwsSso.test.ts - mech adapter exercised via vault.get() in [case4]
+ *   - setupAwsSsoProfile.test.ts - setup operations exercised via vault adapter
+ *
  * .ref = https://docs.aws.amazon.com/singlesignon/latest/userguide/
  */
 describe('vaultAdapterAwsConfig integration', () => {
@@ -66,20 +71,6 @@ describe('vaultAdapterAwsConfig integration', () => {
           mech: null,
         });
         expect(result).toBeNull();
-      });
-    });
-  });
-
-  given('[case3] adapter get with profile name (no mech)', () => {
-    when('[t0] get is called with exid but no mech', () => {
-      then('returns the profile name as-is', async () => {
-        // real adapter call — proves get returns exid when no mech
-        const result = await vaultAdapterAwsConfig.get({
-          slug: 'test.all.AWS_PROFILE',
-          exid: 'some-profile-name',
-          mech: null,
-        });
-        expect(result).toEqual('some-profile-name');
       });
     });
   });

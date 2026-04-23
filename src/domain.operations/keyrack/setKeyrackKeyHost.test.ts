@@ -14,6 +14,11 @@ jest.mock('../../access/daos/daoKeyrackHostManifest', () => ({
   },
 }));
 
+// mock daemon SDK to avoid real socket calls in unit tests
+jest.mock('./daemon/sdk', () => ({
+  daemonAccessRelock: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe('setKeyrackKeyHost', () => {
   given('[case1] new key to configure with @this org', () => {
     const context: ContextKeyrack = {

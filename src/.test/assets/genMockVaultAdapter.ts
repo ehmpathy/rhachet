@@ -2,6 +2,9 @@ import type {
   KeyrackGrantMechanism,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
 /**
  * .what = generates a mock vault adapter for tests
@@ -29,7 +32,20 @@ export const genMockVaultAdapter = (input?: {
       unlocked = true;
     },
     isUnlocked: async () => unlocked,
-    get: async ({ slug }) => storage[slug] ?? null,
+    get: async ({ slug, mech }) => {
+      const secret = storage[slug];
+      if (!secret) return null;
+      const usedMech = mech ?? supportedMechs[0]!;
+      const grade = inferKeyGrade({ vault: 'os.direct', mech: usedMech });
+      const { env, org } = asKeyrackSlugParts({ slug });
+      return new KeyrackKeyGrant({
+        slug,
+        key: { secret, grade },
+        source: { vault: 'os.direct', mech: usedMech },
+        env,
+        org,
+      });
+    },
     set: async ({ slug, mech }) => {
       // mock vault does not prompt; tests must pre-populate storage
       storage[slug] = storage[slug] ?? '__mock_secret__';

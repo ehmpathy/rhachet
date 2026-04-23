@@ -1,18 +1,22 @@
 import { asHashSha256Sync } from 'hash-fns';
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
+import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
 
@@ -121,10 +125,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
    * .what = retrieve a credential from the encrypted vault
    * .why = decrypts the age file with identity from input
    *
-   * .note = vault encapsulates mech transformation:
-   *         1. retrieve source from storage (decrypt)
-   *         2. call mech.deliverForGet({ source }) if mech supplied
-   *         3. return translated secret (or source if no mech)
+   * .note = returns full KeyrackKeyGrant with grade, env, org
    */
   get: async (input) => {
     // return null if file does not exist
@@ -148,13 +149,47 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       identity,
     });
 
-    // if no mech supplied, return source as-is
-    if (!input.mech) return source;
+    // detect mech from value (JSON blob or plain string)
+    const inferredMech = inferKeyrackMechForGet({ value: source });
+
+    // validate mech consistency when both sources specify
+    if (
+      input.mech &&
+      inferredMech !== 'PERMANENT_VIA_REPLICA' &&
+      input.mech !== inferredMech
+    ) {
+      throw new ConstraintError(
+        'mech mismatch: host manifest and blob disagree',
+        {
+          hostManifestMech: input.mech,
+          blobMech: inferredMech,
+          slug: input.slug,
+          hint: 'update host manifest or blob to match',
+        },
+      );
+    }
+
+    // determine mech: input.mech takes precedence, else use inferred
+    const mech = input.mech ?? inferredMech;
 
     // transform source → usable secret via mech
-    const mechAdapter = getMechAdapter(input.mech);
-    const { secret } = await mechAdapter.deliverForGet({ source });
-    return secret;
+    const mechAdapter = getMechAdapter(mech);
+    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
+
+    // compute grade from vault + mech
+    const grade = inferKeyGrade({ vault: 'os.secure', mech });
+
+    // extract env/org from slug
+    const { env, org } = asKeyrackSlugParts({ slug: input.slug });
+
+    return new KeyrackKeyGrant({
+      slug: input.slug,
+      key: { secret, grade },
+      source: { vault: 'os.secure', mech },
+      env,
+      org,
+      expiresAt,
+    });
   },
 
   /**

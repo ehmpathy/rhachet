@@ -39,13 +39,14 @@ describe('vaultAdapterOsEnvvar', () => {
     });
 
     when('[t0] get called with slug', () => {
-      then(
-        'returns env value via raw key name extracted from slug',
-        async () => {
-          const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
-          expect(result).toEqual(testValue);
-        },
-      );
+      then('returns KeyrackKeyGrant with env value as secret', async () => {
+        const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
+        expect(result).not.toBeNull();
+        expect(result!.slug).toEqual(testSlug);
+        expect(result!.key.secret).toEqual(testValue);
+        expect(result!.source.vault).toEqual('os.envvar');
+        expect(result!.source.mech).toEqual('PERMANENT_VIA_REPLICA');
+      });
     });
   });
 

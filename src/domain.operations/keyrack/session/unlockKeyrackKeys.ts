@@ -20,7 +20,6 @@ import { filterSlugsByKeyInput } from '@src/domain.operations/keyrack/filterSlug
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getAllSudoSlugsForKey } from '@src/domain.operations/keyrack/getAllSudoSlugsForKey';
-import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 
 /**
  * .what = unlock keyrack keys and send them to daemon memory
@@ -206,17 +205,17 @@ export const unlockKeyrackKeys = async (
       });
     }
 
-    // get secret from vault
+    // get grant from vault
     // .note = vault may return null if key is absent (e.g., os.daemon after restart, deleted 1password item)
-    // .note = mech passed for transformation (vault calls mech.deliverForGet internally)
-    const secret = await adapter.get({
+    // .note = vault now returns full KeyrackKeyGrant with grade, env, org, expiresAt
+    const grant = await adapter.get({
       slug: effectiveSlug,
       mech: hostConfig.mech,
       exid: hostConfig.exid,
       owner: input.owner ?? null,
       identity,
     });
-    if (!secret) {
+    if (!grant) {
       // key exists in host manifest but vault no longer has it — track as lost
       // .note = this is expected for ephemeral vaults (os.daemon) after session restart
       // .note = this is expected for refed vaults (1password) if item was deleted
@@ -224,11 +223,7 @@ export const unlockKeyrackKeys = async (
       continue;
     }
 
-    // infer grade from vault and mechanism
-    const mech = hostConfig.mech;
-    const grade = inferKeyGrade({ vault, mech });
-
-    // calculate expiresAt with maxDuration cap
+    // calculate expiresAt with maxDuration cap (may override vault's expiresAt)
     const { expiresAt } = computeExpiresAt({
       requestedDurationMs,
       maxDurationMs: hostConfig.maxDuration
@@ -240,19 +235,20 @@ export const unlockKeyrackKeys = async (
 
     // derive env and org for daemon storage
     // for sudo keys: use hostConfig (has env/org set)
-    // for regular keys: derive from effectiveSlug or input.env (hostConfig may not have them)
+    // for regular keys: use grant's env/org or derive from effectiveSlug
     const slugOrg = asKeyrackKeyOrg({ slug: effectiveSlug });
     const slugEnv = asKeyrackKeyEnv({ slug: effectiveSlug });
-    const keyEnv = hostConfig.env ?? slugEnv ?? env;
-    const keyOrg = hostConfig.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
+    const keyEnv = hostConfig.env ?? grant.env ?? slugEnv ?? env;
+    const keyOrg =
+      hostConfig.org ?? grant.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
 
-    // collect key for daemon
+    // collect key for daemon (with duration-capped expiresAt)
     // .note = env=all fallback handled at daemon lookup time, not storage time
     keysToUnlock.push(
       new KeyrackKeyGrant({
         slug: effectiveSlug,
-        key: { secret, grade },
-        source: { vault, mech },
+        key: grant.key,
+        source: grant.source,
         env: keyEnv,
         org: keyOrg,
         expiresAt,

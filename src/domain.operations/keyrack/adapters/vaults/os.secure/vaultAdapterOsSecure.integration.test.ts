@@ -168,7 +168,7 @@ describe('vaultAdapterOsSecure', () => {
           slug: 'XAI_API_KEY',
           identity: testIdentity,
         });
-        expect(result).toEqual('xai-test-key-123');
+        expect(result?.key.secret).toEqual('xai-test-key-123');
       });
     });
   });
@@ -196,13 +196,13 @@ describe('vaultAdapterOsSecure', () => {
           slug: 'KEY_A',
           identity: testIdentity,
         });
-        expect(resultA).toEqual('value-a');
+        expect(resultA?.key.secret).toEqual('value-a');
 
         const resultB = await vaultAdapterOsSecure.get({
           slug: 'KEY_B',
           identity: testIdentity,
         });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
 
@@ -218,7 +218,7 @@ describe('vaultAdapterOsSecure', () => {
           slug: 'KEY_A',
           identity: testIdentity,
         });
-        expect(result).toEqual('new-value-a');
+        expect(result?.key.secret).toEqual('new-value-a');
       });
 
       then('does not affect other keys', async () => {
@@ -232,7 +232,7 @@ describe('vaultAdapterOsSecure', () => {
           slug: 'KEY_B',
           identity: testIdentity,
         });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
 
@@ -254,7 +254,7 @@ describe('vaultAdapterOsSecure', () => {
           slug: 'KEY_B',
           identity: testIdentity,
         });
-        expect(resultB).toEqual('value-b');
+        expect(resultB?.key.secret).toEqual('value-b');
       });
     });
   });

@@ -1,4 +1,7 @@
 org: ehmpathy
 env.prod: null
-env.test: null
+env.test:
+  - OPENAI_API_KEY
+  - XAI_API_KEY
+  - ANTHROPIC_API_KEY
 env.all: []

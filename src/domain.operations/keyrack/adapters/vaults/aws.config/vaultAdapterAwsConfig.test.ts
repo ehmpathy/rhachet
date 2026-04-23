@@ -1,23 +1,8 @@
 import { given, then, when } from 'test-fns';
 
 /**
- * .what = unit tests for vaultAdapterAwsConfig
- *
- * .why = verify adapter logic without real aws credentials
- *
- * .scope = internal vault adapter (NOT user-faced contract)
- *   - vaultAdapterAwsConfig is infrastructure in domain.operations/keyrack/adapters/
- *   - user-faced contracts are CLI commands tested in blackbox/cli/keyrack.vault.awsIamSso.acceptance.test.ts
- *   - therefore: no snapshot coverage required per rule.require.contract-snapshot-exhaustiveness
- *
- * .rule-compliance:
- *   - rule.require.contract-snapshot-exhaustiveness: NOT APPLICABLE
- *     - this is an internal adapter, not a user-faced contract
- *     - user-faced contracts (CLI) have snapshot coverage in acceptance tests
- *
- * .mocks = child_process (exec, spawn) and fs to simulate aws cli behavior
- *   - aws sso requires browser-based oauth flow — cannot be automated
- *   - mocks allow test of adapter logic without real credentials
+ * unit tests — mocks child_process for adapter logic
+ * real aws calls tested in vaultAdapterAwsConfig.integration.test.ts
  */
 
 // mock child_process.exec and spawn before import
@@ -97,6 +82,80 @@ describe('vaultAdapterAwsConfig', () => {
     spawnMock.mockClear();
   });
 
+  /**
+   * ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+   * ┃ CRITICAL CONTRACT: aws.config.get returns PROFILE NAME, not credentials      ┃
+   * ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+   * ┃                                                                              ┃
+   * ┃ .why = user sets `AWS_PROFILE=$(rhx keyrack get --key AWS_PROFILE)`          ┃
+   * ┃        AWS SDK loads actual credentials from the profile at runtime          ┃
+   * ┃                                                                              ┃
+   * ┃ .invariant = key.secret === profile name (e.g., "acme-prod")                 ┃
+   * ┃ .invariant = key.secret NEVER contains credentials or JSON                   ┃
+   * ┃                                                                              ┃
+   * ┃ .note = mech.deliverForGet validates SSO session is active                   ┃
+   * ┃ .note = credentials are NOT exposed via keyrack — AWS SDK handles them       ┃
+   * ┃                                                                              ┃
+   * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+   */
+  given('[case0] CONTRACT: get returns profile name as secret', () => {
+    beforeEach(() => {
+      // mock aws configure export-credentials output
+      // this proves credentials are available (session active) but NOT returned
+      execMock.mockImplementation((cmd: string, callback: any) => {
+        callback(null, {
+          stdout: [
+            'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+            'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
+            'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
+          ].join('\n'),
+          stderr: '',
+        });
+        return {} as any;
+      });
+    });
+
+    when('[t0] get is called with profile name', () => {
+      then('secret IS the profile name', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+        expect(result!.key.secret).toEqual('acme-prod');
+      });
+
+      then('secret is NOT credentials', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+        expect(result!.key.secret).not.toContain('AKIA');
+        expect(result!.key.secret).not.toContain('AWS_ACCESS_KEY_ID');
+      });
+
+      then('secret is NOT JSON', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+        expect(result!.key.secret).not.toContain('{');
+        expect(result!.key.secret).not.toContain('}');
+      });
+
+      then('secret can be used directly as AWS_PROFILE env var', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+        // simulate: AWS_PROFILE=$(rhx keyrack get --key AWS_PROFILE)
+        const awsProfile = result!.key.secret;
+        expect(awsProfile).toEqual('acme-prod');
+        // AWS SDK loads credentials from this profile at runtime
+      });
+    });
+  });
+
   given('[case1] no exid provided', () => {
     when('[t0] isUnlocked called without exid', () => {
       then('returns true (no profile = unlocked)', async () => {
@@ -151,16 +210,6 @@ describe('vaultAdapterAwsConfig', () => {
 
   given('[case2] exid provided', () => {
     when('[t0] get called with exid', () => {
-      then('returns the exid as the profile name', async () => {
-        const result = await vaultAdapterAwsConfig.get({
-          slug: 'acme.prod.AWS_PROFILE',
-          exid: 'acme-prod',
-        });
-        expect(result).toEqual('acme-prod');
-      });
-    });
-
-    when('[t0.5] get called with exid and mech', () => {
       beforeEach(() => {
         // mock aws configure export-credentials output (mech.deliverForGet calls this)
         execMock.mockImplementation((cmd: string, callback: any) => {
@@ -177,13 +226,57 @@ describe('vaultAdapterAwsConfig', () => {
         });
       });
 
-      then('returns the exid (profile name), not credentials', async () => {
+      /**
+       * .what = aws.config.get returns profile name as secret
+       * .why = key is a reference to a verified-live profile; AWS SDK loads creds at runtime
+       *
+       * .note = mech.deliverForGet validates session is active (credentials available)
+       * .note = credentials are NOT returned — only the profile name reference
+       */
+      then('returns KeyrackKeyGrant with profile name as secret', async () => {
+        const result = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+        expect(result).not.toBeNull();
+        expect(result!.slug).toEqual('acme.prod.AWS_PROFILE');
+        expect(result!.source.vault).toEqual('aws.config');
+        expect(result!.source.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
+
+        // secret is profile name — a reference to a verified-live profile
+        expect(result!.key.secret).toEqual('acme-prod');
+        expect(result!.key.secret).not.toContain('AKIA'); // must NOT contain access key
+        expect(result!.key.secret).not.toContain('{'); // must NOT be JSON
+
+        expect(result!.expiresAt).toEqual('2026-04-14T12:00:00Z');
+      });
+    });
+
+    when('[t0.5] get called with exid and explicit mech', () => {
+      beforeEach(() => {
+        // mock aws configure export-credentials output (mech.deliverForGet calls this)
+        execMock.mockImplementation((cmd: string, callback: any) => {
+          callback(null, {
+            stdout: [
+              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+              'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
+              'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
+            ].join('\n'),
+            stderr: '',
+          });
+          return {} as any;
+        });
+      });
+
+      then('returns KeyrackKeyGrant with mech from input', async () => {
         const result = await vaultAdapterAwsConfig.get({
           slug: 'acme.prod.AWS_PROFILE',
           exid: 'acme-prod',
           mech: 'EPHEMERAL_VIA_AWS_SSO',
         });
-        expect(result).toEqual('acme-prod');
+        expect(result).not.toBeNull();
+        expect(result!.source.mech).toEqual('EPHEMERAL_VIA_AWS_SSO');
       });
     });
 

@@ -1,12 +1,17 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
+import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -147,10 +152,7 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = core operation for grant flow
    *
    * .note = if entry is expired, deletes it and returns null
-   * .note = vault encapsulates mech transformation:
-   *         1. retrieve source from storage
-   *         2. call mech.deliverForGet({ source }) if mech supplied
-   *         3. return translated secret (or source if no mech)
+   * .note = returns full KeyrackKeyGrant with grade, env, org
    */
   get: async (input) => {
     const owner = input.owner ?? null;
@@ -169,13 +171,52 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
 
     const source = entry.value;
 
-    // if no mech supplied, return source as-is
-    if (!input.mech) return source;
+    // detect mech from value (JSON blob or plain string)
+    const inferredMech = inferKeyrackMechForGet({ value: source });
+
+    // validate mech consistency when both sources specify
+    if (
+      input.mech &&
+      inferredMech !== 'PERMANENT_VIA_REPLICA' &&
+      input.mech !== inferredMech
+    ) {
+      throw new ConstraintError(
+        'mech mismatch: host manifest and blob disagree',
+        {
+          hostManifestMech: input.mech,
+          blobMech: inferredMech,
+          slug: input.slug,
+          hint: 'update host manifest or blob to match',
+        },
+      );
+    }
+
+    // determine mech: input.mech takes precedence, else use inferred
+    const mech = input.mech ?? inferredMech;
 
     // transform source → usable secret via mech
-    const mechAdapter = getMechAdapter(input.mech);
-    const { secret } = await mechAdapter.deliverForGet({ source });
-    return secret;
+    const mechAdapter = getMechAdapter(mech);
+    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
+
+    // compute grade from vault + mech
+    const grade = inferKeyGrade({ vault: 'os.direct', mech });
+
+    // extract env/org from slug
+    const { env, org } = asKeyrackSlugParts({ slug: input.slug });
+
+    // combine expiresAt from mech (if any) with entry.expiresAt (ephemeral cache)
+    const finalExpiresAt: IsoTimeStamp | undefined =
+      expiresAt ??
+      (entry.expiresAt ? asIsoTimeStamp(new Date(entry.expiresAt)) : undefined);
+
+    return new KeyrackKeyGrant({
+      slug: input.slug,
+      key: { secret, grade },
+      source: { vault: 'os.direct', mech },
+      env,
+      org,
+      expiresAt: finalExpiresAt,
+    });
   },
 
   /**

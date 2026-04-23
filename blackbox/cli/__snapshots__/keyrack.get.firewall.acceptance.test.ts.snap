@@ -1,0 +1,346 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0.1] get --key SAFE_API_KEY (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.SAFE_API_KEY
+      ├─ vault: os.direct
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t0] get --key SAFE_API_KEY (valid api key) then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.SAFE_API_KEY",
+    "key": {
+      "secret": "sk-safe-api-key-abc123",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1.1] get --key GHP_TOKEN (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.GHP_TOKEN
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected github classic pat (ghp_*)
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t1] get --key GHP_TOKEN (github classic pat) then: stdout matches snapshot 1`] = `
+"{
+  "status": "blocked",
+  "slug": "testorg.test.GHP_TOKEN",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected github classic pat (ghp_*)"
+  ],
+  "fix": "update the stored value to use a short-lived or properly-formatted credential"
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t2.1] get --key AKIA_TOKEN (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.AKIA_TOKEN
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected aws long-lived access key (AKIA*)
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t2] get --key AKIA_TOKEN (aws long-lived access key) then: stdout matches snapshot 1`] = `
+"{
+  "status": "blocked",
+  "slug": "testorg.test.AKIA_TOKEN",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected aws long-lived access key (AKIA*)"
+  ],
+  "fix": "update the stored value to use a short-lived or properly-formatted credential"
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t3.1] get --for repo (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   ├─ testorg.test.SAFE_API_KEY
+   │  ├─ vault: os.direct
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ status: granted 🔑
+   ├─ testorg.test.GHP_TOKEN
+   │  ├─ status: blocked 🚫
+   │  │  ├─ its dangerous to use long lived tokens via replica mechanisms
+   │  │  └─ detected github classic pat (ghp_*)
+   │  └─ [2mtip: --allow-dangerous if you must[0m
+   └─ testorg.test.AKIA_TOKEN
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected aws long-lived access key (AKIA*)
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+"
+`;
+
+exports[`keyrack get firewall given: [case1] repo with firewall test (ghp_* and AKIA* tokens) when: [t3] get --for repo then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "granted",
+    "grant": {
+      "slug": "testorg.test.SAFE_API_KEY",
+      "key": {
+        "secret": "sk-safe-api-key-abc123",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "test",
+      "org": "testorg"
+    }
+  },
+  {
+    "status": "blocked",
+    "slug": "testorg.test.GHP_TOKEN",
+    "reasons": [
+      "its dangerous to use long lived tokens via replica mechanisms",
+      "detected github classic pat (ghp_*)"
+    ],
+    "fix": "update the stored value to use a short-lived or properly-formatted credential"
+  },
+  {
+    "status": "blocked",
+    "slug": "testorg.test.AKIA_TOKEN",
+    "reasons": [
+      "its dangerous to use long lived tokens via replica mechanisms",
+      "detected aws long-lived access key (AKIA*)"
+    ],
+    "fix": "update the stored value to use a short-lived or properly-formatted credential"
+  }
+]
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t0.1] get --key GHP_TOKEN --allow-dangerous (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.GHP_TOKEN
+      ├─ vault: os.direct
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t0] get --key GHP_TOKEN --allow-dangerous (json) then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.GHP_TOKEN",
+    "key": {
+      "secret": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t1.1] get --key AKIA_TOKEN --allow-dangerous (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.AKIA_TOKEN
+      ├─ vault: os.direct
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t1] get --key AKIA_TOKEN --allow-dangerous (json) then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.AKIA_TOKEN",
+    "key": {
+      "secret": "AKIAIOSFODNN7EXAMPLE",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t2.1] get --for repo --allow-dangerous (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   ├─ testorg.test.SAFE_API_KEY
+   │  ├─ vault: os.direct
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ status: granted 🔑
+   ├─ testorg.test.GHP_TOKEN
+   │  ├─ vault: os.direct
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ status: granted 🔑
+   └─ testorg.test.AKIA_TOKEN
+      ├─ vault: os.direct
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get firewall given: [case2] --allow-dangerous bypasses firewall when: [t2] get --for repo --allow-dangerous then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "granted",
+    "grant": {
+      "slug": "testorg.test.SAFE_API_KEY",
+      "key": {
+        "secret": "sk-safe-api-key-abc123",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "test",
+      "org": "testorg"
+    }
+  },
+  {
+    "status": "granted",
+    "grant": {
+      "slug": "testorg.test.GHP_TOKEN",
+      "key": {
+        "secret": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "test",
+      "org": "testorg"
+    }
+  },
+  {
+    "status": "granted",
+    "grant": {
+      "slug": "testorg.test.AKIA_TOKEN",
+      "key": {
+        "secret": "AKIAIOSFODNN7EXAMPLE",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "test",
+      "org": "testorg"
+    }
+  }
+]
+"
+`;
+
+exports[`keyrack get firewall given: [case3] env var contains ghp_* token when: [t0] get --key ALLOWED_KEY with ghp_* env var then: stdout matches snapshot 1`] = `
+"{
+  "status": "blocked",
+  "slug": "testorg.test.ALLOWED_KEY",
+  "reasons": [
+    "its dangerous to use long lived tokens via replica mechanisms",
+    "detected github classic pat (ghp_*)"
+  ],
+  "fix": "update the stored value to use a short-lived or properly-formatted credential"
+}
+"
+`;
+
+exports[`keyrack get firewall given: [case3] env var contains ghp_* token when: [t1.1] get --key ALLOWED_KEY --allow-dangerous with ghp_* env var (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.ALLOWED_KEY
+      ├─ vault: os.envvar
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack get firewall given: [case3] env var contains ghp_* token when: [t1] get --key ALLOWED_KEY --allow-dangerous with ghp_* env var then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.ALLOWED_KEY",
+    "key": {
+      "secret": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.envvar",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;

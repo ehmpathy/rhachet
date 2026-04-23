@@ -6,26 +6,24 @@ import { getStdoutPrefix } from '@src/infra/withStdoutPrefix';
  * .what = patterns that indicate long-lived tokens
  * .why = replica mechanism should reject these for security
  *
- * .note = these patterns match known long-lived credential formats
+ * .note = prefix-only match for firewall (block ghp_* regardless of length)
+ * .note = ghs_* (server-to-server) is NOT blocked — ephemeral GitHub App tokens
  */
 const LONG_LIVED_PATTERNS = [
-  // github classic personal access tokens
-  /^ghp_[a-zA-Z0-9]{36}$/,
+  // github classic personal access tokens (ghp_*)
+  /^ghp_/,
 
-  // github oauth tokens
-  /^gho_[a-zA-Z0-9]{36}$/,
+  // github oauth tokens (gho_*)
+  /^gho_/,
 
-  // github user-to-server tokens
-  /^ghu_[a-zA-Z0-9]{36}$/,
+  // github user-to-server tokens (ghu_*)
+  /^ghu_/,
 
-  // github server-to-server tokens (long-lived)
-  /^ghs_[a-zA-Z0-9]{36}$/,
+  // github refresh tokens (ghr_*)
+  /^ghr_/,
 
-  // github refresh tokens
-  /^ghr_[a-zA-Z0-9]{36}$/,
-
-  // aws long-lived access keys (format: AKIA + 16 chars)
-  /^AKIA[A-Z0-9]{16}$/,
+  // aws long-lived access keys (AKIA*)
+  /^AKIA/,
 ];
 
 /**
@@ -40,8 +38,6 @@ const matchesLongLivedPattern = (value: string): string | null => {
       if (pattern.source.includes('gho_')) return 'github oauth token (gho_*)';
       if (pattern.source.includes('ghu_'))
         return 'github user-to-server token (ghu_*)';
-      if (pattern.source.includes('ghs_'))
-        return 'github server-to-server token (ghs_*)';
       if (pattern.source.includes('ghr_'))
         return 'github refresh token (ghr_*)';
       if (pattern.source.includes('AKIA'))

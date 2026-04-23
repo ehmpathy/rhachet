@@ -14,14 +14,32 @@ describe('mechAdapterReplica', () => {
       });
     });
 
-    when('[t1] validate called with token that has wrong length', () => {
+    when('[t1] validate called with ghs_* token (ephemeral)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'ghs_abc123', // only 6 chars after prefix, pattern expects 36
+        source: 'ghs_abc123',
       });
 
-      then('validation passes for non-matched pattern', () => {
-        // ghs_ with wrong length should pass (pattern requires exactly 36 chars)
-        expect(result.valid).toBe(true);
+      then(
+        'validation passes (ghs_* are ephemeral server-to-server tokens)',
+        () => {
+          expect(result.valid).toBe(true);
+        },
+      );
+    });
+
+    when('[t1.1] validate called with short ghp_* token', () => {
+      const result = mechAdapterReplica.validate({
+        source: 'ghp_short123',
+      });
+
+      then('validation fails (ghp_* blocked regardless of length)', () => {
+        expect(result.valid).toBe(false);
+      });
+
+      then('reason mentions github classic pat', () => {
+        if (!result.valid) {
+          expect(result.reasons?.join(' ')).toContain('github classic pat');
+        }
       });
     });
 
@@ -94,17 +112,12 @@ describe('mechAdapterReplica', () => {
           source: 'ghs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
         });
 
-        then('validation fails', () => {
-          expect(result.valid).toBe(false);
-        });
-
-        then('reason mentions github server-to-server token', () => {
-          if (!result.valid) {
-            expect(result.reasons?.join(' ')).toContain(
-              'github server-to-server token',
-            );
-          }
-        });
+        then(
+          'validation passes (ghs_ are ephemeral installation tokens)',
+          () => {
+            expect(result.valid).toBe(true);
+          },
+        );
       },
     );
 

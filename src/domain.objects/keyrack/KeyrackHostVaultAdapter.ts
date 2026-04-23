@@ -1,10 +1,14 @@
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
+import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
 
 /**
  * .what = get method signature for readable vaults
  * .why = extracted for reuse in generic and type guards
+ *
+ * .note = returns full KeyrackKeyGrant with inferred mech, grade, env, org
+ * .note = vault is responsible for mech inference from JSON blobs
  */
 type KeyrackHostVaultGetMethod = (input: {
   slug: string;
@@ -13,7 +17,7 @@ type KeyrackHostVaultGetMethod = (input: {
   vaultRecipient?: string | null;
   owner?: string | null;
   identity?: string | null;
-}) => Promise<string | null>;
+}) => Promise<KeyrackKeyGrant | null>;
 
 /**
  * .what = vault adapter for keyrack storage backends
