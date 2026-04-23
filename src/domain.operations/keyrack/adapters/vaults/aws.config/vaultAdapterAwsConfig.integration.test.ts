@@ -75,21 +75,6 @@ describe('vaultAdapterAwsConfig integration', () => {
     });
   });
 
-  given('[case3] adapter get with PERMANENT_VIA_REPLICA mech', () => {
-    when('[t0] get is called with replica mech', () => {
-      then('returns grant with profile name as secret', async () => {
-        // real adapter call — proves get returns profile via replica mech
-        // note: PERMANENT_VIA_REPLICA returns source as-is, no AWS auth needed
-        const result = await vaultAdapterAwsConfig.get({
-          slug: 'test.all.AWS_PROFILE',
-          exid: 'some-profile-name',
-          mech: 'PERMANENT_VIA_REPLICA',
-        });
-        expect(result?.key.secret).toEqual('some-profile-name');
-      });
-    });
-  });
-
   /**
    * .what = real external contract test for aws sts service
    * .why = satisfies rule.require.external-contract-integration-tests

@@ -238,20 +238,15 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = uses `op whoami` to detect if 1password is authenticated
    */
   isUnlocked: async () => {
+    // fast-path: if op cli isn't installed, return false (no throw)
+    const opInstalled = await isOpCliInstalled();
+    if (!opInstalled) return false;
+
     try {
       await execOp(['whoami']);
       return true;
     } catch (error) {
-      // allowlist: CLI not installed (ENOENT) → not unlocked
-      // note: spawn errors surface as "spawn op ENOENT" in message
       const message = error instanceof Error ? error.message : '';
-      if (
-        (error instanceof Error &&
-          'code' in error &&
-          error.code === 'ENOENT') ||
-        message.includes('ENOENT')
-      )
-        return false;
 
       // allowlist: not signed in → not unlocked
       const notSignedInPatterns = [
