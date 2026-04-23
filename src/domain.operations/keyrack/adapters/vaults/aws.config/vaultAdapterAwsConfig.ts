@@ -286,20 +286,16 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       });
       console.log('      ├─ ✓ unlock');
 
-      // 2. get — prove stored profile name matches
+      // 2. get — prove profile returns a grant (secret is credentials, not profile name)
       const grantRead = await vaultAdapterAwsConfig.get({
         slug: input.slug,
         exid: profileName,
       });
-      if (!grantRead || grantRead.key.secret !== profileName) {
-        throw new UnexpectedCodePathError(
-          'roundtrip failed: get returned different profile',
-          {
-            slug: input.slug,
-            expected: profileName,
-            actual: grantRead?.key.secret ?? null,
-          },
-        );
+      if (!grantRead) {
+        throw new UnexpectedCodePathError('roundtrip failed: get returned null', {
+          slug: input.slug,
+          exid: profileName,
+        });
       }
       console.log('      ├─ ✓ get');
 
