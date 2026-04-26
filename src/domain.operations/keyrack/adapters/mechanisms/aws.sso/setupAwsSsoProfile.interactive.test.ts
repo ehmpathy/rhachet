@@ -292,8 +292,13 @@ describe('setupAwsSsoProfile interactive journey', () => {
         // verify aws cli was called correctly
         expect(mockExecSync).toHaveBeenCalledWith(
           'aws sso list-accounts --access-token "test-access-token-123" --region "us-east-1"',
-          { encoding: 'utf-8' },
+          expect.objectContaining({ encoding: 'utf-8' }),
         );
+
+        // regression: verify AWS_PROFILE is unset to prevent inherited empty string from shell
+        const callArgs = mockExecSync.mock.calls[0];
+        expect(callArgs?.[1]?.env).toBeDefined();
+        expect(callArgs?.[1]?.env?.AWS_PROFILE).toBeUndefined();
       });
     });
 
@@ -368,8 +373,13 @@ describe('setupAwsSsoProfile interactive journey', () => {
         // verify aws cli was called correctly
         expect(mockExecSync).toHaveBeenCalledWith(
           'aws sso list-account-roles --access-token "test-access-token-456" --account-id "123456789012" --region "us-east-1"',
-          { encoding: 'utf-8' },
+          expect.objectContaining({ encoding: 'utf-8' }),
         );
+
+        // regression: verify AWS_PROFILE is unset to prevent inherited empty string from shell
+        const callArgs = mockExecSync.mock.calls[0];
+        expect(callArgs?.[1]?.env).toBeDefined();
+        expect(callArgs?.[1]?.env?.AWS_PROFILE).toBeUndefined();
       });
     });
 

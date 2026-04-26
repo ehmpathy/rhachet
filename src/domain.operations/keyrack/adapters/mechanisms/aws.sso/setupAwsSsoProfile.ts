@@ -409,10 +409,10 @@ export const listAwsSsoAccounts = (input: {
     );
   }
 
-  // list accounts
+  // list accounts (unset AWS_PROFILE to prevent inherited empty string from shell)
   const result = execSync(
     `aws sso list-accounts --access-token "${accessToken}" --region "${input.ssoRegion}"`,
-    { encoding: 'utf-8' },
+    { encoding: 'utf-8', env: { ...process.env, AWS_PROFILE: undefined } },
   );
 
   const parsed = JSON.parse(result);
@@ -466,10 +466,10 @@ export const listAwsSsoRoles = (input: {
     );
   }
 
-  // list roles
+  // list roles (unset AWS_PROFILE to prevent inherited empty string from shell)
   const result = execSync(
     `aws sso list-account-roles --access-token "${accessToken}" --account-id "${input.accountId}" --region "${input.ssoRegion}"`,
-    { encoding: 'utf-8' },
+    { encoding: 'utf-8', env: { ...process.env, AWS_PROFILE: undefined } },
   );
 
   const parsed = JSON.parse(result);
