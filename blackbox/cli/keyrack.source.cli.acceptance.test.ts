@@ -609,7 +609,7 @@ env.test:
         expect(result.stdout.trim()).toEqual('');
       });
 
-      then('stderr is empty', () => {
+      then('stderr matches snapshot', () => {
         expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
       });
     });
