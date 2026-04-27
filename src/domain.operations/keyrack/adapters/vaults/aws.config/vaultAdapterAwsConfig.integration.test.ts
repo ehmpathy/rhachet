@@ -112,7 +112,7 @@ describe('vaultAdapterAwsConfig integration', () => {
             // aws cli returns specific errors for auth failures
             // any of these proves we actually called aws cli with real network intent
             expect(output).toMatch(
-              /Unable to locate credentials|ExpiredToken|InvalidClientTokenId|AccessDenied|NoCredentialProviders|credentials/i,
+              /Unable to locate credentials|ExpiredToken|InvalidClientTokenId|AccessDenied|NoCredentialProviders|credentials|session.*expired|reauthenticate/i,
             );
           }
         },

@@ -81,15 +81,17 @@ export const setupAwsSsoWithGuide = async (input: {
       // user picked option
       ssoStartUrl = portalsFound[index]!.ssoStartUrl;
       ssoRegion = portalsFound[index]!.ssoRegion;
-      // rewrite the choice line with confirmation
+      // rewrite the choice line with confirmation + echo
       process.stdout.write('\x1b[1A\x1b[2K');
-      console.log(`   │     └─ ${index + 1} ✓`);
+      console.log(`   │     ├─ ${index + 1} ✓`);
+      console.log(`   │     └─ as ${ssoStartUrl}`);
     } else if (answer.startsWith('http')) {
       // user entered new url
       ssoStartUrl = answer;
-      // rewrite the choice line with confirmation
+      // rewrite the choice line with confirmation + echo
       process.stdout.write('\x1b[1A\x1b[2K');
-      console.log(`   │     └─ ${answer} ✓`);
+      console.log(`   │     ├─ ${answer} ✓`);
+      console.log(`   │     └─ as ${answer}`);
       // prompt for region
       console.log('   │  └─ sso region');
       ssoRegion = await promptUser('   │     └─ ');
@@ -134,10 +136,20 @@ export const setupAwsSsoWithGuide = async (input: {
   });
 
   // list accounts (silent fetch)
-  const accounts = listAwsSsoAccounts({ ssoRegion });
-  if (accounts.length === 0) {
+  const accountsUnsorted = listAwsSsoAccounts({ ssoRegion });
+  if (accountsUnsorted.length === 0) {
     throw new BadRequestError('no accounts found for this sso configuration');
   }
+
+  // sort accounts alphabetically by name for stable order
+  const accounts = [...accountsUnsorted].sort((a, b) =>
+    a.accountName.localeCompare(b.accountName),
+  );
+
+  // find max account name length so IDs align
+  const maxAccountNameLen = Math.max(
+    ...accounts.map((a) => a.accountName.length),
+  );
 
   console.log('   │');
   console.log('   ├─ which account?');
@@ -145,8 +157,9 @@ export const setupAwsSsoWithGuide = async (input: {
   accounts.forEach((a, i) => {
     const isLastOption = i === accounts.length - 1;
     const optPrefix = isLastOption ? '└─' : '├─';
+    const paddedName = a.accountName.padEnd(maxAccountNameLen);
     console.log(
-      `   │  │  ${optPrefix} ${i + 1}. ${a.accountId} · ${a.accountName}`,
+      `   │  │  ${optPrefix} ${i + 1}. ${paddedName} · ${a.accountId}`,
     );
   });
   console.log('   │  └─ choice');
@@ -160,18 +173,24 @@ export const setupAwsSsoWithGuide = async (input: {
     throw new BadRequestError(`invalid selection: ${accountAnswer}`);
   }
   const selectedAccount = accounts[accountIndex]!;
-  // rewrite the choice line with confirmation
+  // rewrite the choice line with confirmation + echo
   process.stdout.write('\x1b[1A\x1b[2K');
-  console.log(`   │     └─ ${accountIndex + 1} ✓`);
+  console.log(`   │     ├─ ${accountIndex + 1} ✓`);
+  console.log(`   │     └─ as ${selectedAccount.accountName}`);
 
   // list roles (silent fetch)
-  const roles = listAwsSsoRoles({
+  const rolesUnsorted = listAwsSsoRoles({
     ssoRegion,
     accountId: selectedAccount.accountId,
   });
-  if (roles.length === 0) {
+  if (rolesUnsorted.length === 0) {
     throw new BadRequestError('no roles found for this account');
   }
+
+  // sort roles alphabetically by name for stable order
+  const roles = [...rolesUnsorted].sort((a, b) =>
+    a.roleName.localeCompare(b.roleName),
+  );
 
   console.log('   │');
   console.log('   ├─ which role?');
@@ -188,9 +207,10 @@ export const setupAwsSsoWithGuide = async (input: {
     throw new BadRequestError(`invalid selection: ${roleAnswer}`);
   }
   const selectedRole = roles[roleIndex]!;
-  // rewrite the choice line with confirmation
+  // rewrite the choice line with confirmation + echo
   process.stdout.write('\x1b[1A\x1b[2K');
-  console.log(`   │     └─ ${roleIndex + 1} ✓`);
+  console.log(`   │     ├─ ${roleIndex + 1} ✓`);
+  console.log(`   │     └─ as ${selectedRole.roleName}`);
 
   // profile name with smart suggestion
   // strip redundant prefix: if account name starts with org, use just the suffix
@@ -210,9 +230,13 @@ export const setupAwsSsoWithGuide = async (input: {
   console.log('   │  └─ choice');
   const profileNameInput = await promptUser('   │     └─ ');
   const profileName = profileNameInput || suggestedName;
-  // rewrite the choice line with confirmation
+  const acceptedDefault = !profileNameInput;
+  // rewrite the choice line with confirmation + echo
   process.stdout.write('\x1b[1A\x1b[2K');
-  console.log(`   │     └─ ${profileName} ✓`);
+  // if accepted default (pressed enter), show just ✓; otherwise show what they typed
+  const checkLine = acceptedDefault ? '✓' : `${profileName} ✓`;
+  console.log(`   │     ├─ ${checkLine}`);
+  console.log(`   │     └─ as ${profileName}`);
 
   // check if profile already exists in ~/.aws/config
   const profileExists = await doesAwsProfileExist({ profileName });

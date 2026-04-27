@@ -209,7 +209,8 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │  │  └─ 1. https://mock-portal.awsapps.com/start (us-east-1)
    │  └─ choice
    │     └─ 1
-   │     └─ 1 ✓
+   │     ├─ 1 ✓
+   │     └─ as https://mock-portal.awsapps.com/start
    │
    ├─ which sso login?
    │  ├─ authorize in browser
@@ -219,11 +220,12 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │
    ├─ which account?
    │  ├─ options
-   │  │  ├─ 1. 123456789012  testorg-dev
-   │  │  └─ 2. 987654321098  testorg-prod
+   │  │  ├─ 1. testorg-dev   123456789012
+   │  │  └─ 2. testorg-prod  987654321098
    │  └─ choice
    │     └─ 1
-   │     └─ 1 ✓
+   │     ├─ 1 ✓
+   │     └─ as testorg-dev
    │
    ├─ which role?
    │  ├─ options
@@ -231,14 +233,16 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │  │  └─ 2. ReadOnlyAccess
    │  └─ choice
    │     └─ 1
-   │     └─ 1 ✓
+   │     ├─ 1 ✓
+   │     └─ as AdministratorAccess
    │
    ├─ what should we call it?
    │  ├─ suggested
    │  │  └─ testorg.dev
    │  └─ choice
    │     └─
-   │     └─ testorg.dev ✓
+   │     ├─ ✓
+   │     └─ as testorg.dev
    │
    ├─ lovely, lets vault it now...
    │  └─ ✓ written to ~/.aws/config
