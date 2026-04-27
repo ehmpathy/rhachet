@@ -502,7 +502,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('output export statements for shell eval')
     .option('--key <keyname>', 'single key to source (omit for all repo keys)')
     .requiredOption('--env <env>', 'target env: prod, prep, test, all')
-    .requiredOption('--owner <owner>', 'owner identity (required)')
+    .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
     .option('--strict', 'fail if any key not granted (default)')
     .option('--lenient', 'skip absent keys silently')
@@ -515,13 +515,8 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         strict?: boolean;
         lenient?: boolean;
       }) => {
-        // --owner takes precedence; --for is alias
+        // --owner takes precedence; --for is alias (null = default owner)
         const owner = opts.owner ?? opts.for ?? null;
-
-        // validate: --owner is required
-        if (!owner) {
-          throw new BadRequestError('--owner is required');
-        }
 
         // validate: --strict and --lenient are mutually exclusive
         if (opts.strict && opts.lenient) {

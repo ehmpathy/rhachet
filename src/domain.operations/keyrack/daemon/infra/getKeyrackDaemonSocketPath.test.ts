@@ -110,6 +110,20 @@ describe('getKeyrackDaemonSocketPath', () => {
         );
       });
     });
+
+    when("[t3] owner is 'default'", () => {
+      then('uses same socket path as null (no owner suffix)', () => {
+        const sessionId = getLoginSessionId({ pid: process.pid });
+        const homeHash = getHomeHash();
+        const pathDefault = getKeyrackDaemonSocketPath({ owner: 'default' });
+        const pathNull = getKeyrackDaemonSocketPath({ owner: null });
+        // 'default' is an alias for null — both mean "the default owner"
+        expect(pathDefault).toEqual(pathNull);
+        expect(pathDefault).toEqual(
+          `/run/user/1000/keyrack.${sessionId}.${homeHash}.sock`,
+        );
+      });
+    });
   });
 
   given('[case3] XDG_RUNTIME_DIR is unset', () => {

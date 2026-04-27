@@ -46,7 +46,9 @@ export const getKeyrackDaemonSocketPath = (input?: {
   const homeHash = getHomeHash();
 
   // construct socket path with optional owner suffix
-  const owner = input?.owner ?? null;
+  // .note = 'default' is treated same as null (both mean "the default owner")
+  const ownerRaw = input?.owner ?? null;
+  const owner = ownerRaw === 'default' ? null : ownerRaw;
   const filename =
     owner === null
       ? `keyrack.${sessionId}.${homeHash}.sock`

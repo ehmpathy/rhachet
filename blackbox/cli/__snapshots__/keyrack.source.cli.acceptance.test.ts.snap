@@ -11,6 +11,8 @@ exports[`keyrack source CLI given: [case1] all keys granted via env passthrough 
 "
 `;
 
+exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) when: [t0] source exits 2 with no stdout then: stdout matches snapshot 1`] = `""`;
+
 exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) when: [t1] stderr shows which keys not granted then: stderr matches snapshot 1`] = `
 "not granted: testorg.test.__TEST_SOURCE_STRICT_ABSENT__ (absent)
 
@@ -23,17 +25,64 @@ exports[`keyrack source CLI given: [case3] some keys not granted (lenient mode) 
 "
 `;
 
-exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t0] secret with single quote then: export statement matches snapshot 1`] = `
+exports[`keyrack source CLI given: [case4] no keys granted (lenient mode) when: [t0] source --lenient with no keys granted then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack source CLI given: [case5] validation errors when: [t0] no --env then: stderr matches snapshot 1`] = `
+"[commander error] error: required option '--env <env>' not specified
+
+"
+`;
+
+exports[`keyrack source CLI given: [case5] validation errors when: [t1] no --owner (now optional, defaults to null) then: stdout matches snapshot 1`] = `
+"export SOME_KEY='test-value'
+"
+`;
+
+exports[`keyrack source CLI given: [case5] validation errors when: [t2] --strict and --lenient together then: stderr matches snapshot 1`] = `
+"
+BadRequestError: --strict and --lenient are mutually exclusive
+
+[args] keyrack,source,--env,test,--owner,testorg,--strict,--lenient
+
+"
+`;
+
+exports[`keyrack source CLI given: [case6] --help output when: [t0] --help shows usage then: stdout matches snapshot 1`] = `
+"Usage: rhachet keyrack source [options]
+
+output export statements for shell eval
+
+Options:
+  --key <keyname>  single key to source (omit for all repo keys)
+  --env <env>      target env: prod, prep, test, all
+  --owner <owner>  owner identity (e.g., mechanic, foreman)
+  --for <owner>    alias for --owner
+  --strict         fail if any key not granted (default)
+  --lenient        skip absent keys silently
+  -h, --help       display help for command
+"
+`;
+
+exports[`keyrack source CLI given: [case7] invalid inputs when: [t0] nonexistent --env value then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack source CLI given: [case7] invalid inputs when: [t1] --key not in manifest then: stderr matches snapshot 1`] = `
+"not granted: testorg.test.INVALID_KEY (absent)
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack source CLI given: [case8] shell escape edge cases when: [t0] secret with single quote then: export statement matches snapshot 1`] = `
 "export __TEST_SOURCE_ESCAPE__='sec'\\''ret'
 "
 `;
 
-exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t1] secret with newline then: export statement matches snapshot 1`] = `
+exports[`keyrack source CLI given: [case8] shell escape edge cases when: [t1] secret with newline then: export statement matches snapshot 1`] = `
 "export __TEST_SOURCE_ESCAPE__=$'line1\\nline2'
 "
 `;
 
-exports[`keyrack source CLI given: [case6] shell escape edge cases when: [t2] secret with backslash then: export statement matches snapshot 1`] = `
+exports[`keyrack source CLI given: [case8] shell escape edge cases when: [t2] secret with backslash then: export statement matches snapshot 1`] = `
 "export __TEST_SOURCE_ESCAPE__='path\\name'
 "
 `;
