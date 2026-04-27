@@ -67,7 +67,7 @@ const mechanic = new Role({
   },
   hooks: {
     onBrain: {
-      onBoot: [{ command: 'npx rhachet roles boot --role mechanic' }],
+      onBoot: [{ command: './node_modules/.bin/rhachet roles boot --role mechanic' }],
     },
   },
 });

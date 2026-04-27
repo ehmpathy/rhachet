@@ -27,7 +27,7 @@ roles:
 
 exports[`rhachet repo introspect given: [case1] repo with rhachet.use.ts that defines roles when: [t1] repo introspect --output - (stdout) then: stdout matches snapshot 1`] = `
 "
-🔭 Load getRoleRegistry from rhachet-roles-test...
+🔭 load getRoleRegistry from rhachet-roles-test...
 
 ✨ Generate manifest for "test"...
 
@@ -123,7 +123,7 @@ Error: orphan .md.min file(s) detected without .md source:
 each .md.min file must have a matched .md source file.
     at assertZeroOrphanMinifiedBriefs (<src>/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs.ts:18:9)
     at assertRegistryHasNoOrphanBriefs (<src>/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts:29:37)
-    at Command.<anonymous> (<src>/contract/cli/invokeRepoIntrospect.ts:88:38)
+    at Command.<anonymous> (<src>/contract/cli/invokeRepoIntrospect.ts:92:38)
     at async Command.parseAsync (<node_modules>/[4mcommander[24m/lib/command.js:1123:5)
     at async _invoke (<src>/contract/cli/invoke.ts:76:3)
     at async withEmojiSpaceShim (<src>/contract/sdk/withEmojiSpaceShim.ts:15:12)
@@ -162,23 +162,20 @@ roles:
 
 exports[`rhachet repo introspect given: [case9] rhachet-roles package with bootable content but no boot hook when: [t0] repo introspect then: error output matches snapshot 1`] = `
 "
-BadRequestError: 🐢 bummer dude...
-
-🔐 repo introspect
-   └─ ✗ roles with bootable content but no valid boot hook
-
-   these roles declare briefs or skills but lack a valid boot hook:
-
+BadRequestError: ✋ roles with bootable content but no valid boot hook
+   │
+   ├─ these roles declare briefs or skills but lack a valid boot hook:
+   │
    └─ mechanic
       ├─ has: briefs.dirs, skills.dirs
       ├─ reason: no-hook-declared
-      └─ hint: add hooks.onBrain.onBoot with 'npx rhachet roles boot --role mechanic'
+      └─ hint: add hooks.onBrain.onBoot with './node_modules/.bin/rhachet roles boot --role mechanic'
 
-   why:
-   roles with briefs.dirs or skills.dirs have content to boot on session start.
-   the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.
-
-   if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.
+   ├─ why:
+   │  roles with briefs.dirs or skills.dirs have content to boot on session start.
+   │  the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.
+   │
+   └─ fix: if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.
 
 {
   "violations": [
@@ -187,6 +184,35 @@ BadRequestError: 🐢 bummer dude...
       "hasBriefsDirs": true,
       "hasSkillsDirs": true,
       "reason": "no-hook-declared"
+    }
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case10] rhachet-roles package with forbidden npx hook when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+BadRequestError: ✋ hooks with forbidden npx patterns
+   │
+   ├─ these hooks use npx which adds 500ms-2s latency per invocation:
+   │
+   ├─ mechanic
+   │  ├─ hook: onBrain.onBoot[0]
+   │  ├─ command: npx rhachet roles boot --role mechanic
+   │  └─ hint: use './node_modules/.bin/rhachet roles boot --role mechanic'
+   │
+   └─ fix: replace 'npx rhachet' with './node_modules/.bin/rhachet' or 'rhachet' (global)
+
+{
+  "violations": [
+    {
+      "roleSlug": "mechanic",
+      "hookType": "onBoot",
+      "hookIndex": 0,
+      "command": "npx rhachet roles boot --role mechanic"
     }
   ]
 }

@@ -2,11 +2,11 @@
 
 ## .what
 
-this repo uses `"rhachet": "link:."` in package.json. changes to CLI code require `npm run build` before `npx rhachet` reflects them.
+this repo uses `"rhachet": "link:."` in package.json. changes to CLI code require `npm run build` before `./node_modules/.bin/rhachet` reflects them.
 
 ## .why
 
-- `npx rhachet` runs from `dist/` (compiled output)
+- `./node_modules/.bin/rhachet` runs from `dist/` (compiled output)
 - source changes in `src/` are not visible until built
 - bun binaries are compiled from source during build
 
@@ -17,7 +17,7 @@ this repo uses `"rhachet": "link:."` in package.json. changes to CLI code requir
 npm run build
 
 # now test your changes
-npx rhachet <command>
+./node_modules/.bin/rhachet <command>
 ```
 
 ## .when
@@ -37,9 +37,9 @@ run `npm run build` after changing:
 
 ```bash
 # change src/contract/cli/invokeRepoCompile.ts
-npx rhachet repo compile --help  # still shows old behavior!
+./node_modules/.bin/rhachet repo compile --help  # still shows old behavior!
 
 # fix: build first
 npm run build
-npx rhachet repo compile --help  # now reflects changes
+./node_modules/.bin/rhachet repo compile --help  # now reflects changes
 ```

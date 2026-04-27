@@ -12,10 +12,10 @@ run this command inside a `rhachet-roles-*` package (e.g., `rhachet-roles-ehmpat
 
 ```sh
 # generate rhachet.repo.yml in current directory
-npx rhachet repo introspect
+./node_modules/.bin/rhachet repo introspect
 
 # output to stdout instead
-npx rhachet repo introspect --output -
+./node_modules/.bin/rhachet repo introspect --output -
 ```
 
 ## .requirements

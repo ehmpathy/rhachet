@@ -25,7 +25,7 @@ const getHasLine = (violation: RoleBootHookViolation): string => {
 const getHintLine = (violation: RoleBootHookViolation): string => {
   switch (violation.reason) {
     case 'no-hook-declared':
-      return `add hooks.onBrain.onBoot with 'npx rhachet roles boot --role ${violation.roleSlug}'`;
+      return `add hooks.onBrain.onBoot with './node_modules/.bin/rhachet roles boot --role ${violation.roleSlug}'`;
     case 'absent-roles-boot-command':
       return `hook must contain 'rhachet roles boot --role ${violation.roleSlug}'`;
     case 'wrong-role-name':
@@ -56,7 +56,7 @@ const buildViolationBlock = (
  * .what = validates that all roles with bootable content have valid boot hooks
  * .why = fail fast at repo introspect to prevent footgun where roles forget boot hooks
  *
- * .note = throws BadRequestError with turtle vibes treestruct if violations found
+ * .note = throws BadRequestError with treestruct if violations found
  */
 export const assertRegistryBootHooksDeclared = (input: {
   registry: RoleRegistry;
@@ -69,26 +69,23 @@ export const assertRegistryBootHooksDeclared = (input: {
   // return early if all roles are valid
   if (violations.length === 0) return;
 
-  // build turtle vibes treestruct error message
+  // build treestruct error message
   const violationBlocks = violations.flatMap((v, i) =>
     buildViolationBlock(v, i === violations.length - 1),
   );
 
   const message = [
-    '🐢 bummer dude...',
-    '',
-    '🔐 repo introspect',
-    '   └─ ✗ roles with bootable content but no valid boot hook',
-    '',
-    '   these roles declare briefs or skills but lack a valid boot hook:',
-    '',
+    '✋ roles with bootable content but no valid boot hook',
+    '   │',
+    '   ├─ these roles declare briefs or skills but lack a valid boot hook:',
+    '   │',
     ...violationBlocks,
     '',
-    '   why:',
-    '   roles with briefs.dirs or skills.dirs have content to boot on session start.',
-    "   the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.",
-    '',
-    "   if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.",
+    '   ├─ why:',
+    '   │  roles with briefs.dirs or skills.dirs have content to boot on session start.',
+    "   │  the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.",
+    '   │',
+    "   └─ fix: if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.",
   ].join('\n');
 
   throw new BadRequestError(message, {

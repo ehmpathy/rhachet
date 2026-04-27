@@ -42,7 +42,7 @@ describe('translateHook', () => {
       const hook: BrainHook = {
         author: 'repo=test/role=tester',
         event: 'onTool',
-        command: 'npx rhachet run --init check',
+        command: './node_modules/.bin/rhachet run --init check',
         timeout: 'PT60S',
         filter: { what: 'Write' },
       };
@@ -243,7 +243,12 @@ describe('translateHook', () => {
     given('[case2] PreToolUse entry with matcher', () => {
       const entry = {
         matcher: 'Bash',
-        hooks: [{ type: 'command', command: 'npx rhachet run --init check' }],
+        hooks: [
+          {
+            type: 'command',
+            command: './node_modules/.bin/rhachet run --init check',
+          },
+        ],
       };
 
       when('[t0] translated', () => {

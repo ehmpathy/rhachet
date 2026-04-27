@@ -5,6 +5,7 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 import type { RoleRegistry } from '@src/domain.objects';
 import { assertRegistryBootHooksDeclared } from '@src/domain.operations/manifest/assertRegistryBootHooksDeclared';
 import { assertRegistryHasNoOrphanBriefs } from '@src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs';
+import { assertRegistryHooksNoNpx } from '@src/domain.operations/manifest/assertRegistryHooksNoNpx';
 import { assertRegistrySkillsExecutable } from '@src/domain.operations/manifest/assertRegistrySkillsExecutable';
 import {
   castIntoRoleRegistryManifest,
@@ -59,7 +60,7 @@ export const invokeRepoIntrospect = ({
 
       // load getRoleRegistry from the package entry point directly
       console.log(``);
-      console.log(`🔭 Load getRoleRegistry from ${packageName}...`);
+      console.log(`🔭 load getRoleRegistry from ${packageName}...`);
 
       // resolve entry point from package.json main field (default to index.js)
       const entryPoint: string = packageJson.main ?? 'index.js';
@@ -83,6 +84,9 @@ export const invokeRepoIntrospect = ({
 
       // fail fast if any role has bootable content but no boot hook
       assertRegistryBootHooksDeclared({ registry });
+
+      // fail fast if any hooks use forbidden npx/bunx patterns
+      assertRegistryHooksNoNpx({ registry });
 
       // fail fast if any role has orphan .md.min briefs
       assertRegistryHasNoOrphanBriefs({ registry });

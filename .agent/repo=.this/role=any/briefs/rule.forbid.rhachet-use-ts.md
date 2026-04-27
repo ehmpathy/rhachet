@@ -52,7 +52,7 @@ no rhachet.use.ts — convention lookups handle role discovery.
 role suppliers (rhachet-roles-* packages) use `repo introspect` to generate `rhachet.repo.yml`:
 
 ```bash
-npx rhachet repo introspect
+./node_modules/.bin/rhachet repo introspect
 ```
 
 `roles link` reads from `rhachet.repo.yml` in installed packages.
