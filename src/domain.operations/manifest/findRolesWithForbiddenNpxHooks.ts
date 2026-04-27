@@ -28,8 +28,7 @@ export const getForbiddenNpxHint = (command: string): string => {
   const match = command.match(
     /\bnpx\b\s+(?:--\S+\s+)*(\brhachet\b|\brhx\b)\s+(.*)/,
   );
-  if (!match)
-    return command.replace(/\bnpx\b/, './node_modules/.bin/rhachet');
+  if (!match) return command.replace(/\bnpx\b/, './node_modules/.bin/rhachet');
 
   const [, , rest] = match;
   // always use rhachet (rhx is just an alias)

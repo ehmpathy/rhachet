@@ -310,7 +310,10 @@ describe('findRolesWithForbiddenNpxHooks', () => {
           } as RoleRegistry,
         });
         expect(result).toHaveLength(2);
-        expect(result.map((v) => v.roleSlug)).toEqual(['mechanic', 'architect']);
+        expect(result.map((v) => v.roleSlug)).toEqual([
+          'mechanic',
+          'architect',
+        ]);
       });
     });
   });

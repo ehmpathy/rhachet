@@ -2,7 +2,6 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects';
 
-
 import {
   type ForbiddenNpxHookViolation,
   findRolesWithForbiddenNpxHooks,
