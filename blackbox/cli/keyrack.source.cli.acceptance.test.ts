@@ -190,6 +190,10 @@ env.test:
       then('stdout is empty (no partial exports)', () => {
         expect(result.stdout.trim()).toEqual('');
       });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
     });
 
     when('[t1] stderr shows which keys not granted', () => {
@@ -393,6 +397,10 @@ env.test:
       then('stdout is empty', () => {
         expect(result.stdout.trim()).toEqual('');
       });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
     });
 
     when('[t1] eval empty output causes no error', () => {
@@ -471,26 +479,35 @@ env.test:
         const output = result.stderr + result.stdout;
         expect(output).toMatch(/(--env.*required|required.*'--env)/i);
       });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
     });
 
-    when('[t1] no --owner', () => {
+    when('[t1] no --owner (now optional, defaults to null)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           binary: 'rhx',
           args: ['keyrack', 'source', '--env', 'test'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: { HOME: repo.path, SOME_KEY: 'test-value' },
           logOnError: false,
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('exits with status 0 (--owner is optional)', () => {
+        // --owner is now optional, defaults to null (same as unlock/get)
+        expect(result.status).toEqual(0);
       });
 
-      then('error mentions --owner required', () => {
-        const output = result.stderr + result.stdout;
-        expect(output).toMatch(/(--owner.*required|required.*'--owner)/i);
+      then('stdout contains export statement', () => {
+        expect(result.stdout).toContain('export');
+        expect(result.stdout).toContain('SOME_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -522,10 +539,107 @@ env.test:
         const output = result.stderr + result.stdout;
         expect(output).toMatch(/(strict.*lenient|mutually.*exclusive)/i);
       });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
-  given('[case6] shell escape edge cases', () => {
+  given('[case6] --help output', () => {
+    when('[t0] --help shows usage', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--help'],
+          cwd: process.cwd(),
+          env: { HOME: process.cwd() },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains usage info', () => {
+        expect(result.stdout).toContain('source');
+        expect(result.stdout).toContain('--env');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case7] invalid inputs', () => {
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.test:
+  - VALID_KEY
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] nonexistent --env value', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--env', 'nonexistent'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 0 (no keys defined = no keys needed)', () => {
+        // when env doesn't exist in manifest, there are no keys to source
+        // this is not an error - the command succeeds with empty output
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout is empty (no keys defined)', () => {
+        expect(result.stdout.trim()).toEqual('');
+      });
+
+      then('stderr is empty', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] --key not in manifest', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--env', 'test', '--key', 'INVALID_KEY'],
+          cwd: repo.path,
+          env: { HOME: repo.path, VALID_KEY: 'value' },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr mentions invalid key', () => {
+        expect(result.stderr).toMatch(/(INVALID_KEY|not found|not in|key)/i);
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case8] shell escape edge cases', () => {
     const envKey = '__TEST_SOURCE_ESCAPE__';
 
     const repo = useBeforeAll(async () => {
