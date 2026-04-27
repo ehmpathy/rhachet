@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertRegistryHooksNoNpx given: [case5] error message snapshot when: [t0] assertion is called with forbidden hook then: error message matches snapshot 1`] = `
+"BadRequestError: ✋ hooks with forbidden npx patterns
+   │
+   ├─ these hooks use npx which adds 500ms-2s latency per invocation:
+   │
+   ├─ mechanic
+   │  ├─ hook: onBrain.onBoot[0]
+   │  ├─ command: npx rhachet roles boot --role mechanic
+   │  └─ hint: use './node_modules/.bin/rhachet roles boot --role mechanic'
+   │
+   └─ fix: replace 'npx rhachet' with './node_modules/.bin/rhachet' or 'rhachet' (global)
+
+{
+  "violations": [
+    {
+      "roleSlug": "mechanic",
+      "hookType": "onBoot",
+      "hookIndex": 0,
+      "command": "npx rhachet roles boot --role mechanic"
+    }
+  ]
+}"
+`;

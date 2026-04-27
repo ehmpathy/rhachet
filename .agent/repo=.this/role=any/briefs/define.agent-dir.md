@@ -47,7 +47,7 @@ you see exactly what robots see:
 ### parity
 
 humans can use what robots use:
-- `npx rhachet run --skill say-hello` — same skill, same execution
+- `./node_modules/.bin/rhachet run --skill say-hello` — same skill, same execution
 - browse briefs to understand what robots know
 - iterate on briefs and skills, test immediately
 
@@ -116,7 +116,7 @@ custom roles are opt-in — irrelevant by default, enrolled when needed.
 
 ### linked roles
 
-run `npx rhachet init --roles $role`:
+run `./node_modules/.bin/rhachet init --roles $role`:
 
 1. discovers role in installed `rhachet-roles-*` packages
 2. creates symlinks into `.agent/repo=$slug/role=$role/`

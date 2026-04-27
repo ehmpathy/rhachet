@@ -22,6 +22,6 @@ shared source of truth for humans and robots. browse same briefs, invoke same sk
 ## how roles get there
 
 - **native**: create in `.agent/repo=.this/`
-- **linked**: `npx rhachet init --roles $role` symlinks from packages
+- **linked**: `./node_modules/.bin/rhachet init --roles $role` symlinks from packages
 
 no hidden config. answer is always `.agent/`.

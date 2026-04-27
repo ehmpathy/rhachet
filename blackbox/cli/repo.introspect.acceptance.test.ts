@@ -342,7 +342,7 @@ const registry = {
         onBrain: {
           onBoot: [
             {
-              command: 'npx rhachet roles boot --role mechanic',
+              command: './node_modules/.bin/rhachet roles boot --role mechanic',
               timeout: 'PT60S',
             },
           ],
@@ -450,8 +450,8 @@ exports.getRoleRegistry = () => registry;
         expect(result.status).not.toEqual(0);
       });
 
-      then('stderr includes bummer dude message', () => {
-        expect(result.stderr).toContain('bummer dude');
+      then('stderr includes stop hand error header', () => {
+        expect(result.stderr).toContain('✋ roles with bootable content');
       });
 
       then('stderr includes role slug', () => {
@@ -464,6 +464,89 @@ exports.getRoleRegistry = () => registry;
 
       then('stderr includes hint about boot hook', () => {
         expect(result.stderr).toContain('roles boot --role');
+      });
+
+      then('error output matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case10] rhachet-roles package with forbidden npx hook', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
+
+      // update index.js to use npx rhachet (forbidden pattern)
+      const indexPath = resolve(tempRepo.path, 'index.js');
+      const indexContent = `
+const path = require('path');
+const packageRoot = __dirname;
+const registry = {
+  slug: 'test',
+  readme: { uri: path.join(packageRoot, 'readme.md') },
+  roles: [
+    {
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'fix things',
+      readme: { uri: path.join(packageRoot, 'roles/mechanic/readme.md') },
+      traits: [],
+      briefs: { dirs: { uri: path.join(packageRoot, 'roles/mechanic/briefs') } },
+      skills: {
+        dirs: { uri: path.join(packageRoot, 'roles/mechanic/skills') },
+        refs: [],
+      },
+      hooks: {
+        onBrain: {
+          onBoot: [
+            {
+              command: 'npx rhachet roles boot --role mechanic',
+              timeout: 'PT60S',
+            },
+          ],
+        },
+      },
+    },
+  ],
+};
+exports.getRoleRegistry = () => registry;
+`;
+      writeFileSync(indexPath, indexContent);
+
+      return tempRepo;
+    });
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('stderr includes stop hand error header', () => {
+        expect(result.stderr).toContain('✋ hooks with forbidden npx patterns');
+      });
+
+      then('stderr includes role slug', () => {
+        expect(result.stderr).toContain('mechanic');
+      });
+
+      then('stderr includes hook location', () => {
+        expect(result.stderr).toContain('onBrain.onBoot[0]');
+      });
+
+      then('stderr includes forbidden command', () => {
+        expect(result.stderr).toContain('npx rhachet roles boot');
+      });
+
+      then('stderr includes hint with direct path', () => {
+        expect(result.stderr).toContain('./node_modules/.bin/rhachet');
       });
 
       then('error output matches snapshot', () => {

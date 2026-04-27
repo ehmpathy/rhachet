@@ -1,4 +1,4 @@
-npx rhachet -s claude.code.exec --ask """
+./node_modules/.bin/rhachet -s claude.code.exec --ask """
 
 create a shell command into .briefs/mechanic.bootstrap/enbrief.sh
 
@@ -26,7 +26,7 @@ for each file in order
 """
 
 
-npx rhachet -s claude.code.exec --ask """
+./node_modules/.bin/rhachet -s claude.code.exec --ask """
 
 now at the very beginning and end print a
 

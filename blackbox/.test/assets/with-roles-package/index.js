@@ -25,7 +25,7 @@ const registry = {
         onBrain: {
           onBoot: [
             {
-              command: 'npx rhachet roles boot --role mechanic',
+              command: './node_modules/.bin/rhachet roles boot --role mechanic',
               timeout: 'PT60S',
             },
           ],

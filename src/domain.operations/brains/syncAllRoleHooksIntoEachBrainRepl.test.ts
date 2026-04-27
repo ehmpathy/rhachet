@@ -83,7 +83,12 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
         briefs: { dirs: { uri: 'briefs' } },
         hooks: {
           onBrain: {
-            onBoot: [{ command: 'npx rhachet roles boot', timeout: 'PT30S' }],
+            onBoot: [
+              {
+                command: './node_modules/.bin/rhachet roles boot',
+                timeout: 'PT30S',
+              },
+            ],
           },
         },
       }),

@@ -60,7 +60,10 @@ describe('syncOneRoleHooksIntoOneBrainRepl', () => {
         hooks: {
           onBrain: {
             onBoot: [
-              { command: 'npx rhachet roles boot', timeout: 'PT30S' },
+              {
+                command: './node_modules/.bin/rhachet roles boot',
+                timeout: 'PT30S',
+              },
               { command: 'echo hello', timeout: 'PT5S' },
             ],
           },
