@@ -1,0 +1,238 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack extends given: [case1] repo with keyrack that extends role keyrack when: [t0] keyrack get for key from extended manifest then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "absent",
+    "slug": "testorg.test.ROLE_KEY",
+    "message": "credential 'testorg.test.ROLE_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key ROLE_KEY --env test"
+  },
+  {
+    "status": "absent",
+    "slug": "testorg.test.LOCAL_KEY",
+    "message": "credential 'testorg.test.LOCAL_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key LOCAL_KEY --env test"
+  }
+]
+"
+`;
+
+exports[`keyrack extends given: [case2] repo with keyrack that extends keyrack with graded keys when: [t0] extended keyrack has key with grade then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "absent",
+    "slug": "testorg.test.GRADED_KEY",
+    "message": "credential 'testorg.test.GRADED_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key GRADED_KEY --env test"
+  },
+  {
+    "status": "absent",
+    "slug": "testorg.test.LOCAL_KEY",
+    "message": "credential 'testorg.test.LOCAL_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key LOCAL_KEY --env test"
+  }
+]
+"
+`;
+
+exports[`keyrack extends given: [case3] repo with multiple extends and duplicate keys when: [t0] two extends with same key, different grades then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "absent",
+    "slug": "testorg.test.CONFLICT_KEY",
+    "message": "credential 'testorg.test.CONFLICT_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key CONFLICT_KEY --env test"
+  },
+  {
+    "status": "absent",
+    "slug": "testorg.test.ROOT_ONLY_KEY",
+    "message": "credential 'testorg.test.ROOT_ONLY_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key ROOT_ONLY_KEY --env test"
+  }
+]
+"
+`;
+
+exports[`keyrack extends given: [case3] repo with multiple extends and duplicate keys when: [t1] root declares same key as extended (root-wins) then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "absent",
+    "slug": "testorg.test.ROOT_OVERRIDE_KEY",
+    "message": "credential 'testorg.test.ROOT_OVERRIDE_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key ROOT_OVERRIDE_KEY --env test"
+  }
+]
+"
+`;
+
+exports[`keyrack extends given: [case4] repo with deep extends chain (A extends B extends C) when: [t0] keyrack get traverses full extends chain then: stdout matches snapshot 1`] = `
+"[
+  {
+    "status": "absent",
+    "slug": "testorg.test.DEEP_KEY",
+    "message": "credential 'testorg.test.DEEP_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key DEEP_KEY --env test"
+  },
+  {
+    "status": "absent",
+    "slug": "testorg.test.PATH_A_KEY",
+    "message": "credential 'testorg.test.PATH_A_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key PATH_A_KEY --env test"
+  },
+  {
+    "status": "absent",
+    "slug": "testorg.test.ROOT_KEY",
+    "message": "credential 'testorg.test.ROOT_KEY' does not exist. set it first.",
+    "fix": "rhx keyrack set --key ROOT_KEY --env test"
+  }
+]
+"
+`;
+
+exports[`keyrack extends given: [case5] repo with extends that points to non-existent file when: [t0] keyrack.yml modified to extend non-existent file then: stderr matches snapshot 1`] = `
+"
+BadRequestError: extended keyrack not found
+
+{
+  "path": ".agent/does-not-exist/keyrack.yml",
+  "absolutePath": "/TMP_REPO/.agent/does-not-exist/keyrack.yml",
+  "from": "/TMP_REPO/.agent/keyrack.yml"
+}
+
+[args] keyrack,get,--for,repo,--env,test,--json
+
+"
+`;
+
+exports[`keyrack extends given: [case6] repo with circular extends chain when: [t0] keyrack.yml modified to have self-referential extends then: stderr matches snapshot 1`] = `
+"
+BadRequestError: circular extends detected in keyrack chain
+
+{
+  "manifestPath": "/TMP_REPO/.agent/pathA/keyrack.yml",
+  "visitedPaths": [
+    "/TMP_REPO/.agent/keyrack.yml",
+    "/TMP_REPO/.agent/pathA/keyrack.yml",
+    "/TMP_REPO/.agent/pathB/keyrack.yml"
+  ]
+}
+
+[args] keyrack,get,--for,repo,--env,test,--json
+
+"
+`;
+
+exports[`keyrack extends given: [case7] repo with key set in extended keyrack (unlock via extends) when: [t0] key is set in extended keyrack, then unlocked via root extends then: set stdout matches snapshot 1`] = `
+"{
+  "slug": "testorg.test.EXTENDED_SECRET",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "vault": "os.direct",
+  "exid": null,
+  "env": "test",
+  "org": "testorg",
+  "vaultRecipient": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+"
+`;
+
+exports[`keyrack extends given: [case8] repo with env.all key in extended keyrack when: [t0] env.all key is set in extended keyrack then: set stdout matches snapshot 1`] = `
+"{
+  "slug": "testorg.all.SHARED_TOKEN",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "vault": "os.direct",
+  "exid": null,
+  "env": "all",
+  "org": "testorg",
+  "vaultRecipient": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+"
+`;
+
+exports[`keyrack extends given: [case9] cross-org extends uses root org for set, unlock, get when: [t0] root org=rootorg extends keyrack with org=extendorg then: get shows key with rootorg slug 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "rootorg.test.CROSS_ORG_KEY",
+    "key": {
+      "secret": "cross-org-secret",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "rootorg"
+  }
+}
+"
+`;
+
+exports[`keyrack extends given: [case9] cross-org extends uses root org for set, unlock, get when: [t0] root org=rootorg extends keyrack with org=extendorg then: stdout matches snapshot 1`] = `
+"{
+  "slug": "rootorg.test.CROSS_ORG_KEY",
+  "exid": null,
+  "vault": "os.direct",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "env": "test",
+  "org": "rootorg",
+  "vaultRecipient": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+"
+`;
+
+exports[`keyrack extends given: [case9] cross-org extends uses root org for set, unlock, get when: [t0] root org=rootorg extends keyrack with org=extendorg then: unlock finds key with rootorg slug 1`] = `
+"
+{
+  "unlocked": [
+    {
+      "slug": "rootorg.test.CROSS_ORG_KEY",
+      "key": {
+        "secret": "cross-org-secret",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "test",
+      "org": "rootorg",
+      "expiresAt": "__TIMESTAMP__"
+    }
+  ],
+  "omitted": []
+}
+"
+`;
+
+exports[`keyrack extends given: [case10] nested cross-org extends uses outermost org when: [t0] A(alpha) extends B(beta) extends C(gamma) then: stdout matches snapshot 1`] = `
+"{
+  "slug": "alpha.test.GAMMA_KEY",
+  "exid": null,
+  "vault": "os.direct",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "env": "test",
+  "org": "alpha",
+  "vaultRecipient": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+"
+`;

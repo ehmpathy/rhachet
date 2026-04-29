@@ -639,6 +639,74 @@ env.test:
     });
   });
 
+  given('[case9] cross-org extends uses root org', () => {
+    // repo with org: rootorg extends keyrack with org: extendorg
+    // verify source outputs keys with rootorg.* slugs, not extendorg.*
+    const rootKey = '__TEST_CROSS_ORG_ROOT_KEY__';
+    const extendedKey = '__TEST_CROSS_ORG_EXTENDED_KEY__';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      // write extended manifest with org: extendorg
+      writeFileSync(
+        join(r.path, '.agent', 'extended-keyrack.yml'),
+        `org: extendorg
+
+env.test:
+  - ${extendedKey}
+`,
+      );
+
+      // write root manifest with org: rootorg that extends the above
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: rootorg
+
+extends:
+  - .agent/extended-keyrack.yml
+
+env.test:
+  - ${rootKey}
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] source outputs keys with root org', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--env', 'test', '--owner', 'rootorg'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [rootKey]: 'root-secret',
+            [extendedKey]: 'extended-secret',
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains root key', () => {
+        expect(result.stdout).toContain(rootKey);
+      });
+
+      then('stdout contains extended key', () => {
+        // extended key should also be sourced (inherited from extended manifest)
+        expect(result.stdout).toContain(extendedKey);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
   given('[case8] shell escape edge cases', () => {
     const envKey = '__TEST_SOURCE_ESCAPE__';
 

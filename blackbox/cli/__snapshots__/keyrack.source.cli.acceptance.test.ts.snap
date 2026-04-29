@@ -86,3 +86,9 @@ exports[`keyrack source CLI given: [case8] shell escape edge cases when: [t2] se
 "export __TEST_SOURCE_ESCAPE__='path\\name'
 "
 `;
+
+exports[`keyrack source CLI given: [case9] cross-org extends uses root org when: [t0] source outputs keys with root org then: stdout matches snapshot 1`] = `
+"export __TEST_CROSS_ORG_EXTENDED_KEY__='extended-secret'
+export __TEST_CROSS_ORG_ROOT_KEY__='root-secret'
+"
+`;
