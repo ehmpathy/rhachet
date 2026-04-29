@@ -137,15 +137,17 @@ env.test:
     };
 
     when('[t0] hydrateKeyrackRepoManifest called', () => {
-      then('merges keys from extended manifest', () => {
+      then('merges keys from extended manifest with root org', () => {
         const result = hydrateKeyrackRepoManifest(
           { explicit, manifestPath: join(testDir, 'root.yml') },
           { gitroot: testDir },
         );
         // root key with root org
         expect(result.keys['rootorg.test.ROOT_KEY']).toBeDefined();
-        // extended key with extended org (each manifest uses its own org)
-        expect(result.keys['extendorg.test.EXTENDED_KEY']).toBeDefined();
+        // extended key RE-SLUGGED to root org (all keys use root manifest's org)
+        expect(result.keys['rootorg.test.EXTENDED_KEY']).toBeDefined();
+        // extended key should NOT exist under original org
+        expect(result.keys['extendorg.test.EXTENDED_KEY']).toBeUndefined();
       });
 
       then('includes extends in result', () => {
@@ -282,6 +284,90 @@ env.test:
         // pathB is last, so ephemeral should win over encrypted
         expect(conflictKey?.grade?.duration).toEqual('ephemeral');
         expect(conflictKey?.grade?.protection).toBeNull();
+      });
+    });
+  });
+
+  given('[case7] nested extends re-slug to outermost root org', () => {
+    // A(org:alpha) extends B(org:beta) extends C(org:gamma)
+    // all keys should use alpha's org
+    const pathC = join(testDir, 'nestedC.yml');
+    const pathB = join(testDir, 'nestedB.yml');
+
+    beforeEach(() => {
+      writeFileSync(
+        pathC,
+        `org: gamma
+env.test:
+  - GAMMA_KEY
+`,
+      );
+      writeFileSync(
+        pathB,
+        `org: beta
+extends:
+  - nestedC.yml
+env.test:
+  - BETA_KEY
+`,
+      );
+    });
+
+    const explicit: KeyrackManifestExplicit = {
+      org: 'alpha',
+      extends: ['nestedB.yml'],
+      envSections: {
+        'env.test': ['ALPHA_KEY'],
+      },
+    };
+
+    when('[t0] hydrateKeyrackRepoManifest called', () => {
+      then('all keys use outermost root org', () => {
+        const result = hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: join(testDir, 'nestedA.yml') },
+          { gitroot: testDir },
+        );
+        // all keys should be under alpha (root org)
+        expect(result.keys['alpha.test.ALPHA_KEY']).toBeDefined();
+        expect(result.keys['alpha.test.BETA_KEY']).toBeDefined();
+        expect(result.keys['alpha.test.GAMMA_KEY']).toBeDefined();
+
+        // original orgs should NOT exist
+        expect(result.keys['beta.test.BETA_KEY']).toBeUndefined();
+        expect(result.keys['gamma.test.GAMMA_KEY']).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case8] same org in extends (no re-slug needed)', () => {
+    const extendedPath = join(testDir, 'same-org-extended.yml');
+
+    beforeEach(() => {
+      writeFileSync(
+        extendedPath,
+        `org: sameorg
+env.test:
+  - EXTENDED_SAME_KEY
+`,
+      );
+    });
+
+    const explicit: KeyrackManifestExplicit = {
+      org: 'sameorg',
+      extends: ['same-org-extended.yml'],
+      envSections: {
+        'env.test': ['ROOT_SAME_KEY'],
+      },
+    };
+
+    when('[t0] hydrateKeyrackRepoManifest called', () => {
+      then('keys remain under same org (no change needed)', () => {
+        const result = hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: join(testDir, 'root-same-org.yml') },
+          { gitroot: testDir },
+        );
+        expect(result.keys['sameorg.test.ROOT_SAME_KEY']).toBeDefined();
+        expect(result.keys['sameorg.test.EXTENDED_SAME_KEY']).toBeDefined();
       });
     });
   });

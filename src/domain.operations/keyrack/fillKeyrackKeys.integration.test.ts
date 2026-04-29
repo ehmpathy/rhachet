@@ -736,7 +736,7 @@ env.prod:
     });
 
     when('[t0] fill is called with env=prod', () => {
-      then('stores USPTO_ODP_API_KEY under rhight org', async () => {
+      then('stores both keys under root org (ahbode)', async () => {
         // provide mock stdin values: mech selection (line) + secret (hidden)
         // '1' = PERMANENT_VIA_REPLICA (2 keys = 2 mech prompts)
         setMockPromptLineValues(['1', '1']);
@@ -762,11 +762,14 @@ env.prod:
         // verify slugs in results show correct orgs
         const slugs = result.results.map((r) => r.slug);
 
-        // USPTO_ODP_API_KEY from extended manifest should be under rhight org
-        expect(slugs).toContain('rhight.prod.USPTO_ODP_API_KEY');
+        // USPTO_ODP_API_KEY from extended manifest RE-SLUGGED to root org
+        expect(slugs).toContain('ahbode.prod.USPTO_ODP_API_KEY');
 
         // DB_PASSWORD from root manifest should be under ahbode org
         expect(slugs).toContain('ahbode.prod.DB_PASSWORD');
+
+        // extended org should NOT be present
+        expect(slugs).not.toContain('rhight.prod.USPTO_ODP_API_KEY');
       });
     });
   });

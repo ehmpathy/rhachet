@@ -99,9 +99,11 @@ env.test:
           { gitroot: testDir },
         );
         expect(result).not.toBeNull();
-        // root org is used for all keys
+        // root org is used for all keys (extended keys re-slugged)
         expect(result!.keys['testorg.test.ROOT_KEY']).toBeDefined();
-        expect(result!.keys['extendorg.test.EXTENDED_KEY']).toBeDefined();
+        expect(result!.keys['testorg.test.EXTENDED_KEY']).toBeDefined();
+        // extended key should NOT exist under original org
+        expect(result!.keys['extendorg.test.EXTENDED_KEY']).toBeUndefined();
       });
 
       then('includes extends chain in manifest', () => {

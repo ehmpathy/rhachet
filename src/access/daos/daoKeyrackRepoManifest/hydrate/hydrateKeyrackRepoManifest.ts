@@ -56,6 +56,26 @@ const asEnvNamesFromSectionKeys = (input: {
   input.sectionKeys.filter((k) => k !== 'env.all').map((k) => k.slice(4)); // remove 'env.' prefix
 
 /**
+ * .what = transform keys to use a different org in their slugs
+ * .why = extended keys must use root manifest's org, not their original org
+ */
+const asKeysWithOrg = (input: {
+  keys: Record<string, KeyrackKeySpec>;
+  org: string;
+}): Record<string, KeyrackKeySpec> => {
+  const result: Record<string, KeyrackKeySpec> = {};
+  for (const [originalSlug, spec] of Object.entries(input.keys)) {
+    // construct new slug with target org
+    const newSlug = `${input.org}.${spec.env}.${spec.name}`;
+    result[newSlug] = new KeyrackKeySpec({
+      ...spec,
+      slug: newSlug,
+    });
+  }
+  return result;
+};
+
+/**
  * .what = extract keys from env sections of a manifest
  * .why = reusable key extraction for both root and extended manifests
  *
@@ -203,6 +223,9 @@ export const hydrateKeyrackRepoManifest = (
         extendsChain.push(...extendedManifest.extends);
       }
     }
+
+    // transform all extended keys to use root org
+    mergedKeys = asKeysWithOrg({ keys: mergedKeys, org: explicit.org });
   }
 
   // extract keys from root manifest (use root org for slugs)
