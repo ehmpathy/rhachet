@@ -43,3 +43,7 @@ with root org inheritance:
 
 - `hydrateKeyrackRepoManifest.ts` — implements org inheritance
 - `keyrack.extends.acceptance.test.ts` — case9, case10 verify behavior
+
+## .todo
+
+- forbid role keyrack manifests from org declaration, to make this super explicit
