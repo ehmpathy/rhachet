@@ -1,27 +1,47 @@
 # howto: test local rhachet changes
 
+> "if you havin node problems i feel bad for you son, i got 99 problems but npm aint one" — use pnpm
+
 ## .tldr
 
 | command | what it runs | when to use |
 |---------|--------------|-------------|
-| `rhx` | global install | **avoid** — may differ from local |
-| `./node_modules/.bin/rhachet` | local via link | normal operations |
+| `npx rhachet` / `npx rhx` | local via BASH_ENV wrapper | **preferred** |
+| `./node_modules/.bin/rhachet` | local via link | fallback if wrapper absent |
 | `./bin/rhx` | local source | only after you change CLI code |
-
-## .the problem
-
-`rhx` runs whatever is installed globally. in this repo, global may not match local.
 
 ## .the solution
 
-use `./node_modules/.bin/rhachet` for normal operations:
+use `npx rhachet` or `npx rhx` for normal operations:
 
 ```bash
-./node_modules/.bin/rhachet run --skill say-hello
-./node_modules/.bin/rhachet roles boot --repo .this --role any
+npx rhachet run --skill say-hello
+npx rhx git.repo.test --what unit
 ```
 
-this runs the local version directly. **avoid `npx rhachet`** — npx adds 500ms-2s latency per invocation.
+the BASH_ENV wrapper routes these to `./node_modules/.bin/` automatically — no latency penalty.
+
+## .if npx routes to stale cache
+
+if `npx rhx` fails with "run: not found" or similar, you need the npx wrapper.
+
+add to `~/.bash_aliases` (or similar):
+
+```bash
+npx() {
+  local cmd="$1"
+  if [[ -n "$cmd" && -x "./node_modules/.bin/$cmd" ]]; then
+    shift
+    "./node_modules/.bin/$cmd" "$@"
+  elif [[ -f "package-lock.json" ]]; then
+    command npx "$@"
+  else
+    pnpm exec "$@"
+  fi
+}
+```
+
+then set `BASH_ENV=~/.bash_aliases` in your shell profile to load it in non-interactive shells (e.g., CI, Claude Code).
 
 ## .when to use `./bin/rhx`
 
