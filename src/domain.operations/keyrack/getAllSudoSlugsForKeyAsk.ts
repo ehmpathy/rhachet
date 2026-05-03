@@ -1,5 +1,5 @@
-import type { KeyrackKeyAsk } from '@src/domain.objects/keyrack/KeyrackKeyAsk';
 import type { KeyrackHostManifest } from '@src/domain.objects/keyrack/KeyrackHostManifest';
+import type { KeyrackKeyAsk } from '@src/domain.objects/keyrack/KeyrackKeyAsk';
 
 /**
  * .what = expand key ask to matched sudo slugs from hostManifest
