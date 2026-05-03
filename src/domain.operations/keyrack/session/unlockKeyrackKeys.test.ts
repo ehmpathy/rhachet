@@ -80,7 +80,7 @@ describe('unlockKeyrackKeys', () => {
           },
         },
       }),
-      repoManifest: null,
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': vaultAdapter,
@@ -194,7 +194,7 @@ describe('unlockKeyrackKeys', () => {
           },
         },
       }),
-      repoManifest: null,
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': vaultAdapter,
@@ -364,7 +364,7 @@ describe('unlockKeyrackKeys', () => {
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
       },
       hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-      repoManifest: null,
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
       vaultAdapters: {
         'os.envvar': genMockVaultAdapter(),
         'os.direct': genMockVaultAdapter(),

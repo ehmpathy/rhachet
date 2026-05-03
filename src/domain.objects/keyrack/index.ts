@@ -1,4 +1,5 @@
 // key types
+export * from './KeyrackKeyAsk';
 
 // daemon types
 export * from './KeyrackDaemonCommand';
