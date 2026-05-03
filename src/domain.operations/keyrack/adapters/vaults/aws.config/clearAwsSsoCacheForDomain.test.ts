@@ -1,4 +1,5 @@
 import { given, then, when } from 'test-fns';
+
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
 import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 
@@ -198,7 +199,9 @@ describe('clearAwsSsoCacheForDomain', () => {
 
     when('[t0] SDK LogoutCommand throws', () => {
       then('still deletes local cache file', async () => {
-        const mockSend = jest.fn().mockRejectedValue(new Error('Token expired'));
+        const mockSend = jest
+          .fn()
+          .mockRejectedValue(new Error('Token expired'));
         mockSSOClient.mockImplementation(() => ({ send: mockSend }));
 
         const result = await clearAwsSsoCacheForDomain({
@@ -213,7 +216,9 @@ describe('clearAwsSsoCacheForDomain', () => {
       });
 
       then('records server-logout skip reason', async () => {
-        const mockSend = jest.fn().mockRejectedValue(new Error('Token expired'));
+        const mockSend = jest
+          .fn()
+          .mockRejectedValue(new Error('Token expired'));
         mockSSOClient.mockImplementation(() => ({ send: mockSend }));
 
         const result = await clearAwsSsoCacheForDomain({

@@ -1,4 +1,5 @@
 import { LogoutCommand, SSOClient } from '@aws-sdk/client-sso';
+
 import { unlinkSync } from 'node:fs';
 import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 

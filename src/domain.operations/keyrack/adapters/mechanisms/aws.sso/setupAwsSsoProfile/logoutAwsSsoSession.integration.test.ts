@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { given, then, when } from 'test-fns';
 
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { logoutAwsSsoSession } from './logoutAwsSsoSession';
 
 // mock AWS SDK client (don't call real AWS)

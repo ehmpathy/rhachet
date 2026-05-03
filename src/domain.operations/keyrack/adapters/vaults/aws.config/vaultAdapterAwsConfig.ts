@@ -201,13 +201,13 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
           console.log('   │');
           console.log('   ├─ with sso prior?');
           const session = priorSession.matched[0]!;
-          console.log(
-            `   │  ├─ ✗ ${session.startUrl}, access denied`,
-          );
+          console.log(`   │  ├─ ✗ ${session.startUrl}, access denied`);
           // todo: show username from failed session once we track it
         }
 
-        await clearAwsSsoCacheForDomain({ ssoStartUrl: profileConfig.ssoStartUrl });
+        await clearAwsSsoCacheForDomain({
+          ssoStartUrl: profileConfig.ssoStartUrl,
+        });
 
         if (!input.silent) {
           console.log('   │  └─ ✓ cleared, will re-auth');

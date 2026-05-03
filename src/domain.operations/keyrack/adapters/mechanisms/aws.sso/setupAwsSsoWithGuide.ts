@@ -1,4 +1,3 @@
-import { execSync } from 'child_process';
 import { BadRequestError } from 'helpful-errors';
 import readline from 'readline';
 

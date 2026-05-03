@@ -1135,15 +1135,18 @@ sso_registration_scopes = sso:account:access`);
   describe('logoutAwsSsoSession', () => {
     given('[case1] logout with prior session', () => {
       when('[t0] cache files exist for domain', () => {
-        then('clears server + disk cache via clearAwsSsoCacheForDomain', async () => {
-          const result = await logoutAwsSsoSession({
-            ssoStartUrl: 'https://acme.awsapps.com/start',
-          });
+        then(
+          'clears server + disk cache via clearAwsSsoCacheForDomain',
+          async () => {
+            const result = await logoutAwsSsoSession({
+              ssoStartUrl: 'https://acme.awsapps.com/start',
+            });
 
-          // should return disk cache result
-          expect(result.diskCache).toBeDefined();
-          expect(result.diskCache.deleted).toContain('mock-token.json');
-        });
+            // should return disk cache result
+            expect(result.diskCache).toBeDefined();
+            expect(result.diskCache.deleted).toContain('mock-token.json');
+          },
+        );
       });
     });
 

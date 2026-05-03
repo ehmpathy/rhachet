@@ -254,12 +254,18 @@ export const listAwsSsoStartUrls = async (): Promise<
     if (extant) {
       extant.profileNames.push(profileName);
     } else {
-      urlToProfiles.set(ssoStartUrl, { ssoRegion, profileNames: [profileName] });
+      urlToProfiles.set(ssoStartUrl, {
+        ssoRegion,
+        profileNames: [profileName],
+      });
     }
   };
 
   // build sso-session to url mapping for v2 format
-  const sessionToUrl = new Map<string, { ssoStartUrl: string; ssoRegion: string }>();
+  const sessionToUrl = new Map<
+    string,
+    { ssoStartUrl: string; ssoRegion: string }
+  >();
   const sessionRegex = /\[sso-session\s+([^\]]+)\]([^[]*)/g;
   for (const match of configContent.matchAll(sessionRegex)) {
     const sessionName = match[1]?.trim() ?? '';
