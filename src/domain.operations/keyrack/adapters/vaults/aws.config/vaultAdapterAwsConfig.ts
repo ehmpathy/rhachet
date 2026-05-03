@@ -7,6 +7,7 @@ import type {
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
+import { getAwsSsoProfileConfig } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/setupAwsSsoProfile';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
@@ -16,6 +17,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
+import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -58,15 +61,23 @@ const checkProfileExists = (profileName: string): boolean => {
 };
 
 /**
- * .what = validate sso session for a profile via sts get-caller-identity
+ * .what = validate sso session for a profile and extract username
  * .why = checks if the profile's sso session is still valid
  *
- * .returns = true if session valid, false if expired or invalid
+ * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
-const validateSsoSession = async (profileName: string): Promise<boolean> => {
+const validateSsoSession = async (
+  profileName: string,
+): Promise<{ valid: true; username: string } | { valid: false }> => {
   try {
-    await execAsync(`aws sts get-caller-identity --profile "${profileName}"`);
-    return true;
+    const { stdout } = await execAsync(
+      `aws sts get-caller-identity --profile "${profileName}"`,
+    );
+    // parse username from ARN: arn:aws:sts::123456789012:assumed-role/RoleName/username@domain
+    const identity = JSON.parse(stdout) as { Arn: string };
+    const arnParts = identity.Arn.split('/');
+    const username = arnParts[arnParts.length - 1] ?? 'unknown';
+    return { valid: true, username };
   } catch (error) {
     // rethrow our own error types (code defects, invalid requests)
     if (error instanceof UnexpectedCodePathError) throw error;
@@ -74,7 +85,7 @@ const validateSsoSession = async (profileName: string): Promise<boolean> => {
 
     // allow expected errors: command failed = session expired or profile invalid
     // .note = aws cli exits non-zero for expired sessions and invalid profiles
-    if (error instanceof Error && 'code' in error) return false;
+    if (error instanceof Error && 'code' in error) return { valid: false };
     throw error;
   }
 };
@@ -142,7 +153,8 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
   isUnlocked: async (input) => {
     const profileName = input?.exid;
     if (!profileName) return true;
-    return validateSsoSession(profileName);
+    const result = await validateSsoSession(profileName);
+    return result.valid;
   },
 
   /**
@@ -153,7 +165,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
    * .note = uses exid (profile name) from the host manifest
    * .note = triggers aws sso login --profile for expired sessions
    * .note = uses portal flow (standard "Sign in" / "Allow" browser prompt)
-   * .note = always silent - browser popup is the feedback, not cli noise
+   * .note = clears cached session if identity mismatch (access denied to this role)
    */
   unlock: async (input: {
     identity: string | null;
@@ -163,10 +175,52 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
     const profileName = input.exid;
     if (!profileName) return;
 
-    const isValid = await validateSsoSession(profileName);
-    if (!isValid) {
-      await triggerSsoLogin(profileName);
+    const sessionResult = await validateSsoSession(profileName);
+    if (sessionResult.valid) {
+      // session is valid — show confirmation and reuse
+      if (!input.silent) {
+        console.log('   │');
+        console.log('   ├─ with sso prior?');
+        console.log(`   │  ├─ ✓ ${sessionResult.username}, access confirmed`);
+        console.log('   │  └─ ✓ clear, will reuse');
+      }
+      return;
     }
+
+    // session invalid — check if we need to clear a conflicted session
+    const profileConfig = await getAwsSsoProfileConfig({ profileName });
+    if (profileConfig?.ssoStartUrl) {
+      const priorSession = previewAwsSsoCacheForDomain({
+        ssoStartUrl: profileConfig.ssoStartUrl,
+      });
+
+      // if there's a cached session for this domain, but we can't access the role,
+      // the session belongs to a different sso user — clear it
+      if (priorSession.matched.length > 0) {
+        if (!input.silent) {
+          console.log('   │');
+          console.log('   ├─ with sso prior?');
+          const session = priorSession.matched[0]!;
+          console.log(
+            `   │  ├─ ✗ ${session.startUrl}, access denied`,
+          );
+          // todo: show username from failed session once we track it
+        }
+
+        await clearAwsSsoCacheForDomain({ ssoStartUrl: profileConfig.ssoStartUrl });
+
+        if (!input.silent) {
+          console.log('   │  └─ ✓ cleared, will re-auth');
+        }
+      } else if (!input.silent) {
+        // no cached session for this domain — need fresh auth
+        console.log('   │');
+        console.log('   ├─ with sso prior?');
+        console.log('   │  └─ ✓ clear, no prior session');
+      }
+    }
+
+    await triggerSsoLogin(profileName);
   },
 
   /**
@@ -261,8 +315,8 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       }
     } else {
       // guided setup: validate sso session is active (user just completed browser auth)
-      const profileValid = await validateSsoSession(profileName);
-      if (!profileValid) {
+      const sessionResult = await validateSsoSession(profileName);
+      if (!sessionResult.valid) {
         throw new ConstraintError(
           `aws profile '${profileName}' is not valid or has no active sso session`,
           {
@@ -282,9 +336,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       console.log('   └─ perfect, now lets verify...');
 
       // 1. unlock — prove sso session is valid after setup
+      // .note = silent because we just did SSO login, no need to show prior check again
       await vaultAdapterAwsConfig.unlock({
         identity: null,
         exid: profileName,
+        silent: true,
       });
       console.log('      ├─ ✓ unlock');
 
@@ -311,6 +367,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
         exid: profileName,
       });
       console.log('      └─ ✓ relock');
+      console.log('');
     }
 
     // return mech and derived exid so caller can persist to the host manifest
@@ -330,24 +387,17 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = enables true relock; clears sso token and cli credential caches
    *
    * .note = uses exid (profile name) from the host manifest
-   * .note = uses `aws sso logout --profile` to clear caches
+   * .note = uses targeted cache deletion to preserve other domains
    */
   relock: async (input) => {
     const profileName = input.exid;
     if (!profileName) return;
 
-    // aws sso logout clears both cache locations
-    try {
-      await execAsync(`aws sso logout --profile "${profileName}"`);
-    } catch (error) {
-      // rethrow our own error types (code defects, invalid requests)
-      if (error instanceof UnexpectedCodePathError) throw error;
-      if (error instanceof ConstraintError) throw error;
+    // get the sso start url for this profile
+    const profileConfig = await getAwsSsoProfileConfig({ profileName });
+    if (!profileConfig?.ssoStartUrl) return;
 
-      // allow expected errors: command failed = already logged out
-      // .note = aws cli exits non-zero when no active sso session
-      if (error instanceof Error && 'code' in error) return;
-      throw error;
-    }
+    // clear cache for this domain only (preserves other domains)
+    await clearAwsSsoCacheForDomain({ ssoStartUrl: profileConfig.ssoStartUrl });
   },
 };

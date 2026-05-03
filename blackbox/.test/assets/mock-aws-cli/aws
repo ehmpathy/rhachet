@@ -30,7 +30,21 @@ case "$1 $2" in
     echo '{"roleList":[{"roleName":"AdministratorAccess"},{"roleName":"ReadOnlyAccess"}]}'
     ;;
   "sts get-caller-identity")
-    echo '{"UserId":"MOCK:session","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/session"}'
+    # env-driven identity for collision testing
+    # MOCK_AWS_IDENTITY_ERROR=1 → simulate "access denied" (wrong user for this role)
+    # MOCK_AWS_IDENTITY=alice → return alice's identity
+    # MOCK_AWS_IDENTITY=bob → return bob's identity
+    # default → return generic mock identity
+    if [[ "${MOCK_AWS_IDENTITY_ERROR:-}" == "1" ]]; then
+      echo "An error occurred (AccessDeniedException) when calling the GetCallerIdentity operation: User: arn:aws:iam::123456789012:user/bob is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::123456789012:role/AdministratorAccess" >&2
+      exit 1
+    elif [[ "${MOCK_AWS_IDENTITY:-}" == "alice" ]]; then
+      echo '{"UserId":"ALICE123:alice@acme.com","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/alice@acme.com"}'
+    elif [[ "${MOCK_AWS_IDENTITY:-}" == "bob" ]]; then
+      echo '{"UserId":"BOB456:bob@acme.com","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/bob@acme.com"}'
+    else
+      echo '{"UserId":"MOCK:session","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/session"}'
+    fi
     ;;
   "configure export-credentials")
     # returns env-no-export format credentials for sso profile

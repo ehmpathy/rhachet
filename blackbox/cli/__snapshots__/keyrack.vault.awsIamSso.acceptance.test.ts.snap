@@ -206,11 +206,14 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │
    ├─ which sso domain?
    │  ├─ options
-   │  │  └─ 1. https://mock-portal.awsapps.com/start (us-east-1)
+   │  │  └─ 1. https://d-12345abcde.awsapps.com/start, testorg, us-east-1
    │  └─ choice
    │     └─ 1
    │     ├─ 1 ✓
-   │     └─ as https://mock-portal.awsapps.com/start
+   │     └─ as https://d-12345abcde.awsapps.com/start, testorg
+   │
+   ├─ with sso prior?
+   │  └─ ✓ clear, no prior session
    │
    ├─ which sso login?
    │  ├─ authorize in browser
@@ -251,6 +254,7 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
       ├─ ✓ unlock
       ├─ ✓ get
       └─ ✓ relock
+
 🔐 keyrack set (org: testorg, env: test)
    └─ testorg.test.AWS_PROFILE
       ├─ mech: EPHEMERAL_VIA_AWS_SSO
@@ -294,4 +298,149 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
   },
   "status": "granted",
 }
+`;
+
+exports[`keyrack vault aws.config given: [case14] unlock WITHOUT identity collision (valid session) when: [t0] keyrack unlock with valid SSO session (alice) then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case15] unlock WITH identity collision (wrong user cached) when: [t0] keyrack unlock with wrong user cached (bob, need alice) then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case16] set key WITHOUT identity collision (no prior session) when: [t0] keyrack set --vault aws.config via guided wizard (no prior session) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set AWS_PROFILE
+   │
+   ├─ which sso domain?
+   │  ├─ options
+   │  │  └─ 1. https://d-12345abcde.awsapps.com/start, testorg, us-east-1
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as https://d-12345abcde.awsapps.com/start, testorg
+   │
+   ├─ with sso prior?
+   │  └─ ✓ clear, no prior session
+   │
+   ├─ which sso login?
+   │  ├─ authorize in browser
+   │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
+   │  │  └─ 🔑 MOCK-CODE
+   │  └─ ✓ authenticated
+   │
+   ├─ which account?
+   │  ├─ options
+   │  │  ├─ 1. testorg-dev   123456789012
+   │  │  └─ 2. testorg-prod  987654321098
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as testorg-dev
+   │
+   ├─ which role?
+   │  ├─ options
+   │  │  ├─ 1. AdministratorAccess
+   │  │  └─ 2. ReadOnlyAccess
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as AdministratorAccess
+   │
+   ├─ what should we call it?
+   │  ├─ suggested
+   │  │  └─ testorg.dev
+   │  └─ choice
+   │     └─
+   │     ├─ ✓
+   │     └─ as testorg.dev
+   │
+   ├─ lovely, lets vault it now...
+   │  └─ ✓ written to ~/.aws/config
+   │
+   └─ perfect, now lets verify...
+      ├─ ✓ unlock
+      ├─ ✓ get
+      └─ ✓ relock
+
+🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.AWS_PROFILE
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      └─ vault: aws.config"
+`;
+
+exports[`keyrack vault aws.config given: [case17] set key WITH identity collision (different user cached) when: [t0] keyrack set --vault aws.config via guided wizard (bob cached, alice auth) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set AWS_PROFILE
+   │
+   ├─ which sso domain?
+   │  ├─ options
+   │  │  └─ 1. https://d-12345abcde.awsapps.com/start, testorg, us-east-1
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as https://d-12345abcde.awsapps.com/start, testorg
+   │
+   ├─ with sso prior?
+   │  ├─ ✗ https://d-12345abcde.awsapps.com/start, expires 2099-01-01T00:00:00Z
+   │  └─ ✓ cleared, to prevent collisions
+   │
+   ├─ which sso login?
+   │  ├─ authorize in browser
+   │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
+   │  │  └─ 🔑 MOCK-CODE
+   │  └─ ✓ authenticated
+   │
+   ├─ which account?
+   │  ├─ options
+   │  │  ├─ 1. testorg-dev   123456789012
+   │  │  └─ 2. testorg-prod  987654321098
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as testorg-dev
+   │
+   ├─ which role?
+   │  ├─ options
+   │  │  ├─ 1. AdministratorAccess
+   │  │  └─ 2. ReadOnlyAccess
+   │  └─ choice
+   │     └─ 1
+   │     ├─ 1 ✓
+   │     └─ as AdministratorAccess
+   │
+   ├─ what should we call it?
+   │  ├─ suggested
+   │  │  └─ testorg.dev
+   │  └─ choice
+   │     └─
+   │     ├─ ✓
+   │     └─ as testorg.dev
+   │
+   ├─ lovely, lets vault it now...
+   │  └─ ✓ written to ~/.aws/config
+   │
+   └─ perfect, now lets verify...
+      ├─ ✓ unlock
+      ├─ ✓ get
+      └─ ✓ relock
+
+🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.AWS_PROFILE
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      └─ vault: aws.config"
 `;

@@ -14,6 +14,7 @@ import {
   listAwsSsoAccounts,
   listAwsSsoRoles,
   listAwsSsoStartUrls,
+  logoutAwsSsoSession,
   setupAwsSsoProfile,
 } from './setupAwsSsoProfile';
 
@@ -67,6 +68,19 @@ jest.mock('os', () => ({
   ...jest.requireActual('os'),
   homedir: jest.fn(() => '/mock/home'),
 }));
+
+// mock clearAwsSsoCacheForDomain for logoutAwsSsoSession tests
+jest.mock(
+  '@src/domain.operations/keyrack/adapters/vaults/aws.config/clearAwsSsoCacheForDomain',
+  () => ({
+    clearAwsSsoCacheForDomain: jest.fn(() =>
+      Promise.resolve({
+        deleted: ['mock-token.json'],
+        skipped: [],
+      }),
+    ),
+  }),
+);
 
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
@@ -150,7 +164,7 @@ describe('setupAwsSsoProfile', () => {
         then('returns true', async () => {
           mockReadFile.mockResolvedValueOnce(`
 [profile ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_account_id = 123456789012
 sso_role_name = AdminRole
@@ -245,7 +259,7 @@ sso_account_id = 123456789012
 sso_role_name = AdminRole
 region = us-west-2
 [sso-session ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
           `);
@@ -253,7 +267,7 @@ sso_registration_scopes = sso:account:access
             profileName: 'ehmpathy.dev',
           });
           expect(result).toEqual({
-            ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+            ssoStartUrl: 'https://d-67890fghij.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '123456789012',
             ssoRoleName: 'AdminRole',
@@ -273,7 +287,7 @@ sso_account_id = 111111111111
 sso_role_name = DevRole
 region = us-east-1
 [sso-session ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
@@ -283,7 +297,7 @@ sso_account_id = 222222222222
 sso_role_name = AdminRole
 region = us-west-2
 [sso-session ehmpathy.prod]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
           `);
@@ -291,7 +305,7 @@ sso_registration_scopes = sso:account:access
             profileName: 'ehmpathy.prod',
           });
           expect(result).toEqual({
-            ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+            ssoStartUrl: 'https://d-67890fghij.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '222222222222',
             ssoRoleName: 'AdminRole',
@@ -314,14 +328,14 @@ sso_account_id = 123456789012
 sso_role_name = AdminRole
 region = us-west-2
 [sso-session ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access`);
           const result = await getAwsSsoProfileConfig({
             profileName: 'ehmpathy.dev',
           });
           expect(result).toEqual({
-            ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+            ssoStartUrl: 'https://d-67890fghij.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '123456789012',
             ssoRoleName: 'AdminRole',
@@ -346,7 +360,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -362,7 +376,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -387,7 +401,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -405,7 +419,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -434,7 +448,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -454,7 +468,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -485,7 +499,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -506,7 +520,7 @@ sso_registration_scopes = sso:account:access`);
           await expect(
             setupAwsSsoProfile({
               profileName: 'test-profile',
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
@@ -528,7 +542,7 @@ sso_registration_scopes = sso:account:access`);
 
           const result = await setupAwsSsoProfile({
             profileName: 'test-profile',
-            ssoStartUrl: 'https://acme.awsapps.com/start',
+            ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '123456789012',
             ssoRoleName: 'AdminRole',
@@ -542,7 +556,7 @@ sso_registration_scopes = sso:account:access`);
           const writtenContent = writeCall?.[1] as string;
           expect(writtenContent).toContain('[profile test-profile]');
           expect(writtenContent).toContain(
-            'sso_start_url = https://acme.awsapps.com/start',
+            'sso_start_url = https://d-abcde12345.awsapps.com/start',
           );
           expect(writtenContent).toContain('sso_region = us-east-1');
           expect(writtenContent).toContain('sso_account_id = 123456789012');
@@ -565,7 +579,7 @@ sso_registration_scopes = sso:account:access`);
 
           await setupAwsSsoProfile({
             profileName: 'test-profile',
-            ssoStartUrl: 'https://acme.awsapps.com/start',
+            ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '123456789012',
             ssoRoleName: 'AdminRole',
@@ -592,7 +606,7 @@ sso_registration_scopes = sso:account:access`);
 
           await setupAwsSsoProfile({
             profileName: 'test-profile',
-            ssoStartUrl: 'https://acme.awsapps.com/start',
+            ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
             ssoRegion: 'us-east-1',
             ssoAccountId: '123456789012',
             ssoRoleName: 'AdminRole',
@@ -632,7 +646,7 @@ sso_registration_scopes = sso:account:access`);
             );
 
             await initiateAwsSsoAuth({
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
             });
 
@@ -647,7 +661,7 @@ sso_registration_scopes = sso:account:access`);
             expect(writtenPath).toMatch(tempConfigPattern);
             expect(writtenContent).toContain('[profile keyrack-auth]');
             expect(writtenContent).toContain(
-              'sso_start_url = https://acme.awsapps.com/start',
+              'sso_start_url = https://d-abcde12345.awsapps.com/start',
             );
             expect(writtenContent).toContain('sso_region = us-east-1');
 
@@ -684,7 +698,7 @@ sso_registration_scopes = sso:account:access`);
           // should complete without error
           await expect(
             initiateAwsSsoAuth({
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
             }),
           ).resolves.toBeUndefined();
@@ -704,7 +718,7 @@ sso_registration_scopes = sso:account:access`);
 
           await expect(
             initiateAwsSsoAuth({
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-east-1',
             }),
           ).rejects.toThrow();
@@ -724,9 +738,12 @@ sso_registration_scopes = sso:account:access`);
             throw new Error('ENOENT');
           });
 
-          expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-            UnexpectedCodePathError,
-          );
+          expect(() =>
+            listAwsSsoAccounts({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+            }),
+          ).toThrow(UnexpectedCodePathError);
         });
 
         then('error mentions sso cache', () => {
@@ -734,9 +751,12 @@ sso_registration_scopes = sso:account:access`);
             throw new Error('ENOENT');
           });
 
-          expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-            /could not find sso cache/,
-          );
+          expect(() =>
+            listAwsSsoAccounts({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+            }),
+          ).toThrow(/could not find sso cache/);
         });
       });
     });
@@ -752,9 +772,12 @@ sso_registration_scopes = sso:account:access`);
             }),
           );
 
-          expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-            UnexpectedCodePathError,
-          );
+          expect(() =>
+            listAwsSsoAccounts({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+            }),
+          ).toThrow(UnexpectedCodePathError);
         });
 
         then('error mentions no valid token', () => {
@@ -766,9 +789,12 @@ sso_registration_scopes = sso:account:access`);
             }),
           );
 
-          expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-            /no valid sso access token found/,
-          );
+          expect(() =>
+            listAwsSsoAccounts({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+            }),
+          ).toThrow(/no valid sso access token found/);
         });
       });
     });
@@ -801,7 +827,10 @@ sso_registration_scopes = sso:account:access`);
             }),
           );
 
-          const result = listAwsSsoAccounts({ ssoRegion: 'us-east-1' });
+          const result = listAwsSsoAccounts({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          });
 
           expect(result).toEqual([
             {
@@ -845,8 +874,80 @@ sso_registration_scopes = sso:account:access`);
             }),
           );
 
-          const result = listAwsSsoAccounts({ ssoRegion: 'us-east-1' });
+          const result = listAwsSsoAccounts({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          });
           expect(result).toHaveLength(1);
+        });
+      });
+    });
+
+    given('[case5] cache has tokens for multiple sso domains', () => {
+      when('[t0] token matches requested ssoStartUrl', () => {
+        then('uses matched token', () => {
+          const futureDate = new Date(Date.now() + 3600000).toISOString();
+          mockReaddirSync.mockReturnValueOnce([
+            'ahbode.json',
+            'ehmpathy.json',
+          ] as any);
+          // first token for different domain
+          mockReadFileSync
+            .mockReturnValueOnce(
+              JSON.stringify({
+                startUrl: 'https://ahbode.awsapps.com/start',
+                accessToken: 'ahbode-token',
+                expiresAt: futureDate,
+              }),
+            )
+            // second token for requested domain
+            .mockReturnValueOnce(
+              JSON.stringify({
+                startUrl: 'https://ehmpathy.awsapps.com/start',
+                accessToken: 'ehmpathy-token',
+                expiresAt: futureDate,
+              }),
+            );
+          mockExecSync.mockReturnValueOnce(
+            JSON.stringify({
+              accountList: [
+                { accountId: '222222222222', accountName: 'ehmpathy-dev' },
+              ],
+            }),
+          );
+
+          const result = listAwsSsoAccounts({
+            ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          });
+
+          expect(result).toHaveLength(1);
+          expect(result[0]?.accountName).toBe('ehmpathy-dev');
+          // verify the correct token was used in the aws command
+          const execCall = mockExecSync.mock.calls[0];
+          const command = execCall?.[0] as string;
+          expect(command).toContain('--access-token "ehmpathy-token"');
+        });
+      });
+
+      when('[t1] no token matches requested ssoStartUrl', () => {
+        then('throws no valid token error', () => {
+          const futureDate = new Date(Date.now() + 3600000).toISOString();
+          mockReaddirSync.mockReturnValueOnce(['other-domain.json'] as any);
+          mockReadFileSync.mockReturnValueOnce(
+            JSON.stringify({
+              startUrl: 'https://other.awsapps.com/start',
+              accessToken: 'other-token',
+              expiresAt: futureDate,
+            }),
+          );
+
+          expect(() =>
+            listAwsSsoAccounts({
+              ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+            }),
+          ).toThrow(/no valid sso access token found/);
         });
       });
     });
@@ -864,7 +965,11 @@ sso_registration_scopes = sso:account:access`);
           });
 
           expect(() =>
-            listAwsSsoRoles({ ssoRegion: 'us-east-1', accountId: '123' }),
+            listAwsSsoRoles({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+              accountId: '123',
+            }),
           ).toThrow(UnexpectedCodePathError);
         });
       });
@@ -882,7 +987,11 @@ sso_registration_scopes = sso:account:access`);
           );
 
           expect(() =>
-            listAwsSsoRoles({ ssoRegion: 'us-east-1', accountId: '123' }),
+            listAwsSsoRoles({
+              ssoStartUrl: 'https://test.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+              accountId: '123',
+            }),
           ).toThrow(/no valid sso access token found/);
         });
       });
@@ -906,6 +1015,7 @@ sso_registration_scopes = sso:account:access`);
           );
 
           const result = listAwsSsoRoles({
+            ssoStartUrl: 'https://test.awsapps.com/start',
             ssoRegion: 'us-east-1',
             accountId: '123456789012',
           });
@@ -932,6 +1042,7 @@ sso_registration_scopes = sso:account:access`);
           );
 
           listAwsSsoRoles({
+            ssoStartUrl: 'https://test.awsapps.com/start',
             ssoRegion: 'us-east-1',
             accountId: '123456789012',
           });
@@ -940,6 +1051,118 @@ sso_registration_scopes = sso:account:access`);
           const command = execCall?.[0] as string;
           expect(command).toContain('--account-id "123456789012"');
           expect(command).toContain('--region "us-east-1"');
+        });
+      });
+    });
+
+    given('[case4] cache has tokens for multiple sso domains', () => {
+      when('[t0] token matches requested ssoStartUrl', () => {
+        then('uses matched token', () => {
+          const futureDate = new Date(Date.now() + 3600000).toISOString();
+          mockReaddirSync.mockReturnValueOnce([
+            'ahbode.json',
+            'ehmpathy.json',
+          ] as any);
+          // first token for different domain
+          mockReadFileSync
+            .mockReturnValueOnce(
+              JSON.stringify({
+                startUrl: 'https://ahbode.awsapps.com/start',
+                accessToken: 'ahbode-token',
+                expiresAt: futureDate,
+              }),
+            )
+            // second token for requested domain
+            .mockReturnValueOnce(
+              JSON.stringify({
+                startUrl: 'https://ehmpathy.awsapps.com/start',
+                accessToken: 'ehmpathy-token',
+                expiresAt: futureDate,
+              }),
+            );
+          mockExecSync.mockReturnValueOnce(
+            JSON.stringify({
+              roleList: [{ roleName: 'EhmpathyAdmin' }],
+            }),
+          );
+
+          const result = listAwsSsoRoles({
+            ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+            accountId: '222222222222',
+          });
+
+          expect(result).toHaveLength(1);
+          expect(result[0]?.roleName).toBe('EhmpathyAdmin');
+          // verify the correct token was used
+          const execCall = mockExecSync.mock.calls[0];
+          const command = execCall?.[0] as string;
+          expect(command).toContain('--access-token "ehmpathy-token"');
+        });
+      });
+
+      when('[t1] no token matches requested ssoStartUrl', () => {
+        then('throws no valid token error', () => {
+          const futureDate = new Date(Date.now() + 3600000).toISOString();
+          mockReaddirSync.mockReturnValueOnce(['other-domain.json'] as any);
+          mockReadFileSync.mockReturnValueOnce(
+            JSON.stringify({
+              startUrl: 'https://other.awsapps.com/start',
+              accessToken: 'other-token',
+              expiresAt: futureDate,
+            }),
+          );
+
+          expect(() =>
+            listAwsSsoRoles({
+              ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+              ssoRegion: 'us-east-1',
+              accountId: '123',
+            }),
+          ).toThrow(/no valid sso access token found/);
+        });
+      });
+    });
+  });
+
+  /**
+   * logoutAwsSsoSession
+   *
+   * .note = this function does targeted logout (server-side + disk)
+   *         instead of `aws sso logout` which logs out ALL domains
+   * .note = server-side logout via SDK LogoutCommand invalidates browser session
+   */
+  describe('logoutAwsSsoSession', () => {
+    given('[case1] logout with prior session', () => {
+      when('[t0] cache files exist for domain', () => {
+        then('clears server + disk cache via clearAwsSsoCacheForDomain', async () => {
+          const result = await logoutAwsSsoSession({
+            ssoStartUrl: 'https://acme.awsapps.com/start',
+          });
+
+          // should return disk cache result
+          expect(result.diskCache).toBeDefined();
+          expect(result.diskCache.deleted).toContain('mock-token.json');
+        });
+      });
+    });
+
+    given('[case2] no cache files for domain', () => {
+      when('[t0] clearAwsSsoCacheForDomain returns empty', () => {
+        then('returns empty deleted array', async () => {
+          // mock returns empty for this domain
+          const mockClear = jest.requireMock(
+            '@src/domain.operations/keyrack/adapters/vaults/aws.config/clearAwsSsoCacheForDomain',
+          ).clearAwsSsoCacheForDomain as jest.Mock;
+          mockClear.mockReturnValueOnce(
+            Promise.resolve({ deleted: [], skipped: [] }),
+          );
+
+          const result = await logoutAwsSsoSession({
+            ssoStartUrl: 'https://other.awsapps.com/start',
+          });
+
+          expect(result.diskCache.deleted).toHaveLength(0);
         });
       });
     });
@@ -981,7 +1204,7 @@ sso_account_id = 123456789012
 sso_role_name = AdminRole
 region = us-east-1
 [sso-session ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
           `);
@@ -989,8 +1212,9 @@ sso_registration_scopes = sso:account:access
           const result = await listAwsSsoStartUrls();
           expect(result).toEqual([
             {
-              ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+              ssoStartUrl: 'https://d-67890fghij.awsapps.com/start',
               ssoRegion: 'us-east-1',
+              profileNames: ['ehmpathy.dev'],
             },
           ]);
         });
@@ -1014,7 +1238,7 @@ sso_role_name = ReadOnly
 region = us-east-1
 
 [sso-session ehmpathy]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
           `);
@@ -1022,7 +1246,7 @@ sso_registration_scopes = sso:account:access
           const result = await listAwsSsoStartUrls();
           expect(result).toHaveLength(1);
           expect(result[0]!.ssoStartUrl).toEqual(
-            'https://ehmpathy.awsapps.com/start',
+            'https://d-67890fghij.awsapps.com/start',
           );
         });
       });
@@ -1047,12 +1271,12 @@ sso_role_name = Developer
 region = us-west-2
 
 [sso-session ehmpathy]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
 [sso-session acme]
-sso_start_url = https://acme.awsapps.com/start
+sso_start_url = https://d-abcde12345.awsapps.com/start
 sso_region = us-west-2
 sso_registration_scopes = sso:account:access
           `);
@@ -1060,12 +1284,14 @@ sso_registration_scopes = sso:account:access
             const result = await listAwsSsoStartUrls();
             expect(result).toHaveLength(2);
             expect(result).toContainEqual({
-              ssoStartUrl: 'https://ehmpathy.awsapps.com/start',
+              ssoStartUrl: 'https://d-67890fghij.awsapps.com/start',
               ssoRegion: 'us-east-1',
+              profileNames: ['ehmpathy.dev'],
             });
             expect(result).toContainEqual({
-              ssoStartUrl: 'https://acme.awsapps.com/start',
+              ssoStartUrl: 'https://d-abcde12345.awsapps.com/start',
               ssoRegion: 'us-west-2',
+              profileNames: ['acme.dev'],
             });
           });
         });
@@ -1091,7 +1317,7 @@ role_arn = arn:aws:iam::123:role/foo
 source_profile = iam-user
 
 [sso-session ehmpathy.dev]
-sso_start_url = https://ehmpathy.awsapps.com/start
+sso_start_url = https://d-67890fghij.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
           `);
@@ -1099,8 +1325,28 @@ sso_registration_scopes = sso:account:access
           const result = await listAwsSsoStartUrls();
           expect(result).toHaveLength(1);
           expect(result[0]!.ssoStartUrl).toEqual(
-            'https://ehmpathy.awsapps.com/start',
+            'https://d-67890fghij.awsapps.com/start',
           );
+        });
+      });
+    });
+
+    given('[case7] sso-session without any profiles (initial setup)', () => {
+      when('[t0] urls listed', () => {
+        then('returns session url with empty profileNames', async () => {
+          mockReadFile.mockResolvedValueOnce(`
+[sso-session mock-portal]
+sso_start_url = https://d-12345abcde.awsapps.com/start
+sso_region = us-east-1
+          `);
+
+          const result = await listAwsSsoStartUrls();
+          expect(result).toHaveLength(1);
+          expect(result[0]).toEqual({
+            ssoStartUrl: 'https://d-12345abcde.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+            profileNames: [],
+          });
         });
       });
     });

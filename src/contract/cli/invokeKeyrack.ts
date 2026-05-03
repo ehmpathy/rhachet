@@ -779,6 +779,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             ),
           );
         } else {
+          // note: vault adapter already prints a blank line for visual separation
           console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
           for (const result of results) {
             console.log(`   └─ ${result.slug}`);

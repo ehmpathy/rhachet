@@ -194,6 +194,7 @@ export const unlockKeyrackKeys = async (
     const identity = await context.identity.getOne({ for: 'manifest' });
 
     // unlock vault if needed
+    // .note = silent because CLI unlock output happens after all keys are processed
     const isUnlocked = await adapter.isUnlocked({
       exid: hostConfig.exid,
       identity,
@@ -202,6 +203,7 @@ export const unlockKeyrackKeys = async (
       await adapter.unlock({
         identity,
         exid: hostConfig.exid,
+        silent: true,
       });
     }
 

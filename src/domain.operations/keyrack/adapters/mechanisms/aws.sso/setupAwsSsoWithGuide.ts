@@ -1,6 +1,9 @@
+import { execSync } from 'child_process';
 import { BadRequestError } from 'helpful-errors';
 import readline from 'readline';
 
+import { asOrgLabelFromSsoStartUrl } from '@src/domain.operations/keyrack/adapters/vaults/aws.config/asOrgLabelFromSsoStartUrl';
+import { previewAwsSsoCacheForDomain } from '@src/domain.operations/keyrack/adapters/vaults/aws.config/previewAwsSsoCacheForDomain';
 import { getStdoutPrefix } from '@src/infra/withStdoutPrefix';
 
 import {
@@ -12,6 +15,7 @@ import {
   listAwsSsoStartUrls,
   setupAwsSsoProfile,
 } from './setupAwsSsoProfile';
+import { logoutAwsSsoSession } from './setupAwsSsoProfile/logoutAwsSsoSession';
 
 /**
  * .what = prompts user for input via readline
@@ -62,14 +66,17 @@ export const setupAwsSsoWithGuide = async (input: {
   console.log('   ├─ which sso domain?');
 
   if (portalsFound.length > 0) {
-    // show options
+    // show options with org labels
     console.log('   │  ├─ options');
     portalsFound.forEach((p, i) => {
       const isLastOption = i === portalsFound.length - 1;
       const optPrefix = isLastOption ? '└─' : '├─';
-      console.log(
-        `   │  │  ${optPrefix} ${i + 1}. ${p.ssoStartUrl} (${p.ssoRegion})`,
-      );
+      const orgLabel = asOrgLabelFromSsoStartUrl({
+        ssoStartUrl: p.ssoStartUrl,
+        profileNames: p.profileNames,
+      });
+      const parts = [p.ssoStartUrl, orgLabel, p.ssoRegion].filter(Boolean);
+      console.log(`   │  │  ${optPrefix} ${i + 1}. ${parts.join(', ')}`);
     });
 
     // get choice
@@ -79,27 +86,33 @@ export const setupAwsSsoWithGuide = async (input: {
 
     if (!isNaN(index) && index >= 0 && index < portalsFound.length) {
       // user picked option
-      ssoStartUrl = portalsFound[index]!.ssoStartUrl;
-      ssoRegion = portalsFound[index]!.ssoRegion;
+      const selectedPortal = portalsFound[index]!;
+      ssoStartUrl = selectedPortal.ssoStartUrl;
+      ssoRegion = selectedPortal.ssoRegion;
+      const orgLabel = asOrgLabelFromSsoStartUrl({
+        ssoStartUrl: selectedPortal.ssoStartUrl,
+        profileNames: selectedPortal.profileNames,
+      });
       // rewrite the choice line with confirmation + echo
       process.stdout.write('\x1b[1A\x1b[2K');
       console.log(`   │     ├─ ${index + 1} ✓`);
-      console.log(`   │     └─ as ${ssoStartUrl}`);
+      const asLabel = orgLabel ? `${ssoStartUrl}, ${orgLabel}` : ssoStartUrl;
+      console.log(`   │     └─ as ${asLabel}`);
     } else if (answer.startsWith('http')) {
-      // user entered new url
+      // user entered new url — need to also prompt for region
       ssoStartUrl = answer;
-      // rewrite the choice line with confirmation + echo
+      // rewrite the choice line with confirmation + echo + region prompt (nested under choice)
       process.stdout.write('\x1b[1A\x1b[2K');
       console.log(`   │     ├─ ${answer} ✓`);
-      console.log(`   │     └─ as ${answer}`);
-      // prompt for region
-      console.log('   │  └─ sso region');
-      ssoRegion = await promptUser('   │     └─ ');
+      console.log(`   │     ├─ as ${answer}`);
+      // prompt for region (nested under choice since it's part of custom url entry)
+      console.log('   │     └─ sso region');
+      ssoRegion = await promptUser('   │        └─ ');
       if (!ssoRegion) {
         throw new BadRequestError('sso region is required');
       }
       process.stdout.write('\x1b[1A\x1b[2K');
-      console.log(`   │     └─ ${ssoRegion} ✓`);
+      console.log(`   │        └─ ${ssoRegion} ✓`);
     } else {
       throw new BadRequestError(
         `invalid selection: enter 1-${portalsFound.length} or a url`,
@@ -124,6 +137,33 @@ export const setupAwsSsoWithGuide = async (input: {
     console.log(`   │     └─ ${ssoRegion} ✓`);
   }
 
+  // pre-logout: clear any stale session for this domain to prevent collisions
+  // note: on `set` we don't know which user will auth, so we always clear
+  // todo: track username per key as host metadata so unlock can compare directly
+  console.log('   │');
+  console.log('   ├─ with sso prior?');
+
+  const priorSession = previewAwsSsoCacheForDomain({ ssoStartUrl });
+  if (priorSession.matched.length > 0) {
+    // show what we found and clear it
+    const session = priorSession.matched[0]!;
+    const expiryLabel = (() => {
+      if (!session.expiresAt) return 'unknown';
+      const expiresAt = new Date(session.expiresAt);
+      const now = new Date();
+      return expiresAt < now
+        ? `expired ${session.expiresAt}`
+        : `expires ${session.expiresAt}`;
+    })();
+    console.log(`   │  ├─ ✗ ${session.startUrl}, ${expiryLabel}`);
+
+    // logout of this domain (server-side session + disk cache)
+    await logoutAwsSsoSession({ ssoStartUrl });
+    console.log('   │  └─ ✓ cleared server + disk cache');
+  } else {
+    console.log('   │  └─ ✓ clear, no prior session');
+  }
+
   // browser auth
   console.log('   │');
   console.log('   ├─ which sso login?');
@@ -136,7 +176,7 @@ export const setupAwsSsoWithGuide = async (input: {
   });
 
   // list accounts (silent fetch)
-  const accountsUnsorted = listAwsSsoAccounts({ ssoRegion });
+  const accountsUnsorted = listAwsSsoAccounts({ ssoStartUrl, ssoRegion });
   if (accountsUnsorted.length === 0) {
     throw new BadRequestError('no accounts found for this sso configuration');
   }
@@ -180,6 +220,7 @@ export const setupAwsSsoWithGuide = async (input: {
 
   // list roles (silent fetch)
   const rolesUnsorted = listAwsSsoRoles({
+    ssoStartUrl,
     ssoRegion,
     accountId: selectedAccount.accountId,
   });
@@ -343,7 +384,16 @@ export const setupAwsSsoWithGuide = async (input: {
     });
     console.log('   │  └─ ✓ written to ~/.aws/config');
   } else if (isEquivalent) {
-    // equivalent profile found, just use it
+    // equivalent profile found - still need to login with ACTUAL profile
+    // so the token is cached under the correct sso-session name
+    // (initiateAwsSsoAuth uses a temp sso-session, which has different cache key)
+    const { execSync } = await import('child_process');
+    try {
+      execSync(`aws sso login --profile "${profileName}"`, { stdio: 'pipe' });
+    } catch {
+      // login failed - browser auth probably needed
+      // fall through to let validateSsoSession handle the error
+    }
     console.log('   │  └─ ✓ profile already in ~/.aws/config');
   }
 
