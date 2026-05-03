@@ -158,7 +158,7 @@ export const setupAwsSsoWithGuide = async (input: {
 
     // logout of this domain (server-side session + disk cache)
     await logoutAwsSsoSession({ ssoStartUrl });
-    console.log('   │  └─ ✓ cleared server + disk cache');
+    console.log('   │  └─ ✓ cleared, to prevent collisions');
   } else {
     console.log('   │  └─ ✓ clear, no prior session');
   }

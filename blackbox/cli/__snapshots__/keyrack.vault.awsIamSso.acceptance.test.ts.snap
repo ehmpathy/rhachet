@@ -397,7 +397,7 @@ exports[`keyrack vault aws.config given: [case17] set key WITH identity collisio
    │
    ├─ with sso prior?
    │  ├─ ✗ https://d-12345abcde.awsapps.com/start, expires 2099-01-01T00:00:00Z
-   │  └─ ✓ cleared server + disk cache
+   │  └─ ✓ cleared, to prevent collisions
    │
    ├─ which sso login?
    │  ├─ authorize in browser
