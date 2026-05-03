@@ -98,6 +98,7 @@
     "upgrade:rhachet": "rhachet upgrade"
   },
   "dependencies": {
+    "@aws-sdk/client-sso": "3.1041.0",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",
     "@octokit/auth-app": "8.2.0",

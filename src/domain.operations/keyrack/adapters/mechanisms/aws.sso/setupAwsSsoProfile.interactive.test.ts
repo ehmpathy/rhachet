@@ -275,7 +275,10 @@ describe('setupAwsSsoProfile interactive journey', () => {
       });
 
       then('returns account list', () => {
-        const accounts = listAwsSsoAccounts({ ssoRegion: 'us-east-1' });
+        const accounts = listAwsSsoAccounts({
+          ssoStartUrl: 'https://test.awsapps.com/start',
+          ssoRegion: 'us-east-1',
+        });
 
         expect(accounts).toHaveLength(2);
         expect(accounts[0]).toEqual({
@@ -314,9 +317,12 @@ describe('setupAwsSsoProfile interactive journey', () => {
       });
 
       then('throws error about expired token', () => {
-        expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-          'no valid sso access token found',
-        );
+        expect(() =>
+          listAwsSsoAccounts({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          }),
+        ).toThrow('no valid sso access token found');
       });
     });
 
@@ -328,9 +334,12 @@ describe('setupAwsSsoProfile interactive journey', () => {
       });
 
       then('throws error about cache not found', () => {
-        expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-          'could not find sso cache',
-        );
+        expect(() =>
+          listAwsSsoAccounts({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          }),
+        ).toThrow('could not find sso cache');
       });
     });
   });
@@ -361,6 +370,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
 
       then('returns role list', () => {
         const roles = listAwsSsoRoles({
+          ssoStartUrl: 'https://test.awsapps.com/start',
           ssoRegion: 'us-east-1',
           accountId: '123456789012',
         });
@@ -397,6 +407,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
       then('throws error about expired token', () => {
         expect(() =>
           listAwsSsoRoles({
+            ssoStartUrl: 'https://test.awsapps.com/start',
             ssoRegion: 'us-east-1',
             accountId: '123456789012',
           }),
@@ -693,13 +704,17 @@ describe('setupAwsSsoProfile interactive journey', () => {
         ]);
 
         // step 3: accounts are listed
-        const accounts = listAwsSsoAccounts({ ssoRegion: 'us-east-1' });
+        const accounts = listAwsSsoAccounts({
+          ssoStartUrl: 'https://company.awsapps.com/start',
+          ssoRegion: 'us-east-1',
+        });
         expect(accounts).toHaveLength(2);
         expect(accounts[0]?.accountName).toBe('Production');
         expect(accounts[1]?.accountName).toBe('Preprod');
 
         // step 4: roles are listed for selected account
         const roles = listAwsSsoRoles({
+          ssoStartUrl: 'https://company.awsapps.com/start',
           ssoRegion: 'us-east-1',
           accountId: '111111111111',
         });
@@ -791,9 +806,12 @@ describe('setupAwsSsoProfile interactive journey', () => {
       });
 
       then('throws error about cache', () => {
-        expect(() => listAwsSsoAccounts({ ssoRegion: 'us-east-1' })).toThrow(
-          'could not find sso cache',
-        );
+        expect(() =>
+          listAwsSsoAccounts({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+          }),
+        ).toThrow('could not find sso cache');
       });
     });
 
@@ -810,7 +828,11 @@ describe('setupAwsSsoProfile interactive journey', () => {
 
       then('throws error about expired token', () => {
         expect(() =>
-          listAwsSsoRoles({ ssoRegion: 'us-east-1', accountId: '123' }),
+          listAwsSsoRoles({
+            ssoStartUrl: 'https://test.awsapps.com/start',
+            ssoRegion: 'us-east-1',
+            accountId: '123',
+          }),
         ).toThrow('no valid sso access token found');
       });
     });

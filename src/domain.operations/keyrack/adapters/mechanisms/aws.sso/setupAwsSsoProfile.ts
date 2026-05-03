@@ -6,6 +6,13 @@ import path from 'path';
 
 import { getTempDir } from '@src/infra/getTempDir';
 
+// re-export extracted operations
+export {
+  listAwsSsoAccounts,
+  listAwsSsoRoles,
+  logoutAwsSsoSession,
+} from './setupAwsSsoProfile/index';
+
 /**
  * .what = sets up an AWS SSO profile in ~/.aws/config
  * .why = guided setup for AWS SSO credentials via keyrack
@@ -218,7 +225,7 @@ export const getAwsSsoProfileConfig = async (input: {
  * .note = parses both v1 (inline in profile) and v2 (sso-session blocks) formats
  */
 export const listAwsSsoStartUrls = async (): Promise<
-  Array<{ ssoStartUrl: string; ssoRegion: string }>
+  Array<{ ssoStartUrl: string; ssoRegion: string; profileNames: string[] }>
 > => {
   const configPath = path.join(os.homedir(), '.aws', 'config');
 
@@ -231,42 +238,89 @@ export const listAwsSsoStartUrls = async (): Promise<
     return [];
   }
 
-  const results: Array<{ ssoStartUrl: string; ssoRegion: string }> = [];
-  const seenUrls = new Set<string>();
+  // track profiles per url
+  const urlToProfiles = new Map<
+    string,
+    { ssoRegion: string; profileNames: string[] }
+  >();
 
-  // helper to add url if not seen
-  const addIfNew = (ssoStartUrl: string, ssoRegion: string) => {
-    if (!seenUrls.has(ssoStartUrl)) {
-      seenUrls.add(ssoStartUrl);
-      results.push({ ssoStartUrl, ssoRegion });
+  // helper to add profile for url
+  const addProfile = (
+    ssoStartUrl: string,
+    ssoRegion: string,
+    profileName: string,
+  ) => {
+    const extant = urlToProfiles.get(ssoStartUrl);
+    if (extant) {
+      extant.profileNames.push(profileName);
+    } else {
+      urlToProfiles.set(ssoStartUrl, {
+        ssoRegion,
+        profileNames: [profileName],
+      });
     }
   };
 
-  // v1 format: parse sso_start_url from profile blocks with inline settings
-  const profileRegex = /\[profile\s+[^\]]+\]([^[]*)/g;
-  for (const match of configContent.matchAll(profileRegex)) {
-    const section = match[1] ?? '';
-    const urlMatch = section.match(/sso_start_url\s*=\s*(.+)/);
-    const regionMatch = section.match(/sso_region\s*=\s*(.+)/);
-
-    if (urlMatch && regionMatch) {
-      addIfNew(urlMatch[1]!.trim(), regionMatch[1]!.trim());
-    }
-  }
-
-  // v2 format: parse sso_start_url from sso-session blocks
-  const sessionRegex = /\[sso-session\s+[^\]]+\]([^[]*)/g;
+  // build sso-session to url mapping for v2 format
+  const sessionToUrl = new Map<
+    string,
+    { ssoStartUrl: string; ssoRegion: string }
+  >();
+  const sessionRegex = /\[sso-session\s+([^\]]+)\]([^[]*)/g;
   for (const match of configContent.matchAll(sessionRegex)) {
-    const section = match[1] ?? '';
+    const sessionName = match[1]?.trim() ?? '';
+    const section = match[2] ?? '';
     const urlMatch = section.match(/sso_start_url\s*=\s*(.+)/);
     const regionMatch = section.match(/sso_region\s*=\s*(.+)/);
-
     if (urlMatch && regionMatch) {
-      addIfNew(urlMatch[1]!.trim(), regionMatch[1]!.trim());
+      sessionToUrl.set(sessionName, {
+        ssoStartUrl: urlMatch[1]!.trim(),
+        ssoRegion: regionMatch[1]!.trim(),
+      });
     }
   }
 
-  return results;
+  // parse profiles
+  const profileRegex = /\[profile\s+([^\]]+)\]([^[]*)/g;
+  for (const match of configContent.matchAll(profileRegex)) {
+    const profileName = match[1]?.trim() ?? '';
+    const section = match[2] ?? '';
+
+    // v1 format: inline sso_start_url
+    const urlMatch = section.match(/sso_start_url\s*=\s*(.+)/);
+    const regionMatch = section.match(/sso_region\s*=\s*(.+)/);
+    if (urlMatch && regionMatch) {
+      addProfile(urlMatch[1]!.trim(), regionMatch[1]!.trim(), profileName);
+      continue;
+    }
+
+    // v2 format: sso_session reference
+    const sessionMatch = section.match(/sso_session\s*=\s*(.+)/);
+    if (sessionMatch) {
+      const sessionName = sessionMatch[1]!.trim();
+      const sessionInfo = sessionToUrl.get(sessionName);
+      if (sessionInfo) {
+        addProfile(sessionInfo.ssoStartUrl, sessionInfo.ssoRegion, profileName);
+      }
+    }
+  }
+
+  // include sso-session URLs that have no profiles yet (initial setup case)
+  for (const [_sessionName, sessionInfo] of sessionToUrl) {
+    if (!urlToProfiles.has(sessionInfo.ssoStartUrl)) {
+      urlToProfiles.set(sessionInfo.ssoStartUrl, {
+        ssoRegion: sessionInfo.ssoRegion,
+        profileNames: [],
+      });
+    }
+  }
+
+  // convert map to array
+  return Array.from(urlToProfiles.entries()).map(([ssoStartUrl, info]) => ({
+    ssoStartUrl,
+    ssoRegion: info.ssoRegion,
+    profileNames: info.profileNames,
+  }));
 };
 
 /**
@@ -295,11 +349,16 @@ export const initiateAwsSsoAuth = async (input: {
   const tempConfigPath = path.join(tempDir, 'config');
   await fs.mkdir(tempDir, { recursive: true });
 
-  // write minimal sso profile (account_id and role_name are optional since aws cli v2.5.1)
+  // write v2 format sso profile (sso-session block) to match what setupAwsSsoProfile creates
+  // .note = must include sso_registration_scopes so cached token matches final profile
   const tempProfileName = 'keyrack-auth';
   const tempConfig = `[profile ${tempProfileName}]
+sso_session = ${tempProfileName}
+
+[sso-session ${tempProfileName}]
 sso_start_url = ${input.ssoStartUrl}
 sso_region = ${input.ssoRegion}
+sso_registration_scopes = sso:account:access
 `;
   await fs.writeFile(tempConfigPath, tempConfig, 'utf-8');
 
@@ -367,113 +426,4 @@ sso_region = ${input.ssoRegion}
     // cleanup temp config
     await fs.rm(tempDir, { recursive: true, force: true });
   }
-};
-
-/**
- * .what = lists available aws accounts after sso auth
- * .why = lets user pick which account to configure
- */
-export const listAwsSsoAccounts = (input: {
-  ssoRegion: string;
-}): Array<{ accountId: string; accountName: string; emailAddress: string }> => {
-  // find the sso cache token
-  const ssoCacheDir = path.join(os.homedir(), '.aws', 'sso', 'cache');
-  let accessToken: string | null = null;
-
-  try {
-    const files = require('fs').readdirSync(ssoCacheDir);
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-      const content = require('fs').readFileSync(
-        path.join(ssoCacheDir, file),
-        'utf-8',
-      );
-      const data = JSON.parse(content);
-      if (data.accessToken && data.expiresAt) {
-        const expiresAt = new Date(data.expiresAt);
-        if (expiresAt > new Date()) {
-          accessToken = data.accessToken;
-          break;
-        }
-      }
-    }
-  } catch {
-    throw new UnexpectedCodePathError(
-      'could not find sso cache. run aws sso login first.',
-    );
-  }
-
-  if (!accessToken) {
-    throw new UnexpectedCodePathError(
-      'no valid sso access token found. run aws sso login first.',
-    );
-  }
-
-  // list accounts (unset AWS_PROFILE to prevent inherited empty string from shell)
-  const result = execSync(
-    `aws sso list-accounts --access-token "${accessToken}" --region "${input.ssoRegion}"`,
-    { encoding: 'utf-8', env: { ...process.env, AWS_PROFILE: undefined } },
-  );
-
-  const parsed = JSON.parse(result);
-  return parsed.accountList.map(
-    (a: { accountId: string; accountName: string; emailAddress: string }) => ({
-      accountId: a.accountId,
-      accountName: a.accountName,
-      emailAddress: a.emailAddress,
-    }),
-  );
-};
-
-/**
- * .what = lists available roles for an aws account
- * .why = lets user pick which role to assume
- */
-export const listAwsSsoRoles = (input: {
-  ssoRegion: string;
-  accountId: string;
-}): Array<{ roleName: string }> => {
-  // find the sso cache token
-  const ssoCacheDir = path.join(os.homedir(), '.aws', 'sso', 'cache');
-  let accessToken: string | null = null;
-
-  try {
-    const files = require('fs').readdirSync(ssoCacheDir);
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-      const content = require('fs').readFileSync(
-        path.join(ssoCacheDir, file),
-        'utf-8',
-      );
-      const data = JSON.parse(content);
-      if (data.accessToken && data.expiresAt) {
-        const expiresAt = new Date(data.expiresAt);
-        if (expiresAt > new Date()) {
-          accessToken = data.accessToken;
-          break;
-        }
-      }
-    }
-  } catch {
-    throw new UnexpectedCodePathError(
-      'could not find sso cache. run aws sso login first.',
-    );
-  }
-
-  if (!accessToken) {
-    throw new UnexpectedCodePathError(
-      'no valid sso access token found. run aws sso login first.',
-    );
-  }
-
-  // list roles (unset AWS_PROFILE to prevent inherited empty string from shell)
-  const result = execSync(
-    `aws sso list-account-roles --access-token "${accessToken}" --account-id "${input.accountId}" --region "${input.ssoRegion}"`,
-    { encoding: 'utf-8', env: { ...process.env, AWS_PROFILE: undefined } },
-  );
-
-  const parsed = JSON.parse(result);
-  return parsed.roleList.map((r: { roleName: string }) => ({
-    roleName: r.roleName,
-  }));
 };

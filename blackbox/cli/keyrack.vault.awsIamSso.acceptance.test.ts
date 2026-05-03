@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
@@ -875,15 +875,26 @@ describe('keyrack vault aws.config', () => {
         'utf-8',
       );
 
-      // pre-populate ~/.aws/config with a portal entry
+      // pre-populate ~/.aws/config with a portal entry and extant profiles
+      // .note = profiles use $org.$env pattern for common prefix extraction
       const awsDir = `${r.path}/.aws`;
       mkdirSync(awsDir, { recursive: true });
       writeFileSync(
         `${awsDir}/config`,
         [
-          '[sso-session mock-portal]',
-          'sso_start_url = https://mock-portal.awsapps.com/start',
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
           'sso_region = us-east-1',
+          '',
+          '[profile testorg.prod]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 111111111111',
+          'sso_role_name = AdminRole',
+          '',
+          '[profile testorg.prep]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 222222222222',
+          'sso_role_name = AdminRole',
           '',
         ].join('\n'),
         'utf-8',
@@ -974,7 +985,7 @@ describe('keyrack vault aws.config', () => {
           .replace(/\x1B\]/g, '') // OSC sequences
           .replace(/\r/g, '') // carriage returns from PTY
           .replace(/·/g, '') // middle dots from PTY
-          .replace(/\s+$/gm, ''); // trim end-of-line whitespace
+          .replace(/[ \t]+$/gm, ''); // trim end-of-line spaces/tabs (not newlines)
         // trim PTY echo noise before tree header
         const treeStart = stripped.indexOf('\u{1F510}');
         const clean = stripped
@@ -1114,6 +1125,484 @@ describe('keyrack vault aws.config', () => {
         // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
         // .note = aws.config vault returns 'absent' since we cant check without decrypt
         expect(parsed.status).toEqual('absent');
+      });
+    });
+  });
+
+  given('[case14] unlock WITHOUT identity collision (valid session)', () => {
+    // .what = unlock when SSO session is valid for the requested profile
+    // .why = verify smooth flow without forced re-auth when identity matches
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/config with profile
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[profile testorg.dev]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 123456789012',
+          'sso_role_name = AdministratorAccess',
+          '',
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-create host manifest entry
+      invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'AWS_PROFILE',
+          '--env',
+          'test',
+          '--vault',
+          'aws.config',
+          '--exid',
+          'testorg.dev',
+        ],
+        cwd: r.path,
+        env: { HOME: r.path, PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}` },
+      });
+
+      return r;
+    });
+
+    when('[t0] keyrack unlock with valid SSO session (alice)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            MOCK_AWS_IDENTITY: 'alice', // valid session for alice
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output shows unlock without collision clear', () => {
+        // should NOT contain ✗ (collision) in "with sso prior?" section
+        // should show ✓ and proceed directly to unlock
+        expect(result.stdout).toContain('testorg.test.AWS_PROFILE');
+        expect(result.stdout).not.toContain('✗');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case15] unlock WITH identity collision (wrong user cached)', () => {
+    // .what = unlock when cached SSO session belongs to different user
+    // .why = verify collision detection clears cache and prompts re-auth
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/config with profile
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[profile testorg.dev]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 123456789012',
+          'sso_role_name = AdministratorAccess',
+          '',
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/sso/cache with bob's session (wrong user)
+      const ssoCacheDir = `${r.path}/.aws/sso/cache`;
+      mkdirSync(ssoCacheDir, { recursive: true });
+      writeFileSync(
+        `${ssoCacheDir}/bob-session.json`,
+        JSON.stringify({
+          startUrl: 'https://d-12345abcde.awsapps.com/start',
+          region: 'us-east-1',
+          accessToken: 'bobs-access-token',
+          expiresAt: '2099-01-01T00:00:00Z',
+        }),
+        'utf-8',
+      );
+
+      // pre-create host manifest entry
+      invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'AWS_PROFILE',
+          '--env',
+          'test',
+          '--vault',
+          'aws.config',
+          '--exid',
+          'testorg.dev',
+        ],
+        cwd: r.path,
+        env: { HOME: r.path, PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}` },
+      });
+
+      return r;
+    });
+
+    when('[t0] keyrack unlock with wrong user cached (bob, need alice)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            MOCK_AWS_IDENTITY_ERROR: '1', // simulate access denied (wrong user)
+          },
+        }),
+      );
+
+      then('exits with status 0 (re-auth succeeds)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output shows unlock without collision details', () => {
+        // .note = collision detection is silent on unlock
+        // .note = only keyrack set (guided setup) shows the "with sso prior?" flow
+        expect(result.stdout).toContain('keyrack unlock');
+        expect(result.stdout).not.toContain('with sso prior?');
+      });
+
+      then('cache file was deleted', () => {
+        const ssoCacheDir = `${repo.path}/.aws/sso/cache`;
+        const files = existsSync(ssoCacheDir) ? readdirSync(ssoCacheDir) : [];
+        // bob's session should be cleared
+        expect(files).not.toContain('bob-session.json');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case16] set key WITHOUT identity collision (no prior session)', () => {
+    // .what = guided setup when no prior SSO session exists
+    // .why = verify pre-logout step shows "clear" even with no session (defensive)
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/config with sso-session and extant profiles
+      // .note = profiles use $org.$env pattern for common prefix extraction
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+          '[profile testorg.prod]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 111111111111',
+          'sso_role_name = AdminRole',
+          '',
+          '[profile testorg.prep]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 222222222222',
+          'sso_role_name = AdminRole',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-populate mock token (simulates what aws sso login creates)
+      // .note = NO startUrl field so pre-logout won't clear it
+      // .note = this simulates the cache that exists AFTER successful login
+      const ssoCacheDir = `${r.path}/.aws/sso/cache`;
+      mkdirSync(ssoCacheDir, { recursive: true });
+      writeFileSync(
+        `${ssoCacheDir}/mock-token.json`,
+        JSON.stringify({
+          accessToken: 'mock-access-token-for-test',
+          expiresAt: '2099-01-01T00:00:00Z',
+        }),
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] keyrack set --vault aws.config via guided wizard (no prior session)', () => {
+      const result = useBeforeAll(async () => {
+        // invoke via pseudo-TTY helper
+        const r = spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack set --key AWS_PROFILE --env test --vault aws.config`,
+            'choice',
+            '1', '1', '1', '',
+          ],
+          {
+            encoding: 'utf-8',
+            cwd: repo.path,
+            env: {
+              ...process.env,
+              HOME: repo.path,
+              PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+              MOCK_AWS_IDENTITY: 'alice', // valid session
+            },
+            timeout: 60000,
+          },
+        );
+        return r;
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains pre-logout step with clear (no collision)', () => {
+        const out = result.stdout;
+        // pre-logout step shows as "with sso prior?" with clear
+        expect(out).toContain('which sso domain');
+        expect(out).toMatch(/sso prior|prior.*clear/i);
+      });
+
+      then('stdout matches snapshot', () => {
+        const stripped = result.stdout
+          .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
+          .replace(/\x1B\]/g, '')
+          .replace(/\r/g, '')
+          .replace(/·/g, '')
+          .replace(/[ \t]+$/gm, '');  // only strip spaces/tabs, not newlines
+        const treeStart = stripped.indexOf('\u{1F510}');
+        const clean = stripped
+          .slice(treeStart >= 0 ? treeStart : 0)
+          .trim();
+        expect(clean).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case17] set key WITH identity collision (different user cached)', () => {
+    // .what = guided setup when different user SSO session is cached
+    // .why = verify pre-logout clears conflict session before browser auth
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // pre-populate ~/.aws/config with sso-session and extant profiles
+      // .note = profiles use $org.$env pattern for common prefix extraction
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+          '[profile testorg.prod]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 111111111111',
+          'sso_role_name = AdminRole',
+          '',
+          '[profile testorg.prep]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 222222222222',
+          'sso_role_name = AdminRole',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-populate SSO cache with bob session (will be cleared by pre-logout)
+      const ssoCacheDir = `${r.path}/.aws/sso/cache`;
+      mkdirSync(ssoCacheDir, { recursive: true });
+      writeFileSync(
+        `${ssoCacheDir}/bob-wrong-user.json`,
+        JSON.stringify({
+          startUrl: 'https://d-12345abcde.awsapps.com/start',
+          region: 'us-east-1',
+          accessToken: 'bobs-access-token-will-be-cleared',
+          expiresAt: '2099-01-01T00:00:00Z',
+        }),
+        'utf-8',
+      );
+
+      // also add mock token (simulates what aws sso login creates AFTER clear)
+      // .note = NO startUrl field so pre-logout won't clear it
+      // .note = this is what remains after bob's session is cleared and alice logs in
+      writeFileSync(
+        `${ssoCacheDir}/mock-token.json`,
+        JSON.stringify({
+          accessToken: 'mock-access-token-for-test',
+          expiresAt: '2099-01-01T00:00:00Z',
+        }),
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] keyrack set --vault aws.config via guided wizard (bob cached, alice auth)', () => {
+      const result = useBeforeAll(async () => {
+        // invoke via pseudo-TTY helper
+        const r = spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack set --key AWS_PROFILE --env test --vault aws.config`,
+            'choice',
+            '1', '1', '1', '',
+          ],
+          {
+            encoding: 'utf-8',
+            cwd: repo.path,
+            env: {
+              ...process.env,
+              HOME: repo.path,
+              PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+              MOCK_AWS_IDENTITY: 'alice', // alice authenticates after cache clear
+            },
+            timeout: 60000,
+          },
+        );
+        return r;
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains pre-logout step (cache cleared before auth)', () => {
+        const out = result.stdout;
+        // pre-logout step clears bob session before browser auth
+        expect(out).toContain('which sso domain');
+        expect(out).toMatch(/sso prior|prior.*clear/i);
+      });
+
+      then('bob session was cleared from cache', () => {
+        const ssoCacheDir = `${repo.path}/.aws/sso/cache`;
+        const files = existsSync(ssoCacheDir) ? readdirSync(ssoCacheDir) : [];
+        // bob session file should be gone (cleared by pre-logout)
+        expect(files).not.toContain('bob-wrong-user.json');
+      });
+
+      then('stdout matches snapshot', () => {
+        const stripped = result.stdout
+          .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
+          .replace(/\x1B\]/g, '')
+          .replace(/\r/g, '')
+          .replace(/·/g, '')
+          .replace(/[ \t]+$/gm, ''); // trim end-of-line spaces/tabs (not newlines)
+        const treeStart = stripped.indexOf('\u{1F510}');
+        const clean = stripped
+          .slice(treeStart >= 0 ? treeStart : 0)
+          .trim();
+        expect(clean).toMatchSnapshot();
       });
     });
   });

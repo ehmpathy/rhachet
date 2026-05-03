@@ -25,14 +25,15 @@ jest.mock('node:child_process', () => {
   };
 });
 
-// mock fs functions for checkProfileExists
+// mock fs functions for checkProfileExists and clearAwsSsoCacheForDomain
 jest.mock('node:fs', () => {
   const originalModule = jest.requireActual('node:fs');
   return {
     ...originalModule,
     existsSync: jest.fn((path: string) => {
-      // default: ~/.aws/config exists
+      // default: ~/.aws/config exists, sso cache dir exists
       if (path.includes('.aws/config')) return true;
+      if (path.includes('.aws/sso/cache')) return true;
       return originalModule.existsSync(path);
     }),
     readFileSync: jest.fn((path: string, enc: string) => {
@@ -46,19 +47,54 @@ sso_role_name = MyRole
 region = us-east-1
 `;
       }
+      // mock cache file content for clearAwsSsoCacheForDomain
+      if (path.includes('.aws/sso/cache') && path.endsWith('.json')) {
+        return JSON.stringify({
+          startUrl: 'https://example.awsapps.com/start',
+          expiresAt: '2026-04-30T23:59:59Z',
+        });
+      }
       return originalModule.readFileSync(path, enc);
     }),
+    readdirSync: jest.fn((path: string) => {
+      // mock sso cache directory contents
+      if (path.includes('.aws/sso/cache')) {
+        return ['cached-token.json'];
+      }
+      return originalModule.readdirSync(path);
+    }),
+    unlinkSync: jest.fn(),
   };
 });
 
+// mock fs/promises for getAwsSsoProfileConfig (used by relock flow)
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn(async (path: string) => {
+    // default: return config with acme-prod profile
+    if (path.includes('.aws/config')) {
+      return `[profile acme-prod]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = MyRole
+region = us-east-1
+`;
+    }
+    throw new Error('file not found');
+  }),
+  writeFile: jest.fn(),
+  mkdir: jest.fn(),
+}));
+
 import { exec, spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
 
 const existsSyncMock = existsSync as jest.MockedFunction<typeof existsSync>;
 const readFileSyncMock = readFileSync as jest.MockedFunction<
   typeof readFileSync
 >;
+const unlinkSyncMock = unlinkSync as jest.MockedFunction<typeof unlinkSync>;
 
 const execMock = exec as jest.MockedFunction<typeof exec>;
 const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
@@ -80,6 +116,7 @@ describe('vaultAdapterAwsConfig', () => {
   beforeEach(() => {
     execMock.mockClear();
     spawnMock.mockClear();
+    unlinkSyncMock.mockClear();
   });
 
   /**
@@ -283,7 +320,11 @@ describe('vaultAdapterAwsConfig', () => {
     when('[t1] isUnlocked with valid sso session', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(null, { stdout: '{"Account":"123456789012"}', stderr: '' });
+          callback(null, {
+            stdout:
+              '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+            stderr: '',
+          });
           return {} as any;
         });
       });
@@ -327,7 +368,11 @@ describe('vaultAdapterAwsConfig', () => {
     when('[t0] unlock called with valid session', () => {
       beforeEach(() => {
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(null, { stdout: '{}', stderr: '' });
+          callback(null, {
+            stdout:
+              '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+            stderr: '',
+          });
           return {} as any;
         });
       });
@@ -377,6 +422,17 @@ describe('vaultAdapterAwsConfig', () => {
           expect(args).toContain('acme-prod');
         },
       );
+
+      then('clears conflicted cache session before login', async () => {
+        await vaultAdapterAwsConfig.unlock({
+          identity: null,
+          exid: 'acme-prod',
+          silent: true,
+        });
+
+        // deletes cache files that match the sso start url
+        expect(unlinkSyncMock).toHaveBeenCalled();
+      });
     });
 
     when('[t2] unlock called but aws sso login fails', () => {
@@ -478,41 +534,54 @@ describe('vaultAdapterAwsConfig', () => {
 
   given('[case6] relock flow with exid', () => {
     when('[t0] relock called with exid', () => {
-      beforeEach(() => {
-        execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(null, { stdout: '', stderr: '' });
-          return {} as any;
-        });
-      });
-
-      then('calls aws sso logout with profile', async () => {
+      then('deletes cache files for target domain', async () => {
         await vaultAdapterAwsConfig.relock!({
           slug: 'acme.prod.AWS_PROFILE',
           exid: 'acme-prod',
         });
 
-        expect(execMock).toHaveBeenCalledWith(
-          expect.stringMatching(/aws sso logout --profile "acme-prod"/),
-          expect.any(Function),
-        );
+        // should delete the cached token file for example.awsapps.com/start
+        expect(unlinkSyncMock).toHaveBeenCalled();
       });
     });
 
-    when('[t1] relock called but aws sso logout fails', () => {
+    when('[t1] relock called without matched cache files', () => {
       beforeEach(() => {
-        execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(genExecError('Already logged out'), null);
-          return {} as any;
+        // cache file has different start url
+        readFileSyncMock.mockImplementation((filePath) => {
+          if (
+            typeof filePath === 'string' &&
+            filePath.includes('.aws/sso/cache') &&
+            filePath.endsWith('.json')
+          ) {
+            return JSON.stringify({
+              startUrl: 'https://other-domain.awsapps.com/start',
+              expiresAt: '2026-04-30T23:59:59Z',
+            });
+          }
+          if (
+            typeof filePath === 'string' &&
+            filePath.includes('.aws/config')
+          ) {
+            return `[profile acme-prod]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = MyRole
+region = us-east-1
+`;
+          }
+          throw new Error('file not found');
         });
       });
 
-      then('completes without error (logout failure is ok)', async () => {
-        await expect(
-          vaultAdapterAwsConfig.relock!({
-            slug: 'acme.prod.AWS_PROFILE',
-            exid: 'acme-prod',
-          }),
-        ).resolves.toBeUndefined();
+      then('completes without file deletion', async () => {
+        await vaultAdapterAwsConfig.relock!({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+
+        expect(unlinkSyncMock).not.toHaveBeenCalled();
       });
     });
   });
