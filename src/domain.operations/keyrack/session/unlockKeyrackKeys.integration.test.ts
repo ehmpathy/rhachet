@@ -80,7 +80,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifest,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -131,7 +131,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifest,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -156,6 +156,110 @@ describe('unlockKeyrackKeys.integration', () => {
         expect(daemonResult?.keys.length).toBe(1);
         expect(daemonResult?.keys[0]?.key.secret).toEqual(secretValue);
         expect(daemonResult?.keys[0]?.env).toEqual('sudo');
+      });
+    });
+  });
+
+  given('[case1b] sudo credential filters by repo org', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const secretValueEhmpathy = 'ehmpathy-sudo-secret';
+    const secretValueAhbode = 'ahbode-sudo-secret';
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      // host manifest has sudo keys for two different orgs
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.age',
+          owner: null,
+          recipients: [recipient],
+          hosts: {
+            'ehmpathy.sudo.AWS_PROFILE': {
+              slug: 'ehmpathy.sudo.AWS_PROFILE',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ehmpathy',
+              vaultRecipient: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            'ahbode.sudo.AWS_PROFILE': {
+              slug: 'ahbode.sudo.AWS_PROFILE',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ahbode',
+              vaultRecipient: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }),
+      });
+    });
+
+    when('[t0] unlock called with repo org = ehmpathy', () => {
+      then('unlocks only ehmpathy sudo key, not ahbode', async () => {
+        const vaultAdapter = genMockVaultAdapter({
+          storage: {
+            'ehmpathy.sudo.AWS_PROFILE': secretValueEhmpathy,
+            'ahbode.sudo.AWS_PROFILE': secretValueAhbode,
+          },
+        });
+
+        const context: ContextKeyrack = {
+          owner: null,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': vaultAdapter,
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        const result = await unlockKeyrackKeys(
+          { env: 'sudo', key: 'AWS_PROFILE' },
+          context,
+        );
+
+        // should unlock only the ehmpathy key, not ahbode
+        expect(result.unlocked.length).toBe(1);
+        expect(result.unlocked[0]?.slug).toBe('ehmpathy.sudo.AWS_PROFILE');
+
+        // verify only ehmpathy key accessible from daemon
+        const socketPath = getKeyrackDaemonSocketPath({ owner: null });
+        const daemonResult = await daemonAccessGet({
+          socketPath,
+          slugs: ['ehmpathy.sudo.AWS_PROFILE', 'ahbode.sudo.AWS_PROFILE'],
+        });
+
+        expect(daemonResult).not.toBeNull();
+        expect(daemonResult?.keys.length).toBe(1);
+        expect(daemonResult?.keys[0]?.slug).toBe('ehmpathy.sudo.AWS_PROFILE');
+        expect(daemonResult?.keys[0]?.key.secret).toEqual(secretValueEhmpathy);
       });
     });
   });
@@ -302,7 +406,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifest,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -402,7 +506,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifest,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -524,7 +628,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifestA,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,
@@ -577,7 +681,7 @@ describe('unlockKeyrackKeys.integration', () => {
             },
           },
           hostManifest: manifestB,
-          repoManifest: null,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
           vaultAdapters: {
             'os.envvar': genMockVaultAdapter(),
             'os.direct': vaultAdapter,

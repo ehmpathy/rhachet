@@ -13,6 +13,7 @@ export * from './KeyrackHostManifest';
 export * from './KeyrackHostVault';
 export * from './KeyrackHostVaultAdapter';
 export * from './KeyrackKey';
+export * from './KeyrackKeyAsk';
 export * from './KeyrackKeyGrade';
 export * from './KeyrackKeyGrant';
 export * from './KeyrackKeyHost';

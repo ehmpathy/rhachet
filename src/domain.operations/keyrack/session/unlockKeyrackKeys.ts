@@ -16,10 +16,10 @@ import {
   findsertKeyrackDaemon,
 } from '@src/domain.operations/keyrack/daemon/sdk';
 import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKeySlugEqual';
-import { filterSlugsByKeyInput } from '@src/domain.operations/keyrack/filterSlugsByKeyInput';
+import { filterSlugsByKeyAsk } from '@src/domain.operations/keyrack/filterSlugsByKeyAsk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
-import { getAllSudoSlugsForKey } from '@src/domain.operations/keyrack/getAllSudoSlugsForKey';
+import { getAllSudoSlugsForKeyAsk } from '@src/domain.operations/keyrack/getAllSudoSlugsForKeyAsk';
 
 /**
  * .what = unlock keyrack keys and send them to daemon memory
@@ -78,10 +78,11 @@ export const unlockKeyrackKeys = async (
       });
     }
 
-    // find all slugs in hostManifest that match the key and have env=sudo
-    slugsForEnv = getAllSudoSlugsForKey({
+    // get matched sudo slugs for key ask
+    slugsForEnv = getAllSudoSlugsForKeyAsk({
+      keyAsk: input.key,
+      repoOrg: repoManifest?.org ?? null,
       hostManifest,
-      keyInput: input.key,
     });
 
     if (slugsForEnv.length === 0) {
@@ -110,9 +111,9 @@ export const unlockKeyrackKeys = async (
     });
 
     // filter by key: match full slug or key name suffix
-    slugsForEnv = filterSlugsByKeyInput({
+    slugsForEnv = filterSlugsByKeyAsk({
       slugs: allSlugsForEnv,
-      keyInput: input.key ?? null,
+      keyAsk: input.key ?? null,
     });
 
     // fail-fast if specific key requested but not found in repo manifest

@@ -59,11 +59,17 @@ export const execNpmInstallLocal = (
   console.log('');
 
   // execute install
-  const result = spawnSync(pm, ['install', ...packagesLatest], {
-    cwd: context.cwd,
-    stdio: 'inherit',
-    shell: true,
-  });
+  // .note = --ignore-scripts avoids pnpm v10 ERR_PNPM_IGNORED_BUILDS
+  //         rhachet-roles packages don't need lifecycle scripts to function
+  const result = spawnSync(
+    pm,
+    ['install', '--ignore-scripts', ...packagesLatest],
+    {
+      cwd: context.cwd,
+      stdio: 'inherit',
+      shell: true,
+    },
+  );
 
   // fail fast on error
   if (result.status !== 0) {
