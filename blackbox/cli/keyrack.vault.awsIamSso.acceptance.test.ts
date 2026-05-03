@@ -37,6 +37,24 @@ const envWithMockAws = (home: string) => ({
   PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
 });
 
+/**
+ * .what = sanitize unlock result for snapshot comparison
+ * .why = expiresAt is dynamic and varies each run
+ */
+const asUnlockSnapshotSafe = (
+  parsed: Record<string, unknown>,
+): Record<string, unknown> => {
+  const unlocked = parsed.unlocked as Array<Record<string, unknown>> | undefined;
+  if (!unlocked) return parsed;
+  return {
+    ...parsed,
+    unlocked: unlocked.map((key) => ({
+      ...key,
+      expiresAt: '__TIMESTAMP__',
+    })),
+  };
+};
+
 describe('keyrack vault aws.config', () => {
   // ensure mock aws executable is chmod +x (git may not preserve permissions)
   beforeAll(() => chmodSync(`${MOCK_AWS_CLI_DIR}/aws`, 0o755));
@@ -182,7 +200,7 @@ describe('keyrack vault aws.config', () => {
 
     when('[t1] keyrack list after set', () => {
       // first set the key
-      useBeforeAll(async () =>
+      const setResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -197,11 +215,23 @@ describe('keyrack vault aws.config', () => {
             'aws.config',
             '--exid',
             'testorg-test',
+            '--json',
           ],
           cwd: repo.path,
           env: envWithMockAws(repo.path),
         }),
       );
+
+      then('set stdout matches snapshot', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
 
       const listResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -238,8 +268,11 @@ describe('keyrack vault aws.config', () => {
   });
 
   /**
-   * [uc3] get with aws.config shows locked when session cannot be validated
-   * (no real aws cli available in test env)
+   * [uc3] get with aws.config shows absent when not in daemon
+   *
+   * .note = aws.config vault cannot be checked without manifest decrypt
+   * .note = profile name (exid) is stored in encrypted host manifest
+   * .note = therefore aws.config keys show 'absent' until unlocked
    */
   given('[case3] repo with aws.config vault', () => {
     const repo = useBeforeAll(async () =>
@@ -256,10 +289,10 @@ describe('keyrack vault aws.config', () => {
         }),
       );
 
-      then('returns absent status (aws.config vault not checked)', () => {
+      then('returns absent status (aws.config cannot be checked without manifest)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.config vault returns 'absent' since we cant check without decrypt
+        // .note = aws.config vault cannot be checked without manifest decrypt
+        // .note = exid (profile name) varies and is stored in encrypted manifest
         expect(parsed.status).toEqual('absent');
       });
 
@@ -430,7 +463,7 @@ describe('keyrack vault aws.config', () => {
 
     when('[t1] keyrack list shows inferred mech', () => {
       // first set the key without --mech
-      useBeforeAll(async () =>
+      const setResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -443,11 +476,23 @@ describe('keyrack vault aws.config', () => {
             'aws.config',
             '--exid',
             'testorg-test',
+            '--json',
           ],
           cwd: repo.path,
           env: envWithMockAws(repo.path),
         }),
       );
+
+      then('set stdout matches snapshot', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
 
       const listResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -526,7 +571,7 @@ describe('keyrack vault aws.config', () => {
 
     when('[t1] keyrack list shows exid for pre-configured profile', () => {
       // first set the key with --exid
-      useBeforeAll(async () =>
+      const setResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -539,11 +584,23 @@ describe('keyrack vault aws.config', () => {
             'aws.config',
             '--exid',
             'another-profile',
+            '--json',
           ],
           cwd: repo.path,
           env: { HOME: repo.path },
         }),
       );
+
+      then('set stdout matches snapshot', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
 
       const listResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -683,6 +740,17 @@ describe('keyrack vault aws.config', () => {
         expect(setResult.status).toEqual(0);
       });
 
+      then('set stdout matches snapshot', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
+
       then('repo manifest has AWS_PROFILE exactly once in env.test', async () => {
         const fs = await import('node:fs/promises');
         const manifestPath = `${repo.path}/.agent/keyrack.yml`;
@@ -742,6 +810,17 @@ describe('keyrack vault aws.config', () => {
         expect(setResult.status).toEqual(0);
       });
 
+      then('set stdout matches snapshot', () => {
+        const parsed = JSON.parse(setResult.stdout);
+        const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+        const snapped = {
+          ...entry,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
+
       then('repo manifest has env.prep section', async () => {
         const fs = await import('node:fs/promises');
         const manifestPath = `${repo.path}/.agent/keyrack.yml`;
@@ -776,7 +855,7 @@ describe('keyrack vault aws.config', () => {
       genTestTempRepo({ fixture: 'with-vault-aws-iam-sso' }),
     );
 
-    when('[t0] keyrack relock', () => {
+    when('[t0] keyrack relock (human readable)', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock'],
@@ -789,10 +868,14 @@ describe('keyrack vault aws.config', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output indicates keys were pruned', () => {
-        // relock reports pruned keys
+      then('output indicates relock command succeeded', () => {
         const output = result.stdout.toLowerCase();
-        expect(output).toMatch(/prune|relock|relocked/i);
+        // human-readable output should contain relock-related text
+        expect(output).toMatch(/relock|prune|relocked/i);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
 
@@ -813,6 +896,10 @@ describe('keyrack vault aws.config', () => {
         const output = result.stdout.toLowerCase();
         // key was never unlocked, so daemon has no cached grants to prune
         expect(output).toMatch(/no keys to prune|0 keys pruned/i);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
 
@@ -837,6 +924,11 @@ describe('keyrack vault aws.config', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.relocked).toBeDefined();
         expect(Array.isArray(parsed.relocked)).toBe(true);
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed).toMatchSnapshot();
       });
     });
   });
@@ -1043,11 +1135,11 @@ describe('keyrack vault aws.config', () => {
         }),
       );
 
-      then('status is absent (aws.config vault not checked)', () => {
+      then('status is locked (inventory records key)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.config vault returns 'absent' since we cant check without decrypt
-        expect(parsed.status).toEqual('absent');
+        // .note = inventory is vault-agnostic source of truth
+        // .note = after guided setup, inventory entry exists → status is 'locked'
+        expect(parsed.status).toEqual('locked');
       });
     });
 
@@ -1066,6 +1158,10 @@ describe('keyrack vault aws.config', () => {
 
       then('output contains the unlocked key slug', () => {
         expect(result.stdout).toContain('testorg.test.AWS_PROFILE');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
 
@@ -1108,6 +1204,10 @@ describe('keyrack vault aws.config', () => {
       then('exits with status 0', () => {
         expect(result.status).toEqual(0);
       });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
     });
 
     when('[t6] keyrack get after relock', () => {
@@ -1120,11 +1220,11 @@ describe('keyrack vault aws.config', () => {
         }),
       );
 
-      then('status is absent again (aws.config vault not checked)', () => {
+      then('status is locked (inventory persists after relock)', () => {
         const parsed = JSON.parse(result.stdout);
-        // .note = inferKeyrackKeyStatusWhenNotGranted only checks os.secure and os.direct
-        // .note = aws.config vault returns 'absent' since we cant check without decrypt
-        expect(parsed.status).toEqual('absent');
+        // .note = inventory is vault-agnostic source of truth
+        // .note = inventory entry persists after relock → status is 'locked'
+        expect(parsed.status).toEqual('locked');
       });
     });
   });

@@ -1,6 +1,7 @@
 import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   type KeyrackGrantMechanism,
@@ -8,7 +9,11 @@ import {
   type KeyrackHostVault,
   KeyrackKeyHost,
 } from '@src/domain.objects/keyrack';
+import { isEphemeralVault } from '@src/domain.operations/keyrack/isEphemeralVault';
+import { isKeyrackKeyHostAttrsEqual } from '@src/domain.operations/keyrack/isKeyrackKeyHostAttrsEqual';
 
+import { asKeyrackKeyEnv } from './asKeyrackKeyEnv';
+import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { daemonAccessRelock } from './daemon/sdk';
 import type { ContextKeyrack } from './genContextKeyrack';
 
@@ -64,7 +69,7 @@ export const setKeyrackKeyHost = async (
   })();
 
   // extract env from slug (format: org.env.keyName)
-  const envFromSlug = input.slug.split('.')[1] ?? 'all';
+  const envFromSlug = asKeyrackKeyEnv({ slug: input.slug }) || 'all';
 
   // store secret in vault
   // .note = vault encapsulates mech calls: infers mech if absent, checks compat, calls mech.acquireForSet
@@ -115,14 +120,18 @@ export const setKeyrackKeyHost = async (
   const hostFound = hostManifest.hosts[input.slug];
   if (hostFound) {
     // if found with same attrs, return found (findsert semantics)
-    if (
-      hostFound.mech === mechForManifest &&
-      hostFound.vault === input.vault &&
-      hostFound.exid === exidForManifest &&
-      hostFound.env === (input.env ?? 'all') &&
-      hostFound.org === orgExpanded &&
-      hostFound.vaultRecipient === (input.vaultRecipient ?? null)
-    ) {
+    const attrsEqual = isKeyrackKeyHostAttrsEqual({
+      hostFound: new KeyrackKeyHost(hostFound),
+      attrs: {
+        mech: mechForManifest,
+        vault: input.vault,
+        exid: exidForManifest,
+        env: input.env ?? 'all',
+        org: orgExpanded,
+        vaultRecipient: input.vaultRecipient ?? null,
+      },
+    });
+    if (attrsEqual) {
       return new KeyrackKeyHost(hostFound);
     }
   }
@@ -155,10 +164,15 @@ export const setKeyrackKeyHost = async (
   // persist host manifest
   await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
 
+  // set inventory entry (after manifest persist)
+  // .note = ephemeral vaults skip inventory (cleared on relock)
+  if (!isEphemeralVault({ vault: input.vault })) {
+    await daoKeyrackInventory.set({ slug: input.slug, owner: context.owner });
+  }
+
   // for non-sudo keys: also write to keyrack.yml (if gitroot available)
   if (envFromSlug !== 'sudo' && context.gitroot) {
-    // extract key name from slug (format: $org.$env.$key)
-    const keyName = input.slug.split('.').slice(2).join('.');
+    const keyName = asKeyrackKeyName({ slug: input.slug });
     await daoKeyrackRepoManifest.set.findsertKeyToEnv({
       gitroot: context.gitroot,
       key: keyName,

@@ -9,12 +9,82 @@ exports[`keyrack status: locked vs absent given: [case1] key was never set (trul
 }
 `;
 
+exports[`keyrack status: locked vs absent given: [case2] key was set but not unlocked (locked) when: [t0] set creates the key then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "sudo",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "org": "@all",
+  "slug": "@all.sudo.LOCKED_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
+}
+`;
+
 exports[`keyrack status: locked vs absent given: [case2] key was set but not unlocked (locked) when: [t1] get --key LOCKED_KEY --env sudo --json (after set, before unlock) then: stdout matches snapshot 1`] = `
 {
   "fix": "rhx keyrack unlock --env sudo --key LOCKED_KEY",
   "message": "credential '@all.sudo.LOCKED_KEY' is locked. unlock it first.",
   "slug": "@all.sudo.LOCKED_KEY",
   "status": "locked",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t-setup] initial set and unlock then: initial set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "sudo",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "org": "@all",
+  "slug": "@all.sudo.RELOCK_TEST_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t-setup] initial set and unlock then: initial unlock stdout matches snapshot 1`] = `
+{
+  "omitted": [],
+  "unlocked": [
+    {
+      "env": "sudo",
+      "expiresAt": "__TIMESTAMP__",
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "encrypted",
+        },
+        "secret": "initial-value",
+      },
+      "org": "@all",
+      "slug": "@all.sudo.RELOCK_TEST_KEY",
+      "source": {
+        "mech": "PERMANENT_VIA_REPLICA",
+        "vault": "os.secure",
+      },
+    },
+  ],
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t1] set overwrites with new value then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "sudo",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "org": "@all",
+  "slug": "@all.sudo.RELOCK_TEST_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
 }
 `;
 
@@ -46,5 +116,175 @@ exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon 
     },
   },
   "status": "granted",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t3] unlock then get returns updated value then: unlock stdout matches snapshot 1`] = `
+{
+  "omitted": [],
+  "unlocked": [
+    {
+      "env": "sudo",
+      "expiresAt": "__TIMESTAMP__",
+      "key": {
+        "grade": {
+          "duration": "permanent",
+          "protection": "encrypted",
+        },
+        "secret": "updated-value",
+      },
+      "org": "@all",
+      "slug": "@all.sudo.RELOCK_TEST_KEY",
+      "source": {
+        "mech": "PERMANENT_VIA_REPLICA",
+        "vault": "os.secure",
+      },
+    },
+  ],
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t0.1] get before set (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.AWS_PROFILE
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key AWS_PROFILE --env test[0m
+
+"
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t0] get before set → absent (inventory-only) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack set --key AWS_PROFILE --env test",
+  "message": "credential 'testorg.test.AWS_PROFILE' does not exist. set it first.",
+  "slug": "testorg.test.AWS_PROFILE",
+  "status": "absent",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t1.1] after set (human readable) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.AWS_PROFILE
+      ├─ status: locked 🔒
+      └─ [2mtip: rhx keyrack unlock --env test --key AWS_PROFILE[0m
+
+"
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t1] after set → locked (inventory records key) then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.AWS_PROFILE",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t1] after set → locked (inventory records key) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env test --key AWS_PROFILE",
+  "message": "credential 'testorg.test.AWS_PROFILE' is locked. unlock it first.",
+  "slug": "testorg.test.AWS_PROFILE",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t2] after unlock → granted then: stdout matches snapshot 1`] = `
+{
+  "grant": {
+    "env": "test",
+    "key": {
+      "grade": {
+        "duration": "ephemeral",
+        "protection": "reference",
+      },
+      "secret": "testorg-test",
+    },
+    "org": "testorg",
+    "slug": "testorg.test.AWS_PROFILE",
+    "source": {
+      "mech": "EPHEMERAL_VIA_AWS_SSO",
+      "vault": "aws.config",
+    },
+  },
+  "status": "granted",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t2] after unlock → granted then: unlock stdout matches snapshot 1`] = `
+{
+  "omitted": [],
+  "unlocked": [
+    {
+      "env": "test",
+      "expiresAt": "__TIMESTAMP__",
+      "key": {
+        "grade": {
+          "duration": "ephemeral",
+          "protection": "reference",
+        },
+        "secret": "testorg-test",
+      },
+      "org": "testorg",
+      "slug": "testorg.test.AWS_PROFILE",
+      "source": {
+        "mech": "EPHEMERAL_VIA_AWS_SSO",
+        "vault": "aws.config",
+      },
+    },
+  ],
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t3] after relock → locked (inventory persists) then: relock stdout matches snapshot 1`] = `
+{
+  "relocked": [
+    "testorg.test.AWS_PROFILE",
+  ],
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t3] after relock → locked (inventory persists) then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack unlock --env test --key AWS_PROFILE",
+  "message": "credential 'testorg.test.AWS_PROFILE' is locked. unlock it first.",
+  "slug": "testorg.test.AWS_PROFILE",
+  "status": "locked",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t4] after del → absent then: del stdout matches snapshot 1`] = `
+{
+  "effect": "deleted",
+  "slug": "testorg.test.AWS_PROFILE",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t4] after del → absent then: stdout matches snapshot 1`] = `
+{
+  "fix": "rhx keyrack set --key AWS_PROFILE --env test --vault aws.config",
+  "message": "credential 'testorg.test.AWS_PROFILE' not found in repo manifest (keyrack.yml)",
+  "slug": "testorg.test.AWS_PROFILE",
+  "status": "absent",
+}
+`;
+
+exports[`keyrack status: locked vs absent given: [case6] orphan inventory (vault deleted externally) when: [t1] unlock reports lost key then: stdout matches snapshot 1`] = `
+{
+  "omitted": [
+    {
+      "reason": "lost",
+      "slug": "testorg.test.ORPHAN_SECRET",
+    },
+  ],
+  "unlocked": [],
 }
 `;

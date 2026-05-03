@@ -19,7 +19,22 @@ jest.mock('./daemon/sdk', () => ({
   daemonAccessRelock: jest.fn().mockResolvedValue(undefined),
 }));
 
+// mock inventory dao to avoid filesystem access in unit tests
+jest.mock('../../access/daos/daoKeyrackInventory', () => ({
+  daoKeyrackInventory: {
+    set: jest.fn(),
+  },
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const {
+  daoKeyrackInventory,
+} = require('../../access/daos/daoKeyrackInventory');
+
 describe('setKeyrackKeyHost', () => {
+  beforeEach(() => {
+    daoKeyrackInventory.set.mockClear();
+  });
   given('[case1] new key to configure with @this org', () => {
     const context: ContextKeyrack = {
       owner: null,
@@ -102,6 +117,21 @@ describe('setKeyrackKeyHost', () => {
         );
         expect(result.createdAt).toBeDefined();
         expect(result.updatedAt).toBeDefined();
+      });
+
+      then('sets inventory entry for non-daemon vault', async () => {
+        await setKeyrackKeyHost(
+          {
+            slug: 'NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
+          context,
+        );
+        expect(daoKeyrackInventory.set).toHaveBeenCalledWith({
+          slug: 'NEW_KEY',
+          owner: null,
+        });
       });
     });
 
@@ -396,6 +426,41 @@ describe('setKeyrackKeyHost', () => {
           ),
         );
         expect(error.message).toContain('@this requires repo manifest');
+      });
+    });
+  });
+
+  given('[case6] os.daemon vault (ephemeral)', () => {
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] set called with os.daemon vault', () => {
+      then('does NOT set inventory entry (ephemeral keys)', async () => {
+        await setKeyrackKeyHost(
+          {
+            slug: 'EPHEMERAL_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.daemon',
+          },
+          context,
+        );
+        expect(daoKeyrackInventory.set).not.toHaveBeenCalled();
       });
     });
   });

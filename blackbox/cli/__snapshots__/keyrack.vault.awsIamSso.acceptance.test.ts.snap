@@ -60,6 +60,21 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
 }
 `;
 
+exports[`keyrack vault aws.config given: [case2] repo without host entry for a key when: [t1] keyrack list after set then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.ANOTHER_AWS_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
+`;
+
 exports[`keyrack vault aws.config given: [case2] repo without host entry for a key when: [t1] keyrack list after set then: stdout matches snapshot 1`] = `
 {
   "testorg.prod.AWS_PROFILE": {
@@ -152,6 +167,21 @@ exports[`keyrack vault aws.config given: [case6] mech inference from aws.config 
 }
 `;
 
+exports[`keyrack vault aws.config given: [case6] mech inference from aws.config vault when: [t1] keyrack list shows inferred mech then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.INFERRED_KEY_2",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
+`;
+
 exports[`keyrack vault aws.config given: [case7] profile storage with --exid when: [t0] keyrack set with --exid stores profile name then: stdout matches snapshot 1`] = `
 [
   {
@@ -167,6 +197,21 @@ exports[`keyrack vault aws.config given: [case7] profile storage with --exid whe
     "vaultRecipient": null,
   },
 ]
+`;
+
+exports[`keyrack vault aws.config given: [case7] profile storage with --exid when: [t1] keyrack list shows exid for pre-configured profile then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "another-profile",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.AWS_PROFILE_EXID_2",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
 `;
 
 exports[`keyrack vault aws.config given: [case9] repo manifest auto-update on set when: [t0] keyrack set adds NEW_MANIFEST_KEY then: repo manifest snapshot 1`] = `
@@ -190,6 +235,21 @@ env.test:
 "
 `;
 
+exports[`keyrack vault aws.config given: [case10] repo manifest no duplicate on re-set when: [t0] keyrack set for key already in manifest (AWS_PROFILE) then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "testorg-test",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.test.AWS_PROFILE",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
+`;
+
 exports[`keyrack vault aws.config given: [case11] repo manifest creates env section if absent when: [t0] keyrack set for new env (prep) then: repo manifest snapshot 1`] = `
 "org: testorg
 env.prod:
@@ -199,6 +259,43 @@ env.test:
 env.prep:
   - PREP_KEY
 "
+`;
+
+exports[`keyrack vault aws.config given: [case11] repo manifest creates env section if absent when: [t0] keyrack set for new env (prep) then: set stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "prep",
+  "exid": "testorg-prep",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "org": "testorg",
+  "slug": "testorg.prep.PREP_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.config",
+  "vaultRecipient": null,
+}
+`;
+
+exports[`keyrack vault aws.config given: [case12] relock clears aws sso cache when: [t0] keyrack relock (human readable) then: stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ (no keys to prune)
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case12] relock clears aws sso cache when: [t1] keyrack relock --key specific slug (not in daemon) then: stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ (no keys to prune)
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case12] relock clears aws sso cache when: [t2] keyrack relock --json then: stdout matches snapshot 1`] = `
+{
+  "relocked": [],
+}
 `;
 
 exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI when: [t0] keyrack set --vault aws.config via guided wizard (pseudo-TTY) then: stdout matches snapshot 1`] = `
@@ -278,6 +375,18 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
 }
 `;
 
+exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI when: [t3] keyrack unlock --env test --key AWS_PROFILE then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: 540m
+
+"
+`;
+
 exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI when: [t4] keyrack get after unlock then: stdout matches snapshot 1`] = `
 {
   "grant": {
@@ -298,6 +407,14 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
   },
   "status": "granted",
 }
+`;
+
+exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI when: [t5] keyrack relock then: stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.AWS_PROFILE: pruned 🔒
+
+"
 `;
 
 exports[`keyrack vault aws.config given: [case14] unlock WITHOUT identity collision (valid session) when: [t0] keyrack unlock with valid SSO session (alice) then: stdout matches snapshot 1`] = `

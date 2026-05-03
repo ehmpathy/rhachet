@@ -252,7 +252,7 @@ describe('keyrack vault 1password', () => {
       });
 
       then('secret is not exposed', () => {
-        // exid (op:// uri) should not appear in locked response
+        // exid (op:// uri) should not appear in absent response
         expect(result.stdout).not.toContain('op://');
         // no grant field with secret
         const parsed = JSON.parse(result.stdout);

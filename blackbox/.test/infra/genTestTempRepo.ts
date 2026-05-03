@@ -345,3 +345,4 @@ const setupTestSshKey = (input: { repoPath: string }): void => {
   chmodSync(prikeyDst, 0o600);
   chmodSync(pubkeyDst, 0o644);
 };
+
