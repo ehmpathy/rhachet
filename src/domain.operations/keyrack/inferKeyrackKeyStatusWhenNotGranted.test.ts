@@ -1,13 +1,12 @@
 import { asHashSha256Sync } from 'hash-fns';
 import { given, then, when } from 'test-fns';
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-
 import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
 import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
 
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
 
 describe('inferKeyrackKeyStatusWhenNotGranted', () => {

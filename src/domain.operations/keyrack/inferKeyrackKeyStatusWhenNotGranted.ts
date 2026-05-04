@@ -1,12 +1,11 @@
 import { asHashSha256Sync } from 'hash-fns';
 
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
 import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getEnvAllFallbackSlug } from './decideIsKeySlugEqual';
 
 /**

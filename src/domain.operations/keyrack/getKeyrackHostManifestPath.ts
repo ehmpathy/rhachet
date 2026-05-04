@@ -1,6 +1,6 @@
-import { join } from 'node:path';
-
 import { getHomeDir } from '@src/infra/getHomeDir';
+
+import { join } from 'node:path';
 
 /**
  * .what = resolves the host manifest path based on owner
