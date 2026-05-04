@@ -14,9 +14,17 @@ import {
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
+import { delKeyrackKeyHost } from './delKeyrackKeyHost';
 import { type ContextKeyrack, genContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
@@ -574,6 +582,188 @@ describe('setKeyrackKeyHost.integration', () => {
         // should still only have org, no env sections
         expect(defaultParsed.org).toEqual('defaultorg');
         expect(defaultParsed['env.prod']).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case7] set creates inventory entry', () => {
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: testRecipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case7.age',
+          owner: 'case7',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+    });
+
+    when('[t0] set called with non-ephemeral vault', () => {
+      then('creates inventory .stocked file', async () => {
+        const context: ContextKeyrack = {
+          owner: 'case7',
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': genMockVaultAdapter(),
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.sudo.INVENTORY_TEST',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'sudo',
+            org: '@this',
+          },
+          context,
+        );
+
+        // verify inventory file was created
+        const inventoryDir = join(
+          testHome.path,
+          '.rhachet',
+          'keyrack',
+          'inventory',
+          'owner=case7',
+        );
+        expect(existsSync(inventoryDir)).toBe(true);
+
+        // find .stocked file
+        const files = readdirSync(inventoryDir);
+        const stockedFile = files.find((f: string) => f.endsWith('.stocked'));
+        expect(stockedFile).toBeDefined();
+
+        // verify file is empty (security: no key→persistence leak)
+        const content = readFileSync(join(inventoryDir, stockedFile!), 'utf8');
+        expect(content).toEqual('');
+
+        // verify file permissions (0o600)
+        const stats = statSync(join(inventoryDir, stockedFile!));
+        const permissions = stats.mode & 0o777;
+        expect(permissions).toEqual(0o600);
+      });
+    });
+  });
+
+  given('[case8] del removes inventory entry', () => {
+    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: testRecipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case8.age',
+          owner: 'case8',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+    });
+
+    when('[t0] del called after set', () => {
+      then('removes inventory .stocked file', async () => {
+        const context: ContextKeyrack = {
+          owner: 'case8',
+          identity: {
+            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getAll: {
+              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              prescribed: [],
+            },
+          },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': genMockVaultAdapter(),
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        // set key first (creates inventory entry)
+        await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.sudo.INVENTORY_DEL_TEST',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'sudo',
+            org: '@this',
+          },
+          context,
+        );
+
+        // verify inventory file was created
+        const inventoryDir = join(
+          testHome.path,
+          '.rhachet',
+          'keyrack',
+          'inventory',
+          'owner=case8',
+        );
+        expect(existsSync(inventoryDir)).toBe(true);
+        const filesBefore = readdirSync(inventoryDir);
+        const stockedFileBefore = filesBefore.find((f: string) =>
+          f.endsWith('.stocked'),
+        );
+        expect(stockedFileBefore).toBeDefined();
+
+        // re-fetch manifest after set (delKeyrackKeyHost needs updated manifest)
+        const contextForGet = genContextKeyrack({ owner: 'case8' });
+        const manifestAfter = await daoKeyrackHostManifest.get(
+          { owner: 'case8' },
+          contextForGet,
+        );
+
+        // del key (should remove inventory entry)
+        const contextForDel: ContextKeyrack = {
+          ...context,
+          hostManifest: manifestAfter?.manifest ?? undefined,
+        };
+        await delKeyrackKeyHost(
+          { slug: 'ehmpathy.sudo.INVENTORY_DEL_TEST' },
+          contextForDel,
+        );
+
+        // verify inventory file was removed
+        const filesAfter = readdirSync(inventoryDir);
+        const stockedFileAfter = filesAfter.find((f: string) =>
+          f.endsWith('.stocked'),
+        );
+        expect(stockedFileAfter).toBeUndefined();
       });
     });
   });

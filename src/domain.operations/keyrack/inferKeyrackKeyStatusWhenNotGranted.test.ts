@@ -1,6 +1,9 @@
 import { asHashSha256Sync } from 'hash-fns';
 import { given, then, when } from 'test-fns';
 
+import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
+import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
+
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -29,14 +32,26 @@ describe('inferKeyrackKeyStatusWhenNotGranted', () => {
     ownerDir,
   );
 
+  // inventory path
+  const inventoryOwnerDir = asKeyrackOwnerDir({ owner });
+  const inventoryDir = join(
+    home,
+    '.rhachet',
+    'keyrack',
+    'inventory',
+    inventoryOwnerDir,
+  );
+
   // cleanup before and after
   beforeAll(() => {
     if (existsSync(osSecureDir)) rmSync(osSecureDir, { recursive: true });
     if (existsSync(osDirectDir)) rmSync(osDirectDir, { recursive: true });
+    if (existsSync(inventoryDir)) rmSync(inventoryDir, { recursive: true });
   });
   afterAll(() => {
     if (existsSync(osSecureDir)) rmSync(osSecureDir, { recursive: true });
     if (existsSync(osDirectDir)) rmSync(osDirectDir, { recursive: true });
+    if (existsSync(inventoryDir)) rmSync(inventoryDir, { recursive: true });
   });
 
   given('[case1] key does not exist in any vault', () => {
@@ -107,6 +122,59 @@ describe('inferKeyrackKeyStatusWhenNotGranted', () => {
       then('returns locked via env=all fallback', () => {
         const result = inferKeyrackKeyStatusWhenNotGranted({
           slug: 'testorg.test.DIRECT_FALLBACK',
+          owner,
+        });
+        expect(result).toBe('locked');
+      });
+    });
+  });
+
+  given('[case5] key exists in inventory (vault-agnostic check)', () => {
+    // .note = inventory is vault-agnostic source of truth
+    // .note = works for aws.config, 1password, and any other vault type
+    const slug = 'testorg.test.AWS_PROFILE';
+    const hash = asKeyrackSlugHash({ slug });
+
+    beforeAll(() => {
+      mkdirSync(inventoryDir, { recursive: true });
+      writeFileSync(join(inventoryDir, `${hash}.stocked`), '', { mode: 0o600 });
+    });
+
+    when('[t0] status is inferred', () => {
+      then('returns locked (inventory entry exists)', () => {
+        const result = inferKeyrackKeyStatusWhenNotGranted({ slug, owner });
+        expect(result).toBe('locked');
+      });
+    });
+  });
+
+  given('[case6] key does not exist in inventory or any vault', () => {
+    // .note = no inventory entry, no vault entry → truly absent
+    const slug = 'nonexistent.env.ANY_KEY';
+
+    when('[t0] status is inferred', () => {
+      then('returns absent (no inventory, no vault)', () => {
+        const result = inferKeyrackKeyStatusWhenNotGranted({ slug, owner });
+        expect(result).toBe('absent');
+      });
+    });
+  });
+
+  given('[case7] key exists in inventory with env=all (fallback)', () => {
+    // inventory stored under env=all
+    const allSlug = 'testorg.all.INVENTORY_FALLBACK';
+    const hash = asKeyrackSlugHash({ slug: allSlug });
+
+    beforeAll(() => {
+      mkdirSync(inventoryDir, { recursive: true });
+      writeFileSync(join(inventoryDir, `${hash}.stocked`), '', { mode: 0o600 });
+    });
+
+    when('[t0] status is inferred for env=test slug', () => {
+      then('returns locked via env=all fallback', () => {
+        // request env=test but inventory is under env=all
+        const result = inferKeyrackKeyStatusWhenNotGranted({
+          slug: 'testorg.test.INVENTORY_FALLBACK',
           owner,
         });
         expect(result).toBe('locked');

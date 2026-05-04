@@ -1,8 +1,34 @@
 import { asHashSha256Sync } from 'hash-fns';
 
+import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
+import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
+import { getHomeDir } from '@src/infra/getHomeDir';
+
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getEnvAllFallbackSlug } from './decideIsKeySlugEqual';
+
+/**
+ * .what = check if inventory entry exists for a slug (sync)
+ * .why = inventory is vault-agnostic source of truth for "was key ever set"
+ */
+const doesInventoryExist = (input: {
+  slug: string;
+  owner: string | null;
+}): boolean => {
+  const home = getHomeDir();
+  const ownerDir = asKeyrackOwnerDir({ owner: input.owner });
+  const hash = asKeyrackSlugHash({ slug: input.slug });
+  const path = join(
+    home,
+    '.rhachet',
+    'keyrack',
+    'inventory',
+    ownerDir,
+    `${hash}.stocked`,
+  );
+  return existsSync(path);
+};
 
 /**
  * .what = check if os.secure vault file exists for a slug
@@ -65,24 +91,32 @@ const doesOsDirectVaultExist = (input: {
  *
  * .when = call this ONLY when a key could not be granted (not in daemon/envvar)
  *
- * .note = checks vault file/entry existence, not host manifest
- * .note = host manifest is encrypted, we avoid decrypt here
- * .note = returns 'locked' if vault has the key (needs unlock)
- * .note = returns 'absent' if vault has no entry (needs set)
- *
- * .caveat = only checks os.secure and os.direct vaults
- * .caveat = keys in other vaults (1password, etc) will mislead with 'absent'
- * .caveat = best we can do without manifest decrypt
+ * .note = checks inventory first (vault-agnostic, records all set keys)
+ * .note = falls back to vault-specific checks for legacy keys without inventory
+ * .note = returns 'locked' if key was set (needs unlock)
+ * .note = returns 'absent' if key was never set (needs set)
  */
 export const inferKeyrackKeyStatusWhenNotGranted = (input: {
   slug: string;
   owner: string | null;
 }): 'locked' | 'absent' => {
-  const home = process.env.HOME;
-  if (!home) return 'absent';
-
   // compute env=all fallback slug (e.g., ehmpathy.test.KEY → ehmpathy.all.KEY)
   const fallbackSlug = getEnvAllFallbackSlug({ for: { slug: input.slug } });
+
+  // check inventory first (vault-agnostic, works for all vault types)
+  if (doesInventoryExist({ slug: input.slug, owner: input.owner })) {
+    return 'locked';
+  }
+  if (
+    fallbackSlug &&
+    doesInventoryExist({ slug: fallbackSlug, owner: input.owner })
+  ) {
+    return 'locked';
+  }
+
+  // fallback: check vault-specific storage for legacy keys without inventory
+  const home = process.env.HOME;
+  if (!home) return 'absent';
 
   // check os.secure vault (encrypted .age files)
   if (doesOsSecureVaultExist({ slug: input.slug, owner: input.owner, home })) {

@@ -81,7 +81,7 @@ const attemptGrantKey = async (
 
   // if no grant found — infer whether key is locked or absent
   if (!grantFound) {
-    const status = inferKeyrackKeyStatusWhenNotGranted({
+    const status = await inferKeyrackKeyStatusWhenNotGranted({
       slug,
       owner: context.owner,
     });

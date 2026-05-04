@@ -27,9 +27,22 @@ jest.mock('./daemon/sdk', () => ({
   daemonAccessRelock: (...args: unknown[]) => mockDaemonAccessRelock(...args),
 }));
 
+// mock inventory dao to avoid filesystem access in unit tests
+jest.mock('../../access/daos/daoKeyrackInventory', () => ({
+  daoKeyrackInventory: {
+    del: jest.fn(),
+  },
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const {
+  daoKeyrackInventory,
+} = require('../../access/daos/daoKeyrackInventory');
+
 describe('delKeyrackKeyHost', () => {
   beforeEach(() => {
     mockDaemonAccessRelock.mockClear();
+    daoKeyrackInventory.del.mockClear();
   });
 
   given('[case1] key exists in manifest', () => {
@@ -75,6 +88,15 @@ describe('delKeyrackKeyHost', () => {
         await delKeyrackKeyHost({ slug: 'testorg.prod.MY_KEY' }, context);
         expect(mockDaemonAccessRelock).toHaveBeenCalledWith({
           slugs: ['testorg.prod.MY_KEY'],
+          owner: null,
+        });
+      });
+
+      then('deletes inventory entry for non-daemon vault', async () => {
+        await delKeyrackKeyHost({ slug: 'testorg.prod.MY_KEY' }, context);
+        expect(daoKeyrackInventory.del).toHaveBeenCalledWith({
+          slug: 'testorg.prod.MY_KEY',
+          owner: null,
         });
       });
     });
@@ -107,6 +129,11 @@ describe('delKeyrackKeyHost', () => {
           context,
         );
         expect(result.effect).toEqual('not_found');
+      });
+
+      then('does not delete inventory entry', async () => {
+        await delKeyrackKeyHost({ slug: 'testorg.prod.ABSENT_KEY' }, context);
+        expect(daoKeyrackInventory.del).not.toHaveBeenCalled();
       });
 
       then('does not prune daemon', async () => {
@@ -159,7 +186,54 @@ describe('delKeyrackKeyHost', () => {
         await delKeyrackKeyHost({ slug: 'testorg.sudo.SECRET_TOKEN' }, context);
         expect(mockDaemonAccessRelock).toHaveBeenCalledWith({
           slugs: ['testorg.sudo.SECRET_TOKEN'],
+          owner: null,
         });
+      });
+    });
+  });
+
+  given('[case4] os.daemon vault (ephemeral)', () => {
+    const vaultAdapter = genMockVaultAdapter();
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'testorg.prod.DAEMON_KEY': {
+            vault: 'os.daemon',
+            env: 'prod',
+            org: 'testorg',
+          },
+        },
+      }),
+      repoManifest: null,
+      gitroot: '/tmp/test-repo',
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': vaultAdapter,
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] del called for daemon key', () => {
+      then('returns effect: deleted', async () => {
+        const result = await delKeyrackKeyHost(
+          { slug: 'testorg.prod.DAEMON_KEY' },
+          context,
+        );
+        expect(result.effect).toEqual('deleted');
+      });
+
+      then('does NOT delete inventory entry (ephemeral keys)', async () => {
+        await delKeyrackKeyHost({ slug: 'testorg.prod.DAEMON_KEY' }, context);
+        expect(daoKeyrackInventory.del).not.toHaveBeenCalled();
       });
     });
   });

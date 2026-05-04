@@ -1,4 +1,3 @@
-import { asHashSha256Sync } from 'hash-fns';
 import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type {
@@ -13,12 +12,15 @@ import {
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
+import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
+import { getHomeDir } from '@src/infra/getHomeDir';
 
 import {
   existsSync,
@@ -30,18 +32,6 @@ import {
 import { join } from 'node:path';
 
 /**
- * .what = resolves the home directory
- * .why = uses HOME env var to support test isolation
- *
- * .note = os.homedir() caches at module load; we read process.env.HOME directly
- */
-const getHomeDir = (): string => {
-  const home = process.env.HOME;
-  if (!home) throw new UnexpectedCodePathError('HOME not set', {});
-  return home;
-};
-
-/**
  * .what = directory for encrypted credential files
  * .why = stores age-encrypted files at ~/.rhachet/keyrack/vault/os.secure/owner={owner}/
  *
@@ -49,7 +39,7 @@ const getHomeDir = (): string => {
  */
 const getSecureVaultDir = (input: { owner: string | null }): string => {
   const home = getHomeDir();
-  const ownerDir = `owner=${input.owner ?? 'default'}`;
+  const ownerDir = asKeyrackOwnerDir({ owner: input.owner });
   return join(home, '.rhachet', 'keyrack', 'vault', 'os.secure', ownerDir);
 };
 
@@ -61,7 +51,7 @@ const getCredentialPath = (input: {
   slug: string;
   owner: string | null;
 }): string => {
-  const hash = asHashSha256Sync(input.slug).slice(0, 16);
+  const hash = asKeyrackSlugHash({ slug: input.slug });
   return join(getSecureVaultDir({ owner: input.owner }), `${hash}.age`);
 };
 

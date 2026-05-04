@@ -4,6 +4,7 @@ import {
   UnexpectedCodePathError,
 } from 'helpful-errors';
 
+import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
@@ -223,6 +224,12 @@ export const unlockKeyrackKeys = async (
       // .note = this is expected for ephemeral vaults (os.daemon) after session restart
       // .note = this is expected for refed vaults (1password) if item was deleted
       keysOmitted.push({ slug: effectiveSlug, reason: 'lost' });
+
+      // clean up inventory marker so subsequent get reports "absent" not "locked"
+      await daoKeyrackInventory.del({
+        slug: effectiveSlug,
+        owner: input.owner ?? null,
+      });
       continue;
     }
 

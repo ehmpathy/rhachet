@@ -8,11 +8,13 @@ import type {
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
+import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { getHomeDir } from '@src/infra/getHomeDir';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -33,18 +35,6 @@ interface DirectStoreEntry {
 type DirectStore = Record<string, DirectStoreEntry>;
 
 /**
- * .what = resolves the home directory
- * .why = uses HOME env var to support test isolation
- *
- * .note = os.homedir() caches at module load; we read process.env.HOME directly
- */
-const getHomeDir = (): string => {
-  const home = process.env.HOME;
-  if (!home) throw new UnexpectedCodePathError('HOME not set', {});
-  return home;
-};
-
-/**
  * .what = path to the plaintext credential store
  * .why = stores credentials in ~/.rhachet/keyrack/vault/os.direct/owner={owner}/keyrack.direct.json
  *
@@ -52,7 +42,7 @@ const getHomeDir = (): string => {
  */
 const getDirectStorePath = (input: { owner: string | null }): string => {
   const home = getHomeDir();
-  const ownerDir = `owner=${input.owner ?? 'default'}`;
+  const ownerDir = asKeyrackOwnerDir({ owner: input.owner });
   return join(
     home,
     '.rhachet',
