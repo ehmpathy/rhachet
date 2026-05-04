@@ -1,62 +1,80 @@
-import { given, then, when } from 'test-fns';
+import { genTempDir, given, then, when } from 'test-fns';
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
 import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 describe('clearAwsSsoCacheForDomain', () => {
-  given('[case1] a target sso start url', () => {
-    const targetDomain = 'https://d-90660aa711.awsapps.com/start';
-    const cacheDir = join(homedir(), '.aws', 'sso', 'cache');
+  // isolate HOME to temp directory for each test run
+  const tempDir = genTempDir({ slug: 'clearAwsSsoCacheForDomain' });
+  const originalHome = process.env.HOME;
+  const cacheDir = join(tempDir, '.aws', 'sso', 'cache');
 
-    when('[t0] preview mode (no deletion)', () => {
-      then('shows which files would be deleted', () => {
-        if (!existsSync(cacheDir)) {
-          console.log('skip: aws sso cache not found (expected in ci)');
-          return; // skip test in ci where cache doesn't exist
-        }
+  beforeEach(() => {
+    process.env.HOME = tempDir;
+    mkdirSync(cacheDir, { recursive: true });
+  });
 
+  afterAll(() => {
+    process.env.HOME = originalHome;
+  });
+
+  given('[case1] preview mode with provisioned cache files', () => {
+    const targetDomain = 'https://rhachet-test-preview.awsapps.com/start';
+    const otherDomain = 'https://rhachet-test-other.awsapps.com/start';
+    const matchFile = 'rhachet-test-preview-match.json';
+    const otherFile = 'rhachet-test-preview-other.json';
+
+    beforeEach(() => {
+      // create one file that matches target domain
+      writeFileSync(
+        join(cacheDir, matchFile),
+        JSON.stringify({
+          startUrl: targetDomain,
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          accessToken: 'test-token-match',
+        }),
+      );
+      // create one file that does NOT match target domain
+      writeFileSync(
+        join(cacheDir, otherFile),
+        JSON.stringify({
+          startUrl: otherDomain,
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          accessToken: 'test-token-other',
+        }),
+      );
+    });
+
+    when('[t0] previewAwsSsoCacheForDomain is called', () => {
+      then('returns matched and unmatched files correctly', () => {
         const result = previewAwsSsoCacheForDomain({
           ssoStartUrl: targetDomain,
-        });
-
-        console.log('\n=== PREVIEW (no files deleted) ===');
-        console.log(`\nTarget domain: ${targetDomain}`);
-        console.log(`\nMatched (would be deleted): ${result.matched.length}`);
-        result.matched.forEach((m) => {
-          console.log(`  - ${m.file}`);
-          console.log(`    startUrl: ${m.startUrl}`);
-          console.log(`    expiresAt: ${m.expiresAt}`);
-        });
-
-        console.log(`\nUnmatched (would be kept): ${result.unmatched.length}`);
-        result.unmatched.forEach((u) => {
-          console.log(`  - ${u.file}`);
-          if (u.startUrl) console.log(`    startUrl: ${u.startUrl}`);
         });
 
         // verify shape
         expect(result.matched).toBeInstanceOf(Array);
         expect(result.unmatched).toBeInstanceOf(Array);
+
+        // verify our test file is in matched
+        const matchedFiles = result.matched.map((m) => m.file);
+        expect(matchedFiles).toContain(matchFile);
+
+        // verify our other file is in unmatched
+        const unmatchedFiles = result.unmatched.map((u) => u.file);
+        expect(unmatchedFiles).toContain(otherFile);
       });
     });
   });
 
   given('[case2] a test cache file for a specific domain', () => {
     const testDomain = 'https://rhachet-test-domain.awsapps.com/start';
-    const cacheDir = join(homedir(), '.aws', 'sso', 'cache');
     const testFileName = 'rhachet-test-cache-clear.json';
-    const testFilePath = join(cacheDir, testFileName);
 
-    // setup: create test cache file if cache dir exists
     beforeEach(() => {
-      if (!existsSync(cacheDir)) {
-        mkdirSync(cacheDir, { recursive: true });
-      }
       writeFileSync(
-        testFilePath,
+        join(cacheDir, testFileName),
         JSON.stringify({
           startUrl: testDomain,
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -65,15 +83,10 @@ describe('clearAwsSsoCacheForDomain', () => {
       );
     });
 
-    // cleanup: ensure test file is removed
-    afterEach(() => {
-      if (existsSync(testFilePath)) {
-        require('node:fs').unlinkSync(testFilePath);
-      }
-    });
-
     when('[t0] clearAwsSsoCacheForDomain is called', () => {
       then('deletes the matched cache file', async () => {
+        const testFilePath = join(cacheDir, testFileName);
+
         // verify test file exists before clear
         expect(existsSync(testFilePath)).toBe(true);
 
@@ -97,6 +110,8 @@ describe('clearAwsSsoCacheForDomain', () => {
       '[t1] clearAwsSsoCacheForDomain is called for non-matching domain',
       () => {
         then('preserves the cache file', async () => {
+          const testFilePath = join(cacheDir, testFileName);
+
           // verify test file exists before clear
           expect(existsSync(testFilePath)).toBe(true);
 
