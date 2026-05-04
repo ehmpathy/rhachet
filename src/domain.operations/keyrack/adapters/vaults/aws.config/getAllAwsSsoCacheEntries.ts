@@ -1,5 +1,6 @@
+import { getHomeDir } from '@src/infra/getHomeDir';
+
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 /**
@@ -18,7 +19,7 @@ export const getAllAwsSsoCacheEntries = (): Array<{
   expiresAt?: string;
   parseError?: string | null;
 }> => {
-  const cacheDir = join(homedir(), '.aws', 'sso', 'cache');
+  const cacheDir = join(getHomeDir(), '.aws', 'sso', 'cache');
   const entries: Array<{
     file: string;
     filePath: string;
