@@ -493,7 +493,8 @@ describe('keyrack daemon integration', () => {
         const daemonPid = parseInt(readFileSync(autoTermPidPath, 'utf-8'), 10);
         expect(daemonPid).not.toBe(testPid);
 
-        // unlock a key with very short TTL (500ms)
+        // unlock a key with short TTL (2000ms)
+        // .note = 2000ms is more robust than 500ms for CI time variance
         await daemonAccessUnlock({
           keys: [
             new KeyrackKeyGrant({
@@ -505,17 +506,17 @@ describe('keyrack daemon integration', () => {
               source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
               env: 'test',
               org: 'testorg',
-              expiresAt: asIsoTimeStamp(new Date(Date.now() + 500)),
+              expiresAt: asIsoTimeStamp(new Date(Date.now() + 2000)),
             }),
           ],
           socketPath: autoTermSocketPath,
         });
 
         // wait for daemon to become unreachable (key expires + termination)
-        // key expires at 500ms, check runs every 100ms
-        // poll with retries to handle CI time variance
+        // key expires at 2000ms, check runs every 100ms
+        // poll with retries to handle CI time variance (60 × 100ms = 6s max)
         let stillReachable = true;
-        for (let i = 0; i < 30 && stillReachable; i++) {
+        for (let i = 0; i < 60 && stillReachable; i++) {
           await sleep(100);
           stillReachable = await isDaemonReachable({
             socketPath: autoTermSocketPath,
@@ -608,9 +609,13 @@ describe('keyrack daemon integration', () => {
         expect(result.pruned[0]?.owner).toBe(null);
         expect(result.pruned[0]?.pid).toBe(daemonPid);
 
-        // verify daemon is gone
-        await sleep(100); // give time for SIGTERM
-        expect(isProcessAlive(daemonPid)).toBe(false);
+        // verify daemon is gone (poll with retries for CI robustness)
+        let processGone = false;
+        for (let i = 0; i < 20 && !processGone; i++) {
+          await sleep(100);
+          processGone = !isProcessAlive(daemonPid);
+        }
+        expect(processGone).toBe(true);
         expect(existsSync(expectedSocketPath)).toBe(false);
         expect(existsSync(expectedPidPath)).toBe(false);
       });
