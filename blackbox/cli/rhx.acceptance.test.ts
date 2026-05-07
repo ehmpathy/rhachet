@@ -162,7 +162,59 @@ describe('rhx', () => {
     });
   });
 
-  given('[case3] rhx upgrade short-circuit', () => {
+  given('[case3] stacked flags passthrough', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] rhx echo-args with repeated --flag', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['echo-args', '--flag', 'A', '--flag', 'B'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('rhx exits with status 0', () => {
+        expect(rhxResult.status).toEqual(0);
+      });
+
+      then('both flags reach the skill', () => {
+        // echo-args outputs: "args: --flag A --flag B"
+        expect(rhxResult.stdout).toContain('--flag A');
+        expect(rhxResult.stdout).toContain('--flag B');
+      });
+
+      then('flags are in correct order', () => {
+        const stdout = rhxResult.stdout;
+        const flagAIndex = stdout.indexOf('--flag A');
+        const flagBIndex = stdout.indexOf('--flag B');
+        expect(flagAIndex).toBeLessThan(flagBIndex);
+      });
+    });
+
+    when('[t1] rhx echo-args with stacked --scope (real usecase)', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['echo-args', '--scope', 'invoice', '--scope', 'name://should create'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('rhx exits with status 0', () => {
+        expect(rhxResult.status).toEqual(0);
+      });
+
+      then('both scopes reach the skill', () => {
+        expect(rhxResult.stdout).toContain('--scope invoice');
+        expect(rhxResult.stdout).toContain('--scope name://should create');
+      });
+    });
+  });
+
+  given('[case4] rhx upgrade short-circuit', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'minimal' }),
     );
