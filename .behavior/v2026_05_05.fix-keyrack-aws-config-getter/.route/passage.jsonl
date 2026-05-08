@@ -1,0 +1,24 @@
+{"stone":"1.vision","status":"blocked","blocker":"review.self","reason":"review.self required: has-grounded-in-reality"}
+{"stone":"1.vision","status":"blocked","blocker":"approval","reason":"wait for human approval"}
+{"stone":"1.vision","status":"approved"}
+{"stone":"1.vision","status":"passed"}
+{"stone":"2.1.criteria.blackbox","status":"passed"}
+{"stone":"2.1.criteria.blackbox","status":"passed"}
+{"stone":"2.2.criteria.blackbox.matrix","status":"passed"}
+{"stone":"3.1.1.research.external.product.flagged._","status":"passed"}
+{"stone":"3.1.3.research.internal.product.code.prod._","status":"passed"}
+{"stone":"3.1.3.research.internal.product.code.test._","status":"passed"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"review.self","reason":"review.self required: has-research-citations"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"review.self","reason":"review.self required: has-pruned-yagni"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"review.self","reason":"review.self required: has-journey-acceptance-test"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"review.self","reason":"review.self required: has-consistent-conventions"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"review.self","reason":"review.self required: has-proper-directory-decomposition"}
+{"stone":"3.3.1.blueprint.product","status":"blocked","blocker":"approval","reason":"wait for human approval"}
+{"stone":"3.3.1.blueprint.product","status":"approved"}
+{"stone":"3.3.1.blueprint.product","status":"passed"}
+{"stone":"4.1.roadmap","status":"passed"}
+{"stone":"5.1.execution.phase0_to_phaseN","status":"blocked","blocker":"review.self","reason":"review.self required: has-pruned-yagni"}
+{"stone":"5.1.execution.phase0_to_phaseN","status":"blocked","blocker":"review.self","reason":"review.self required: behavior-declaration-coverage"}
+{"stone":"5.1.execution.phase0_to_phaseN","status":"blocked","blocker":"review.self","reason":"review.self required: role-standards-coverage"}
+{"stone":"5.1.execution.phase0_to_phaseN","status":"malfunction"}
+{"stone":"5.1.execution.phase0_to_phaseN","status":"malfunction"}
