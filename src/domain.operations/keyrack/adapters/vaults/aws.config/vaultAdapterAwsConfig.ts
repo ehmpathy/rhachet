@@ -355,12 +355,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       );
     }
 
-    // validate the profile exists in aws config (fail-fast on typos or absent profiles)
-    // note: --exid case only checks profile exists in config file
-    // note: guided setup validates active sso session (browser auth just completed)
-    const cameFromExid = !!input.exid;
-    if (cameFromExid) {
-      // --exid case: just verify profile exists in config file
+    // validate the profile exists in aws config (fail-fast on typos for --exid case)
+    // .note = --exid case checks profile exists in config file
+    // .note = guided setup skips validation here — roundtrip verification below proves it works
+    if (input.exid) {
       const profileExists = checkProfileExists(profileName);
       if (!profileExists) {
         throw new ConstraintError(
@@ -368,25 +366,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
           { slug: input.slug, profileName, hint: 'check the profile name' },
         );
       }
-    } else {
-      // guided setup: validate sso session is active (user just completed browser auth)
-      const sessionResult = await validateSsoSession(profileName);
-      if (!sessionResult.valid) {
-        throw new ConstraintError(
-          `aws profile '${profileName}' is not valid or has no active sso session`,
-          {
-            slug: input.slug,
-            profileName,
-            hint: 'check ~/.aws/config for the profile name',
-          },
-        );
-      }
     }
 
     // extended roundtrip validation for guided setup (interactive TTY)
     // proves unlock + get + relock work; triggers one-time OAuth registration
-    const cameFromGuide = !input.exid;
-    if (cameFromGuide) {
+    if (!input.exid) {
       console.log('   │');
       console.log('   └─ perfect, now lets verify...');
 
