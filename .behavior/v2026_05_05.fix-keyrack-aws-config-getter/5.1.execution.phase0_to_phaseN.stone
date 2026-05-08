@@ -1,0 +1,24 @@
+bootup your mechanic's role via `./node_modules/.bin/rhachet roles boot --repo ehmpathy --role mechanic`
+
+then, start or continue to execute
+- phase0 to phaseN
+of roadmap
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/4.1.roadmap.yield.md
+
+ref:
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/0.wish.md
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/1.vision.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/2.1.criteria.blackbox.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/2.3.criteria.blueprint.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/3.2.distill.domain.*.yield.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/3.2.distill.repros.experience.*.yield.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/3.3.0.blueprint.factory.yield.md (if declared)
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/3.3.1.blueprint.product.yield.md
+
+
+---
+
+track your progress
+
+emit todos and check them off into
+- .behavior/v2026_05_05.fix-keyrack-aws-config-getter/5.1.execution.phase0_to_phaseN.yield.md

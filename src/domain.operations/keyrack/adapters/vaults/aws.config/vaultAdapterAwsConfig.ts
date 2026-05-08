@@ -18,6 +18,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
+import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 /**
@@ -64,11 +65,64 @@ const checkProfileExists = (profileName: string): boolean => {
  * .what = validate sso session for a profile and extract username
  * .why = checks if the profile's sso session is still valid
  *
+ * .note = for SSO profiles, validates via `aws sso list-accounts --access-token`
+ *         because `aws sts get-caller-identity` uses cached STS credentials which
+ *         can be valid even when the SSO session is expired (aws-cli issue #9845)
+ *
  * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
 const validateSsoSession = async (
   profileName: string,
 ): Promise<{ valid: true; username: string } | { valid: false }> => {
+  // for SSO profiles: validate via list-accounts with access token (no CLI cache lies)
+  const profileConfig = await getAwsSsoProfileConfig({ profileName });
+  if (profileConfig?.ssoStartUrl) {
+    // find the cached access token for this SSO domain
+    const cacheEntries = getAllAwsSsoCacheEntries();
+    const entriesMatched = cacheEntries.filter(
+      (e) => e.startUrl === profileConfig.ssoStartUrl && e.accessToken,
+    );
+
+    // no cached token = not logged in
+    if (entriesMatched.length === 0) {
+      return { valid: false };
+    }
+
+    // multiple tokens for same domain = corrupted cache, fail-fast
+    if (entriesMatched.length > 1) {
+      throw new UnexpectedCodePathError(
+        'multiple SSO cache entries for same startUrl',
+        {
+          profileName,
+          startUrl: profileConfig.ssoStartUrl,
+          entries: entriesMatched.length,
+        },
+      );
+    }
+
+    // validate the token with a real API call
+    const accessToken = entriesMatched[0]!.accessToken!;
+    try {
+      await execAsync(`aws sso list-accounts --access-token "${accessToken}"`);
+    } catch (error) {
+      // check for known "token invalid/expired" errors
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      const isTokenError =
+        message.includes('expired') ||
+        message.includes('invalid') ||
+        message.includes('unauthorized');
+
+      if (isTokenError) return { valid: false };
+
+      // unknown error - fail fast
+      throw new UnexpectedCodePathError(
+        'aws sso list-accounts failed with unexpected error',
+        { profileName, error },
+      );
+    }
+  }
+
+  // sts call — now only runs if SSO check passed (or non-SSO profile)
   try {
     const { stdout } = await execAsync(
       `aws sts get-caller-identity --profile "${profileName}"`,
@@ -237,7 +291,8 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
 
     const mech = input.mech ?? 'EPHEMERAL_VIA_AWS_SSO';
 
-    // validate sso session via mech (triggers browser login if expired)
+    // get expiration time from mech adapter
+    // .note = sso session validation happens in unlock, not here
     const mechAdapter = getMechAdapter(mech);
     const { expiresAt } = await mechAdapter.deliverForGet({ source });
 
@@ -300,12 +355,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       );
     }
 
-    // validate the profile exists in aws config (fail-fast on typos or absent profiles)
-    // note: --exid case only checks profile exists in config file
-    // note: guided setup validates active sso session (browser auth just completed)
-    const cameFromExid = !!input.exid;
-    if (cameFromExid) {
-      // --exid case: just verify profile exists in config file
+    // validate the profile exists in aws config (fail-fast on typos for --exid case)
+    // .note = --exid case checks profile exists in config file
+    // .note = guided setup skips validation here — roundtrip verification below proves it works
+    if (input.exid) {
       const profileExists = checkProfileExists(profileName);
       if (!profileExists) {
         throw new ConstraintError(
@@ -313,25 +366,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
           { slug: input.slug, profileName, hint: 'check the profile name' },
         );
       }
-    } else {
-      // guided setup: validate sso session is active (user just completed browser auth)
-      const sessionResult = await validateSsoSession(profileName);
-      if (!sessionResult.valid) {
-        throw new ConstraintError(
-          `aws profile '${profileName}' is not valid or has no active sso session`,
-          {
-            slug: input.slug,
-            profileName,
-            hint: 'check ~/.aws/config for the profile name',
-          },
-        );
-      }
     }
 
     // extended roundtrip validation for guided setup (interactive TTY)
     // proves unlock + get + relock work; triggers one-time OAuth registration
-    const cameFromGuide = !input.exid;
-    if (cameFromGuide) {
+    if (!input.exid) {
       console.log('   │');
       console.log('   └─ perfect, now lets verify...');
 

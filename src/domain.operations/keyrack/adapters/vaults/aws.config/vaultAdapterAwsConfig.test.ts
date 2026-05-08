@@ -86,8 +86,14 @@ region = us-east-1
   mkdir: jest.fn(),
 }));
 
+// mock getAllAwsSsoCacheEntries for SSO token validation
+jest.mock('./getAllAwsSsoCacheEntries', () => ({
+  getAllAwsSsoCacheEntries: jest.fn(() => []),
+}));
+
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
 
 const existsSyncMock = existsSync as jest.MockedFunction<typeof existsSync>;
@@ -98,6 +104,10 @@ const unlinkSyncMock = unlinkSync as jest.MockedFunction<typeof unlinkSync>;
 
 const execMock = exec as jest.MockedFunction<typeof exec>;
 const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
+const getAllAwsSsoCacheEntriesMock =
+  getAllAwsSsoCacheEntries as jest.MockedFunction<
+    typeof getAllAwsSsoCacheEntries
+  >;
 
 /**
  * .what = create error with exit code to match child_process.exec behavior
@@ -117,6 +127,9 @@ describe('vaultAdapterAwsConfig', () => {
     execMock.mockClear();
     spawnMock.mockClear();
     unlinkSyncMock.mockClear();
+    getAllAwsSsoCacheEntriesMock.mockClear();
+    // default: no SSO cache entries (non-SSO profiles or empty cache)
+    getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
   });
 
   /**
@@ -319,12 +332,32 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] isUnlocked with valid sso session', () => {
       beforeEach(() => {
+        // mock SSO cache with valid access token
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'cached-token.json',
+            filePath: '/home/test/.aws/sso/cache/cached-token.json',
+            startUrl: 'https://example.awsapps.com/start',
+            accessToken: 'valid-access-token-12345',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
+
+        // mock both list-accounts (SSO validation) and sts (username extraction)
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(null, {
-            stdout:
-              '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
-            stderr: '',
-          });
+          if (cmd.includes('aws sso list-accounts')) {
+            callback(null, {
+              stdout: '{"accountList":[{"accountId":"123456789012"}]}',
+              stderr: '',
+            });
+          } else if (cmd.includes('aws sts get-caller-identity')) {
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            });
+          }
           return {} as any;
         });
       });
@@ -336,19 +369,67 @@ describe('vaultAdapterAwsConfig', () => {
         expect(result).toBe(true);
       });
 
-      then('calls aws sts get-caller-identity for the profile', async () => {
-        await vaultAdapterAwsConfig.isUnlocked({ exid: 'acme-prod' });
-        expect(execMock).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /aws sts get-caller-identity --profile "acme-prod"/,
-          ),
-          expect.any(Function),
-        );
-      });
+      then(
+        'validates SSO token via list-accounts then extracts username via sts',
+        async () => {
+          await vaultAdapterAwsConfig.isUnlocked({ exid: 'acme-prod' });
+          // first call: validate SSO token
+          expect(execMock).toHaveBeenCalledWith(
+            expect.stringMatching(
+              /aws sso list-accounts --access-token "valid-access-token-12345"/,
+            ),
+            expect.any(Function),
+          );
+          // second call: extract username
+          expect(execMock).toHaveBeenCalledWith(
+            expect.stringMatching(
+              /aws sts get-caller-identity --profile "acme-prod"/,
+            ),
+            expect.any(Function),
+          );
+        },
+      );
     });
 
     when('[t2] isUnlocked with expired sso session', () => {
       beforeEach(() => {
+        // mock SSO cache with access token (so validation is attempted)
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'cached-token.json',
+            filePath: '/home/test/.aws/sso/cache/cached-token.json',
+            startUrl: 'https://example.awsapps.com/start',
+            accessToken: 'expired-access-token',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
+
+        // mock list-accounts to fail with expired token
+        execMock.mockImplementation((cmd: string, callback: any) => {
+          if (cmd.includes('aws sso list-accounts')) {
+            callback(genExecError('Token is expired'), null);
+          } else {
+            callback(genExecError('SSO session expired'), null);
+          }
+          return {} as any;
+        });
+      });
+
+      then('returns false', async () => {
+        const result = await vaultAdapterAwsConfig.isUnlocked({
+          exid: 'acme-prod',
+        });
+        expect(result).toBe(false);
+      });
+    });
+
+    when('[t3] isUnlocked with no cached SSO token', () => {
+      beforeEach(() => {
+        // no SSO cache entries (empty cache or non-SSO profile)
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
+
+        // sts call would also fail (no session)
         execMock.mockImplementation((cmd: string, callback: any) => {
           callback(genExecError('SSO session expired'), null);
           return {} as any;
@@ -367,12 +448,32 @@ describe('vaultAdapterAwsConfig', () => {
   given('[case3] unlock flow with exid', () => {
     when('[t0] unlock called with valid session', () => {
       beforeEach(() => {
+        // mock SSO cache with valid access token
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'cached-token.json',
+            filePath: '/home/test/.aws/sso/cache/cached-token.json',
+            startUrl: 'https://example.awsapps.com/start',
+            accessToken: 'valid-access-token-12345',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
+
+        // mock both list-accounts (SSO validation) and sts (username extraction)
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(null, {
-            stdout:
-              '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
-            stderr: '',
-          });
+          if (cmd.includes('aws sso list-accounts')) {
+            callback(null, {
+              stdout: '{"accountList":[{"accountId":"123456789012"}]}',
+              stderr: '',
+            });
+          } else if (cmd.includes('aws sts get-caller-identity')) {
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            });
+          }
           return {} as any;
         });
       });
@@ -388,8 +489,25 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] unlock called with expired session', () => {
       beforeEach(() => {
+        // mock SSO cache with access token (so validation is attempted)
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'cached-token.json',
+            filePath: '/home/test/.aws/sso/cache/cached-token.json',
+            startUrl: 'https://example.awsapps.com/start',
+            accessToken: 'expired-access-token',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
+
+        // mock list-accounts to fail with expired token
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(genExecError('SSO session expired'), null);
+          if (cmd.includes('aws sso list-accounts')) {
+            callback(genExecError('Token is expired'), null);
+          } else {
+            callback(genExecError('SSO session expired'), null);
+          }
           return {} as any;
         });
 
@@ -534,6 +652,20 @@ describe('vaultAdapterAwsConfig', () => {
 
   given('[case6] relock flow with exid', () => {
     when('[t0] relock called with exid', () => {
+      beforeEach(() => {
+        // mock SSO cache with entry for target domain
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'cached-token.json',
+            filePath: '/home/test/.aws/sso/cache/cached-token.json',
+            startUrl: 'https://example.awsapps.com/start',
+            accessToken: 'valid-access-token',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
+      });
+
       then('deletes cache files for target domain', async () => {
         await vaultAdapterAwsConfig.relock!({
           slug: 'acme.prod.AWS_PROFILE',
@@ -547,32 +679,17 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] relock called without matched cache files', () => {
       beforeEach(() => {
-        // cache file has different start url
-        readFileSyncMock.mockImplementation((filePath) => {
-          if (
-            typeof filePath === 'string' &&
-            filePath.includes('.aws/sso/cache') &&
-            filePath.endsWith('.json')
-          ) {
-            return JSON.stringify({
-              startUrl: 'https://other-domain.awsapps.com/start',
-              expiresAt: '2026-04-30T23:59:59Z',
-            });
-          }
-          if (
-            typeof filePath === 'string' &&
-            filePath.includes('.aws/config')
-          ) {
-            return `[profile acme-prod]
-sso_start_url = https://example.awsapps.com/start
-sso_region = us-east-1
-sso_account_id = 123456789012
-sso_role_name = MyRole
-region = us-east-1
-`;
-          }
-          throw new Error('file not found');
-        });
+        // mock SSO cache with entry for different domain (no match)
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([
+          {
+            file: 'other-token.json',
+            filePath: '/home/test/.aws/sso/cache/other-token.json',
+            startUrl: 'https://other-domain.awsapps.com/start',
+            accessToken: 'other-token',
+            region: 'us-east-1',
+            expiresAt: '2026-04-30T23:59:59Z',
+          },
+        ]);
       });
 
       then('completes without file deletion', async () => {

@@ -1,0 +1,49 @@
+research whatever the vision flagged for research
+- read the vision at .behavior/v2026_05_05.fix-keyrack-aws-config-getter/1.vision.md
+- identify topics, questions, or areas explicitly flagged for research
+- if the vision mentions "research X" or "look into Y" or "find out about Z", research those
+
+---
+
+use web search to discover and research
+- cite every claim
+- number each citation
+- clone exact quotes from each citation
+
+for each research topic, cite atleast 7 sources, with links and quotes
+
+source diversity
+- require mix of source types: official docs, academic papers, practitioner blogs, conference talks
+- prevents echo chamber from only one type
+
+for each citation include
+- publication date (to assess recency)
+- credibility tag: [official] [academic] [practitioner] [tutorial] [blog] [video] [book]
+
+conflict detection
+- explicitly note when sources disagree
+- "sources [3] and [7] conflict on X — [3] says A, [7] says B"
+
+convergence signal
+- note when multiple independent sources agree
+- stronger confidence when 3+ sources say the same
+
+---
+
+explicitly label each claim found from research as either
+- a [FACT] = an indisputable, immutable truth
+or
+- a [SUMP] = an assumption, that someone has made, either explicitly or implicitly
+or
+- a [KHUE] = an open question, that we too should consider
+or
+- a [OPIN] = an opinion, a subjective declaration, that we should consider
+
+---
+
+if the vision does not flag topics for research, emit:
+"no [research] flagged topics in vision"
+
+---
+
+emit into .behavior/v2026_05_05.fix-keyrack-aws-config-getter/3.1.1.research.external.product.flagged._.yield.md
