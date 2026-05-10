@@ -13,12 +13,11 @@ import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGra
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 
 import { exec, spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
-import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 /**
@@ -65,64 +64,46 @@ const checkProfileExists = (profileName: string): boolean => {
  * .what = validate sso session for a profile and extract username
  * .why = checks if the profile's sso session is still valid
  *
- * .note = for SSO profiles, validates via `aws sso list-accounts --access-token`
- *         because `aws sts get-caller-identity` uses cached STS credentials which
- *         can be valid even when the SSO session is expired (aws-cli issue #9845)
+ * .note = uses `aws configure export-credentials` as primary validator
+ *         because it forces credential refresh and validates both SSO and STS in one call
+ *         (aws-cli issue #9845 shows get-caller-identity lies via cached credentials)
+ *
+ * .note = uses `aws sts get-caller-identity` only for username extraction
  *
  * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
 const validateSsoSession = async (
   profileName: string,
 ): Promise<{ valid: true; username: string } | { valid: false }> => {
-  // for SSO profiles: validate via list-accounts with access token (no CLI cache lies)
-  const profileConfig = await getAwsSsoProfileConfig({ profileName });
-  if (profileConfig?.ssoStartUrl) {
-    // find the cached access token for this SSO domain
-    const cacheEntries = getAllAwsSsoCacheEntries();
-    const entriesMatched = cacheEntries.filter(
-      (e) => e.startUrl === profileConfig.ssoStartUrl && e.accessToken,
+  // validate via export-credentials — forces refresh, validates both SSO and STS
+  // .note = if SSO token is expired, this command fails (can't refresh STS without valid SSO)
+  // .note = if SSO is valid but STS cache is stale, this command refreshes it
+  try {
+    await execAsync(
+      `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
     );
+    // success = credentials are valid and refreshed
+  } catch (error) {
+    // export-credentials failed = session is not usable
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    const isExpiredError =
+      message.includes('expired') ||
+      message.includes('invalid') ||
+      message.includes('unauthorized') ||
+      message.includes('does not exist') ||
+      message.includes('refreshed credentials are still expired');
 
-    // no cached token = not logged in
-    if (entriesMatched.length === 0) {
-      return { valid: false };
-    }
+    if (isExpiredError) return { valid: false };
 
-    // multiple tokens for same domain = corrupted cache, fail-fast
-    if (entriesMatched.length > 1) {
-      throw new UnexpectedCodePathError(
-        'multiple SSO cache entries for same startUrl',
-        {
-          profileName,
-          startUrl: profileConfig.ssoStartUrl,
-          entries: entriesMatched.length,
-        },
-      );
-    }
-
-    // validate the token with a real API call
-    const accessToken = entriesMatched[0]!.accessToken!;
-    try {
-      await execAsync(`aws sso list-accounts --access-token "${accessToken}"`);
-    } catch (error) {
-      // check for known "token invalid/expired" errors
-      const message = error instanceof Error ? error.message.toLowerCase() : '';
-      const isTokenError =
-        message.includes('expired') ||
-        message.includes('invalid') ||
-        message.includes('unauthorized');
-
-      if (isTokenError) return { valid: false };
-
-      // unknown error - fail fast
-      throw new UnexpectedCodePathError(
-        'aws sso list-accounts failed with unexpected error',
-        { profileName, error },
-      );
-    }
+    // unknown error - fail fast
+    throw new UnexpectedCodePathError(
+      'aws configure export-credentials failed with unexpected error',
+      { profileName, error },
+    );
   }
 
-  // sts call — now only runs if SSO check passed (or non-SSO profile)
+  // sts call — only runs if export-credentials passed (credentials are valid)
+  // .note = only needed for username extraction, not validation
   try {
     const { stdout } = await execAsync(
       `aws sts get-caller-identity --profile "${profileName}"`,
@@ -275,6 +256,38 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
     }
 
     await triggerSsoLogin(profileName);
+
+    // force STS credential refresh after SSO login
+    // .note = aws sso login refreshes SSO token but not STS cache
+    // .note = export-credentials forces botocore to fetch fresh STS creds
+    try {
+      await execAsync(
+        `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
+      );
+    } catch (error) {
+      // if export-credentials still fails after fresh SSO login, clear the CLI cache and retry
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      const isStillExpired = message.includes('expired');
+
+      if (isStillExpired) {
+        // clear stale STS cache for this profile
+        const cliCacheDir = join(homedir(), '.aws', 'cli', 'cache');
+        if (existsSync(cliCacheDir)) {
+          const cacheFiles = readdirSync(cliCacheDir);
+          for (const file of cacheFiles) {
+            // cache files are named with profile hash, remove all to be safe
+            unlinkSync(join(cliCacheDir, file));
+          }
+        }
+
+        // retry export-credentials after cache clear
+        await execAsync(
+          `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
+        );
+      } else {
+        throw error;
+      }
+    }
   },
 
   /**

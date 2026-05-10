@@ -332,23 +332,18 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] isUnlocked with valid sso session', () => {
       beforeEach(() => {
-        // mock SSO cache with valid access token
-        getAllAwsSsoCacheEntriesMock.mockReturnValue([
-          {
-            file: 'cached-token.json',
-            filePath: '/home/test/.aws/sso/cache/cached-token.json',
-            startUrl: 'https://example.awsapps.com/start',
-            accessToken: 'valid-access-token-12345',
-            region: 'us-east-1',
-            expiresAt: '2026-04-30T23:59:59Z',
-          },
-        ]);
-
-        // mock both list-accounts (SSO validation) and sts (username extraction)
+        // mock export-credentials (validates SSO + STS) and sts (username extraction)
+        // .note = export-credentials is the primary validator now
+        const futureExpiration = new Date(
+          Date.now() + 30 * 60 * 1000,
+        ).toISOString(); // 30 min from now
         execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws sso list-accounts')) {
+          if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
-              stdout: '{"accountList":[{"accountId":"123456789012"}]}',
+              stdout: `AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=secret
+AWS_SESSION_TOKEN=token
+AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
               stderr: '',
             });
           } else if (cmd.includes('aws sts get-caller-identity')) {
@@ -370,13 +365,13 @@ describe('vaultAdapterAwsConfig', () => {
       });
 
       then(
-        'validates SSO token via list-accounts then extracts username via sts',
+        'validates via export-credentials then extracts username via sts',
         async () => {
           await vaultAdapterAwsConfig.isUnlocked({ exid: 'acme-prod' });
-          // first call: validate SSO token
+          // first call: validate SSO + STS via export-credentials
           expect(execMock).toHaveBeenCalledWith(
             expect.stringMatching(
-              /aws sso list-accounts --access-token "valid-access-token-12345"/,
+              /aws configure export-credentials --profile "acme-prod"/,
             ),
             expect.any(Function),
           );
@@ -393,21 +388,9 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t2] isUnlocked with expired sso session', () => {
       beforeEach(() => {
-        // mock SSO cache with access token (so validation is attempted)
-        getAllAwsSsoCacheEntriesMock.mockReturnValue([
-          {
-            file: 'cached-token.json',
-            filePath: '/home/test/.aws/sso/cache/cached-token.json',
-            startUrl: 'https://example.awsapps.com/start',
-            accessToken: 'expired-access-token',
-            region: 'us-east-1',
-            expiresAt: '2026-04-30T23:59:59Z',
-          },
-        ]);
-
-        // mock list-accounts to fail with expired token
+        // mock export-credentials to fail with expired session
         execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws sso list-accounts')) {
+          if (cmd.includes('aws configure export-credentials')) {
             callback(genExecError('Token is expired'), null);
           } else {
             callback(genExecError('SSO session expired'), null);
@@ -426,12 +409,13 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t3] isUnlocked with no cached SSO token', () => {
       beforeEach(() => {
-        // no SSO cache entries (empty cache or non-SSO profile)
-        getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
-
-        // sts call would also fail (no session)
+        // export-credentials fails when no SSO session
         execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(genExecError('SSO session expired'), null);
+          if (cmd.includes('aws configure export-credentials')) {
+            callback(genExecError('SSO session expired'), null);
+          } else {
+            callback(genExecError('SSO session expired'), null);
+          }
           return {} as any;
         });
       });
@@ -448,23 +432,17 @@ describe('vaultAdapterAwsConfig', () => {
   given('[case3] unlock flow with exid', () => {
     when('[t0] unlock called with valid session', () => {
       beforeEach(() => {
-        // mock SSO cache with valid access token
-        getAllAwsSsoCacheEntriesMock.mockReturnValue([
-          {
-            file: 'cached-token.json',
-            filePath: '/home/test/.aws/sso/cache/cached-token.json',
-            startUrl: 'https://example.awsapps.com/start',
-            accessToken: 'valid-access-token-12345',
-            region: 'us-east-1',
-            expiresAt: '2026-04-30T23:59:59Z',
-          },
-        ]);
-
-        // mock both list-accounts (SSO validation) and sts (username extraction)
+        // mock export-credentials (validates SSO + STS) and sts (username extraction)
+        const futureExpiration = new Date(
+          Date.now() + 30 * 60 * 1000,
+        ).toISOString(); // 30 min from now
         execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws sso list-accounts')) {
+          if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
-              stdout: '{"accountList":[{"accountId":"123456789012"}]}',
+              stdout: `AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=secret
+AWS_SESSION_TOKEN=token
+AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
               stderr: '',
             });
           } else if (cmd.includes('aws sts get-caller-identity')) {
@@ -488,8 +466,12 @@ describe('vaultAdapterAwsConfig', () => {
     });
 
     when('[t1] unlock called with expired session', () => {
+      let exportCredentialsCallCount = 0;
+
       beforeEach(() => {
-        // mock SSO cache with access token (so validation is attempted)
+        exportCredentialsCallCount = 0;
+
+        // mock SSO cache with access token (for previewAwsSsoCacheForDomain)
         getAllAwsSsoCacheEntriesMock.mockReturnValue([
           {
             file: 'cached-token.json',
@@ -501,12 +483,32 @@ describe('vaultAdapterAwsConfig', () => {
           },
         ]);
 
-        // mock list-accounts to fail with expired token
+        // mock export-credentials: fail first time (before login), succeed second time (after login)
+        const futureExpiration = new Date(
+          Date.now() + 30 * 60 * 1000,
+        ).toISOString();
         execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws sso list-accounts')) {
-            callback(genExecError('Token is expired'), null);
-          } else {
-            callback(genExecError('SSO session expired'), null);
+          if (cmd.includes('aws configure export-credentials')) {
+            exportCredentialsCallCount++;
+            if (exportCredentialsCallCount === 1) {
+              // first call: fail with expired
+              callback(genExecError('SSO session expired'), null);
+            } else {
+              // subsequent calls: succeed (after login)
+              callback(null, {
+                stdout: `AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=secret
+AWS_SESSION_TOKEN=token
+AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
+                stderr: '',
+              });
+            }
+          } else if (cmd.includes('aws sts get-caller-identity')) {
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            });
           }
           return {} as any;
         });
