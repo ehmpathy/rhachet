@@ -42,7 +42,12 @@ the flow:
 |---------|--------------|
 | **set** | configures where a key lives (writes to host.manifest, and vault for owned) |
 | **unlock** | populates the session keyrack from the vaults |
-| **get** | grabs from the session keyrack at access time |
+| **get** | grabs from daemon (explicit unlock) or envvar (ci fallback) at access time |
+
+**get resolution order:**
+1. os.daemon — explicit unlock takes precedence
+2. os.envvar — fallback for ci and ambient env
+3. locked/absent — if not found in either
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

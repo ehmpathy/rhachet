@@ -19,7 +19,7 @@ const getSlug = (k: KeyrackGrantAttempt): string =>
  * .why = enables test setup files to fetch credentials without manual `source` commands
  *
  * .note = sync because jest setup files run synchronously
- * .note = keyrack already prefers passthrough (checks env vars first)
+ * .note = keyrack prefers daemon (explicit unlock) over envvar (ci fallback)
  * .note = prints same stdout as `rhx keyrack get` and exits with code 2 on failure
  */
 export const sourceAllKeysIntoEnv = (input: {

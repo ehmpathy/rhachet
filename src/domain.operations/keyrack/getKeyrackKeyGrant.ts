@@ -17,7 +17,7 @@ import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhen
  * .what = attempt to grant a single key from unlocked sources
  * .why = core logic for credential resolution via envvar and daemon only
  *
- * .note = resolution order: os.envvar (ci passthrough) -> os.daemon (session cache) -> locked
+ * .note = resolution order: os.daemon (explicit unlock) -> os.envvar (ci fallback) -> locked
  * .note = never reads from vault — vault access is exclusively via unlock
  * .note = firewall validation applies uniformly to all granted keys, regardless of source
  * .note = allow.dangerous bypasses firewall validation (for known-dangerous credentials)
@@ -32,21 +32,9 @@ const attemptGrantKey = async (
   const orgFromSlug = asKeyrackKeyOrg({ slug }) || 'unknown';
   const envFromSlug = asKeyrackKeyEnv({ slug }) || 'all';
 
-  // attempt to locate the key from available sources (envvar, daemon)
+  // attempt to locate the key from available sources (daemon, envvar)
   const grantFound = await (async (): Promise<KeyrackKeyGrant | null> => {
-    // check os.envvar first — passthrough for ci and local env
-    // .note = vault now handles mech inference + translation + grant construction
-    if (!context.envvarAdapter.get) {
-      throw new UnexpectedCodePathError('envvarAdapter.get is not defined', {
-        hint: 'os.envvar adapter must implement get method',
-      });
-    }
-    const envGrant = await context.envvarAdapter.get({ slug });
-    if (envGrant !== null) {
-      return envGrant;
-    }
-
-    // check os.daemon — session cache (in-memory daemon)
+    // check os.daemon first — explicit unlock takes precedence
     // .note = daemon implements env=all fallback internally:
     //         if org.test.KEY not found, tries org.all.KEY
     const daemonResult = await daemonAccessGet({
@@ -73,6 +61,18 @@ const attemptGrantKey = async (
           org: keyEntry.org,
         });
       }
+    }
+
+    // check os.envvar second — fallback for ci and ambient env
+    // .note = vault now handles mech inference + translation + grant construction
+    if (!context.envvarAdapter.get) {
+      throw new UnexpectedCodePathError('envvarAdapter.get is not defined', {
+        hint: 'os.envvar adapter must implement get method',
+      });
+    }
+    const envGrant = await context.envvarAdapter.get({ slug });
+    if (envGrant !== null) {
+      return envGrant;
     }
 
     // not found in any source

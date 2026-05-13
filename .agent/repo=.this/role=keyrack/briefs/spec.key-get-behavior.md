@@ -4,17 +4,22 @@
 
 defines expected behavior for `keyrack get` command.
 
-## .key rule: get checks daemon only
+## .key rule: get checks daemon first, envvar second
 
-`get` checks the daemon for what has been unlocked. it does **not** do fallback lookup.
+`get` resolves credentials with this precedence:
+1. **os.daemon** — explicit unlock takes precedence (user intent)
+2. **os.envvar** — fallback for ci and ambient env
 
 | scenario | behavior |
 |----------|----------|
-| key unlocked in daemon | return granted with secret |
-| key not unlocked but exists | return locked status |
+| key in daemon | return granted from daemon |
+| key not in daemon but in envvar | return granted from envvar |
+| key not in daemon or envvar, but exists in vault | return locked status |
 | key does not exist | return absent status |
 
-**why:** get is a simple lookup from the daemon. host manifest decryption is never involved in the hot path. the keyrack is unlocked for work once; then actors that need keys grab and go without need to unlock again or access the vaults again. this keeps `get` fast and simple — fallback logic belongs in `unlock`, which populates the daemon.
+**why:** daemon represents explicit user intent (unlock). envvar is ambient state (ci passthrough). explicit should beat ambient.
+
+**note:** `get` does **not** do env=all fallback lookup directly. fallback logic belongs in `unlock`, which populates the daemon.
 
 ---
 
