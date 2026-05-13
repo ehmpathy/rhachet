@@ -206,7 +206,7 @@ describe('getKeyrackKeyGrant', () => {
     });
   });
 
-  given('[case4] key in both envvar and daemon (envvar wins)', () => {
+  given('[case4] key in both envvar and daemon (daemon wins)', () => {
     const rawKey = '__TEST_KEYRACK_ENV_VAR_PRIORITY__';
     const envSlug = `testorg.test.${rawKey}`;
     const envValue = 'value-from-env';
@@ -241,15 +241,15 @@ describe('getKeyrackKeyGrant', () => {
     };
 
     when('[t0] get called for key', () => {
-      then('env takes precedence (os.envvar wins)', async () => {
+      then('daemon takes precedence (os.daemon wins)', async () => {
         const result = await getKeyrackKeyGrant(
           { for: { key: envSlug } },
           context,
         );
         expect(result.status).toEqual('granted');
         if (result.status === 'granted') {
-          expect(result.grant.key.secret).toEqual(envValue);
-          expect(result.grant.source.vault).toEqual('os.envvar');
+          expect(result.grant.key.secret).toEqual('value-from-daemon');
+          expect(result.grant.source.vault).toEqual('os.daemon');
         }
       });
     });
