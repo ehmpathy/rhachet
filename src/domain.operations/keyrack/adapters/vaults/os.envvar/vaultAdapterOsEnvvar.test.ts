@@ -70,40 +70,44 @@ describe('vaultAdapterOsEnvvar', () => {
    * .note = full roundtrip with EPHEMERAL_VIA_GITHUB_APP is tested in integration tests
    *         because deliverForGet requires real GitHub API credentials
    */
-  given('[case4] env var contains github app credentials WITHOUT mech field', () => {
-    const testRawKey = '__TEST_GITHUB_APP_NO_MECH__';
-    const testSlug = `testorg.test.${testRawKey}`;
-    const testJson = JSON.stringify({
-      appId: '3234162',
-      installationId: '123456',
-      privateKey: '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
-      // no mech field - this was the bug
-    });
-
-    beforeEach(() => {
-      process.env[testRawKey] = testJson;
-    });
-
-    afterEach(() => {
-      delete process.env[testRawKey];
-    });
-
-    when('[t0] get called with slug', () => {
-      then('falls back to PERMANENT_VIA_REPLICA', async () => {
-        const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
-        expect(result).not.toBeNull();
-        // this is the bug scenario - without mech, it defaults to passthrough
-        expect(result!.source.mech).toEqual('PERMANENT_VIA_REPLICA');
+  given(
+    '[case4] env var contains github app credentials WITHOUT mech field',
+    () => {
+      const testRawKey = '__TEST_GITHUB_APP_NO_MECH__';
+      const testSlug = `testorg.test.${testRawKey}`;
+      const testJson = JSON.stringify({
+        appId: '3234162',
+        installationId: '123456',
+        privateKey:
+          '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
+        // no mech field - this was the bug
       });
 
-      then('raw JSON is returned as secret (buggy behavior)', async () => {
-        const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
-        // the "secret" is the raw JSON because PERMANENT_VIA_REPLICA passes through
-        expect(result!.key.secret).toContain('appId');
-        expect(result!.key.secret).toContain('3234162');
+      beforeEach(() => {
+        process.env[testRawKey] = testJson;
       });
-    });
-  });
+
+      afterEach(() => {
+        delete process.env[testRawKey];
+      });
+
+      when('[t0] get called with slug', () => {
+        then('falls back to PERMANENT_VIA_REPLICA', async () => {
+          const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
+          expect(result).not.toBeNull();
+          // this is the bug scenario - without mech, it defaults to passthrough
+          expect(result!.source.mech).toEqual('PERMANENT_VIA_REPLICA');
+        });
+
+        then('raw JSON is returned as secret (buggy behavior)', async () => {
+          const result = await vaultAdapterOsEnvvar.get({ slug: testSlug });
+          // the "secret" is the raw JSON because PERMANENT_VIA_REPLICA passes through
+          expect(result!.key.secret).toContain('appId');
+          expect(result!.key.secret).toContain('3234162');
+        });
+      });
+    },
+  );
 
   /**
    * [case5] mech detection via inferKeyrackMechForGet
@@ -112,36 +116,48 @@ describe('vaultAdapterOsEnvvar', () => {
    * .note = actual deliverForGet call requires integration test (GitHub API)
    */
   given('[case5] JSON with embedded mech field is detected correctly', () => {
-    when('[t0] inferKeyrackMechForGet called with JSON that has mech field', () => {
-      const testJson = JSON.stringify({
-        appId: '3234162',
-        installationId: '123456',
-        privateKey: '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
-        mech: 'EPHEMERAL_VIA_GITHUB_APP',
-      });
+    when(
+      '[t0] inferKeyrackMechForGet called with JSON that has mech field',
+      () => {
+        const testJson = JSON.stringify({
+          appId: '3234162',
+          installationId: '123456',
+          privateKey:
+            '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
+          mech: 'EPHEMERAL_VIA_GITHUB_APP',
+        });
 
-      then('returns EPHEMERAL_VIA_GITHUB_APP', () => {
-        // import is at top of file in real usage
-        const { inferKeyrackMechForGet } = require('../../../inferKeyrackMechForGet');
-        const mech = inferKeyrackMechForGet({ value: testJson });
-        expect(mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
-      });
-    });
+        then('returns EPHEMERAL_VIA_GITHUB_APP', () => {
+          // import is at top of file in real usage
+          const {
+            inferKeyrackMechForGet,
+          } = require('../../../inferKeyrackMechForGet');
+          const mech = inferKeyrackMechForGet({ value: testJson });
+          expect(mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
+        });
+      },
+    );
 
-    when('[t1] inferKeyrackMechForGet called with JSON that lacks mech field', () => {
-      const testJson = JSON.stringify({
-        appId: '3234162',
-        installationId: '123456',
-        privateKey: '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
-        // no mech field
-      });
+    when(
+      '[t1] inferKeyrackMechForGet called with JSON that lacks mech field',
+      () => {
+        const testJson = JSON.stringify({
+          appId: '3234162',
+          installationId: '123456',
+          privateKey:
+            '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
+          // no mech field
+        });
 
-      then('falls back to PERMANENT_VIA_REPLICA', () => {
-        const { inferKeyrackMechForGet } = require('../../../inferKeyrackMechForGet');
-        const mech = inferKeyrackMechForGet({ value: testJson });
-        expect(mech).toEqual('PERMANENT_VIA_REPLICA');
-      });
-    });
+        then('falls back to PERMANENT_VIA_REPLICA', () => {
+          const {
+            inferKeyrackMechForGet,
+          } = require('../../../inferKeyrackMechForGet');
+          const mech = inferKeyrackMechForGet({ value: testJson });
+          expect(mech).toEqual('PERMANENT_VIA_REPLICA');
+        });
+      },
+    );
   });
 
   given('[case6] write operation attempted (os.envvar is read-only)', () => {
