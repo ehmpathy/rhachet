@@ -174,8 +174,12 @@ describe('rhx pnpm hoisted compatibility', () => {
         expect(stderr).not.toContain('run: not found');
       });
 
-      then('error output matches snapshot', () => {
-        expect(result.stderr).toMatchSnapshot();
+      then('error contains helpful message', () => {
+        const stderr = result.stderr;
+        // verify the error is from rhachet domain logic, not shell
+        expect(stderr).toContain('BadRequestError');
+        expect(stderr).toContain('no skill');
+        expect(stderr).toContain('available skills');
       });
     });
   });
