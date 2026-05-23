@@ -4,7 +4,25 @@
 #
 # .note = keyrack is short-circuited to avoid skill proxy overhead
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# follow symlinks to find the real bin directory (handles pnpm hoisted mode)
+# .note = POSIX shell has no const/immutable constructs; mutation is the only mechanism
+#         for loops. this is the standard idiom used by git, docker, and all major shell projects.
+EXECUTABLE="$0"
+LINK_DEPTH=0
+while [ -L "$EXECUTABLE" ]; do
+  LINK_DEPTH=$((LINK_DEPTH + 1))
+  if [ "$LINK_DEPTH" -gt 20 ]; then
+    echo "error: symlink cycle detected after 20 iterations" >&2
+    exit 1
+  fi
+  SCRIPT_DIR="$(cd "$(dirname "$EXECUTABLE")" && pwd)"
+  EXECUTABLE="$(readlink "$EXECUTABLE")"
+  case "$EXECUTABLE" in
+    /*) ;;
+    *) EXECUTABLE="$SCRIPT_DIR/$EXECUTABLE" ;;
+  esac
+done
+SCRIPT_DIR="$(cd "$(dirname "$EXECUTABLE")" && pwd)"
 
 # short-circuit keyrack commands (via jit path, not bun binary)
 if [ "$1" = "keyrack" ]; then

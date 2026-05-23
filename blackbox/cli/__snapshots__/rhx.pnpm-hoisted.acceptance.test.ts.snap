@@ -1,0 +1,66 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx pnpm hoisted compatibility given: [case1] bin/rhx invoked via /bin/sh when: [t0] say-hello skill is called then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case1] bin/rhx invoked via /bin/sh when: [t1] say-hello skill with positional arg then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case2] bin/run invoked via /bin/sh when: [t0] --help is called then: output matches snapshot 1`] = `
+"Usage: rhachet [options] [command]
+
+rhachet cli interface. weave threads 🧵 of thought, stitched 🪡 with a rhachet
+⚙️
+
+Options:
+  -c, --config <path>       where to find the rhachet.use.ts config
+  -h, --help                display help for command
+
+Commands:
+  init [options]            initialize roles from packages or generate
+                            rhachet.use.ts
+  repo                      repository management commands
+  roles                     manage role resources (link, init, boot, cost)
+  list [options]            list available roles or skills under a role
+  readme [options]          print documentation for the registry, a role, or a
+                            skill
+  run [options]             run a solid skill (deterministic, no brain)
+  enroll [options] <brain>  enroll a brain CLI with customized roles
+  choose [options]          select one attempt file, archive its peer files, and
+                            remove unrelated ones
+  ask [options]             invoke a skill or start a fluid conversation with an
+                            actor
+  act [options]             invoke a rigid skill with brain
+  upgrade [options]         upgrade rhachet, role, and/or brain packages to
+                            latest versions
+  update                    see "upgrade"
+  keyrack                   manage credentials via keyrack
+  help [command]            display help for command
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case2] bin/run invoked via /bin/sh when: [t1] run --skill say-hello is called then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case3] symlink chain via /bin/sh when: [t0] rhx follows symlink chain under /bin/sh then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
