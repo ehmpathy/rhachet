@@ -1,0 +1,106 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx pnpm hoisted compatibility given: [case1] bin/rhx invoked via /bin/sh when: [t0] say-hello skill is called then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case1] bin/rhx invoked via /bin/sh when: [t1] say-hello skill with positional arg then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case2] bin/run invoked via /bin/sh when: [t0] --help is called then: output matches snapshot 1`] = `
+"Usage: rhachet [options] [command]
+
+rhachet cli interface. weave threads 🧵 of thought, stitched 🪡 with a rhachet
+⚙️
+
+Options:
+  -c, --config <path>       where to find the rhachet.use.ts config
+  -h, --help                display help for command
+
+Commands:
+  init [options]            initialize roles from packages or generate
+                            rhachet.use.ts
+  repo                      repository management commands
+  roles                     manage role resources (link, init, boot, cost)
+  list [options]            list available roles or skills under a role
+  readme [options]          print documentation for the registry, a role, or a
+                            skill
+  run [options]             run a solid skill (deterministic, no brain)
+  enroll [options] <brain>  enroll a brain CLI with customized roles
+  choose [options]          select one attempt file, archive its peer files, and
+                            remove unrelated ones
+  ask [options]             invoke a skill or start a fluid conversation with an
+                            actor
+  act [options]             invoke a rigid skill with brain
+  upgrade [options]         upgrade rhachet, role, and/or brain packages to
+                            latest versions
+  update                    see "upgrade"
+  keyrack                   manage credentials via keyrack
+  help [command]            display help for command
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case2] bin/run invoked via /bin/sh when: [t1] run --skill say-hello is called then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case3] symlink chain via /bin/sh when: [t0] rhx follows symlink chain under /bin/sh then: output matches snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=say-hello
+
+hello --skill
+"
+`;
+
+exports[`rhx pnpm hoisted compatibility given: [case4] error paths via /bin/sh when: [t0] nonexistent skill is called then: error output matches snapshot 1`] = `
+"[0m[1m102 |[0m      * [0m[35mconst[0m phone = customer.phone ?? HelpfulError[0m[3m[1m.throw[0m([0m[32m'expected a phone'[0m)[0m[2m;[0m
+[0m[1m103 |[0m      * [0m[32m\`\`[0m[0m[32m\`[0m
+[0m[1m104 |[0m      */
+[0m[1m105 |[0m     [0m[35mstatic[0m [0m[35mthrow[0m([0m[2m// https://stackoverflow.com/a/51749145/3068233[0m
+[0m[1m106 |[0m     message, metadata) {
+[0m[1m107 |[0m         [0m[35mthrow[0m [0m[35mnew[0m [0m[33mthis[0m(message, metadata)[0m[2m;[0m
+                    [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1mBadRequestError: no skill "nonexistent-skill-xyz" found in any linked role
+
+available skills:
+  - graceful-fail (repo=.this role=any)
+  - say-emoji (repo=.this role=any)
+  - exit-code (repo=.this role=any)
+  - say-hello (repo=.this role=any)
+  - echo-args (repo=.this role=any)
+  ... and 1 more
+
+tip: did you \`npx rhachet roles link\` the --role this skill comes from?
+
+{
+  "input": {
+    "slugSkill": "nonexistent-skill-xyz"
+  }
+}[0m
+[0m      [2mat [0m[0m[1m[3mthrow[0m[2m ([0m[0m[36mnode_modules/.pnpm/helpful-errors@1.7.2/node_modules/helpful-errors/dist/HelpfulError.js[0m[2m:[0m[33m107[0m[2m:[33m15[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3mfindUniqueSkillExecutable[0m[2m ([0m[0m[36msrc/domain.operations/invoke/findUniqueSkillExecutable.ts[0m[2m:[0m[33m53[0m[2m:[33m21[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3mperformRunViaCommandMode[0m[2m ([0m[0m[36msrc/contract/cli/invokeRun.ts[0m[2m:[0m[33m96[0m[2m:[33m17[0m[2m)[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36msrc/contract/cli/invokeRun.ts[0m[2m:[0m[33m185[0m[2m:[33m20[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3m_parseCommand[0m[2m ([0m[0m[36mnode_modules/.pnpm/commander@14.0.0/node_modules/commander/lib/command.js[0m[2m:[0m[33m1604[0m[2m:[33m27[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3m_dispatchSubcommand[0m[2m ([0m[0m[36mnode_modules/.pnpm/commander@14.0.0/node_modules/commander/lib/command.js[0m[2m:[0m[33m1364[0m[2m:[33m25[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3mparse[0m[2m ([0m[0m[36mnode_modules/.pnpm/commander@14.0.0/node_modules/commander/lib/command.js[0m[2m:[0m[33m1094[0m[2m:[33m10[0m[2m)[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36msrc/contract/cli/invoke.bun.entry.run.ts[0m[2m:[0m[33m16[0m[2m:[33m11[0m[2m)[0m
+[0m      [2mat [0m[0m[1m[3m_invoke[0m[2m ([0m[0m[36msrc/contract/cli/invoke.bun.entry.run.ts[0m[2m:[0m[33m10[0m[2m:[33m17[0m[2m)[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mnode_modules/.pnpm/emoji-space-shim@0.1.3/node_modules/emoji-space-shim/dist/contract/sdk/withEmojiSpaceShim.js[0m[2m:[0m[33m14[0m[2m:[33m28[0m[2m)[0m
+[0m
+[2mBun v1.3.5 (Linux x64)[0m
+"
+`;

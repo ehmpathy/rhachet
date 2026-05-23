@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 ######################################################################
 # .what = shell entrypoint for rhachet CLI
 # .why = routes to bun (fast) or jit (flexible) dispatcher
@@ -11,11 +11,22 @@
 ######################################################################
 
 # resolve script directory (handles symlinks from node_modules/.bin/)
-SCRIPT="${BASH_SOURCE[0]}"
+# .note = POSIX shell has no const/immutable constructs; mutation is the only mechanism
+#         for loops. this is the standard idiom used by git, docker, and all major shell projects.
+SCRIPT="$0"
+LINK_DEPTH=0
 while [ -L "$SCRIPT" ]; do
+  LINK_DEPTH=$((LINK_DEPTH + 1))
+  if [ "$LINK_DEPTH" -gt 20 ]; then
+    echo "error: symlink cycle detected after 20 iterations" >&2
+    exit 1
+  fi
   SCRIPT_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
   SCRIPT="$(readlink "$SCRIPT")"
-  [[ "$SCRIPT" != /* ]] && SCRIPT="$SCRIPT_DIR/$SCRIPT"
+  case "$SCRIPT" in
+    /*) ;;
+    *) SCRIPT="$SCRIPT_DIR/$SCRIPT" ;;
+  esac
 done
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
 

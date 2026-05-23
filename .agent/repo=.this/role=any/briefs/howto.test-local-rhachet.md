@@ -6,17 +6,20 @@
 
 | command | what it runs | when to use |
 |---------|--------------|-------------|
-| `npx rhachet` / `npx rhx` | local via BASH_ENV wrapper | **preferred** |
-| `./node_modules/.bin/rhachet` | local via link | fallback if wrapper absent |
-| `./bin/rhx` | local source | only after you change CLI code |
+| `npx rhx` / `rhx` | local via BASH_ENV wrapper | **always** |
+| `npx rhachet` | local via BASH_ENV wrapper | **always** |
+
+**NEVER use `./bin/rhx` or `./bin/run` directly.**
 
 ## .the solution
 
-use `npx rhachet` or `npx rhx` for normal operations:
+use `npx rhachet` or `npx rhx` for all operations:
 
 ```bash
 npx rhachet run --skill say-hello
 npx rhx git.repo.test --what unit
+rhx route.drive
+rhx route.stone.set --stone my-stone --as passed
 ```
 
 the BASH_ENV wrapper routes these to `./node_modules/.bin/` automatically — no latency penalty.
@@ -43,25 +46,10 @@ npx() {
 
 then set `BASH_ENV=~/.bash_aliases` in your shell profile to load it in non-interactive shells (e.g., CI, Claude Code).
 
-## .when to use `./bin/rhx`
+## .forbidden patterns
 
-only after you change CLI source code (e.g., files in `src/contract/cli/`).
+**NEVER** use these patterns:
+- `./bin/rhx` — bypasses node_modules resolution
+- `./bin/run` — bypasses node_modules resolution
 
-```bash
-# you changed src/contract/cli/invokeRun.ts
-# now test your change:
-./bin/rhx say-hello
-./bin/run roles boot --repo .this --role any
-```
-
-if you did not change CLI code, do not use `./bin/`. use `./node_modules/.bin/rhachet` instead.
-
-## .permissions
-
-to use `./bin/rhx` or `./bin/run`, add to `.claude/settings.json`:
-
-```json
-"Bash(./bin/rhx:*)",
-"Bash(./bin/run:*)"
-```
-
+always use `npx rhx`, `rhx`, or `npx rhachet` instead.
