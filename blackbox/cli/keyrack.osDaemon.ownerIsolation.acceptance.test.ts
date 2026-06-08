@@ -162,8 +162,9 @@ describe('keyrack.osDaemon.ownerIsolation', () => {
         expect(sourceResult.status).not.toEqual(0);
       });
 
-      then('output indicates key not granted', () => {
-        expect(sourceResult.stderr).toContain('not granted');
+      then('output indicates key absent', () => {
+        // uses formatKeyrackGetOneOutput which shows proper status
+        expect(sourceResult.stderr).toContain('absent');
       });
     });
   });
