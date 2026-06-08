@@ -14,7 +14,11 @@ exports[`keyrack source CLI given: [case1] all keys granted via env passthrough 
 exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) when: [t0] source exits 2 with no stdout then: stdout matches snapshot 1`] = `""`;
 
 exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) when: [t1] stderr shows which keys not granted then: stderr matches snapshot 1`] = `
-"not granted: testorg.test.__TEST_SOURCE_STRICT_ABSENT__ (absent)
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_SOURCE_STRICT_ABSENT__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test[0m
 
 hint: use --lenient if partial results are acceptable
 "
@@ -53,22 +57,26 @@ exports[`keyrack source CLI given: [case6] --help output when: [t0] --help shows
 output export statements for shell eval
 
 Options:
-  --key <keyname>  single key to source (omit for all repo keys)
-  --env <env>      target env: prod, prep, test, all
-  --owner <owner>  owner identity (e.g., mechanic, foreman)
-  --for <owner>    alias for --owner
-  --strict         fail if any key not granted (default)
-  --lenient        skip absent keys silently
-  -h, --help       display help for command
+  --key <keyname>    single key to source (omit for all repo keys)
+  --env <env>        target env: prod, prep, test, all
+  --owner <owner>    owner identity (e.g., mechanic, foreman)
+  --for <owner>      alias for --owner
+  --strict           fail if any key not granted (default)
+  --lenient          skip absent keys silently
+  --allow-dangerous  bypass firewall for blocked long-lived tokens
+  -h, --help         display help for command
 "
 `;
 
 exports[`keyrack source CLI given: [case7] invalid inputs when: [t0] nonexistent --env value then: stderr matches snapshot 1`] = `""`;
 
 exports[`keyrack source CLI given: [case7] invalid inputs when: [t1] --key not in manifest then: stderr matches snapshot 1`] = `
-"not granted: testorg.test.INVALID_KEY (absent)
+"
+🔐 keyrack
+   └─ testorg.test.INVALID_KEY
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --key INVALID_KEY --env test[0m
 
-hint: use --lenient if partial results are acceptable
 "
 `;
 
@@ -90,5 +98,41 @@ exports[`keyrack source CLI given: [case8] shell escape edge cases when: [t2] se
 exports[`keyrack source CLI given: [case9] cross-org extends uses root org when: [t0] source outputs keys with root org then: stdout matches snapshot 1`] = `
 "export __TEST_CROSS_ORG_EXTENDED_KEY__='extended-secret'
 export __TEST_CROSS_ORG_ROOT_KEY__='root-secret'
+"
+`;
+
+exports[`keyrack source CLI given: [case10] dangerous token blocked (single key mode) when: [t0] source --key with dangerous token then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_SOURCE_BLOCKED_KEY__
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected github classic pat (ghp_*)
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+"
+`;
+
+exports[`keyrack source CLI given: [case10] dangerous token blocked (single key mode) when: [t1] source --key --allow-dangerous bypasses firewall then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_BLOCKED_KEY__='ghp_1234567890abcdefghijABCDEFGHIJ12345'
+"
+`;
+
+exports[`keyrack source CLI given: [case11] dangerous token blocked (multi-key mode) when: [t0] source with one dangerous token then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_SOURCE_MULTI_DANGEROUS_KEY__
+      ├─ status: blocked 🚫
+      │  ├─ its dangerous to use long lived tokens via replica mechanisms
+      │  └─ detected aws long-lived access key (AKIA*)
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack source CLI given: [case11] dangerous token blocked (multi-key mode) when: [t1] source --allow-dangerous bypasses firewall for all then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_MULTI_SAFE_KEY__='normal-secret-value'
+export __TEST_SOURCE_MULTI_DANGEROUS_KEY__='AKIAIOSFODNN7EXAMPLE'
 "
 `;

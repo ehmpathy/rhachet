@@ -506,6 +506,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <owner>', 'alias for --owner')
     .option('--strict', 'fail if any key not granted (default)')
     .option('--lenient', 'skip absent keys silently')
+    .option(
+      '--allow-dangerous',
+      'bypass firewall for blocked long-lived tokens',
+    )
     .action(
       async (opts: {
         key?: string;
@@ -514,6 +518,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         for?: string;
         strict?: boolean;
         lenient?: boolean;
+        allowDangerous?: boolean;
       }) => {
         // --owner takes precedence; --for is alias (null = default owner)
         const owner = opts.owner ?? opts.for ?? null;
@@ -549,12 +554,17 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const attempts = opts.key
           ? [
               await getOneKeyrackGrantByKey(
-                { key: opts.key, env: opts.env, org: undefined, allow: {} },
+                {
+                  key: opts.key,
+                  env: opts.env,
+                  org: undefined,
+                  allow: { dangerous: opts.allowDangerous },
+                },
                 context,
               ),
             ]
           : await getAllKeyrackGrantsByRepo(
-              { env: opts.env, allow: {} },
+              { env: opts.env, allow: { dangerous: opts.allowDangerous } },
               context,
             );
 
@@ -565,15 +575,19 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // strict mode: fail if any not granted
         if (!isLenient && notGranted.length > 0) {
           // no stdout (prevent partial eval)
-          // emit status to stderr
-          for (const a of notGranted) {
-            const slug = 'slug' in a ? a.slug : 'unknown';
-            console.error(`not granted: ${slug} (${a.status})`);
+          // emit formatted status to stderr (same as keyrack get)
+          if (opts.key) {
+            // single-key mode: use single-key formatter
+            console.error(
+              formatKeyrackGetOneOutput({ attempt: notGranted[0]! }),
+            );
+          } else {
+            // multi-key mode: use multi-key formatter + lenient hint
+            console.error(formatKeyrackGetAllOutput({ attempts: notGranted }));
+            console.error(
+              'hint: use --lenient if partial results are acceptable',
+            );
           }
-          console.error('');
-          console.error(
-            'hint: use --lenient if partial results are acceptable',
-          );
           process.exit(2);
         }
 
