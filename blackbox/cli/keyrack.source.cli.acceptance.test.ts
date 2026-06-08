@@ -900,4 +900,207 @@ env.test:
       });
     });
   });
+
+  given('[case10] dangerous token blocked (single key mode)', () => {
+    const envKey = '__TEST_SOURCE_BLOCKED_KEY__';
+    // GitHub classic PAT pattern triggers dangerous token firewall
+    const dangerousValue = 'ghp_1234567890abcdefghijABCDEFGHIJ12345';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.test:
+  - ${envKey}
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] source --key with dangerous token', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'source',
+            '--key',
+            envKey,
+            '--env',
+            'test',
+            '--owner',
+            'testorg',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKey]: dangerousValue,
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 2', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('stdout is empty (no partial exports)', () => {
+        expect(result.stdout.trim()).toEqual('');
+      });
+
+      then('stderr contains blocked status', () => {
+        expect(result.stderr).toContain('blocked');
+      });
+
+      then('stderr contains reason for block', () => {
+        expect(result.stderr).toContain('dangerous');
+      });
+
+      then('stderr contains --allow-dangerous tip', () => {
+        expect(result.stderr).toContain('--allow-dangerous');
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] source --key --allow-dangerous bypasses firewall', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'source',
+            '--key',
+            envKey,
+            '--env',
+            'test',
+            '--owner',
+            'testorg',
+            '--allow-dangerous',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKey]: dangerousValue,
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains export statement', () => {
+        expect(result.stdout).toContain('export');
+        expect(result.stdout).toContain(envKey);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case11] dangerous token blocked (multi-key mode)', () => {
+    const safeKey = '__TEST_SOURCE_MULTI_SAFE_KEY__';
+    const dangerousKey = '__TEST_SOURCE_MULTI_DANGEROUS_KEY__';
+    const safeValue = 'normal-secret-value';
+    // AWS access key pattern triggers dangerous token firewall
+    const dangerousValue = 'AKIAIOSFODNN7EXAMPLE';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.test:
+  - ${safeKey}
+  - ${dangerousKey}
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] source with one dangerous token', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--env', 'test', '--owner', 'testorg'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [safeKey]: safeValue,
+            [dangerousKey]: dangerousValue,
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 2', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('stdout is empty (no partial exports)', () => {
+        expect(result.stdout.trim()).toEqual('');
+      });
+
+      then('stderr contains blocked key', () => {
+        expect(result.stderr).toContain(dangerousKey);
+        expect(result.stderr).toContain('blocked');
+      });
+
+      then('stderr contains --lenient hint', () => {
+        expect(result.stderr).toContain('--lenient');
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] source --allow-dangerous bypasses firewall for all', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'source',
+            '--env',
+            'test',
+            '--owner',
+            'testorg',
+            '--allow-dangerous',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [safeKey]: safeValue,
+            [dangerousKey]: dangerousValue,
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout contains both keys', () => {
+        expect(result.stdout).toContain(safeKey);
+        expect(result.stdout).toContain(dangerousKey);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
 });
