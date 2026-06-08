@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, ConstraintError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
@@ -527,6 +527,14 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // default to strict mode
         const isLenient = opts.lenient ?? false;
+
+        // fail fast: sudo credentials require --key (not in keyrack.yml)
+        if (opts.env === 'sudo' && !opts.key) {
+          throw new ConstraintError(
+            'sudo credentials require --key. sudo keys are not stored in keyrack.yml.',
+            { hint: 'use: rhx keyrack source --env sudo --key <keyname>' },
+          );
+        }
 
         // get gitroot for repo manifest
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
