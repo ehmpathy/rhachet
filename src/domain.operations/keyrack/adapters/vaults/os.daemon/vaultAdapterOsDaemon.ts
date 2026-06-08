@@ -3,6 +3,7 @@ import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
+import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -10,6 +11,7 @@ import {
   findsertKeyrackDaemon,
   isDaemonReachable,
 } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { promptHiddenInput } from '@src/infra/promptHiddenInput';
 
@@ -48,9 +50,14 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = core operation for grant flow
    *
    * .note = returns full KeyrackKeyGrant from daemon cache
+   * .note = uses input.owner for per-owner daemon isolation
    */
   get: async (input) => {
-    const result = await daemonAccessGet({ slugs: [input.slug] });
+    // derive socket path from owner (enables per-owner daemon isolation)
+    const socketPath = getKeyrackDaemonSocketPath({
+      owner: input.owner ?? null,
+    });
+    const result = await daemonAccessGet({ slugs: [input.slug], socketPath });
 
     // daemon not reachable — return null
     if (!result) return null;
@@ -79,8 +86,13 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = enables set flow for credential storage
    *
    * .note = vault prompts for its own secret via stdin
+   * .note = uses context.owner for per-owner daemon isolation
    */
-  set: async (input) => {
+  set: async (input, context?: ContextKeyrack) => {
+    // derive socket path from owner (enables per-owner daemon isolation)
+    const owner = context?.owner ?? null;
+    const socketPath = getKeyrackDaemonSocketPath({ owner });
+
     // os.daemon only supports EPHEMERAL_VIA_SESSION (keys die on logout/crash)
     const mech = input.mech ?? 'EPHEMERAL_VIA_SESSION';
 
@@ -101,8 +113,8 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
       ? asIsoTimeStamp(new Date(input.expiresAt))
       : asIsoTimeStamp(new Date(Date.now() + defaultTtlMs));
 
-    // ensure daemon is alive (auto-start if absent)
-    await findsertKeyrackDaemon();
+    // ensure daemon is alive for this owner (auto-start if absent)
+    await findsertKeyrackDaemon({ socketPath });
 
     // extract org and env from slug (format: org.env.keyName)
     const { org, env } = asKeyrackSlugParts({ slug: input.slug });
@@ -118,6 +130,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
           expiresAt,
         },
       ],
+      socketPath,
     });
 
     return { mech };
@@ -126,8 +139,14 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
   /**
    * .what = remove a credential from the daemon
    * .why = enables del flow for credential removal
+   *
+   * .note = uses input.owner for per-owner daemon isolation
    */
-  del: async (input: { slug: string }) => {
-    await daemonAccessRelock({ slugs: [input.slug] });
+  del: async (input: { slug: string; owner?: string | null }) => {
+    // derive socket path from owner (enables per-owner daemon isolation)
+    const socketPath = getKeyrackDaemonSocketPath({
+      owner: input.owner ?? null,
+    });
+    await daemonAccessRelock({ slugs: [input.slug], socketPath });
   },
 };
