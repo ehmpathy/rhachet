@@ -54,7 +54,9 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
    */
   get: async (input) => {
     // derive socket path from owner (enables per-owner daemon isolation)
-    const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
+    const socketPath = getKeyrackDaemonSocketPath({
+      owner: input.owner ?? null,
+    });
     const result = await daemonAccessGet({ slugs: [input.slug], socketPath });
 
     // daemon not reachable — return null
@@ -142,7 +144,9 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
    */
   del: async (input: { slug: string; owner?: string | null }) => {
     // derive socket path from owner (enables per-owner daemon isolation)
-    const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
+    const socketPath = getKeyrackDaemonSocketPath({
+      owner: input.owner ?? null,
+    });
     await daemonAccessRelock({ slugs: [input.slug], socketPath });
   },
 };

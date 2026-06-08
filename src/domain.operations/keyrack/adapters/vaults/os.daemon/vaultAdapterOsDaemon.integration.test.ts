@@ -152,7 +152,9 @@ describe('vaultAdapterOsDaemon integration', () => {
     const testOwner = `test-owner-${process.pid}`;
 
     // derive the socket path that set() will use for this owner
-    const { getKeyrackDaemonSocketPath } = require('@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath');
+    const {
+      getKeyrackDaemonSocketPath,
+    } = require('@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath');
     const ownerSocketPath = getKeyrackDaemonSocketPath({ owner: testOwner });
     const ownerPidPath = ownerSocketPath.replace(/\.sock$/, '.pid');
 
@@ -176,10 +178,9 @@ describe('vaultAdapterOsDaemon integration', () => {
         setMockPromptValues(testSecret);
 
         // call set with context.owner — this is the fix under test
-        await vaultAdapterOsDaemon.set(
-          { slug: testSlug },
-          { owner: testOwner } as Parameters<typeof vaultAdapterOsDaemon.set>[1],
-        );
+        await vaultAdapterOsDaemon.set({ slug: testSlug }, {
+          owner: testOwner,
+        } as Parameters<typeof vaultAdapterOsDaemon.set>[1]);
 
         // verify: key should be in owner-specific daemon (ownerSocketPath)
         const result = await daemonAccessGet({
@@ -237,10 +238,9 @@ describe('vaultAdapterOsDaemon integration', () => {
         setMockPromptValues(testSecret);
 
         // store via adapter.set with owner
-        await vaultAdapterOsDaemon.set(
-          { slug: testSlug },
-          { owner: testOwner } as Parameters<typeof vaultAdapterOsDaemon.set>[1],
-        );
+        await vaultAdapterOsDaemon.set({ slug: testSlug }, {
+          owner: testOwner,
+        } as Parameters<typeof vaultAdapterOsDaemon.set>[1]);
 
         // retrieve via adapter.get with same owner
         const grant = await vaultAdapterOsDaemon.get({

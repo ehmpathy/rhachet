@@ -43,51 +43,56 @@ describe('invokeKeyrack source (integration)', () => {
         // verify ConstraintError thrown
         expect(thrownError).not.toBeNull();
         expect(thrownError).toBeInstanceOf(ConstraintError);
-        expect(thrownError?.message).toContain('sudo credentials require --key');
+        expect(thrownError?.message).toContain(
+          'sudo credentials require --key',
+        );
         expect(thrownError?.message).toContain('not stored in keyrack.yml');
       });
     });
 
     when('[t1] source called with --env sudo and --key', () => {
-      then('does not throw ConstraintError (proceeds to key lookup)', async () => {
-        const program = new Command('rhachet');
-        program.exitOverride();
+      then(
+        'does not throw ConstraintError (proceeds to key lookup)',
+        async () => {
+          const program = new Command('rhachet');
+          program.exitOverride();
 
-        // mock process.exit to prevent Commander from throwing on exit
-        const exitSpy = jest
-          .spyOn(process, 'exit')
-          .mockImplementation(() => undefined as never);
+          // mock process.exit to prevent Commander from throwing on exit
+          const exitSpy = jest
+            .spyOn(process, 'exit')
+            .mockImplementation(() => undefined as never);
 
-        invokeKeyrack({ program });
+          invokeKeyrack({ program });
 
-        // this will fail later (no daemon, key absent, etc) but should NOT
-        // fail with ConstraintError about missing --key
-        let thrownError: Error | null = null;
-        try {
-          await program.parseAsync([
-            'node',
-            'rhachet',
-            'keyrack',
-            'source',
-            '--env',
-            'sudo',
-            '--key',
-            'TEST_KEY',
-          ]);
-        } catch (err) {
-          thrownError = err as Error;
-        }
+          // this will fail later (no daemon, key absent, etc) but should NOT
+          // fail with ConstraintError about missing --key
+          let thrownError: Error | null = null;
+          try {
+            await program.parseAsync([
+              'node',
+              'rhachet',
+              'keyrack',
+              'source',
+              '--env',
+              'sudo',
+              '--key',
+              'TEST_KEY',
+            ]);
+          } catch (err) {
+            thrownError = err as Error;
+          }
 
-        exitSpy.mockRestore();
+          exitSpy.mockRestore();
 
-        // should NOT be a ConstraintError about --key
-        // (may be exit error from key absent, that's expected)
-        if (thrownError instanceof ConstraintError) {
-          expect(thrownError.message).not.toContain(
-            'sudo credentials require --key',
-          );
-        }
-      });
+          // should NOT be a ConstraintError about --key
+          // (may be exit error from key absent, that's expected)
+          if (thrownError instanceof ConstraintError) {
+            expect(thrownError.message).not.toContain(
+              'sudo credentials require --key',
+            );
+          }
+        },
+      );
     });
   });
 });
