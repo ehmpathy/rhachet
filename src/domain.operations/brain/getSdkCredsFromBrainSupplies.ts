@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
 import { keyrack } from '@src/contract/sdk.keyrack';
+import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
 
 /**
  * .what = lookup credentials from brain supplier creds config

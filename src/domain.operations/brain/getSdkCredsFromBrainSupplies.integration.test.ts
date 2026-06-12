@@ -40,7 +40,9 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
         expect(error).toBeInstanceOf(Error);
 
         // message is actionable with original error and fix
-        expect(error.message).toContain('brain supplier credential getter failed');
+        expect(error.message).toContain(
+          'brain supplier credential getter failed',
+        );
         expect(error.message).toContain('vault connection failed');
         expect(error.message).toContain('check your credential source');
 
