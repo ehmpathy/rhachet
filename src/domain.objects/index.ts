@@ -16,12 +16,6 @@ export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
 
-// export * from './Weave';
-// export * from './Weaver';
-
-// export * from './Weave';
-// export * from './Weaver';
-
 export * from './Actor';
 export * from './ActorRoleSkill';
 export * from './BrainAtom';
@@ -40,6 +34,7 @@ export * from './BrainRepl';
 export * from './BrainSeries';
 export * from './BrainSpec';
 export * from './BrainSpecifier';
+export * from './BrainSuppliesCreds';
 export * from './ContextBrain';
 export * from './ContextBrainSupplier';
 export * from './ContextCli';

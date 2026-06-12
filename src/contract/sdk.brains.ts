@@ -34,12 +34,16 @@ export { BrainSeries } from '@src/domain.objects/BrainSeries';
 export { BrainSpec } from '@src/domain.objects/BrainSpec';
 export type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 export type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
+// brain supplier context + creds
+export type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
 export {
   type BrainChoice,
   ContextBrain,
   isBrainAtom,
   isBrainRepl,
 } from '@src/domain.objects/ContextBrain';
+export type { ContextBrainSupplier } from '@src/domain.objects/ContextBrainSupplier';
+export { getSdkCredsFromBrainSupplies } from '@src/domain.operations/brain/getSdkCredsFromBrainSupplies';
 export { asBrainPlugToolDict } from '@src/domain.operations/brainContinuation/asBrainPlugToolDict';
 export { genBrainContinuables } from '@src/domain.operations/brainContinuation/genBrainContinuables';
 export { genBrainPlugToolDeclaration } from '@src/domain.operations/brainContinuation/genBrainPlugToolDeclaration';
@@ -49,4 +53,5 @@ export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainToken
 export { getAvailableBrains } from '@src/domain.operations/brains/getAvailableBrains';
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
+export { genContextBrainSupplier } from '@src/domain.operations/context/genContextBrainSupplier';
 export { getAvailableBrainsInWords } from '@src/domain.operations/context/getAvailableBrainsInWords';
