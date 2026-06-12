@@ -1,0 +1,85 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genContextBrainSupplier given: [case1] keyrack creds when: [t0] supplier with keyrack config then: output matches snapshot 1`] = `
+{
+  "brain.supplier.xai": {
+    "creds": {
+      "keyrack": {
+        "env": "test",
+        "owner": "ehmpathy",
+      },
+    },
+  },
+}
+`;
+
+exports[`genContextBrainSupplier given: [case2] getter creds when: [t0] supplier with async getter then: output structure matches snapshot 1`] = `
+{
+  "credsType": "function",
+  "keys": [
+    "brain.supplier.xai",
+  ],
+}
+`;
+
+exports[`genContextBrainSupplier given: [case3] null creds when: [t0] supplier with null creds then: output matches snapshot 1`] = `
+{
+  "brain.supplier.fireworks": {
+    "creds": null,
+  },
+}
+`;
+
+exports[`genContextBrainSupplier given: [case4] supplier with extra properties when: [t0] supplies include additional config then: output matches snapshot 1`] = `
+{
+  "brain.supplier.openai": {
+    "creds": {
+      "keyrack": {
+        "env": "prod",
+        "owner": "ehmpathy",
+      },
+    },
+    "model": "gpt-4",
+    "temperature": 0.7,
+  },
+}
+`;
+
+exports[`genContextBrainSupplier given: [case5] different supplier slugs when: [t0] fireworks supplier then: output matches snapshot 1`] = `
+{
+  "brain.supplier.fireworks": {
+    "creds": {
+      "keyrack": {
+        "env": "test",
+        "owner": "ehmpathy",
+      },
+    },
+  },
+}
+`;
+
+exports[`genContextBrainSupplier given: [case5] different supplier slugs when: [t1] openai supplier then: output matches snapshot 1`] = `
+{
+  "brain.supplier.openai": {
+    "creds": {
+      "keyrack": {
+        "env": "prod",
+        "owner": "ehmpathy",
+      },
+    },
+  },
+}
+`;
+
+exports[`genContextBrainSupplier given: [case5] different supplier slugs when: [t2] anthropic supplier then: output matches snapshot 1`] = `
+{
+  "brain.supplier.anthropic": {
+    "creds": {
+      "keyrack": {
+        "env": "prep",
+        "owner": "ehmpathy",
+      },
+    },
+  },
+}
+`;

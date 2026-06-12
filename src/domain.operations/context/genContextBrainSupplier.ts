@@ -1,3 +1,4 @@
+import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
 import type { ContextBrainSupplier } from '@src/domain.objects/ContextBrainSupplier';
 
 /**
@@ -13,9 +14,13 @@ import type { ContextBrainSupplier } from '@src/domain.objects/ContextBrainSuppl
  * .note
  *   - supplier slug becomes the namespaced key
  *   - supplies value is the context payload
+ *   - TSupplies must have creds (BrainSuppliesCreds or null)
  *   - the cast is required due to typescript computed property key limitation
  */
-export const genContextBrainSupplier = <TSlug extends string, TSupplies>(
+export const genContextBrainSupplier = <
+  TSlug extends string,
+  TSupplies extends { creds: BrainSuppliesCreds<any> | null },
+>(
   supplier: TSlug,
   supplies: TSupplies,
 ): ContextBrainSupplier<TSlug, TSupplies> => {

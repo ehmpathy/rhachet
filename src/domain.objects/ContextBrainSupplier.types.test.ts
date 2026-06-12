@@ -1,19 +1,31 @@
 /**
  * .what = type-level tests for ContextBrainSupplier
- * .why = verifies key structure, optional by mandate, and slug literal inference
+ * .why = verifies key structure, optional by mandate, slug literal inference, and creds constraint
  *
  * .note = these tests run at compile time, not runtime
  *   if the file compiles, the type tests pass
  */
+import type { BrainSuppliesCreds } from './BrainSuppliesCreds';
 import type { ContextBrainSupplier } from './ContextBrainSupplier';
 
 // declare mock supplies types for type tests
 interface BrainSuppliesXai {
-  creds: () => Promise<{ XAI_API_KEY: string }>;
+  creds: BrainSuppliesCreds<{ XAI_API_KEY: string }>;
 }
 
 interface BrainSuppliesAnthropic {
-  creds: () => Promise<{ ANTHROPIC_API_KEY: string }>;
+  creds: BrainSuppliesCreds<{ ANTHROPIC_API_KEY: string }>;
+}
+
+// local supplier with null creds
+interface BrainSuppliesOllama {
+  creds: null;
+  endpoint?: string;
+}
+
+// bad supplies without creds
+interface BadSuppliesNoCreds {
+  foo: string;
 }
 
 /**
@@ -132,23 +144,83 @@ interface BrainSuppliesAnthropic {
   // positive: optional access returns TSupplies | undefined
   const supplies = ctx['brain.supplier.xai'];
 
-  // negative: cannot call method without undefined check
+  // negative: cannot access creds without undefined check
   // @ts-expect-error - supplies may be undefined
-  supplies.creds();
+  supplies.creds;
 
-  // positive: after check, can call method
+  // positive: after check, can access creds
   if (supplies) {
-    const _creds = supplies.creds();
+    const _creds = supplies.creds;
   }
 };
 
 /**
- * runtime test that validates the type tests compiled successfully
- * if this file compiles, all type tests pass
+ * test: TSupplies must have creds field (constraint enforcement)
+ */
+() => {
+  // positive: cloud supplier with BrainSuppliesCreds
+  type ContextXai = ContextBrainSupplier<'xai', BrainSuppliesXai>;
+  const xaiCtx: ContextXai = {
+    'brain.supplier.xai': {
+      creds: async () => ({ XAI_API_KEY: 'key' }),
+    },
+  };
+
+  // positive: cloud supplier with keyrack shorthand
+  type ContextFireworks = ContextBrainSupplier<
+    'fireworks',
+    { creds: BrainSuppliesCreds<{ FIREWORKS_API_KEY: string }>; model?: string }
+  >;
+  const fireworksCtx: ContextFireworks = {
+    'brain.supplier.fireworks': {
+      creds: { keyrack: { owner: 'ehmpath', env: 'test' } },
+      model: 'llama-v3',
+    },
+  };
+
+  // positive: local supplier with null creds
+  type ContextOllama = ContextBrainSupplier<'ollama', BrainSuppliesOllama>;
+  const ollamaCtx: ContextOllama = {
+    'brain.supplier.ollama': {
+      creds: null,
+      endpoint: 'http://localhost:11434',
+    },
+  };
+
+  // negative: supplies without creds field should error
+  // @ts-expect-error - BadSuppliesNoCreds does not satisfy { creds: BrainSuppliesCreds<any> | null }
+  type ContextBad = ContextBrainSupplier<'bad', BadSuppliesNoCreds>;
+
+  void xaiCtx;
+  void fireworksCtx;
+  void ollamaCtx;
+};
+
+/**
+ * test: creds must be correct shape
+ */
+() => {
+  // negative: creds as string should error
+  // @ts-expect-error - string does not satisfy BrainSuppliesCreds<any> | null
+  const _badCreds: ContextBrainSupplier<'bad', { creds: string }> = {};
+
+  // negative: creds as number should error
+  // @ts-expect-error - number does not satisfy BrainSuppliesCreds<any> | null
+  const _badCredsNum: ContextBrainSupplier<'bad', { creds: number }> = {};
+};
+
+/**
+ * type tests compile-time verification
+ * if this file compiles without errors, all @ts-expect-error annotations are verified
+ * and all positive type assignments are valid
+ *
+ * .note = the describe/it wrapper exists to satisfy jest's requirement for at least one test
+ *   the real verification happens at compile time via @ts-expect-error annotations
  */
 describe('ContextBrainSupplier types', () => {
-  it('should compile type tests successfully', () => {
-    // if we reach here, all type tests above compiled successfully
-    expect(true).toBe(true);
+  it('exports the type from the module', () => {
+    // verify the type is exported (compile-time check)
+    const typeCheck: ContextBrainSupplier<'test', { creds: null }> = {};
+    expect(typeCheck).toBeDefined();
   });
 });

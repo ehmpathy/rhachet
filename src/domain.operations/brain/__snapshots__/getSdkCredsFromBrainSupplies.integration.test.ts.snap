@@ -1,0 +1,110 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case1] getter mode when: [t0] creds is an async function then: result matches snapshot 1`] = `
+{
+  "EXAMPLE_API_KEY": "test-key-from-getter",
+  "OTHER_KEY": "other-value",
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case1] getter mode when: [t1] getter rejects then: it throws BadRequestError with actionable context 1`] = `
+{
+  "message": "BadRequestError: brain supplier credential getter failed: vault connection failed. check your credential source (vault, kms, db) and ensure it is accessible
+
+{
+  "fix": "verify your credential getter function has access to the credential source and that the source is available"
+}",
+  "metadata": {
+    "cause": [Error: vault connection failed],
+    "fix": "verify your credential getter function has access to the credential source and that the source is available",
+  },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode with real keys when: [t0] keyrack key exists then: result structure matches snapshot 1`] = `
+{
+  "keys": [
+    "XAI_API_KEY",
+  ],
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode with real keys when: [t1] keyrack key does not exist then: it throws BadRequestError with actionable context 1`] = `
+{
+  "message": "BadRequestError: 
+🔐 keyrack
+   └─ ehmpathy.test.NONEXISTENT_KEY_FOR_TEST
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test[0m
+
+
+{
+  "status": "absent",
+  "key": "NONEXISTENT_KEY_FOR_TEST"
+}",
+  "metadata": {
+    "key": "NONEXISTENT_KEY_FOR_TEST",
+    "status": "absent",
+  },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t0] creds is neither function nor keyrack object then: it throws BadRequestError with actionable message 1`] = `
+{
+  "message": "BadRequestError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
+
+{
+  "received": "object"
+}",
+  "metadata": {
+    "received": "object",
+  },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t1] creds is null then: it throws BadRequestError with actionable message 1`] = `
+{
+  "message": "BadRequestError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
+
+{
+  "received": "object"
+}",
+  "metadata": {
+    "received": "object",
+  },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t0] keyrack config lacks owner then: it throws BadRequestError with actionable message 1`] = `
+{
+  "message": "BadRequestError: invalid keyrack config: owner absent. pass { keyrack: { owner, env } }
+
+{
+  "received": {
+    "env": "test"
+  }
+}",
+  "metadata": {
+    "received": {
+      "env": "test",
+    },
+  },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t1] keyrack config lacks env then: it throws BadRequestError with actionable message 1`] = `
+{
+  "message": "BadRequestError: invalid keyrack config: env absent. pass { keyrack: { owner, env } }
+
+{
+  "received": {
+    "owner": "ehmpathy"
+  }
+}",
+  "metadata": {
+    "received": {
+      "owner": "ehmpathy",
+    },
+  },
+}
+`;

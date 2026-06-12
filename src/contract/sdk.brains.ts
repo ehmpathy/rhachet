@@ -50,3 +50,9 @@ export { getAvailableBrains } from '@src/domain.operations/brains/getAvailableBr
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { getAvailableBrainsInWords } from '@src/domain.operations/context/getAvailableBrainsInWords';
+
+// brain supplier context + creds
+export type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
+export type { ContextBrainSupplier } from '@src/domain.objects/ContextBrainSupplier';
+export { genContextBrainSupplier } from '@src/domain.operations/context/genContextBrainSupplier';
+export { getSdkCredsFromBrainSupplies } from '@src/domain.operations/brain/getSdkCredsFromBrainSupplies';
