@@ -112,6 +112,7 @@ describe('getOneKeyrackGrantByKey', () => {
             env: 'test',
             mech: 'PERMANENT_VIA_REPLICA',
             grade: null,
+            flags: { isOptionalIfHas: null },
           },
         },
       });

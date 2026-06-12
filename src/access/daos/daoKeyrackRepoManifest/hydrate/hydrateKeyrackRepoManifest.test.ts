@@ -371,4 +371,56 @@ env.test:
       });
     });
   });
+
+  given('[case9] key with is-optional-if-has declaration', () => {
+    const explicit: KeyrackManifestExplicit = {
+      org: 'testorg',
+      envSections: {
+        'env.test': [
+          { key: 'AWS_PROFILE', 'is-optional-if-has': 'AWS_ACCESS_KEY_ID' },
+          {
+            key: 'GRADED_KEY',
+            'is-optional-if-has': 'ALT_KEY',
+            grade: 'ephemeral',
+          },
+          'NORMAL_KEY',
+        ],
+      },
+    };
+
+    when('[t0] hydrateKeyrackRepoManifest called', () => {
+      then('isOptionalIfHas is set on key with declaration', () => {
+        const result = hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: '/fake/path' },
+          { gitroot: testDir },
+        );
+        expect(
+          result.keys['testorg.test.AWS_PROFILE']?.flags.isOptionalIfHas,
+        ).toEqual('AWS_ACCESS_KEY_ID');
+      });
+
+      then('grade is still parsed from object form', () => {
+        const result = hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: '/fake/path' },
+          { gitroot: testDir },
+        );
+        expect(
+          result.keys['testorg.test.GRADED_KEY']?.flags.isOptionalIfHas,
+        ).toEqual('ALT_KEY');
+        expect(result.keys['testorg.test.GRADED_KEY']?.grade?.duration).toEqual(
+          'ephemeral',
+        );
+      });
+
+      then('isOptionalIfHas is null for bare string keys', () => {
+        const result = hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: '/fake/path' },
+          { gitroot: testDir },
+        );
+        expect(
+          result.keys['testorg.test.NORMAL_KEY']?.flags.isOptionalIfHas,
+        ).toBeNull();
+      });
+    });
+  });
 });

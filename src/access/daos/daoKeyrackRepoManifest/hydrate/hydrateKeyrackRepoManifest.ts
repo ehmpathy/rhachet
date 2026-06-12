@@ -13,19 +13,50 @@ import {
 
 /**
  * .what = parse a key entry from env.* array
- * .why = handles both bare key names and key:grade shorthand
+ * .why = handles bare key names, key:grade shorthand, and { key, is-optional-if-has } form
  */
 const parseKeyEntry = (
   entry: unknown,
-): { key: string; grade: KeyrackKeySpec['grade'] } => {
-  // bare string: just key name, no grade
-  if (typeof entry === 'string') return { key: entry, grade: null };
+): {
+  key: string;
+  grade: KeyrackKeySpec['grade'];
+  flags: KeyrackKeySpec['flags'];
+} => {
+  // bare string: just key name, no grade, no conditional
+  if (typeof entry === 'string')
+    return { key: entry, grade: null, flags: { isOptionalIfHas: null } };
 
-  // object: { KEY_NAME: 'encrypted' } or { KEY_NAME: 'ephemeral' } etc
+  // object form
   if (typeof entry === 'object' && entry !== null) {
-    const [key, gradeStr] = Object.entries(entry)[0] ?? [];
-    if (!key) throw new BadRequestError('empty key entry in keyrack manifest');
-    return { key, grade: parseGradeShorthand(gradeStr) };
+    const obj = entry as Record<string, unknown>;
+
+    // new form: { key: 'X', 'is-optional-if-has': 'Y', grade?: 'ephemeral' }
+    if ('key' in obj && typeof obj.key === 'string') {
+      const isOptionalIfHas =
+        'is-optional-if-has' in obj &&
+        typeof obj['is-optional-if-has'] === 'string'
+          ? obj['is-optional-if-has']
+          : null;
+      const gradeStr = 'grade' in obj ? obj.grade : null;
+      return {
+        key: obj.key,
+        grade: parseGradeShorthand(gradeStr),
+        flags: { isOptionalIfHas },
+      };
+    }
+
+    // legacy form: { KEY_NAME: 'encrypted' } or { KEY_NAME: 'ephemeral' }
+    const [key, gradeStr] = Object.entries(obj)[0] ?? [];
+    if (!key)
+      throw new BadRequestError('empty key entry in keyrack manifest', {
+        entry: obj,
+        hint: 'each key entry must have a key name',
+      });
+    return {
+      key,
+      grade: parseGradeShorthand(gradeStr),
+      flags: { isOptionalIfHas: null },
+    };
   }
 
   throw new BadRequestError('invalid key entry in keyrack manifest', { entry });
@@ -98,6 +129,7 @@ const extractKeysFromEnvSections = (input: {
   const envAllEntries: Array<{
     key: string;
     grade: KeyrackKeySpec['grade'];
+    flags: KeyrackKeySpec['flags'];
   }> = [];
   const envAll = envSections['env.all'];
   if (Array.isArray(envAll)) {
@@ -107,7 +139,7 @@ const extractKeysFromEnvSections = (input: {
   }
 
   // register env.all keys with .all. slug (always directly resolvable)
-  for (const { key, grade } of envAllEntries) {
+  for (const { key, grade, flags } of envAllEntries) {
     const slug = `${org}.all.${key}`;
     keys[slug] = new KeyrackKeySpec({
       slug,
@@ -115,13 +147,14 @@ const extractKeysFromEnvSections = (input: {
       env: 'all',
       name: key,
       grade,
+      flags,
     });
   }
 
   // register keys for each declared env
   for (const env of declaredEnvs) {
     // expand env.all keys for this env
-    for (const { key, grade } of envAllEntries) {
+    for (const { key, grade, flags } of envAllEntries) {
       const slug = `${org}.${env}.${key}`;
       keys[slug] = new KeyrackKeySpec({
         slug,
@@ -129,6 +162,7 @@ const extractKeysFromEnvSections = (input: {
         env,
         name: key,
         grade,
+        flags,
       });
     }
 
@@ -136,7 +170,7 @@ const extractKeysFromEnvSections = (input: {
     const envEntries = envSections[`env.${env}`];
     if (Array.isArray(envEntries)) {
       for (const entry of envEntries) {
-        const { key, grade } = parseKeyEntry(entry);
+        const { key, grade, flags } = parseKeyEntry(entry);
         const slug = `${org}.${env}.${key}`;
         keys[slug] = new KeyrackKeySpec({
           slug,
@@ -144,6 +178,7 @@ const extractKeysFromEnvSections = (input: {
           env,
           name: key,
           grade,
+          flags,
         });
       }
     }

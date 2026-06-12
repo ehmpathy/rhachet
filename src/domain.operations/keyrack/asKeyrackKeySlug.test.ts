@@ -18,6 +18,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'test',
       mech: 'EPHEMERAL_VIA_AWS_SSO',
       grade: null,
+      flags: { isOptionalIfHas: null },
     },
     'ehmpathy.prod.AWS_PROFILE': {
       slug: 'ehmpathy.prod.AWS_PROFILE',
@@ -25,6 +26,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'prod',
       mech: 'EPHEMERAL_VIA_AWS_SSO',
       grade: null,
+      flags: { isOptionalIfHas: null },
     },
     'ehmpathy.test.GITHUB_TOKEN': {
       slug: 'ehmpathy.test.GITHUB_TOKEN',
@@ -32,6 +34,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'test',
       mech: 'EPHEMERAL_VIA_GITHUB_APP',
       grade: null,
+      flags: { isOptionalIfHas: null },
     },
   },
 });

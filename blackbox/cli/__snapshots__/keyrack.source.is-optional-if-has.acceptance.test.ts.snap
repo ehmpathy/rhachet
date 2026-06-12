@@ -1,0 +1,86 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack.source CLI is-optional-if-has given: [case1] absent key with alternative present (CLI) when: [t0] source in strict mode with alternative present then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case1] absent key with alternative present (CLI) when: [t0] source in strict mode with alternative present then: stdout matches snapshot 1`] = `
+"export __TEST_OPT_AWS_ACCESS_KEY_ID__='AKIAIOSFODNN7EXAMPLE'
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case1] absent key with alternative present (CLI) when: [t1] source in strict mode without alternative present then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   ├─ testorg.test.__TEST_OPT_AWS_PROFILE__
+   │  ├─ status: absent 🫧
+   │  └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_PROFILE__ --env test[0m
+   └─ testorg.test.__TEST_OPT_AWS_ACCESS_KEY_ID__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_ACCESS_KEY_ID__ --env test[0m
+
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case2] both keys present when: [t0] source with both keys present then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case2] both keys present when: [t0] source with both keys present then: stdout matches snapshot 1`] = `
+"export __TEST_OPT_BOTH_PRIMARY__='primary-value'
+export __TEST_OPT_BOTH_ALT__='alternative-value'
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case3] alternative key with empty string value when: [t0] source with empty alternative then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   ├─ testorg.test.__TEST_OPT_EMPTY_PRIMARY__
+   │  ├─ status: absent 🫧
+   │  └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_OPT_EMPTY_PRIMARY__ --env test[0m
+   └─ testorg.test.__TEST_OPT_EMPTY_ALT__
+      ├─ status: blocked 🚫
+      │  └─ no value to validate
+      └─ [2mtip: --allow-dangerous if you must[0m
+
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case4] key with is-optional-if-has AND grade when: [t0] source with graded key and alternative present then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case4] key with is-optional-if-has AND grade when: [t0] source with graded key and alternative present then: stdout matches snapshot 1`] = `
+"export __TEST_OPT_GRADED_ALT__='alternative-graded-value'
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case5] alternative key NOT in manifest but present in env when: [t0] source with alternative in env but not in manifest then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case5] alternative key NOT in manifest but present in env when: [t0] source with alternative in env but not in manifest then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case5] alternative key NOT in manifest but present in env when: [t1] source without alternative in env then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.__TEST_OPT_ENV_ONLY_PRIMARY__
+      ├─ status: absent 🫧
+      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_OPT_ENV_ONLY_PRIMARY__ --env test[0m
+
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+
+hint: use --lenient if partial results are acceptable
+"
+`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case6] primary key directly supplied (happy path) when: [t0] source with primary key supplied then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source CLI is-optional-if-has given: [case6] primary key directly supplied (happy path) when: [t0] source with primary key supplied then: stdout matches snapshot 1`] = `
+"export __TEST_OPT_DIRECT_PRIMARY__='direct-primary-value'
+"
+`;

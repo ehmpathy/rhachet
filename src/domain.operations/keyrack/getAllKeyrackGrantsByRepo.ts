@@ -25,6 +25,7 @@ export const getAllKeyrackGrantsByRepo = async (
   if (!context.repoManifest) {
     throw new BadRequestError(
       'no keyrack.yml found in repo. --for repo requires keyrack.yml',
+      { hint: 'create keyrack.yml in repo root with env and key definitions' },
     );
   }
 
@@ -41,7 +42,7 @@ export const getAllKeyrackGrantsByRepo = async (
   });
 
   // grant all keys
-  return getKeyrackKeyGrant(
+  const attempts = await getKeyrackKeyGrant(
     {
       for: { repo: true },
       env: input.env ?? undefined,
@@ -50,4 +51,6 @@ export const getAllKeyrackGrantsByRepo = async (
     },
     context,
   );
+
+  return attempts;
 };
