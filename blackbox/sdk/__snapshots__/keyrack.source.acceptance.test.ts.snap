@@ -37,6 +37,10 @@ exports[`keyrack.source given: [case3] no keyrack.yml in repo (no keys required)
 "
 BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
 
+{
+  "hint": "create keyrack.yml in repo root with env and key definitions"
+}
+
 [args] keyrack,get,--for,repo,--env,test,--json
 
 "
@@ -90,6 +94,8 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
+
+hint: use mode: 'lenient' if partial results are acceptable
 "
 `;
 
@@ -102,6 +108,8 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
+
+hint: use mode: 'lenient' if partial results are acceptable
 "
 `;
 
@@ -136,6 +144,8 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
+
+hint: use mode: 'lenient' if partial results are acceptable
 "
 `;
 
@@ -148,6 +158,8 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
+
+hint: use mode: 'lenient' if partial results are acceptable
 "
 `;
 
