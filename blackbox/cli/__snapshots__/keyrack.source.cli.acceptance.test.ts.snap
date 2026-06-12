@@ -20,6 +20,10 @@ exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) w
       ├─ status: absent 🫧
       └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test[0m
 
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
+
 hint: use --lenient if partial results are acceptable
 "
 `;
@@ -126,6 +130,10 @@ exports[`keyrack source CLI given: [case11] dangerous token blocked (multi-key m
       │  ├─ its dangerous to use long lived tokens via replica mechanisms
       │  └─ detected aws long-lived access key (AKIA*)
       └─ [2mtip: --allow-dangerous if you must[0m
+
+
+✋ some keys were not granted, yet are strictly required
+   └─ ask a human to set the keys, then try again
 
 hint: use --lenient if partial results are acceptable
 "

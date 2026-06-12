@@ -2,6 +2,7 @@
 
 exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided setup with mock gh CLI when: [t0] keyrack set --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP via guided wizard (pseudo-TTY) then: stdout matches snapshot 1`] = `
 "🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264387697-vcgshh/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which github org?
    │  ├─ options
@@ -9,6 +10,7 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] gu
    │  │  ├─ 2. otherorg
    │  └─ choice: 1
    │     └─ testorg ✓
+/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264387697-vcgshh/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which github app?
    │  ├─ options

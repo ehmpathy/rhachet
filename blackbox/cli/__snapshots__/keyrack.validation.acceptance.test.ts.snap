@@ -4,6 +4,10 @@ exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t0] k
 "
 BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
 
+{
+  "hint": "create keyrack.yml in repo root with env and key definitions"
+}
+
 [args] keyrack,get,--for,repo
 
 "
