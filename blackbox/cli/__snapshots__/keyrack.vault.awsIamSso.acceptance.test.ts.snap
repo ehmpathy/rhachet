@@ -317,7 +317,6 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
    │  │  └─ 🔑 MOCK-CODE
    │  └─ ✓ authenticated
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264240888-3895vk/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which account?
    │  ├─ options
@@ -327,7 +326,6 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
    │     └─ 1
    │     ├─ 1 ✓
    │     └─ as testorg-dev
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264240888-3895vk/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which role?
    │  ├─ options
@@ -462,7 +460,6 @@ exports[`keyrack vault aws.config given: [case16] set key WITHOUT identity colli
    │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
    │  │  └─ 🔑 MOCK-CODE
    │  └─ ✓ authenticated
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264251845-y2aix5/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which account?
    │  ├─ options
@@ -472,7 +469,6 @@ exports[`keyrack vault aws.config given: [case16] set key WITHOUT identity colli
    │     └─ 1
    │     ├─ 1 ✓
    │     └─ as testorg-dev
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264251845-y2aix5/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which role?
    │  ├─ options
@@ -525,7 +521,6 @@ exports[`keyrack vault aws.config given: [case17] set key WITH identity collisio
    │  │  ├─ 🔗 https://device.sso.us-east-1.amazonaws.com/
    │  │  └─ 🔑 MOCK-CODE
    │  └─ ✓ authenticated
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264253468-s44rcg/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which account?
    │  ├─ options
@@ -535,7 +530,6 @@ exports[`keyrack vault aws.config given: [case17] set key WITH identity collisio
    │     └─ 1
    │     ├─ 1 ✓
    │     └─ as testorg-dev
-/home/vlad/.bash_aliases: line 2: /tmp/rhachet-test-1781264253468-s44rcg/.bash_aliases.ductwork.sh: No such file or directory
    │
    ├─ which role?
    │  ├─ options
