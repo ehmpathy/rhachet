@@ -41,6 +41,7 @@ import {
   KEYRACK_VALID_ENVS,
 } from '@src/domain.operations/keyrack/constants';
 import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
+import { decideIsKeyStrictlyRequired } from '@src/domain.operations/keyrack/decideIsKeyStrictlyRequired';
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
 import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
@@ -572,20 +573,42 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const granted = asAttemptsByStatus({ attempts, status: 'granted' });
         const notGranted = asNotGrantedAttempts({ attempts });
 
-        // strict mode: fail if any not granted
-        if (!isLenient && notGranted.length > 0) {
+        // manifest must exist for repo keys (required to get attempts)
+        const { repoManifest } = context;
+        if (!repoManifest)
+          throw new BadRequestError('keyrack.yml not found', {
+            hint: 'run `rhx keyrack init --org <your-org>` to create one',
+          });
+
+        // filter out keys whose requirement is waived via is-optional-if-has
+        const keysStrictlyRequired = notGranted.filter((k) =>
+          decideIsKeyStrictlyRequired({
+            attempt: k,
+            manifest: repoManifest,
+            env: process.env as Record<string, string | undefined>,
+          }),
+        );
+
+        // strict mode: fail if any strictly required keys not granted
+        if (!isLenient && keysStrictlyRequired.length > 0) {
           // no stdout (prevent partial eval)
           // emit formatted status to stderr (same as keyrack get)
           if (opts.key) {
             // single-key mode: use single-key formatter
             console.error(
-              formatKeyrackGetOneOutput({ attempt: notGranted[0]! }),
+              formatKeyrackGetOneOutput({ attempt: keysStrictlyRequired[0]! }),
             );
           } else {
-            // multi-key mode: use multi-key formatter + lenient hint
-            console.error(formatKeyrackGetAllOutput({ attempts: notGranted }));
+            // multi-key mode: use multi-key formatter + error + lenient hint
             console.error(
-              'hint: use --lenient if partial results are acceptable',
+              formatKeyrackGetAllOutput({ attempts: keysStrictlyRequired }),
+            );
+            console.error(
+              '\n✋ some keys were not granted, yet are strictly required',
+            );
+            console.error('   └─ ask a human to set the keys, then try again');
+            console.error(
+              '\nhint: use --lenient if partial results are acceptable',
             );
           }
           process.exit(2);

@@ -1,9 +1,13 @@
 import { spawnSync } from 'child_process';
-import { resolve } from 'path';
+import { UnexpectedCodePathError } from 'helpful-errors';
+import { join, resolve } from 'path';
 
+import { loadManifestHydrated } from '@src/access/daos/daoKeyrackRepoManifest/hydrate/loadManifestHydrated';
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
 
+import { formatKeyrackGetAllOutput } from './cli/formatKeyrackGetOneOutput';
 import { decideIsKeySlugForEnv } from './decideIsKeySlugEqual';
+import { decideIsKeyStrictlyRequired } from './decideIsKeyStrictlyRequired';
 
 /**
  * .what = absolute path to rhx binary
@@ -104,19 +108,41 @@ export const sourceAllKeysIntoEnv = (input: {
   // check if all keys are granted (strict mode enabled by default)
   const mode = input.mode ?? 'strict';
   const keysNotGranted = keysForEnv.filter((k) => k.status !== 'granted');
-  if (mode === 'strict' && keysNotGranted.length > 0) {
-    // get formatted output (same stdout as CLI) and forward it
-    const formatted = spawnSync(RHX_BIN, args, {
-      encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+
+  // load manifest for is-optional-if-has lookup
+  const gitroot = process.cwd();
+  const manifest = loadManifestHydrated(
+    { path: join(gitroot, '.agent', 'keyrack.yml') },
+    { gitroot },
+  );
+
+  // manifest must exist if keyrack get returned valid JSON
+  if (!manifest)
+    throw new UnexpectedCodePathError(
+      'manifest not found after keyrack get succeeded',
+      { gitroot },
+    );
+
+  // filter out keys whose requirement is waived via is-optional-if-has
+  const keysStrictlyRequired = keysNotGranted.filter((k) =>
+    decideIsKeyStrictlyRequired({ attempt: k, manifest, env: process.env }),
+  );
+
+  if (mode === 'strict' && keysStrictlyRequired.length > 0) {
+    // format only the strictly required keys (not all absent keys)
+    const formatted = formatKeyrackGetAllOutput({
+      attempts: keysStrictlyRequired,
     });
-    const output = [
-      formatted.stdout,
-      formatted.stderr,
+    const errorOutput = [
+      formatted,
+      '\n',
       '✋ some keys were not granted, yet are strictly required\n',
       '   └─ ask a human to set the keys, then try again\n',
+      '\n',
+      "hint: use mode: 'lenient' if partial results are acceptable\n",
     ].join('');
-    process.stdout.write(output);
-    process.stderr.write(output);
+    process.stdout.write(errorOutput);
+    process.stderr.write(errorOutput);
     process.exit(2);
   }
 

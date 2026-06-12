@@ -41,6 +41,19 @@ export interface KeyrackKeySpec {
     protection: 'encrypted' | null;
     duration: 'ephemeral' | null;
   } | null;
+
+  /**
+   * .what = behavioral flags that modify how keyrack handles this key
+   * .why = separates flags from core identity (env, name) and constraints (grade, mech)
+   */
+  flags: {
+    /**
+     * .what = key name that waives this requirement if set in process.env
+     * .why = enables strict mode to pass when alternative auth is present (e.g., CI OIDC)
+     * .note = does NOT mean keyrack grants the alternative; just waives this requirement
+     */
+    isOptionalIfHas: string | null;
+  };
 }
 
 export class KeyrackKeySpec

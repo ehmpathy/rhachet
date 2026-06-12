@@ -25,6 +25,7 @@ export const genMockKeyrackRepoManifest = (input?: {
       env: partialSpec.env ?? env,
       name: partialSpec.name ?? name,
       grade: partialSpec.grade ?? null,
+      flags: partialSpec.flags ?? { isOptionalIfHas: null },
     });
   }
 
