@@ -1,19 +1,19 @@
 import { BadRequestError } from 'helpful-errors';
-import { given, then, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
-import { findBrainReplByRef } from './findBrainReplByRef';
+import { getOneBrainReplByRef } from './getOneBrainReplByRef';
 
-describe('findBrainReplByRef', () => {
+describe('getOneBrainReplByRef', () => {
   given('[case1] repls array contains matching repl', () => {
     const mockRepl = genMockedBrainRepl();
     const repls = [mockRepl];
 
-    when('[t0] findBrainReplByRef is called with matching ref', () => {
+    when('[t0] getOneBrainReplByRef is called with matching ref', () => {
       then('it returns the matching repl', () => {
-        const result = findBrainReplByRef({
+        const result = getOneBrainReplByRef({
           repls,
           ref: mockRepl,
         });
@@ -26,23 +26,16 @@ describe('findBrainReplByRef', () => {
     const mockRepl = genMockedBrainRepl();
     const repls: BrainRepl[] = [];
 
-    when('[t0] findBrainReplByRef is called', () => {
+    when('[t0] getOneBrainReplByRef is called', () => {
       then('it throws BadRequestError with "no repls available"', () => {
-        expect(() =>
-          findBrainReplByRef({
+        const error = getError(() =>
+          getOneBrainReplByRef({
             repls,
             ref: mockRepl,
           }),
-        ).toThrow(BadRequestError);
-
-        try {
-          findBrainReplByRef({
-            repls,
-            ref: mockRepl,
-          });
-        } catch (error) {
-          expect((error as Error).message).toContain('no repls available');
-        }
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect((error as BadRequestError).message).toMatchSnapshot();
       });
     });
   });
@@ -55,23 +48,16 @@ describe('findBrainReplByRef', () => {
     const mockReplToFind = genMockedBrainRepl();
     const repls = [mockReplInArray];
 
-    when('[t0] findBrainReplByRef is called with non-matching ref', () => {
+    when('[t0] getOneBrainReplByRef is called with non-matched ref', () => {
       then('it throws BadRequestError with "brain repl not found"', () => {
-        expect(() =>
-          findBrainReplByRef({
+        const error = getError(() =>
+          getOneBrainReplByRef({
             repls,
             ref: mockReplToFind,
           }),
-        ).toThrow(BadRequestError);
-
-        try {
-          findBrainReplByRef({
-            repls,
-            ref: mockReplToFind,
-          });
-        } catch (error) {
-          expect((error as Error).message).toContain('brain repl not found');
-        }
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect((error as BadRequestError).message).toMatchSnapshot();
       });
     });
   });
@@ -89,9 +75,9 @@ describe('findBrainReplByRef', () => {
     });
     const repls = [repl1, repl2];
 
-    when('[t0] findBrainReplByRef is called for second repl', () => {
+    when('[t0] getOneBrainReplByRef is called for second repl', () => {
       then('it returns the correct repl', () => {
-        const result = findBrainReplByRef({
+        const result = getOneBrainReplByRef({
           repls,
           ref: repl2,
         });
