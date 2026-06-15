@@ -1,0 +1,378 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genContextBrain explicit mode given: [case2] atoms with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws BadRequestError with actionable message 1`] = `
+"BadRequestError: duplicate atom identifier: __mock_repo__:__mock_atom__
+
+each atom must have a unique {repo, slug} combination.
+remove the duplicate or rename one of the atoms.
+
+{
+  "duplicateAtomKey": "__mock_repo__:__mock_atom__",
+  "atoms": [
+    "__mock_repo__:__mock_atom__",
+    "__mock_repo__:__mock_atom__"
+  ]
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case3] repls with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws BadRequestError with actionable message 1`] = `
+"BadRequestError: duplicate repl identifier: __mock_repo__:__mock_repl__
+
+each repl must have a unique {repo, slug} combination.
+remove the duplicate or rename one of the repls.
+
+{
+  "duplicateReplKey": "__mock_repo__:__mock_repl__",
+  "repls": [
+    "__mock_repo__:__mock_repl__",
+    "__mock_repo__:__mock_repl__"
+  ]
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case4] atoms is undefined in brains when: [t0] genContextBrain is called with only repls then: brain.atom.ask throws actionable error on call 1`] = `
+"BadRequestError: no atoms available in context
+
+pass atoms via genContextBrain({ brains: { atoms: [...] } }) or ensure
+brain packages are installed for discovery mode.
+
+{
+  "ref": {
+    "repo": "__mock_repo__",
+    "slug": "__mock_atom__",
+    "description": "mocked brain atom for tests",
+    "spec": {
+      "cost": {
+        "time": {
+          "speed": {
+            "tokens": 100,
+            "per": {
+              "seconds": 1
+            }
+          },
+          "latency": {
+            "milliseconds": 500
+          }
+        },
+        "cash": {
+          "per": "token",
+          "input": "USD 0.000_003",
+          "output": "USD 0.000_015",
+          "cache": {
+            "get": "USD 0.000_000_300",
+            "set": "USD 0.000_003_750"
+          }
+        }
+      },
+      "gain": {
+        "size": {
+          "context": {
+            "tokens": 200000
+          }
+        },
+        "grades": {
+          "swe": 72.5
+        },
+        "cutoff": "2025-04-01",
+        "domain": "ALL",
+        "skills": {
+          "tooluse": true,
+          "vision": true
+        }
+      }
+    }
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case5] repls is undefined in brains when: [t0] genContextBrain is called with only atoms then: brain.repl.act throws actionable error on call 1`] = `
+"BadRequestError: no repls available in context
+
+pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
+brain packages are installed for discovery mode.
+
+{
+  "ref": {
+    "repo": "__mock_repo__",
+    "slug": "__mock_repl__",
+    "description": "mocked brain repl for tests",
+    "spec": {
+      "cost": {
+        "time": {
+          "speed": {
+            "tokens": 100,
+            "per": {
+              "seconds": 1
+            }
+          },
+          "latency": {
+            "milliseconds": 500
+          }
+        },
+        "cash": {
+          "per": "token",
+          "input": "USD 0.000_003",
+          "output": "USD 0.000_015",
+          "cache": {
+            "get": "USD 0.000_000_300",
+            "set": "USD 0.000_003_750"
+          }
+        }
+      },
+      "gain": {
+        "size": {
+          "context": {
+            "tokens": 200000
+          }
+        },
+        "grades": {
+          "swe": 72.5
+        },
+        "cutoff": "2025-04-01",
+        "domain": "ALL",
+        "skills": {
+          "tooluse": true,
+          "vision": true
+        }
+      }
+    }
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case5] repls is undefined in brains when: [t0] genContextBrain is called with only atoms then: brain.repl.ask throws actionable error on call 1`] = `
+"BadRequestError: no repls available in context
+
+pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
+brain packages are installed for discovery mode.
+
+{
+  "ref": {
+    "repo": "__mock_repo__",
+    "slug": "__mock_repl__",
+    "description": "mocked brain repl for tests",
+    "spec": {
+      "cost": {
+        "time": {
+          "speed": {
+            "tokens": 100,
+            "per": {
+              "seconds": 1
+            }
+          },
+          "latency": {
+            "milliseconds": 500
+          }
+        },
+        "cash": {
+          "per": "token",
+          "input": "USD 0.000_003",
+          "output": "USD 0.000_015",
+          "cache": {
+            "get": "USD 0.000_000_300",
+            "set": "USD 0.000_003_750"
+          }
+        }
+      },
+      "gain": {
+        "size": {
+          "context": {
+            "tokens": 200000
+          }
+        },
+        "grades": {
+          "swe": 72.5
+        },
+        "cutoff": "2025-04-01",
+        "domain": "ALL",
+        "skills": {
+          "tooluse": true,
+          "vision": true
+        }
+      }
+    }
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case9] choice is { repl: string } when: [t1] genContextBrain is called with invalid repl choice then: it throws BrainChoiceNotFoundError with actionable message 1`] = `
+"BrainChoiceNotFoundError: repl brain not found: notfound/brain
+
+🔭 available brains
+   └── ↻ anthropic/claude-code
+
+{
+  "choice": {
+    "repl": "notfound/brain"
+  },
+  "available": {
+    "repls": [
+      "anthropic/claude-code"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case10] choice is { atom: string } when: [t1] genContextBrain is called with invalid atom choice then: it throws BrainChoiceNotFoundError with actionable message 1`] = `
+"BrainChoiceNotFoundError: atom brain not found: notfound/brain
+
+🔭 available brains
+   └── ○ xai/grok-3
+
+{
+  "choice": {
+    "atom": "notfound/brain"
+  },
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case12] choice is string with no match when: [t0] genContextBrain is called with unknown slug then: it throws BrainChoiceNotFoundError with actionable message 1`] = `
+"BrainChoiceNotFoundError: brain not found: notfound/brain
+
+🔭 available brains
+   ├── ○ xai/grok-3
+   └── ↻ anthropic/claude-code
+
+{
+  "choice": "notfound/brain",
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ],
+    "repls": [
+      "anthropic/claude-code"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case13] choice is string (ambiguous) when: [t0] genContextBrain is called with slug that matches multiple then: it throws BadRequestError with actionable message 1`] = `
+"BadRequestError: ambiguous brain slug: same/brain
+
+multiple brains match this slug. use a typed choice to disambiguate:
+  choice: { atom: 'same/brain' }  // for atom brain
+  choice: { repl: 'same/brain' }  // for repl brain
+
+{
+  "choice": "same/brain",
+  "matched": [
+    "same/brain",
+    "same/brain"
+  ]
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case16] generic choice not found when: [t0] genContextBrain is called with unknown slug then: error message includes formatted available brains 1`] = `
+"BrainChoiceNotFoundError: brain not found: antrhopic/cloude-code
+
+🔭 available brains
+   ├── ↻ anthropic/claude-code
+   └── ○ xai/grok-3
+
+{
+  "choice": "antrhopic/cloude-code",
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ],
+    "repls": [
+      "anthropic/claude-code"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case17] repl choice not found when: [t0] genContextBrain is called with invalid repl choice then: error message includes available repls only 1`] = `
+"BrainChoiceNotFoundError: repl brain not found: notfound/brain
+
+🔭 available brains
+   └── ↻ anthropic/claude-code
+
+{
+  "choice": {
+    "repl": "notfound/brain"
+  },
+  "available": {
+    "repls": [
+      "anthropic/claude-code"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case18] atom choice not found when: [t0] genContextBrain is called with invalid atom choice then: error message includes available atoms only 1`] = `
+"BrainChoiceNotFoundError: atom brain not found: notfound/brain
+
+🔭 available brains
+   └── ○ xai/grok-3
+
+{
+  "choice": {
+    "atom": "notfound/brain"
+  },
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case19] error metadata serialized in message when: [t0] BrainChoiceNotFoundError is thrown then: message contains choice and available brains in metadata 1`] = `
+"BrainChoiceNotFoundError: brain not found: notfound/brain
+
+🔭 available brains
+   ├── ○ xai/grok-3
+   └── ↻ anthropic/claude-code
+
+{
+  "choice": "notfound/brain",
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ],
+    "repls": [
+      "anthropic/claude-code"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case20] error type is BrainChoiceNotFoundError when: [t0] choice does not match any brain then: error is instanceof BrainChoiceNotFoundError 1`] = `
+"BrainChoiceNotFoundError: brain not found: notfound/brain
+
+🔭 available brains
+   └── ○ xai/grok-3
+
+{
+  "choice": "notfound/brain",
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ],
+    "repls": []
+  }
+}"
+`;
+
+exports[`genContextBrain explicit mode given: [case21] BrainChoiceNotFoundError extends HelpfulError when: [t0] choice does not match any brain then: error is instanceof HelpfulError 1`] = `
+"BrainChoiceNotFoundError: brain not found: notfound/brain
+
+🔭 available brains
+   └── ○ xai/grok-3
+
+{
+  "choice": "notfound/brain",
+  "available": {
+    "atoms": [
+      "xai/grok-3"
+    ],
+    "repls": []
+  }
+}"
+`;

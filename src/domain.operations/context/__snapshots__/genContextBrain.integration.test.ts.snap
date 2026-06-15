@@ -1,0 +1,117 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t0] generic choice does not match any discovered brain then: throws BrainChoiceNotFoundError with actionable message 1`] = `
+"BrainChoiceNotFoundError: brain not found: nonexistent/brain-slug-xyz
+
+🔭 available brains
+   ├── ↻ openai/codex
+   ├── ○ openai/gpt/4o
+   ├── ○ xai/grok/code-fast-1
+   ├── ○ xai/grok/3-mini
+   ├── ○ anthropic/claude/haiku
+   ├── ○ anthropic/claude/sonnet
+   ├── ○ anthropic/claude/opus
+   ├── ○ xai/grok/3
+   ├── ○ xai/grok/4
+   ├── ↻ anthropic/claude/code
+   ├── ○ xai/grok/4-fast-wout-reason
+   ├── ○ xai/grok/4-fast-with-reason
+   ├── ○ xai/grok/4.1-fast-wout-reason
+   ├── ↻ anthropic/claude/code/opus
+   ├── ○ xai/grok/4.1-fast-with-reason
+   ├── ↻ anthropic/claude/code/haiku
+   └── ↻ anthropic/claude/code/sonnet
+
+{
+  "choice": "nonexistent/brain-slug-xyz",
+  "available": {
+    "atoms": [
+      "anthropic/claude/haiku",
+      "anthropic/claude/sonnet",
+      "anthropic/claude/opus",
+      "openai/gpt/4o",
+      "xai/grok/code-fast-1",
+      "xai/grok/3",
+      "xai/grok/3-mini",
+      "xai/grok/4",
+      "xai/grok/4-fast-wout-reason",
+      "xai/grok/4-fast-with-reason",
+      "xai/grok/4.1-fast-wout-reason",
+      "xai/grok/4.1-fast-with-reason"
+    ],
+    "repls": [
+      "anthropic/claude/code",
+      "anthropic/claude/code/haiku",
+      "anthropic/claude/code/sonnet",
+      "anthropic/claude/code/opus",
+      "openai/codex"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t1] typed repl choice does not match then: throws BrainChoiceNotFoundError with repls in message 1`] = `
+"BrainChoiceNotFoundError: repl brain not found: nonexistent/repl-xyz
+
+🔭 available brains
+   ├── ↻ openai/codex
+   ├── ↻ anthropic/claude/code
+   ├── ↻ anthropic/claude/code/haiku
+   ├── ↻ anthropic/claude/code/opus
+   └── ↻ anthropic/claude/code/sonnet
+
+{
+  "choice": {
+    "repl": "nonexistent/repl-xyz"
+  },
+  "available": {
+    "repls": [
+      "anthropic/claude/code",
+      "anthropic/claude/code/haiku",
+      "anthropic/claude/code/sonnet",
+      "anthropic/claude/code/opus",
+      "openai/codex"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t2] typed atom choice does not match then: throws BrainChoiceNotFoundError with atoms in message 1`] = `
+"BrainChoiceNotFoundError: atom brain not found: nonexistent/atom-xyz
+
+🔭 available brains
+   ├── ○ openai/gpt/4o
+   ├── ○ xai/grok/3
+   ├── ○ xai/grok/3-mini
+   ├── ○ xai/grok/4
+   ├── ○ anthropic/claude/haiku
+   ├── ○ anthropic/claude/opus
+   ├── ○ xai/grok/code-fast-1
+   ├── ○ anthropic/claude/sonnet
+   ├── ○ xai/grok/4-fast-wout-reason
+   ├── ○ xai/grok/4-fast-with-reason
+   ├── ○ xai/grok/4.1-fast-wout-reason
+   └── ○ xai/grok/4.1-fast-with-reason
+
+{
+  "choice": {
+    "atom": "nonexistent/atom-xyz"
+  },
+  "available": {
+    "atoms": [
+      "anthropic/claude/haiku",
+      "anthropic/claude/sonnet",
+      "anthropic/claude/opus",
+      "openai/gpt/4o",
+      "xai/grok/code-fast-1",
+      "xai/grok/3",
+      "xai/grok/3-mini",
+      "xai/grok/4",
+      "xai/grok/4-fast-wout-reason",
+      "xai/grok/4-fast-with-reason",
+      "xai/grok/4.1-fast-wout-reason",
+      "xai/grok/4.1-fast-with-reason"
+    ]
+  }
+}"
+`;

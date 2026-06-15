@@ -7,15 +7,19 @@ import type { BrainAtom } from '@src/domain.objects/BrainAtom';
  * .what = finds a brain atom by its unique reference
  * .why = enables lookup of registered atoms by { repo, slug }
  */
-export const findBrainAtomByRef = (input: {
+export const getOneBrainAtomByRef = (input: {
   atoms: BrainAtom[];
   ref: RefByUnique<typeof BrainAtom>;
 }): BrainAtom => {
   // fail fast if no atoms available
   if (input.atoms.length === 0)
-    throw new BadRequestError('no atoms available in context', {
-      ref: input.ref,
-    });
+    BadRequestError.throw(
+      `no atoms available in context
+
+pass atoms via genContextBrain({ brains: { atoms: [...] } }) or ensure
+brain packages are installed for discovery mode.`,
+      { ref: input.ref },
+    );
 
   // lookup atom by ref
   const atomFound = input.atoms.find(
@@ -24,7 +28,14 @@ export const findBrainAtomByRef = (input: {
 
   // fail if not found
   if (!atomFound)
-    throw new BadRequestError('brain atom not found', { ref: input.ref });
+    BadRequestError.throw(
+      `brain atom not found: ${input.ref.repo}/${input.ref.slug}
+
+the atom was not registered in this context.
+check that the atom is included in brains.atoms or that the brain
+package is installed for discovery mode.`,
+      { ref: input.ref },
+    );
 
   return atomFound;
 };

@@ -6,12 +6,13 @@ import {
   getBrainAtomsByOpenAI,
   getBrainReplsByOpenAI,
 } from 'rhachet-brains-openai';
-import { given, then, when } from 'test-fns';
+import { getError, given, then, useThen, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
+import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { genContextBrain } from './genContextBrain';
@@ -192,6 +193,96 @@ describe('genContextBrain.integration', () => {
         });
 
         expect(receivedBriefs).toEqual(mockBriefs);
+      });
+    });
+  });
+
+  describe('discovery mode (async path)', () => {
+    // .note = tests the async path when no brains are provided
+    // genContextBrain({}) discovers installed rhachet-brains-* packages
+
+    given('[case3] genContextBrain({}) discovers installed brains', () => {
+      when('[t0] awaited without choice', () => {
+        const context = useThen('context is created via discovery', async () =>
+          genContextBrain({}),
+        );
+
+        then('brain.choice is null', () => {
+          expect(context.brain.choice).toBeNull();
+        });
+
+        then('brain.atom and brain.repl are defined', () => {
+          expect(context.brain.atom).toBeDefined();
+          expect(context.brain.repl).toBeDefined();
+          expect(typeof context.brain.atom.ask).toBe('function');
+          expect(typeof context.brain.repl.ask).toBe('function');
+          expect(typeof context.brain.repl.act).toBe('function');
+        });
+      });
+    });
+
+    given('[case4] discovery mode with invalid choice', () => {
+      when('[t0] generic choice does not match any discovered brain', () => {
+        then(
+          'throws BrainChoiceNotFoundError with actionable message',
+          async () => {
+            const error = await getError(async () =>
+              genContextBrain({ choice: 'nonexistent/brain-slug-xyz' }),
+            );
+            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
+            expect((error as Error).message).toContain('brain not found');
+            expect((error as Error).message).toContain('available brains');
+            expect((error as Error).message).toMatchSnapshot();
+          },
+        );
+      });
+
+      when('[t1] typed repl choice does not match', () => {
+        then(
+          'throws BrainChoiceNotFoundError with repls in message',
+          async () => {
+            const error = await getError(async () =>
+              genContextBrain({ choice: { repl: 'nonexistent/repl-xyz' } }),
+            );
+            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
+            expect((error as Error).message).toContain('repl brain not found');
+            expect((error as Error).message).toMatchSnapshot();
+          },
+        );
+      });
+
+      when('[t2] typed atom choice does not match', () => {
+        then(
+          'throws BrainChoiceNotFoundError with atoms in message',
+          async () => {
+            const error = await getError(async () =>
+              genContextBrain({ choice: { atom: 'nonexistent/atom-xyz' } }),
+            );
+            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
+            expect((error as Error).message).toContain('atom brain not found');
+            expect((error as Error).message).toMatchSnapshot();
+          },
+        );
+      });
+    });
+
+    given('[case5] discovery mode with creds', () => {
+      const creds = { keyrack: { owner: 'ehmpath', env: 'test' as const } };
+
+      when('[t0] awaited with creds but no choice', () => {
+        const context = useThen('context is created with creds', async () =>
+          genContextBrain({ creds }),
+        );
+
+        then('brain context is created with null choice', () => {
+          expect(context.brain).toBeDefined();
+          expect(context.brain.choice).toBeNull();
+        });
+
+        then('brain delegates are available', () => {
+          expect(context.brain.atom).toBeDefined();
+          expect(context.brain.repl).toBeDefined();
+        });
       });
     });
   });

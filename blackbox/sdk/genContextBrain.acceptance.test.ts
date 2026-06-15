@@ -25,7 +25,10 @@ describe('genContextBrain', () => {
           brains: { atoms: [atom], repls: [repl] },
           choice: 'xai/grok-3',
         });
-        expect(context.brain.choice).toBe(atom);
+        // check shape, not identity (brain may be wrapped with bound context)
+        expect(context.brain.choice?.repo).toBe(atom.repo);
+        expect(context.brain.choice?.slug).toBe(atom.slug);
+        expect(context.brain.choice?.ask).toBeDefined();
       });
     });
 
@@ -35,7 +38,10 @@ describe('genContextBrain', () => {
           brains: { atoms: [atom], repls: [repl] },
           choice: 'anthropic/claude-code',
         });
-        expect(context.brain.choice).toBe(repl);
+        // check shape, not identity (brain may be wrapped with bound context)
+        expect(context.brain.choice?.repo).toBe(repl.repo);
+        expect(context.brain.choice?.slug).toBe(repl.slug);
+        expect(context.brain.choice?.ask).toBeDefined();
       });
     });
   });
@@ -52,7 +58,9 @@ describe('genContextBrain', () => {
         });
         // typed choice gives precise type: BrainRepl
         const choice: BrainRepl = context.brain.choice!;
-        expect(choice).toBe(repl);
+        // check shape, not identity (brain may be wrapped with bound context)
+        expect(choice.repo).toBe(repl.repo);
+        expect(choice.slug).toBe(repl.slug);
         expect(choice.act).toBeDefined();
       });
     });
@@ -70,7 +78,9 @@ describe('genContextBrain', () => {
         });
         // typed choice gives precise type: BrainAtom
         const choice: BrainAtom = context.brain.choice!;
-        expect(choice).toBe(atom);
+        // check shape, not identity (brain may be wrapped with bound context)
+        expect(choice.repo).toBe(atom.repo);
+        expect(choice.slug).toBe(atom.slug);
         expect(choice.ask).toBeDefined();
       });
     });
