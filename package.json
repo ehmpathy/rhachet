@@ -99,6 +99,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-sso": "3.1041.0",
+    "@aws-sdk/credential-provider-sso": "3.972.54",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",
     "@octokit/auth-app": "8.2.0",

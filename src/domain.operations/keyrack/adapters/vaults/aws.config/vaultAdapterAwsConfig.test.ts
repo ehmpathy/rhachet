@@ -91,6 +91,12 @@ jest.mock('./getAllAwsSsoCacheEntries', () => ({
   getAllAwsSsoCacheEntries: jest.fn(() => []),
 }));
 
+// mock @aws-sdk/credential-provider-sso for SSO validation
+const mockFromSSO = jest.fn();
+jest.mock('@aws-sdk/credential-provider-sso', () => ({
+  fromSSO: jest.fn(() => mockFromSSO),
+}));
+
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
@@ -332,18 +338,23 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] isUnlocked with valid sso session', () => {
       beforeEach(() => {
-        // mock export-credentials (validates SSO + STS) and sts (username extraction)
-        // .note = export-credentials is the primary validator now
-        const futureExpiration = new Date(
-          Date.now() + 30 * 60 * 1000,
-        ).toISOString(); // 30 min from now
+        // mock fromSSO to succeed (validates with AWS SSO servers)
+        // .note = fromSSO is the primary validator — cache cannot be trusted
+        mockFromSSO.mockResolvedValue({
+          accessKeyId: 'AKIA...',
+          secretAccessKey: 'secret',
+          sessionToken: 'token',
+        });
+        // mock export-credentials (STS refresh) and sts get-caller-identity (username)
         execMock.mockImplementation((cmd: string, callback: any) => {
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
-              stdout: `AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=secret
-AWS_SESSION_TOKEN=token
-AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
+              stdout: [
+                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
+                'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
+              ].join('\n'),
               stderr: '',
             });
           } else if (cmd.includes('aws sts get-caller-identity')) {
@@ -364,39 +375,27 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         expect(result).toBe(true);
       });
 
-      then(
-        'validates via export-credentials then extracts username via sts',
-        async () => {
-          await vaultAdapterAwsConfig.isUnlocked({ exid: 'acme-prod' });
-          // first call: validate SSO + STS via export-credentials
-          expect(execMock).toHaveBeenCalledWith(
-            expect.stringMatching(
-              /aws configure export-credentials --profile "acme-prod"/,
-            ),
-            expect.any(Function),
-          );
-          // second call: extract username
-          expect(execMock).toHaveBeenCalledWith(
-            expect.stringMatching(
-              /aws sts get-caller-identity --profile "acme-prod"/,
-            ),
-            expect.any(Function),
-          );
-        },
-      );
+      then('validates via SDK then extracts username via sts', async () => {
+        await vaultAdapterAwsConfig.isUnlocked({ exid: 'acme-prod' });
+        // first: validate SSO via SDK (source of truth)
+        expect(mockFromSSO).toHaveBeenCalled();
+        // second: extract username via sts
+        expect(execMock).toHaveBeenCalledWith(
+          expect.stringContaining('aws sts get-caller-identity'),
+          expect.any(Function),
+        );
+      });
     });
 
     when('[t2] isUnlocked with expired sso session', () => {
       beforeEach(() => {
-        // mock export-credentials to fail with expired session
-        execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws configure export-credentials')) {
-            callback(genExecError('Token is expired'), null);
-          } else {
-            callback(genExecError('SSO session expired'), null);
-          }
-          return {} as any;
-        });
+        // mock fromSSO to fail with CredentialsProviderError (SSO expired or revoked)
+        // .note = SDK validates with AWS SSO servers — catches remote revocation
+        const credentialsError = new Error(
+          'The SSO session associated with this profile has expired',
+        );
+        credentialsError.name = 'CredentialsProviderError';
+        mockFromSSO.mockRejectedValue(credentialsError);
       });
 
       then('returns false', async () => {
@@ -409,15 +408,13 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
 
     when('[t3] isUnlocked with no cached SSO token', () => {
       beforeEach(() => {
-        // export-credentials fails when no SSO session
-        execMock.mockImplementation((cmd: string, callback: any) => {
-          if (cmd.includes('aws configure export-credentials')) {
-            callback(genExecError('SSO session expired'), null);
-          } else {
-            callback(genExecError('SSO session expired'), null);
-          }
-          return {} as any;
-        });
+        // mock fromSSO to fail — no cached token
+        // .note = SDK validates with AWS SSO servers — no cache means no session
+        const credentialsError = new Error(
+          'The SSO session token was not found or is invalid',
+        );
+        credentialsError.name = 'CredentialsProviderError';
+        mockFromSSO.mockRejectedValue(credentialsError);
       });
 
       then('returns false', async () => {
@@ -432,17 +429,23 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
   given('[case3] unlock flow with exid', () => {
     when('[t0] unlock called with valid session', () => {
       beforeEach(() => {
-        // mock export-credentials (validates SSO + STS) and sts (username extraction)
-        const futureExpiration = new Date(
-          Date.now() + 30 * 60 * 1000,
-        ).toISOString(); // 30 min from now
+        // mock fromSSO to succeed (validates with AWS SSO servers)
+        // .note = fromSSO is the primary validator — cache cannot be trusted
+        mockFromSSO.mockResolvedValue({
+          accessKeyId: 'AKIA...',
+          secretAccessKey: 'secret',
+          sessionToken: 'token',
+        });
+        // mock export-credentials (STS refresh) and sts get-caller-identity (username)
         execMock.mockImplementation((cmd: string, callback: any) => {
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
-              stdout: `AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=secret
-AWS_SESSION_TOKEN=token
-AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
+              stdout: [
+                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
+                'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
+              ].join('\n'),
               stderr: '',
             });
           } else if (cmd.includes('aws sts get-caller-identity')) {
@@ -466,10 +469,14 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
     });
 
     when('[t1] unlock called with expired session', () => {
-      let exportCredentialsCallCount = 0;
-
       beforeEach(() => {
-        exportCredentialsCallCount = 0;
+        // mock fromSSO to fail (SSO expired or revoked remotely)
+        // .note = SDK validates with AWS SSO servers — triggers login
+        const credentialsError = new Error(
+          'The SSO session associated with this profile has expired',
+        );
+        credentialsError.name = 'CredentialsProviderError';
+        mockFromSSO.mockRejectedValue(credentialsError);
 
         // mock SSO cache with access token (for previewAwsSsoCacheForDomain)
         getAllAwsSsoCacheEntriesMock.mockReturnValue([
@@ -483,26 +490,20 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
           },
         ]);
 
-        // mock export-credentials: fail first time (before login), succeed second time (after login)
+        // mock export-credentials for post-login STS refresh
         const futureExpiration = new Date(
           Date.now() + 30 * 60 * 1000,
         ).toISOString();
         execMock.mockImplementation((cmd: string, callback: any) => {
           if (cmd.includes('aws configure export-credentials')) {
-            exportCredentialsCallCount++;
-            if (exportCredentialsCallCount === 1) {
-              // first call: fail with expired
-              callback(genExecError('SSO session expired'), null);
-            } else {
-              // subsequent calls: succeed (after login)
-              callback(null, {
-                stdout: `AWS_ACCESS_KEY_ID=AKIA...
+            // called AFTER sso login to force STS refresh
+            callback(null, {
+              stdout: `AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=secret
 AWS_SESSION_TOKEN=token
 AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
-                stderr: '',
-              });
-            }
+              stderr: '',
+            });
           } else if (cmd.includes('aws sts get-caller-identity')) {
             callback(null, {
               stdout:
@@ -557,10 +558,12 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
 
     when('[t2] unlock called but aws sso login fails', () => {
       beforeEach(() => {
-        execMock.mockImplementation((cmd: string, callback: any) => {
-          callback(genExecError('SSO session expired'), null);
-          return {} as any;
-        });
+        // mock fromSSO to fail (triggers login)
+        const credentialsError = new Error(
+          'The SSO session associated with this profile has expired',
+        );
+        credentialsError.name = 'CredentialsProviderError';
+        mockFromSSO.mockRejectedValue(credentialsError);
 
         const { EventEmitter } = require('node:events');
         spawnMock.mockImplementation(() => {
