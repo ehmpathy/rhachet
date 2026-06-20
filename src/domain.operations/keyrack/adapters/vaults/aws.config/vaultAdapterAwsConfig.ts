@@ -17,6 +17,7 @@ import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
 import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
@@ -61,53 +62,64 @@ const checkProfileExists = (profileName: string): boolean => {
 };
 
 /**
- * .what = validate sso session for a profile and extract username
- * .why = checks if the profile's sso session is still valid
+ * .what = validate SSO token with AWS SSO servers via SDK
+ * .why = fromSSO is opaque — wrapper clarifies its purpose:
+ *        - creates credential provider that contacts AWS SSO
+ *        - validates token is still valid on AWS servers
+ *        - throws CredentialsProviderError if expired or revoked
  *
- * .note = checks SSO cache expiresAt FIRST because export-credentials can return
- *         cached STS credentials even when SSO token is expired. this is a documented
- *         edge case: "SSO credentials have expired but the cached STS credential for
- *         CLI is still valid, so that aws-cli still appears to work"
- *         https://github.com/aws/aws-cli/discussions/9237
+ * .note = this makes a network call to AWS SSO (not local cache)
+ */
+const validateSsoTokenWithAwsSdk = async (profileName: string): Promise<void> => {
+  await fromSSO({ profile: profileName })();
+};
+
+/**
+ * .what = validate SSO session via AWS SDK
+ * .why = cache cannot be trusted:
+ *        - export-credentials returns cached STS creds even when SSO expired
+ *        - local cache misses remote revocation (admin disables session)
+ *        - local cache misses format drift (AWS changes cache format)
+ *        - SDK validates against AWS SSO servers = source of truth
+ *        - see: https://github.com/aws/aws-cli/issues/9845
  *
- * .note = uses `aws configure export-credentials` as secondary validator
- *         only after SSO cache check passes (or if cache is absent)
- *
- * .note = uses `aws sts get-caller-identity` only for username extraction
+ * .note = this is required because cache can lie (original defect)
  *
  * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
 const validateSsoSession = async (
   profileName: string,
 ): Promise<{ valid: true; username: string } | { valid: false }> => {
-  // check SSO cache expiresAt FIRST — don't trust export-credentials alone
-  // .note = export-credentials can return cached STS creds even when SSO token is expired
-  //         https://github.com/aws/aws-cli/discussions/9237
-  const profileConfig = await getAwsSsoProfileConfig({ profileName });
-  if (profileConfig?.ssoStartUrl) {
-    const ssoCache = previewAwsSsoCacheForDomain({
-      ssoStartUrl: profileConfig.ssoStartUrl,
-    });
-
-    // if SSO token is expired, fail immediately (don't trust export-credentials)
-    if (ssoCache.matched.length > 0) {
-      const expiresAt = ssoCache.matched[0]?.expiresAt;
-      if (expiresAt && new Date(expiresAt) < new Date()) {
-        return { valid: false }; // SSO expired, skip export-credentials
-      }
+  // validate SSO via AWS SDK — cache cannot be trusted
+  try {
+    await validateSsoTokenWithAwsSdk(profileName);
+    // SDK validated token with AWS SSO servers — session is valid
+  } catch (error) {
+    // CredentialsProviderError = SSO expired or revoked remotely
+    if (
+      error instanceof Error &&
+      (error.name === 'CredentialsProviderError' ||
+        error.message.includes('expired') ||
+        error.message.includes('invalid'))
+    ) {
+      return { valid: false };
     }
+    // unknown error - fail fast
+    throw new UnexpectedCodePathError(
+      'validateSsoTokenWithAwsSdk failed with unexpected error',
+      { profileName, error },
+    );
   }
 
-  // SSO cache is valid (or absent) — now validate via export-credentials
-  // .note = if SSO cache is absent, export-credentials will fail if session is truly expired
-  // .note = if SSO is valid but STS cache is stale, this command refreshes it
+  // refresh STS cache — ensures CLI has fresh credentials for subsequent commands
+  // .note = fromSSO validated SSO token, but STS cache may still be stale
+  // .note = this pre-warms the credential cache for CLI use
   try {
     await execAsync(
       `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
     );
-    // success = credentials are valid and refreshed
   } catch (error) {
-    // export-credentials failed = session is not usable
+    // export-credentials failed after SSO validated — STS refresh issue
     const message = error instanceof Error ? error.message.toLowerCase() : '';
     const isExpiredError =
       message.includes('expired') ||
@@ -125,8 +137,8 @@ const validateSsoSession = async (
     );
   }
 
-  // sts call — only runs if export-credentials passed (credentials are valid)
-  // .note = only needed for username extraction, not validation
+  // sts call — only needed for username extraction, not validation
+  // .note = fromSSO + export-credentials already validated, this extracts username from ARN
   try {
     const { stdout } = await execAsync(
       `aws sts get-caller-identity --profile "${profileName}"`,
