@@ -1,3 +1,4 @@
+import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type {
@@ -17,7 +18,6 @@ import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
 import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
@@ -70,7 +70,9 @@ const checkProfileExists = (profileName: string): boolean => {
  *
  * .note = this makes a network call to AWS SSO (not local cache)
  */
-const validateSsoTokenWithAwsSdk = async (profileName: string): Promise<void> => {
+const validateSsoTokenWithAwsSdk = async (
+  profileName: string,
+): Promise<void> => {
   await fromSSO({ profile: profileName })();
 };
 
