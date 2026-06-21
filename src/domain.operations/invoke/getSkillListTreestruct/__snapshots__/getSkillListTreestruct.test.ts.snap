@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getSkillListTreestruct given: [case1] single repo output when: [t0] no pattern, no truncation then: shows treestruct header and count 1`] = `
+[
+  "🪨 rhx list",
+  "   ├─ 2 skills found",
+  "   │",
+  "   └─ repo=.this",
+  "      └─ role=any",
+  "         ├─ echo-args",
+  "         └─ say-hello",
+]
+`;
+
+exports[`getSkillListTreestruct given: [case2] multi repo output when: [t0] no pattern then: shows repos and roles in tree 1`] = `
+[
+  "🪨 rhx list",
+  "   ├─ 3 skills found",
+  "   │",
+  "   ├─ repo=.this",
+  "   │  └─ role=any",
+  "   │     └─ say-hello",
+  "   │",
+  "   └─ repo=test",
+  "      ├─ role=designer",
+  "      │  └─ wireframe",
+  "      └─ role=mechanic",
+  "         └─ git.commit",
+]
+`;
+
+exports[`getSkillListTreestruct given: [case3] 0 skills when: [t0] no skills then: shows zero count and snapshot 1`] = `
+[
+  "🪨 rhx list",
+  "   └─ 0 skills found",
+  "      └─ hint: run \`rhachet roles link\` to add skills",
+]
+`;
+
+exports[`getSkillListTreestruct given: [case5] 12 skills (truncation) when: [t0] truncate enabled then: shows truncation in snapshot 1`] = `
+[
+  "🪨 rhx list",
+  "   ├─ 12 skills found",
+  "   │",
+  "   └─ repo=test",
+  "      └─ role=mechanic",
+  "         ├─ skill-00",
+  "         ├─ skill-01",
+  "         ├─ skill-02",
+  "         ├─ skill-03",
+  "         ├─ skill-04",
+  "         ├─ skill-05",
+  "         ├─ skill-06",
+  "         ├─ skill-07",
+  "         ├─ skill-08",
+  "         ├─ skill-09",
+  "         └─ ... (2 more, use --all to see all)",
+]
+`;

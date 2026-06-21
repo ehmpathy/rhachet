@@ -1,0 +1,73 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx help commands given: [case1] repo with skills when: [t0] rhx help is invoked then: output matches snapshot 1`] = `
+"🪨 rhx [command] [...args]
+   ├─ commands
+   │  ├─ [skill]     run a skill (default)
+   │  ├─ list        show available skills
+   │  ├─ keyrack     manage credentials
+   │  ├─ enroll      enroll brain in role
+   │  └─ upgrade     upgrade rhachet
+   └─ options
+      ├─ --skill X   run skill by name (required, or use positional)
+      ├─ --init X    run init by name
+      ├─ --repo X    filter to specific repo
+      └─ --role X    filter to specific role
+
+ref: https://github.com/ehmpathy/rhachet#readme
+"
+`;
+
+exports[`rhx help commands given: [case1] repo with skills when: [t1] rhx --help is invoked then: output matches snapshot 1`] = `
+"🪨 rhx [command] [...args]
+   ├─ commands
+   │  ├─ [skill]     run a skill (default)
+   │  ├─ list        show available skills
+   │  ├─ keyrack     manage credentials
+   │  ├─ enroll      enroll brain in role
+   │  └─ upgrade     upgrade rhachet
+   └─ options
+      ├─ --skill X   run skill by name (required, or use positional)
+      ├─ --init X    run init by name
+      ├─ --repo X    filter to specific repo
+      └─ --role X    filter to specific role
+
+ref: https://github.com/ehmpathy/rhachet#readme
+"
+`;
+
+exports[`rhx help commands given: [case1] repo with skills when: [t2] rhx -h is invoked then: output matches snapshot 1`] = `
+"🪨 rhx [command] [...args]
+   ├─ commands
+   │  ├─ [skill]     run a skill (default)
+   │  ├─ list        show available skills
+   │  ├─ keyrack     manage credentials
+   │  ├─ enroll      enroll brain in role
+   │  └─ upgrade     upgrade rhachet
+   └─ options
+      ├─ --skill X   run skill by name (required, or use positional)
+      ├─ --init X    run init by name
+      ├─ --repo X    filter to specific repo
+      └─ --role X    filter to specific role
+
+ref: https://github.com/ehmpathy/rhachet#readme
+"
+`;
+
+exports[`rhx help commands given: [case1] repo with skills when: [t3] rhx --help with extra args is invoked then: output matches snapshot 1`] = `
+"🪨 rhx [command] [...args]
+   ├─ commands
+   │  ├─ [skill]     run a skill (default)
+   │  ├─ list        show available skills
+   │  ├─ keyrack     manage credentials
+   │  ├─ enroll      enroll brain in role
+   │  └─ upgrade     upgrade rhachet
+   └─ options
+      ├─ --skill X   run skill by name (required, or use positional)
+      ├─ --init X    run init by name
+      ├─ --repo X    filter to specific repo
+      └─ --role X    filter to specific role
+
+ref: https://github.com/ehmpathy/rhachet#readme
+"
+`;

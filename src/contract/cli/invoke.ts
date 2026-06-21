@@ -45,7 +45,8 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
     .description(
       'rhachet cli interface. weave threads 🧵 of thought, stitched 🪡 with a rhachet ⚙️',
     )
-    .option('-c, --config <path>', 'where to find the rhachet.use.ts config');
+    .option('-c, --config <path>', 'where to find the rhachet.use.ts config')
+    .enablePositionalOptions(); // required for subcommand passThroughOptions
 
   // register all commands unconditionally
   // each command uses context.config.usage.get.* just-in-time

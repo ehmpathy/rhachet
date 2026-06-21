@@ -12,6 +12,8 @@ import {
 import { findUniqueInitExecutable } from '@src/domain.operations/invoke/findUniqueInitExecutable';
 import { findUniqueSkillExecutable } from '@src/domain.operations/invoke/findUniqueSkillExecutable';
 
+import { invokeRunList } from './invokeRunList';
+
 /**
  * .what = extracts all args after 'run' command from process.argv
  * .why = captures full arg list for passthrough to skill
@@ -51,40 +53,6 @@ const performRunViaInitMode = (input: {
   executeInit({ init, args: rawArgs });
 };
 
-// /**
-//  * .what = performs run via actor-mode (typed solid skill on role)
-//  * .why = executes a typed solid skill via actor.run with full type safety
-//  *
-//  * .note = actor-mode is not supported yet via bun binary
-//  *         we need to support .agent/ linkage for actor-mode solid skills
-//  *         for now, we only support command-mode
-//  *
-//  * .question = do we even need actor support via cli? or is cmd enough?
-//  *             actor-mode requires registries+brains which means JIT path anyway
-//  */
-// const performRunViaActorMode = async (input: {
-//   opts: { skill: string; role: string };
-//   role: Role;
-//   brains: BrainRepl[];
-// }): Promise<void> => {
-//   // create actor
-//   const actor = genActor({ role: input.role, brains: input.brains });
-//
-//   // log which skill will run
-//   console.log(``);
-//   console.log(
-//     `🪨 run solid skill role=${input.opts.role}/skill=${input.opts.skill}`,
-//   );
-//   console.log(``);
-//
-//   // parse skill input from rest of args
-//   const rawArgs = getRawArgsAfterRun();
-//   const skillArgs = parseArgsToObject(rawArgs, input.opts.skill);
-//
-//   // invoke actor.run
-//   await actor.run({ skill: { [input.opts.skill]: skillArgs } });
-// };
-
 /**
  * .what = performs run via command-mode (shell skill discovery)
  * .why = discovers and executes shell skills from .agent/ directories
@@ -114,11 +82,34 @@ const performRunViaCommandMode = (input: {
 };
 
 /**
+ * .what = prints help treestruct to stdout
+ * .why = provides discoverable command reference
+ */
+const emitHelpOutput = (): void => {
+  console.log(`🪨 rhx [command] [...args]`);
+  console.log(`   ├─ commands`);
+  console.log(`   │  ├─ [skill]     run a skill (default)`);
+  console.log(`   │  ├─ list        show available skills`);
+  console.log(`   │  ├─ keyrack     manage credentials`);
+  console.log(`   │  ├─ enroll      enroll brain in role`);
+  console.log(`   │  └─ upgrade     upgrade rhachet`);
+  console.log(`   └─ options`);
+  console.log(
+    `      ├─ --skill X   run skill by name (required, or use positional)`,
+  );
+  console.log(`      ├─ --init X    run init by name`);
+  console.log(`      ├─ --repo X    filter to specific repo`);
+  console.log(`      └─ --role X    filter to specific role`);
+  console.log(``);
+  console.log(`ref: https://github.com/ehmpathy/rhachet#readme`);
+};
+
+/**
  * .what = adds the "run" command to the CLI
  * .why = discovers and executes solid skills (deterministic, no brain)
  */
 export const invokeRun = ({ program }: { program: Command }): void => {
-  program
+  const runCommand = program
     .command('run')
     .description('run a solid skill (deterministic, no brain)')
     .option('-s, --skill <slug>', 'the skill to execute')
@@ -126,9 +117,12 @@ export const invokeRun = ({ program }: { program: Command }): void => {
     .option('--repo <slug>', 'filter to specific repo')
     .option('-r, --role <slug>', 'filter to specific role')
     .option('--attempts <int>', 'not supported for run command')
+    .option('-h, --help', 'show help')
     .helpOption(false) // disable built-in --help so it passes through to skills
+    .enablePositionalOptions() // options after subcommand name belong to subcommand
+    .passThroughOptions() // stop parse at subcommand, pass options to it
     .allowUnknownOption(true)
-    .allowExcessArguments(true)
+    .allowExcessArguments(true) // positional args pass through to skills
     .action(
       (opts: {
         skill?: string;
@@ -136,11 +130,16 @@ export const invokeRun = ({ program }: { program: Command }): void => {
         repo?: string;
         role?: string;
         attempts?: string;
+        help?: boolean;
       }) => {
+        // handle help request (only if no skill/init specified — otherwise --help passes through to the skill)
+        if (opts.help && !opts.skill && !opts.init) return emitHelpOutput();
+
         // validate --attempts is not used with run
         if (opts.attempts)
           BadRequestError.throw(
             '--attempts is not supported for "run" (solid skills are deterministic). use "ask --skill --attempts" for stitch-mode or "act --skill --attempts" for actor-mode.',
+            { attempts: opts.attempts },
           );
 
         // determine mode
@@ -214,7 +213,11 @@ export const invokeRun = ({ program }: { program: Command }): void => {
         // neither mode specified
         BadRequestError.throw(
           '--skill or --init is required (e.g., --skill test.speed or --init setup.claude)',
+          { opts },
         );
       },
     );
+
+  // register list subcommand
+  invokeRunList({ runCommand });
 };

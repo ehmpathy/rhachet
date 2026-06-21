@@ -1,0 +1,169 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t0] rhx list is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 16 skills found
+   │
+   ├─ repo=.this
+   │  └─ role=any
+   │     ├─ echo-args
+   │     └─ say-hello
+   │
+   └─ repo=test
+      ├─ role=designer
+      │  ├─ mockup
+      │  └─ wireframe
+      └─ role=mechanic
+         ├─ git.commit.bind
+         ├─ git.commit.push
+         ├─ git.commit.set
+         ├─ git.commit.uses
+         ├─ git.release
+         ├─ git.repo.test
+         ├─ git.stage.add
+         ├─ radio.task.pull
+         ├─ radio.task.push
+         ├─ radio.uses
+         └─ ... (2 more, use --all to see all)
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t1] rhx list --help is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list [pattern] [--repo X] [--role X] [--all]
+   └─ options
+      ├─ [pattern]     search skills (contains, or glob if has *?[])
+      ├─ --repo X      filter by repo
+      ├─ --role X      filter by role
+      └─ --all         show all (no truncation)
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t2] rhx list help is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list [pattern] [--repo X] [--role X] [--all]
+   └─ options
+      ├─ [pattern]     search skills (contains, or glob if has *?[])
+      ├─ --repo X      filter by repo
+      ├─ --role X      filter by role
+      └─ --all         show all (no truncation)
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t3] rhx list -h is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list [pattern] [--repo X] [--role X] [--all]
+   └─ options
+      ├─ [pattern]     search skills (contains, or glob if has *?[])
+      ├─ --repo X      filter by repo
+      ├─ --role X      filter by role
+      └─ --all         show all (no truncation)
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t4] rhx list with pattern is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list '*git*'
+   ├─ 7 skills found
+   │
+   └─ repo=test
+      └─ role=mechanic
+         ├─ git.commit.bind
+         ├─ git.commit.push
+         ├─ git.commit.set
+         ├─ git.commit.uses
+         ├─ git.release
+         ├─ git.repo.test
+         └─ git.stage.add
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t5] rhx list --repo is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 2 skills found
+   │
+   └─ repo=.this
+      └─ role=any
+         ├─ echo-args
+         └─ say-hello
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t6] rhx list --role is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 2 skills found
+   │
+   └─ repo=test
+      └─ role=designer
+         ├─ mockup
+         └─ wireframe
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t7] rhx list with nonexistent pattern is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list '*zzz-nonexistent-pattern-zzz*'
+   └─ 0 skills found
+      └─ hint: run \`rhachet roles link\` to add skills
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t8] rhx list with glob pattern is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list 'git.*'
+   ├─ 7 skills found
+   │
+   └─ repo=test
+      └─ role=mechanic
+         ├─ git.commit.bind
+         ├─ git.commit.push
+         ├─ git.commit.set
+         ├─ git.commit.uses
+         ├─ git.release
+         ├─ git.repo.test
+         └─ git.stage.add
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t9] rhx list --all is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 16 skills found
+   │
+   ├─ repo=.this
+   │  └─ role=any
+   │     ├─ echo-args
+   │     └─ say-hello
+   │
+   └─ repo=test
+      ├─ role=designer
+      │  ├─ mockup
+      │  └─ wireframe
+      └─ role=mechanic
+         ├─ git.commit.bind
+         ├─ git.commit.push
+         ├─ git.commit.set
+         ├─ git.commit.uses
+         ├─ git.release
+         ├─ git.repo.test
+         ├─ git.stage.add
+         ├─ radio.task.pull
+         ├─ radio.task.push
+         ├─ radio.uses
+         ├─ radio.uses.org
+         └─ sedreplace
+"
+`;
+
+exports[`rhx list command given: [case1] repo with skills in multiple repos/roles when: [t10] rhx list with pattern and --repo filter is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list '*radio*'
+   ├─ 4 skills found
+   │
+   └─ repo=test
+      └─ role=mechanic
+         ├─ radio.task.pull
+         ├─ radio.task.push
+         ├─ radio.uses
+         └─ radio.uses.org
+"
+`;
+
+exports[`rhx list command given: [case2] repo with no skills when: [t0] rhx list is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   └─ 0 skills found
+      └─ hint: run \`rhachet roles link\` to add skills
+"
+`;

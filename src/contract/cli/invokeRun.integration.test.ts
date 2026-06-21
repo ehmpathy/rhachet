@@ -28,6 +28,7 @@ describe('invokeRun (integration)', () => {
     });
 
     const program = new Command();
+    program.enablePositionalOptions(); // required for passThroughOptions in invokeRun
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     beforeEach(() => {
@@ -329,16 +330,52 @@ describe('invokeRun (integration)', () => {
     });
   });
 
-  // actor-mode tests skipped: actor-mode is not supported yet
-  // we need to support .agent/ linkage for actor-mode solid skills
-  // for now, we only support command-mode
-  // .question = do we even need actor support via cli? or is cmd enough?
-  given.skip(
-    'a CLI program with invokeRun registered (actor-mode with typed solid skill)',
-    () => {
-      // actor-mode tests removed - see invokeRun.ts for explanation
-    },
-  );
+  // .note = actor-mode tests removed, not a supported feature for run command
+  // see invokeRun.ts for explanation
+
+  given('[case: help] a CLI program with invokeRun registered', () => {
+    const program = new Command();
+    program.enablePositionalOptions(); // required for passThroughOptions in invokeRun
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    beforeEach(() => {
+      logSpy.mockClear();
+    });
+
+    invokeRun({ program });
+
+    when('[t0] run --help is invoked', () => {
+      then('shows help treestruct', async () => {
+        await program.parseAsync(['run', '--help'], { from: 'user' });
+
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringMatching(/rhx \[command\] \[\.\.\.args\]/),
+        );
+        expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/commands/));
+        expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/\[skill\]/));
+        expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/list/));
+        expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/keyrack/));
+        expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/ref:/));
+      });
+
+      then('output matches snapshot', async () => {
+        logSpy.mockClear();
+        await program.parseAsync(['run', '--help'], { from: 'user' });
+        const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(output).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] run -h is invoked', () => {
+      then('shows same help output as --help', async () => {
+        await program.parseAsync(['run', '-h'], { from: 'user' });
+
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringMatching(/rhx \[command\] \[\.\.\.args\]/),
+        );
+      });
+    });
+  });
 
   given('linked roles with inits directory', () => {
     const testDir = resolve(__dirname, './.temp/invokeRun-init');
@@ -381,6 +418,7 @@ describe('invokeRun (integration)', () => {
     });
 
     const program = new Command();
+    program.enablePositionalOptions(); // required for passThroughOptions in invokeRun
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     beforeEach(() => {

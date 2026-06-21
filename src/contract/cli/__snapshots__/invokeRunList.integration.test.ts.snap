@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeRunList (integration) given: [case1] repo with skills in .agent/ when: [t0] run list is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 3 skills found
+   │
+   ├─ repo=.this
+   │  └─ role=mechanic
+   │     ├─ git.commit
+   │     └─ git.release
+   │
+   └─ repo=ehmpathy
+      └─ role=reviewer
+         └─ review.code"
+`;
+
+exports[`invokeRunList (integration) given: [case1] repo with skills in .agent/ when: [t1] run list help is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list [pattern] [--repo X] [--role X] [--all]
+   └─ options
+      ├─ [pattern]     search skills (contains, or glob if has *?[])
+      ├─ --repo X      filter by repo
+      ├─ --role X      filter by role
+      └─ --all         show all (no truncation)"
+`;
+
+exports[`invokeRunList (integration) given: [case2] repo with no skills when: [t0] run list is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   └─ 0 skills found
+      └─ hint: run \`rhachet roles link\` to add skills"
+`;
+
+exports[`invokeRunList (integration) given: [case3] repo with many skills (truncation) when: [t0] run list is invoked without --all then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 12 skills found
+   │
+   └─ repo=.this
+      └─ role=any
+         ├─ skill-01
+         ├─ skill-02
+         ├─ skill-03
+         ├─ skill-04
+         ├─ skill-05
+         ├─ skill-06
+         ├─ skill-07
+         ├─ skill-08
+         ├─ skill-09
+         ├─ skill-10
+         └─ ... (2 more, use --all to see all)"
+`;
+
+exports[`invokeRunList (integration) given: [case3] repo with many skills (truncation) when: [t1] run list --all is invoked then: output matches snapshot 1`] = `
+"🪨 rhx list
+   ├─ 12 skills found
+   │
+   └─ repo=.this
+      └─ role=any
+         ├─ skill-01
+         ├─ skill-02
+         ├─ skill-03
+         ├─ skill-04
+         ├─ skill-05
+         ├─ skill-06
+         ├─ skill-07
+         ├─ skill-08
+         ├─ skill-09
+         ├─ skill-10
+         ├─ skill-11
+         └─ skill-12"
+`;
