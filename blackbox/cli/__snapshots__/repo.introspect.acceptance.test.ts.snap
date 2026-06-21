@@ -125,7 +125,7 @@ each .md.min file must have a matched .md source file.
     at assertRegistryHasNoOrphanBriefs (<src>/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts:29:37)
     at Command.<anonymous> (<src>/contract/cli/invokeRepoIntrospect.ts:92:38)
     at async Command.parseAsync (<node_modules>/[4mcommander[24m/lib/command.js:1123:5)
-    at async _invoke (<src>/contract/cli/invoke.ts:76:3)
+    at async _invoke (<src>/contract/cli/invoke.ts:77:3)
     at async withEmojiSpaceShim (<src>/contract/sdk/withEmojiSpaceShim.ts:15:12)
 
 Node.js v22.21.0

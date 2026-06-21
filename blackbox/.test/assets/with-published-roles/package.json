@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "rhachet": "^1.19.0",
-    "rhachet-roles-ehmpathy": "^1.17.0"
+    "rhachet-roles-ehmpathy": "^1.17.0",
+    "rhachet-brains-xai": "^1.0.0"
   }
 }
