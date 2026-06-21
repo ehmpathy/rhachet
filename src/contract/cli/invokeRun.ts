@@ -132,8 +132,8 @@ export const invokeRun = ({ program }: { program: Command }): void => {
         attempts?: string;
         help?: boolean;
       }) => {
-        // handle help request
-        if (opts.help) return emitHelpOutput();
+        // handle help request (only if no skill/init specified — otherwise --help passes through to the skill)
+        if (opts.help && !opts.skill && !opts.init) return emitHelpOutput();
 
         // validate --attempts is not used with run
         if (opts.attempts)
