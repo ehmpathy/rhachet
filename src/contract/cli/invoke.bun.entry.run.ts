@@ -9,7 +9,10 @@ import { invokeRun } from './invokeRun';
 
 const _invoke = async (): Promise<void> => {
   const program = new Command();
-  program.name('rhachet').description('bun binary for rhachet run');
+  program
+    .name('rhachet')
+    .description('bun binary for rhachet run')
+    .enablePositionalOptions(); // required for subcommand passThroughOptions
 
   invokeRun({ program });
 

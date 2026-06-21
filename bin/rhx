@@ -24,6 +24,21 @@ while [ -L "$EXECUTABLE" ]; do
 done
 SCRIPT_DIR="$(cd "$(dirname "$EXECUTABLE")" && pwd)"
 
+# short-circuit help commands
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  exec "$SCRIPT_DIR/run" run --help
+fi
+
+# short-circuit list command
+if [ "$1" = "list" ]; then
+  shift
+  # handle list help specially (pass help as pattern so action handler sees it)
+  if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
+    exec "$SCRIPT_DIR/run" run list help
+  fi
+  exec "$SCRIPT_DIR/run" run list "$@"
+fi
+
 # short-circuit keyrack commands (via jit path, not bun binary)
 if [ "$1" = "keyrack" ]; then
   shift
