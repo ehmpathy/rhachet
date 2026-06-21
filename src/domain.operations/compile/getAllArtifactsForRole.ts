@@ -15,7 +15,13 @@ const DEFAULT_ARTIFACT_EXCLUSIONS = [
 
 const DEFAULT_ARTIFACT_INCLUSIONS = {
   briefs: ['**/*.md', '**/*.min'],
-  skills: ['**/*.sh', '**/*.ts', '**/*.jsonc', '**/template/**', '**/templates/**'],
+  skills: [
+    '**/*.sh',
+    '**/*.ts',
+    '**/*.jsonc',
+    '**/template/**',
+    '**/templates/**',
+  ],
   inits: ['**/*.sh', '**/*.ts', '**/*.jsonc'],
 };
 
