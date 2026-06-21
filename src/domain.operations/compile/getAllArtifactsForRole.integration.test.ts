@@ -143,6 +143,19 @@ describe('getAllArtifactsForRole.integration', () => {
         artifacts: ['skills/template/file.txt', 'skills/templates/other.txt'],
       },
     },
+    {
+      description: 'collects .ts files in skills (enables tsx dispatch)',
+      given: {
+        files: ['skills/tool.sh', 'skills/tool.ts', 'skills/helper.ts'],
+        role: {
+          slug: 'test-role',
+          skillsDirs: ['skills'],
+        },
+      },
+      expect: {
+        artifacts: ['skills/helper.ts', 'skills/tool.sh', 'skills/tool.ts'],
+      },
+    },
 
     // === inits dirs ===
     {
@@ -155,6 +168,19 @@ describe('getAllArtifactsForRole.integration', () => {
         },
       },
       expect: { artifacts: ['inits/config.jsonc', 'inits/setup.sh'] },
+    },
+    {
+      description: 'collects .ts files in inits (enables tsx dispatch)',
+      given: {
+        files: ['inits/setup.sh', 'inits/setup.ts', 'inits/helper.ts'],
+        role: {
+          slug: 'test-role',
+          initsDirs: ['inits'],
+        },
+      },
+      expect: {
+        artifacts: ['inits/helper.ts', 'inits/setup.sh', 'inits/setup.ts'],
+      },
     },
 
     // === role-level files ===
