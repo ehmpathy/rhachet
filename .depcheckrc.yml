@@ -24,3 +24,5 @@ ignores:
   - yalc
   - simple-log-methods # needed to support portable types
   - rhachet-brains-anthropic
+  - rhachet-brains-fireworksai
+  - rhachet-roles-rhachet
