@@ -2,7 +2,7 @@
   "name": "rhachet",
   "author": "ehmpathy",
   "description": "A framework for reliable, thorough thought. Weave threads of thought via stitches.",
-  "version": "1.41.22",
+  "version": "1.42.0",
   "repository": "ehmpathy/rhachet",
   "homepage": "https://github.com/ehmpathy/rhachet",
   "keywords": [
@@ -93,7 +93,7 @@
     "preversion": "npm run prepush",
     "postversion": "git push origin HEAD --tags --no-verify",
     "prepare:husky": "husky install && chmod ug+x .husky/*",
-    "prepare:rhachet": "npm run build && rhachet init --hooks --roles mechanic behaver driver architect ergonomist reviewer dreamer dispatcher learner",
+    "prepare:rhachet": "npm run build && rhachet init --hooks --roles mechanic behaver driver reviewer librarian ergonomist architect reflector dreamer dispatcher",
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi",
     "upgrade:rhachet": "rhachet upgrade"
   },
@@ -163,6 +163,7 @@
     "rhachet-roles-bhrain": "0.29.10",
     "rhachet-roles-bhuild": "0.21.18",
     "rhachet-roles-ehmpathy": "1.36.0",
+    "rhachet-roles-rhachet": "0.1.7",
     "test-fns": "1.15.0",
     "tsc-alias": "1.8.10",
     "tsx": "4.20.6",
