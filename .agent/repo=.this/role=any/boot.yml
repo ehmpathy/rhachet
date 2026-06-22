@@ -9,6 +9,7 @@ briefs:
     # core identity - always boot these
     - briefs/define.rhachet.v3.md
     - briefs/define.agent-dir.md
+    - briefs/define.init-enroll-brain-config.md
     # actively used patterns
     - briefs/howto.test-local-rhachet.md
     - briefs/bin.dispatcher.pattern.md
