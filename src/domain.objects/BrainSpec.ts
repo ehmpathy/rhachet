@@ -86,31 +86,60 @@ export interface BrainSpec {
 
     /**
      * .what = benchmark scores (0-100 scale)
+     *
+     * .note = recommended baseline set, chosen for differentiation at frontier:
+     *   - saturated benchmarks (MMLU, HumanEval) removed
+     *   - contamination-resistant benchmarks preferred
+     *   - suppliers may add custom grades via index signature
      */
     grades: {
       /**
-       * .what = SWE-bench score (software task resolution)
+       * .what = SWE-bench Verified score (software task resolution)
+       * .note = deprecated: 500 Python-only tasks, contaminated
        * @see https://www.swebench.com/
        */
-      swe?: number;
+      sweVer?: number;
 
       /**
-       * .what = MMLU score (massive multitask language test)
-       * @see https://arxiv.org/abs/2009.03300
+       * .what = SWE-bench Pro score (software task resolution)
+       * .note = current standard: 1,865 tasks across 123 languages
+       * @see https://www.swebench.com/
        */
-      mmlu?: number;
+      swePro?: number;
 
       /**
-       * .what = HumanEval score (code synthesis from docstrings)
-       * @see https://arxiv.org/abs/2107.03374
-       */
-      humaneval?: number;
-
-      /**
-       * .what = GPQA score (graduate-level science Q&A)
+       * .what = GPQA Diamond score (graduate-level science Q&A)
+       * .note = PhD-level Q&A in biology, chemistry, physics
        * @see https://arxiv.org/abs/2311.12022
        */
       gpqa?: number;
+
+      /**
+       * .what = MATH Level 5 score (competition mathematics)
+       * .note = high-school competition math problems
+       * @see https://arxiv.org/abs/2103.03874
+       */
+      math?: number;
+
+      /**
+       * .what = IFEval score (instruction compliance)
+       * .note = measures ability to follow explicit instructions precisely
+       * @see https://arxiv.org/abs/2311.07911
+       */
+      ifeval?: number;
+
+      /**
+       * .what = ARC-AGI-2 score (abstract reason)
+       * .note = frontier benchmark for general intelligence capabilities
+       * @see https://arcprize.org/
+       */
+      arcagi?: number;
+
+      /**
+       * .what = custom grades from suppliers
+       * .note = allows suppliers to report additional benchmarks not in baseline
+       */
+      [key: string]: number | undefined;
     };
 
     /**
