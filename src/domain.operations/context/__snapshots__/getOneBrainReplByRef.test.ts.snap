@@ -41,7 +41,8 @@ brain packages are installed for discovery mode.
           }
         },
         "grades": {
-          "swe": 72.5
+          "swePro": 45.9,
+          "gpqa": 68.4
         },
         "cutoff": "2025-04-01",
         "domain": "ALL",
@@ -97,7 +98,8 @@ package is installed for discovery mode.
           }
         },
         "grades": {
-          "swe": 72.5
+          "swePro": 45.9,
+          "gpqa": 68.4
         },
         "cutoff": "2025-04-01",
         "domain": "ALL",

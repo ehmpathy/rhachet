@@ -28,7 +28,8 @@ export const genSampleBrainSpec = (): BrainSpec =>
         context: { tokens: 200_000 },
       },
       grades: {
-        swe: 72.5,
+        swePro: 45.9, // realistic Pro score (models drop ~23pts from Verified)
+        gpqa: 68.4,
       },
       cutoff: '2025-04-01',
       domain: 'ALL',
