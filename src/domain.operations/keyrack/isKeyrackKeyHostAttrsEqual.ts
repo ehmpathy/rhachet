@@ -4,7 +4,7 @@ import type { KeyrackKeyHost } from '@src/domain.objects/keyrack';
  * .what = compares keyrack key host attributes for findsert equality
  * .why = extracts decode-friction from orchestrator
  *
- * .note = compares mech, vault, exid, env, org, vaultRecipient
+ * .note = compares mech, vault, exid, env, org, meta
  * .note = ignores timestamps (createdAt, updatedAt), maxDuration, slug
  */
 export const isKeyrackKeyHostAttrsEqual = (input: {
@@ -15,7 +15,7 @@ export const isKeyrackKeyHostAttrsEqual = (input: {
     exid: KeyrackKeyHost['exid'];
     env: KeyrackKeyHost['env'];
     org: KeyrackKeyHost['org'];
-    vaultRecipient: KeyrackKeyHost['vaultRecipient'];
+    meta: KeyrackKeyHost['meta'];
   };
 }): boolean =>
   input.hostFound.mech === input.attrs.mech &&
@@ -23,4 +23,4 @@ export const isKeyrackKeyHostAttrsEqual = (input: {
   input.hostFound.exid === input.attrs.exid &&
   input.hostFound.env === input.attrs.env &&
   input.hostFound.org === input.attrs.org &&
-  input.hostFound.vaultRecipient === input.attrs.vaultRecipient;
+  JSON.stringify(input.hostFound.meta) === JSON.stringify(input.attrs.meta);

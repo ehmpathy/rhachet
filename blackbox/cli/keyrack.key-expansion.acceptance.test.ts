@@ -1,5 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -21,7 +22,7 @@ describe('keyrack key-expansion', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'relock'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         logOnError: false,
       });
     });
@@ -37,7 +38,7 @@ describe('keyrack key-expansion', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -58,7 +59,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'prep'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -72,7 +73,7 @@ describe('keyrack key-expansion', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -97,7 +98,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.prep.AWS_PROFILE'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -127,7 +128,7 @@ describe('keyrack key-expansion', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'relock'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         logOnError: false,
       });
     });
@@ -150,7 +151,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'AWS_PROFILE'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -176,7 +177,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--env', 'prep', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -196,7 +197,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'prep'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -204,7 +205,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'AWS_PROFILE', '--env', 'prep', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -235,7 +236,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'prod'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -243,7 +244,7 @@ describe('keyrack key-expansion', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'SHARED_API_KEY', '--env', 'prod', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 

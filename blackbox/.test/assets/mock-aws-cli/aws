@@ -22,6 +22,10 @@ case "$1 $2" in
     echo "MOCK-CODE"
     echo ""
     echo "Successfully logged into Start URL: https://mock-portal.awsapps.com/start"
+    # mark that re-auth happened for stateful identity transition
+    if [[ -n "${MOCK_AWS_STATE_FILE:-}" ]]; then
+      echo "reauthed" > "$MOCK_AWS_STATE_FILE"
+    fi
     ;;
   "sso list-accounts")
     echo '{"accountList":[{"accountId":"123456789012","accountName":"testorg-dev","emailAddress":"dev@testorg.com"},{"accountId":"987654321098","accountName":"testorg-prod","emailAddress":"prod@testorg.com"}]}'
@@ -34,8 +38,24 @@ case "$1 $2" in
     # MOCK_AWS_IDENTITY_ERROR=1 → simulate "access denied" (wrong user for this role)
     # MOCK_AWS_IDENTITY=alice → return alice's identity
     # MOCK_AWS_IDENTITY=bob → return bob's identity
+    # MOCK_AWS_IDENTITY_BEFORE=bob + MOCK_AWS_IDENTITY_AFTER=alice → bob before re-auth, alice after
     # default → return generic mock identity
-    if [[ "${MOCK_AWS_IDENTITY_ERROR:-}" == "1" ]]; then
+
+    # check for stateful identity transition (bob→alice after re-auth)
+    if [[ -n "${MOCK_AWS_IDENTITY_BEFORE:-}" && -n "${MOCK_AWS_IDENTITY_AFTER:-}" ]]; then
+      if [[ -n "${MOCK_AWS_STATE_FILE:-}" && -f "$MOCK_AWS_STATE_FILE" ]]; then
+        # after re-auth, use MOCK_AWS_IDENTITY_AFTER
+        identity="${MOCK_AWS_IDENTITY_AFTER}"
+      else
+        # before re-auth, use MOCK_AWS_IDENTITY_BEFORE
+        identity="${MOCK_AWS_IDENTITY_BEFORE}"
+      fi
+      if [[ "$identity" == "alice" ]]; then
+        echo '{"UserId":"ALICE123:alice@acme.com","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/alice@acme.com"}'
+      elif [[ "$identity" == "bob" ]]; then
+        echo '{"UserId":"BOB456:bob@acme.com","Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/AdministratorAccess/bob@acme.com"}'
+      fi
+    elif [[ "${MOCK_AWS_IDENTITY_ERROR:-}" == "1" ]]; then
       echo "An error occurred (AccessDeniedException) when calling the GetCallerIdentity operation: User: arn:aws:iam::123456789012:user/bob is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::123456789012:role/AdministratorAccess" >&2
       exit 1
     elif [[ "${MOCK_AWS_IDENTITY:-}" == "alice" ]]; then

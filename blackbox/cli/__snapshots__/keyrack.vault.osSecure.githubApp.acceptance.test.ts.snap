@@ -36,11 +36,11 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] gu
     "exid": null,
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_GITHUB_APP",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.GITHUB_TOKEN",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
-    "vaultRecipient": null,
   },
 }
 `;

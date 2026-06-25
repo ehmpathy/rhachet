@@ -8,11 +8,11 @@ exports[`keyrack vault os.secure given: [case1] repo with os.secure vault config
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
-    "vaultRecipient": null,
   },
 }
 `;
@@ -35,11 +35,11 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.test.NEW_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.secure",
-  "vaultRecipient": null,
 }
 `;
 
@@ -51,11 +51,11 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.ANOTHER_SECURE_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
-    "vaultRecipient": null,
   },
   "testorg.test.NEW_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -63,11 +63,11 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
-    "vaultRecipient": null,
   },
   "testorg.test.SECURE_API_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -75,11 +75,11 @@ exports[`keyrack vault os.secure given: [case2] repo without host entry for a ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.SECURE_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.secure",
-    "vaultRecipient": null,
   },
 }
 `;
@@ -122,11 +122,11 @@ exports[`keyrack vault os.secure given: [case5] findsert semantics when: [t0] se
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.test.SECURE_API_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.secure",
-  "vaultRecipient": null,
 }
 `;
 

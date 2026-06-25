@@ -3,10 +3,8 @@ import { join } from 'path';
 
 import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '../.test/infra/genTestTempRepo';
+import { envIsolated } from '../.test/infra/envIsolated';
+import { genTestTempRepo } from '../.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '../.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '../.test/infra/killKeyrackDaemonForTests';
 
@@ -30,7 +28,7 @@ describe('keyrack status --env', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'invalid'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -60,7 +58,7 @@ describe('keyrack status --env', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -79,14 +77,12 @@ describe('keyrack status --env', () => {
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--org',
           '@all',
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         stdin: 'sudo-secret\n',
       }),
     );
@@ -95,7 +91,7 @@ describe('keyrack status --env', () => {
       invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'sudo', '--key', 'SUDO_SECRET'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
       }),
     );
 
@@ -104,7 +100,7 @@ describe('keyrack status --env', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -138,7 +134,7 @@ describe('keyrack status --env', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'sudo', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -170,7 +166,7 @@ describe('keyrack status --env', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'test', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -210,7 +206,7 @@ env.prep:
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -229,12 +225,10 @@ env.prep:
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         stdin: 'prep-secret-value\n',
       }),
     );
@@ -243,7 +237,7 @@ env.prep:
       invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'prep', '--key', 'PREP_SECRET'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
       }),
     );
 
@@ -252,7 +246,7 @@ env.prep:
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'test'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -282,7 +276,7 @@ env.prep:
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -301,14 +295,12 @@ env.prep:
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--org',
           '@all',
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         stdin: 'only-sudo-secret\n',
       }),
     );
@@ -317,7 +309,7 @@ env.prep:
       invokeRhachetCliBinary({
         args: ['keyrack', 'unlock', '--env', 'sudo', '--key', 'ONLY_SUDO_KEY'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
       }),
     );
 
@@ -326,7 +318,7 @@ env.prep:
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'test'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -353,7 +345,7 @@ env.prep:
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -363,7 +355,7 @@ env.prep:
         invokeRhachetCliBinary({
           args: ['keyrack', 'status', '--env', 'test'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 

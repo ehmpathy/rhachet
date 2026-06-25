@@ -5,6 +5,7 @@ import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
+  KeyrackKeyHostMetaAwsConfig,
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
@@ -19,7 +20,6 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
-import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -69,6 +69,11 @@ const checkProfileExists = (profileName: string): boolean => {
  *        - throws CredentialsProviderError if expired or revoked
  *
  * .note = this makes a network call to AWS SSO (not local cache)
+ * .note = fromSSO validates per-profile credentials, not domain session
+ * .note = call `aws sso login --profile X` BEFORE this function:
+ *         - domain session may be valid even if profile credentials are not
+ *         - sso login reuses domain session to generate profile credentials
+ *         - only then can fromSSO find the cached profile credentials
  */
 const validateSsoTokenWithAwsSdk = async (
   profileName: string,
@@ -93,24 +98,29 @@ const validateSsoSession = async (
   profileName: string,
 ): Promise<{ valid: true; username: string } | { valid: false }> => {
   // validate SSO via AWS SDK — cache cannot be trusted
-  try {
-    await validateSsoTokenWithAwsSdk(profileName);
-    // SDK validated token with AWS SSO servers — session is valid
-  } catch (error) {
-    // CredentialsProviderError = SSO expired or revoked remotely
-    if (
-      error instanceof Error &&
-      (error.name === 'CredentialsProviderError' ||
-        error.message.includes('expired') ||
-        error.message.includes('invalid'))
-    ) {
-      return { valid: false };
+  // .note = skip SDK validation in mock mode (AWS_SDK_MOCK=1)
+  //         SDK reads cache files directly and makes network calls to AWS
+  //         mock CLI cannot intercept SDK behavior, only CLI commands
+  if (!process.env.AWS_SDK_MOCK) {
+    try {
+      await validateSsoTokenWithAwsSdk(profileName);
+      // SDK validated token with AWS SSO servers — session is valid
+    } catch (error) {
+      // CredentialsProviderError = SSO expired or revoked remotely
+      if (
+        error instanceof Error &&
+        (error.name === 'CredentialsProviderError' ||
+          error.message.includes('expired') ||
+          error.message.includes('invalid'))
+      ) {
+        return { valid: false };
+      }
+      // unknown error - fail fast
+      throw new UnexpectedCodePathError(
+        'validateSsoTokenWithAwsSdk failed with unexpected error',
+        { profileName, error },
+      );
     }
-    // unknown error - fail fast
-    throw new UnexpectedCodePathError(
-      'validateSsoTokenWithAwsSdk failed with unexpected error',
-      { profileName, error },
-    );
   }
 
   // refresh STS cache — ensures CLI has fresh credentials for subsequent commands
@@ -210,89 +220,152 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
  * .note = unlock validates sso sessions, triggers login for expired
  * .note = profile names are 'reference' protection (no secrets touch keyrack)
  */
-export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
+export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
+  'readwrite',
+  'aws.config'
+> = {
   mechs: {
     supported: ['EPHEMERAL_VIA_AWS_SSO'],
   },
 
   /**
-   * .what = check if sso session is valid for the given profile
+   * .what = check if sso session is valid for the given profile and user
    * .why = validates via aws sts get-caller-identity
    *
    * .note = uses exid (profile name) from the host manifest
+   * .note = uses meta.awsSsoUsername to verify same user
    * .note = returns true if no exid provided (no profile = unlocked)
+   * .note = returns false if meta.awsSsoUsername absent (needs re-set)
    */
   isUnlocked: async (input) => {
     const profileName = input?.exid;
     if (!profileName) return true;
+
+    // extract expected username from meta
+    const expectedUsername = input?.meta?.awsSsoUsername ?? null;
+
+    // if meta.awsSsoUsername is absent, key needs re-set
+    if (!expectedUsername) return false;
+
     const result = await validateSsoSession(profileName);
-    return result.valid;
+    if (!result.valid) return false;
+
+    // session valid but wrong user = not unlocked for this key
+    return result.username === expectedUsername;
   },
 
   /**
-   * .what = validate sso session and trigger login if expired
-   * .why = ensures the profile has a valid session
+   * .what = validate sso session and trigger login if needed
+   * .why = ensures the profile has a valid session for the expected user
+   *
+   * .flow:
+   *   1. try sso login first (may reuse domain session without browser)
+   *   2. validate session and check username
+   *   3. if username mismatch → clear domain cache and retry
+   *   4. if username matches → done
    *
    * .note = passphrase is ignored (sso uses browser auth)
    * .note = uses exid (profile name) from the host manifest
-   * .note = triggers aws sso login --profile for expired sessions
-   * .note = uses portal flow (standard "Sign in" / "Allow" browser prompt)
-   * .note = clears cached session if identity mismatch (access denied to this role)
    */
   unlock: async (input: {
     identity: string | null;
     silent?: boolean;
     exid?: string | null;
+    meta?: KeyrackKeyHostMetaAwsConfig | null;
+    slug?: string | null;
+    owner?: string | null;
   }) => {
     const profileName = input.exid;
     if (!profileName) return;
 
-    const sessionResult = await validateSsoSession(profileName);
-    if (sessionResult.valid) {
-      // session is valid — show confirmation and reuse
+    // extract expected username from meta
+    const expectedUsername = input.meta?.awsSsoUsername ?? null;
+
+    // failfast if meta.awsSsoUsername is absent — key needs re-set
+    if (!expectedUsername) {
       if (!input.silent) {
-        console.log('   │');
         console.log('   ├─ with sso prior?');
-        console.log(`   │  ├─ ✓ ${sessionResult.username}, access confirmed`);
-        console.log('   │  └─ ✓ clear, will reuse');
+        console.log('   │  └─ ✗ key lacks awsSsoUsername; re-set required');
+      }
+
+      // parse slug for actionable hint
+      const parts = input.slug
+        ? asKeyrackSlugParts({ slug: input.slug })
+        : null;
+      const owner = input.owner ?? '<owner>';
+      const hint = parts
+        ? `run: rhx keyrack set --owner ${owner} --env ${parts.env} --key ${parts.keyName} --vault aws.config`
+        : `run: rhx keyrack set --owner ${owner} --env <env> --key <key> --vault aws.config`;
+
+      throw new ConstraintError(
+        'key lacks awsSsoUsername metadata; re-set the key',
+        {
+          profileName,
+          hint,
+        },
+      );
+    }
+
+    const profileConfig = await getAwsSsoProfileConfig({ profileName });
+
+    // step 1: check if session already valid and username matches
+    const initialResult = await validateSsoSession(profileName);
+
+    if (initialResult.valid && initialResult.username === expectedUsername) {
+      // session valid + correct user → reuse without login
+      if (!input.silent) {
+        console.log('   ├─ with sso prior?');
+        console.log(`   │  ├─ ✓ ${initialResult.username}, access confirmed`);
+        console.log('   │  └─ ✓ will reuse');
       }
       return;
     }
 
-    // session invalid — check if we need to clear a conflicted session
-    const profileConfig = await getAwsSsoProfileConfig({ profileName });
-    if (profileConfig?.ssoStartUrl) {
-      const priorSession = previewAwsSsoCacheForDomain({
-        ssoStartUrl: profileConfig.ssoStartUrl,
-      });
-
-      // if there's a cached session for this domain, but we can't access the role,
-      // the session belongs to a different sso user — clear it
-      if (priorSession.matched.length > 0) {
-        if (!input.silent) {
-          console.log('   │');
-          console.log('   ├─ with sso prior?');
-          const session = priorSession.matched[0]!;
-          console.log(`   │  ├─ ✗ ${session.startUrl}, access denied`);
-          // todo: show username from failed session once we track it
-        }
-
-        await clearAwsSsoCacheForDomain({
-          ssoStartUrl: profileConfig.ssoStartUrl,
-        });
-
-        if (!input.silent) {
-          console.log('   │  └─ ✓ cleared, will re-auth');
-        }
-      } else if (!input.silent) {
-        // no cached session for this domain — need fresh auth
-        console.log('   │');
-        console.log('   ├─ with sso prior?');
-        console.log('   │  └─ ✓ clear, no prior session');
+    // step 2: session invalid or username mismatch → need to login
+    if (!input.silent) {
+      console.log('   ├─ with sso prior?');
+      if (!initialResult.valid) {
+        console.log('   │  └─ ✗ clear, no prior session');
+      } else {
+        console.log(`   │  ├─ ✗ session user mismatch`);
+        console.log(`   │  │  ├─ expected: ${expectedUsername}`);
+        console.log(`   │  │  └─ observed: ${initialResult.username}`);
+        console.log('   │  └─ ✓ cleared, re-auth triggered');
       }
     }
 
+    // step 3: clear domain cache if username mismatch
+    if (initialResult.valid && profileConfig?.ssoStartUrl) {
+      // clear to force fresh auth with correct user
+      await clearAwsSsoCacheForDomain({
+        ssoStartUrl: profileConfig.ssoStartUrl,
+      });
+    }
+
+    // step 4: trigger login
     await triggerSsoLogin(profileName);
+
+    // step 5: validate again after login
+    const sessionResult = await validateSsoSession(profileName);
+
+    if (!sessionResult.valid) {
+      throw new ConstraintError('sso login failed; session still invalid', {
+        profileName,
+        hint: 'complete browser auth',
+      });
+    }
+
+    if (sessionResult.username !== expectedUsername) {
+      throw new ConstraintError(
+        'sso login completed but username mismatch persists',
+        {
+          profileName,
+          expected: expectedUsername,
+          observed: sessionResult.username,
+          hint: 're-authenticate with the correct user',
+        },
+      );
+    }
 
     // force STS credential refresh after SSO login
     // .note = aws sso login refreshes SSO token but not STS cache
@@ -371,7 +444,11 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
    * .note = vault handles its own input: uses exid if present, else runs guided setup
    * .note = expiresAt is ignored (sso tokens self-expire)
    */
-  set: async (input) => {
+  set: async (input, context) => {
+    // get identity from context for roundtrip verification
+    const identity =
+      (await context?.identity?.getOne({ for: 'manifest' })) ?? null;
+
     // infer mech if not supplied
     const mech =
       input.mech ??
@@ -418,49 +495,67 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<'readwrite'> = {
       }
     }
 
-    // extended roundtrip validation for guided setup (interactive TTY)
-    // proves unlock + get + relock work; triggers one-time OAuth registration
-    if (!input.exid) {
+    // capture awsSsoUsername from ARN BEFORE roundtrip verification
+    // .why = unlock requires meta.awsSsoUsername; we pass it immediately
+    const stsResult = await validateSsoSession(profileName);
+    if (!stsResult.valid) {
+      throw new ConstraintError('sso session not valid; run aws sso login', {
+        profileName,
+        hint: `run: aws sso login --profile ${profileName}`,
+      });
+    }
+    const meta = { awsSsoUsername: stsResult.username };
+
+    // roundtrip verification
+    // .note = proves unlock + get + relock work
+    const isGuidedSetup = !input.exid;
+    if (isGuidedSetup) {
       console.log('   │');
       console.log('   └─ perfect, now lets verify...');
+    }
 
-      // 1. unlock — prove sso session is valid after setup
-      // .note = silent because we just did SSO login, no need to show prior check again
-      await vaultAdapterAwsConfig.unlock({
-        identity: null,
-        exid: profileName,
-        silent: true,
-      });
-      console.log('      ├─ ✓ unlock');
+    // 1. unlock — prove sso session is valid
+    await vaultAdapterAwsConfig.unlock({
+      identity,
+      exid: profileName,
+      silent: true,
+      meta,
+    });
+    if (isGuidedSetup) console.log('      ├─ ✓ unlock');
 
-      // 2. get — prove stored profile name matches
-      const grantRead = await vaultAdapterAwsConfig.get({
-        slug: input.slug,
-        exid: profileName,
-      });
-      if (!grantRead || grantRead.key.secret !== profileName) {
-        throw new UnexpectedCodePathError(
-          'roundtrip failed: get returned different profile',
-          {
-            slug: input.slug,
-            expected: profileName,
-            actual: grantRead?.key.secret ?? null,
-          },
-        );
-      }
-      console.log('      ├─ ✓ get');
+    // 2. get — prove stored profile name matches
+    const grantRead = await vaultAdapterAwsConfig.get({
+      slug: input.slug,
+      exid: profileName,
+    });
+    if (!grantRead || grantRead.key.secret !== profileName) {
+      throw new UnexpectedCodePathError(
+        'roundtrip failed: get returned different profile',
+        {
+          slug: input.slug,
+          expected: profileName,
+          actual: grantRead?.key.secret ?? null,
+        },
+      );
+    }
+    if (isGuidedSetup) console.log('      ├─ ✓ get');
 
-      // 3. relock — clear session, leave vault locked after setup
-      await vaultAdapterAwsConfig.relock?.({
-        slug: input.slug,
-        exid: profileName,
-      });
+    // 3. relock — clear session, leave vault locked after setup
+    await vaultAdapterAwsConfig.relock?.({
+      slug: input.slug,
+      exid: profileName,
+    });
+    if (isGuidedSetup) {
       console.log('      └─ ✓ relock');
       console.log('');
     }
 
-    // return mech and derived exid so caller can persist to the host manifest
-    return { mech, exid: profileName };
+    // return mech, derived exid, and meta so caller can persist to the host manifest
+    return {
+      mech,
+      exid: profileName,
+      meta: { awsSsoUsername: stsResult.username },
+    };
   },
 
   /**

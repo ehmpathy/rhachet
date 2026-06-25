@@ -16,11 +16,11 @@ exports[`keyrack status: locked vs absent given: [case2] key was set but not unl
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "@all",
   "slug": "@all.sudo.LOCKED_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.secure",
-  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
 }
 `;
 
@@ -40,11 +40,11 @@ exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon 
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "@all",
   "slug": "@all.sudo.RELOCK_TEST_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.secure",
-  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
 }
 `;
 
@@ -80,11 +80,11 @@ exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon 
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "@all",
   "slug": "@all.sudo.RELOCK_TEST_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.secure",
-  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
 }
 `;
 
@@ -180,11 +180,13 @@ exports[`keyrack status: locked vs absent given: [case4] aws.config vault status
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.AWS_PROFILE",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 

@@ -9,10 +9,10 @@ exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t1] se
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.prod.AWS_PROFILE",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.direct",
-  "vaultRecipient": null,
 }
 `;

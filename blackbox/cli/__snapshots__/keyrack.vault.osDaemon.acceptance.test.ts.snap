@@ -8,11 +8,11 @@ exports[`keyrack vault os.daemon given: [case1] repo with os.daemon vault when: 
   "expiresAt": "__TIMESTAMP__",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_SESSION",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.test.DAEMON_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.daemon",
-  "vaultRecipient": null,
 }
 `;
 

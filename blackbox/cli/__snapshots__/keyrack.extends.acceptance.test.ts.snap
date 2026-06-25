@@ -131,7 +131,7 @@ exports[`keyrack extends given: [case7] repo with key set in extended keyrack (u
   "exid": null,
   "env": "test",
   "org": "testorg",
-  "vaultRecipient": null,
+  "meta": null,
   "maxDuration": null,
   "createdAt": "__TIMESTAMP__",
   "updatedAt": "__TIMESTAMP__"
@@ -147,7 +147,7 @@ exports[`keyrack extends given: [case8] repo with env.all key in extended keyrac
   "exid": null,
   "env": "all",
   "org": "testorg",
-  "vaultRecipient": null,
+  "meta": null,
   "maxDuration": null,
   "createdAt": "__TIMESTAMP__",
   "updatedAt": "__TIMESTAMP__"
@@ -186,7 +186,7 @@ exports[`keyrack extends given: [case9] cross-org extends uses root org for set,
   "mech": "PERMANENT_VIA_REPLICA",
   "env": "test",
   "org": "rootorg",
-  "vaultRecipient": null,
+  "meta": null,
   "maxDuration": null,
   "createdAt": "__TIMESTAMP__",
   "updatedAt": "__TIMESTAMP__"
@@ -229,7 +229,7 @@ exports[`keyrack extends given: [case10] nested cross-org extends uses outermost
   "mech": "PERMANENT_VIA_REPLICA",
   "env": "test",
   "org": "alpha",
-  "vaultRecipient": null,
+  "meta": null,
   "maxDuration": null,
   "createdAt": "__TIMESTAMP__",
   "updatedAt": "__TIMESTAMP__"

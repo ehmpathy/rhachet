@@ -25,7 +25,7 @@ export const genMockKeyrackHostManifest = (input?: {
       exid: partialHost.exid ?? null,
       env: partialHost.env ?? 'all',
       org: partialHost.org ?? 'testorg',
-      vaultRecipient: partialHost.vaultRecipient ?? null,
+      meta: partialHost.meta ?? null,
       maxDuration: partialHost.maxDuration ?? null,
       createdAt: partialHost.createdAt ?? new Date().toISOString(),
       updatedAt: partialHost.updatedAt ?? new Date().toISOString(),

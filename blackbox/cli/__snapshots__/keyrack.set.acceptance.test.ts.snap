@@ -7,11 +7,11 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t0] keyrac
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.test.NEW_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.direct",
-  "vaultRecipient": null,
 }
 `;
 
@@ -23,11 +23,11 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.ANOTHER_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.test.GITHUB_APP_CREDS": {
     "createdAt": "__TIMESTAMP__",
@@ -35,11 +35,11 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.GITHUB_APP_CREDS",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.test.NEW_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -47,11 +47,11 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.NEW_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.test.XAI_API_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -59,11 +59,11 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.XAI_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
 }
 `;

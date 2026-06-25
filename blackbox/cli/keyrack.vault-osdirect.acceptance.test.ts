@@ -1,5 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -23,7 +24,7 @@ describe('keyrack vault-osdirect', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'relock'],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         logOnError: false,
       });
     });
@@ -33,7 +34,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -71,7 +72,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'prep'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -79,7 +80,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -124,7 +125,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -161,7 +162,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'prod'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -169,7 +170,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prod', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -213,7 +214,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'all'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -221,7 +222,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'all', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -249,7 +250,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -258,7 +259,7 @@ describe('keyrack vault-osdirect', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--for', 'repo', '--env', 'prep'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 

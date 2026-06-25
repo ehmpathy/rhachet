@@ -2,6 +2,7 @@ import { DomainLiteral } from 'domain-objects';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
 import type { KeyrackHostVault } from './KeyrackHostVault';
+import type { KeyrackKeyHostMeta } from './KeyrackKeyHostMeta';
 
 /**
  * .what = storage host for a single key on this machine
@@ -46,11 +47,14 @@ export interface KeyrackKeyHost {
   org: string;
 
   /**
-   * .what = optional pubkey for os.secure vault if different from manifest
-   * .why = enables separate key for high-value credentials
-   * .example = 'ssh-ed25519 AAAA...'
+   * .what = vault-specific metadata
+   * .why = enables vaults to store per-key metadata without field proliferation
+   *
+   * .examples
+   *   - os.secure: { ageKeyRecipient: 'age1...' } — pubkey for age encryption
+   *   - aws.config: { awsSsoUsername: 'demo-agent' } — session name from ARN
    */
-  vaultRecipient: string | null;
+  meta: KeyrackKeyHostMeta;
 
   /**
    * .what = optional max TTL for this key

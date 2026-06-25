@@ -9,10 +9,8 @@ import {
 import { resolve } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '@/blackbox/.test/infra/genTestTempRepo';
+import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
@@ -27,8 +25,9 @@ const MOCK_AWS_CLI_DIR = resolve(__dirname, '../.test/assets/mock-aws-cli');
  * .why = acceptance tests must be fully portable without real AWS credentials
  */
 const envWithMockAws = (home: string) => ({
-  HOME: home,
+  ...envIsolated(home),
   PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+  AWS_SDK_MOCK: '1', // skip SDK validation in mock mode
 });
 
 /**
@@ -73,7 +72,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -93,7 +92,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -135,7 +134,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -154,14 +153,12 @@ describe('keyrack status: locked vs absent', () => {
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--org',
           '@all',
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         stdin: 'locked-secret-value\n',
       }),
     );
@@ -199,7 +196,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -241,7 +238,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
       return r;
     });
@@ -260,14 +257,12 @@ describe('keyrack status: locked vs absent', () => {
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--org',
           '@all',
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
         stdin: 'initial-value\n',
       }),
     );
@@ -285,7 +280,7 @@ describe('keyrack status: locked vs absent', () => {
           '--json',
         ],
         cwd: repo.path,
-        env: { HOME: repo.path },
+        env: envIsolated(repo.path),
       }),
     );
 
@@ -323,7 +318,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -352,14 +347,12 @@ describe('keyrack status: locked vs absent', () => {
             'os.secure',
             '--mech',
             'PERMANENT_VIA_REPLICA',
-            '--vault-recipient',
-            TEST_SSH_AGE_RECIPIENT,
             '--org',
             '@all',
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           stdin: 'updated-value\n',
         }),
       );
@@ -396,7 +389,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -429,7 +422,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -452,7 +445,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -493,7 +486,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
 
       // write repo manifest so org is known
@@ -536,7 +529,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -564,7 +557,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -620,7 +613,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -648,7 +641,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -720,7 +713,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -733,7 +726,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -761,7 +754,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'del', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -774,7 +767,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -811,7 +804,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
 
       // write repo manifest
@@ -851,7 +844,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -888,7 +881,7 @@ describe('keyrack status: locked vs absent', () => {
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init'],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
       });
 
       // write repo manifest with ORPHAN_SECRET key
@@ -913,12 +906,10 @@ describe('keyrack status: locked vs absent', () => {
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--json',
         ],
         cwd: r.path,
-        env: { HOME: r.path },
+        env: envIsolated(r.path),
         stdin: 'secret-value-before-deletion\n',
       });
 
@@ -945,7 +936,7 @@ describe('keyrack status: locked vs absent', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.ORPHAN_SECRET', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -977,7 +968,7 @@ describe('keyrack status: locked vs absent', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );

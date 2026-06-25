@@ -24,7 +24,6 @@ export const setKeyrackKey = async (
     mech?: KeyrackGrantMechanism | null;
     secret?: string | null;
     exid?: string | null;
-    vaultRecipient?: string | null;
     maxDuration?: string | null;
     repoManifest?: KeyrackRepoManifest;
     at?: string | null;
@@ -50,7 +49,6 @@ export const setKeyrackKey = async (
         exid: input.exid ?? null,
         env: input.env,
         org: input.org,
-        vaultRecipient: input.vaultRecipient ?? null,
         maxDuration: input.maxDuration ?? null,
         at: input.at ?? null,
       },

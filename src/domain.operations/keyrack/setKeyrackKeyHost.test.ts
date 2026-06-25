@@ -165,23 +165,25 @@ describe('setKeyrackKeyHost', () => {
       });
     });
 
-    when('[t3] set called with vaultRecipient', () => {
-      then('vaultRecipient is stored', async () => {
+    when('[t3] set called with meta', () => {
+      then('meta is stored', async () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'SECURE_KEY',
             mech: 'PERMANENT_VIA_REPLICA',
             vault: 'os.secure',
-            vaultRecipient: 'age1testrecipient...',
+            meta: { ageKeyRecipient: 'age1testrecipient...' },
           },
           context,
         );
-        expect(result.vaultRecipient).toEqual('age1testrecipient...');
+        expect(result.meta).toEqual({
+          ageKeyRecipient: 'age1testrecipient...',
+        });
       });
     });
 
-    when('[t4] set called without vaultRecipient', () => {
-      then('vaultRecipient defaults to null', async () => {
+    when('[t4] set called without meta', () => {
+      then('meta defaults to null', async () => {
         const result = await setKeyrackKeyHost(
           {
             slug: 'SECURE_KEY',
@@ -190,7 +192,7 @@ describe('setKeyrackKeyHost', () => {
           },
           context,
         );
-        expect(result.vaultRecipient).toBeNull();
+        expect(result.meta).toBeNull();
       });
     });
 
