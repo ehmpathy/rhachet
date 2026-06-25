@@ -7,7 +7,8 @@ import { ConstraintError } from 'helpful-errors';
  *        - "authorization...expired" (queued authorization has expired)
  *        - "authorization request" (authorization request expired)
  */
-const SSO_TIMEOUT_REGEX = /timed out|authorization.*expired|authorization request/i;
+const SSO_TIMEOUT_REGEX =
+  /timed out|authorization.*expired|authorization request/i;
 
 /**
  * .what = check if output indicates SSO timeout

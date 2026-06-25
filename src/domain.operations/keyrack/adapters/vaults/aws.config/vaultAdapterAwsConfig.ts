@@ -14,6 +14,10 @@ import type {
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
 import { getAwsSsoProfileConfig } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/setupAwsSsoProfile';
+import {
+  createSsoTimeoutError,
+  isSsoTimeout,
+} from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/withSsoTimeout';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
@@ -24,10 +28,6 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
-import {
-  createSsoTimeoutError,
-  isSsoTimeout,
-} from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/withSsoTimeout';
 
 /**
  * .what = lookup mech adapter by mechanism name

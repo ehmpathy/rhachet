@@ -1,14 +1,11 @@
 import { execSync, spawn } from 'child_process';
 import fs from 'fs/promises';
-import {
-  BadRequestError,
-  MalfunctionError,
-  UnexpectedCodePathError,
-} from 'helpful-errors';
+import { BadRequestError, MalfunctionError } from 'helpful-errors';
 import os from 'os';
 import path from 'path';
 
 import { getTempDir } from '@src/infra/getTempDir';
+
 import { createSsoTimeoutError, isSsoTimeout } from './withSsoTimeout';
 
 // re-export extracted operations
