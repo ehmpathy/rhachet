@@ -4,12 +4,9 @@ extends:
   - .agent/repo=bhrain/role=reviewer/keyrack.yml
   - .agent/repo=bhuild/role=dispatcher/keyrack.yml
   - .agent/repo=ehmpathy/role=mechanic/keyrack.yml
-env.prod:
-  - AWS_PROFILE
+env.prod: []
 env.prep:
-  - AWS_PROFILE
   - EHMPATHY_SEATURTLE_GITHUB_TOKEN
   - XAI_API_KEY
-env.test:
-  - AWS_PROFILE
+env.test: []
 env.all: []
