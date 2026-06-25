@@ -1292,7 +1292,12 @@ describe('keyrack vault aws.config', () => {
           'testorg.dev',
         ],
         cwd: r.path,
-        env: { ...envIsolated(r.path), PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`, AWS_SDK_MOCK: '1' },
+        env: {
+          ...envIsolated(r.path),
+          PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+          AWS_SDK_MOCK: '1',
+          MOCK_AWS_IDENTITY: 'alice', // populate meta.awsSsoUsername
+        },
       });
 
       return r;
@@ -1304,8 +1309,9 @@ describe('keyrack vault aws.config', () => {
           args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
           cwd: repo.path,
           env: {
-            HOME: repo.path,
+            ...envIsolated(repo.path),
             PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            AWS_SDK_MOCK: '1',
             MOCK_AWS_IDENTITY: 'alice', // valid session for alice
           },
         }),
@@ -1403,25 +1409,34 @@ describe('keyrack vault aws.config', () => {
           'testorg.dev',
         ],
         cwd: r.path,
-        env: { ...envIsolated(r.path), PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`, AWS_SDK_MOCK: '1' },
+        env: {
+          ...envIsolated(r.path),
+          PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+          AWS_SDK_MOCK: '1',
+          MOCK_AWS_IDENTITY: 'alice', // populate meta.awsSsoUsername with alice
+        },
       });
 
       return r;
     });
 
     when('[t0] keyrack unlock with wrong user cached (bob, need alice)', () => {
-      const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+      const result = useBeforeAll(async () => {
+        // state file for mock to track re-auth transition
+        const stateFile = `${repo.path}/.mock-aws-state`;
+        return invokeRhachetCliBinary({
           args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
           cwd: repo.path,
           env: {
             ...envIsolated(repo.path),
             PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
             AWS_SDK_MOCK: '1',
-            MOCK_AWS_IDENTITY_ERROR: '1', // simulate access denied (wrong user)
+            MOCK_AWS_IDENTITY_BEFORE: 'bob', // initial: bob cached
+            MOCK_AWS_IDENTITY_AFTER: 'alice', // after re-auth: alice
+            MOCK_AWS_STATE_FILE: stateFile,
           },
-        }),
-      );
+        });
+      });
 
       then('exits with status 0 (re-auth succeeds)', () => {
         expect(result.status).toEqual(0);
