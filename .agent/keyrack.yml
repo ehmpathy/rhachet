@@ -8,5 +8,6 @@ env.prod: []
 env.prep:
   - EHMPATHY_SEATURTLE_GITHUB_TOKEN
   - XAI_API_KEY
+  - AWS_PROFILE
 env.test: []
 env.all: []

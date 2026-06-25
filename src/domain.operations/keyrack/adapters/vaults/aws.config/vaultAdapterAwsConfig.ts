@@ -1,5 +1,9 @@
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import {
+  ConstraintError,
+  MalfunctionError,
+  UnexpectedCodePathError,
+} from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -10,6 +14,10 @@ import type {
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
 import { getAwsSsoProfileConfig } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/setupAwsSsoProfile';
+import {
+  createSsoTimeoutError,
+  isSsoTimeout,
+} from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/withSsoTimeout';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
@@ -178,7 +186,7 @@ const validateSsoSession = async (
  *
  * .note = uses --profile flag for portal flow (standard "Sign in" / "Allow")
  * .note = portal flow is the same experience as direct visit to aws sso portal
- * .note = always silent (pipe) - browser popup is the feedback, not cli noise
+ * .note = captures output to detect timeout vs other failures
  */
 const triggerSsoLogin = async (profileName: string): Promise<void> => {
   return new Promise((accept, reject) => {
@@ -186,15 +194,42 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
       stdio: 'pipe',
     });
 
+    let outputBuffer = '';
+    let timedOut = false;
+
+    // kill process after 2 minutes if no response
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, 180_000); // 3 minutes
+
+    child.stdout?.on('data', (data: Buffer) => {
+      outputBuffer += data.toString();
+    });
+    child.stderr?.on('data', (data: Buffer) => {
+      outputBuffer += data.toString();
+    });
+
     child.on('close', (code) => {
+      clearTimeout(timeout);
+
       if (code === 0) {
         accept();
-      } else {
+      } else if (timedOut || isSsoTimeout(outputBuffer)) {
         reject(
-          new ConstraintError('aws sso login failed', {
+          createSsoTimeoutError({
             profileName,
             exitCode: code,
-            hint: 'complete browser auth to continue',
+            output: outputBuffer,
+          }),
+        );
+      } else {
+        reject(
+          new MalfunctionError('aws sso login failed', {
+            profileName,
+            exitCode: code,
+            output: outputBuffer,
+            hint: 'check network connectivity or aws cli configuration',
           }),
         );
       }

@@ -1,10 +1,12 @@
 import { execSync, spawn } from 'child_process';
 import fs from 'fs/promises';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { BadRequestError, MalfunctionError } from 'helpful-errors';
 import os from 'os';
 import path from 'path';
 
 import { getTempDir } from '@src/infra/getTempDir';
+
+import { createSsoTimeoutError, isSsoTimeout } from './withSsoTimeout';
 
 // re-export extracted operations
 export {
@@ -99,9 +101,20 @@ sso_registration_scopes = sso:account:access
     execSync(`aws sso login --profile "${input.profileName}"`, {
       stdio: 'pipe',
     });
-  } catch {
-    throw new UnexpectedCodePathError('aws sso login failed', {
+  } catch (error) {
+    // extract stderr for timeout detection
+    const stderr =
+      error instanceof Error && 'stderr' in error
+        ? String((error as { stderr: unknown }).stderr)
+        : '';
+
+    if (isSsoTimeout(stderr)) {
+      throw createSsoTimeoutError({ profileName: input.profileName });
+    }
+
+    throw new MalfunctionError('aws sso login failed', {
       profileName: input.profileName,
+      hint: 'check network connectivity or aws cli configuration',
     });
   }
 
@@ -111,9 +124,12 @@ sso_registration_scopes = sso:account:access
       stdio: 'pipe',
     });
   } catch {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'aws sts get-caller-identity failed after sso login',
-      { profileName: input.profileName },
+      {
+        profileName: input.profileName,
+        hint: 'check network connectivity or aws cli configuration',
+      },
     );
   }
 
@@ -376,6 +392,13 @@ sso_registration_scopes = sso:account:access
 
       let outputBuffer = '';
       let urlShown = false;
+      let timedOut = false;
+
+      // kill process after 2 minutes if no response
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGTERM');
+      }, 180_000); // 3 minutes
 
       const processOutput = (data: Buffer) => {
         outputBuffer += data.toString();
@@ -402,6 +425,8 @@ sso_registration_scopes = sso:account:access
       child.stderr?.on('data', processOutput);
 
       child.on('close', (code) => {
+        clearTimeout(timeout);
+
         // show success after auth completes
         const successMatch = outputBuffer.match(/Successfully logged into/);
         if (successMatch) {
@@ -410,11 +435,14 @@ sso_registration_scopes = sso:account:access
 
         if (code === 0) {
           resolve();
+        } else if (timedOut || isSsoTimeout(outputBuffer)) {
+          reject(createSsoTimeoutError({ code, output: outputBuffer }));
         } else {
           reject(
-            new UnexpectedCodePathError('aws sso login failed', {
+            new MalfunctionError('aws sso login failed', {
               code,
               output: outputBuffer,
+              hint: 'check network connectivity or aws cli configuration',
             }),
           );
         }

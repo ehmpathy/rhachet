@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`withSsoTimeout given: createSsoTimeoutError when: [t0] called without meta then: emits treestruct to stderr and returns ConstraintError 1`] = `
+"
+✋ keyrack unlock
+   └─ aws sso login timed out
+      ├─ status: blocked 🚫
+      │  └─ human did not respond to browser sso prompt
+      ├─ robot: halt and escalate
+      │  ├─ do not proceed
+      │  ├─ do not find workarounds
+      │  └─ do not skip credentials
+      └─ fix: rhx keyrack unlock
+"
+`;
