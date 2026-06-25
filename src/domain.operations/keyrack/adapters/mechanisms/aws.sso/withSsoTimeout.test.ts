@@ -77,11 +77,12 @@ describe('withSsoTimeout', () => {
           });
 
           expect(
-            (error as { metadata: { profileName: string } }).metadata
+            (error as unknown as { metadata: { profileName: string } }).metadata
               .profileName,
           ).toBe('test-profile');
           expect(
-            (error as { metadata: { exitCode: number } }).metadata.exitCode,
+            (error as unknown as { metadata: { exitCode: number } }).metadata
+              .exitCode,
           ).toBe(255);
         } finally {
           console.error = originalStderr;
