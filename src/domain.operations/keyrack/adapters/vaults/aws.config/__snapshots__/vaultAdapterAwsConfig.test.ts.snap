@@ -4,20 +4,19 @@ exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t0] u
 "🔓 [unit] vaultAdapterAwsConfig.unlock
    ├─ with sso prior?
    │  ├─ ✓ alice@acme.com, access confirmed
-   │  └─ ✓ clear, will reuse"
+   │  └─ ✓ will reuse"
 `;
 
 exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t1.5] unlock called with expired session and no prior cache then: outputs no prior session message (snapshot) 1`] = `
 "🔓 [unit] vaultAdapterAwsConfig.unlock
    ├─ with sso prior?
-   │  └─ ✓ clear, no prior session"
+   │  └─ ✗ clear, no prior session"
 `;
 
 exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t1] unlock called with expired session then: outputs expired session with conflicted cache message (snapshot) 1`] = `
 "🔓 vault.unlock
    ├─ with sso prior?
-   │  ├─ ✗ https://example.awsapps.com/start, access denied
-   │  └─ ✓ cleared, will re-auth"
+   │  └─ ✗ clear, no prior session"
 `;
 
 exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t3] unlock called with absent awsSsoUsername in meta then: error includes hint for re-set (snapshot) 1`] = `
@@ -29,7 +28,7 @@ exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t3] u
 exports[`vaultAdapterAwsConfig given: [case3] unlock flow with exid when: [t4] unlock called with username mismatch (valid session, wrong user) then: outputs mismatch message with expected vs observed 1`] = `
 "🔓 vault.unlock
    ├─ with sso prior?
-   │  ├─ ✗ https://example.awsapps.com/start, expires 2026-04-30T23:59:59Z
+   │  ├─ ✗ session user mismatch
    │  │  ├─ expected: alice@acme.com
    │  │  └─ observed: bob@acme.com
    │  └─ ✓ cleared, re-auth triggered"

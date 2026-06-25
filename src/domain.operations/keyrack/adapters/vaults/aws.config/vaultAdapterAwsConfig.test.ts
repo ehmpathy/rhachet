@@ -558,7 +558,8 @@ describe('vaultAdapterAwsConfig', () => {
 
         // wrap with root context for treestruct completeness in snapshot
         // .note = [unit] prefix clarifies this is a unit test of internal adapter, not CLI
-        const output = '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
+        const output =
+          '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
         expect(output).toContain('with sso prior?');
         expect(output).toContain('access confirmed');
         expect(output).toContain('will reuse');
@@ -568,13 +569,25 @@ describe('vaultAdapterAwsConfig', () => {
 
     when('[t1] unlock called with expired session', () => {
       beforeEach(() => {
-        // mock fromSSO to fail (SSO expired or revoked remotely)
-        // .note = SDK validates with AWS SSO servers — triggers login
+        // track login state — after login succeeds, SSO validation should pass
+        let loginCompleted = false;
+
+        // mock fromSSO: reject before login, resolve after login
+        // .note = SDK validates with AWS SSO servers — triggers login when expired
         const credentialsError = new Error(
           'The SSO session associated with this profile has expired',
         );
         credentialsError.name = 'CredentialsProviderError';
-        mockFromSSO.mockRejectedValue(credentialsError);
+        mockFromSSO.mockImplementation(() => {
+          if (loginCompleted) {
+            return Promise.resolve({
+              accessKeyId: 'AKIA...',
+              secretAccessKey: 'secret',
+              sessionToken: 'token',
+            });
+          }
+          return Promise.reject(credentialsError);
+        });
 
         // mock SSO cache with access token (for previewAwsSsoCacheForDomain)
         getAllAwsSsoCacheEntriesMock.mockReturnValue([
@@ -615,7 +628,10 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         const { EventEmitter } = require('node:events');
         spawnMock.mockImplementation(() => {
           const emitter = new EventEmitter();
-          process.nextTick(() => emitter.emit('close', 0));
+          process.nextTick(() => {
+            loginCompleted = true; // mark login complete before emitting close
+            emitter.emit('close', 0);
+          });
           return emitter;
         });
       });
@@ -643,17 +659,21 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         },
       );
 
-      then('clears conflicted cache session before login', async () => {
-        await vaultAdapterAwsConfig.unlock({
-          identity: null,
-          exid: 'acme-prod',
-          meta: { awsSsoUsername: 'alice@acme.com' },
-          silent: true,
-        });
+      then(
+        'does not clear cache (only username mismatch triggers clear)',
+        async () => {
+          await vaultAdapterAwsConfig.unlock({
+            identity: null,
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+            silent: true,
+          });
 
-        // deletes cache files that match the sso start url
-        expect(unlinkSyncMock).toHaveBeenCalled();
-      });
+          // expired session → no cache clear needed (just re-login)
+          // cache clear only happens on username MISMATCH (valid session, wrong user)
+          expect(unlinkSyncMock).not.toHaveBeenCalled();
+        },
+      );
 
       then(
         'outputs expired session with conflicted cache message (snapshot)',
@@ -677,8 +697,7 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
           // wrap with root context for treestruct completeness in snapshot
           const output = '🔓 vault.unlock\n' + consoleLogs.join('\n');
           expect(output).toContain('with sso prior?');
-          expect(output).toContain('access denied');
-          expect(output).toContain('cleared, will re-auth');
+          expect(output).toContain('clear, no prior session');
           expect(output).toMatchSnapshot();
         },
       );
@@ -686,12 +705,24 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
 
     when('[t1.5] unlock called with expired session and no prior cache', () => {
       beforeEach(() => {
-        // mock fromSSO to fail (SSO expired or revoked remotely)
+        // track login state — after login succeeds, SSO validation should pass
+        let loginCompleted = false;
+
+        // mock fromSSO: reject before login, resolve after login
         const credentialsError = new Error(
           'The SSO session associated with this profile has expired',
         );
         credentialsError.name = 'CredentialsProviderError';
-        mockFromSSO.mockRejectedValue(credentialsError);
+        mockFromSSO.mockImplementation(() => {
+          if (loginCompleted) {
+            return Promise.resolve({
+              accessKeyId: 'AKIA...',
+              secretAccessKey: 'secret',
+              sessionToken: 'token',
+            });
+          }
+          return Promise.reject(credentialsError);
+        });
 
         // no SSO cache entries (empty cache)
         getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
@@ -722,7 +753,10 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         const { EventEmitter } = require('node:events');
         spawnMock.mockImplementation(() => {
           const emitter = new EventEmitter();
-          process.nextTick(() => emitter.emit('close', 0));
+          process.nextTick(() => {
+            loginCompleted = true; // mark login complete before emitting close
+            emitter.emit('close', 0);
+          });
           return emitter;
         });
       });
@@ -745,7 +779,8 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
 
         // wrap with root context for treestruct completeness in snapshot
         // .note = [unit] prefix clarifies this is a unit test of internal adapter, not CLI
-        const output = '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
+        const output =
+          '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
         expect(output).toContain('with sso prior?');
         expect(output).toContain('clear, no prior session');
         expect(output).toMatchSnapshot();
@@ -811,7 +846,8 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
 
         // wrap with root context for treestruct completeness in snapshot
         // .note = [unit] prefix clarifies this is a unit test of internal adapter, not CLI
-        const output = '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
+        const output =
+          '🔓 [unit] vaultAdapterAwsConfig.unlock\n' + consoleLogs.join('\n');
         expect(output).toContain('with sso prior?');
         expect(output).toContain('re-set required');
         expect(output).toMatchSnapshot();
@@ -822,6 +858,9 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
       '[t4] unlock called with username mismatch (valid session, wrong user)',
       () => {
         beforeEach(() => {
+          // track login state — after login, identity switches from bob to alice
+          let loginCompleted = false;
+
           // valid session but for different user
           mockFromSSO.mockResolvedValue({
             accessKeyId: 'AKIA...',
@@ -829,7 +868,7 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
             sessionToken: 'token',
           });
 
-          // returns bob but we expect alice
+          // returns bob before login, alice after login
           execMock.mockImplementation((cmd: string, callback: any) => {
             if (cmd.includes('aws configure export-credentials')) {
               callback(null, {
@@ -842,9 +881,11 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
                 stderr: '',
               });
             } else if (cmd.includes('aws sts get-caller-identity')) {
+              const username = loginCompleted
+                ? 'alice@acme.com'
+                : 'bob@acme.com';
               callback(null, {
-                stdout:
-                  '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/bob@acme.com"}',
+                stdout: `{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/${username}"}`,
                 stderr: '',
               });
             }
@@ -867,7 +908,10 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
           const { EventEmitter } = require('node:events');
           spawnMock.mockImplementation(() => {
             const emitter = new EventEmitter();
-            process.nextTick(() => emitter.emit('close', 0));
+            process.nextTick(() => {
+              loginCompleted = true; // mark login complete before emitting close
+              emitter.emit('close', 0);
+            });
             return emitter;
           });
         });

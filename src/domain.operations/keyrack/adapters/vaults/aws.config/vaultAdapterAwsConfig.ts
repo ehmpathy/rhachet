@@ -20,7 +20,6 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
-import { previewAwsSsoCacheForDomain } from './previewAwsSsoCacheForDomain';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -290,7 +289,9 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
       }
 
       // parse slug for actionable hint
-      const parts = input.slug ? asKeyrackSlugParts({ slug: input.slug }) : null;
+      const parts = input.slug
+        ? asKeyrackSlugParts({ slug: input.slug })
+        : null;
       const owner = input.owner ?? '<owner>';
       const hint = parts
         ? `run: rhx keyrack set --owner ${owner} --env ${parts.env} --key ${parts.keyName} --vault aws.config`
@@ -307,42 +308,63 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
 
     const profileConfig = await getAwsSsoProfileConfig({ profileName });
 
-    // step 1: try sso login first (may reuse domain session without browser popup)
-    await triggerSsoLogin(profileName);
+    // step 1: check if session already valid and username matches
+    const initialResult = await validateSsoSession(profileName);
 
-    // step 2: validate session and check username
-    const sessionResult = await validateSsoSession(profileName);
-
-    // step 3: if valid and username matches → done
-    if (sessionResult.valid && sessionResult.username === expectedUsername) {
+    if (initialResult.valid && initialResult.username === expectedUsername) {
+      // session valid + correct user → reuse without login
       if (!input.silent) {
         console.log('   ├─ with sso prior?');
-        console.log(`   │  ├─ ✓ ${sessionResult.username}, access confirmed`);
-        console.log('   │  └─ ✓ session reused');
+        console.log(`   │  ├─ ✓ ${initialResult.username}, access confirmed`);
+        console.log('   │  └─ ✓ will reuse');
       }
       return;
     }
 
-    // step 4: username mismatch or still invalid → clear domain cache and retry
-    if (profileConfig?.ssoStartUrl) {
-      if (!input.silent) {
-        console.log('   ├─ with sso prior?');
-        if (sessionResult.valid) {
-          console.log(`   │  ├─ ✗ session user mismatch`);
-          console.log(`   │  │  ├─ expected: ${expectedUsername}`);
-          console.log(`   │  │  └─ observed: ${sessionResult.username}`);
-        } else {
-          console.log('   │  ├─ ✗ session invalid after login');
-        }
-        console.log('   │  └─ ✓ clear domain cache, retry...');
+    // step 2: session invalid or username mismatch → need to login
+    if (!input.silent) {
+      console.log('   ├─ with sso prior?');
+      if (!initialResult.valid) {
+        console.log('   │  └─ ✗ clear, no prior session');
+      } else {
+        console.log(`   │  ├─ ✗ session user mismatch`);
+        console.log(`   │  │  ├─ expected: ${expectedUsername}`);
+        console.log(`   │  │  └─ observed: ${initialResult.username}`);
+        console.log('   │  └─ ✓ cleared, re-auth triggered');
       }
+    }
 
+    // step 3: clear domain cache if username mismatch
+    if (initialResult.valid && profileConfig?.ssoStartUrl) {
+      // clear to force fresh auth with correct user
       await clearAwsSsoCacheForDomain({
         ssoStartUrl: profileConfig.ssoStartUrl,
       });
+    }
 
-      // retry: fresh login after cache clear
-      await triggerSsoLogin(profileName);
+    // step 4: trigger login
+    await triggerSsoLogin(profileName);
+
+    // step 5: validate again after login
+    const sessionResult = await validateSsoSession(profileName);
+
+    if (!sessionResult.valid) {
+      throw new ConstraintError('sso login failed; session still invalid', {
+        profileName,
+        hint: 'complete browser auth',
+      });
+    }
+
+    if (sessionResult.username !== expectedUsername) {
+      throw new ConstraintError(
+        'sso login completed but username mismatch persists',
+        {
+          profileName,
+          expected: expectedUsername,
+          observed: sessionResult.username,
+          hint: 're-authenticate with the correct user',
+        },
+      );
     }
 
     // force STS credential refresh after SSO login
@@ -424,7 +446,8 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
    */
   set: async (input, context) => {
     // get identity from context for roundtrip verification
-    const identity = (await context?.identity?.getOne({ for: 'manifest' })) ?? null;
+    const identity =
+      (await context?.identity?.getOne({ for: 'manifest' })) ?? null;
 
     // infer mech if not supplied
     const mech =
