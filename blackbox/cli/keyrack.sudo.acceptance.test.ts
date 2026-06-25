@@ -2,10 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '@/blackbox/.test/infra/genTestTempRepo';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -667,88 +664,6 @@ describe('keyrack sudo', () => {
 
       then('exits with status 0', () => {
         expect(result.status).toEqual(0);
-      });
-    });
-  });
-
-  /**
-   * [uc8] vault-recipient for os.secure
-   */
-  given('[case8] os.secure vault with vault-recipient', () => {
-    const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'with-keyrack-multi-env' }),
-    );
-
-    when('[t0] set with --vault os.secure --vault-recipient', () => {
-      const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
-          args: [
-            'keyrack',
-            'set',
-            '--key',
-            'SECURE_TOKEN',
-            '--env',
-            'sudo',
-            '--mech',
-            'PERMANENT_VIA_REPLICA',
-            '--vault',
-            'os.secure',
-            '--vault-recipient',
-            TEST_SSH_AGE_RECIPIENT,
-            '--json',
-          ],
-          cwd: repo.path,
-          env: { HOME: repo.path },
-          stdin: 'secure-token-value\n',
-        }),
-      );
-
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
-      });
-
-      then('response contains vaultRecipient', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.vaultRecipient).toEqual(TEST_SSH_AGE_RECIPIENT);
-      });
-
-      then('stdout matches snapshot', () => {
-        const parsed = JSON.parse(result.stdout);
-        if (parsed.createdAt) parsed.createdAt = '__TIMESTAMP__';
-        if (parsed.updatedAt) parsed.updatedAt = '__TIMESTAMP__';
-        expect(parsed).toMatchSnapshot();
-      });
-    });
-
-    when('[t1] set with --vault os.secure (no vault-recipient)', () => {
-      const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
-          args: [
-            'keyrack',
-            'set',
-            '--key',
-            'SECURE_TOKEN_DEFAULT',
-            '--env',
-            'sudo',
-            '--mech',
-            'PERMANENT_VIA_REPLICA',
-            '--vault',
-            'os.secure',
-            '--json',
-          ],
-          cwd: repo.path,
-          env: { HOME: repo.path },
-          stdin: 'secure-token-default-value\n',
-        }),
-      );
-
-      then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
-      });
-
-      then('vaultRecipient is null (uses manifest recipient)', () => {
-        const parsed = JSON.parse(result.stdout);
-        expect(parsed.vaultRecipient).toBeNull();
       });
     });
   });

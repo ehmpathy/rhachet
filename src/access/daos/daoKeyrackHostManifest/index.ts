@@ -114,7 +114,7 @@ export const daoKeyrackHostManifest = {
         mech: host.mech,
         env: host.env,
         org: host.org,
-        vaultRecipient: host.vaultRecipient,
+        meta: host.meta,
         maxDuration: host.maxDuration,
         createdAt: host.createdAt,
         updatedAt: host.updatedAt,

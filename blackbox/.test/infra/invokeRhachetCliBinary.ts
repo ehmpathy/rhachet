@@ -48,13 +48,20 @@ export const invokeRhachetCliBinary = (input: {
   env?: Record<string, string | undefined>;
 }): SpawnSyncReturns<string> => {
   const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
+
+  // merge env vars, filter out undefined to unset inherited vars
+  const mergedEnv = { ...process.env, ...input.env };
+  const envFiltered = Object.fromEntries(
+    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
+  ) as NodeJS.ProcessEnv;
+
   const result = spawnSync(binPath, input.args, {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
     // shell mode removed: args with spaces (like pubkeys) were being split by bash
     // absolute binPath doesn't need shell for PATH resolution
-    env: { ...process.env, ...input.env }, // always pass env so subprocess inherits modified HOME
+    env: envFiltered,
   });
 
   // log output for debug on failure
@@ -95,10 +102,16 @@ export const invokeRhachetCliBinaryChain = (input: {
   });
   const chainedCommand = commands.join(' && ');
 
+  // merge env vars, filter out undefined to unset inherited vars
+  const mergedEnv = { ...process.env, ...input.env };
+  const envFiltered = Object.fromEntries(
+    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
+  ) as NodeJS.ProcessEnv;
+
   const result = spawnSync('bash', ['-c', chainedCommand], {
     cwd: input.cwd,
     encoding: 'utf-8',
-    env: { ...process.env, ...input.env }, // always pass env so subprocess inherits modified HOME
+    env: envFiltered,
   });
 
   // log output for debug on failure

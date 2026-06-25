@@ -200,12 +200,16 @@ export const unlockKeyrackKeys = async (
     const isUnlocked = await adapter.isUnlocked({
       exid: hostConfig.exid,
       identity,
+      meta: hostConfig.meta,
     });
     if (!isUnlocked) {
       await adapter.unlock({
         identity,
         exid: hostConfig.exid,
         silent: true,
+        meta: hostConfig.meta,
+        slug: effectiveSlug,
+        owner: input.owner ?? null,
       });
     }
 
@@ -216,6 +220,7 @@ export const unlockKeyrackKeys = async (
       slug: effectiveSlug,
       mech: hostConfig.mech,
       exid: hostConfig.exid,
+      meta: hostConfig.meta,
       owner: input.owner ?? null,
       identity,
     });

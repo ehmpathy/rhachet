@@ -15,7 +15,7 @@ export const schemaKeyrackKeyRecipient = z.object({
  * .what = zod schema for KeyrackKeyHost
  * .why = validates host entries from json file
  *
- * .note = env, org, vaultRecipient, maxDuration are optional for backwards compat
+ * .note = env, org, meta, maxDuration are optional for backwards compat
  */
 export const schemaKeyrackKeyHost = z.object({
   slug: z.string(),
@@ -49,7 +49,7 @@ export const schemaKeyrackKeyHost = z.object({
     })
     .optional()
     .default('unknown'),
-  vaultRecipient: z.string().nullable().optional().default(null),
+  meta: z.record(z.string(), z.unknown()).nullable().optional().default(null),
   maxDuration: z.string().nullable().optional().default(null),
   createdAt: z.string(),
   updatedAt: z.string(),

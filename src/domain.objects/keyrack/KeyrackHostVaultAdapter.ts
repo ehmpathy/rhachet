@@ -1,7 +1,9 @@
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
+import type { KeyrackHostVault } from './KeyrackHostVault';
 import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
+import type { KeyrackKeyHostMetaOf } from './KeyrackKeyHostMeta';
 
 /**
  * .what = get method signature for readable vaults
@@ -10,11 +12,11 @@ import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
  * .note = returns full KeyrackKeyGrant with inferred mech, grade, env, org
  * .note = vault is responsible for mech inference from JSON blobs
  */
-type KeyrackHostVaultGetMethod = (input: {
+type KeyrackHostVaultGetMethod<TVault extends KeyrackHostVault> = (input: {
   slug: string;
   mech?: KeyrackGrantMechanism | null;
   exid?: string | null;
-  vaultRecipient?: string | null;
+  meta?: KeyrackKeyHostMetaOf<TVault> | null;
   owner?: string | null;
   identity?: string | null;
 }) => Promise<KeyrackKeyGrant | null>;
@@ -23,6 +25,7 @@ type KeyrackHostVaultGetMethod = (input: {
  * .what = vault adapter for keyrack storage backends
  * .why = adapter pattern enables support for multiple storage backends
  *
+ * .note = TVault generic determines vault-specific meta type
  * .note = TMode generic:
  *         - 'readwrite' = can read and write (get is a method)
  *         - 'onlywrite' = write-only vault (get is null)
@@ -34,6 +37,7 @@ type KeyrackHostVaultGetMethod = (input: {
  */
 export interface KeyrackHostVaultAdapter<
   TMode extends 'readwrite' | 'onlywrite' = 'readwrite' | 'onlywrite',
+  TVault extends KeyrackHostVault = KeyrackHostVault,
 > {
   /**
    * .what = mechanisms supported by this vault
@@ -49,11 +53,16 @@ export interface KeyrackHostVaultAdapter<
    *
    * .note = identity is for os.secure vault (age encryption via ssh key)
    * .note = silent mode for aws.config vault (suppress cli output)
+   * .note = meta is for aws.config vault (awsSsoUsername for session mismatch check)
+   * .note = slug and owner are for error messages (enables actionable hints)
    */
   unlock: (input: {
     identity: string | null;
     silent?: boolean;
     exid?: string | null;
+    meta?: KeyrackKeyHostMetaOf<TVault> | null;
+    slug?: string | null;
+    owner?: string | null;
   }) => Promise<void>;
 
   /**
@@ -62,10 +71,12 @@ export interface KeyrackHostVaultAdapter<
    *
    * .note = exid is optional; aws.config uses it to validate sso session for the profile
    * .note = identity is optional; os.secure uses it for session state check
+   * .note = meta is optional; aws.config uses awsSsoUsername for session mismatch check
    */
   isUnlocked: (input?: {
     exid?: string | null;
     identity?: string | null;
+    meta?: KeyrackKeyHostMetaOf<TVault> | null;
   }) => Promise<boolean>;
 
   /**
@@ -81,7 +92,7 @@ export interface KeyrackHostVaultAdapter<
    *         2. call mech.deliverForGet({ source }) if mech supplied
    *         3. return translated secret (or source if no mech)
    */
-  get: TMode extends 'readwrite' ? KeyrackHostVaultGetMethod : null;
+  get: TMode extends 'readwrite' ? KeyrackHostVaultGetMethod<TVault> : null;
 
   /**
    * .what = store a credential in the vault
@@ -98,6 +109,7 @@ export interface KeyrackHostVaultAdapter<
    * .note = expiresAt is optional; enables ephemeral grant cache (os.direct only)
    * .note = returns { mech } so orchestrator can record what mech was used
    * .note = may also return { exid } when the adapter derives an exid (e.g., aws.config profile name)
+   * .note = may also return { meta } for vault-specific metadata (e.g., awsSsoUsername for aws.config)
    * .note = context provides: owner, hostManifest.recipients, identity for verification
    */
   set: (
@@ -108,7 +120,11 @@ export interface KeyrackHostVaultAdapter<
       expiresAt?: string | null;
     },
     context?: ContextKeyrack,
-  ) => Promise<{ mech: KeyrackGrantMechanism; exid?: string }>;
+  ) => Promise<{
+    mech: KeyrackGrantMechanism;
+    exid?: string;
+    meta?: KeyrackKeyHostMetaOf<TVault>;
+  }>;
 
   /**
    * .what = remove a credential from the vault

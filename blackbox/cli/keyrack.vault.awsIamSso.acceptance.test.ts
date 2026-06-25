@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -33,8 +34,9 @@ const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js
  * .note = cases that call `set` need this because vaultAdapterAwsIamSso.set validates the profile
  */
 const envWithMockAws = (home: string) => ({
-  HOME: home,
+  ...envIsolated(home),
   PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+  AWS_SDK_MOCK: '1', // skip SDK validation in mock mode
 });
 
 /**
@@ -73,7 +75,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -120,7 +122,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -237,7 +239,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -284,7 +286,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--key', 'testorg.test.AWS_PROFILE', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -381,7 +383,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -498,7 +500,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -538,7 +540,7 @@ describe('keyrack vault aws.config', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -587,7 +589,7 @@ describe('keyrack vault aws.config', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envWithMockAws(repo.path),
         }),
       );
 
@@ -606,7 +608,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'list', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -636,7 +638,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'unlock'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
           logOnError: false,
         }),
       );
@@ -860,7 +862,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -884,7 +886,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock', '--key', 'testorg.test.AWS_PROFILE'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -908,7 +910,7 @@ describe('keyrack vault aws.config', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'relock', '--json'],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: envIsolated(repo.path),
         }),
       );
 
@@ -1290,7 +1292,7 @@ describe('keyrack vault aws.config', () => {
           'testorg.dev',
         ],
         cwd: r.path,
-        env: { HOME: r.path, PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}` },
+        env: { ...envIsolated(r.path), PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`, AWS_SDK_MOCK: '1' },
       });
 
       return r;
@@ -1401,7 +1403,7 @@ describe('keyrack vault aws.config', () => {
           'testorg.dev',
         ],
         cwd: r.path,
-        env: { HOME: r.path, PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}` },
+        env: { ...envIsolated(r.path), PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`, AWS_SDK_MOCK: '1' },
       });
 
       return r;
@@ -1413,8 +1415,9 @@ describe('keyrack vault aws.config', () => {
           args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
           cwd: repo.path,
           env: {
-            HOME: repo.path,
+            ...envIsolated(repo.path),
             PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            AWS_SDK_MOCK: '1',
             MOCK_AWS_IDENTITY_ERROR: '1', // simulate access denied (wrong user)
           },
         }),
@@ -1529,8 +1532,9 @@ describe('keyrack vault aws.config', () => {
             cwd: repo.path,
             env: {
               ...process.env,
-              HOME: repo.path,
+              ...envIsolated(repo.path),
               PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+              AWS_SDK_MOCK: '1',
               MOCK_AWS_IDENTITY: 'alice', // valid session
             },
             timeout: 60000,
@@ -1663,8 +1667,9 @@ describe('keyrack vault aws.config', () => {
             cwd: repo.path,
             env: {
               ...process.env,
-              HOME: repo.path,
+              ...envIsolated(repo.path),
               PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+              AWS_SDK_MOCK: '1',
               MOCK_AWS_IDENTITY: 'alice', // alice authenticates after cache clear
             },
             timeout: 60000,

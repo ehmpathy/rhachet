@@ -322,7 +322,7 @@ describe('setKeyrackKeyHost.integration', () => {
     });
   });
 
-  given('[case4] set with vaultRecipient for os.secure', () => {
+  given('[case4] set with meta for os.secure', () => {
     const testRecipient = TEST_SSH_AGE_RECIPIENT;
     // separate keypair for vault recipient (different from manifest recipient)
     const vaultKeyPair = useBeforeAll(async () => generateAgeKeyPair());
@@ -345,8 +345,8 @@ describe('setKeyrackKeyHost.integration', () => {
       });
     });
 
-    when('[t0] set called with vaultRecipient', () => {
-      then('stores vaultRecipient in KeyrackKeyHost', async () => {
+    when('[t0] set called with meta', () => {
+      then('stores meta in KeyrackKeyHost', async () => {
         const context: ContextKeyrack = {
           owner: 'case4',
           identity: {
@@ -376,12 +376,14 @@ describe('setKeyrackKeyHost.integration', () => {
             vault: 'os.secure',
             env: 'sudo',
             org: '@this',
-            vaultRecipient: vaultKeyPair.recipient,
+            meta: { ageKeyRecipient: vaultKeyPair.recipient },
           },
           context,
         );
 
-        expect(result.vaultRecipient).toEqual(vaultKeyPair.recipient);
+        expect(result.meta).toEqual({
+          ageKeyRecipient: vaultKeyPair.recipient,
+        });
 
         // verify stored in host manifest - dao discovers key naturally
         const contextForGet = genContextKeyrack({ owner: 'case4' });
@@ -392,7 +394,7 @@ describe('setKeyrackKeyHost.integration', () => {
           contextForGet,
         );
         const host = manifestAfter?.manifest.hosts['ehmpathy.sudo.SECURE_KEY'];
-        expect(host?.vaultRecipient).toEqual(vaultKeyPair.recipient);
+        expect(host?.meta).toEqual({ ageKeyRecipient: vaultKeyPair.recipient });
       });
     });
   });

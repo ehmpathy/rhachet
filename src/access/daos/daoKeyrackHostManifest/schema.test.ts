@@ -83,7 +83,7 @@ describe('schemaKeyrackHostManifest', () => {
           exid: null,
           env: 'prod', // set from slug
           org: 'testorg', // set from slug
-          vaultRecipient: null,
+          meta: null,
           maxDuration: null,
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',

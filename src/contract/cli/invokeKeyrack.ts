@@ -654,10 +654,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '@this',
     )
     .option('--exid <exid>', 'external id (vault-specific reference)')
-    .option(
-      '--vault-recipient <pubkey>',
-      'pubkey for os.secure vault (if different from manifest)',
-    )
     .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
     .option('--at <path>', 'custom keyrack.yml path (for role-level keyracks)')
     .option('--prikey <path>', 'ssh private key for manifest decryption')
@@ -672,7 +668,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         env?: string;
         org: string;
         exid?: string;
-        vaultRecipient?: string;
         maxDuration?: string;
         at?: string;
         prikey?: string;
@@ -806,7 +801,6 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             vault: opts.vault as KeyrackHostVault,
             mech,
             exid: opts.exid ?? null,
-            vaultRecipient: opts.vaultRecipient ?? null,
             maxDuration: opts.maxDuration ?? null,
             repoManifest: repoManifest ?? undefined,
             at: opts.at ?? null,

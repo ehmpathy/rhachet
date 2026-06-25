@@ -7,11 +7,11 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t0] set --key SU
   "exid": null,
   "maxDuration": null,
   "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
   "org": "testorg",
   "slug": "testorg.sudo.SUDO_TOKEN",
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.direct",
-  "vaultRecipient": null,
 }
 `;
 
@@ -98,11 +98,11 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prep.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.prep.SHARED_API_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -110,11 +110,11 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prep.SHARED_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.prod.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
@@ -122,11 +122,11 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.prod.SHARED_API_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -134,11 +134,11 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prod.SHARED_API_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
   "testorg.sudo.SUDO_LIST_TEST": {
     "createdAt": "__TIMESTAMP__",
@@ -146,27 +146,12 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
     "exid": null,
     "maxDuration": null,
     "mech": "PERMANENT_VIA_REPLICA",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.sudo.SUDO_LIST_TEST",
     "updatedAt": "__TIMESTAMP__",
     "vault": "os.direct",
-    "vaultRecipient": null,
   },
-}
-`;
-
-exports[`keyrack sudo given: [case8] os.secure vault with vault-recipient when: [t0] set with --vault os.secure --vault-recipient then: stdout matches snapshot 1`] = `
-{
-  "createdAt": "__TIMESTAMP__",
-  "env": "sudo",
-  "exid": null,
-  "maxDuration": null,
-  "mech": "PERMANENT_VIA_REPLICA",
-  "org": "testorg",
-  "slug": "testorg.sudo.SECURE_TOKEN",
-  "updatedAt": "__TIMESTAMP__",
-  "vault": "os.secure",
-  "vaultRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
 }
 `;
 

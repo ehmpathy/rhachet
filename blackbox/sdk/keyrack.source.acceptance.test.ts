@@ -3,10 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '@/blackbox/.test/infra/genTestTempRepo';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -411,8 +408,6 @@ env.test:
           'os.secure',
           '--mech',
           'PERMANENT_VIA_REPLICA',
-          '--vault-recipient',
-          TEST_SSH_AGE_RECIPIENT,
           '--org',
           'testorg',
           '--json',

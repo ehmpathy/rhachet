@@ -1,9 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '@/blackbox/.test/infra/genTestTempRepo';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
@@ -43,8 +40,6 @@ describe('keyrack roundtrip', () => {
             'os.secure',
             '--mech',
             'PERMANENT_VIA_REPLICA',
-            '--vault-recipient',
-            TEST_SSH_AGE_RECIPIENT,
             '--org',
             '@all',
             '--json',
@@ -543,8 +538,6 @@ describe('keyrack roundtrip', () => {
             'os.secure',
             '--mech',
             'PERMANENT_VIA_REPLICA',
-            '--vault-recipient',
-            TEST_SSH_AGE_RECIPIENT,
             '--json',
           ],
           cwd: repo.path,

@@ -8,11 +8,11 @@ exports[`keyrack vault aws.config given: [case1] repo with aws.config vault conf
     "exid": "testorg-prod",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
   "testorg.test.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
@@ -20,11 +20,11 @@ exports[`keyrack vault aws.config given: [case1] repo with aws.config vault conf
     "exid": "testorg-test",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
 }
 `;
@@ -52,11 +52,13 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.NEW_AWS_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -67,11 +69,13 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.ANOTHER_AWS_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -83,11 +87,11 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
     "exid": "testorg-prod",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.prod.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
   "testorg.test.ANOTHER_AWS_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -95,11 +99,13 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
     "exid": "testorg-test",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": {
+      "awsSsoUsername": "session",
+    },
     "org": "testorg",
     "slug": "testorg.test.ANOTHER_AWS_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
   "testorg.test.AWS_PROFILE": {
     "createdAt": "__TIMESTAMP__",
@@ -107,11 +113,11 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
     "exid": "testorg-test",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": null,
     "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
   "testorg.test.NEW_AWS_KEY": {
     "createdAt": "__TIMESTAMP__",
@@ -119,11 +125,13 @@ exports[`keyrack vault aws.config given: [case2] repo without host entry for a k
     "exid": "testorg-test",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": {
+      "awsSsoUsername": "session",
+    },
     "org": "testorg",
     "slug": "testorg.test.NEW_AWS_KEY",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
 }
 `;
@@ -144,11 +152,13 @@ exports[`keyrack vault aws.config given: [case4] findsert semantics when: [t0] s
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.AWS_PROFILE",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -159,11 +169,13 @@ exports[`keyrack vault aws.config given: [case6] mech inference from aws.config 
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.INFERRED_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -174,11 +186,13 @@ exports[`keyrack vault aws.config given: [case6] mech inference from aws.config 
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.INFERRED_KEY_2",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -190,11 +204,13 @@ exports[`keyrack vault aws.config given: [case7] profile storage with --exid whe
     "exid": "my-preconfigured-profile",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": {
+      "awsSsoUsername": "session",
+    },
     "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE_EXID",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
 ]
 `;
@@ -206,11 +222,13 @@ exports[`keyrack vault aws.config given: [case7] profile storage with --exid whe
   "exid": "another-profile",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.AWS_PROFILE_EXID_2",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -242,11 +260,13 @@ exports[`keyrack vault aws.config given: [case10] repo manifest no duplicate on 
   "exid": "testorg-test",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.test.AWS_PROFILE",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -268,11 +288,13 @@ exports[`keyrack vault aws.config given: [case11] repo manifest creates env sect
   "exid": "testorg-prep",
   "maxDuration": null,
   "mech": "EPHEMERAL_VIA_AWS_SSO",
+  "meta": {
+    "awsSsoUsername": "session",
+  },
   "org": "testorg",
   "slug": "testorg.prep.PREP_KEY",
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.config",
-  "vaultRecipient": null,
 }
 `;
 
@@ -366,11 +388,13 @@ exports[`keyrack vault aws.config given: [case13] guided setup with mock aws CLI
     "exid": "testorg.dev",
     "maxDuration": null,
     "mech": "EPHEMERAL_VIA_AWS_SSO",
+    "meta": {
+      "awsSsoUsername": "session",
+    },
     "org": "testorg",
     "slug": "testorg.test.AWS_PROFILE",
     "updatedAt": "__TIMESTAMP__",
     "vault": "aws.config",
-    "vaultRecipient": null,
   },
 }
 `;

@@ -33,7 +33,7 @@ export const setKeyrackKeyHost = async (
     exid?: string | null;
     env?: string;
     org?: string;
-    vaultRecipient?: string | null;
+    meta?: Record<string, unknown> | null;
     maxDuration?: string | null;
     secret?: string | null;
     at?: string | null;
@@ -89,6 +89,9 @@ export const setKeyrackKeyHost = async (
   // if adapter derived an exid (e.g., aws.config guided setup), use it for the manifest entry
   const exidForManifest = setResult.exid ?? input.exid ?? null;
 
+  // if adapter derived meta (e.g., awsSsoUsername for aws.config), use it for the manifest entry
+  const metaForManifest = setResult.meta ?? input.meta ?? null;
+
   // write-only vaults (get === null) are passthrough — skip manifest write
   // .why = write-only vaults cannot be used for subsequent keyrack get/unlock
   //        so its equivalent to them never been present on this host
@@ -102,7 +105,7 @@ export const setKeyrackKeyHost = async (
       exid: exidForManifest,
       env: input.env ?? 'all',
       org: orgExpanded,
-      vaultRecipient: input.vaultRecipient ?? null,
+      meta: metaForManifest,
       maxDuration: input.maxDuration ?? null,
       createdAt: now,
       updatedAt: now,
@@ -128,7 +131,7 @@ export const setKeyrackKeyHost = async (
         exid: exidForManifest,
         env: input.env ?? 'all',
         org: orgExpanded,
-        vaultRecipient: input.vaultRecipient ?? null,
+        meta: metaForManifest,
       },
     });
     if (attrsEqual) {
@@ -144,7 +147,7 @@ export const setKeyrackKeyHost = async (
     exid: exidForManifest,
     env: input.env ?? 'all',
     org: orgExpanded,
-    vaultRecipient: input.vaultRecipient ?? null,
+    meta: metaForManifest,
     maxDuration: input.maxDuration ?? null,
     createdAt: now,
     updatedAt: now,
