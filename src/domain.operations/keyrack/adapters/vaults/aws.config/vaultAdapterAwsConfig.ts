@@ -4,6 +4,7 @@ import {
   MalfunctionError,
   UnexpectedCodePathError,
 } from 'helpful-errors';
+import { genLogMethods } from 'sdk-logs';
 
 import type {
   KeyrackGrantMechanism,
@@ -102,9 +103,63 @@ const validateSsoTokenWithAwsSdk = async (
  *
  * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
+/**
+ * .what = list the filenames cached in ~/.aws/sso/cache (not contents)
+ * .why = sso token files are named sha1(session_name).json; the set of
+ *        filenames reveals whether a token landed under the real profile's
+ *        session vs the temp guided-setup session — key to diagnose the
+ *        cli-vs-sdk divergence
+ *
+ * .note = filenames only; never logs token contents (secrets)
+ */
+const getAwsSsoCacheFileNames = (): string[] => {
+  const cacheDir = join(homedir(), '.aws', 'sso', 'cache');
+  if (!existsSync(cacheDir)) return [];
+  return readdirSync(cacheDir);
+};
+
+const log = genLogMethods();
+
+/**
+ * .what = emit which validateSsoSession gate returned invalid
+ * .why = pinpoints which of the three validation gates returns invalid,
+ *        so cli-vs-sdk divergence can be diagnosed without guesswork
+ *
+ * .note = level depends on caller context:
+ *         - info on the error path (set), where invalid → ConstraintError,
+ *           so the failure surfaces by default
+ *         - debug on the normal path (unlock/isUnlocked), where an expired
+ *           session is expected and triggers a re-login, not a failure
+ */
+const emitSsoGateInvalid = (input: {
+  gate: 'fromSSO' | 'export-credentials' | 'sts';
+  profileName: string;
+  error: unknown;
+  level: 'info' | 'debug';
+}): void => {
+  log[input.level](
+    '🐈 keyrack.vaultAdapterAwsConfig.validateSsoSession: gate invalid',
+    {
+      gate: input.gate,
+      valid: false,
+      profileName: input.profileName,
+      ssoCacheFiles: getAwsSsoCacheFileNames(),
+      error:
+        input.error instanceof Error
+          ? { name: input.error.name, message: input.error.message }
+          : input.error,
+    },
+  );
+};
+
 const validateSsoSession = async (
   profileName: string,
+  options?: { onInvalidLevel?: 'info' | 'debug' },
 ): Promise<{ valid: true; username: string } | { valid: false }> => {
+  // level for the gate-invalid log: debug by default (expired session is a
+  // normal re-login trigger), info when the caller treats invalid as a failure
+  const level = options?.onInvalidLevel ?? 'debug';
+
   // validate SSO via AWS SDK — cache cannot be trusted
   // .note = skip SDK validation in mock mode (AWS_SDK_MOCK=1)
   //         SDK reads cache files directly and makes network calls to AWS
@@ -121,6 +176,7 @@ const validateSsoSession = async (
           error.message.includes('expired') ||
           error.message.includes('invalid'))
       ) {
+        emitSsoGateInvalid({ gate: 'fromSSO', profileName, error, level });
         return { valid: false };
       }
       // unknown error - fail fast
@@ -148,7 +204,15 @@ const validateSsoSession = async (
       message.includes('does not exist') ||
       message.includes('refreshed credentials are still expired');
 
-    if (isExpiredError) return { valid: false };
+    if (isExpiredError) {
+      emitSsoGateInvalid({
+        gate: 'export-credentials',
+        profileName,
+        error,
+        level,
+      });
+      return { valid: false };
+    }
 
     // unknown error - fail fast
     throw new UnexpectedCodePathError(
@@ -175,7 +239,10 @@ const validateSsoSession = async (
 
     // allow expected errors: command failed = session expired or profile invalid
     // .note = aws cli exits non-zero for expired sessions and invalid profiles
-    if (error instanceof Error && 'code' in error) return { valid: false };
+    if (error instanceof Error && 'code' in error) {
+      emitSsoGateInvalid({ gate: 'sts', profileName, error, level });
+      return { valid: false };
+    }
     throw error;
   }
 };
@@ -532,7 +599,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
 
     // capture awsSsoUsername from ARN BEFORE roundtrip verification
     // .why = unlock requires meta.awsSsoUsername; we pass it immediately
-    const stsResult = await validateSsoSession(profileName);
+    // .note = info level: here invalid → ConstraintError, a real failure
+    const stsResult = await validateSsoSession(profileName, {
+      onInvalidLevel: 'info',
+    });
     if (!stsResult.valid) {
       throw new ConstraintError('sso session not valid; run aws sso login', {
         profileName,
@@ -580,10 +650,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
       slug: input.slug,
       exid: profileName,
     });
-    if (isGuidedSetup) {
-      console.log('      └─ ✓ relock');
-      console.log('');
-    }
+    if (isGuidedSetup) console.log('      └─ ✓ relock');
 
     // return mech, derived exid, and meta so caller can persist to the host manifest
     return {
