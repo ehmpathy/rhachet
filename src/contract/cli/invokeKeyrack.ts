@@ -818,7 +818,13 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             ),
           );
         } else {
-          // note: vault adapter already prints a blank line for visual separation
+          // blank line separates a guided-setup tree from this summary header
+          // .note = only ephemeral mechs print a guided tree (e.g. aws sso);
+          //         static-secret mechs (e.g. sudo) print no tree, so no blank
+          const printedGuidedTree = results.some((result) =>
+            result.mech.startsWith('EPHEMERAL'),
+          );
+          if (printedGuidedTree) console.log('');
           console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
           for (const result of results) {
             console.log(`   └─ ${result.slug}`);

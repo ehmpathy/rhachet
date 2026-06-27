@@ -80,6 +80,9 @@ importers:
       rhachet-artifact-git:
         specifier: 1.1.5
         version: 1.1.5
+      sdk-logs:
+        specifier: 0.9.2
+        version: 0.9.2
       serde-fns:
         specifier: 1.3.1
         version: 1.3.1
@@ -142,8 +145,8 @@ importers:
         specifier: 0.13.15
         version: 0.13.15
       declapract-typescript-ehmpathy:
-        specifier: 0.47.43
-        version: 0.47.43(declapract@0.13.15)(zod@4.3.4)
+        specifier: 0.49.3
+        version: 0.49.3(declapract@0.13.15)
       declastruct:
         specifier: 1.7.3
         version: 1.7.3(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(domain-objects@0.31.9)(zod@4.3.4)
@@ -2918,10 +2921,10 @@ packages:
       supports-color:
         optional: true
 
-  declapract-typescript-ehmpathy@0.47.43:
-    resolution: {integrity: sha512-A5jp9nCQgEoKR7B1GcNzDvBHQSgH+TR5CVNjS3mKzt6wEpkgfFs7OMbzb/OYkTqSs0+3Z8xjLggCtIPYM21oQQ==}
+  declapract-typescript-ehmpathy@0.49.3:
+    resolution: {integrity: sha512-8hM77cr2uSIDNk8aHwUI706acJNl0GuN334RFx7TJIf59cJ+N8PBf+Tm8v+yBPpd/sFzmhukW/37jBYCuJieOw==}
     peerDependencies:
-      declapract: '>=0.13.15'
+      declapract: '>=0.13.26'
 
   declapract@0.13.15:
     resolution: {integrity: sha512-ytRdxzTtMX22OhcVzkOhn7qZu0kXXPdv05wRBhMEYd7Iaf5yojciX2d8USAHkRTTRqrVc9elAyaPtTW6q0Sbjw==}
@@ -3031,6 +3034,14 @@ packages:
 
   domain-objects@0.31.10:
     resolution: {integrity: sha512-5Bk53LAVvcLBPeTGaBKBdvXwSzpfKk2t9BDnPP4eSuENl7qdXf+eVk3zeSfxPUygKSgZPN1z1o4QQZIcw85vKw==}
+    engines: {node: '>=8.0.0'}
+
+  domain-objects@0.31.11:
+    resolution: {integrity: sha512-jRHVFk8ZM1ObkSBtSM5QrygqWOBh66dBZm4iuFGdTGv3gotPvBZKASe3eXSBdBWXsL+ahdF2h+OdqD0IAnJVcg==}
+    engines: {node: '>=8.0.0'}
+
+  domain-objects@0.31.13:
+    resolution: {integrity: sha512-6i4w5gIV6lgOw9uEzETYW9Ejbm7H1OyQAwjE5zX6yPxUyTXT9CYAmrRuAIEmX83hy+YfK7gsh+6+6Ew7vKOCDA==}
     engines: {node: '>=8.0.0'}
 
   domain-objects@0.31.3:
@@ -3618,6 +3629,10 @@ packages:
 
   iso-time@1.11.4:
     resolution: {integrity: sha512-syKeGLYBiiyuHZ9KStPo27uBaxiHRhMYtFxhfdUQGTyR1mGMscBi+ybrScClzb0yFpOCpJpg3XqrT9SVV57OBg==}
+    engines: {node: '>=8.0.0'}
+
+  iso-time@1.11.7:
+    resolution: {integrity: sha512-61n196r6r/Zl9wg6S/GIz6f0VHXikh/9Fq8UikspUzakhjpIxsObnNkkv3WfPcfFpl3RjocyNHwt2qK7xhZC4Q==}
     engines: {node: '>=8.0.0'}
 
   istanbul-lib-coverage@3.2.2:
@@ -4577,6 +4592,10 @@ packages:
     resolution: {integrity: sha512-SH3TaoaJFzfAtqs3eG1j5IuHJkeEW5rKUPIjIN+ZorLAyJLHItQGnsgwHk76v25GtLtpT9IqfAcqK4vFWdiw+w==}
     engines: {node: '>=6.0.0'}
 
+  sdk-logs@0.9.2:
+    resolution: {integrity: sha512-QJWdd2EfpaXVpgRHzX9H4ZMysbhX1dGn5QzO7JMUGh7zB0FAUnizdvZETWyJk0ZDkNhJw6ne+5pFlFTWr1H0Zg==}
+    engines: {node: '>=8.0.0'}
+
   seedrandom@3.0.5:
     resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
 
@@ -4645,6 +4664,10 @@ packages:
 
   simple-log-methods@0.6.1:
     resolution: {integrity: sha512-POHiGnZqnQSivzgSDJfVE3/GAVPUEG0zc5vRLKIPpTnIQ6IY0QhOJOO3Ur0rKgXzwU/hlYpqabkELR62CauMhA==}
+    engines: {node: '>=8.0.0'}
+
+  simple-log-methods@0.6.12:
+    resolution: {integrity: sha512-aRkzbdFaOe2KdLyFq6H6aaNsAOoNO56krtBTpB4Lbw8GXX950Vt/hlZ7rCdcBRDxMW84xQOl1ozaYO2eqKERgg==}
     engines: {node: '>=8.0.0'}
 
   simple-log-methods@0.6.2:
@@ -4771,6 +4794,10 @@ packages:
 
   test-fns@1.15.0:
     resolution: {integrity: sha512-zC/qUA2lwfiXoQ00Ws8yD8LPA7p3n2a+Dl7wmI4iTXz4HbrU52riPY+AceGWgCAINs/cJ7cs9jnnASSPBwyGpg==}
+    engines: {node: '>=8.0.0'}
+
+  test-fns@1.15.7:
+    resolution: {integrity: sha512-wfILa+sblkaG3QQS9MEX+ZPxKrAOAoNVqSxi2OdIdHMQ1hFyKSSHRxfgCwoRujgcH1D6H1liHE+WO8+yJuQkbg==}
     engines: {node: '>=8.0.0'}
 
   test-fns@1.4.2:
@@ -4947,6 +4974,7 @@ packages:
 
   uuid@10.0.0:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@11.1.0:
@@ -8476,17 +8504,15 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  declapract-typescript-ehmpathy@0.47.43(declapract@0.13.15)(zod@4.3.4):
+  declapract-typescript-ehmpathy@0.49.3(declapract@0.13.15):
     dependencies:
       declapract: 0.13.15
-      domain-objects: 0.31.9
+      domain-objects: 0.31.13
       expect: 29.4.2
       flat: 5.0.2
-      helpful-errors: 1.5.3
-      test-fns: 1.15.0(zod@4.3.4)
+      helpful-errors: 1.7.3
+      test-fns: 1.15.7
       yaml: 2.8.2
-    transitivePeerDependencies:
-      - zod
 
   declapract@0.13.15:
     dependencies:
@@ -8655,6 +8681,20 @@ snapshots:
       change-case: 4.1.2
       helpful-errors: 1.7.2
       type-fns: 1.21.0
+      uuid-fns: 1.1.3
+
+  domain-objects@0.31.11:
+    dependencies:
+      change-case: 4.1.2
+      helpful-errors: 1.7.3
+      type-fns: 1.21.2
+      uuid-fns: 1.1.3
+
+  domain-objects@0.31.13:
+    dependencies:
+      change-case: 4.1.2
+      helpful-errors: 1.7.3
+      type-fns: 1.21.2
       uuid-fns: 1.1.3
 
   domain-objects@0.31.3:
@@ -9333,6 +9373,15 @@ snapshots:
       helpful-errors: 1.5.3
       simple-log-methods: 0.6.9
       type-fns: 1.21.0
+
+  iso-time@1.11.7:
+    dependencies:
+      date-fns: 3.6.0
+      domain-glossaries: 1.0.0
+      domain-objects: 0.31.11
+      helpful-errors: 1.7.3
+      simple-log-methods: 0.6.12
+      type-fns: 1.21.2
 
   istanbul-lib-coverage@3.2.2: {}
 
@@ -10593,6 +10642,15 @@ snapshots:
       invariant: 2.2.4
       lodash: 4.17.21
 
+  sdk-logs@0.9.2:
+    dependencies:
+      '@ehmpathy/error-fns': 1.3.7
+      domain-glossary-procedure: 1.0.0
+      domain-objects: 0.31.13
+      helpful-errors: 1.7.3
+      iso-time: 1.11.7
+      type-fns: 1.21.2
+
   seedrandom@3.0.5: {}
 
   semver-compare@1.0.0: {}
@@ -10698,6 +10756,15 @@ snapshots:
       - aws-crt
       - ws
       - zod
+
+  simple-log-methods@0.6.12:
+    dependencies:
+      '@ehmpathy/error-fns': 1.3.7
+      domain-glossary-procedure: 1.0.0
+      domain-objects: 0.31.10
+      helpful-errors: 1.7.3
+      iso-time: 1.11.7
+      type-fns: 1.21.2
 
   simple-log-methods@0.6.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(zod@4.3.4):
     dependencies:
@@ -10870,6 +10937,13 @@ snapshots:
       uuid: 10.0.0
     transitivePeerDependencies:
       - zod
+
+  test-fns@1.15.7:
+    dependencies:
+      domain-objects: 0.31.9
+      helpful-errors: 1.5.3
+      iso-time: 1.11.3
+      uuid: 10.0.0
 
   test-fns@1.4.2:
     dependencies:
