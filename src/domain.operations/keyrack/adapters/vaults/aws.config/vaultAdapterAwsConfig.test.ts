@@ -97,10 +97,16 @@ jest.mock('@aws-sdk/credential-provider-sso', () => ({
   fromSSO: jest.fn(() => mockFromSSO),
 }));
 
+import { fromSSO } from '@aws-sdk/credential-provider-sso';
+
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
+
+// .note = the outer fromSSO factory mock — cast per the extant execMock/spawnMock pattern
+//         so tests can assert the init args (e.g. ignoreCache) it was called with
+const fromSSOMock = fromSSO as jest.MockedFunction<typeof fromSSO>;
 
 const existsSyncMock = existsSync as jest.MockedFunction<typeof existsSync>;
 const readFileSyncMock = readFileSync as jest.MockedFunction<
@@ -135,6 +141,7 @@ describe('vaultAdapterAwsConfig', () => {
     unlinkSyncMock.mockClear();
     getAllAwsSsoCacheEntriesMock.mockClear();
     mockFromSSO.mockClear();
+    fromSSOMock.mockClear();
     // default: no SSO cache entries (non-SSO profiles or empty cache)
     getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
   });
@@ -390,6 +397,24 @@ describe('vaultAdapterAwsConfig', () => {
           expect.any(Function),
         );
       });
+
+      then(
+        'calls fromSSO with ignoreCache to defeat the stale config cache',
+        async () => {
+          // .why = the @smithy config loader caches ~/.aws/config contents in a
+          //        process-lifetime map; a profile written earlier this same run
+          //        would otherwise be invisible to fromSSO → "Profile X not found".
+          //        ignoreCache forces a fresh disk read so validation sees ground-truth.
+          await vaultAdapterAwsConfig.isUnlocked({
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+          });
+          expect(fromSSOMock).toHaveBeenCalledWith({
+            profile: 'acme-prod',
+            ignoreCache: true,
+          });
+        },
+      );
     });
 
     when('[t2] isUnlocked with expired sso session', () => {

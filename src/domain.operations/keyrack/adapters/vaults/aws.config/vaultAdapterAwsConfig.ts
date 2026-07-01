@@ -87,7 +87,13 @@ const checkProfileExists = (profileName: string): boolean => {
 const validateSsoTokenWithAwsSdk = async (
   profileName: string,
 ): Promise<void> => {
-  await fromSSO({ profile: profileName })();
+  // .note = ignoreCache forces a fresh read of ~/.aws/config
+  //         the @smithy/core config loader caches file contents in a
+  //         process-lifetime module-level map (filePromises), keyed by path.
+  //         a profile written earlier this same run would otherwise be served
+  //         from the stale cache → CredentialsProviderError "Profile X not found",
+  //         even though the cli (a fresh subprocess) sees it fine.
+  await fromSSO({ profile: profileName, ignoreCache: true })();
 };
 
 /**
