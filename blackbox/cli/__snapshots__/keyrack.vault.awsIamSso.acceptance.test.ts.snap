@@ -455,6 +455,14 @@ exports[`keyrack vault aws.config given: [case14] unlock WITHOUT identity collis
 
 exports[`keyrack vault aws.config given: [case15] unlock WITH identity collision (wrong user cached) when: [t0] keyrack unlock with wrong user cached (bob, need alice) then: stdout matches snapshot 1`] = `
 "
+🔓 keyrack unlock testorg.test.AWS_PROFILE
+   ├─ with sso prior?
+   │  ├─ ✗ session user mismatch
+   │  │  ├─ expected: alice@acme.com
+   │  │  └─ observed: bob@acme.com
+   │  └─ ✓ cleared, re-auth triggered
+   └─ ✓ authenticated as alice@acme.com
+
 🔓 keyrack unlock
    └─ testorg.test.AWS_PROFILE
       ├─ env: test
@@ -584,4 +592,45 @@ exports[`keyrack vault aws.config given: [case17] set key WITH identity collisio
    └─ testorg.test.AWS_PROFILE
       ├─ mech: EPHEMERAL_VIA_AWS_SSO
       └─ vault: aws.config"
+`;
+
+exports[`keyrack vault aws.config given: [case18] unlock mode 1: invalid session recovers to correct user when: [t0] keyrack unlock with invalid session that recovers to alice then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock testorg.test.AWS_PROFILE
+   ├─ with sso prior?
+   │  └─ ✗ clear, no prior session
+   └─ ✓ authenticated as alice@acme.com
+
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case19] unlock mode 2 deep: wrong user persists, then recovers when: [t0] keyrack unlock where re-auth stays wrong once, then recovers then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock testorg.test.AWS_PROFILE
+   ├─ with sso prior?
+   │  ├─ ✗ session user mismatch
+   │  │  ├─ expected: alice@acme.com
+   │  │  └─ observed: bob@acme.com
+   │  └─ ✓ cleared, re-auth triggered
+   ├─ ⚠ wrong user, logout browser session...
+   │  ├─ expected: alice@acme.com
+   │  └─ observed: bob@acme.com
+   ├─ ✓ logged out, retry login...
+   └─ ✓ authenticated as alice@acme.com
+
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: 540m
+
+"
 `;

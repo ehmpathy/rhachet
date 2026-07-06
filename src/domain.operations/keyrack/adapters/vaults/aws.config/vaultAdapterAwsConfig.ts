@@ -14,7 +14,10 @@ import type {
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
-import { getAwsSsoProfileConfig } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/setupAwsSsoProfile';
+import {
+  getAwsSsoProfileConfig,
+  logoutAwsSsoSession,
+} from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/setupAwsSsoProfile';
 import {
   createSsoTimeoutError,
   isSsoTimeout,
@@ -28,7 +31,6 @@ import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { clearAwsSsoCacheForDomain } from './clearAwsSsoCacheForDomain';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -94,6 +96,16 @@ const validateSsoTokenWithAwsSdk = async (
   //         from the stale cache → CredentialsProviderError "Profile X not found",
   //         even though the cli (a fresh subprocess) sees it fine.
   await fromSSO({ profile: profileName, ignoreCache: true })();
+};
+
+/**
+ * .what = extract the sso username from an aws caller-identity arn
+ * .why = the username is the last segment of an assumed-role arn
+ *        e.g. arn:aws:sts::123456789012:assumed-role/RoleName/username@domain
+ */
+const extractUsernameFromArn = (input: { arn: string }): string => {
+  const segments = input.arn.split('/');
+  return segments[segments.length - 1] ?? 'unknown';
 };
 
 /**
@@ -233,10 +245,10 @@ const validateSsoSession = async (
     const { stdout } = await execAsync(
       `aws sts get-caller-identity --profile "${profileName}"`,
     );
-    // parse username from ARN: arn:aws:sts::123456789012:assumed-role/RoleName/username@domain
+    // .cast = aws sts json shape at external boundary; only Arn is consumed
+    // .removal = drop the cast once an aws sdk typed client replaces the cli call
     const identity = JSON.parse(stdout) as { Arn: string };
-    const arnParts = identity.Arn.split('/');
-    const username = arnParts[arnParts.length - 1] ?? 'unknown';
+    const username = extractUsernameFromArn({ arn: identity.Arn });
     return { valid: true, username };
   } catch (error) {
     // rethrow our own error types (code defects, invalid requests)
@@ -267,10 +279,12 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
       stdio: 'pipe',
     });
 
+    // .note = deliberate mutation: these accumulate across async child events
+    //         (stdout/stderr chunks + timeout fire), which const cannot express
     let outputBuffer = '';
     let timedOut = false;
 
-    // kill process after 2 minutes if no response
+    // kill process after 3 minutes if no response
     const timeout = setTimeout(() => {
       timedOut = true;
       child.kill('SIGTERM');
@@ -318,6 +332,49 @@ const triggerSsoLogin = async (profileName: string): Promise<void> => {
       );
     });
   });
+};
+
+/**
+ * .what = validate the post-login session and recover from cross-username once
+ * .why = the browser may auto-sign-in as a cached/wrong user; one logout+retry
+ *        loop handles the common case
+ *
+ * .note = mode 1 = session invalid (wrong user authed, lacks profile access)
+ * .note = mode 2 = session valid but username mismatch
+ * .note = the wrong-user auth created a fresh token, so logout now succeeds
+ * .note = recovery needs ssoStartUrl for the domain-scoped logout
+ */
+const confirmSsoSessionForUser = async (input: {
+  profileName: string;
+  expectedUsername: string;
+  ssoStartUrl: string | null;
+}): Promise<{ valid: true; username: string } | { valid: false }> => {
+  const { profileName, expectedUsername, ssoStartUrl } = input;
+
+  // accept immediately when the correct user already holds a valid session
+  const firstResult = await validateSsoSession(profileName);
+  if (firstResult.valid && firstResult.username === expectedUsername)
+    return firstResult;
+
+  // cannot recover without the domain url for a scoped logout
+  if (!ssoStartUrl) return firstResult;
+
+  // announce the wrong-user case (mode 2) before recovery
+  if (firstResult.valid) {
+    console.log('   ├─ ⚠ wrong user, logout browser session...');
+    console.log(`   │  ├─ expected: ${expectedUsername}`);
+    console.log(`   │  └─ observed: ${firstResult.username}`);
+  }
+
+  // announce the invalid-session case (mode 1) before recovery
+  if (!firstResult.valid)
+    console.log('   ├─ ⚠ session invalid, logout browser session...');
+
+  // logout server-side session, then retry login and validate once more
+  await logoutAwsSsoSession({ ssoStartUrl });
+  console.log('   ├─ ✓ logged out, retry login...');
+  await triggerSsoLogin(profileName);
+  return validateSsoSession(profileName);
 };
 
 /**
@@ -421,31 +478,43 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
 
     if (initialResult.valid && initialResult.username === expectedUsername) {
       // session valid + correct user → reuse without login
+      // .note = the CLI unlocks silent (it prints its own results summary after),
+      //         so this reuse tree only surfaces when a caller asks for verbose.
       if (!input.silent) {
+        console.log(`🔓 keyrack unlock ${input.slug ?? profileName}`);
         console.log('   ├─ with sso prior?');
         console.log(`   │  ├─ ✓ ${initialResult.username}, access confirmed`);
         console.log('   │  └─ ✓ will reuse');
+        // consistent terminal confirmation across all success paths
+        console.log(`   └─ ✓ authenticated as ${initialResult.username}`);
       }
       return;
     }
 
     // step 2: session invalid or username mismatch → need to login
-    if (!input.silent) {
-      console.log('   ├─ with sso prior?');
-      if (!initialResult.valid) {
-        console.log('   │  └─ ✗ clear, no prior session');
-      } else {
-        console.log(`   │  ├─ ✗ session user mismatch`);
-        console.log(`   │  │  ├─ expected: ${expectedUsername}`);
-        console.log(`   │  │  └─ observed: ${initialResult.username}`);
-        console.log('   │  └─ ✓ cleared, re-auth triggered');
-      }
+    // .note = recovery is a live interactive event (the user must re-auth in the
+    //         browser), so it renders regardless of silent. otherwise the CLI —
+    //         which unlocks with silent:true and prints its own summary after —
+    //         would show orphaned recovery fragments with no header or closer.
+    // .note = a per-key progress header owns these "logs taken to get there" and
+    //         attributes them to a key — distinct from the final "🔓 keyrack unlock"
+    //         results summary the CLI prints after. mirrors guided `set` output,
+    //         where the mechanism prints its own header before the wizard logs.
+    console.log(`🔓 keyrack unlock ${input.slug ?? profileName}`);
+    console.log('   ├─ with sso prior?');
+    if (!initialResult.valid) {
+      console.log('   │  └─ ✗ clear, no prior session');
+    } else {
+      console.log(`   │  ├─ ✗ session user mismatch`);
+      console.log(`   │  │  ├─ expected: ${expectedUsername}`);
+      console.log(`   │  │  └─ observed: ${initialResult.username}`);
+      console.log('   │  └─ ✓ cleared, re-auth triggered');
     }
 
     // step 3: clear domain cache if username mismatch
     if (initialResult.valid && profileConfig?.ssoStartUrl) {
-      // clear to force fresh auth with correct user
-      await clearAwsSsoCacheForDomain({
+      // logout to force fresh auth with correct user (may fail if token expired)
+      await logoutAwsSsoSession({
         ssoStartUrl: profileConfig.ssoStartUrl,
       });
     }
@@ -453,8 +522,14 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
     // step 4: trigger login
     await triggerSsoLogin(profileName);
 
-    // step 5: validate again after login
-    const sessionResult = await validateSsoSession(profileName);
+    // step 5: validate after login, with one cross-username recovery retry
+    // .note = covers mode 1 (session invalid after wrong-user auth) and
+    //         mode 2 (session valid but username mismatch)
+    const sessionResult = await confirmSsoSessionForUser({
+      profileName,
+      expectedUsername,
+      ssoStartUrl: profileConfig?.ssoStartUrl ?? null,
+    });
 
     if (!sessionResult.valid) {
       throw new ConstraintError('sso login failed; session still invalid', {
@@ -474,6 +549,13 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
         },
       );
     }
+
+    // confirm the authenticated identity for the user
+    // .note = the "aha" payload: makes the correct user explicit after login/recovery
+    // .note = always render to close the recovery tree coherently (see step 2 note)
+    console.log(`   └─ ✓ authenticated as ${sessionResult.username}`);
+    // blank line separates the recovery progress block from the results summary
+    console.log('');
 
     // force STS credential refresh after SSO login
     // .note = aws sso login refreshes SSO token but not STS cache
@@ -571,15 +653,13 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
       });
     }
 
-    // derive profile name: from exid or guided setup via mech adapter
-    let profileName = input.exid ?? null;
-    if (!profileName && process.stdin.isTTY) {
-      const mechAdapter = getMechAdapter(mech);
-      const result = await mechAdapter.acquireForSet({
-        keySlug: input.slug,
-      });
-      profileName = result.source;
-    }
+    // derive profile name from exid, else from guided setup on a tty
+    const profileName =
+      input.exid ??
+      (process.stdin.isTTY
+        ? (await getMechAdapter(mech).acquireForSet({ keySlug: input.slug }))
+            .source
+        : null);
     if (!profileName) {
       throw new ConstraintError(
         'aws.config set requires a profile name (--exid or guided setup)',
@@ -689,7 +769,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
     const profileConfig = await getAwsSsoProfileConfig({ profileName });
     if (!profileConfig?.ssoStartUrl) return;
 
-    // clear cache for this domain only (preserves other domains)
-    await clearAwsSsoCacheForDomain({ ssoStartUrl: profileConfig.ssoStartUrl });
+    // logout server-side session + clear disk cache for this domain only
+    await logoutAwsSsoSession({ ssoStartUrl: profileConfig.ssoStartUrl });
   },
 };

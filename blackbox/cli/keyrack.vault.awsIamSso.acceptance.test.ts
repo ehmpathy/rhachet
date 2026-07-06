@@ -1442,11 +1442,16 @@ describe('keyrack vault aws.config', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output shows unlock without collision details', () => {
-        // .note = collision detection is silent on unlock
-        // .note = only keyrack set (guided setup) shows the "with sso prior?" flow
-        expect(result.stdout).toContain('keyrack unlock');
-        expect(result.stdout).not.toContain('with sso prior?');
+      then('output renders the cross-username recovery tree (vision)', () => {
+        // .note = recovery is a live interactive event, so it surfaces in the CLI
+        //         even though per-key unlock runs silent for the routine reuse path
+        // .note = the full coherent tree (header + mismatch + closer) must show —
+        //         not orphaned recovery fragments
+        expect(result.stdout).toContain('with sso prior?');
+        expect(result.stdout).toContain('session user mismatch');
+        expect(result.stdout).toContain('expected: alice@acme.com');
+        expect(result.stdout).toContain('observed: bob@acme.com');
+        expect(result.stdout).toContain('authenticated as alice@acme.com');
       });
 
       then('cache file was deleted', () => {
@@ -1723,6 +1728,199 @@ describe('keyrack vault aws.config', () => {
           .slice(treeStart >= 0 ? treeStart : 0)
           .trim();
         expect(clean).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case18] unlock mode 1: invalid session recovers to correct user', () => {
+    // .what = unlock when the post-login session is invalid (mode 1), then a
+    //         single re-login recovers to the correct user
+    // .why = prove the CLI surfaces the "clear, no prior session" → authenticated
+    //        recovery tree even though per-key unlock runs silent
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[profile testorg.dev]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 123456789012',
+          'sso_role_name = AdministratorAccess',
+          '',
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-create host manifest entry (captures meta.awsSsoUsername = alice)
+      invokeRhachetCliBinary({
+        args: [
+          'keyrack', 'set', '--key', 'AWS_PROFILE', '--env', 'test',
+          '--vault', 'aws.config', '--exid', 'testorg.dev',
+        ],
+        cwd: r.path,
+        env: {
+          ...envIsolated(r.path),
+          PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+          AWS_SDK_MOCK: '1',
+          MOCK_AWS_IDENTITY: 'alice',
+        },
+      });
+
+      return r;
+    });
+
+    when('[t0] keyrack unlock with invalid session that recovers to alice', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: {
+            ...envIsolated(repo.path),
+            PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            AWS_SDK_MOCK: '1',
+            // sts@login0 invalid → login → sts@login1 alice
+            MOCK_AWS_IDENTITY_STAGES: 'invalid,alice',
+            MOCK_AWS_STATE_FILE: `${repo.path}/.mock-aws-stages`,
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output renders the no-prior-session recovery tree', () => {
+        expect(result.stdout).toContain('with sso prior?');
+        expect(result.stdout).toContain('clear, no prior session');
+        expect(result.stdout).toContain('authenticated as alice@acme.com');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case19] unlock mode 2 deep: wrong user persists, then recovers', () => {
+    // .what = unlock when the browser re-auths as the wrong user AGAIN after the
+    //         first login, which forces a second logout+retry inside recovery (mode 2 deep)
+    // .why = prove the full vision tree — with the "wrong user, logout browser
+    //        session" recovery loop line — surfaces in the CLI
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        [
+          '[profile testorg.dev]',
+          'sso_session = testorg-sso',
+          'sso_account_id = 123456789012',
+          'sso_role_name = AdministratorAccess',
+          '',
+          '[sso-session testorg-sso]',
+          'sso_start_url = https://d-12345abcde.awsapps.com/start',
+          'sso_region = us-east-1',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      // pre-create host manifest entry (captures meta.awsSsoUsername = alice)
+      invokeRhachetCliBinary({
+        args: [
+          'keyrack', 'set', '--key', 'AWS_PROFILE', '--env', 'test',
+          '--vault', 'aws.config', '--exid', 'testorg.dev',
+        ],
+        cwd: r.path,
+        env: {
+          ...envIsolated(r.path),
+          PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+          AWS_SDK_MOCK: '1',
+          MOCK_AWS_IDENTITY: 'alice',
+        },
+      });
+
+      return r;
+    });
+
+    when('[t0] keyrack unlock where re-auth stays wrong once, then recovers', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: {
+            ...envIsolated(repo.path),
+            PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            AWS_SDK_MOCK: '1',
+            // sts@login0 bob (mismatch) → login → sts@login1 bob (still wrong)
+            // → recovery logout+login → sts@login2 alice (recovered)
+            MOCK_AWS_IDENTITY_STAGES: 'bob,bob,alice',
+            MOCK_AWS_STATE_FILE: `${repo.path}/.mock-aws-stages`,
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output renders the full deep-recovery tree with the wrong-user loop', () => {
+        expect(result.stdout).toContain('with sso prior?');
+        expect(result.stdout).toContain('session user mismatch');
+        expect(result.stdout).toContain('wrong user, logout browser session');
+        expect(result.stdout).toContain('logged out, retry login');
+        expect(result.stdout).toContain('authenticated as alice@acme.com');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
   });

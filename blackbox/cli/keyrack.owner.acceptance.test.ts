@@ -571,6 +571,29 @@ describe('keyrack --owner', () => {
         expect(result.status).toEqual(0);
       });
     });
+
+    when('[t4] --owner before the subcommand (top-level position)', () => {
+      // .what = `keyrack --owner X status` (flag before subcommand)
+      // .why = users paste the flag in either position; both must work
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', '--owner', 'ehmpath.demo', 'status'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 0 (flag parsed at top level)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('does not error with unknown option', () => {
+        // the bug this guards: `error: unknown option '--owner'`
+        const combined = result.stdout + result.stderr;
+        expect(combined).not.toContain('unknown option');
+      });
+    });
   });
 
   /**
@@ -674,6 +697,40 @@ describe('keyrack --owner', () => {
       then('value matches demo owner value', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant.key.secret).toEqual('fallback-value-123');
+      });
+    });
+  });
+
+  /**
+   * [uc8] --help variant
+   * the help output is a user-faced contract; it must document the top-level
+   * --owner / --for options and stay snapshot-stable for drift detection
+   */
+  given('[case8] keyrack --help documents the owner options', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-direct' }),
+    );
+
+    when('[t0] --help is passed', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', '--help'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('help lists the top-level --owner and --for options', () => {
+        expect(result.stdout).toContain('--owner <owner>');
+        expect(result.stdout).toContain('--for <owner>');
+      });
+
+      then('help output matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
       });
     });
   });
