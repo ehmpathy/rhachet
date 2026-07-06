@@ -29,9 +29,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode with real keys when: [t1] keyrack key does not exist then: it throws BadRequestError with actionable context 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode with real keys when: [t1] a key that was never set then: it throws ConstraintError — caller must act (absent or blocked) 1`] = `
 {
-  "message": "BadRequestError: 
+  "message": "✋ ConstraintError: 
 🔐 keyrack
    └─ ehmpathy.test.NONEXISTENT_KEY_FOR_TEST
       ├─ status: absent 🫧
@@ -39,13 +39,35 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
 
 
 {
-  "status": "absent",
-  "key": "NONEXISTENT_KEY_FOR_TEST"
+  "attempts": [
+    {
+      "key": "NONEXISTENT_KEY_FOR_TEST",
+      "status": "absent",
+      "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test"
+    }
+  ],
+  "env": "test",
+  "owner": "ehmpathy"
 }",
   "metadata": {
-    "key": "NONEXISTENT_KEY_FOR_TEST",
-    "status": "absent",
+    "attempts": [
+      {
+        "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test",
+        "key": "NONEXISTENT_KEY_FOR_TEST",
+        "status": "absent",
+      },
+    ],
+    "env": "test",
+    "owner": "ehmpathy",
   },
+}
+`;
+
+exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode with real keys when: [t2] a locked key is requested — auto-unlocks at brain surface then: result structure matches snapshot 1`] = `
+{
+  "keys": [
+    "XAI_API_KEY",
+  ],
 }
 `;
 

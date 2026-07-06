@@ -47,6 +47,7 @@ import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlug
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
+import { getKeyrackKeyGrants } from '@src/domain.operations/keyrack/getKeyrackKeyGrants/getKeyrackKeyGrants';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { isKeyrackSlugFormat } from '@src/domain.operations/keyrack/isKeyrackSlugFormat';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
@@ -356,6 +357,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       '--allow-dangerous',
       'bypass firewall for blocked long-lived tokens',
     )
+    .option(
+      '--unlock',
+      'auto-unlock locked keys (narrowly, by name) before get',
+    )
     .option('--json', 'output as json (robot mode)')
     .option(
       '--output <mode>',
@@ -370,6 +375,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         env?: string;
         org: string;
         allowDangerous?: boolean;
+        unlock?: boolean;
         json?: boolean;
         output?: 'value' | 'json' | 'vibes';
         value?: boolean;
@@ -403,13 +409,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // handle grant
         if (opts.for === 'repo') {
-          const attempts = await getAllKeyrackGrantsByRepo(
-            {
-              env: opts.env ?? null,
-              allow: { dangerous: opts.allowDangerous },
-            },
-            context,
-          );
+          // always route through the get-or-unlock core; --unlock is just a parameter
+          // (with.unlock:false is byte-identical to the pure repo get)
+          const attempts = await getKeyrackKeyGrants({
+            for: { repo: true },
+            with: { unlock: !!opts.unlock },
+            owner: opts.owner ?? null,
+            env: opts.env ?? null,
+            allow: { dangerous: opts.allowDangerous },
+          });
 
           // output results based on mode
           // .note = 'value' mode already rejected via validation above
@@ -432,15 +440,18 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           // .note = @this means "use manifest org" — pass undefined to let domain op handle
           const orgForDomainOp =
             opts.org === '@this' ? undefined : (opts.org ?? undefined);
-          const attempt = await getOneKeyrackGrantByKey(
-            {
-              key: opts.key,
+          // always route through the get-or-unlock core; --unlock is just a parameter
+          // (with.unlock:false is byte-identical to the pure single-key get)
+          const attempt = (
+            await getKeyrackKeyGrants({
+              for: { keys: [opts.key] },
+              with: { unlock: !!opts.unlock },
+              owner: opts.owner ?? null,
               env: opts.env ?? null,
               org: orgForDomainOp,
               allow: { dangerous: opts.allowDangerous },
-            },
-            context,
-          );
+            })
+          )[0]!;
 
           // extract env and slug from attempt for downstream logic
           const slug =

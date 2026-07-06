@@ -1,7 +1,7 @@
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, HelpfulError } from 'helpful-errors';
 
-import { keyrack } from '@src/contract/sdk.keyrack';
 import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
+import { getKeyrackKeySecrets } from '@src/domain.operations/keyrack/getKeyrackKeySecrets/getKeyrackKeySecrets';
 
 /**
  * .what = lookup credentials from brain supplier creds config
@@ -16,7 +16,8 @@ import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds'
  *
  * .note
  *   - no env fallback — creds must be explicit via keyrack or getter
- *   - throws if keyrack key not found
+ *   - keyrack creds are get-or-unlock: a locked key is auto-unlocked (narrowly) then re-got
+ *   - absent/blocked key -> ConstraintError ✋; locked-still-ungranted -> MalfunctionError 💥
  */
 export const getSdkCredsFromBrainSupplies = async <
   TKeys extends Record<string, string>,
@@ -38,6 +39,10 @@ export const getSdkCredsFromBrainSupplies = async <
     try {
       return await input.creds();
     } catch (error) {
+      // preserve a helpful error the getter threw on purpose (e.g. ConstraintError) — do not failhide
+      if (error instanceof HelpfulError) throw error;
+
+      // wrap an unknown getter failure with actionable context
       throw new BadRequestError(
         `brain supplier credential getter failed: ${error instanceof Error ? error.message : String(error)}. check your credential source (vault, kms, db) and ensure it is accessible`,
         {
@@ -57,20 +62,13 @@ export const getSdkCredsFromBrainSupplies = async <
         received: input.creds.keyrack,
       },
     );
-  const results = await Promise.all(
-    input.keys.map(async (key) => {
-      const { attempt, emit } = await keyrack.get({
-        for: { key: String(key) },
-        env,
-        owner,
-      });
-      if (attempt.status !== 'granted')
-        throw new BadRequestError(emit.stdout, {
-          status: attempt.status,
-          key: String(key),
-        });
-      return [key, attempt.grant.key.secret] as const;
-    }),
-  );
-  return Object.fromEntries(results) as TKeys;
+
+  // get each key; auto-unlock any that are locked, then re-get (get-or-unlock)
+  const secrets = await getKeyrackKeySecrets({
+    for: { keys: input.keys.map(String) },
+    with: { unlock: true },
+    owner,
+    env,
+  });
+  return secrets as TKeys;
 };
