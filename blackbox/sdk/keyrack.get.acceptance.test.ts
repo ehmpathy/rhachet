@@ -574,4 +574,88 @@ try {
       });
     });
   });
+
+  /**
+   * .what = the built contract accepts the with.unlock opt-in
+   * .why = proves the v2 opt-in flows through dist without breaking an
+   *        available get. note: acceptance keys are env-backed, so a true
+   *        vault unlock is unobservable here — this case proves the built
+   *        contract ACCEPTS with.unlock and still returns granted, not a
+   *        genuine vault unlock (that path is covered by integration).
+   */
+  given('[case6] with.unlock opt-in flows through the built contract', () => {
+    const envKey = '__TEST_SDK_UNLOCK_KEY__';
+    const envValue = 'unlock-opt-in-value';
+
+    when('[t0] keyrack.get with with.unlock=true on an env-backed key', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-unlock',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with key in env.test
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.test:
+  - ${envKey}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.get with the unlock opt-in
+        const modulePath = join(testDir, 'test-unlock.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+const result = await keyrack.get({ for: { key: '${envKey}' }, env: 'test', with: { unlock: true } });
+console.log(JSON.stringify(result, null, 2));
+`,
+        );
+
+        // run module with env var set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            [envKey]: envValue,
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('status is granted (opt-in does not break an available get)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.status).toEqual('granted');
+      });
+
+      then('secret value matches env var', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.grant?.key?.secret).toEqual(envValue);
+      });
+    });
+  });
 });

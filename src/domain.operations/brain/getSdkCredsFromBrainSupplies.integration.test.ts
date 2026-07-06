@@ -1,8 +1,33 @@
+import { ConstraintError } from 'helpful-errors';
 import { given, then, useThen, when } from 'test-fns';
 
 import { keyrack } from '@src/contract/sdk.keyrack';
+import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 
 import { getSdkCredsFromBrainSupplies } from './getSdkCredsFromBrainSupplies';
+
+/**
+ * .what = fail fast (caller-fix) when keyrack is not set up for XAI_API_KEY on this host
+ * .why = an absent host setup is a caller constraint, not a server malfunction — throw loud
+ *        with an actionable unlock hint instead of a silent skip
+ */
+const assertKeyrackConfigured = async (): Promise<void> => {
+  const granted = await keyrack
+    .get({
+      for: { key: 'ehmpathy.test.XAI_API_KEY' },
+      env: 'test',
+      owner: 'ehmpathy',
+    })
+    .then(({ attempt }) => attempt.status === 'granted')
+    .catch(() => false);
+  if (!granted)
+    throw new ConstraintError(
+      'keyrack not set up for XAI_API_KEY on this host',
+      {
+        hint: 'run: rhx keyrack unlock --owner ehmpathy --env test',
+      },
+    );
+};
 
 describe('getSdkCredsFromBrainSupplies.integration', () => {
   given('[case1] getter mode', () => {
@@ -60,30 +85,10 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
   });
 
   given('[case2] keyrack mode with real keys', () => {
-    // check if keyrack is available before test execution
-    const keyrackAvailable = useThen(
-      'it checks keyrack availability',
-      async () => {
-        try {
-          const { attempt } = await keyrack.get({
-            for: { key: 'ehmpathy.test.XAI_API_KEY' },
-            env: 'test',
-            owner: 'ehmpathy',
-          });
-          return attempt.status === 'granted';
-        } catch {
-          return false;
-        }
-      },
-    );
-
     when('[t0] keyrack key exists', () => {
       const result = useThen('it retrieves the credential', async () => {
-        if (!keyrackAvailable) {
-          throw new Error(
-            'keyrack not available; run: rhx keyrack unlock --owner ehmpathy --env test',
-          );
-        }
+        // fail fast (caller-fix) if keyrack is not set up on this host
+        await assertKeyrackConfigured();
         return getSdkCredsFromBrainSupplies({
           creds: { keyrack: { owner: 'ehmpathy', env: 'test' } },
           keys: ['XAI_API_KEY'] as const,
@@ -102,38 +107,78 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
       });
     });
 
-    when('[t1] keyrack key does not exist', () => {
-      then('it throws BadRequestError with actionable context', async () => {
-        if (!keyrackAvailable) {
-          throw new Error(
-            'keyrack not available; run: rhx keyrack unlock --owner ehmpathy --env test',
+    when('[t1] a key that was never set', () => {
+      then(
+        'it throws ConstraintError — caller must act (absent or blocked)',
+        async () => {
+          // fail fast (caller-fix) if keyrack is not set up on this host
+          await assertKeyrackConfigured();
+
+          // capture the error directly (not via a useThen proxy, which breaks instanceof)
+          const error = await getSdkCredsFromBrainSupplies({
+            creds: { keyrack: { owner: 'ehmpathy', env: 'test' } },
+            keys: ['NONEXISTENT_KEY_FOR_TEST'],
+          }).catch((caught) => caught);
+
+          // absent key is caller-fix, not a server malfunction
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.code.exit).toEqual(2);
+
+          // message names the domain + the specific absent key
+          expect(error.message).toContain('keyrack');
+          expect(error.message).toContain('NONEXISTENT_KEY_FOR_TEST');
+
+          // metadata carries the failed attempt with its specific key + status
+          expect(error.metadata).toBeDefined();
+          expect(error.metadata.attempts[0].key).toEqual(
+            'NONEXISTENT_KEY_FOR_TEST',
           );
-        }
+          expect(error.metadata.attempts[0].status).toEqual('absent');
 
-        const error = await getSdkCredsFromBrainSupplies({
-          creds: { keyrack: { owner: 'ehmpathy', env: 'test' } },
-          keys: ['NONEXISTENT_KEY_FOR_TEST'],
-        }).catch((e) => e);
-
-        // error is instance
-        expect(error).toBeInstanceOf(Error);
-
-        // message contains keyrack formatted output
-        expect(error.message).toContain('keyrack');
-        expect(error.message).toContain('NONEXISTENT_KEY_FOR_TEST');
-
-        // metadata has context
-        expect(error.metadata).toBeDefined();
-        expect(error.metadata.status).toBeDefined();
-        expect(error.metadata.key).toEqual('NONEXISTENT_KEY_FOR_TEST');
-
-        // snapshot for regression detection
-        expect({
-          message: error.message,
-          metadata: error.metadata,
-        }).toMatchSnapshot();
-      });
+          // snapshot the error shape for regression detection
+          expect({
+            message: error.message,
+            metadata: error.metadata,
+          }).toMatchSnapshot();
+        },
+      );
     });
+
+    when(
+      '[t2] a locked key is requested — auto-unlocks at brain surface',
+      () => {
+        const result = useThen(
+          'it auto-unlocks the relocked key and returns the secret',
+          async () => {
+            // fail fast (caller-fix) if keyrack is not set up on this host
+            await assertKeyrackConfigured();
+
+            // force a locked state: purge the key from the daemon
+            await relockKeyrack({
+              owner: 'ehmpathy',
+              slugs: ['ehmpathy.test.XAI_API_KEY'],
+            });
+
+            // the brain surface should notice locked, unlock, and grant
+            return getSdkCredsFromBrainSupplies({
+              creds: { keyrack: { owner: 'ehmpathy', env: 'test' } },
+              keys: ['XAI_API_KEY'] as const,
+            });
+          },
+        );
+
+        then('the secret is present and non-empty', () => {
+          expect(result.XAI_API_KEY).toBeDefined();
+          expect(typeof result.XAI_API_KEY).toEqual('string');
+          expect(result.XAI_API_KEY!.length).toBeGreaterThan(10);
+        });
+
+        then('result structure matches snapshot', () => {
+          // snapshot keys only, not secret values
+          expect({ keys: Object.keys(result).sort() }).toMatchSnapshot();
+        });
+      },
+    );
   });
 
   given('[case3] invalid creds shape', () => {

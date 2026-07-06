@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getSdkCredsFromBrainSupplies (contract).integration given: [case1] a brain supplier configured with keyrack creds when: [t0] the requested key is locked, then creds are fetched via the sdk export then: result structure matches snapshot 1`] = `
+{
+  "keys": [
+    "XAI_API_KEY",
+  ],
+}
+`;

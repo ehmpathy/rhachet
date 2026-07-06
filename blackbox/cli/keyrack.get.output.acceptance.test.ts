@@ -432,4 +432,58 @@ env.test:
       });
     });
   });
+
+  given('[case6] --unlock opt-in flows through the built binary', () => {
+    const envKey = '__TEST_OUTPUT_UNLOCK__';
+    const envValue = 'unlock-opt-in-value-cli';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.test:
+  - ${envKey}
+`,
+      );
+
+      return r;
+    });
+
+    // note: acceptance keys are env-backed, so a true vault unlock is
+    // unobservable here — this case proves the built binary ACCEPTS --unlock
+    // and still returns the granted secret, not a genuine vault unlock
+    when('[t0] --unlock on an env-backed available key', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            envKey,
+            '--env',
+            'test',
+            '--unlock',
+            '--value',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKey]: envValue,
+          },
+        }),
+      );
+
+      then('exits with status 0 (opt-in does not break an available get)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout is raw secret value', () => {
+        expect(result.stdout).toEqual(envValue);
+      });
+    });
+  });
 });

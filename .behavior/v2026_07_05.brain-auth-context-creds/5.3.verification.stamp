@@ -1,0 +1,423 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 5.3.verification
+   ├─ passage = blocked
+   ├─ reason = reviewer constraint
+   ├─ options
+   │  ├─ overrule the constraint
+   │  │  └─ rhx route.stone.set --stone 5.3.verification --as overruled
+   │  └─ or fix the reviewer, then retry
+   └─ guard
+      ├─ artifacts
+      │   ├─ $route/5.3.verification.yield.md
+      │   └─ src/**/*
+      ├─ reviews
+      │   ├─ r1: repo-rules (l1, 0/3)
+      │   │   ├─ constraint 4.9s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r1._.given.by_peer.repo-rules.md
+      │   ├─ r2: ergo-contract-snapshots (l1, 0/3)
+      │   │   ├─ constraint 4.7s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r2._.given.by_peer.ergo-contract-snapshots.md
+      │   ├─ r3: mech-external-contracts (l1, 0/3)
+      │   │   ├─ constraint 3.8s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r3._.given.by_peer.mech-external-contracts.md
+      │   ├─ r4: ergo-acceptance-journey-coverage (l1, 0/3)
+      │   │   ├─ constraint 4.6s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r4._.given.by_peer.ergo-acceptance-journey-coverage.md
+      │   ├─ r5: ergo-snapshot-visual-blemishes (l1, 0/3)
+      │   │   ├─ constraint 4.3s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r5._.given.by_peer.ergo-snapshot-visual-blemishes.md
+      │   ├─ r6: mech-given-when-then (l1, 0/3)
+      │   │   ├─ constraint 4.7s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r6._.given.by_peer.mech-given-when-then.md
+      │   ├─ r7: mech-test-intent (l1, 0/3)
+      │   │   ├─ constraint 4.0s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r7._.given.by_peer.mech-test-intent.md
+      │   ├─ r8: mech-test-scope-purity (l1, 0/3)
+      │   │   ├─ constraint 2.2s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i8.20745a4688b8e8660a.r8._.given.by_peer.mech-test-scope-purity.md
+      │   ├─ r9: enroll-verif-snapshot-coverage (l3, 3/3)
+      │   │   ├─ approved, cached
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i4.3ebb28bc7fa6039c2b.r9._.given.by_peer.enroll-verif-snapshot-coverage.md
+      │   ├─ r10: enroll-verif-snapshot-blemishes (l3, 3/3)
+      │   │   ├─ approved, cached
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i4.3ebb28bc7fa6039c2b.r10._.given.by_peer.enroll-verif-snapshot-blemishes.md
+      │   └─ r11: enroll-verif-test-intent (l3, 3/3)
+      │       ├─ approved, cached
+      │       ├─ 0 blockers ✓
+      │       ├─ 0 nitpicks ✓
+      │       └─ review: .behavior/v2026_07_05.brain-auth-context-creds/.reviews/peer/5.3.verification._.review.i4.3ebb28bc7fa6039c2b.r11._.given.by_peer.enroll-verif-test-intent.md
+      └─ judges
+          └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 0
+              └─ finished 2.4s ✓
+
+────────────────────────────────────────────────────────────────
+
+🔎 review 1
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.{ts,sh}
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 13
+   │  │     │  └─ targets: 22
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 65,030
+   │  │     │  └─ context: 6.5%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.010925040
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-26-185Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-26-185Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-26-185Z/tokens.expected.md
+   │  │        ├─ rules: .agent (6.4k, 100%)
+   │  │        └─ targets: src (46.4k, 82.39%), blackbox (9.9k, 17.61%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 2
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 7
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 9,499
+   │  │     │  └─ context: 0.9%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.001595860
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-30-741Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-30-741Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-30-741Z/tokens.expected.md
+   │  │        ├─ rules: .agent (455, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 3
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 1
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 5,669
+   │  │     │  └─ context: 0.6%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.000952420
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-34-855Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-34-855Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-34-855Z/tokens.expected.md
+   │  │        ├─ rules: .agent (545, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 4
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 12
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 12,866
+   │  │     │  └─ context: 1.3%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.002161600
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-38-939Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-38-939Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-38-939Z/tokens.expected.md
+   │  │        ├─ rules: .agent (495, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 5
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 10
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 9,010
+   │  │     │  └─ context: 0.9%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.001513680
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-43-760Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-43-760Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-43-760Z/tokens.expected.md
+   │  │        ├─ rules: .agent (657, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 6
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 13
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 9,132
+   │  │     │  └─ context: 0.9%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.001534120
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-47-829Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-47-829Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-47-829Z/tokens.expected.md
+   │  │        ├─ rules: .agent (492, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 7
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │  
+   │  │  🦉 let's review
+   │  │     ├─ brain: fireworks/deepseek/v4-flash
+   │  │     ├─ focus: push
+   │  │     └─ scope
+   │  │        ├─ diffs: since-main
+   │  │        ├─ paths: **/*.snap
+   │  │        └─ join: intersect
+   │  │  
+   │  │  🔭 metrics.expected
+   │  │     ├─ files
+   │  │     │  ├─ rules: 1
+   │  │     │  ├─ refs: 2
+   │  │     │  └─ targets: 3
+   │  │     ├─ tokens
+   │  │     │  ├─ estimate: 5,904
+   │  │     │  └─ context: 0.6%
+   │  │     └─ cost
+   │  │        └─ estimate: $0.000991760
+   │  │  
+   │  │  🪵 logs
+   │  │     ├─ scope: .log/bhrain/review/2026-07-06T11-42-52-458Z/input.scope.json
+   │  │     ├─ metrics: .log/bhrain/review/2026-07-06T11-42-52-458Z/metrics.expected.json
+   │  │     └─ tokens: .log/bhrain/review/2026-07-06T11-42-52-458Z/tokens.expected.md
+   │  │        ├─ rules: .agent (608, 100%)
+   │  │        └─ targets: src (2.8k, 100%)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  ✋ BadRequestError: FIREWORKS_API_KEY required — provide via context
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 8
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ --rules glob found nada
+   │  │     ├─ rules: .agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/rule.require.test-coverage-by-grain.md,.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.unit/rule.forbid.unit.remote-boundaries.md,.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.integration/rule.forbid.integration.mocks.md,.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.acceptance/rule.forbid.acceptance.mocks.md,.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.acceptance/rule.require.acceptance.blackbox.md
+   │  │     └─ hint: verify the glob pattern matches files in your repo
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: --rules glob was ineffective
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
