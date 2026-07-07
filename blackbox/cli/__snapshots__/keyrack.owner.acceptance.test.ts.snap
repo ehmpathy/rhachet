@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack --owner given: [case8] keyrack --help documents the owner options when: [t0] --help is passed then: help output matches snapshot 1`] = `
+"Usage: rhachet keyrack [options] [command]
+
+manage credentials via keyrack
+
+Options:
+  --owner <owner>     owner identity (e.g., mechanic, foreman)
+  --for <owner>       alias for --owner
+  -h, --help          display help for command
+
+Commands:
+  init [options]      initialize keyrack with a recipient key
+  recipient           manage recipients who can decrypt the host manifest
+  get [options]       grant credentials from keyrack
+  source [options]    output export statements for shell eval
+  set [options]       configure storage for a credential key
+  del [options]       remove a credential key from this host
+  unlock [options]    unlock keys and send them to daemon for session access
+  relock [options]    prune keys from daemon memory (default: all keys)
+  status [options]    show status of unlocked keys in daemon
+  list [options]      list configured keys on this host
+  fill [options]      fill keyrack keys from repo manifest
+  daemon              manage keyrack daemon lifecycle
+  firewall [options]  translate and validate secrets for CI environments
+  help [command]      display help for command
+"
+`;

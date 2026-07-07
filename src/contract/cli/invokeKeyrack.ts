@@ -70,7 +70,20 @@ import { join } from 'node:path';
 export const invokeKeyrack = ({ program }: { program: Command }): void => {
   const keyrack = program
     .command('keyrack')
-    .description('manage credentials via keyrack');
+    .description('manage credentials via keyrack')
+    .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
+    .option('--for <owner>', 'alias for --owner')
+    .enablePositionalOptions(); // parse keyrack's own opts before its subcommand
+
+  // derive owner from subcommand opts, falling back to top-level keyrack opts
+  // .why = enables `keyrack --owner X <cmd>` in addition to `keyrack <cmd> --owner X`
+  const deriveOwner = (opts: {
+    owner?: string;
+    for?: string;
+  }): string | null => {
+    const globals = keyrack.opts();
+    return opts.owner ?? opts.for ?? globals.owner ?? globals.for ?? null;
+  };
 
   // keyrack init [--owner owner] [--pubkey path] [--label label] [--org org] [--at path]
   keyrack
@@ -108,7 +121,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
         // get gitroot to check for repo manifest
         // note: null is valid when not in a git repo; other errors propagate
         const gitroot = await getGitRepoRoot({ from: process.cwd() }).catch(
@@ -225,7 +238,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // validate --stanza if provided
         if (opts.stanza && opts.stanza !== 'ssh')
@@ -271,7 +284,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         const recipients = await getKeyrackRecipients({
           owner,
@@ -320,7 +333,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         await delKeyrackRecipient({
           owner,
@@ -402,9 +415,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
         // generate lightweight context (no manifest decryption, no passphrase prompt)
+        // .note = get uses --for as grant scope, not owner alias; only --owner or top-level --owner apply
         const context = await genContextKeyrackGrantGet({
           gitroot,
-          owner: opts.owner ?? null,
+          owner:
+            opts.owner ?? keyrack.opts().owner ?? keyrack.opts().for ?? null,
         });
 
         // handle grant
@@ -533,7 +548,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         allowDangerous?: boolean;
       }) => {
         // --owner takes precedence; --for is alias (null = default owner)
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // validate: --strict and --lenient are mutually exclusive
         if (opts.strict && opts.lenient) {
@@ -685,7 +700,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
         // validate vault first (needed for mech inference)
         const validVaults: KeyrackHostVault[] = [
           'os.direct',
@@ -884,7 +899,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // validate env
         if (!isValidKeyrackEnv(opts.env)) {
@@ -1036,7 +1051,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // validate env if provided
         if (opts.env) {
@@ -1139,7 +1154,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // relock keys
         const slugs = opts.key ? [opts.key] : undefined;
@@ -1189,7 +1204,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // validate env if provided
         if (opts.env && !isValidKeyrackEnv(opts.env)) {
@@ -1293,7 +1308,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
-        const owner = opts.owner ?? opts.for ?? null;
+        const owner = deriveOwner(opts);
 
         // generate context and load host manifest
         const context = genContextKeyrack({
@@ -1391,7 +1406,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--json', 'output as json (robot mode)')
     .action(async (opts: { owner?: string; for?: string; json?: boolean }) => {
       // --owner takes precedence; --for is alias; default is null (default owner)
-      const ownerInput = opts.owner ?? opts.for ?? null;
+      const ownerInput = deriveOwner(opts);
 
       // prune daemon(s)
       const { pruned } = pruneKeyrackDaemon({ owner: ownerInput });
@@ -1523,7 +1538,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         });
 
         // generate context for grant get
-        const owner = opts.owner ?? 'default';
+        const owner = opts.owner ?? keyrack.opts().owner ?? 'default';
         const context = await genContextKeyrackGrantGet({
           gitroot,
           owner: owner === 'default' ? null : owner,
