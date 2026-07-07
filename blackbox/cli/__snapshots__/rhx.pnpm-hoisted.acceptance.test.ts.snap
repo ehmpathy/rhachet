@@ -44,7 +44,7 @@ Commands:
   upgrade [options]         upgrade rhachet, role, and/or brain packages to
                             latest versions
   update                    see "upgrade"
-  keyrack                   manage credentials via keyrack
+  keyrack [options]         manage credentials via keyrack
   help [command]            display help for command
 "
 `;
