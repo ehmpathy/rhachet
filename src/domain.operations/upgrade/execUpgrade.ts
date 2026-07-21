@@ -1,8 +1,8 @@
 import type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
-import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
-import { syncHooksForLinkedRoles } from '@src/domain.operations/init/syncHooksForLinkedRoles';
+import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
+import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 
 import { detectInvocationMethod } from './detectInvocationMethod';
 import { execNpmInstallGlobal } from './execNpmInstallGlobal';

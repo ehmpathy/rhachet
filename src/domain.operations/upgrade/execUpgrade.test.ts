@@ -26,11 +26,14 @@ jest.mock('./getGlobalRhachetVersion', () => ({
 jest.mock('./detectInvocationMethod', () => ({
   detectInvocationMethod: jest.fn(),
 }));
-jest.mock('@src/domain.operations/init/initRolesFromPackages', () => ({
-  initRolesFromPackages: jest.fn(),
-}));
+jest.mock(
+  '@src/domain.operations/init/roles/link/initRolesFromPackages',
+  () => ({
+    initRolesFromPackages: jest.fn(),
+  }),
+);
 
-import { initRolesFromPackages } from '@src/domain.operations/init/initRolesFromPackages';
+import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 
 import { detectInvocationMethod } from './detectInvocationMethod';
 import { execNpmInstallGlobal } from './execNpmInstallGlobal';

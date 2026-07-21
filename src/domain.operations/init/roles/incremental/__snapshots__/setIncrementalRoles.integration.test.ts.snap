@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setIncrementalRoles (integration) — remove-side set-math given: [case6] the summary tree output (snapshot) when: [t0] a role is removed then: the tree reports subtractions + untouched count deterministically 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/reviewer
+   └─ untouched (2)
+"
+`;
+
+exports[`setIncrementalRoles (integration) — remove-side set-math given: [case6b] the summary tree output for a multi-remove (snapshot) when: [t0] two roles are removed in one call then: the tree lists both removed and the untouched remainder 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  ├─ - ehmpathy/mechanic
+   │  └─ - ehmpathy/reviewer
+   └─ untouched (1)
+"
+`;
+
+exports[`setIncrementalRoles (integration) — remove-side set-math given: [case6c] the summary tree output when the set empties (snapshot) when: [t0] the only role is removed then: the tree shows the removal and an untouched count of zero 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/mechanic
+   └─ untouched (0)
+"
+`;

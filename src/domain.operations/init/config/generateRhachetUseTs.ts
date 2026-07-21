@@ -1,6 +1,6 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
-import { genRhachetUseConfig } from '@src/domain.operations/init/genRhachetUseConfig';
+import { genRhachetUseConfig } from '@src/domain.operations/init/config/genRhachetUseConfig';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 import { findsertFile } from '@src/infra/findsertFile';
 import { upsertFile } from '@src/infra/upsertFile';
 

@@ -3,7 +3,7 @@ import {
   type RoleSupplierSlug,
   toRoleSupplierSlug,
 } from '@src/domain.objects/RoleSupplierSlug';
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 
 import { discoverLinkedRoles, type RoleLinkRef } from './discoverLinkedRoles';
 

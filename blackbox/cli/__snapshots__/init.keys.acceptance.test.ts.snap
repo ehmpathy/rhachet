@@ -6,17 +6,17 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
 
 📚 link role repo=test-repo/role=tester
    ├─ links
-   │  ├── + .agent/readme.md
-   │  ├── + .agent/repo=.this/readme.md
-   │  ├── + .agent/repo=test-repo/readme.md
-   │  ├── + .agent/repo=test-repo/.gitignore
-   │  ├── ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
-   │  ├── ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
-   │  ├── + .agent/repo=test-repo/role=tester/briefs
-   │  └── + .agent/repo=test-repo/role=tester/skills
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test-repo/readme.md
+   │  ├─ + .agent/repo=test-repo/.gitignore
+   │  ├─ ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
+   │  ├─ + .agent/repo=test-repo/role=tester/briefs
+   │  └─ + .agent/repo=test-repo/role=tester/skills
    └─ stats
-       ├── 1 brief(s)
-       └── 1 skill(s)
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
@@ -49,17 +49,17 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
 
 📚 link role repo=test-repo/role=tester
    ├─ links
-   │  ├── ✓ .agent/readme.md (unchanged)
-   │  ├── ✓ .agent/repo=.this/readme.md (unchanged)
-   │  ├── ↻ .agent/repo=test-repo/readme.md (updated)
-   │  ├── ✓ .agent/repo=test-repo/.gitignore (unchanged)
-   │  ├── ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
-   │  ├── ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
-   │  ├── ↻ .agent/repo=test-repo/role=tester/briefs (updated)
-   │  └── ↻ .agent/repo=test-repo/role=tester/skills (updated)
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test-repo/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test-repo/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test-repo/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test-repo/role=tester/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=test-repo/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test-repo/role=tester/skills (updated)
    └─ stats
-       ├── 1 brief(s)
-       └── 1 skill(s)
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
@@ -79,16 +79,16 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 
 📚 link role repo=test-repo/role=norack
    ├─ links
-   │  ├── + .agent/readme.md
-   │  ├── + .agent/repo=.this/readme.md
-   │  ├── + .agent/repo=test-repo/readme.md
-   │  ├── + .agent/repo=test-repo/.gitignore
-   │  ├── ↻ .agent/repo=test-repo/role=norack/readme.md (updated)
-   │  ├── + .agent/repo=test-repo/role=norack/briefs
-   │  └── + .agent/repo=test-repo/role=norack/skills
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test-repo/readme.md
+   │  ├─ + .agent/repo=test-repo/.gitignore
+   │  ├─ ↻ .agent/repo=test-repo/role=norack/readme.md (updated)
+   │  ├─ + .agent/repo=test-repo/role=norack/briefs
+   │  └─ + .agent/repo=test-repo/role=norack/skills
    └─ stats
-       ├── 1 brief(s)
-       └── 1 skill(s)
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized

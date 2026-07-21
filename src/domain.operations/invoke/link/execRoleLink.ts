@@ -179,7 +179,7 @@ export const execRoleLink = (
   console.log(`   ├─ links`);
   linkResults.forEach((result, idx) => {
     const isLast = idx === linkResults.length - 1;
-    const branch = isLast ? '└──' : '├──';
+    const branch = isLast ? '└─' : '├─';
     const connector = statsItems.length > 0 ? '│' : ' ';
     console.log(`   ${connector}  ${branch} ${formatLinkResult(result)}`);
   });
@@ -187,8 +187,8 @@ export const execRoleLink = (
   if (statsItems.length > 0) {
     console.log(`   └─ stats`);
     statsItems.forEach((item, idx) => {
-      const branch = idx === statsItems.length - 1 ? '└──' : '├──';
-      console.log(`       ${branch} ${item}`);
+      const branch = idx === statsItems.length - 1 ? '└─' : '├─';
+      console.log(`      ${branch} ${item}`);
     });
   }
 

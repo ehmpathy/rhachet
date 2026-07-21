@@ -6,18 +6,18 @@ exports[`rhachet init given: [case4] repo with rhachet-roles packages installed 
 
 📚 link role repo=test/role=tester
    ├─ links
-   │  ├── + .agent/readme.md
-   │  ├── + .agent/repo=.this/readme.md
-   │  ├── + .agent/repo=test/readme.md
-   │  ├── + .agent/repo=test/.gitignore
-   │  ├── + .agent/repo=test/role=tester/readme.md
-   │  ├── + .agent/repo=test/role=tester/briefs
-   │  ├── + .agent/repo=test/role=tester/skills
-   │  └── + .agent/repo=test/role=tester/inits
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
    └─ stats
-       ├── 1 brief(s)
-       ├── 1 skill(s)
-       └── 1 init(s)
+      ├─ 1 brief(s)
+      ├─ 1 skill(s)
+      └─ 1 init(s)
 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized

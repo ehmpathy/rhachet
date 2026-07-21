@@ -3,8 +3,10 @@ import { withEmojiSpaceShim } from 'emoji-space-shim';
 import { BadRequestError } from 'helpful-errors';
 
 import { genContextConfigOfUsage } from '@src/domain.operations/config/genContextConfigOfUsage';
+import { getPreprocessedRoleArgv } from '@src/domain.operations/init/roles/tokens/getPreprocessedRoleArgv';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
 
+import { getExitCodeFromError } from './getExitCodeFromError';
 import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
@@ -30,8 +32,11 @@ import { invokeUpgrade } from './invokeUpgrade';
 const _invoke = async (input: { args: string[] }): Promise<void> => {
   const cwd = process.cwd();
 
+  // encode `-role` remove tokens past commander's variadic parser (init --roles)
+  const args = getPreprocessedRoleArgv({ args: input.args });
+
   // create context with lazy config loaders
-  const context = await genContextConfigOfUsage({ args: input.args, cwd });
+  const context = await genContextConfigOfUsage({ args, cwd });
 
   // declare the cli program
   const program = new Command();
@@ -73,8 +78,12 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
     await assureUniqueRoles(registries);
   }
 
-  // invoke it
-  await program.parseAsync(input.args, { from: 'user' }).catch((error) => {
+  // invoke it (parse the preprocessed argv so `-role` tokens survive commander)
+  await program.parseAsync(args, { from: 'user' }).catch((error) => {
+    // the init `--roles` incremental path throws BadRequestError on invalid
+    // calls; this shared handler (already present pre-feature) prints a clean
+    // message + `[args]` line for those. it echoes `input.args` (the user's
+    // original argv), so the sentinel-encoded `-role` never leaks a null byte
     if (error instanceof BadRequestError) {
       // HelpfulError already includes emoji + class name in message (e.g., "✋ ConstraintError: ...")
       console.error(``);
@@ -83,14 +92,7 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
       console.error(`[args] ${input.args}`);
       console.error(``);
       // use error's exit code if available (e.g., ConstraintError = 2)
-      const exitCode =
-        'code' in error &&
-        typeof error.code === 'object' &&
-        error.code !== null &&
-        'exit' in error.code &&
-        typeof error.code.exit === 'number'
-          ? error.code.exit
-          : 1;
+      const exitCode = getExitCodeFromError({ error });
       process.exit(exitCode);
     }
     throw error;
