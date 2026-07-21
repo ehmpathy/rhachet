@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 
 /**
  * .what = converts role specs to npm package names

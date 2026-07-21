@@ -57,5 +57,32 @@ if [ "$1" = "enroll" ]; then
   exec "$SCRIPT_DIR/run" enroll "$@"
 fi
 
+# short-circuit init command (top-level rhachet command, not a skill)
+if [ "$1" = "init" ]; then
+  shift
+  # role-name alias: when the tail carries only role tokens (bare names like
+  # `learner`, or sigils like `+learner` / `-learner`) and no recognized init
+  # flag, expand to `init --keys --hooks --roles <tokens>` so the enrolled role
+  # is ready-to-use (keyrack manifest + brain hooks) in one command.
+  # mode select: any recognized flag => explicit flag mode (pass through as-is);
+  # otherwise (tokens only) => alias mode (inject --keys --hooks --roles).
+  # .note = no args => pass through so `rhx init` still prints usage.
+  HAS_INIT_FLAG=false
+  for INIT_ARG in "$@"; do
+    case "$INIT_ARG" in
+      --roles|--keys|--hooks|--config|--prep|--mode|-h|--help)
+        HAS_INIT_FLAG=true
+        break
+        ;;
+    esac
+  done
+  if [ "$HAS_INIT_FLAG" = true ] || [ "$#" -eq 0 ]; then
+    # explicit flag mode (or bare `rhx init`) — pass through unchanged
+    exec "$SCRIPT_DIR/run" init "$@"
+  fi
+  # alias mode — role tokens only, inject the ready-to-use flags
+  exec "$SCRIPT_DIR/run" init --keys --hooks --roles "$@"
+fi
+
 # default: proxy to run --skill
 exec "$SCRIPT_DIR/run" run --skill "$@"

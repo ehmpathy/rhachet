@@ -1,0 +1,81 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +architect\` (x1 fresh bare add) then: the alias success-path summary matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   └─ untouched (0)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+🔑 keyrack init
+   ├─ org: ehmpathy
+   └─ created .agent/keyrack.yml
+
+🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
+
+🪝 apply hooks to brains...
+
+✨ hooks: no changes needed
+
+"
+`;
+
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -ergonomist\` (x3 remove bare sigil) then: the alias remove-path summary matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/ergonomist
+   └─ untouched (1)
+
+🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
+
+🪝 apply hooks to brains...
+
+✨ hooks: no changes needed
+
+"
+`;
+
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t5] \`rhx init --help\` (x6 help not mistaken for sigil) then: the alias --help output matches snapshot 1`] = `
+"Usage: rhachet init [options]
+
+initialize roles from packages or generate rhachet.use.ts
+
+Options:
+  --roles <roles...>   role specifiers: bare names replace the set (mechanic
+                       behaver), or +role to add / -role to remove incrementally
+  --hooks [brains...]  apply brain hooks (auto-detect brains if no args)
+  --config             generate rhachet.use.ts config (legacy behavior)
+  --prep               persist init command to package.json prepare entries
+  --mode <mode>        findsert preserves prior, upsert overwrites (default:
+                       "findsert")
+  --keys               initialize keyrack manifest (requires --roles)
+  -h, --help           display help for command
+"
+`;
+
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t6] \`rhx init +nonesuch\` (x7 unknown-role error path) then: the alias error block matches snapshot 1`] = `
+"
+BadRequestError: role "nonesuch" not found
+
+{
+  "specifier": "nonesuch",
+  "availableRoles": [ "$AVAILABLE_ROLES" ]
+}
+
+[args] init,--keys,--hooks,--roles,+nonesuch
+
+"
+`;

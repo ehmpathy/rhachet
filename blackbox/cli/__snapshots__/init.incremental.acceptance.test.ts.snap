@@ -1,0 +1,314 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with mechanic linked when: [t0] \`init --roles +architect\` (e1 add, keep rest) then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case3] a repo with mechanic + architect linked when: [t0] \`init --roles -architect\` (remove, keep rest) then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/architect
+   └─ untouched (1)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove in one call when: [t0] \`init --roles +architect -reviewer\` then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   ├─ subtractions
+   │  └─ - bhrain/reviewer
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case5] mixed absolute + incremental call (e3) when: [t0] \`init --roles mechanic +architect\` then: is rejected with a mixed-call message 1`] = `
+"
+BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
+
+{
+  "absolutes": [
+    "mechanic"
+  ],
+  "additions": [
+    "architect"
+  ],
+  "subtractions": [],
+  "tokens": [
+    "mechanic",
+    "+architect"
+  ]
+}
+
+[args] init,--roles,mechanic,+architect
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case6] contradictory \`+x -x\` (e7) when: [t0] \`init --roles +architect -architect\` then: is rejected as contradictory 1`] = `
+"
+BadRequestError: cannot both add and remove role "architect" in one call
+
+{
+  "additions": [
+    "architect"
+  ],
+  "subtractions": [
+    "architect"
+  ],
+  "tokens": [
+    "+architect",
+    "-architect"
+  ]
+}
+
+[args] init,--roles,+architect,-architect
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case7] unknown role add (e5) when: [t0] \`init --roles +nonesuch\` then: the not-found error message matches snapshot 1`] = `
+"
+BadRequestError: role "nonesuch" not found
+
+{
+  "specifier": "nonesuch",
+  "availableRoles": [ "$AVAILABLE_ROLES" ]
+}
+
+[args] init,--roles,+nonesuch
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incremental add (e10) when: [t0] \`init --roles +ehmpathy/architect\` then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   └─ untouched (0)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case9] bare remove sigil with no role (e9) when: [t0] \`init --roles -\` then: is rejected as empty specifier 1`] = `
+"
+BadRequestError: role specifier cannot be empty after "-"
+
+{
+  "token": "-",
+  "tokens": [
+    "-"
+  ]
+}
+
+[args] init,--roles,-
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case10] remove of an absent role (e2 idempotent) when: [t0] \`init --roles -architect\` when architect is not linked then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   └─ untouched (1)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case11] remove the last role empties the set (e4, e12) when: [t0] \`init --roles -architect\` (the only role) then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/architect
+   └─ untouched (0)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case12] remove a native repo=.this role (e11) when: [t0] \`init --roles -homegrown\` then: is rejected — native roles cannot be removed 1`] = `
+"
+BadRequestError: native roles (repo=.this) cannot be removed
+
+{
+  "specifier": "homegrown"
+}
+
+[args] init,--roles,-homegrown
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add tokens (e6 dedupe) when: [t0] \`init --roles +architect +architect\` then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   └─ untouched (0)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case14] unqualified remove of a slug under 2 repos (e8) when: [t0] \`init --roles -architect\` without a repo qualifier then: is rejected as ambiguous with a qualify hint 1`] = `
+"
+BadRequestError: role "architect" is ambiguous — linked under multiple repos
+
+{
+  "specifier": "architect",
+  "foundIn": [
+    "bhuild",
+    "ehmpathy"
+  ],
+  "hint": "qualify the removal: -bhuild/architect or -ehmpathy/architect"
+}
+
+[args] init,--roles,-architect
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case15] remove where the symlink is already broken (e13) when: [t0] \`init --roles -architect\` on the broken link then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/architect
+   └─ untouched (0)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an already-linked role (e1 \`+extant\` no-op) when: [t0] \`init --roles +architect\` a second time then: the incremental summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=architect/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=architect/boot.yml (updated)
+   │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` documents the incremental sigils when: [t0] \`init --help\` then: the --roles help block matches snapshot 1`] = `
+"  --roles <roles...>   role specifiers: bare names replace the set (mechanic
+                       behaver), or +role to add / -role to remove incrementally"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `
+"
+BadRequestError: role specifier cannot be empty after "+"
+
+{
+  "token": "+",
+  "tokens": [
+    "+"
+  ]
+}
+
+[args] init,--roles,+
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with mechanic linked, multi-add when: [t0] \`init --roles +architect +reviewer\` (add two, keep rest) then: the multi-add summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  ├─ + ehmpathy/architect
+   │  └─ + bhrain/reviewer
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+📚 link role repo=bhrain/role=reviewer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=bhrain/readme.md
+   │  ├─ + .agent/repo=bhrain/.gitignore
+   │  ├─ + .agent/repo=bhrain/role=reviewer/readme.md
+   │  ├─ + .agent/repo=bhrain/role=reviewer/boot.yml
+   │  ├─ + .agent/repo=bhrain/role=reviewer/keyrack.yml
+   │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
+   │  └─ + .agent/repo=bhrain/role=reviewer/skills
+   └─ stats
+      ├─ 13 brief(s)
+      └─ 2 skill(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case21] a repo with mechanic + architect + reviewer linked, multi-remove when: [t0] \`init --roles -architect -reviewer\` (remove two, keep rest) then: the multi-remove summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  ├─ - ehmpathy/architect
+   │  └─ - bhrain/reviewer
+   └─ untouched (1)
+
+"
+`;

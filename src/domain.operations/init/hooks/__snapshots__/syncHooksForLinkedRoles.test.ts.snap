@@ -9,37 +9,37 @@ exports[`syncHooksForLinkedRoles given: [case1] no roles with hooks found when: 
 
 exports[`syncHooksForLinkedRoles given: [case2] one role, one brain, one hook created when: [t0] sync is executed then: output matches snapshot 1`] = `
 "🔭 search for linked roles with hooks...
-   └── ehmpathy/mechanic
+   └─ ehmpathy/mechanic
 
 🪝 apply hooks to brains...
-   └── ehmpathy/mechanic → claude-code: +1
+   └─ ehmpathy/mechanic → claude-code: +1
 
 ✨ hooks
-   └── 1 created
+   └─ 1 created
 "
 `;
 
 exports[`syncHooksForLinkedRoles given: [case3] multiple roles, multiple brains, mixed changes when: [t0] sync is executed then: output matches snapshot 1`] = `
 "🔭 search for linked roles with hooks...
-   ├── ehmpathy/mechanic
-   └── ehmpathy/designer
+   ├─ ehmpathy/mechanic
+   └─ ehmpathy/designer
 
 🪝 apply hooks to brains...
-   ├── ehmpathy/mechanic → claude-code: +1
-   ├── ehmpathy/mechanic → opencode: ~1
-   └── ehmpathy/designer → claude-code: +2, -1
+   ├─ ehmpathy/mechanic → claude-code: +1
+   ├─ ehmpathy/mechanic → opencode: ~1
+   └─ ehmpathy/designer → claude-code: +2, -1
 
 ✨ hooks
-   ├── 3 created
-   ├── 1 updated
-   ├── 1 deleted
-   └── 2 orphans removed
+   ├─ 3 created
+   ├─ 1 updated
+   ├─ 1 deleted
+   └─ 2 orphans removed
 "
 `;
 
 exports[`syncHooksForLinkedRoles given: [case4] no changes needed when: [t0] sync is executed then: output matches snapshot 1`] = `
 "🔭 search for linked roles with hooks...
-   └── ehmpathy/mechanic
+   └─ ehmpathy/mechanic
 
 🪝 apply hooks to brains...
 
@@ -49,10 +49,10 @@ exports[`syncHooksForLinkedRoles given: [case4] no changes needed when: [t0] syn
 
 exports[`syncHooksForLinkedRoles given: [case5] errors on sync when: [t0] sync is executed then: output matches snapshot 1`] = `
 "🔭 search for linked roles with hooks...
-   └── ehmpathy/mechanic
+   └─ ehmpathy/mechanic
 
 🪝 apply hooks to brains...
-   └── ⛈️  ehmpathy/mechanic → unknown-brain: no adapter found
+   └─ ⛈️  ehmpathy/mechanic → unknown-brain: no adapter found
 
 ⛈️  1 hook sync error(s) occurred
 "
@@ -62,13 +62,13 @@ exports[`syncHooksForLinkedRoles given: [case6] discovery errors when: [t0] sync
 "🔭 search for linked roles with hooks...
 
 ⛈️  1 hook discovery error(s):
-   └── broken-repo/broken-role: failed to parse role config
-   └── ehmpathy/mechanic
+   └─ broken-repo/broken-role: failed to parse role config
+   └─ ehmpathy/mechanic
 
 🪝 apply hooks to brains...
-   └── ehmpathy/mechanic → claude-code: +1
+   └─ ehmpathy/mechanic → claude-code: +1
 
 ✨ hooks
-   └── 1 created
+   └─ 1 created
 "
 `;

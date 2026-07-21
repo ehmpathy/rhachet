@@ -4,9 +4,9 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { findsertPrepareWithPrepareRhachetEntry } from './prep/findsertPrepareWithPrepareRhachetEntry';
-import { getPrepareCommand } from './prep/getPrepareCommand';
-import { upsertPrepareRhachetEntry } from './prep/upsertPrepareRhachetEntry';
+import { findsertPrepareWithPrepareRhachetEntry } from './findsertPrepareWithPrepareRhachetEntry';
+import { getPrepareCommand } from './getPrepareCommand';
+import { upsertPrepareRhachetEntry } from './upsertPrepareRhachetEntry';
 
 /**
  * .what = persist rhachet init command to package.json prepare entries

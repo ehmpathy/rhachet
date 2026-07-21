@@ -6,18 +6,18 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
 
 📚 link role repo=test/role=tester
    ├─ links
-   │  ├── + .agent/readme.md
-   │  ├── + .agent/repo=.this/readme.md
-   │  ├── + .agent/repo=test/readme.md
-   │  ├── + .agent/repo=test/.gitignore
-   │  ├── + .agent/repo=test/role=tester/readme.md
-   │  ├── + .agent/repo=test/role=tester/briefs
-   │  ├── + .agent/repo=test/role=tester/skills
-   │  └── + .agent/repo=test/role=tester/inits
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
    └─ stats
-       ├── 1 brief(s)
-       ├── 1 skill(s)
-       └── 1 init(s)
+      ├─ 1 brief(s)
+      ├─ 1 skill(s)
+      └─ 1 init(s)
 
 💪 init role repo=test/role=tester
    └─ node_modules/rhachet-roles-test/roles/tester/inits/setup.init.sh
@@ -29,30 +29,30 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
 
 📚 link role repo=test/role=reviewer
    ├─ links
-   │  ├── ✓ .agent/readme.md (unchanged)
-   │  ├── ✓ .agent/repo=.this/readme.md (unchanged)
-   │  ├── ↻ .agent/repo=test/readme.md (updated)
-   │  ├── ✓ .agent/repo=test/.gitignore (unchanged)
-   │  ├── + .agent/repo=test/role=reviewer/readme.md
-   │  ├── + .agent/repo=test/role=reviewer/briefs
-   │  └── + .agent/repo=test/role=reviewer/skills
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ + .agent/repo=test/role=reviewer/readme.md
+   │  ├─ + .agent/repo=test/role=reviewer/briefs
+   │  └─ + .agent/repo=test/role=reviewer/skills
    └─ stats
-       ├── 1 brief(s)
-       └── 1 skill(s)
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
 
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
 🔭 search for linked roles with hooks...
-   ├── test/reviewer
-   └── test/tester
+   ├─ test/reviewer
+   └─ test/tester
 
 🪝 apply hooks to brains...
-   ├── test/reviewer → anthropic/claude/code: +1
-   └── test/tester → anthropic/claude/code: +1
+   ├─ test/reviewer → anthropic/claude/code: +1
+   └─ test/tester → anthropic/claude/code: +1
 
 ✨ hooks
-   └── 2 created
+   └─ 2 created
 
 "
 `;

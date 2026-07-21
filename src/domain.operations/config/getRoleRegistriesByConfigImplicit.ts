@@ -1,6 +1,6 @@
 import type { RoleRegistryManifest } from '@src/domain.objects';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 import { getRoleRegistryManifest } from '@src/domain.operations/manifest/getRoleRegistryManifest';
 
 import { createRequire } from 'node:module';

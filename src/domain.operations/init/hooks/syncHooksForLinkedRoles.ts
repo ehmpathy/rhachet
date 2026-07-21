@@ -31,7 +31,7 @@ export const syncHooksForLinkedRoles = async (
     console.log(`⛈️  ${discoverErrors.length} hook discovery error(s):`);
     for (const err of discoverErrors) {
       console.log(
-        `   └── ${err.repoSlug}/${err.roleSlug}: ${err.error.message}`,
+        `   └─ ${err.repoSlug}/${err.roleSlug}: ${err.error.message}`,
       );
       errors.push({
         source: `discover:${err.repoSlug}/${err.roleSlug}`,
@@ -51,7 +51,7 @@ export const syncHooksForLinkedRoles = async (
   for (let i = 0; i < roles.length; i++) {
     const role = roles[i]!;
     const isLast = i === roles.length - 1;
-    const prefix = isLast ? '└──' : '├──';
+    const prefix = isLast ? '└─' : '├─';
     console.log(`   ${prefix} ${role.repo}/${role.slug}`);
   }
 
@@ -127,7 +127,7 @@ export const syncHooksForLinkedRoles = async (
   // output with tree structure
   for (let i = 0; i < outputLines.length; i++) {
     const isLast = i === outputLines.length - 1;
-    const prefix = isLast ? '└──' : '├──';
+    const prefix = isLast ? '└─' : '├─';
     console.log(`   ${prefix} ${outputLines[i]}`);
   }
 
@@ -148,7 +148,7 @@ export const syncHooksForLinkedRoles = async (
     console.log('✨ hooks');
     for (let i = 0; i < summaryLines.length; i++) {
       const isLast = i === summaryLines.length - 1;
-      const prefix = isLast ? '└──' : '├──';
+      const prefix = isLast ? '└─' : '├─';
       console.log(`   ${prefix} ${summaryLines[i]}`);
     }
   } else if (syncResult.errors.length === 0) {

@@ -5,11 +5,14 @@ import { ContextCli } from '@src/domain.objects/ContextCli';
 import { resolveRoleSpecsToPackages } from './resolveRoleSpecsToPackages';
 
 // mock discoverRolePackages
-jest.mock('@src/domain.operations/init/discoverRolePackages', () => ({
-  discoverRolePackages: jest.fn(),
-}));
+jest.mock(
+  '@src/domain.operations/init/roles/packages/discoverRolePackages',
+  () => ({
+    discoverRolePackages: jest.fn(),
+  }),
+);
 
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 
 const mockDiscoverRolePackages = discoverRolePackages as jest.MockedFunction<
   typeof discoverRolePackages

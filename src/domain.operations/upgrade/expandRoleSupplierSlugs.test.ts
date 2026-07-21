@@ -5,16 +5,19 @@ import { ContextCli } from '@src/domain.objects/ContextCli';
 import { expandRoleSupplierSlugs } from './expandRoleSupplierSlugs';
 
 // mock discoverRolePackages
-jest.mock('@src/domain.operations/init/discoverRolePackages', () => ({
-  discoverRolePackages: jest.fn(),
-}));
+jest.mock(
+  '@src/domain.operations/init/roles/packages/discoverRolePackages',
+  () => ({
+    discoverRolePackages: jest.fn(),
+  }),
+);
 
 // mock discoverLinkedRoles
 jest.mock('./discoverLinkedRoles', () => ({
   discoverLinkedRoles: jest.fn(),
 }));
 
-import { discoverRolePackages } from '@src/domain.operations/init/discoverRolePackages';
+import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 
 import { discoverLinkedRoles } from './discoverLinkedRoles';
 
