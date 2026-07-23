@@ -3,175 +3,149 @@ import { getError, given, then, when } from 'test-fns';
 
 import { parseBrainCliEnrollmentSpec } from './parseBrainCliEnrollmentSpec';
 
+/**
+ * .what = unit tests for the enroll spec builder over the shared `--roles` grammar
+ * .why = enroll shares `getRoleDeltas`; this proves the builder pairs the parsed
+ *        deltas with the derived mode correctly (absolute vs incremental). (both-form
+ *        flatten is proven in getRoleDeltaTokens.test.ts, upstream of here.)
+ */
 describe('parseBrainCliEnrollmentSpec', () => {
-  given('[case1] replace mode with single role', () => {
-    when('[t0] spec is "mechanic"', () => {
-      then('returns replace mode with add mechanic', () => {
-        const result = parseBrainCliEnrollmentSpec({ spec: 'mechanic' });
-        expect(result.mode).toEqual('replace');
-        expect(result.ops).toHaveLength(1);
-        expect(result.ops[0]).toMatchObject({
-          action: 'add',
+  given('[case1] a single bare role', () => {
+    when('[t0] tokens = ["mechanic"]', () => {
+      then('returns absolute mode with an absolute mechanic delta', () => {
+        const result = parseBrainCliEnrollmentSpec({ tokens: ['mechanic'] });
+        expect(result.mode).toEqual('absolute');
+        expect(result.deltas).toHaveLength(1);
+        expect(result.deltas[0]).toMatchObject({
+          kind: 'absolute',
           role: 'mechanic',
         });
       });
     });
   });
 
-  given('[case2] replace mode with multiple roles', () => {
-    when('[t0] spec is "mechanic,ergonomist"', () => {
-      then('returns replace mode with both roles', () => {
+  given('[case2] multiple bare roles', () => {
+    when('[t0] tokens = ["mechanic","ergonomist"]', () => {
+      then('returns absolute mode with both roles', () => {
         const result = parseBrainCliEnrollmentSpec({
-          spec: 'mechanic,ergonomist',
+          tokens: ['mechanic', 'ergonomist'],
         });
-        expect(result.mode).toEqual('replace');
-        expect(result.ops).toHaveLength(2);
-        expect(result.ops[0]).toMatchObject({
-          action: 'add',
-          role: 'mechanic',
-        });
-        expect(result.ops[1]).toMatchObject({
-          action: 'add',
-          role: 'ergonomist',
-        });
+        expect(result.mode).toEqual('absolute');
+        expect(result.deltas).toHaveLength(2);
+        expect(result.deltas.map((delta) => delta.role)).toEqual([
+          'mechanic',
+          'ergonomist',
+        ]);
+        expect(
+          result.deltas.every((delta) => delta.kind === 'absolute'),
+        ).toEqual(true);
       });
     });
   });
 
-  given('[case3] delta mode with append', () => {
-    when('[t0] spec is "+architect"', () => {
-      then('returns delta mode with add architect', () => {
-        const result = parseBrainCliEnrollmentSpec({ spec: '+architect' });
-        expect(result.mode).toEqual('delta');
-        expect(result.ops).toHaveLength(1);
-        expect(result.ops[0]).toMatchObject({
-          action: 'add',
+  given('[case3] delta add', () => {
+    when('[t0] tokens = ["+architect"]', () => {
+      then('returns incremental mode with an addition architect delta', () => {
+        const result = parseBrainCliEnrollmentSpec({ tokens: ['+architect'] });
+        expect(result.mode).toEqual('incremental');
+        expect(result.deltas).toHaveLength(1);
+        expect(result.deltas[0]).toMatchObject({
+          kind: 'addition',
           role: 'architect',
         });
       });
     });
   });
 
-  given('[case4] delta mode with subtract', () => {
-    when('[t0] spec is "-driver"', () => {
-      then('returns delta mode with remove driver', () => {
-        const result = parseBrainCliEnrollmentSpec({ spec: '-driver' });
-        expect(result.mode).toEqual('delta');
-        expect(result.ops).toHaveLength(1);
-        expect(result.ops[0]).toMatchObject({
-          action: 'remove',
+  given('[case4] delta remove (the regression)', () => {
+    when('[t0] tokens = ["-driver"]', () => {
+      then('returns incremental mode with a subtraction driver delta', () => {
+        const result = parseBrainCliEnrollmentSpec({ tokens: ['-driver'] });
+        expect(result.mode).toEqual('incremental');
+        expect(result.deltas).toHaveLength(1);
+        expect(result.deltas[0]).toMatchObject({
+          kind: 'subtraction',
           role: 'driver',
         });
       });
     });
   });
 
-  given('[case5] delta mode with mixed ops', () => {
-    when('[t0] spec is "-driver,+architect"', () => {
-      then('returns delta mode with both ops in order', () => {
+  given('[case5] delta mixed add + remove', () => {
+    when('[t0] tokens = ["-driver","+architect"]', () => {
+      then('returns incremental with both deltas', () => {
         const result = parseBrainCliEnrollmentSpec({
-          spec: '-driver,+architect',
+          tokens: ['-driver', '+architect'],
         });
-        expect(result.mode).toEqual('delta');
-        expect(result.ops).toHaveLength(2);
-        expect(result.ops[0]).toMatchObject({
-          action: 'remove',
-          role: 'driver',
-        });
-        expect(result.ops[1]).toMatchObject({
-          action: 'add',
-          role: 'architect',
-        });
+        expect(result.mode).toEqual('incremental');
+        expect(result.deltas).toHaveLength(2);
+        const removeDelta = result.deltas.find(
+          (delta) => delta.kind === 'subtraction',
+        );
+        const addDelta = result.deltas.find(
+          (delta) => delta.kind === 'addition',
+        );
+        expect(removeDelta?.role).toEqual('driver');
+        expect(addDelta?.role).toEqual('architect');
       });
     });
   });
 
-  given('[case6] spec with whitespace', () => {
-    when('[t0] spec is " mechanic , ergonomist "', () => {
-      then('trims and parses correctly', () => {
+  given('[case6] duplicate delta tokens', () => {
+    when('[t0] tokens = ["+architect","+architect"]', () => {
+      then('dedupes to a single addition delta', () => {
         const result = parseBrainCliEnrollmentSpec({
-          spec: ' mechanic , ergonomist ',
+          tokens: ['+architect', '+architect'],
         });
-        expect(result.mode).toEqual('replace');
-        expect(result.ops).toHaveLength(2);
-        expect(result.ops[0]).toMatchObject({
-          action: 'add',
-          role: 'mechanic',
-        });
-        expect(result.ops[1]).toMatchObject({
-          action: 'add',
-          role: 'ergonomist',
-        });
+        expect(result.mode).toEqual('incremental');
+        expect(result.deltas).toHaveLength(1);
       });
     });
   });
 
-  given('[case7] empty spec', () => {
-    when('[t0] spec is ""', () => {
+  given('[case7] empty token list', () => {
+    when('[t0] tokens = []', () => {
       then('throws BadRequestError', async () => {
         const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: '' }),
+          parseBrainCliEnrollmentSpec({ tokens: [] }),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+      });
+    });
+  });
+
+  given('[case8] add and remove conflict', () => {
+    when('[t0] tokens = ["+mechanic","-mechanic"]', () => {
+      then('throws BadRequestError about contradiction', async () => {
+        const error = await getError(() =>
+          parseBrainCliEnrollmentSpec({ tokens: ['+mechanic', '-mechanic'] }),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error.message).toContain('add and remove');
+      });
+    });
+  });
+
+  given('[case9] empty role after a sigil', () => {
+    when('[t0] tokens = ["+"]', () => {
+      then('throws BadRequestError', async () => {
+        const error = await getError(() =>
+          parseBrainCliEnrollmentSpec({ tokens: ['+'] }),
         );
         expect(error).toBeInstanceOf(BadRequestError);
         expect(error.message).toContain('empty');
       });
     });
-
-    when('[t1] spec is "   "', () => {
-      then('throws BadRequestError', async () => {
-        const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: '   ' }),
-        );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect(error.message).toContain('empty');
-      });
-    });
   });
 
-  given('[case8] conflict in ops', () => {
-    when('[t0] spec is "+mechanic,-mechanic"', () => {
-      then('throws BadRequestError about conflict', async () => {
+  given('[case10] mixed bare and sigiled tokens', () => {
+    when('[t0] tokens = ["mechanic","+architect"]', () => {
+      then('throws BadRequestError about mixed call', async () => {
         const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: '+mechanic,-mechanic' }),
+          parseBrainCliEnrollmentSpec({ tokens: ['mechanic', '+architect'] }),
         );
         expect(error).toBeInstanceOf(BadRequestError);
-        expect(error.message).toContain(
-          "cannot both add and remove 'mechanic'",
-        );
-      });
-    });
-  });
-
-  given('[case9] empty role after prefix', () => {
-    when('[t0] spec is "+"', () => {
-      then('throws BadRequestError', async () => {
-        const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: '+' }),
-        );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect(error.message).toContain('cannot be empty');
-      });
-    });
-
-    when('[t1] spec is "-"', () => {
-      then('throws BadRequestError', async () => {
-        const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: '-' }),
-        );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect(error.message).toContain('cannot be empty');
-      });
-    });
-  });
-
-  given('[case10] mixed bare and prefixed roles', () => {
-    when('[t0] spec is "mechanic,+architect"', () => {
-      then('throws BadRequestError about delta mode', async () => {
-        const error = await getError(() =>
-          parseBrainCliEnrollmentSpec({ spec: 'mechanic,+architect' }),
-        );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect(error.message).toContain('delta mode');
+        expect(error.message).toContain('mix');
       });
     });
   });

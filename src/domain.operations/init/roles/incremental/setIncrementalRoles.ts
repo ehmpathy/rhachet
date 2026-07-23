@@ -21,7 +21,7 @@ import { getUntouchedRoles } from './getUntouchedRoles';
  *   path uses to print its header before the link trees.
  * .note = subtractions unlink first (getRolesUnlinkedFromSlugs guards ambiguity +
  *   native roles — a `-absent` is a no-op) and emit no tree of their own
- * .note = additions and subtractions are validated non-contradictory upstream (getClassifiedRoleTokens)
+ * .note = additions and subtractions are validated non-contradictory upstream (getRoleDeltas)
  * .note = returns the applied set (rolesAdded, rolesRemoved) declared inline — a
  *   report shape, not a domain contract, per rule.forbid.io-as-interfaces
  */

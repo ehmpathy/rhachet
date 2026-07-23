@@ -1,8 +1,8 @@
 import { BadRequestError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
-import { BrainCliEnrollmentOperation } from '@src/domain.objects/BrainCliEnrollmentOperation';
 import { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
+import { RoleDelta } from '@src/domain.objects/RoleDelta';
 
 import { computeBrainCliEnrollment } from './computeBrainCliEnrollment';
 
@@ -11,17 +11,12 @@ describe('computeBrainCliEnrollment', () => {
   const rolesDefault = ['mechanic', 'driver', 'ergonomist'];
   const brain = 'claude';
 
-  given('[case1] replace mode with single role', () => {
+  given('[case1] absolute mode with single role', () => {
     when('[t0] spec replaces with mechanic', () => {
       then('returns manifest with only mechanic', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'mechanic',
-            }),
-          ],
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'mechanic' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -35,20 +30,14 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
-  given('[case2] replace mode with multiple roles', () => {
+  given('[case2] absolute mode with multiple roles', () => {
     when('[t0] spec replaces with mechanic and architect', () => {
       then('returns manifest with only those two', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'mechanic',
-            }),
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'architect',
-            }),
+          mode: 'absolute',
+          deltas: [
+            new RoleDelta({ kind: 'absolute', role: 'mechanic' }),
+            new RoleDelta({ kind: 'absolute', role: 'architect' }),
           ],
         });
         const result = computeBrainCliEnrollment({
@@ -62,17 +51,12 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
-  given('[case3] delta mode with append', () => {
+  given('[case3] incremental mode with append', () => {
     when('[t0] spec appends architect to defaults', () => {
       then('returns defaults plus architect', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'architect',
-            }),
-          ],
+          mode: 'incremental',
+          deltas: [new RoleDelta({ kind: 'addition', role: 'architect' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -89,17 +73,12 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
-  given('[case4] delta mode with subtract', () => {
+  given('[case4] incremental mode with subtract', () => {
     when('[t0] spec subtracts driver from defaults', () => {
       then('returns defaults minus driver', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'remove',
-              role: 'driver',
-            }),
-          ],
+          mode: 'incremental',
+          deltas: [new RoleDelta({ kind: 'subtraction', role: 'driver' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -115,20 +94,14 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
-  given('[case5] delta mode with mixed ops', () => {
+  given('[case5] incremental mode with mixed deltas', () => {
     when('[t0] spec removes driver and adds architect', () => {
       then('returns defaults minus driver plus architect', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'remove',
-              role: 'driver',
-            }),
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'architect',
-            }),
+          mode: 'incremental',
+          deltas: [
+            new RoleDelta({ kind: 'subtraction', role: 'driver' }),
+            new RoleDelta({ kind: 'addition', role: 'architect' }),
           ],
         });
         const result = computeBrainCliEnrollment({
@@ -150,10 +123,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t0] spec has "mechnic" instead of "mechanic"', () => {
       then('throws BadRequestError with suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({ action: 'add', role: 'mechnic' }),
-          ],
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'mechnic' })],
         });
         const error = await getError(() =>
           computeBrainCliEnrollment({
@@ -172,13 +143,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t1] spec has "drivr" instead of "driver"', () => {
       then('throws BadRequestError with suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'remove',
-              role: 'drivr',
-            }),
-          ],
+          mode: 'incremental',
+          deltas: [new RoleDelta({ kind: 'subtraction', role: 'drivr' })],
         });
         const error = await getError(() =>
           computeBrainCliEnrollment({
@@ -199,10 +165,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t0] spec has "xyzabc" which has no close match', () => {
       then('throws BadRequestError without suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({ action: 'add', role: 'xyzabc' }),
-          ],
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'xyzabc' })],
         });
         const error = await getError(() =>
           computeBrainCliEnrollment({
@@ -223,13 +187,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t0] spec subtracts architect which is not in defaults', () => {
       then('returns defaults unchanged (no-op)', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'remove',
-              role: 'architect',
-            }),
-          ],
+          mode: 'incremental',
+          deltas: [new RoleDelta({ kind: 'subtraction', role: 'architect' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -246,13 +205,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t0] spec appends mechanic which is already in defaults', () => {
       then('returns defaults unchanged (no-op)', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'delta',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'mechanic',
-            }),
-          ],
+          mode: 'incremental',
+          deltas: [new RoleDelta({ kind: 'addition', role: 'mechanic' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -265,17 +219,12 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
-  given('[case10] replace mode ignores defaults', () => {
+  given('[case10] absolute mode ignores defaults', () => {
     when('[t0] spec replaces with architect only', () => {
       then('returns only architect, ignores all defaults', () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'architect',
-            }),
-          ],
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'architect' })],
         });
         const result = computeBrainCliEnrollment({
           brain,
@@ -295,13 +244,8 @@ describe('computeBrainCliEnrollment', () => {
     when('[t0] no roles are linked in .agent/', () => {
       then('throws BadRequestError for any role', async () => {
         const spec = new BrainCliEnrollmentSpec({
-          mode: 'replace',
-          ops: [
-            new BrainCliEnrollmentOperation({
-              action: 'add',
-              role: 'mechanic',
-            }),
-          ],
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'mechanic' })],
         });
         const error = await getError(() =>
           computeBrainCliEnrollment({

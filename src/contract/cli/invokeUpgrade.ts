@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
+import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { execUpgrade } from '@src/domain.operations/upgrade/execUpgrade';
 
 /**
@@ -34,10 +35,18 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
         which?: 'local' | 'global' | 'both';
       }) => {
         const context = await genContextCli({ cwd: process.cwd() });
+
+        // flatten via the shared `--roles` tokenizer: decodes the argv sentinel
+        // and accepts both the space form (`a b`) and comma form (`a,b`), so no
+        // `--roles` consumer is left un-decoded (uniform per rule.require.roles-flag-dual-format)
+        const roleSpecs = options.roles
+          ? getRoleDeltaTokens({ raw: options.roles })
+          : undefined;
+
         const result = await execUpgrade(
           {
             self: options.self,
-            roleSpecs: options.roles,
+            roleSpecs,
             brainSpecs: options.brains,
             which: options.which,
           },

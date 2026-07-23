@@ -18,12 +18,6 @@
           },
           {
             "type": "command",
-            "command": "./node_modules/.bin/rhachet roles boot --role librarian",
-            "timeout": 30,
-            "author": "repo=bhrain/role=librarian"
-          },
-          {
-            "type": "command",
             "command": "./node_modules/.bin/rhachet roles boot --role reviewer",
             "timeout": 30,
             "author": "repo=bhrain/role=reviewer"
@@ -81,12 +75,6 @@
             "command": "./node_modules/.bin/rhachet roles boot --role dreamer",
             "timeout": 10,
             "author": "repo=bhuild/role=dreamer"
-          },
-          {
-            "type": "command",
-            "command": "./node_modules/.bin/rhachet roles boot --role learner",
-            "timeout": 30,
-            "author": "repo=bhrain/role=learner"
           }
         ]
       },
@@ -208,17 +196,6 @@
             "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/posttooluse.guardBorder.onWebfetch",
             "timeout": 60,
             "author": "repo=ehmpathy/role=mechanic"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "./node_modules/.bin/rhx memory.guard --mode hook",
-            "timeout": 5,
-            "author": "repo=bhrain/role=learner"
           }
         ]
       }
@@ -524,5 +501,10 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm install:*)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node -e \"import('rhachet-roles-bhrain/cli/route').then(m => m.routeStatusLine())\"",
+    "padding": 0
   }
 }

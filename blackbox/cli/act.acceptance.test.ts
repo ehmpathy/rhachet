@@ -1,7 +1,10 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet act', () => {
   given('[case1] repo with registry but no brains', () => {
@@ -116,6 +119,47 @@ describe('rhachet act', () => {
 
       then('stderr contains error about --output required', () => {
         expect(result.stderr).toContain('--attempts requires --output');
+      });
+    });
+  });
+
+  given('[case3] short flags on act (`-r`/`-s`) after the enroll `-r` fix', () => {
+    // regression clamp: the `--roles` fix made the argv preprocessor recognize
+    // `-r`. `-r` is ALSO act's `--role` alias, so a command-blind encode would
+    // rewrite the later `-s` into a `\u0000s` null byte and break act. this
+    // proves act's short flags parse identically to the long form.
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-registry' }),
+    );
+
+    when('[t0] `act -r any -s say-hello` (short-flag form)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['act', '-r', 'any', '-s', 'say-hello'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the short flags parse — no null byte leaks into stderr', () => {
+        expect(result.stderr).not.toContain('\u0000');
+      });
+
+      then('`-s` is understood — no absent-`--skill` option error', () => {
+        expect(result.stderr).not.toContain("required option '-s");
+        expect(result.stderr).not.toContain('required option');
+      });
+
+      then('reaches the same brain-resolution outcome as the long form', () => {
+        // identical to case1 t0's long-form `--role any --skill say-hello`:
+        // both parse fully and fail only at brain resolution
+        expect(result.stderr).toContain('no brains available');
+      });
+
+      then('the short-flag stderr is locked to a snapshot', () => {
+        // snapshot the caller-faced error so a reviewer sees the exact `-r`/`-s`
+        // output in the pr diff and any future drift surfaces
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
       });
     });
   });

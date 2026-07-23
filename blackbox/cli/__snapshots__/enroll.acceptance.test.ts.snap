@@ -1,0 +1,393 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t0] \`enroll claude --roles -ghostrole\` (the regression path) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: role 'ghostrole' not found
+
+{
+  "role": "ghostrole",
+  "rolesLinked": [
+    "driver",
+    "architect",
+    "mechanic"
+  ],
+  "suggestion": null
+}
+
+[args] enroll,claude,--roles,-ghostrole
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t1] \`enroll claude --roles -ghostrole,+architect\` (comma form) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: role 'ghostrole' not found
+
+{
+  "role": "ghostrole",
+  "rolesLinked": [
+    "driver",
+    "architect",
+    "mechanic"
+  ],
+  "suggestion": null
+}
+
+[args] enroll,claude,--roles,-ghostrole,+architect
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t2] \`enroll claude --roles "-ghostrole +architect"\` (quoted space form) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: role 'ghostrole' not found
+
+{
+  "role": "ghostrole",
+  "rolesLinked": [
+    "driver",
+    "architect",
+    "mechanic"
+  ],
+  "suggestion": null
+}
+
+[args] enroll,claude,--roles,-ghostrole +architect
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t3] \`enroll claude --roles +mechanic,-mechanic\` (contradiction) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: cannot both add and remove role "mechanic" in one call
+
+{
+  "additions": [
+    "mechanic"
+  ],
+  "subtractions": [
+    "mechanic"
+  ],
+  "tokens": [
+    "+mechanic",
+    "-mechanic"
+  ]
+}
+
+[args] enroll,claude,--roles,+mechanic,-mechanic
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t4] \`enroll claude --roles mechanic,+architect\` (mixed call) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
+
+{
+  "absolutes": [
+    "mechanic"
+  ],
+  "additions": [
+    "architect"
+  ],
+  "subtractions": [],
+  "tokens": [
+    "mechanic",
+    "+architect"
+  ]
+}
+
+[args] enroll,claude,--roles,mechanic,+architect
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t5] \`enroll claude --roles +\` (empty role after sigil) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: role specifier cannot be empty after "+"
+
+{
+  "token": "+",
+  "tokens": [
+    "+"
+  ]
+}
+
+[args] enroll,claude,--roles,+
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t6] \`enroll claude --roles ""\` (empty spec) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults
+
+{
+  "tokens": []
+}
+
+[args] enroll,claude,--roles,
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `""`;
+
+exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+architect\` keeps the default set when: [t0] \`enroll claude --roles +architect\` (delta add) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-driver,+architect\` (comma) drops driver when: [t0] \`enroll claude --roles -driver,+architect\` (comma mixed) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-driver +architect"\` (space) drops driver when: [t0] \`enroll claude --roles "-driver +architect"\` (quoted space mixed) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias runs the full path end-to-end when: [t0] \`enroll claude -r -driver\` (short alias + delta subtract) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case8] a repo with no .agent/ directory when: [t0] \`enroll claude --roles mechanic\` with no .agent/ then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: no .agent/ found. run "rhachet roles link" first to initialize.
+
+{
+  "gitroot": "$TESTDIR"
+}
+
+[args] enroll,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case9] a repo with an empty .agent/ (no roles linked) when: [t0] \`enroll claude --roles mechanic\` with empty .agent/ then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: no roles found in .agent/. run "rhachet roles link" first to link roles.
+
+{
+  "gitroot": "$TESTDIR"
+}
+
+[args] enroll,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t0] \`enroll claude --roles mechnic\` (replace-mode typo) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: role 'mechnic' not found, did you mean 'mechanic'?
+
+{
+  "role": "mechnic",
+  "rolesLinked": [
+    "driver",
+    "architect",
+    "mechanic"
+  ],
+  "suggestion": "mechanic"
+}
+
+[args] enroll,claude,--roles,mechnic
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t1] \`enroll openai --roles mechanic\` (unsupported brain) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: brain 'openai' not supported. supported: claude, claude-code
+
+{
+  "brain": "openai"
+}
+
+[args] enroll,openai,--roles,mechanic
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t2] \`enroll claude\` (required --roles absent) then: the error output is locked to a snapshot 1`] = `
+"[commander error] error: required option '-r, --roles <spec>' not specified
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t3] \`enroll claude --roles -driver -architect\` (unquoted space, 2 deltas) then: the error output is locked to a snapshot 1`] = `
+"
+BadRequestError: enroll's --roles takes a single spec; saw an extra role token '-architect' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer").
+
+{
+  "brain": "claude",
+  "rolesSpec": "-driver",
+  "collision": "-architect"
+}
+
+[args] enroll,claude,--roles,-driver,-architect
+
+"
+`;

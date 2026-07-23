@@ -2,9 +2,9 @@ import { BadRequestError } from 'helpful-errors';
 
 import type { Role, RoleRegistry } from '@src/domain.objects';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
+import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
 
 import { inferRepoByRole } from './inferRepoByRole';
-import { parseRoleSpecifier } from './parseRoleSpecifier';
 
 /**
  * .what = a role resolved from a specifier, with its source registry

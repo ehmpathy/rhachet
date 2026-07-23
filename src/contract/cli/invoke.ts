@@ -3,9 +3,10 @@ import { withEmojiSpaceShim } from 'emoji-space-shim';
 import { BadRequestError } from 'helpful-errors';
 
 import { genContextConfigOfUsage } from '@src/domain.operations/config/genContextConfigOfUsage';
-import { getPreprocessedRoleArgv } from '@src/domain.operations/init/roles/tokens/getPreprocessedRoleArgv';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
+import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
 
+import { defineGlobalOptions } from './defineGlobalOptions';
 import { getExitCodeFromError } from './getExitCodeFromError';
 import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
@@ -50,8 +51,11 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
     .description(
       'rhachet cli interface. weave threads 🧵 of thought, stitched 🪡 with a rhachet ⚙️',
     )
-    .option('-c, --config <path>', 'where to find the rhachet.use.ts config')
     .enablePositionalOptions(); // required for subcommand passThroughOptions
+
+  // declare the program-level global options in one shared place, so the argv
+  // preprocessor's GLOBAL_VALUE_FLAGS can be enforced against them by a test
+  defineGlobalOptions({ program });
 
   // register all commands unconditionally
   // each command uses context.config.usage.get.* just-in-time

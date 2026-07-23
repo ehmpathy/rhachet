@@ -10,8 +10,8 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
  * .what = computes final enrollment from spec and available roles
  * .why = translates user spec into validated manifest for config generation
  *
- * .note = replace mode: ops become final roles (defaults ignored)
- * .note = delta mode: ops modify defaults (+append, -subtract)
+ * .note = absolute mode: deltas become final roles (defaults ignored)
+ * .note = incremental mode: deltas patch defaults (+addition appends, -subtraction subtracts)
  * .note = validates all roles against rolesLinked, suggests on typo
  */
 export const computeBrainCliEnrollment = (input: {
@@ -22,13 +22,13 @@ export const computeBrainCliEnrollment = (input: {
 }): BrainCliEnrollmentManifest => {
   // compute roles based on mode
   const rolesComputed =
-    input.spec.mode === 'replace'
-      ? computeRolesForReplaceMode({
-          ops: input.spec.ops,
+    input.spec.mode === 'absolute'
+      ? computeRolesForAbsoluteMode({
+          deltas: input.spec.deltas,
           rolesLinked: input.rolesLinked,
         })
-      : computeRolesForDeltaMode({
-          ops: input.spec.ops,
+      : computeRolesForIncrementalMode({
+          deltas: input.spec.deltas,
           rolesDefault: input.rolesDefault,
           rolesLinked: input.rolesLinked,
         });
@@ -40,22 +40,22 @@ export const computeBrainCliEnrollment = (input: {
 };
 
 /**
- * .what = computes roles for replace mode
- * .why = ops become final roles, defaults ignored
+ * .what = computes roles for absolute mode
+ * .why = deltas become final roles, defaults ignored
  */
-const computeRolesForReplaceMode = (input: {
-  ops: BrainCliEnrollmentSpec['ops'];
+const computeRolesForAbsoluteMode = (input: {
+  deltas: BrainCliEnrollmentSpec['deltas'];
   rolesLinked: RoleSlug[];
 }): RoleSlug[] => {
   const roles: RoleSlug[] = [];
 
-  for (const op of input.ops) {
+  for (const delta of input.deltas) {
     // validate role exists
-    validateRoleExists({ role: op.role, rolesLinked: input.rolesLinked });
+    validateRoleExists({ role: delta.role, rolesLinked: input.rolesLinked });
 
-    // in replace mode, all ops are 'add' (parser ensures this)
-    if (op.action === 'add' && !roles.includes(op.role)) {
-      roles.push(op.role);
+    // in absolute mode, all deltas are 'absolute' members (parser ensures this)
+    if (delta.kind === 'absolute' && !roles.includes(delta.role)) {
+      roles.push(delta.role);
     }
   }
 
@@ -63,27 +63,27 @@ const computeRolesForReplaceMode = (input: {
 };
 
 /**
- * .what = computes roles for delta mode
- * .why = ops modify defaults (+append, -subtract)
+ * .what = computes roles for incremental mode
+ * .why = deltas patch defaults (+addition appends, -subtraction subtracts)
  */
-const computeRolesForDeltaMode = (input: {
-  ops: BrainCliEnrollmentSpec['ops'];
+const computeRolesForIncrementalMode = (input: {
+  deltas: BrainCliEnrollmentSpec['deltas'];
   rolesDefault: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): RoleSlug[] => {
   // start with defaults
   const roles = new Set(input.rolesDefault);
 
-  for (const op of input.ops) {
+  for (const delta of input.deltas) {
     // validate role exists
-    validateRoleExists({ role: op.role, rolesLinked: input.rolesLinked });
+    validateRoleExists({ role: delta.role, rolesLinked: input.rolesLinked });
 
-    if (op.action === 'add') {
+    if (delta.kind === 'addition') {
       // +present role → no-op (idempotent)
-      roles.add(op.role);
+      roles.add(delta.role);
     } else {
       // -absent role → no-op (idempotent)
-      roles.delete(op.role);
+      roles.delete(delta.role);
     }
   }
 
