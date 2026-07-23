@@ -1,7 +1,7 @@
 import { BadRequestError } from 'helpful-errors';
 
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
-import { parseRoleSpecifier } from '@src/domain.operations/invoke/parseRoleSpecifier';
+import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
 import type { RoleLinkRef } from '@src/domain.operations/upgrade/discoverLinkedRoles';
 
 /**

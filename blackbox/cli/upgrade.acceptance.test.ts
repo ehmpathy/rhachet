@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = extracts rhachet-controlled output from upgrade stdout
@@ -42,6 +45,24 @@ const extractRhachetOutput = (input: {
     summary: summaryLines.join('\n').trim(),
   };
 };
+
+/**
+ * .what = drops ansi color escape sequences from a string
+ * .why = a raw node error dump carries ansi color codes (e.g. `\u001b[33m`),
+ *        which render as garbled `[33m` noise in a snapshot. strip them so the
+ *        snapshot stays human-legible (rule.forbid.snapshot-visual-blemishes)
+ */
+const stripAnsiCodes = (input: string): string =>
+  // eslint-disable-next-line no-control-regex
+  input.replace(/\u001b\[[0-9;]*m/g, '');
+
+/**
+ * .what = masks the node runtime version line to a stable token
+ * .why = a raw node crash dump ends with `Node.js vX.Y.Z`, a per-host value
+ *        that would make the snapshot non-deterministic across environments
+ */
+const maskNodeVersion = (input: string): string =>
+  input.replace(/Node\.js v\d+\.\d+\.\d+/g, 'Node.js $NODE_VERSION');
 
 /**
  * .what = reads the installed version of a package from package.json
@@ -110,6 +131,41 @@ describe('rhachet upgrade', () => {
 
       then('stderr contains error about install failure', () => {
         expect(result.stderr).toContain('install failed');
+      });
+    });
+  });
+
+  given('[case2b] upgrade --roles -ghostrole (lead-dash sentinel decode)', () => {
+    const repo = useBeforeAll(async () =>
+      await genTestTempRepo({ fixture: 'without-roles-packages' }),
+    );
+
+    when('[t0] rhachet upgrade --roles -ghostrole', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', '-ghostrole'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with non-zero status', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('the argv sentinel is decoded — no null byte leaks', () => {
+        // upgrade routes --roles through the shared getRoleDeltaTokens, so a
+        // lead-dash token decodes back to `-ghostrole` instead of `\u0000ghostrole`
+        expect(result.stderr).not.toContain('\u0000');
+        expect(result.stderr.toLowerCase()).toContain('ghostrole');
+      });
+
+      then('the decoded error output is locked to a snapshot', () => {
+        // strip ansi color codes + mask the node version so the crash dump
+        // snapshots clean and deterministic (no visual blemish, no host drift)
+        expect(
+          maskNodeVersion(stripAnsiCodes(asSnapshotSafe(result.stderr))),
+        ).toMatchSnapshot();
       });
     });
   });

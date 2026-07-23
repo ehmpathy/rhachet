@@ -5,13 +5,15 @@ import { genContextCli } from '@src/domain.objects/ContextCli';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
+import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/getRoleSlugsForFlags';
 import { setIncrementalRoles } from '@src/domain.operations/init/roles/incremental/setIncrementalRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
-import { getClassifiedRoleTokens } from '@src/domain.operations/init/roles/tokens/getClassifiedRoleTokens';
-import { getDecodedRoleToken } from '@src/domain.operations/init/roles/tokens/getDecodedRoleToken';
-import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/tokens/getRoleSlugsForFlags';
 import { showInitUsageInstructions } from '@src/domain.operations/init/usage/showInitUsageInstructions';
 import { initKeyrackRepoManifest } from '@src/domain.operations/keyrack/initKeyrackRepoManifest';
+import { getRoleDeltaMode } from '@src/domain.operations/roles/deltas/getRoleDeltaMode';
+import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
+import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
+import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 
 /**
  * .what = adds the "init" command to the CLI
@@ -49,10 +51,11 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // build context for operations
         const context = await genContextCli({ cwd: process.cwd() });
 
-        // decode sentinel-encoded `-role` tokens back to their natural form
-        const rolesDecoded = options.roles?.map((token) =>
-          getDecodedRoleToken({ token }),
-        );
+        // flatten via the shared `--roles` tokenizer: decodes the argv sentinel
+        // and accepts both the space form (`+a -b`) and comma form (`+a,-b`)
+        const rolesDecoded = options.roles
+          ? getRoleDeltaTokens({ raw: options.roles })
+          : undefined;
 
         // validate: --prep requires --roles
         if (options.prep && (!rolesDecoded || rolesDecoded.length === 0)) {
@@ -72,41 +75,50 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           );
         }
 
-        // track errors for exit code
-        let hasErrors = false;
-
-        // classify tokens once (absolute vs incremental) when roles are present.
+        // parse the deltas once (absolute vs incremental) when roles are present.
         // downstream flags (--keys, --prep) act on plain role slugs, so derive
         // them here — never the raw sigiled tokens (`+architect` / `-reviewer`)
-        const classified =
+        const deltas =
           rolesDecoded && rolesDecoded.length > 0
-            ? getClassifiedRoleTokens({ tokens: rolesDecoded })
+            ? getRoleDeltas({ tokens: rolesDecoded })
             : null;
-        const roleSlugsForFlags = getRoleSlugsForFlags({ classified });
+        const roleSlugsForFlags = getRoleSlugsForFlags({ deltas });
 
-        // flag: --roles => init roles from packages (absolute or incremental)
-        if (classified) {
+        // flag: --roles => init roles from packages (absolute or incremental).
+        // absolute mode may accumulate errors; incremental fails fast (throws).
+        // the iife yields a boolean so the error state stays an immutable const
+        const rolesInitHasErrors = await (async (): Promise<boolean> => {
+          if (!deltas) return false;
+
+          const mode = getRoleDeltaMode({ deltas });
+
           // absolute: replace the whole set (legacy behavior)
-          if (classified.mode === 'absolute') {
+          if (mode === 'absolute') {
             const result = await initRolesFromPackages(
-              { specifiers: classified.absolutes },
+              { specifiers: getRoleDeltasOfKind({ deltas, kind: 'absolute' }) },
               context,
             );
-            if (result.errors.length) hasErrors = true;
+            return result.errors.length > 0;
           }
 
           // incremental: adjust the set relative to the current set
           // (fail-fast: setIncrementalRoles throws on error, caught by invoke.ts)
-          if (classified.mode === 'incremental') {
+          if (mode === 'incremental') {
             await setIncrementalRoles(
               {
-                additions: classified.additions,
-                subtractions: classified.subtractions,
+                additions: getRoleDeltasOfKind({ deltas, kind: 'addition' }),
+                subtractions: getRoleDeltasOfKind({
+                  deltas,
+                  kind: 'subtraction',
+                }),
               },
               context,
             );
+            return false;
           }
-        }
+
+          return false;
+        })();
 
         // flag: --keys => init keyrack manifest (after roles); plain slugs only
         if (options.keys && roleSlugsForFlags.length > 0) {
@@ -142,15 +154,17 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           console.log('');
         }
 
-        // flag: --hooks => apply hooks
-        if (options.hooks !== undefined) {
+        // flag: --hooks => apply hooks; the iife yields a boolean so the error
+        // state stays an immutable const
+        const hooksHaveErrors = await (async (): Promise<boolean> => {
+          if (options.hooks === undefined) return false;
           const brains =
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
               : undefined;
           const hookResult = await syncHooksForLinkedRoles({ brains }, context);
-          if (hookResult.errors.length) hasErrors = true;
-        }
+          return hookResult.errors.length > 0;
+        })();
 
         // flag: --prep => persist to package.json; plain slugs only
         if (options.prep && roleSlugsForFlags.length > 0) {
@@ -168,7 +182,8 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           await generateRhachetUseTs({ mode: options.mode }, context);
         }
 
-        // exit with failure if any errors occurred
+        // exit with failure if any init step accumulated errors
+        const hasErrors = rolesInitHasErrors || hooksHaveErrors;
         if (hasErrors) process.exit(1);
 
         // no flags => show usage instructions

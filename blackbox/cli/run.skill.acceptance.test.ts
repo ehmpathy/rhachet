@@ -1,7 +1,10 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet run', () => {
   given('[case1] repo with skills', () => {
@@ -215,6 +218,46 @@ describe('rhachet run', () => {
 
       then('stderr suggests using ask or act instead', () => {
         expect(result.stderr).toMatch(/ask.*--attempts|act.*--attempts/);
+      });
+    });
+  });
+
+  given('[case6] short flags on run (`-r`/`-s`) after the enroll `-r` fix', () => {
+    // regression clamp: the `--roles` fix made the argv preprocessor recognize
+    // `-r`. `-r` is ALSO run's `--role` alias, so a command-blind encode would
+    // rewrite the later `-s` (`--skill`) into a `\u0000s` null byte and break
+    // run. this proves run's short flags parse identically to the long form.
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] `run -r any -s say-hello` (short-flag form)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '-r', 'any', '-s', 'say-hello'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('the short flags parse — no null byte leaks into stderr', () => {
+        expect(result.stderr).not.toContain('\u0000');
+      });
+
+      then('`-s` is understood — no absent-`--skill` option error', () => {
+        expect(result.stderr).not.toContain("required option '-s");
+        expect(result.stderr).not.toContain('required option');
+      });
+
+      then('exits 0 — parses identically to `--role any --skill say-hello`', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('say-hello');
+      });
+
+      then('the short-flag stderr is locked to a snapshot', () => {
+        // snapshot the caller-faced stderr so a reviewer sees the exact `-r`/`-s`
+        // output in the pr diff and any future drift surfaces — mirrors the
+        // clamp pattern act/ask use for the same short-flag regression
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
       });
     });
   });

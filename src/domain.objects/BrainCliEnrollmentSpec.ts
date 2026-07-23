@@ -1,22 +1,26 @@
 import { DomainLiteral } from 'domain-objects';
 
-import { BrainCliEnrollmentOperation } from './BrainCliEnrollmentOperation';
+import { RoleDelta } from './RoleDelta';
 
 /**
  * .what = parsed representation of the --roles flag value for brain CLI enrollment
- * .why = enables validation and manipulation of enrollment operations
+ * .why = enables validation and manipulation of the enrollment deltas
+ *
+ * .note = speaks the shared `--roles` vocabulary — `mode` matches the delta grammar
+ *   (`absolute` = replace the whole set, `incremental` = patch the defaults), and
+ *   `deltas` are RoleDelta instances, the one dobj every `--roles` consumer shares.
  */
 export interface BrainCliEnrollmentSpec {
   /**
    * .what = mode of application
-   * .why = "replace" replaces defaults entirely, "delta" modifies defaults via ops
+   * .why = "absolute" replaces defaults entirely, "incremental" patches defaults via deltas
    */
-  mode: 'replace' | 'delta';
+  mode: 'absolute' | 'incremental';
 
   /**
-   * .what = ordered list of operations to apply
+   * .what = ordered list of role deltas to apply
    */
-  ops: BrainCliEnrollmentOperation[];
+  deltas: RoleDelta[];
 }
 
 export class BrainCliEnrollmentSpec
@@ -24,6 +28,6 @@ export class BrainCliEnrollmentSpec
   implements BrainCliEnrollmentSpec
 {
   public static nested = {
-    ops: BrainCliEnrollmentOperation,
+    deltas: RoleDelta,
   };
 }

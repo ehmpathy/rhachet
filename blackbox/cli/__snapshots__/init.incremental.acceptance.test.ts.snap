@@ -312,3 +312,126 @@ exports[`rhx init --roles incremental (acceptance) given: [case21] a repo with m
 
 "
 `;
+
+exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form multi-add (e1 add via commas) when: [t0] \`init --roles +architect,+reviewer\` then: the comma-form add summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  ├─ + ehmpathy/architect
+   │  └─ + bhrain/reviewer
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+📚 link role repo=bhrain/role=reviewer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=bhrain/readme.md
+   │  ├─ + .agent/repo=bhrain/.gitignore
+   │  ├─ + .agent/repo=bhrain/role=reviewer/readme.md
+   │  ├─ + .agent/repo=bhrain/role=reviewer/boot.yml
+   │  ├─ + .agent/repo=bhrain/role=reviewer/keyrack.yml
+   │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
+   │  └─ + .agent/repo=bhrain/role=reviewer/skills
+   └─ stats
+      ├─ 13 brief(s)
+      └─ 2 skill(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case23] comma-form multi-remove (e2 remove via commas) when: [t0] \`init --roles -architect,-reviewer\` then: the comma-form remove summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  ├─ - ehmpathy/architect
+   │  └─ - bhrain/reviewer
+   └─ untouched (1)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mixed add + remove (e3 via commas) when: [t0] \`init --roles +architect,-reviewer\` then: the comma-form mixed summary tree matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + ehmpathy/architect
+   ├─ subtractions
+   │  └─ - bhrain/reviewer
+   └─ untouched (1)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ + .agent/repo=ehmpathy/role=architect/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
+   │  └─ + .agent/repo=ehmpathy/role=architect/briefs
+   └─ stats
+      └─ 17 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case25] comma-form conflict (+a,-a) is rejected when: [t0] \`init --roles +architect,-architect\` then: the conflict error output matches snapshot 1`] = `
+"
+BadRequestError: cannot both add and remove role "architect" in one call
+
+{
+  "additions": [
+    "architect"
+  ],
+  "subtractions": [
+    "architect"
+  ],
+  "tokens": [
+    "+architect",
+    "-architect"
+  ]
+}
+
+[args] init,--roles,+architect,-architect
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case26] comma-form unknown role add (+ghostrole) is rejected when: [t0] \`init --roles +architect,+ghostrole\` (unknown add via comma) then: the not-found error output matches snapshot 1`] = `
+"
+BadRequestError: role "ghostrole" not found
+
+{
+  "specifier": "ghostrole",
+  "availableRoles": [ "$AVAILABLE_ROLES" ]
+}
+
+[args] init,--roles,+architect,+ghostrole
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case27] comma-form empty sigil (+,) is rejected when: [t0] \`init --roles +architect,+\` (bare sigil after comma) then: the empty-sigil error output matches snapshot 1`] = `
+"
+BadRequestError: role specifier cannot be empty after "+"
+
+{
+  "token": "+",
+  "tokens": [
+    "+architect",
+    "+"
+  ]
+}
+
+[args] init,--roles,+architect,+
+
+"
+`;

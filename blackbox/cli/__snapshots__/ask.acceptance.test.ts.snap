@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet ask given: [case1] short flags on ask (\`-r\`/\`-a\`) after the enroll \`-r\` fix when: [t0] \`ask -r any -a "hi"\` (short-flag form) then: the short-flag stderr is locked to a snapshot 1`] = `
+"
+BadRequestError: no brains available. add getBrainRepls() to your rhachet.use.ts
+
+[args] ask,-r,any,-a,hi
+
+"
+`;

@@ -7,3 +7,5 @@ exports[`rhachet run given: [case1] repo with skills when: [t4] run --skill echo
 args: --skill echo-args --help
 "
 `;
+
+exports[`rhachet run given: [case6] short flags on run (\`-r\`/\`-s\`) after the enroll \`-r\` fix when: [t0] \`run -r any -s say-hello\` (short-flag form) then: the short-flag stderr is locked to a snapshot 1`] = `""`;

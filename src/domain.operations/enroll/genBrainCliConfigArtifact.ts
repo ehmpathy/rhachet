@@ -3,9 +3,10 @@ import * as path from 'path';
 
 import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
 import type { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
-import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 
 import { createHash } from 'node:crypto';
+import { getSettingsForRoles } from './getSettingsForRoles';
+import { getSupportedBrainCommand } from './getSupportedBrainCommand';
 
 /**
  * .what = generates unique brain config with only enrolled roles' hooks
@@ -22,14 +23,14 @@ export const genBrainCliConfigArtifact = async (input: {
 }): Promise<{ configPath: string }> => {
   const { enrollment, repoPath } = input;
 
-  // validate brain is claude (only supported brain for now)
-  validateBrainSupported({ brain: enrollment.brain });
+  // validate brain is supported (shared transformer — throws BadRequestError if not)
+  getSupportedBrainCommand({ brain: enrollment.brain });
 
   // read current settings.json (has all synced hooks and permissions)
   const settingsAll = await readSettingsJson({ repoPath });
 
   // filter hooks to only include enrolled roles (retain permissions)
-  const settingsFiltered = filterHooksToRoles({
+  const settingsFiltered = getSettingsForRoles({
     settings: settingsAll,
     roles: enrollment.roles,
   });
@@ -42,19 +43,6 @@ export const genBrainCliConfigArtifact = async (input: {
   });
 
   return { configPath };
-};
-
-/**
- * .what = validates brain is supported for config generation
- * .why = fail fast if brain is not yet supported
- */
-const validateBrainSupported = (input: { brain: BrainSlug }): void => {
-  const supportedBrains = ['claude', 'claude-code'];
-  if (!supportedBrains.includes(input.brain)) {
-    throw new Error(
-      `brain '${input.brain}' not supported for dynamic config. supported: ${supportedBrains.join(', ')}`,
-    );
-  }
 };
 
 /**
@@ -74,60 +62,6 @@ const readSettingsJson = async (input: {
 
   const content = await fs.readFile(settingsPath, 'utf-8');
   return JSON.parse(content) as ClaudeCodeSettings;
-};
-
-/**
- * .what = filters hooks to only include those from enrolled roles
- * .why = dynamic config should only have hooks from specified roles
- *
- * .note = real hook structure: { matcher: "*", hooks: [{ author: "repo=X/role=Y", ... }] }
- * .note = we filter inner hooks by author field, then drop entries with no hooks left
- */
-const filterHooksToRoles = (input: {
-  settings: ClaudeCodeSettings;
-  roles: string[];
-}): ClaudeCodeSettings => {
-  const { settings, roles } = input;
-
-  if (!settings.hooks) return settings;
-
-  // create matcher patterns for enrolled roles
-  // author format: `repo=X/role=Y`
-  const rolePatterns = roles.map((role) => `role=${role}`);
-
-  // filter each hook event category
-  const hooksFiltered: ClaudeCodeSettings['hooks'] = {};
-
-  for (const [eventName, entries] of Object.entries(settings.hooks)) {
-    if (!entries) continue;
-
-    // filter each entry's inner hooks by author field
-    const filteredEntries = entries
-      .map((entry) => {
-        // filter inner hooks to only those from enrolled roles
-        const filteredInnerHooks = entry.hooks.filter((hook) => {
-          const author = (hook as { author?: string }).author;
-          if (!author) return false;
-          return rolePatterns.some((pattern) => author.includes(pattern));
-        });
-
-        // if no inner hooks match, skip this entry entirely
-        if (filteredInnerHooks.length === 0) return null;
-
-        // return entry with filtered inner hooks
-        return { ...entry, hooks: filteredInnerHooks };
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-
-    if (filteredEntries.length > 0) {
-      hooksFiltered[eventName as keyof typeof hooksFiltered] = filteredEntries;
-    }
-  }
-
-  return {
-    ...settings,
-    hooks: hooksFiltered,
-  };
 };
 
 /**

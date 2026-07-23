@@ -1,8 +1,7 @@
-import { BadRequestError } from 'helpful-errors';
-
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 
 import { spawn } from 'node:child_process';
+import { getSupportedBrainCommand } from './getSupportedBrainCommand';
 
 /**
  * .what = spawns brain CLI with --setting-sources local --settings <configPath>
@@ -21,8 +20,8 @@ export const enrollBrainCli = (input: {
 }): void => {
   const { brain, configPath, args, cwd } = input;
 
-  // lookup brain CLI command
-  const brainCommand = lookupBrainCommand({ brain });
+  // lookup brain CLI command (shared supported-brains transformer)
+  const brainCommand = getSupportedBrainCommand({ brain });
 
   // build args: --setting-sources local --settings <configPath> [passthrough args]
   // "local" skips user and project settings; auth still loads from ~/.claude/.credentials.json
@@ -51,25 +50,4 @@ export const enrollBrainCli = (input: {
     console.error(`failed to spawn ${brainCommand}: ${err.message}`);
     process.exit(1);
   });
-};
-
-/**
- * .what = looks up brain slug to CLI command
- * .why = maps brain identifiers to executable commands
- */
-const lookupBrainCommand = (input: { brain: BrainSlug }): string => {
-  const brainCommands: Record<string, string> = {
-    claude: 'claude',
-    'claude-code': 'claude',
-  };
-
-  const command = brainCommands[input.brain];
-  if (!command) {
-    throw new BadRequestError(
-      `brain '${input.brain}' not supported. supported: ${Object.keys(brainCommands).join(', ')}`,
-      { brain: input.brain },
-    );
-  }
-
-  return command;
 };

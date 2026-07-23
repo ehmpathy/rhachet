@@ -1,16 +1,16 @@
 import { given, then, when } from 'test-fns';
 
-import { getDecodedRoleToken } from './getDecodedRoleToken';
+import { getDecodedRoleDeltaToken } from './getDecodedRoleDeltaToken';
 import { getPreprocessedRoleArgv } from './getPreprocessedRoleArgv';
 
-describe('getDecodedRoleToken', () => {
+describe('getDecodedRoleDeltaToken', () => {
   given('[case1] a qualified `-repo/role` remove token', () => {
     when('[t0] preprocessed then decoded', () => {
       then('round-trips back to the natural -repo/role form', () => {
         const [encoded] = getPreprocessedRoleArgv({
           args: ['--roles', '-bhuild/reviewer'],
         }).slice(-1);
-        expect(getDecodedRoleToken({ token: encoded! })).toEqual(
+        expect(getDecodedRoleDeltaToken({ token: encoded! })).toEqual(
           '-bhuild/reviewer',
         );
       });
@@ -20,10 +20,12 @@ describe('getDecodedRoleToken', () => {
   given('[case2] a plain add/bare token', () => {
     when('[t0] decoded', () => {
       then('returns the token unchanged', () => {
-        expect(getDecodedRoleToken({ token: '+architect' })).toEqual(
+        expect(getDecodedRoleDeltaToken({ token: '+architect' })).toEqual(
           '+architect',
         );
-        expect(getDecodedRoleToken({ token: 'mechanic' })).toEqual('mechanic');
+        expect(getDecodedRoleDeltaToken({ token: 'mechanic' })).toEqual(
+          'mechanic',
+        );
       });
     });
   });

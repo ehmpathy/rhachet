@@ -5,7 +5,11 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { enrollBrainCli } from '@src/domain.operations/enroll/enrollBrainCli';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
+import { getRolesSpaceFormCollision } from '@src/domain.operations/enroll/getRolesSpaceFormCollision';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
+import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
+import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { isRolesFlag } from '@src/domain.operations/roles/deltas/isRolesFlag';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -104,8 +108,40 @@ const performEnroll = async (input: {
     );
   }
 
-  // parse the roles spec (will error if empty string)
-  const spec = parseBrainCliEnrollmentSpec({ spec: rolesSpec });
+  // capture the raw args once (used both for the collision guard below and the
+  // brain passthrough further down)
+  const rawArgs = getRawArgsAfterEnroll({ brain });
+
+  // fail loud on the unquoted multi-delta space form: enroll's `--roles` is
+  // single-valued, so a second space-separated role (`--roles -driver -reviewer`)
+  // is left raw and commander mangles it into a garbage spec that silently loses
+  // the first delta. guide the user to the comma form instead of a misleading
+  // "role not found"
+  const spaceFormCollision = getRolesSpaceFormCollision({
+    rawArgs,
+    rolesLinked,
+  });
+  if (spaceFormCollision)
+    throw new BadRequestError(
+      `enroll's --roles takes a single spec; saw an extra role token '${spaceFormCollision}' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer").`,
+      // decode the argv sentinel before it reaches the error metadata: this guard
+      // throws *before* the tokenizer decodes, so `rolesSpec` is still the encoded
+      // form (`\u0000driver`). a raw dump would re-leak the exact `\u0000` artifact
+      // this wish exists to eliminate — decode so the human sees `-driver`
+      {
+        brain,
+        rolesSpec: getDecodedRoleDeltaToken({ token: rolesSpec }),
+        collision: spaceFormCollision,
+      },
+    );
+
+  // flatten via the shared tokenizer — accepts both the space form
+  // (`--roles "-driver +architect"`) and the comma form (`--roles -driver,+architect`),
+  // and decodes the argv sentinel so `-role` survives (fixes the enroll delta regression)
+  const tokens = getRoleDeltaTokens({ raw: [rolesSpec] });
+
+  // parse via the one shared `--roles` grammar (errors if no roles specified)
+  const spec = parseBrainCliEnrollmentSpec({ tokens });
 
   // compute final roles from spec
   const enrollment = computeBrainCliEnrollment({
@@ -121,10 +157,7 @@ const performEnroll = async (input: {
     repoPath: gitroot,
   });
 
-  // get passthrough args (all args after 'enroll <brain>')
-  const rawArgs = getRawArgsAfterEnroll({ brain });
-
-  // filter out --roles from passthrough
+  // filter out --roles from passthrough (rawArgs captured above)
   const passthroughArgs = filterOutRolesArg({ args: rawArgs });
 
   // spawn brain CLI
@@ -140,30 +173,29 @@ const performEnroll = async (input: {
  * .what = removes --roles and its value from args
  * .why = --roles is consumed by enroll, not passed to brain
  */
-const filterOutRolesArg = (input: { args: string[] }): string[] => {
-  const result: string[] = [];
-  let skipNext = false;
+const filterOutRolesArg = (input: { args: string[] }): string[] =>
+  // fold immutably; the `skipNext` flag marks that the current token is the
+  // value of a bare `--roles`/`-r` flag seen on the prior step, so it is dropped
+  input.args.reduce<{ result: string[]; skipNext: boolean }>(
+    (acc, arg) => {
+      // the token right after a bare `--roles`/`-r` flag is its value → drop it
+      if (acc.skipNext) return { result: acc.result, skipNext: false };
 
-  for (const arg of input.args) {
-    if (skipNext) {
-      skipNext = false;
-      continue;
-    }
+      // shared predicate — same roles-flag identity used by the argv preprocess,
+      // so the two forms (`--roles` / `-r`) never diverge across the two consumers;
+      // drop the flag and mark its value (the next token) for drop
+      if (isRolesFlag({ token: arg }))
+        return { result: acc.result, skipNext: true };
 
-    if (arg === '--roles' || arg === '-r') {
-      skipNext = true;
-      continue;
-    }
+      // the `--roles=value` inline form is one combined token → drop it whole
+      if (arg.startsWith('--roles='))
+        return { result: acc.result, skipNext: false };
 
-    if (arg.startsWith('--roles=')) {
-      continue;
-    }
-
-    result.push(arg);
-  }
-
-  return result;
-};
+      // any other token passes through to the brain
+      return { result: [...acc.result, arg], skipNext: false };
+    },
+    { result: [], skipNext: false },
+  ).result;
 
 /**
  * .what = adds the "enroll" command to the CLI
@@ -178,7 +210,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .description('enroll a brain CLI with customized roles')
     .requiredOption(
       '-r, --roles <spec>',
-      'roles to enroll (e.g., mechanic, +architect, -driver)',
+      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple roles use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer")',
     )
     .helpOption(false) // disable built-in --help so it passes through to brain
     .allowUnknownOption(true)

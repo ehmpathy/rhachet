@@ -1,5 +1,31 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhachet upgrade given: [case2b] upgrade --roles -ghostrole (lead-dash sentinel decode) when: [t0] rhachet upgrade --roles -ghostrole then: the decoded error output is locked to a snapshot 1`] = `
+"/PATH_STRIPPED
+    throw new UpgradeExecutionError(\`\${pm} install failed\`, {
+          ^
+
+UpgradeExecutionError: UpgradeExecutionError: pnpm install failed
+
+{
+  "packages": [
+    "rhachet-roles--ghostrole"
+  ],
+  "exitCode": 1
+}
+    at execNpmInstallLocal (/PATH_STRIPPED)
+    at execUpgrade (/PATH_STRIPPED)
+    at async Command.<anonymous> (/PATH_STRIPPED)
+    at async Command.parseAsync (/PATH_STRIPPED)
+    at async _invoke (/PATH_STRIPPED)
+    at async withEmojiSpaceShim (/PATH_STRIPPED) {
+  exitCode: 1
+}
+
+Node.js $NODE_VERSION
+"
+`;
+
 exports[`rhachet upgrade given: [case3] upgrade --help when: [t0] rhachet upgrade --help then: stdout matches snapshot 1`] = `
 "Usage: rhachet upgrade [options]
 

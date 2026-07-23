@@ -1,88 +1,26 @@
-import { BadRequestError } from 'helpful-errors';
-
-import { BrainCliEnrollmentOperation } from '@src/domain.objects/BrainCliEnrollmentOperation';
 import { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
+import { getRoleDeltaMode } from '@src/domain.operations/roles/deltas/getRoleDeltaMode';
+import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
 
 /**
- * .what = parses roles spec string into structured form
- * .why = enables validation and manipulation of enrollment operations
+ * .what = wraps the shared `--roles` deltas into an enrollment spec
+ * .why = enroll shares the ONE canonical `--roles` grammar with init
+ *        (`getRoleDeltas`); this pairs the parsed deltas with their derived mode
+ *        so `computeBrainCliEnrollment` consumes one uniform vocabulary.
  *
- * .note = spec format:
- *   - "mechanic" → replace mode, add mechanic
- *   - "+architect" → delta mode, add architect
- *   - "-driver" → delta mode, remove driver
- *   - "-driver,+architect" → delta mode, remove driver then add architect
- *   - "mechanic,ergonomist" → replace mode, add both
+ * .note = tokens are already flattened upstream by `getRoleDeltaTokens`, so both
+ *   the space form (`+a -b`) and the comma form (`+a,-b`) arrive here as the
+ *   same natural token list.
  */
 export const parseBrainCliEnrollmentSpec = (input: {
-  spec: string;
+  tokens: string[];
 }): BrainCliEnrollmentSpec => {
-  // validate spec is not empty
-  const trimmed = input.spec.trim();
-  if (!trimmed)
-    throw new BadRequestError('--roles is empty, omit flag to use defaults', {
-      spec: input.spec,
-    });
+  // parse via the one shared grammar (dedupe, contradiction, mixed-call all handled)
+  const deltas = getRoleDeltas({ tokens: input.tokens });
 
-  // split by comma to get individual ops
-  const parts = trimmed.split(',').map((p) => p.trim());
-
-  // detect mode: delta if any part starts with + or -
-  const hasDeltaOp = parts.some((p) => p.startsWith('+') || p.startsWith('-'));
-  const mode = hasDeltaOp ? 'delta' : 'replace';
-
-  // parse each part into an operation
-  const ops: BrainCliEnrollmentOperation[] = parts.map((part) => {
-    if (part.startsWith('+')) {
-      const role = part.slice(1).trim();
-      if (!role)
-        throw new BadRequestError('role name cannot be empty after +', {
-          spec: input.spec,
-          part,
-        });
-      return new BrainCliEnrollmentOperation({ action: 'add', role });
-    }
-
-    if (part.startsWith('-')) {
-      const role = part.slice(1).trim();
-      if (!role)
-        throw new BadRequestError('role name cannot be empty after -', {
-          spec: input.spec,
-          part,
-        });
-      return new BrainCliEnrollmentOperation({ action: 'remove', role });
-    }
-
-    // bare role name in replace mode
-    if (mode === 'replace') {
-      if (!part)
-        throw new BadRequestError('role name cannot be empty', {
-          spec: input.spec,
-          part,
-        });
-      return new BrainCliEnrollmentOperation({ action: 'add', role: part });
-    }
-
-    // bare role name in delta mode is an error
-    throw new BadRequestError(
-      'in delta mode, all roles must be prefixed with + or -',
-      { spec: input.spec, part },
-    );
+  // pair the deltas with their derived mode (absolute = replace, incremental = patch)
+  return new BrainCliEnrollmentSpec({
+    mode: getRoleDeltaMode({ deltas }),
+    deltas,
   });
-
-  // check for conflicts: same role both added and removed
-  const added = new Set(
-    ops.filter((op) => op.action === 'add').map((op) => op.role),
-  );
-  const removed = new Set(
-    ops.filter((op) => op.action === 'remove').map((op) => op.role),
-  );
-  const conflicts = [...added].filter((role) => removed.has(role));
-  if (conflicts.length > 0)
-    throw new BadRequestError(`cannot both add and remove '${conflicts[0]}'`, {
-      spec: input.spec,
-      conflicts,
-    });
-
-  return new BrainCliEnrollmentSpec({ mode, ops });
 };

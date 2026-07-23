@@ -684,4 +684,212 @@ describe('rhx init --roles incremental (acceptance)', () => {
       });
     });
   });
+
+  // ── comma form: `--roles +a,-b` must behave identically to the space form ──
+  // the shared getRoleDeltaTokens splits on commas too, so every space-form
+  // scenario is mirrored here in comma form: the happy paths (add / remove /
+  // mixed) assert the set outcome AND lock the stdout summary to a snapshot, and
+  // the error paths (conflict / unknown role / empty sigil) prove the shared
+  // grammar rejects the same way regardless of separator.
+
+  given('[case22] comma-form multi-add (e1 add via commas)', () => {
+    const testDir = genTempDir({ slug: 'init-comma-add' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic'],
+        cwd: testDir,
+      });
+    });
+
+    when('[t0] `init --roles +architect,+reviewer`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect,+reviewer'],
+          cwd: testDir,
+        }),
+      );
+      then('both are added and mechanic is untouched', () => {
+        expect(run.status).toEqual(0);
+        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(true);
+        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+      });
+
+      then('the comma-form add summary tree matches snapshot', () => {
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case23] comma-form multi-remove (e2 remove via commas)', () => {
+    const testDir = genTempDir({ slug: 'init-comma-remove' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic', 'architect', 'reviewer'],
+        cwd: testDir,
+      });
+    });
+
+    when('[t0] `init --roles -architect,-reviewer`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '-architect,-reviewer'],
+          cwd: testDir,
+        }),
+      );
+      then('both are removed and mechanic is untouched', () => {
+        expect(run.status).toEqual(0);
+        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+          false,
+        );
+        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+      });
+
+      then('the comma-form remove summary tree matches snapshot', () => {
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case24] comma-form mixed add + remove (e3 via commas)', () => {
+    const testDir = genTempDir({ slug: 'init-comma-mixed' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic', 'reviewer'],
+        cwd: testDir,
+      });
+    });
+
+    when('[t0] `init --roles +architect,-reviewer`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect,-reviewer'],
+          cwd: testDir,
+        }),
+      );
+      then('architect added, reviewer removed, mechanic kept', () => {
+        expect(run.status).toEqual(0);
+        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+      });
+
+      then('the comma-form mixed summary tree matches snapshot', () => {
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case25] comma-form conflict (+a,-a) is rejected', () => {
+    const testDir = genTempDir({ slug: 'init-comma-conflict' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic'],
+        cwd: testDir,
+      });
+    });
+
+    when('[t0] `init --roles +architect,-architect`', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect,-architect'],
+          cwd: testDir,
+          logOnError: false,
+        }),
+      );
+      then('the shared grammar rejects add+remove of one role, no null byte', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain('add and remove');
+      });
+
+      then('the conflict error output matches snapshot', () => {
+        expect(run.stderr.split(testDir).join('$TESTDIR')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case26] comma-form unknown role add (+ghostrole) is rejected', () => {
+    const testDir = genTempDir({ slug: 'init-comma-unknown' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic'],
+        cwd: testDir,
+      });
+    });
+
+    // .note = an unknown ADD errors (there is no such role to link); an unknown
+    //   REMOVE is a correct no-op (no linked role to unlink), so the unknown-role
+    //   rejection is proven via an ADD, mirroring the space-form case7.
+    when('[t0] `init --roles +architect,+ghostrole` (unknown add via comma)', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect,+ghostrole'],
+          cwd: testDir,
+          logOnError: false,
+        }),
+      );
+      then('the decoded unknown role surfaces cleanly, no null byte', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain('ghostrole');
+        expect(run.stderr.toLowerCase()).toContain('not found');
+      });
+
+      then('the not-found error output matches snapshot', () => {
+        // redact the version-fragile availableRoles list, as the space-form
+        // case7 does, so the rest of the block stays deterministic
+        const masked = run.stderr
+          .split(testDir)
+          .join('$TESTDIR')
+          .replace(
+            /("availableRoles":\s*)\[[\s\S]*?\]/,
+            '$1[ "$AVAILABLE_ROLES" ]',
+          );
+        expect(masked).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case27] comma-form empty sigil (+,) is rejected', () => {
+    const testDir = genTempDir({ slug: 'init-comma-empty-sigil' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic'],
+        cwd: testDir,
+      });
+    });
+
+    when('[t0] `init --roles +architect,+` (bare sigil after comma)', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect,+'],
+          cwd: testDir,
+          logOnError: false,
+        }),
+      );
+      then('the shared grammar rejects a bare sigil, no null byte', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain('empty');
+      });
+
+      then('the empty-sigil error output matches snapshot', () => {
+        expect(run.stderr.split(testDir).join('$TESTDIR')).toMatchSnapshot();
+      });
+    });
+  });
 });
