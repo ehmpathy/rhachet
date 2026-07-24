@@ -12,6 +12,7 @@ Options:
 
 Commands:
   init [options]      initialize keyrack with a recipient key
+  infra               manage the per-org keyrack-infra repo
   recipient           manage recipients who can decrypt the host manifest
   get [options]       grant credentials from keyrack
   source [options]    output export statements for shell eval

@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genGhRepo given: [case3] a create failure (non-404 error on create) when: [t0] genned then: it fails loud with an actionable hint 1`] = `
+"UnexpectedCodePathError: gh repo create failed
+
+{
+  "slug": "ehmpathy/keyrack-infra",
+  "stderr": "HTTP 403: forbidden",
+  "status": 1,
+  "hint": "if unauthenticated, run \`gh auth status\`; if authenticated but forbidden (403), ask an org owner to grant you repo-create access"
+}"
+`;
+
+exports[`genGhRepo given: [case5] a repo that exists but is public when: [t0] genned then: it fails loud (the lock is private access) 1`] = `
+"✋ ConstraintError: keyrack-infra repo exists but is not private
+
+{
+  "slug": "ehmpathy/keyrack-infra",
+  "visibility": "public",
+  "hint": "keyrack-infra must be private — its access is the lock. run: gh repo edit ehmpathy/keyrack-infra --visibility private"
+}"
+`;

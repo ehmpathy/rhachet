@@ -26,7 +26,13 @@ const config: Config = {
     // here's an example of how to ignore esm module transformation, when needed
     // 'node_modules/(?!(@octokit|universal-user-agent|before-after-hook)/)',
   ],
-  testMatch: ['**/*.acceptance.test.ts', '!**/.yalc/**'],
+  testMatch: [
+    '**/*.acceptance.test.ts',
+    '!**/.yalc/**',
+    // exclude rmsafe trash — deleted test files land in this gitignored cache dir;
+    // jest would otherwise discover a stale copy and fail on its broken imports
+    '!**/.agent/.cache/**',
+  ],
   setupFilesAfterEnv: ['./jest.acceptance.env.ts'],
 
   // use 50% of threads to leave headroom for other processes

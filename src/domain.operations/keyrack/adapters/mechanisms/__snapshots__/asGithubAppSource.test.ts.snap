@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asGithubAppSource given: [case1] app ids and a pem when: [t0] cast to a source blob then: the raw blob format (key order + structure) stays locked 1`] = `"{"appId":"123456","installationId":"78901234","privateKey":"-----BEGIN RSA PRIVATE KEY-----\\nabc\\n","mech":"EPHEMERAL_VIA_GITHUB_APP"}"`;

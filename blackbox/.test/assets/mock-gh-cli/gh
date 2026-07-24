@@ -5,14 +5,45 @@
 #
 # responds to known subcommands with canned JSON output.
 # placed on PATH ahead of real gh CLI via env override.
+#
+# supports the keyrack-infra discovery flow (repo view + contents api +
+# org installations) so the github-app guided setup can run end-to-end
+# against a member-readable registry, plus the legacy secret set/delete
+# commands other vault tests rely on.
 ######################################################################
 
-# join args for pattern matching
+# join args for pattern comparison
 ARGS="$*"
+
+# the keyrack-infra registry the guided github-app flow reads: two apps for
+# testorg so app selection still prompts (the single-org case uses its own mock)
+REGISTRY_JSON='[{"org":"testorg","appId":"123456","installationId":"12345678","slug":"my-test-app"},{"org":"testorg","appId":"654321","installationId":"87654321","slug":"other-app"}]'
+
+# base64 encode without line wraps (Buffer.from ignores whitespace either way)
+b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
 
 case "$ARGS" in
   "auth status")
     # success (exit 0 = authenticated)
+    exit 0
+    ;;
+  "repo view testorg/keyrack-infra --json name")
+    # keyrack-infra exists for testorg
+    echo '{"name":"keyrack-infra"}'
+    exit 0
+    ;;
+  "api /repos/testorg/keyrack-infra/contents/registry/github-apps.json")
+    # the member-readable registry (github contents api returns base64 + sha)
+    echo "{\"content\":\"$(b64 "$REGISTRY_JSON")\",\"sha\":\"mocksha0000000000000000000000000000000000\"}"
+    exit 0
+    ;;
+  "api /orgs/testorg/installations")
+    # admin install list (full json; new code parses it in-process, no --jq)
+    echo '{"installations":[{"id":12345678,"app_id":123456,"app_slug":"my-test-app"},{"id":87654321,"app_id":654321,"app_slug":"other-app"}]}'
+    exit 0
+    ;;
+  "api --method PUT /repos/testorg/keyrack-infra/contents/registry/github-apps.json"*)
+    # registry write (auto-register); succeeds silently
     exit 0
     ;;
   "api /user/orgs --jq .[].login")
@@ -37,6 +68,70 @@ case "$ARGS" in
     # succeeds silently
     exit 0
     ;;
+
+  # ── keyrack infra init: fresh org (no repo/files yet → all created) ──
+  "repo view freshorg/keyrack-infra --json name")
+    # repo absent → 404 (graphql not-found phrasing the code matches)
+    echo "GraphQL: Could not resolve to a Repository with the name 'freshorg/keyrack-infra'." >&2
+    exit 1
+    ;;
+  "repo create freshorg/keyrack-infra --private")
+    # repo create succeeds
+    echo "https://github.com/freshorg/keyrack-infra"
+    exit 0
+    ;;
+  "api /repos/freshorg/keyrack-infra/contents/readme.md" | \
+  "api /repos/freshorg/keyrack-infra/contents/registry/github-apps.json")
+    # scaffold files absent → 404
+    echo "HTTP 404: Not Found (https://api.github.com/repos/freshorg/keyrack-infra/contents/...)" >&2
+    exit 1
+    ;;
+  "api --method PUT /repos/freshorg/keyrack-infra/contents/"*)
+    # scaffold file create (readme + registry) succeeds silently
+    exit 0
+    ;;
+
+  # ── keyrack infra init: org already set up (idempotent re-run → all found) ──
+  "repo view setuporg/keyrack-infra --json name")
+    echo '{"name":"keyrack-infra"}'
+    exit 0
+    ;;
+  "repo view setuporg/keyrack-infra --json visibility")
+    # the found repo is private (the required state) → init proceeds to found
+    echo '{"visibility":"PRIVATE"}'
+    exit 0
+    ;;
+  "api /repos/setuporg/keyrack-infra/contents/readme.md")
+    echo "{\"content\":\"$(b64 "# keyrack-infra")\",\"sha\":\"mocksha1111111111111111111111111111111111\"}"
+    exit 0
+    ;;
+  "api /repos/setuporg/keyrack-infra/contents/registry/github-apps.json")
+    echo "{\"content\":\"$(b64 '[]')\",\"sha\":\"mocksha2222222222222222222222222222222222\"}"
+    exit 0
+    ;;
+
+  # ── keyrack infra init: repo exists but is public (must fail loud) ──
+  "repo view puborg/keyrack-infra --json name")
+    # repo exists → existence check passes
+    echo '{"name":"keyrack-infra"}'
+    exit 0
+    ;;
+  "repo view puborg/keyrack-infra --json visibility")
+    # ...but it is public → the lock (private access) is broken → init must fail loud
+    echo '{"visibility":"PUBLIC"}'
+    exit 0
+    ;;
+
+  # ── keyrack infra init: operational error (repo create forbidden) ──
+  "repo view erroorg/keyrack-infra --json name")
+    echo "GraphQL: Could not resolve to a Repository with the name 'erroorg/keyrack-infra'." >&2
+    exit 1
+    ;;
+  "repo create erroorg/keyrack-infra --private")
+    echo "HTTP 403: Resource not accessible by integration (https://api.github.com/orgs/erroorg/repos)" >&2
+    exit 1
+    ;;
+
   *)
     echo "mock gh: unknown command: $ARGS" >&2
     exit 1

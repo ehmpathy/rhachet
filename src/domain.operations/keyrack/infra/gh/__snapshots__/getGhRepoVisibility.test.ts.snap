@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getGhRepoVisibility given: [case3] a transient failure (non-zero exit) when: [t0] its visibility is read then: it fails loud (never assumes a visibility) 1`] = `
+"UnexpectedCodePathError: gh repo view (visibility) failed
+
+{
+  "slug": "ehmpathy/keyrack-infra",
+  "stderr": "HTTP 500: internal server error",
+  "status": 1,
+  "hint": "check \`gh auth status\`; the api may be rate-limited or down — try again"
+}"
+`;

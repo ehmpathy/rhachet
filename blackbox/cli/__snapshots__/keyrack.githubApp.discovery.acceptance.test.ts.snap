@@ -1,0 +1,61 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack set github-app discovery (acceptance) given: [case0] the keyrack set cli surface when: [t0] the caller asks for \`keyrack set --help\` then: the help output (set contract) stays locked 1`] = `
+"Usage: rhachet keyrack set [options]
+
+configure storage for a credential key
+
+Options:
+  --key <keyname>            raw key name to configure (e.g., AWS_PROFILE)
+  --mech <mechanism>         grant mechanism (inferred from vault when omitted)
+  --vault <vault>            storage vault: os.direct, os.secure, os.daemon,
+                             os.envvar, 1password
+  --owner <owner>            owner identity (e.g., mechanic, foreman)
+  --for <owner>              alias for --owner
+  --env <env>                target env: prod, prep, test, all, sudo, or camp
+                             (inferred from manifest if unambiguous)
+  --org <org>                target org: @this or @all (default: @this)
+                             (default: "@this")
+  --exid <exid>              external id (vault-specific reference)
+  --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
+  --at <path>                custom keyrack.yml path (for role-level keyracks)
+  --prikey <path>            ssh private key for manifest decryption
+  --json                     output as json (robot mode)
+  -h, --help                 display help for command"
+`;
+
+exports[`keyrack set github-app discovery (acceptance) given: [case1] an admin adds an app (registry empty, admin can list installs) when: [t0] \`keyrack set --mech EPHEMERAL_VIA_GITHUB_APP\` runs (auto-select + pem) then: the auto-register guided-setup + summary stdout stays locked 1`] = `
+"🔐 keyrack set adminorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ app: adminorg-bot (id: 123456, auto-selected)
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./mock-app.pem
+   │  └─ pem read ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+⠀
+🔐 keyrack set (org: adminorg, env: test)
+   └─ adminorg.test.GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack set github-app discovery (acceptance) given: [case2] keyrack-infra is not initialized for the org when: [t0] \`keyrack set --mech EPHEMERAL_VIA_GITHUB_APP\` runs then: the blocked treestruct stderr (init-first contract) stays locked 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack set
+   └─ ✋ blocked: keyrack-infra not reachable for noinfraorg
+      └─ hint:
+         ├─ if it is not set up yet, run: rhx keyrack infra init --org noinfraorg
+         └─ if it exists, ask an admin to grant you read access to noinfraorg/keyrack-infra"
+`;
+
+exports[`keyrack set github-app discovery (acceptance) given: [case3] the registry is empty and the caller is a member (403) when: [t0] \`keyrack set --mech EPHEMERAL_VIA_GITHUB_APP\` runs then: the blocked treestruct stderr (ask-an-admin contract) stays locked 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack set
+   └─ ✋ blocked: no github apps registered for noapporg
+      └─ hint: ask an admin to add a github app to keyrack for this org"
+`;

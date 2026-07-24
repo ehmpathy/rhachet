@@ -48,8 +48,11 @@ export const unlockKeyrackKeys = async (
   await findsertKeyrackDaemon({ socketPath });
 
   // fail fast if hostManifest not loaded
+  // .note = caller-fixable (run: rhx keyrack init) → BadRequestError, not a server
+  // fault; keeps the cli error render clean (no stack dump) and consistent with the
+  // twin throw site in invokeKeyrack.ts that uses BadRequestError for this message
   if (!context.hostManifest)
-    throw new UnexpectedCodePathError(
+    throw new BadRequestError(
       'host manifest not found. run: rhx keyrack init',
       { owner: input.owner },
     );

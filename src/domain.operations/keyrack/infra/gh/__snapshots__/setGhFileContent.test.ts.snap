@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setGhFileContent given: [case2] a gh failure when: [t0] written then: it fails loud 1`] = `
+"UnexpectedCodePathError: gh contents put failed
+
+{
+  "repo": "ehmpathy/keyrack-infra",
+  "path": "registry/github-apps.json",
+  "stderr": "HTTP 403: forbidden",
+  "status": 1
+}"
+`;

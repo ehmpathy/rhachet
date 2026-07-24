@@ -41,7 +41,7 @@ exports[`keyrack get --output modes given: [case2] key locked (not unlocked) whe
 🔐 keyrack
    └─ testorg.test.__TEST_OUTPUT_LOCKED__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_OUTPUT_LOCKED__ --env test[0m
+      └─ tip: rhx keyrack set --key __TEST_OUTPUT_LOCKED__ --env test
 
 "
 `;
@@ -51,7 +51,7 @@ exports[`keyrack get --output modes given: [case3] key absent when: [t0] --value
 🔐 keyrack
    └─ testorg.test.__TEST_OUTPUT_ABSENT__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key __TEST_OUTPUT_ABSENT__ --env test[0m
+      └─ tip: rhx keyrack set --key __TEST_OUTPUT_ABSENT__ --env test
 
 "
 `;

@@ -508,7 +508,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
 
       // validate roundtrip
       console.log('   │');
-      console.log('   └─ perfect, now lets verify...');
+      console.log("   └─ perfect, now let's verify...");
       try {
         const { stdout } = await execOp(['read', exid]);
         if (stdout.trim() !== source) {

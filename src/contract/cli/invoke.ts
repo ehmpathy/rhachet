@@ -87,7 +87,9 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
     // the init `--roles` incremental path throws BadRequestError on invalid
     // calls; this shared handler (already present pre-feature) prints a clean
     // message + `[args]` line for those. it echoes `input.args` (the user's
-    // original argv), so the sentinel-encoded `-role` never leaks a null byte
+    // original argv), so the sentinel-encoded `-role` never leaks a null byte.
+    // keyrack's guided flows also fail loud via ConstraintError (a BadRequestError
+    // subclass), so this same handler renders their clean message + exit code
     if (error instanceof BadRequestError) {
       // HelpfulError already includes emoji + class name in message (e.g., "✋ ConstraintError: ...")
       console.error(``);

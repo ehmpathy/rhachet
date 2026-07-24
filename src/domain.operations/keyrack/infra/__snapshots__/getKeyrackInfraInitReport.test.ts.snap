@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getKeyrackInfraInitReport given: [case1] a fresh init (all effects created) when: [t0] the report is built then: it matches the snapshot 1`] = `
+"
+🔐 keyrack infra init
+   ├─ org: ehmpathy
+   ├─ repo: ehmpathy/keyrack-infra (private) created ✨
+   ├─ readme: readme.md created ✨
+   └─ registry: registry/github-apps.json created ✨
+"
+`;
+
+exports[`getKeyrackInfraInitReport given: [case2] a re-run (all effects found) when: [t0] the report is built then: it matches the snapshot 1`] = `
+"
+🔐 keyrack infra init
+   ├─ org: ehmpathy
+   ├─ repo: ehmpathy/keyrack-infra (private) already found 👌
+   ├─ readme: readme.md already found 👌
+   └─ registry: registry/github-apps.json already found 👌
+"
+`;

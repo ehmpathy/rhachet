@@ -14,22 +14,15 @@ BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
 `;
 
 exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t1] keyrack unlock then: stderr matches snapshot 1`] = `
-"/PATH_STRIPPED
-    throw new UnexpectedCodePathError(
-          ^
-
-UnexpectedCodePathError: UnexpectedCodePathError: host manifest not found. run: rhx keyrack init
+"
+BadRequestError: host manifest not found. run: rhx keyrack init
 
 {
   "owner": null
 }
-    at unlockKeyrackKeys (/PATH_STRIPPED)
-    at async Command.<anonymous> (/PATH_STRIPPED)
-    at async Command.parseAsync (/PATH_STRIPPED)
-    at async _invoke (/PATH_STRIPPED)
-    at async withEmojiSpaceShim (/PATH_STRIPPED)
 
-Node.js v22.21.0
+[args] keyrack,unlock
+
 "
 `;
 
@@ -47,7 +40,7 @@ exports[`keyrack validation given: [case1] repo with manifest but no host config
 🔐 keyrack
    └─ testorg.test.XAI_API_KEY
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key XAI_API_KEY --env test[0m
+      └─ tip: rhx keyrack set --key XAI_API_KEY --env test
 
 "
 `;

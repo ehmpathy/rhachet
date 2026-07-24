@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getPemPath given: [case3] the prompt copy the human sees when: [t0] the pem path is read then: the prompt tree output stays locked 1`] = `
+"   │
+   ├─ which github app secret?"
+`;
