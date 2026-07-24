@@ -6,7 +6,7 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t-help]
 translate and validate secrets for CI environments
 
 Options:
-  --env <env>      which env to grant (test, prod, prep, all)
+  --env <env>      which env to grant (test, prod, prep, all, sudo, camp)
   --from <source>  input source slug (e.g., json(env://SECRETS),
                    json(stdin://*))
   --into <format>  output format (github.actions, json)
@@ -291,5 +291,10 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t13] fi
 ::add-mask::MIIE...test...
 ::add-mask::line2
 ::add-mask::-----END RSA PRIVATE KEY-----
+"
+`;
+
+exports[`keyrack firewall given: [case1] keyrack firewall command when: [t14] firewall accepts --env camp then: stdout matches snapshot 1`] = `
+"[]
 "
 `;

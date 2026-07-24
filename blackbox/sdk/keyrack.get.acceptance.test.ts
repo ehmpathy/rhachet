@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -655,6 +656,104 @@ console.log(JSON.stringify(result, null, 2));
       then('secret value matches env var', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.attempt?.grant?.key?.secret).toEqual(envValue);
+      });
+    });
+  });
+
+  /**
+   * .what = SDK parity for the camp env — the wish's new env, via keyrack.get
+   * .why = the CLI acceptance tests prove `--env camp` is accepted across commands;
+   *        keyrack.get is the SDK contract that also handles env (it constructs the
+   *        slug from `env`, a path that reads isValidKeyrackEnv). this case gives the
+   *        camp scenario SDK parity: camp flows through the built contract and
+   *        constructs the correct `testorg.camp.<key>` slug, same as prep/sudo above.
+   */
+  given('[case7] slug construction for env=camp', () => {
+    const envKey = '__TEST_SDK_CAMP_KEY__';
+    const envValue = 'camp-secret-value';
+
+    when('[t0] keyrack.get with env=camp and key in env', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-camp',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with key in env.camp
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org: testorg
+
+env.camp:
+  - ${envKey}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.get with env=camp
+        const modulePath = join(testDir, 'test-camp.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+const result = await keyrack.get({ for: { key: '${envKey}' }, env: 'camp' });
+console.log(JSON.stringify(result, null, 2));
+`,
+        );
+
+        // run module with env var set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            [envKey]: envValue,
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 0 (camp is accepted by the SDK contract)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('slug uses camp env', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.grant?.slug).toEqual(`testorg.camp.${envKey}`);
+      });
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.status).toEqual('granted');
+      });
+
+      then('secret value matches env var', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.grant?.key?.secret).toEqual(envValue);
+      });
+
+      then('emit.stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact the secret + any volatile fields for a stable contract snapshot
+        const snapped = asSnapshotSafe(
+          parsed.emit.stdout.split(envValue).join('__SECRET__'),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });

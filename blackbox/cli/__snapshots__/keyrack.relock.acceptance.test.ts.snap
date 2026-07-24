@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack relock cli given: [case1] any repo when: [t0] rhx keyrack relock --help then: stdout matches snapshot 1`] = `
+"Usage: rhachet keyrack relock [options]
+
+prune keys from daemon memory (default: all keys)
+
+Options:
+  --owner <owner>  owner identity (e.g., mechanic, foreman)
+  --for <owner>    alias for --owner
+  --env <env>      filter by env (test, prod, prep, all, sudo, camp)
+  --key <slug>     relock specific key
+  --json           output as json (robot mode)
+  -h, --help       display help for command
+"
+`;
+
+exports[`keyrack relock cli given: [case2] repo with keyrack manifest, relock camp when: [t0] rhx keyrack relock --env camp (no camp keys in daemon) then: stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ (no keys to prune)
+
+"
+`;

@@ -7,6 +7,9 @@
  * .note = prep: pre-production environment
  * .note = test: test / development environment
  * .note = all: environment-agnostic (satisfies any specific env via fallback)
+ * .note = camp: homebase for clones — the account a clone launches from to reach into
+ *         other accounts (e.g. readwrite against prep, readonly against prod). names a
+ *         launch point, not a target tier.
  */
 export const KEYRACK_VALID_ENVS = [
   'sudo',
@@ -14,6 +17,7 @@ export const KEYRACK_VALID_ENVS = [
   'prep',
   'test',
   'all',
+  'camp',
 ] as const;
 
 /**

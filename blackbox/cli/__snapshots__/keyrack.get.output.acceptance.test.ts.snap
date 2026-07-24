@@ -55,3 +55,26 @@ exports[`keyrack get --output modes given: [case3] key absent when: [t0] --value
 
 "
 `;
+
+exports[`keyrack get --output modes given: [case7] key granted via env passthrough, --env camp when: [t1] get --key --env camp --output json then: stdout matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.camp.__TEST_OUTPUT_CAMP_GRANTED__",
+    "key": {
+      "secret": "camp-secret-value-123",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.envvar",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "camp",
+    "org": "testorg"
+  }
+}
+"
+`;

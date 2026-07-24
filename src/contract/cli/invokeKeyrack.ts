@@ -360,7 +360,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <scope>', 'grant scope: "repo" for all keys')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--key <keyname>', 'raw key name to grant (e.g., AWS_PROFILE)')
-    .option('--env <env>', 'target env: prod, prep, test, all, or sudo')
+    .option('--env <env>', 'target env: prod, prep, test, all, sudo, or camp')
     .option(
       '--org <org>',
       'target org: @this or @all (default: @this)',
@@ -528,7 +528,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .command('source')
     .description('output export statements for shell eval')
     .option('--key <keyname>', 'single key to source (omit for all repo keys)')
-    .requiredOption('--env <env>', 'target env: prod, prep, test, all')
+    .requiredOption(
+      '--env <env>',
+      'target env: prod, prep, test, all, sudo, camp',
+    )
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
     .option('--strict', 'fail if any key not granted (default)')
@@ -672,7 +675,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .option('--for <owner>', 'alias for --owner')
     .option(
       '--env <env>',
-      'target env: prod, prep, test, all, or sudo (inferred from manifest if unambiguous)',
+      'target env: prod, prep, test, all, sudo, or camp (inferred from manifest if unambiguous)',
     )
     .option(
       '--org <org>',
@@ -876,7 +879,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .requiredOption('--key <keyname>', 'key name to remove (e.g., AWS_PROFILE)')
     .option(
       '--env <env>',
-      'target env: prod, prep, test, all, or sudo (default: all)',
+      'target env: prod, prep, test, all, sudo, or camp (default: all)',
       'all',
     )
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
@@ -1029,7 +1032,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('unlock keys and send them to daemon for session access')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
-    .option('--env <env>', 'target env: prod, prep, test, all, or sudo')
+    .option('--env <env>', 'target env: prod, prep, test, all, sudo, or camp')
     .option('--key <key>', 'specific key to unlock (required for --env sudo)')
     .option(
       '--duration <duration>',
@@ -1142,7 +1145,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('prune keys from daemon memory (default: all keys)')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
-    .option('--env <env>', 'filter by env (e.g., sudo)')
+    .option('--env <env>', 'filter by env (test, prod, prep, all, sudo, camp)')
     .option('--key <slug>', 'relock specific key')
     .option('--json', 'output as json (robot mode)')
     .action(
@@ -1194,7 +1197,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
     .description('show status of unlocked keys in daemon')
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
-    .option('--env <env>', 'filter by env: prod, prep, test, all, or sudo')
+    .option(
+      '--env <env>',
+      'filter by env: prod, prep, test, all, sudo, or camp',
+    )
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -1343,7 +1349,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
   keyrack
     .command('fill')
     .description('fill keyrack keys from repo manifest')
-    .requiredOption('--env <env>', 'environment to fill (test, prod, all)')
+    .requiredOption(
+      '--env <env>',
+      'environment to fill (test, prod, prep, all, sudo, camp)',
+    )
     .option('--owner <owner...>', 'owner(s) to fill (default: default)', [
       'default',
     ])
@@ -1450,7 +1459,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
   keyrack
     .command('firewall')
     .description('translate and validate secrets for CI environments')
-    .requiredOption('--env <env>', 'which env to grant (test, prod, prep, all)')
+    .requiredOption(
+      '--env <env>',
+      'which env to grant (test, prod, prep, all, sudo, camp)',
+    )
     .requiredOption(
       '--from <source>',
       'input source slug (e.g., json(env://SECRETS), json(stdin://*))',

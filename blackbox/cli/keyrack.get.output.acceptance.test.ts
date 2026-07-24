@@ -486,4 +486,93 @@ env.test:
       });
     });
   });
+
+  /**
+   * [case7] CLI get --env camp — the wish's new env
+   * proves the CLI get single-key path (getOneKeyrackGrantByKey → isValidKeyrackEnv)
+   * accepts camp and grants the camp-tagged key. mirrors the SDK get camp case; closes
+   * the CLI side of the get parity.
+   */
+  given('[case7] key granted via env passthrough, --env camp', () => {
+    const envKey = '__TEST_OUTPUT_CAMP_GRANTED__';
+    const envValue = 'camp-secret-value-123';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.camp:
+  - ${envKey}
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] get --key --env camp --value', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'get', '--key', envKey, '--env', 'camp', '--value'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKey]: envValue,
+          },
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        expect(result.stderr).not.toContain('invalid --env');
+      });
+
+      then('stdout is the raw camp secret value', () => {
+        expect(result.stdout).toEqual(envValue);
+      });
+    });
+
+    when('[t1] get --key --env camp --output json', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            envKey,
+            '--env',
+            'camp',
+            '--output',
+            'json',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKey]: envValue,
+          },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('json carries the camp-tagged slug', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.slug).toEqual(`testorg.camp.${envKey}`);
+        expect(parsed.grant.env).toEqual('camp');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
 });

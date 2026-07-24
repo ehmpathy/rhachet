@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack del given: [case6] del with raw key and --env camp when: [t0] del with raw key and --env camp then: stdout matches snapshot 1`] = `
+"
+
+🗑️  keyrack del
+   └─ testorg.camp.DEL_CAMP_KEY removed
+
+"
+`;

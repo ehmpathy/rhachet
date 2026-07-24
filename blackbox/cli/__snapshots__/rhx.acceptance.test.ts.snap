@@ -16,7 +16,7 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 36 brief(s)
 
 🔑 keyrack init
    ├─ org: ehmpathy

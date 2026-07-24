@@ -1103,4 +1103,60 @@ env.test:
       });
     });
   });
+
+  /**
+   * [case12] source --env camp — the wish's new env
+   * proves the camp env, now advertised in source's help text, actually
+   * sources camp-tagged keys into export statements (positive journey)
+   */
+  given('[case12] source --env camp', () => {
+    const envKeyCamp = '__TEST_SOURCE_CLI_CAMP_KEY__';
+    const envValueCamp = 'camp-secret-value';
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+
+      writeFileSync(
+        join(r.path, '.agent', 'keyrack.yml'),
+        `org: testorg
+
+env.camp:
+  - ${envKeyCamp}
+`,
+      );
+
+      return r;
+    });
+
+    when('[t0] source --env camp outputs export statements', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'source', '--env', 'camp', '--owner', 'testorg'],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            [envKeyCamp]: envValueCamp,
+          },
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        expect(result.stderr).not.toContain('invalid --env');
+      });
+
+      then('stdout contains the camp-tagged export statement', () => {
+        expect(result.stdout).toContain('export');
+        expect(result.stdout).toContain(envKeyCamp);
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
 });

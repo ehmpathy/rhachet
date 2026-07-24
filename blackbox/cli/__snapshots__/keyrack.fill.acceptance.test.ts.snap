@@ -6,7 +6,7 @@ exports[`keyrack fill cli given: [case1] any repo when: [t0] rhx keyrack fill --
 fill keyrack keys from repo manifest
 
 Options:
-  --env <env>         environment to fill (test, prod, all)
+  --env <env>         environment to fill (test, prod, prep, all, sudo, camp)
   --owner <owner...>  owner(s) to fill (default: default) (default: ["default"])
   --prikey <path...>  prikey(s) to consider for manifest decryption
   --key <key>         specific key to fill (default: all)
@@ -62,4 +62,12 @@ exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (p
          ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner default
          └─ ✓ rhx keyrack get --key API_KEY --env test --owner default
 🔐 keyrack fill complete (1/1 keys verified)"
+`;
+
+exports[`keyrack fill cli given: [case8] repo with keyrack manifest (test keys only), fill camp when: [t0] rhx keyrack fill --env camp (no camp keys exist) then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack fill (env: camp)
+   └─ no keys found
+
+"
 `;

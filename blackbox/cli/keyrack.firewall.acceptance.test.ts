@@ -576,5 +576,48 @@ describe('keyrack firewall', () => {
         expect(result.stdout).toMatchSnapshot();
       });
     });
+
+    when('[t14] firewall accepts --env camp', () => {
+      // proves the camp env passes firewall's isValidKeyrackEnv gate;
+      // before camp was added this threw "invalid --env value"
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'firewall',
+            '--env',
+            'camp',
+            '--from',
+            'json(env://SECRETS_JSON)',
+            '--into',
+            'json',
+          ],
+          cwd: repo.path,
+          env: {
+            HOME: repo.path,
+            SECRETS_JSON: JSON.stringify({
+              SAFE_API_KEY: 'sk-safe-api-key-abc123',
+            }),
+          },
+        }),
+      );
+
+      then('exits successfully (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).not.toContain('invalid --env');
+      });
+
+      then('output is pure JSON (pipeable to jq)', () => {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
   });
 });
