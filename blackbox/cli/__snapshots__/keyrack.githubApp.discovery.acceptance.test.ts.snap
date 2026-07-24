@@ -12,7 +12,7 @@ Options:
                              os.envvar, 1password
   --owner <owner>            owner identity (e.g., mechanic, foreman)
   --for <owner>              alias for --owner
-  --env <env>                target env: prod, prep, test, all, or sudo
+  --env <env>                target env: prod, prep, test, all, sudo, or camp
                              (inferred from manifest if unambiguous)
   --org <org>                target org: @this or @all (default: @this)
                              (default: "@this")
