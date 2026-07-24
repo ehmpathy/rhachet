@@ -141,5 +141,31 @@ describe('keyrack unlock-requires-env', () => {
         expect(result.stdout).toMatchSnapshot();
       });
     });
+
+    when('[t2] unlock --env camp (the exact command from the wish)', () => {
+      // this reproduces the wish: `keyrack unlock --key AWS_PROFILE --env camp`
+      // once threw `BadRequestError: invalid --env`; camp is now a valid env,
+      // so unlock proceeds (no camp keys in this fixture) and exits 0.
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'camp'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).not.toContain('invalid --env');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
   });
 });

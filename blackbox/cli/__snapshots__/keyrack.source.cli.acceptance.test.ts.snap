@@ -62,7 +62,7 @@ output export statements for shell eval
 
 Options:
   --key <keyname>    single key to source (omit for all repo keys)
-  --env <env>        target env: prod, prep, test, all
+  --env <env>        target env: prod, prep, test, all, sudo, camp
   --owner <owner>    owner identity (e.g., mechanic, foreman)
   --for <owner>      alias for --owner
   --strict           fail if any key not granted (default)
@@ -142,5 +142,10 @@ hint: use --lenient if partial results are acceptable
 exports[`keyrack source CLI given: [case11] dangerous token blocked (multi-key mode) when: [t1] source --allow-dangerous bypasses firewall for all then: stdout matches snapshot 1`] = `
 "export __TEST_SOURCE_MULTI_SAFE_KEY__='normal-secret-value'
 export __TEST_SOURCE_MULTI_DANGEROUS_KEY__='AKIAIOSFODNN7EXAMPLE'
+"
+`;
+
+exports[`keyrack source CLI given: [case12] source --env camp when: [t0] source --env camp outputs export statements then: stdout matches snapshot 1`] = `
+"export __TEST_SOURCE_CLI_CAMP_KEY__='camp-secret-value'
 "
 `;

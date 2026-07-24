@@ -327,4 +327,42 @@ describe('keyrack fill cli', () => {
       });
     });
   });
+
+  /**
+   * [case8] fill --env camp — the wish's new env
+   * proves the camp env, now advertised in fill's help text, is accepted by
+   * fill (exit 0, empty is not an error) rather than rejected (positive journey)
+   */
+  given('[case8] repo with keyrack manifest (test keys only), fill camp', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
+    );
+
+    when('[t0] rhx keyrack fill --env camp (no camp keys exist)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['keyrack', 'fill', '--env', 'camp'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted; empty is not an error)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        expect(result.stderr).not.toContain('invalid --env');
+      });
+
+      then('shows no keys found message', () => {
+        expect(result.stdout.toLowerCase()).toContain('no keys');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
 });

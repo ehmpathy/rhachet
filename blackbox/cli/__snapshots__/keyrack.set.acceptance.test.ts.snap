@@ -67,3 +67,18 @@ exports[`keyrack set given: [case1] repo without host manifest when: [t1] keyrac
   },
 }
 `;
+
+exports[`keyrack set given: [case6] set --key --env camp when: [t0] set --key CAMP_KEY --env camp --json then: stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "camp",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "testorg",
+  "slug": "testorg.camp.CAMP_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.direct",
+}
+`;

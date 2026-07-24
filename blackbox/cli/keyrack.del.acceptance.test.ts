@@ -271,4 +271,71 @@ describe('keyrack del', () => {
       });
     });
   });
+
+  /**
+   * [uc6] del accepts --env camp
+   * proves the camp env passes del's isValidKeyrackEnv gate end-to-end
+   * (the camp-tagged set in setup also exercises set's camp gate)
+   */
+  given('[case6] del with raw key and --env camp', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-vault-os-daemon' }),
+    );
+
+    // set a camp-tagged key first so we can delete it
+    useBeforeAll(async () =>
+      invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'DEL_CAMP_KEY',
+          '--env',
+          'camp',
+          '--vault',
+          'os.direct',
+        ],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        stdin: 'test-secret-value\n',
+      }),
+    );
+
+    when('[t0] del with raw key and --env camp', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'del', '--key', 'DEL_CAMP_KEY', '--env', 'camp'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output does not reject camp as an invalid env', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).not.toContain('invalid --env');
+      });
+
+      then('output contains the camp-tagged slug', () => {
+        expect(result.stdout).toContain('testorg.camp.DEL_CAMP_KEY');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+
+      then('key is no longer in list', async () => {
+        const listResult = await invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        });
+        const parsed = JSON.parse(listResult.stdout);
+        expect(parsed['testorg.camp.DEL_CAMP_KEY']).toBeUndefined();
+      });
+    });
+  });
 });

@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack.get given: [case7] slug construction for env=camp when: [t0] keyrack.get with env=camp and key in env then: emit.stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.camp.__TEST_SDK_CAMP_KEY__
+      ├─ vault: os.envvar
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+"
+`;

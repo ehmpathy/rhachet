@@ -185,6 +185,37 @@ describe('keyrack status --env', () => {
         expect(parsed).toMatchSnapshot();
       });
     });
+
+    when('[t3] status --env camp is accepted (proves camp is a valid env)', () => {
+      // before camp was added to KEYRACK_VALID_ENVS this threw "invalid --env";
+      // now it is accepted like any other env and returns empty (no camp keys)
+      const result = useThen('status succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'status', '--env', 'camp', '--json'],
+          cwd: repo.path,
+          env: envIsolated(repo.path),
+        }),
+      );
+
+      then('exit code is 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toBe(0);
+      });
+
+      then('keys array is empty', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.keys).toEqual([]);
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact volatile fields
+        parsed.socketPath = '__REDACTED__';
+        for (const recipient of parsed.recipients ?? []) {
+          recipient.addedAt = '__REDACTED__';
+        }
+        expect(parsed).toMatchSnapshot();
+      });
+    });
   });
 
   given('[case3] status --env shows hint for non-sudo envs with keys', () => {

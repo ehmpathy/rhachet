@@ -388,4 +388,60 @@ describe('keyrack set', () => {
       });
     });
   });
+
+  /**
+   * [uc-camp] set accepts --env camp
+   * proves the camp env passes set's isValidKeyrackEnv gate (via
+   * asResolvedEnvForSet) and stores a camp-tagged slug
+   */
+  given('[case6] set --key --env camp', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
+    );
+
+    when('[t0] set --key CAMP_KEY --env camp --json', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'CAMP_KEY',
+            '--env',
+            'camp',
+            '--mech',
+            'PERMANENT_VIA_REPLICA',
+            '--vault',
+            'os.direct',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'camp-key-value\n',
+        }),
+      );
+
+      then('exits with status 0 (camp is accepted, not rejected)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains the camp-tagged slug', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.slug).toEqual('testorg.camp.CAMP_KEY');
+        expect(parsed.mech).toEqual('PERMANENT_VIA_REPLICA');
+        expect(parsed.vault).toEqual('os.direct');
+      });
+
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact timestamps for stable snapshots
+        const snapped = {
+          ...parsed,
+          createdAt: '__TIMESTAMP__',
+          updatedAt: '__TIMESTAMP__',
+        };
+        expect(snapped).toMatchSnapshot();
+      });
+    });
+  });
 });
