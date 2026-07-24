@@ -487,15 +487,17 @@ describe('keyrack vault 1password with EPHEMERAL_VIA_GITHUB_APP', () => {
     when('[t0] keyrack set --vault 1password --mech EPHEMERAL_VIA_GITHUB_APP via guided wizard (pseudo-TTY)', () => {
       const result = useBeforeAll(async () => {
         // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
-        // helper detects prompts in stdout and sends answers on detection (not timing)
-        // answers: 1 (testorg), 1 (my-test-app), ./mock-app.pem (pem path), op://test-vault/github-app/credential (exid)
+        // helper detects prompts in stdout and sends answers on detection
+        // org is derived from the key slug (no org prompt); the registry holds two apps
+        // so app selection prompts. answers: 1 (my-test-app), ./mock-app.pem (pem path),
+        // op://test-vault/github-app/credential (exid)
         const r = spawnSync(
           'node',
           [
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault 1password --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem|1password',
-            '1', '1', './mock-app.pem', 'op://test-vault/github-app/credential',
+            '1', './mock-app.pem', 'op://test-vault/github-app/credential',
           ],
           {
             encoding: 'utf-8',
@@ -513,7 +515,7 @@ describe('keyrack vault 1password with EPHEMERAL_VIA_GITHUB_APP', () => {
 
       then('output contains guided setup prompts', () => {
         const out = result.stdout;
-        expect(out).toContain('which github org');
+        // org is derived from the slug (no org prompt); app selection + pem prompt remain
         expect(out).toContain('which github app');
         expect(out).toContain('.pem');
       });

@@ -6,6 +6,7 @@ import type {
   KeyrackHostManifest,
   KeyrackHostVault,
   KeyrackHostVaultAdapter,
+  KeyrackMechAcquireOptions,
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 import { decryptWithIdentity } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
@@ -55,6 +56,13 @@ export interface ContextKeyrack {
   repoManifest?: KeyrackRepoManifest | null;
   gitroot?: string | null;
   vaultAdapters: Record<KeyrackHostVault, KeyrackHostVaultAdapter>;
+  /**
+   * .what = injected deps for a mechanism's guided setup (gh runner + prompt)
+   * .why = a vault passes this to mech.acquireForSet so the composition root (and
+   *        tests) can supply a fake gh boundary + scripted prompt; absent in prod,
+   *        where the mech falls back to the real gh cli and a real terminal
+   */
+  mech?: KeyrackMechAcquireOptions;
 }
 
 /**
@@ -73,6 +81,12 @@ export const genContextKeyrack = (input: {
   prikeys?: string[];
   repoManifest?: KeyrackRepoManifest | null;
   gitroot?: string | null;
+  /**
+   * .what = injected deps for a mechanism's guided setup (gh runner + prompt)
+   * .why = threads a fake gh boundary + scripted prompt from the composition root
+   *        (and tests) down to mech.acquireForSet; absent in prod (real deps used)
+   */
+  mech?: KeyrackMechAcquireOptions;
 }): ContextKeyrack => {
   const { owner, prikeys } = input;
 
@@ -114,6 +128,7 @@ export const genContextKeyrack = (input: {
     },
     repoManifest: input.repoManifest,
     gitroot: input.gitroot,
+    mech: input.mech,
     vaultAdapters: {
       'os.envvar': vaultAdapterOsEnvvar,
       'os.direct': vaultAdapterOsDirect,

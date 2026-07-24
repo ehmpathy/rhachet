@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getSelectedApp given: [case1] a single candidate when: [t0] selected then: the auto-select tree output stays locked 1`] = `
+"   │
+   ├─ app: ehmpathy-bot (id: 123456, auto-selected)"
+`;
+
+exports[`getSelectedApp given: [case2] two candidates and a valid choice when: [t0] the human picks the second then: the numbered-choice tree output stays locked 1`] = `
+"   │
+   ├─ which github app?
+   │  ├─ options
+   │  │  ├─ 1. ehmpathy-bot (id: 123456)
+   │  │  ├─ 2. ehmpathy-ci (id: 654321)
+   │     └─ ehmpathy-ci ✓"
+`;
+
+exports[`getSelectedApp given: [case3] two candidates and an invalid choice when: [t0] the human enters an out-of-range number then: it fails loud with a caller-fixable ConstraintError 1`] = `
+"✋ ConstraintError: invalid app choice: "9"
+
+{
+  "hint": "enter a number between 1 and 2"
+}"
+`;

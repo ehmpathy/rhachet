@@ -199,15 +199,15 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       (await inferKeyrackMechForSet({ vault: vaultAdapterOsSecure }));
 
     // check mech compat
+    // .note = caller-fixable (the caller chose an incompatible --vault/--mech pair; the hint
+    //         names the fix) → ConstraintError, caught by the set action and rendered as the
+    //         clean blocked treestruct (no class-name leak, no stack dump, exit 2)
     if (!vaultAdapterOsSecure.mechs.supported.includes(mech)) {
-      throw new UnexpectedCodePathError(
-        `os.secure does not support mech: ${mech}`,
-        {
-          mech,
-          supported: vaultAdapterOsSecure.mechs.supported,
-          hint: 'try --vault aws.config for aws sso',
-        },
-      );
+      throw new ConstraintError(`os.secure does not support mech: ${mech}`, {
+        mech,
+        supported: vaultAdapterOsSecure.mechs.supported,
+        hint: 'try --vault aws.config for aws sso',
+      });
     }
 
     // acquire source credential via mech guided setup
@@ -219,9 +219,12 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     }
 
     // mech guided setup continues the tree
-    const { source: secret } = await mechAdapter.acquireForSet({
-      keySlug: input.slug,
-    });
+    // .note = context.mech injects the gh runner + prompt (composition root / tests);
+    //         absent in prod, where the mech falls back to the real gh cli + terminal
+    const { source: secret } = await mechAdapter.acquireForSet(
+      { keySlug: input.slug },
+      context?.mech,
+    );
 
     // ensure directory exists
     const owner = context?.owner ?? null;
@@ -273,9 +276,14 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     }
 
     // emit verification success for ephemeral mech tree output
+    // .note = mirrors the 1password + aws.config vault journeys verbatim so every vault's
+    //         guided setup shares one rhythm: a `perfect, now let's verify...` narration
+    //         parent, the roundtrip result as its child, then a braille blank (survives
+    //         PTY capture) that spaces the tree from the summary header
     if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
       console.log('   │');
-      console.log('   └─ ✓ roundtrip verified');
+      console.log("   └─ perfect, now let's verify...");
+      console.log('      └─ ✓ roundtrip verified');
       console.log('\u2800'); // braille blank for visual space (survives PTY)
     }
 

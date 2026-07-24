@@ -1,0 +1,60 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack infra init (acceptance) given: [case1] the keyrack cli is available when: [t0] the caller asks for \`keyrack infra init --help\` then: the help output (the member contract) stays locked 1`] = `
+"Usage: rhachet keyrack infra init [options]
+
+init the $org/keyrack-infra repo and github-apps registry
+
+Options:
+  --org <org>  org to init keyrack-infra for
+  --json       output as json (robot mode)
+  -h, --help   display help for command"
+`;
+
+exports[`keyrack infra init (acceptance) given: [case2] the caller omits the required --org option when: [t0] \`keyrack infra init\` runs with no --org then: the rejection message (negative-path contract) stays locked 1`] = `"[commander error] error: required option '--org <org>' not specified"`;
+
+exports[`keyrack infra init (acceptance) given: [case3] a fresh org (no keyrack-infra yet) when: [t0] \`keyrack infra init --org freshorg\` runs in human mode then: the human treestruct stdout (positive path) stays locked 1`] = `
+"🔐 keyrack infra init
+   ├─ org: freshorg
+   ├─ repo: freshorg/keyrack-infra (private) created ✨
+   ├─ readme: readme.md created ✨
+   └─ registry: registry/github-apps.json created ✨"
+`;
+
+exports[`keyrack infra init (acceptance) given: [case3] a fresh org (no keyrack-infra yet) when: [t1] \`keyrack infra init --org freshorg --json\` runs in robot mode then: the --json stdout (positive path, robot mode) stays locked 1`] = `
+"{
+  "repo": "freshorg/keyrack-infra",
+  "repoEffect": "created",
+  "readmeEffect": "created",
+  "registryEffect": "created"
+}"
+`;
+
+exports[`keyrack infra init (acceptance) given: [case4] an org already fully set up when: [t0] \`keyrack infra init --org setuporg\` re-runs (idempotent) then: the idempotent-rerun stdout (all found) stays locked 1`] = `
+"🔐 keyrack infra init
+   ├─ org: setuporg
+   ├─ repo: setuporg/keyrack-infra (private) already found 👌
+   ├─ readme: readme.md already found 👌
+   └─ registry: registry/github-apps.json already found 👌"
+`;
+
+exports[`keyrack infra init (acceptance) given: [case5] the gh boundary fails mid-init (operational error) when: [t0] \`keyrack infra init --org erroorg\` hits a forbidden repo create then: the blocked treestruct stderr (failure contract) stays locked 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack infra init
+   └─ ✋ blocked: gh repo create failed
+      ├─ repo: erroorg/keyrack-infra
+      ├─ stderr: HTTP 403: Resource not accessible by integration (https://api.github.com/orgs/erroorg/repos)
+      └─ hint:
+         ├─ if unauthenticated, run \`gh auth status\`
+         └─ if authenticated but forbidden (403), ask an org owner to grant you repo-create access"
+`;
+
+exports[`keyrack infra init (acceptance) given: [case6] the keyrack-infra repo exists but is public when: [t0] \`keyrack infra init --org puborg\` finds a public repo then: the blocked treestruct stderr (public-repo contract) stays locked 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack infra init
+   └─ ✋ blocked: keyrack-infra repo exists but is not private
+      ├─ repo: puborg/keyrack-infra
+      └─ hint: keyrack-infra must be private — its access is the lock. run: gh repo edit puborg/keyrack-infra --visibility private"
+`;

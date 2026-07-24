@@ -1,6 +1,25 @@
 import type { IsoTimeStamp } from 'iso-time';
 
 /**
+ * .what = optional injected dependencies for a mechanism's guided setup
+ * .why = lets the composition root (and tests) supply the gh runner + the readline
+ *        prompt so acquireForSet runs without the real `gh` cli or a real terminal;
+ *        each mech uses only what it needs and falls back to real deps when absent
+ *
+ * .note = ghRun is shaped structurally here (not imported from domain.operations) to
+ *         respect directional-deps — a domain.object must not import a domain.operation;
+ *         the structural shape matches the GhRun type the operations layer defines
+ */
+export interface KeyrackMechAcquireOptions {
+  ghRun?: (input: { args: string[] }) => {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+  };
+  question?: (prompt: string) => Promise<string>;
+}
+
+/**
  * .what = interface for mechanism-specific credential acquisition and delivery
  * .why = adapter pattern enables support for different credential types
  *
@@ -27,8 +46,13 @@ export interface KeyrackGrantMechanismAdapter {
    * .note = keySlug is fully qualified (org.env.name) for display in prompts
    * .note = mech discovers external resources independently (e.g., gh api /user/orgs)
    * .note = called by vault.set internally; secret never leaves vault scope
+   * .note = options injects the gh runner + prompt (composition root / tests); when
+   *         absent the mech falls back to the real gh cli and a real readline terminal
    */
-  acquireForSet: (input: { keySlug: string }) => Promise<{ source: string }>;
+  acquireForSet: (
+    input: { keySlug: string },
+    options?: KeyrackMechAcquireOptions,
+  ) => Promise<{ source: string }>;
 
   /**
    * .what = deliver usable secret from stored source credential

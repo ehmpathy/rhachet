@@ -38,7 +38,13 @@ const config: Config = {
   ],
   // resolve ESM modules from node_modules
   extensionsToTreatAsEsm: ['.ts'],
-  testMatch: ['**/*.integration.test.ts', '!**/.yalc/**'],
+  testMatch: [
+    '**/*.integration.test.ts',
+    '!**/.yalc/**',
+    // exclude rmsafe trash — deleted test files land in this gitignored cache dir;
+    // jest would otherwise discover a stale copy and fail on its broken imports
+    '!**/.agent/.cache/**',
+  ],
   setupFilesAfterEnv: ['./jest.integration.env.ts'],
 
   // use 50% of threads to leave headroom for other processes

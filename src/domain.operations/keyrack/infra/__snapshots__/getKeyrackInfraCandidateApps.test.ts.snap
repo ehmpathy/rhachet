@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getKeyrackInfraCandidateApps given: [case1] keyrack-infra is not reachable (absent or no access) when: [t0] discovered then: it fails loud with a caller-fixable ConstraintError 1`] = `
+"✋ ConstraintError: keyrack-infra not reachable for ehmpathy
+
+{
+  "hint": "if it is not set up yet, run: rhx keyrack infra init --org ehmpathy; if it exists, ask an admin to grant you read access to ehmpathy/keyrack-infra"
+}"
+`;
+
+exports[`getKeyrackInfraCandidateApps given: [case4] registry empty, caller is a member (403) when: [t0] discovered then: it fails loud; the member is asked to see an admin 1`] = `
+"✋ ConstraintError: no github apps registered for ehmpathy
+
+{
+  "hint": "ask an admin to add a github app to keyrack for this org"
+}"
+`;

@@ -3,13 +3,6 @@
 exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided setup with mock gh CLI when: [t0] keyrack set --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP via guided wizard (pseudo-TTY) then: stdout matches snapshot 1`] = `
 "🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
    │
-   ├─ which github org?
-   │  ├─ options
-   │  │  ├─ 1. testorg
-   │  │  ├─ 2. otherorg
-   │  └─ choice: 1
-   │     └─ testorg ✓
-   │
    ├─ which github app?
    │  ├─ options
    │  │  ├─ 1. my-test-app (id: 123456)
@@ -18,9 +11,11 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] gu
    │     └─ my-test-app ✓
    │
    ├─ which github app secret?
-   │  └─ private key path (.pem): ./mock-app.pem
+   │  ├─ private key path (.pem): ./mock-app.pem
+   │  └─ pem read ✓
    │
-   └─ ✓ roundtrip verified
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
 ⠀
 🔐 keyrack set (org: testorg, env: test)
    └─ testorg.test.GITHUB_TOKEN
@@ -43,4 +38,98 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case1] gu
     "vault": "os.secure",
   },
 }
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case2] single org auto-select when: [t0] keyrack set with single org (auto-selected) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ app: single-app (id: 1111, auto-selected)
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./mock-app.pem
+   │  └─ pem read ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+⠀
+🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case3] mech selection prompt when vault supports multiple mechs when: [t0] keyrack set --vault os.secure without --mech (prompts for mech) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.GITHUB_TOKEN
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case4] github app stores valid json structure when: [t1] verify stored credential structure then: stored structure matches snapshot 1`] = `
+{
+  "testorg.test.GITHUB_TOKEN": {
+    "createdAt": "__TIMESTAMP__",
+    "env": "test",
+    "exid": "__EXID__",
+    "maxDuration": null,
+    "mech": "EPHEMERAL_VIA_GITHUB_APP",
+    "meta": null,
+    "org": "testorg",
+    "slug": "testorg.test.GITHUB_TOKEN",
+    "updatedAt": "__TIMESTAMP__",
+    "vault": "os.secure",
+  },
+}
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case5] os.direct rejects EPHEMERAL_VIA_GITHUB_APP when: [t0] keyrack set with os.direct and EPHEMERAL_VIA_GITHUB_APP then: error output matches snapshot 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack set
+   └─ ✋ blocked: os.direct does not support mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ hint:
+         ├─ os.direct cannot secure ephemeral source credentials
+         └─ try --vault os.secure"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case6] os.secure rejects EPHEMERAL_VIA_AWS_SSO when: [t0] keyrack set with os.secure and EPHEMERAL_VIA_AWS_SSO then: error output matches snapshot 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack set
+   └─ ✋ blocked: os.secure does not support mech: EPHEMERAL_VIA_AWS_SSO
+      └─ hint: try --vault aws.config for aws sso"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case7] invalid pem path when: [t0] keyrack set with nonexistent pem path then: output matches snapshot 1`] = `
+"🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ which github app?
+   │  ├─ options
+   │  │  ├─ 1. my-test-app (id: 123456)
+   │  │  ├─ 2. other-app (id: 654321)
+   │  └─ choice: 1
+   │     └─ my-test-app ✓
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./nonexistent.pem
+   │  └─ ✋ could not read pem file
+🐢 bummer dude...
+⠀
+🐚 keyrack set
+   └─ ✋ blocked: could not read pem file
+      └─ hint: check the path exists and is readable: ./nonexistent.pem"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case8] malformed pem content causes unlock error when: [t1] unlock with malformed pem then: error output matches snapshot 1`] = `
+"🐢 bummer dude...
+⠀
+🐚 keyrack unlock
+   └─ ✋ blocked: failed to mint github app token — the stored private key (.pem) is not a valid rsa key
+      └─ hint: re-set the key with a valid github app private key (.pem) file"
+`;
+
+exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case9] vault inference impossible when: [t0] keyrack set GITHUB_TOKEN without --vault then: error output matches snapshot 1`] = `
+"[commander error] error: required option '--vault <vault>' not specified
+
+"
 `;

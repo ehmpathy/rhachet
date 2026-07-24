@@ -18,7 +18,7 @@ exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) w
 🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test[0m
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test
 
 
 ✋ some keys were not granted, yet are strictly required
@@ -79,7 +79,7 @@ exports[`keyrack source CLI given: [case7] invalid inputs when: [t1] --key not i
 🔐 keyrack
    └─ testorg.test.INVALID_KEY
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key INVALID_KEY --env test[0m
+      └─ tip: rhx keyrack set --key INVALID_KEY --env test
 
 "
 `;
@@ -112,7 +112,7 @@ exports[`keyrack source CLI given: [case10] dangerous token blocked (single key 
       ├─ status: blocked 🚫
       │  ├─ its dangerous to use long lived tokens via replica mechanisms
       │  └─ detected github classic pat (ghp_*)
-      └─ [2mtip: --allow-dangerous if you must[0m
+      └─ tip: --allow-dangerous if you must
 
 "
 `;
@@ -129,7 +129,7 @@ exports[`keyrack source CLI given: [case11] dangerous token blocked (multi-key m
       ├─ status: blocked 🚫
       │  ├─ its dangerous to use long lived tokens via replica mechanisms
       │  └─ detected aws long-lived access key (AKIA*)
-      └─ [2mtip: --allow-dangerous if you must[0m
+      └─ tip: --allow-dangerous if you must
 
 
 ✋ some keys were not granted, yet are strictly required

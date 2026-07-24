@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackInfraRegistryContent given: [case2] a non-empty app list when: [t0] cast to registry content then: the literal registry json content stays locked 1`] = `
+"[
+  {
+    "org": "ehmpathy",
+    "appId": "123456",
+    "installationId": "78901234",
+    "slug": "ehmpathy-bot"
+  }
+]
+"
+`;

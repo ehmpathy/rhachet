@@ -227,15 +227,15 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
       (await inferKeyrackMechForSet({ vault: vaultAdapterOsDirect }));
 
     // check mech compat (os.direct only supports permanent mechs — cannot secure ephemeral sources)
+    // .note = caller-fixable (the caller chose an incompatible --vault/--mech pair; the hint
+    //         names the fix) → ConstraintError, which the set action catches at its boundary and
+    //         renders as the clean blocked treestruct (no class-name leak, no stack dump, exit 2)
     if (!vaultAdapterOsDirect.mechs.supported.includes(mech)) {
-      throw new UnexpectedCodePathError(
-        `os.direct does not support mech: ${mech}`,
-        {
-          mech,
-          supported: vaultAdapterOsDirect.mechs.supported,
-          hint: 'os.direct cannot secure ephemeral source credentials; try --vault os.secure',
-        },
-      );
+      throw new ConstraintError(`os.direct does not support mech: ${mech}`, {
+        mech,
+        supported: vaultAdapterOsDirect.mechs.supported,
+        hint: 'os.direct cannot secure ephemeral source credentials; try --vault os.secure',
+      });
     }
 
     // acquire source credential via mech guided setup

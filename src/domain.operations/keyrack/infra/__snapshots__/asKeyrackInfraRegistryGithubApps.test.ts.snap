@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackInfraRegistryGithubApps given: [case3] malformed json when: [t0] parsed then: it fails loud as unexpected shared-repo state 1`] = `
+"UnexpectedCodePathError: keyrack-infra registry is not valid json
+
+{
+  "hint": "registry/github-apps.json in $org/keyrack-infra must be a json array; fix the file in the repo",
+  "content": "{ not json"
+}"
+`;
+
+exports[`asKeyrackInfraRegistryGithubApps given: [case4] json of the wrong shape when: [t0] parsed then: it fails validation 1`] = `
+"[
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "appId"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "installationId"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "slug"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]"
+`;

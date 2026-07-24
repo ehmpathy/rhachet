@@ -702,7 +702,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
     const isGuidedSetup = !input.exid;
     if (isGuidedSetup) {
       console.log('   │');
-      console.log('   └─ perfect, now lets verify...');
+      console.log("   └─ perfect, now let's verify...");
     }
 
     // 1. unlock — prove sso session is valid

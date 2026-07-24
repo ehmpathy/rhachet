@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getKeyrackInfraReadme given: [case1] an org name when: [t0] the readme is built then: it matches the snapshot 1`] = `
+"# keyrack-infra
+
+shared keyrack infrastructure for the \`ehmpathy\` org.
+
+## .what
+
+this private repo is the per-org source of truth that keyrack reads so that
+**members** — not just org admins — can set up github-app credentials without the
+org-owner-gated installations api.
+
+## .contents
+
+- \`registry/github-apps.json\` — registry of github apps available to keyrack,
+  as \`[{ org, appId, installationId, slug }]\`. these are **non-secret identifiers**.
+
+## .safety
+
+- only non-secret ids live here. app private keys (\`.pem\`) are **never** stored in
+  this repo — they stay in each host's keyrack vault.
+- access is gated by this repo's membership: members with read access can discover
+  apps; the pem is required (and held separately) to actually mint tokens.
+
+## .usage
+
+\`\`\`sh
+# one-time per org (anyone with repo-create rights)
+rhx keyrack infra init --org ehmpathy
+\`\`\`
+
+registration into the app registry happens automatically when an admin sets a
+github-app key via keyrack.
+
+---
+
+_managed by keyrack — edits here should go through keyrack commands._
+"
+`;

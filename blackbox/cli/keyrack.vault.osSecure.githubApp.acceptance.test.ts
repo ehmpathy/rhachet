@@ -4,7 +4,10 @@ import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -33,6 +36,43 @@ const envWithMockGh = (home: string) => ({
   HOME: home,
   PATH: `${MOCK_GH_CLI_DIR}:${process.env.PATH}`,
 });
+
+/**
+ * .what = strip ansi codes + pty noise and sanitize volatile fragments for snapshots
+ * .why = locks the caller-visible tree so reviewers vibecheck exact output and drift
+ *        surfaces in diffs; volatile temp paths are masked so snapshots stay stable
+ *
+ * .note = trims pty echo noise up to the first tree glyph (🔐 success or 🐢 blocked)
+ */
+const cleanPtyOutput = (str: string): string => {
+  const stripped = str
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '') // ANSI escape sequences
+    .replace(/\x1B\]/g, '') // OSC sequences
+    .replace(/\r/g, '') // carriage returns from PTY
+    .replace(/·/g, '') // middle dots from PTY
+    .replace(/\s+$/gm, '') // trim end-of-line whitespace
+    .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX') // temp paths
+    .replace(/node:events:[\s\S]*?Node\.js v[\d.]+/g, ''); // EPIPE stack noise from PTY
+
+  // trim pty echo noise up to the first tree glyph (🔐 success or 🐢 blocked)
+  const lockStart = stripped.indexOf('\u{1F510}');
+  const turtleStart = stripped.indexOf('\u{1F422}');
+  const candidates = [lockStart, turtleStart].filter((i) => i >= 0);
+  const treeStart = candidates.length ? Math.min(...candidates) : -1;
+  return stripped.slice(treeStart >= 0 ? treeStart : 0).trim();
+};
+
+/**
+ * .what = sanitize plain (non-pty) cli output for snapshots
+ * .why = error-path cli output has no pty echo noise, but still carries volatile
+ *        fragments (absolute paths, temp repos, timestamps) that must be masked for a
+ *        stable, portable snapshot. composes asSnapshotSafe (strips machine-specific
+ *        paths) then trims end-of-line whitespace
+ */
+const cleanCliOutput = (str: string): string =>
+  asSnapshotSafe(str)
+    .replace(/\s+$/gm, '')
+    .trim();
 
 describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
   // ensure mock gh executable is chmod +x (git may not preserve permissions)
@@ -92,15 +132,16 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
     when('[t0] keyrack set --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP via guided wizard (pseudo-TTY)', () => {
       const result = useBeforeAll(async () => {
         // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
-        // helper detects "choice" prompts in stdout and sends answers on detection (not timing)
-        // answers: 1 (testorg), 1 (my-test-app), ./mock-app.pem (pem path)
+        // helper detects "choice" prompts in stdout and sends answers on detection
+        // org is derived from the key slug (no org prompt); the registry holds two apps
+        // so app selection prompts. answers: 1 (my-test-app), ./mock-app.pem (pem path)
         const r = spawnSync(
           'node',
           [
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem',
-            '1', '1', './mock-app.pem',
+            '1', './mock-app.pem',
           ],
           {
             encoding: 'utf-8',
@@ -118,7 +159,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
 
       then('output contains guided setup prompts', () => {
         const out = result.stdout;
-        expect(out).toContain('which github org');
+        // org is derived from the slug (no org prompt); app selection + pem prompt remain
         expect(out).toContain('which github app');
         expect(out).toContain('.pem');
       });
@@ -233,7 +274,8 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         'utf-8',
       );
 
-      // create a mock gh CLI that returns single org
+      // create a mock gh CLI whose keyrack-infra registry holds exactly one app, so the
+      // guided flow auto-selects it (no app prompt). org is derived from the slug (testorg)
       const mockGhSingleOrg = `${r.path}/.mock-gh`;
       mkdirSync(mockGhSingleOrg, { recursive: true });
       writeFileSync(
@@ -241,11 +283,14 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         [
           '#!/usr/bin/env bash',
           'ARGS="$*"',
+          `REG='[{"org":"testorg","appId":"1111","installationId":"11111","slug":"single-app"}]'`,
           'case "$ARGS" in',
           '  "auth status") exit 0 ;;',
-          '  "api /user/orgs --jq .[].login") echo "singleorg" ;;',
-          '  "api /orgs/singleorg/installations --jq .installations[] | {id: .id, app_id: .app_id, slug: .app_slug}")',
-          '    echo \'{"id":11111,"app_id":1111,"slug":"single-app"}\' ;;',
+          '  "repo view testorg/keyrack-infra --json name") echo \'{"name":"keyrack-infra"}\'; exit 0 ;;',
+          '  "api /repos/testorg/keyrack-infra/contents/registry/github-apps.json")',
+          '    C=$(printf \'%s\' "$REG" | base64 | tr -d \'\\n\'); echo "{\\"content\\":\\"$C\\",\\"sha\\":\\"mocksha\\"}"; exit 0 ;;',
+          '  "api /orgs/testorg/installations")',
+          '    echo \'{"installations":[{"id":11111,"app_id":1111,"app_slug":"single-app"}]}\'; exit 0 ;;',
           '  *) echo "mock gh: unknown: $ARGS" >&2; exit 1 ;;',
           'esac',
         ].join('\n'),
@@ -284,15 +329,15 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('output shows auto-selected org', () => {
-        const out = result.stdout;
-        expect(out).toContain('auto-selected');
-        expect(out).toContain('singleorg');
-      });
-
       then('output shows auto-selected app', () => {
         const out = result.stdout;
+        // the sole registry app is auto-selected with no prompt
+        expect(out).toContain('auto-selected');
         expect(out).toContain('single-app');
+      });
+
+      then('stdout matches snapshot', () => {
+        expect(cleanPtyOutput(result.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -358,6 +403,10 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         // should show available mechs
         expect(out).toMatch(/PERMANENT_VIA_REPLICA|EPHEMERAL_VIA_GITHUB_APP|mechanism|mech/i);
       });
+
+      then('stdout matches snapshot', () => {
+        expect(cleanPtyOutput(result.stdout)).toMatchSnapshot();
+      });
     });
   });
 
@@ -411,7 +460,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem',
-            '1', '1', './mock-app.pem',
+            '1', './mock-app.pem',
           ],
           {
             cwd: repo.path,
@@ -457,6 +506,24 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         const entry = parsed['testorg.test.GITHUB_TOKEN'];
         // exid contains the json blob path or structure reference
         expect(entry.exid).toBeDefined();
+      });
+
+      then('stored structure matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact volatile fields (timestamps + the exid path holds a temp home) so the
+        // stored-shape snapshot stays stable across runs
+        const snapped = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]: [string, any]) => [
+            k,
+            {
+              ...(v as Record<string, unknown>),
+              createdAt: '__TIMESTAMP__',
+              updatedAt: '__TIMESTAMP__',
+              exid: '__EXID__',
+            },
+          ]),
+        );
+        expect(snapped).toMatchSnapshot();
       });
     });
   });
@@ -518,6 +585,10 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/os\.secure|1password|alternative/i);
       });
+
+      then('error output matches snapshot', () => {
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
@@ -578,6 +649,10 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/aws\.config/i);
       });
+
+      then('error output matches snapshot', () => {
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
@@ -618,7 +693,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem',
-            '1', '1', './nonexistent.pem',
+            '1', './nonexistent.pem',
           ],
           {
             encoding: 'utf-8',
@@ -637,6 +712,14 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       then('error mentions the path that was tried', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/nonexistent\.pem|not found|no such file/i);
+      });
+
+      then('output matches snapshot', () => {
+        // the wizard prints on stdout, the blocked report on stderr; combine so the
+        // snapshot captures the full journey up to the caller-fixable failure
+        expect(
+          cleanPtyOutput(`${result.stdout}\n${result.stderr}`),
+        ).toMatchSnapshot();
       });
     });
   });
@@ -686,7 +769,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_TOKEN --env test --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem',
-            '1', '1', './not-a-pem.txt',
+            '1', './not-a-pem.txt',
           ],
           {
             cwd: repo.path,
@@ -720,6 +803,13 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
         const output = result.stdout + result.stderr;
         // @octokit/auth-app throws DECODER error for invalid private key
         expect(output).toMatch(/error|unsupported|decode|private.*key/i);
+      });
+
+      then('error output matches snapshot', () => {
+        // a malformed pem is caller-fixable: the mint path converts the crypto failure to a
+        // ConstraintError, so unlock renders the clean blocked treestruct (no node crash);
+        // cleanCliOutput strips any machine-specific paths so the snapshot stays portable
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
       });
     });
   });
@@ -774,6 +864,10 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       then('error mentions vault is required', () => {
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/vault|required|--vault/i);
+      });
+
+      then('error output matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout + result.stderr)).toMatchSnapshot();
       });
     });
   });

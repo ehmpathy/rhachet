@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genGithubAppSource given: [case3] keyrack-infra is not reachable for the org when: [t0] the source is acquired then: it fails loud (init your infra first) before any pem prompt 1`] = `
+"✋ ConstraintError: keyrack-infra not reachable for ehmpathy
+
+{
+  "hint": "if it is not set up yet, run: rhx keyrack infra init --org ehmpathy; if it exists, ask an admin to grant you read access to ehmpathy/keyrack-infra"
+}"
+`;
+
+exports[`genGithubAppSource given: [case4] the registry is empty and the caller is a member (403) when: [t0] the source is acquired then: it fails loud (ask an admin) before any pem prompt 1`] = `
+"✋ ConstraintError: no github apps registered for ehmpathy
+
+{
+  "hint": "ask an admin to add a github app to keyrack for this org"
+}"
+`;

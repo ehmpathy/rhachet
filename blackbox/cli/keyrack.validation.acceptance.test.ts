@@ -124,7 +124,7 @@ describe('keyrack validation', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });

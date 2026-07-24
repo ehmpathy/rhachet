@@ -45,9 +45,17 @@ import { decideIsKeyStrictlyRequired } from '@src/domain.operations/keyrack/deci
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
 import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { getKeyrackBlockedReport } from '@src/domain.operations/keyrack/getKeyrackBlockedReport';
 import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { getKeyrackKeyGrants } from '@src/domain.operations/keyrack/getKeyrackKeyGrants/getKeyrackKeyGrants';
+import { genKeyrackInfra } from '@src/domain.operations/keyrack/infra/genKeyrackInfra';
+import { getKeyrackInfraInitErrorReport } from '@src/domain.operations/keyrack/infra/getKeyrackInfraInitErrorReport';
+import { getKeyrackInfraInitReport } from '@src/domain.operations/keyrack/infra/getKeyrackInfraInitReport';
+import {
+  type GhRun,
+  runGh,
+} from '@src/domain.operations/keyrack/infra/gh/runGh';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { isKeyrackSlugFormat } from '@src/domain.operations/keyrack/isKeyrackSlugFormat';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
@@ -66,8 +74,23 @@ import { join } from 'node:path';
  *
  * .note = does not require rhachet.use.ts config
  * .note = works with host manifest (~/.rhachet/) and repo manifest (.agent/keyrack.yml)
+ * .note = ghRun is a composition-root seam; it defaults to the real runGh and is
+ *         injectable so contract-grain tests can exercise the infra-init stdout with
+ *         a fake runner (no irreversible repo creation)
+ * .note = question is a composition-root seam for the github-app guided prompt; it
+ *         defaults to undefined (the mech opens a real readline terminal) and is
+ *         injectable so contract-grain tests can drive `keyrack set --mech
+ *         EPHEMERAL_VIA_GITHUB_APP` with a scripted answer instead of a real terminal
  */
-export const invokeKeyrack = ({ program }: { program: Command }): void => {
+export const invokeKeyrack = ({
+  program,
+  ghRun = runGh,
+  question,
+}: {
+  program: Command;
+  ghRun?: GhRun;
+  question?: (prompt: string) => Promise<string>;
+}): void => {
   const keyrack = program
     .command('keyrack')
     .description('manage credentials via keyrack')
@@ -207,6 +230,37 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         }
       },
     );
+
+  // keyrack infra init --org <org>
+  const infra = keyrack
+    .command('infra')
+    .description('manage the per-org keyrack-infra repo');
+
+  infra
+    .command('init')
+    .description('init the $org/keyrack-infra repo and github-apps registry')
+    .requiredOption('--org <org>', 'org to init keyrack-infra for')
+    .option('--json', 'output as json (robot mode)')
+    .action(async (opts: { org: string; json?: boolean }) => {
+      // gh runner injected at the composition root (defaults to the real runGh)
+      let result: ReturnType<typeof genKeyrackInfra>;
+      try {
+        result = genKeyrackInfra({ org: opts.org }, { ghRun });
+      } catch (error) {
+        // presentation boundary: render the failure in the same turtle treestruct the
+        // success path uses (not a raw stack), surface it loud, and exit non-zero
+        if (!(error instanceof Error)) throw error;
+        console.error(getKeyrackInfraInitErrorReport({ error }));
+        process.exitCode = 1;
+        return;
+      }
+
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(getKeyrackInfraInitReport({ org: opts.org, ...result }));
+      }
+    });
 
   // keyrack recipient set|get|del
   const recipient = keyrack
@@ -746,11 +800,14 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         const repoManifestFound = await daoKeyrackRepoManifest.get({ gitroot });
 
         // create context with lazy identity discovery
+        // .note = mech injects the gh runner + guided prompt so a github-app set can
+        //         be driven by a contract-grain test; in prod both fall back to real deps
         const context = genContextKeyrack({
           owner,
           prikeys: opts.prikey ? [opts.prikey] : undefined,
           repoManifest: repoManifestFound ?? null,
           gitroot,
+          mech: { ghRun, question },
         });
 
         // load host manifest (triggers identity discovery)
@@ -822,20 +879,36 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
 
         // delegate to domain operation
         // note: vault adapters prompt for their own secrets via stdin (per rule.require.vault-fetches-own-secrets)
-        const { results } = await setKeyrackKey(
-          {
-            key: opts.key,
-            env: resolvedEnv,
-            org: resolvedOrg,
-            vault: opts.vault as KeyrackHostVault,
-            mech,
-            exid: opts.exid ?? null,
-            maxDuration: opts.maxDuration ?? null,
-            repoManifest: repoManifest ?? undefined,
-            at: opts.at ?? null,
-          },
-          context,
-        );
+        // .note = a caller-fixable ConstraintError (e.g. keyrack-infra absent, app not
+        //         registered, invalid app choice from the github-app guided setup) is
+        //         rendered as the turtle blocked treestruct — the same visual language the
+        //         success path uses — instead of a raw `ConstraintError: …` class-name dump
+        let results: Awaited<ReturnType<typeof setKeyrackKey>>['results'];
+        try {
+          ({ results } = await setKeyrackKey(
+            {
+              key: opts.key,
+              env: resolvedEnv,
+              org: resolvedOrg,
+              vault: opts.vault as KeyrackHostVault,
+              mech,
+              exid: opts.exid ?? null,
+              maxDuration: opts.maxDuration ?? null,
+              repoManifest: repoManifest ?? undefined,
+              at: opts.at ?? null,
+            },
+            context,
+          ));
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          console.error(
+            getKeyrackBlockedReport({ error, command: 'keyrack set' }),
+          );
+          // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics).
+          // set the code + return (not process.exit) so the boundary stays testable
+          process.exitCode = 2;
+          return;
+        }
 
         // output results
         if (opts.json) {
@@ -1015,10 +1088,10 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         } else {
           console.log('');
           if (result.effect === 'deleted') {
-            console.log(`🗑️  keyrack del`);
+            console.log(`🗑️ keyrack del`);
             console.log(`   └─ ${slug} removed`);
           } else {
-            console.log(`🗑️  keyrack del`);
+            console.log(`🗑️ keyrack del`);
             console.log(`   └─ ${slug} not found (already absent)`);
           }
           console.log('');
@@ -1089,15 +1162,31 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         await daoKeyrackHostManifest.get({ owner }, context);
 
         // unlock keys and send to daemon
-        const { unlocked, omitted } = await unlockKeyrackKeys(
-          {
-            owner,
-            env: opts.env,
-            key: opts.key,
-            duration: opts.duration,
-          },
-          context,
-        );
+        // .note = a caller-fixable ConstraintError (e.g. a malformed github-app pem the
+        //         caller stored) is caught here and rendered as the turtle blocked
+        //         treestruct — the same clean visual the set path uses — instead of a raw
+        //         class-name dump or an uncaught crash
+        let unlocked: Awaited<ReturnType<typeof unlockKeyrackKeys>>['unlocked'];
+        let omitted: Awaited<ReturnType<typeof unlockKeyrackKeys>>['omitted'];
+        try {
+          ({ unlocked, omitted } = await unlockKeyrackKeys(
+            {
+              owner,
+              env: opts.env,
+              key: opts.key,
+              duration: opts.duration,
+            },
+            context,
+          ));
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          console.error(
+            getKeyrackBlockedReport({ error, command: 'keyrack unlock' }),
+          );
+          // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics)
+          process.exitCode = 2;
+          return;
+        }
 
         // output results
         if (opts.json) {

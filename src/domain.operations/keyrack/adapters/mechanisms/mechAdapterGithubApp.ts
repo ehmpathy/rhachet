@@ -1,13 +1,12 @@
 import { createAppAuth } from '@octokit/auth-app';
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 
-import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
+import { runGh } from '../../infra/gh/runGh';
+import { genGithubAppSource } from './genGithubAppSource';
 
 /**
  * .what = expected shape of github app credentials json
@@ -114,118 +113,43 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
 
   /**
    * .what = acquire source credential via guided setup
-   * .why = prompts user through org → app → pem selection flow
+   * .why = discovers the app from keyrack-infra (admin-free), then prompts for pem
    *
-   * .note = keySlug is fully qualified (org.env.name) for display in prompts
-   * .note = requires gh cli to be installed and authenticated
+   * .note = keySlug is fully qualified (org.env.name); org is derived from it
+   * .note = requires the org's keyrack-infra repo to exist (mandatory)
+   * .note = registry-first discovery; admin install-list is only a fallback that
+   *         auto-registers the chosen app so future members can discover it
    */
-  acquireForSet: async (input) => {
+  acquireForSet: async (input, options) => {
+    // gh runner: injected (composition root / tests) or the real gh cli
+    const ghRun = options?.ghRun ?? runGh;
+
+    // if a prompt is injected (tests), use it directly — no real terminal needed
+    if (options?.question) {
+      return await genGithubAppSource(
+        { keySlug: input.keySlug },
+        { ghRun, question: options.question },
+      );
+    }
+
+    // otherwise open a real readline interface for the guided prompts
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout,
     });
 
+    // adapt readline into a promise-based question the orchestrator can inject
     const question = (prompt: string): Promise<string> =>
       new Promise((done) => {
         rl.question(prompt, (answer) => done(answer));
       });
 
     try {
-      // fetch orgs via gh cli
-      const orgsOutput = execSync('gh api /user/orgs --jq ".[].login"', {
-        encoding: 'utf-8',
-      }).trim();
-      const orgs = orgsOutput.split('\n').filter((o) => o.length > 0);
-
-      // select org (auto-select if single)
-      let selectedOrg: string;
-      if (orgs.length === 1) {
-        selectedOrg = orgs[0] ?? '';
-        console.log('   │');
-        console.log(`   ├─ org: ${selectedOrg} (auto-selected)`);
-      } else {
-        console.log('   │');
-        console.log('   ├─ which github org?');
-        console.log('   │  ├─ options');
-        orgs.forEach((org, i) => {
-          console.log(`   │  │  ├─ ${i + 1}. ${org}`);
-        });
-        const choice = await question('   │  └─ choice: ');
-        const idx = parseInt(choice, 10) - 1;
-        selectedOrg = orgs[idx] ?? orgs[0] ?? '';
-        console.log(`   │     └─ ${selectedOrg} ✓`);
-      }
-
-      // fetch apps for selected org
-      const appsOutput = execSync(
-        `gh api /orgs/${selectedOrg}/installations --jq ".installations[] | {id: .id, app_id: .app_id, slug: .app_slug}"`,
-        { encoding: 'utf-8' },
-      ).trim();
-
-      const apps = appsOutput
-        .split('\n')
-        .filter((a) => a.length > 0)
-        .map(
-          (line) =>
-            JSON.parse(line) as { id: number; app_id: number; slug: string },
-        );
-
-      // select app (auto-select if single)
-      let appId: string;
-      let installationId: string;
-      if (apps.length === 1) {
-        const app = apps[0]!;
-        appId = String(app.app_id);
-        installationId = String(app.id);
-        console.log('   │');
-        console.log(
-          `   ├─ app: ${app.slug} (id: ${app.app_id}) (auto-selected)`,
-        );
-      } else {
-        console.log('   │');
-        console.log('   ├─ which github app?');
-        console.log('   │  ├─ options');
-        apps.forEach((app, i) => {
-          console.log(`   │  │  ├─ ${i + 1}. ${app.slug} (id: ${app.app_id})`);
-        });
-        const choice = await question('   │  └─ choice: ');
-        const idx = parseInt(choice, 10) - 1;
-        const selectedApp = apps[idx] ?? apps[0]!;
-        appId = String(selectedApp.app_id);
-        installationId = String(selectedApp.id);
-        console.log(`   │     └─ ${selectedApp.slug} ✓`);
-      }
-
-      // prompt for pem path
-      console.log('   │');
-      console.log('   ├─ which github app secret?');
-      const pemPath = await question('   │  └─ private key path (.pem): ');
-
-      // expand ~ to home directory (node doesn't do this automatically)
-      const pemPathExpanded = pemPath
-        .trim()
-        .replace(/^~(?=$|\/|\\)/, homedir());
-
-      // read pem content
-      let privateKey: string;
-      try {
-        privateKey = readFileSync(pemPathExpanded, 'utf-8');
-      } catch (err) {
-        throw new UnexpectedCodePathError('failed to read pem file', {
-          pemPath: pemPathExpanded,
-          error: err,
-        });
-      }
-
-      // construct json blob with mech for roundtrip detection
-      const source = JSON.stringify({
-        appId,
-        installationId,
-        privateKey,
-        mech: 'EPHEMERAL_VIA_GITHUB_APP',
-      });
-
-      return { source };
+      // the orchestrator holds the testable flow with every dependency injected
+      return await genGithubAppSource(
+        { keySlug: input.keySlug },
+        { ghRun, question },
+      );
     } finally {
       rl.close();
     }
@@ -256,7 +180,45 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     });
 
     // generate installation access token
-    const { token } = await auth({ type: 'installation' });
+    // .note = a malformed pem makes node's crypto throw a DOMException deep in
+    //         @octokit/auth-app; uncaught it crashes the process with a raw stack dump.
+    //         a bad pem is caller-fixable (they stored an invalid key file), so convert
+    //         ONLY the key/crypto failure to a ConstraintError with a hint — every other
+    //         fault (network, rate limit, 4xx) is re-thrown untouched (no failhide)
+    const token = await (async () => {
+      try {
+        const minted = await auth({ type: 'installation' });
+        return minted.token;
+      } catch (error) {
+        // allowlist: only the private-key parse/crypto failure is caller-fixable here.
+        // the crypto DOMException nests the root reason on its `cause`; read it defensively
+        // without relying on the es2022 Error.cause typing
+        const rootCause =
+          error instanceof Error &&
+          'cause' in error &&
+          (error as { cause?: unknown }).cause instanceof Error
+            ? (error as { cause: Error }).cause.message
+            : '';
+        const text = [
+          error instanceof Error ? error.message : String(error),
+          rootCause,
+        ].join(' ');
+        const isKeyFault =
+          /invalid keydata|failed to read private key|DECODER|unsupported|asn1|pem/i.test(
+            text,
+          );
+        if (!isKeyFault) throw error; // re-throw non-key faults untouched
+
+        throw new ConstraintError(
+          'failed to mint github app token — the stored private key (.pem) is not a valid rsa key',
+          {
+            appId: creds.appId,
+            hint: 're-set the key with a valid github app private key (.pem) file',
+            reason: text.trim(),
+          },
+        );
+      }
+    })();
 
     // github installation tokens expire in 1 hour; buffer 5 min for clock drift
     const expiresAt = addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });

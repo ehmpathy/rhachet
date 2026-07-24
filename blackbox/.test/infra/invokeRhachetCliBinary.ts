@@ -8,6 +8,11 @@ import { resolve } from 'node:path';
 export const asSnapshotSafe = (output: string): string => {
   return (
     output
+      // strip ansi escape sequences (color/dim codes) — terminal render noise that must
+      // not leak into a snapshot; a snapshot captures the text a human reads, not the
+      // control bytes that style it
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: the ansi-escape pattern needs the esc control char
+      .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
       // strip daemon spawn messages (pids vary)
       .replace(/\[keyrack-daemon\] spawned background daemon \(pid: \d+\)\n?/g, '')
       // strip absolute file paths in stack traces (vary by machine)

@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getGhOrgInstalls given: [case3] a transient failure (non-403) when: [t0] listed then: it fails loud (does not masquerade as a member) 1`] = `
+"UnexpectedCodePathError: gh org installations list failed
+
+{
+  "org": "ehmpathy",
+  "stderr": "HTTP 500: internal server error",
+  "status": 1,
+  "hint": "check \`gh auth status\`; if authenticated, the org api may be rate-limited or down — try again"
+}"
+`;

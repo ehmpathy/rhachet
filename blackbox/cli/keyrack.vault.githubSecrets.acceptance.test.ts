@@ -247,11 +247,13 @@ describe('keyrack.vault.githubSecrets', () => {
       });
 
       then('output shows repository field required error', () => {
-        // error may appear in stdout or stderr depending on how it's reported
+        // error may appear in stdout or stderr per how the cli reports it
         const output = `${result.stdout}\n${result.stderr}`;
         const cleaned = cleanPtyOutput(output);
-        // assert on error content, not full snapshot (stdin echo varies by PTY env)
-        expect(cleaned).toContain('ConstraintError');
+        // the set action renders a caller-fixable ConstraintError as a clean blocked
+        // treestruct (no class-name leak); assert on the caller-relevant content, which
+        // is preserved in the blocked node + hint
+        expect(cleaned).toContain('bummer dude');
         expect(cleaned).toContain('package.json.repository required');
         expect(cleaned).toContain('github.secrets vault');
       });
@@ -284,14 +286,15 @@ describe('keyrack.vault.githubSecrets', () => {
     when('[t0] keyrack set --key --vault github.secrets --mech EPHEMERAL_VIA_GITHUB_APP via pty', () => {
       const result = useBeforeAll(async () => {
         // invoke via pseudo-TTY helper so process.stdin.isTTY is true in the child
-        // answers: org choice (1=testorg), app choice (1=my-test-app), pem path
+        // org is derived from the key slug (no org prompt); the registry holds two apps
+        // so app selection prompts. answers: 1 (my-test-app), pem path
         const r = spawnSync(
           'node',
           [
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key GITHUB_APP_SECRET --env test --vault github.secrets --mech EPHEMERAL_VIA_GITHUB_APP`,
             'choice|.pem',
-            '1', '1', './mock-app.pem',
+            '1', './mock-app.pem',
           ],
           {
             encoding: 'utf-8',
