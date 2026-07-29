@@ -45,6 +45,10 @@ const config: Config = {
     // jest would otherwise discover a stale copy and fail on its broken imports
     '!**/.agent/.cache/**',
   ],
+  // also keep jest's obsolete-snapshot scan out of the rmsafe trash — a deleted
+  // .snap lands there and would otherwise be flagged obsolete (a local-only false
+  // positive; the testMatch negation alone does not cover the snapshot scan)
+  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
   setupFilesAfterEnv: ['./jest.integration.env.ts'],
 
   // use 50% of threads to leave headroom for other processes

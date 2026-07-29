@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet act — esm-only brain load (#429) given: [case1] repo with a genuinely esm-only user-config wired via --config when: [t0] act --config esm-config.mjs --role any --skill say-hello then: the caller-faced stderr is locked to a snapshot 1`] = `
+"
+BadRequestError: no role named "any" found in any registry
+
+{
+  "slug": "any"
+}
+
+[args] act,--config,esm-config.mjs,--role,any,--skill,say-hello
+
+"
+`;

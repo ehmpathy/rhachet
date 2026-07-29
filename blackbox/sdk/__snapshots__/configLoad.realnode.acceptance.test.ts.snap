@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`configLoad.realnode.acceptance given: [case1] the built config-explicit load sites, run in a real node child when: [t3] the full report is captured then: the report matches the locked snapshot 1`] = `
+{
+  "brainSlugs": [
+    "test/brain",
+  ],
+  "brainsThrewOnBroken": true,
+  "hookAskSlugs": [
+    "ask/one",
+  ],
+  "hooksThrewOnBroken": true,
+  "registriesThrewOnBroken": true,
+  "registrySlugs": [
+    "test/registry",
+  ],
+  "requireEsmConfigThrew": true,
+}
+`;

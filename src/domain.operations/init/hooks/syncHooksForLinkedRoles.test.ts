@@ -262,6 +262,7 @@ describe('syncHooksForLinkedRoles', () => {
           {
             repoSlug: 'broken-repo',
             roleSlug: 'broken-role',
+            phase: 'use' as const,
             error: new Error('failed to parse role config'),
           },
         ],
@@ -298,6 +299,13 @@ describe('syncHooksForLinkedRoles', () => {
       then('output matches snapshot', () => {
         expect(scene.output).toMatchSnapshot();
       });
+
+      then(
+        'the discovery-error line surfaces the phase tag to the operator',
+        () => {
+          expect(scene.output).toContain('broken-repo/broken-role [use]');
+        },
+      );
     });
   });
 });

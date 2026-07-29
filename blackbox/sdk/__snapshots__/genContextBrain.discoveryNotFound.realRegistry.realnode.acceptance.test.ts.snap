@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t0] generic choice does not match any discovered brain then: throws BrainChoiceNotFoundError with actionable message 1`] = `
+exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance given: [case1] discovery mode, driven against the REAL installed brain registry when: [t0] a generic choice matches no installed brain then: the real-registry generic not-found message matches snapshot 1`] = `
 "BrainChoiceNotFoundError: brain not found: nonexistent/brain-slug-xyz
 
 🔭 available brains
@@ -66,7 +66,7 @@ exports[`genContextBrain.integration discovery mode (async path) given: [case4] 
 }"
 `;
 
-exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t1] typed repl choice does not match then: throws BrainChoiceNotFoundError with repls in message 1`] = `
+exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance given: [case1] discovery mode, driven against the REAL installed brain registry when: [t1] a typed repl choice matches no installed repl then: the real-registry repl not-found message matches snapshot 1`] = `
 "BrainChoiceNotFoundError: repl brain not found: nonexistent/repl-xyz
 
 🔭 available brains
@@ -92,7 +92,7 @@ exports[`genContextBrain.integration discovery mode (async path) given: [case4] 
 }"
 `;
 
-exports[`genContextBrain.integration discovery mode (async path) given: [case4] discovery mode with invalid choice when: [t2] typed atom choice does not match then: throws BrainChoiceNotFoundError with atoms in message 1`] = `
+exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance given: [case1] discovery mode, driven against the REAL installed brain registry when: [t2] a typed atom choice matches no installed atom then: the real-registry atom not-found message matches snapshot 1`] = `
 "BrainChoiceNotFoundError: atom brain not found: nonexistent/atom-xyz
 
 🔭 available brains

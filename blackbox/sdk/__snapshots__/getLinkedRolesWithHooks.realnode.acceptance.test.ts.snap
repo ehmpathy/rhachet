@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getLinkedRolesWithHooks.realnode.acceptance given: [case1] an esm-only role package, loaded through getLinkedRolesWithHooks when: [t0] the fixture is esm-only (a require shim cannot load it) then: the report matches the locked snapshot 1`] = `
+{
+  "errorCount": 0,
+  "requireShimThrew": true,
+  "roleLoaded": true,
+}
+`;

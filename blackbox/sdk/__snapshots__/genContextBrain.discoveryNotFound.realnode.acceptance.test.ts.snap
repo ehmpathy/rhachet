@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genContextBrain.discoveryNotFound.realnode.acceptance given: [case1] discovery mode, driven against a FIXED esm brain fixture (1 atom + 1 repl) when: [t0] a generic choice matches no fixture brain then: the rendered discovery not-found message matches snapshot 1`] = `
+"BrainChoiceNotFoundError: brain not found: zzz/absent
+
+🔭 available brains
+   ├── ↻ esmfix/repl-beta
+   └── ○ esmfix/atom-alpha
+
+{
+  "choice": "zzz/absent",
+  "available": {
+    "atoms": [
+      "esmfix/atom-alpha"
+    ],
+    "repls": [
+      "esmfix/repl-beta"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain.discoveryNotFound.realnode.acceptance given: [case1] discovery mode, driven against a FIXED esm brain fixture (1 atom + 1 repl) when: [t1] a typed repl choice matches no fixture repl then: the rendered repl not-found message matches snapshot 1`] = `
+"BrainChoiceNotFoundError: repl brain not found: zzz/absent
+
+🔭 available brains
+   └── ↻ esmfix/repl-beta
+
+{
+  "choice": {
+    "repl": "zzz/absent"
+  },
+  "available": {
+    "repls": [
+      "esmfix/repl-beta"
+    ]
+  }
+}"
+`;
+
+exports[`genContextBrain.discoveryNotFound.realnode.acceptance given: [case1] discovery mode, driven against a FIXED esm brain fixture (1 atom + 1 repl) when: [t2] a typed atom choice matches no fixture atom then: the rendered atom not-found message matches snapshot 1`] = `
+"BrainChoiceNotFoundError: atom brain not found: zzz/absent
+
+🔭 available brains
+   └── ○ esmfix/atom-alpha
+
+{
+  "choice": {
+    "atom": "zzz/absent"
+  },
+  "available": {
+    "atoms": [
+      "esmfix/atom-alpha"
+    ]
+  }
+}"
+`;

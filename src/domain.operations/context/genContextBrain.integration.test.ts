@@ -6,13 +6,12 @@ import {
   getBrainAtomsByOpenAI,
   getBrainReplsByOpenAI,
 } from 'rhachet-brains-openai';
-import { getError, given, then, useThen, when } from 'test-fns';
+import { given, then, useThen, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
 import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
-import { BrainChoiceNotFoundError } from '@src/domain.objects/BrainChoiceNotFoundError';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { genContextBrain } from './genContextBrain';
@@ -221,50 +220,17 @@ describe('genContextBrain.integration', () => {
       });
     });
 
-    given('[case4] discovery mode with invalid choice', () => {
-      when('[t0] generic choice does not match any discovered brain', () => {
-        then(
-          'throws BrainChoiceNotFoundError with actionable message',
-          async () => {
-            const error = await getError(async () =>
-              genContextBrain({ choice: 'nonexistent/brain-slug-xyz' }),
-            );
-            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
-            expect((error as Error).message).toContain('brain not found');
-            expect((error as Error).message).toContain('available brains');
-            expect((error as Error).message).toMatchSnapshot();
-          },
-        );
-      });
-
-      when('[t1] typed repl choice does not match', () => {
-        then(
-          'throws BrainChoiceNotFoundError with repls in message',
-          async () => {
-            const error = await getError(async () =>
-              genContextBrain({ choice: { repl: 'nonexistent/repl-xyz' } }),
-            );
-            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
-            expect((error as Error).message).toContain('repl brain not found');
-            expect((error as Error).message).toMatchSnapshot();
-          },
-        );
-      });
-
-      when('[t2] typed atom choice does not match', () => {
-        then(
-          'throws BrainChoiceNotFoundError with atoms in message',
-          async () => {
-            const error = await getError(async () =>
-              genContextBrain({ choice: { atom: 'nonexistent/atom-xyz' } }),
-            );
-            expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
-            expect((error as Error).message).toContain('atom brain not found');
-            expect((error as Error).message).toMatchSnapshot();
-          },
-        );
-      });
-    });
+    // .note = the discovery-mode BrainChoiceNotFoundError snapshot cases (generic / repl / atom,
+    //   against the REAL registry) that once lived here can no longer run under jest: the #429 fix
+    //   routes discovery through a genuine runtime `import()` (importEsmSafe), and jest's vm sandbox
+    //   REFUSES a dynamic import without --experimental-vm-modules (proven empirically —
+    //   `TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG]`). so under the fix EVERY brain
+    //   package fails to load under jest and discovery returns an empty registry, which cannot
+    //   populate the snapshotted "available brains" list. the EXACT real-registry snapshot (all
+    //   three variants) is restored, byte-for-byte, in a real-node acceptance test that has no vm
+    //   restriction: blackbox/sdk/genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance.test.ts
+    //   (see ehmpathy/rhachet#429). the discovery-mode context shape (null choice, defined
+    //   delegates) is still proven under jest by case3 + case5 here.
 
     given('[case5] discovery mode with creds', () => {
       const creds = { keyrack: { owner: 'ehmpath', env: 'test' as const } };

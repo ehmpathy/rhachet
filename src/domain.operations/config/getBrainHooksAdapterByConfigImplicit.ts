@@ -1,14 +1,13 @@
+import { ConstraintError } from 'helpful-errors';
+
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { discoverBrainPackages } from '@src/domain.operations/brains/discoverBrainPackages';
-
-import * as fs from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
+import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExports';
 
 /**
- * .what = resolves a brain hooks adapter via implicit discovery
+ * .what = looks up a brain hooks adapter via implicit discovery
  * .why = enables auto-detection of brain supplier packages
  *
  * .note = scans package.json for rhachet-brains-* packages
@@ -24,39 +23,47 @@ export const getBrainHooksAdapterByConfigImplicit = async (
   // discover brain packages from package.json
   const brainPackages = await discoverBrainPackages(context);
 
-  // create require from repo root for package resolution
-  const require = createRequire(`${context.cwd}/package.json`);
-
   // collect adapters that match the requested brain
   const adaptersMatched: BrainHooksAdapter[] = [];
 
-  // collect resolution failures for observability
-  const resolutionFailures: Array<{ packageName: string; error: Error }> = [];
+  // collect lookup failures for observability, tagged by the phase that faulted so the
+  // message points the operator at the right layer — a package that loads fine but whose
+  // getBrainHooks() throws is a use-phase fault, NOT a load fault, and must not read as one
+  const resolutionFailures: Array<{
+    packageName: string;
+    phase: 'load' | 'use';
+    error: Error;
+  }> = [];
 
   for (const packageName of brainPackages) {
+    // phase 1 — load the package (caller-rooted, esm-safe, isolated as a union) via the
+    // shared importPackageExports leaf, the one resolution strategy across all load sites
+    const loaded = await importPackageExports<{
+      getBrainHooks?: (input: {
+        brain: BrainSpecifier;
+        repoPath: string;
+      }) => BrainHooksAdapter | null;
+    }>({
+      packageName,
+      fromPackageJson: `${context.cwd}/package.json`,
+    });
+    if (!loaded.ok) {
+      resolutionFailures.push({
+        packageName,
+        phase: 'load',
+        error: loaded.error,
+      });
+      continue;
+    }
+
+    // phase 2 — use the loaded module's getBrainHooks; a throw here is a use-phase fault
+    // isolated to this package (not the load), so one bad package never sinks the rest
     try {
-      // resolve package path via package.json (handles file: references)
-      const packageJsonPath = require.resolve(`${packageName}/package.json`);
-      const packageRoot = dirname(packageJsonPath);
-
-      // read package.json to find main entry
-      const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf-8');
-      const packageJson = JSON.parse(packageJsonContent) as { main?: string };
-      const mainEntry = packageJson.main ?? 'index.js';
-
-      // dynamic import of the brain package's main entry
-      const brainModule = (await import(`${packageRoot}/${mainEntry}`)) as {
-        getBrainHooks?: (input: {
-          brain: BrainSpecifier;
-          repoPath: string;
-        }) => BrainHooksAdapter | null;
-      };
-
       // check if package exports getBrainHooks
-      if (!brainModule.getBrainHooks) continue;
+      if (!loaded.module.getBrainHooks) continue;
 
       // call getBrainHooks to see if it supports this brain
-      const adapter = brainModule.getBrainHooks({
+      const adapter = loaded.module.getBrainHooks({
         brain: input.brain,
         repoPath: context.cwd,
       });
@@ -64,18 +71,25 @@ export const getBrainHooksAdapterByConfigImplicit = async (
         adaptersMatched.push(adapter);
       }
     } catch (error: unknown) {
-      // collect failure for stderr emission
+      // collect the use-phase failure for stderr emission (package loaded, getBrainHooks threw)
       const err = error instanceof Error ? error : new Error(String(error));
-      resolutionFailures.push({ packageName, error: err });
+      resolutionFailures.push({ packageName, phase: 'use', error: err });
     }
   }
 
-  // emit resolution failures to stderr for observability
+  // emit lookup failures to stderr for observability, each with a phase-accurate message
+  // so the operator is pointed at the true layer — load (import) vs use (getBrainHooks throw)
+  // .note-channel = this site emits via console.error; its two package-load siblings differ by
+  //   consumer BY DESIGN — getAvailableBrains/getBrainsFromPackageExports warn (console.warn, a
+  //   discovery-orchestrator advisory), getLinkedRolesWithHooks returns structured errors[] (its
+  //   caller owns presentation). the divergence is a deliberate per-consumer contract, not drift.
   if (resolutionFailures.length > 0) {
     for (const failure of resolutionFailures) {
-      console.error(
-        `⚠️ brain package resolution failed: ${failure.packageName} — ${failure.error.message}`,
-      );
+      const message =
+        failure.phase === 'load'
+          ? `💥 brain package load failed: ${failure.packageName} — ${failure.error.message}`
+          : `💥 brain hooks lookup failed (package loaded, getBrainHooks threw): ${failure.packageName} — ${failure.error.message}`;
+      console.error(message);
     }
   }
 
@@ -88,8 +102,11 @@ export const getBrainHooksAdapterByConfigImplicit = async (
     return adaptersMatched[0]!;
   }
 
-  // multiple adapters matched - ambiguous
-  throw new Error(
+  // multiple adapters matched — an ambiguous config the caller must fix (fail-loud with
+  // context per rule.require.failloud): a ConstraintError, since the caller fixes it by
+  // narrowing to one adapter, not the server
+  throw new ConstraintError(
     `multiple brain hooks adapters matched for brain '${input.brain}': ${adaptersMatched.map((a) => a.slug).join(', ')}. specify explicit adapter.`,
+    { brain: input.brain, adaptersMatched: adaptersMatched.map((a) => a.slug) },
   );
 };
