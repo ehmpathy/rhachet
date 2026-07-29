@@ -62,7 +62,7 @@ exports[`syncHooksForLinkedRoles given: [case6] discovery errors when: [t0] sync
 "🔭 search for linked roles with hooks...
 
 ⛈️  1 hook discovery error(s):
-   └─ broken-repo/broken-role: failed to parse role config
+   └─ broken-repo/broken-role [use]: failed to parse role config
    └─ ehmpathy/mechanic
 
 🪝 apply hooks to brains...

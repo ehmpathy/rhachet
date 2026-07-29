@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getBrainHooksAdapterByConfigImplicit.realnode.acceptance given: [case1] an esm-only brain package, loaded through getBrainHooksAdapterByConfigImplicit when: [t0] the fixture is esm-only (a require shim cannot load it) then: the report matches the locked snapshot 1`] = `
+{
+  "adapterLoaded": true,
+  "requireShimThrew": true,
+}
+`;

@@ -30,8 +30,10 @@ export const syncHooksForLinkedRoles = async (
     console.log('');
     console.log(`⛈️  ${discoverErrors.length} hook discovery error(s):`);
     for (const err of discoverErrors) {
+      // surface the phase tag (load vs use) so the operator sees the true layer that faulted —
+      // getLinkedRolesWithHooks computes it precisely so the caller can point at the right layer
       console.log(
-        `   └─ ${err.repoSlug}/${err.roleSlug}: ${err.error.message}`,
+        `   └─ ${err.repoSlug}/${err.roleSlug} [${err.phase}]: ${err.error.message}`,
       );
       errors.push({
         source: `discover:${err.repoSlug}/${err.roleSlug}`,
