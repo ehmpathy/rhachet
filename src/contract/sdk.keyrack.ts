@@ -127,7 +127,7 @@ export const keyrack = {
       prikeys: input.prikey ? [input.prikey] : undefined,
     });
     await daoKeyrackHostManifest.get({ owner }, context);
-    return setKeyrackKeyHost(
+    const keyHost = await setKeyrackKeyHost(
       {
         slug: input.slug,
         mech: input.mech,
@@ -136,6 +136,7 @@ export const keyrack = {
       },
       context,
     );
+    return keyHost;
   },
 
   /**

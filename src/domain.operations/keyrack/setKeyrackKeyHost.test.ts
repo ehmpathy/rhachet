@@ -51,6 +51,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -253,6 +254,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -300,6 +302,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -349,6 +352,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -415,6 +419,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -448,6 +453,7 @@ describe('setKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
         'github.secrets': genMockVaultAdapter(),
       },
     };

@@ -1,0 +1,75 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t0] set the replica key (@all, explicit --exid, secret written into SSM via stdin) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set @all.test.JOURNEY_AWS_PARAMS_SECRET via PERMANENT_VIA_REPLICA
+🔐 keyrack set (org: @all, env: test)
+   └─ @all.test.JOURNEY_AWS_PARAMS_SECRET
+      ├─ mech: PERMANENT_VIA_REPLICA
+      ├─ vault: aws.params
+      └─ name: /keyrack/journey/JOURNEY_AWS_PARAMS_SECRET
+
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t1] get before unlock then: the locked-before-unlock output matches snapshot 1`] = `
+"{
+  "status": "locked",
+  "slug": "@all.test.JOURNEY_AWS_PARAMS_SECRET",
+  "message": "credential '@all.test.JOURNEY_AWS_PARAMS_SECRET' is locked. unlock it first.",
+  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET"
+}
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t2] unlock — the ambient identity IS the unlock (no prompt) then: stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.test.JOURNEY_AWS_PARAMS_SECRET
+      ├─ env: test
+      ├─ org: @all
+      ├─ vault: aws.params
+      └─ expires in: __TIMESTAMP__
+
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t3] get after unlock — the value is served from the daemon then: the human-default get output matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ @all.test.JOURNEY_AWS_PARAMS_SECRET
+      ├─ vault: aws.params
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t4] relock then: the relock output matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ @all.test.JOURNEY_AWS_PARAMS_SECRET: pruned 🔒
+
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t5] get after relock — locked again, needs a fresh unlock then: the locked-after-relock output matches snapshot 1`] = `
+"{
+  "status": "locked",
+  "slug": "@all.test.JOURNEY_AWS_PARAMS_SECRET",
+  "message": "credential '@all.test.JOURNEY_AWS_PARAMS_SECRET' is locked. unlock it first.",
+  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET"
+}
+"
+`;
+
+exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstraps an aws.params replica key end-to-end when: [t6] the value is rotated upstream, then the grove re-unlocks then: the rotated-unlock output matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.test.JOURNEY_AWS_PARAMS_SECRET
+      ├─ env: test
+      ├─ org: @all
+      ├─ vault: aws.params
+      └─ expires in: __TIMESTAMP__
+
+"
+`;

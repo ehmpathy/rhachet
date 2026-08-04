@@ -52,6 +52,7 @@ describe('setKeyrackKey', () => {
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
               'aws.config': genMockVaultAdapter(),
+              'aws.params': genMockVaultAdapter(),
               'github.secrets': genMockVaultAdapter(),
             },
           };
@@ -68,8 +69,8 @@ describe('setKeyrackKey', () => {
             context,
           );
 
-          expect(result.results).toHaveLength(1);
-          expect(result.results[0]).toMatchObject({
+          expect(result).toHaveLength(1);
+          expect(result[0]!).toMatchObject({
             slug: 'testorg.prod.MY_KEY',
             vault: 'os.direct',
             mech: 'PERMANENT_VIA_REPLICA',
@@ -103,6 +104,7 @@ describe('setKeyrackKey', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': mockAdapter,
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -119,8 +121,8 @@ describe('setKeyrackKey', () => {
           context,
         );
 
-        expect(result.results).toHaveLength(1);
-        expect(result.results[0]).toMatchObject({
+        expect(result).toHaveLength(1);
+        expect(result[0]!).toMatchObject({
           slug: 'ehmpathy.test.AWS_PROFILE',
           vault: 'aws.config',
           mech: 'EPHEMERAL_VIA_AWS_SSO',
@@ -152,6 +154,7 @@ describe('setKeyrackKey', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -170,8 +173,8 @@ describe('setKeyrackKey', () => {
         );
 
         // should store exactly ONE slug under $org.all.$key
-        expect(result.results).toHaveLength(1);
-        expect(result.results[0]).toMatchObject({
+        expect(result).toHaveLength(1);
+        expect(result[0]!).toMatchObject({
           slug: 'customorg.all.NEW_KEY',
           vault: 'os.direct',
           mech: 'PERMANENT_VIA_REPLICA',
@@ -213,6 +216,7 @@ describe('setKeyrackKey', () => {
               'os.daemon': genMockVaultAdapter(),
               '1password': genMockVaultAdapter(),
               'aws.config': genMockVaultAdapter(),
+              'aws.params': genMockVaultAdapter(),
               'github.secrets': genMockVaultAdapter(),
             },
           };
@@ -231,16 +235,16 @@ describe('setKeyrackKey', () => {
           );
 
           // should NOT expand — should store exactly ONE slug
-          expect(result.results).toHaveLength(1);
-          expect(result.results[0]!.slug).toEqual('ehmpathy.all.MY_SECRET');
+          expect(result).toHaveLength(1);
+          expect(result[0]!.slug).toEqual('ehmpathy.all.MY_SECRET');
           // should NOT have prod, prep, or test slugs
-          expect(result.results.map((r) => r.slug)).not.toContain(
+          expect(result.map((r) => r.slug)).not.toContain(
             'ehmpathy.prod.MY_SECRET',
           );
-          expect(result.results.map((r) => r.slug)).not.toContain(
+          expect(result.map((r) => r.slug)).not.toContain(
             'ehmpathy.prep.MY_SECRET',
           );
-          expect(result.results.map((r) => r.slug)).not.toContain(
+          expect(result.map((r) => r.slug)).not.toContain(
             'ehmpathy.test.MY_SECRET',
           );
         });

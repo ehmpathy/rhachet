@@ -22,6 +22,11 @@ export const inferKeyGrade = (input: {
     if (input.vault === 'os.daemon') return 'encrypted' as const;
     if (input.vault === '1password') return 'encrypted' as const;
     if (input.vault === 'aws.config') return 'reference' as const;
+    // aws.params keyrack always OWNS the secret it writes: both mechs —
+    // EPHEMERAL_VIA_GITHUB_APP (the app blob) and PERMANENT_VIA_REPLICA (a static secret copy) —
+    // have keyrack itself write a KMS-encrypted value into SSM → 'encrypted', the same posture as
+    // os.secure / 1password, both of which keyrack writes and grades 'encrypted'
+    if (input.vault === 'aws.params') return 'encrypted' as const;
     return 'plaintext' as const; // fallback for unknown vaults
   })();
 

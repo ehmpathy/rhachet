@@ -51,6 +51,9 @@ export const invokeRhachetCliBinary = (input: {
   logOnError?: boolean;
   /** optional env vars to merge with process.env */
   env?: Record<string, string | undefined>;
+  /** optional wall-clock cap (ms); a child past it is SIGKILLed so a hang surfaces as a failed
+   *  result (with its captured output) instead of a spawnSync block that stalls the whole suite */
+  timeoutMs?: number;
 }): SpawnSyncReturns<string> => {
   const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
 
@@ -64,9 +67,12 @@ export const invokeRhachetCliBinary = (input: {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
-    // shell mode removed: args with spaces (like pubkeys) were being split by bash
+    // shell mode removed: args with spaces (like pubkeys) were split by bash
     // absolute binPath doesn't need shell for PATH resolution
     env: envFiltered,
+    ...(input.timeoutMs
+      ? { timeout: input.timeoutMs, killSignal: 'SIGKILL' as const }
+      : {}),
   });
 
   // log output for debug on failure

@@ -6,9 +6,7 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
-import { mechAdapterAwsSso } from './adapters/mechanisms/aws.sso/mechAdapterAwsSso';
-import { mechAdapterGithubApp } from './adapters/mechanisms/mechAdapterGithubApp';
-import { mechAdapterReplica } from './adapters/mechanisms/mechAdapterReplica';
+import { KEYRACK_MECH_ADAPTERS } from './adapters/mechanisms/getOneKeyrackMechAdapter';
 import { vaultAdapterOsEnvvar } from './adapters/vaults/os.envvar/vaultAdapterOsEnvvar';
 
 /**
@@ -36,34 +34,23 @@ export interface ContextKeyrackGrantGet {
  * .note = owner enables per-owner daemon isolation
  */
 export const genContextKeyrackGrantGet = async (input: {
-  gitroot: string;
+  gitroot: string | null;
   owner: string | null;
 }): Promise<ContextKeyrackGrantGet> => {
-  // load repo manifest (plaintext yaml, no passphrase)
-  const repoManifest = await daoKeyrackRepoManifest.get({
-    gitroot: input.gitroot,
-  });
+  // load repo manifest (plaintext yaml, no passphrase) — BUT only when there IS a repo. a null
+  // gitroot means the cwd is not a git repo at all (e.g. a bare clone a git credential helper is
+  // invoked from). that path serves only machine-wide @all keys, which need no repo manifest, so
+  // skip the load and leave repoManifest null (the no-manifest read path handles @all + full slugs)
+  const repoManifest = input.gitroot
+    ? await daoKeyrackRepoManifest.get({ gitroot: input.gitroot })
+    : null;
 
-  // assemble mechanism adapters
-  // note: new names (PERMANENT_VIA_*, EPHEMERAL_VIA_*) map to same adapters
-  // deprecated aliases (REPLICA, GITHUB_APP, AWS_SSO) kept for backwards compat
-  const mechAdapters: Record<
-    KeyrackGrantMechanism,
-    KeyrackGrantMechanismAdapter
-  > = {
-    // new mechanism names
-    PERMANENT_VIA_REPLICA: mechAdapterReplica,
-    PERMANENT_VIA_REFERENCE: mechAdapterReplica, // 1password: passthrough, exid is fetched on unlock
-    EPHEMERAL_VIA_SESSION: mechAdapterReplica, // os.daemon: passthrough, already in daemon
-    EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
-    EPHEMERAL_VIA_AWS_SSO: mechAdapterAwsSso,
-    EPHEMERAL_VIA_GITHUB_OIDC: mechAdapterAwsSso, // TODO: implement dedicated oidc adapter
-  };
-
+  // the mechanism → adapter map: route through the ONE canonical source
+  // (KEYRACK_MECH_ADAPTERS) rather than hand-copy it, so this site cannot drift from it
   return {
     owner: input.owner,
     repoManifest,
     envvarAdapter: vaultAdapterOsEnvvar,
-    mechAdapters,
+    mechAdapters: KEYRACK_MECH_ADAPTERS,
   };
 };

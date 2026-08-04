@@ -29,34 +29,30 @@ export const setKeyrackKey = async (
     at?: string | null;
   },
   context: ContextKeyrack,
-): Promise<{
-  results: KeyrackKeyHost[];
-}> => {
+): Promise<KeyrackKeyHost[]> => {
   // compute target slug (no expansion — env=all stores once under $org.all.$key)
   const targetSlugs = [`${input.org}.${input.env}.${input.key}`];
 
-  // set host config for each target slug
-  const results: KeyrackKeyHost[] = [];
+  // set host config for each target slug — a functional map (no mutable accumulator)
+  const results = await Promise.all(
+    targetSlugs.map(async (slug) => {
+      // delegate to setKeyrackKeyHost (manifest write + vault write + repo manifest write)
+      return await setKeyrackKeyHost(
+        {
+          slug,
+          mech: input.mech,
+          vault: input.vault,
+          secret: input.secret ?? null,
+          exid: input.exid ?? null,
+          env: input.env,
+          org: input.org,
+          maxDuration: input.maxDuration ?? null,
+          at: input.at ?? null,
+        },
+        context,
+      );
+    }),
+  );
 
-  for (const slug of targetSlugs) {
-    // delegate to setKeyrackKeyHost (manifest write + vault write + repo manifest write)
-    const keyHost = await setKeyrackKeyHost(
-      {
-        slug,
-        mech: input.mech,
-        vault: input.vault,
-        secret: input.secret ?? null,
-        exid: input.exid ?? null,
-        env: input.env,
-        org: input.org,
-        maxDuration: input.maxDuration ?? null,
-        at: input.at ?? null,
-      },
-      context,
-    );
-
-    results.push(keyHost);
-  }
-
-  return { results };
+  return results;
 };

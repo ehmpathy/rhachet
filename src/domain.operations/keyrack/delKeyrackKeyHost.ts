@@ -22,7 +22,12 @@ export const delKeyrackKeyHost = async (
     slug: string;
   },
   context: ContextKeyrack,
-): Promise<{ effect: 'deleted' | 'not_found' }> => {
+): Promise<{
+  effect: 'deleted' | 'not_found';
+  // the remote secret keyrack destroyed, if the adapter owned one (aws.params owned mech) — so
+  // the CLI can echo what changed; absent for every adapter that destroys no remote secret
+  destroyed?: { exid: string } | null;
+}> => {
   // guard: host manifest required
   if (!context.hostManifest)
     throw new UnexpectedCodePathError(
@@ -43,7 +48,18 @@ export const delKeyrackKeyHost = async (
       { slug: input.slug, vault: hostFound.vault },
     );
   }
-  await adapter.del({ slug: input.slug, exid: hostFound.exid });
+  const delResult = await adapter.del(
+    {
+      slug: input.slug,
+      exid: hostFound.exid,
+      owner: context.owner,
+      mech: hostFound.mech,
+      meta: hostFound.meta,
+    },
+    // thread context so aws.params resolves the org-scope AWS_PROFILE from context.hostManifest —
+    // a scoped-org del authenticates as the org's declared identity, @all as the grove's IMDS role
+    context,
+  );
 
   // prune from daemon (in case key was unlocked in current session)
   await daemonAccessRelock({ slugs: [input.slug], owner: context.owner });
@@ -76,5 +92,7 @@ export const delKeyrackKeyHost = async (
     await daoKeyrackInventory.del({ slug: input.slug, owner: context.owner });
   }
 
-  return { effect: 'deleted' };
+  // an adapter that destroyed a remote secret returns { destroyed }; a void return (every other
+  // adapter) carries no disposition to echo, so it falls back to null
+  return { effect: 'deleted', destroyed: delResult?.destroyed ?? null };
 };

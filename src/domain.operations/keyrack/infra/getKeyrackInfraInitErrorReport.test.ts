@@ -15,12 +15,12 @@ describe('getKeyrackInfraInitErrorReport', () => {
     when('[t0] the blocked report is built', () => {
       const report = getKeyrackInfraInitErrorReport({ error });
 
-      then('it opens with the bummer turtle vibe', () => {
-        expect(report).toContain('🐢 bummer dude...');
+      then('it roots on the keyrack lock glyph, no role mascot', () => {
+        expect(report).toContain('🔐 keyrack infra init');
+        expect(report).not.toContain('🐢');
       });
 
-      then('it renders the blocked node under the shell root', () => {
-        expect(report).toContain('🐚 keyrack infra init');
+      then('it renders the blocked node under the domain root', () => {
         expect(report).toContain('✋ blocked: gh repo create failed');
       });
 
@@ -46,7 +46,8 @@ describe('getKeyrackInfraInitErrorReport', () => {
       const report = getKeyrackInfraInitErrorReport({ error });
 
       then('it still renders the blocked node with the message', () => {
-        expect(report).toContain('🐢 bummer dude...');
+        expect(report).toContain('🔐 keyrack infra init');
+        expect(report).not.toContain('🐢');
         expect(report).toContain('✋ blocked: the wave wiped out');
       });
 

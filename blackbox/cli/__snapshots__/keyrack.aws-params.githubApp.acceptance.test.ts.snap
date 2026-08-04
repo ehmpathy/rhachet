@@ -1,0 +1,79 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided github-app set persists the blob into SSM when: [t0] keyrack set --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP (guided, pseudo-TTY) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ which github app?
+   │  ├─ options
+   │  │  ├─ 1. my-test-app (id: 123456)
+   │  │  ├─ 2. other-app (id: 654321)
+   │  └─ choice: 1
+   │     └─ my-test-app ✓
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./mock-app.pem
+   │  └─ pem read ✓
+
+
+🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      ├─ vault: aws.params
+      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN"
+`;
+
+exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided github-app set persists the blob into SSM when: [t1] keyrack list --json after the guided github-app set then: the manifest entry matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": "/keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN",
+  "maxDuration": null,
+  "mech": "EPHEMERAL_VIA_GITHUB_APP",
+  "meta": {
+    "region": "us-east-1",
+  },
+  "org": "testorg",
+  "slug": "testorg.test.GITHUB_TOKEN",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "aws.params",
+}
+`;
+
+exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case2] guided github-app set fails loud on an unreadable pem path when: [t0] keyrack set with a pem path that does not exist (guided, pseudo-TTY) then: the failure output matches snapshot 1`] = `
+"🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ which github app?
+   │  ├─ options
+   │  │  ├─ 1. my-test-app (id: 123456)
+   │  │  ├─ 2. other-app (id: 654321)
+   │  └─ choice: 1
+   │     └─ my-test-app ✓
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./no-such-file.pem
+   │  └─ ✋ could not read pem file
+
+🔐 keyrack set
+   └─ ✋ blocked: could not read pem file
+      └─ hint: check the path exists and is readable: ./no-such-file.pem"
+`;
+
+exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case3] del of a github-app key destroys the SSM secret keyrack wrote when: [t1] the github-app key is deleted then: the destroyed-secret output matches snapshot 1`] = `
+"
+
+🔐 keyrack del
+   └─ testorg.test.GITHUB_TOKEN removed
+      └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN was destroyed
+
+"
+`;
+
+exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case4] set with no --mech drives the interactive mechanism prompt when: [t0] keyrack set --vault aws.params with no --mech (guided, pseudo-TTY) then: the prompt output matches snapshot 1`] = `
+"🔐 keyrack set @all.test.XAI_API_KEY via PERMANENT_VIA_REPLICA
+enter secret for XAI_API_KEY: ******************
+🔐 keyrack set (org: @all, env: test)
+   └─ @all.test.XAI_API_KEY
+      ├─ mech: PERMANENT_VIA_REPLICA
+      ├─ vault: aws.params
+      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY"
+`;

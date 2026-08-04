@@ -251,9 +251,11 @@ describe('keyrack.vault.githubSecrets', () => {
         const output = `${result.stdout}\n${result.stderr}`;
         const cleaned = cleanPtyOutput(output);
         // the set action renders a caller-fixable ConstraintError as a clean blocked
-        // treestruct (no class-name leak); assert on the caller-relevant content, which
-        // is preserved in the blocked node + hint
-        expect(cleaned).toContain('bummer dude');
+        // treestruct (no class-name leak); it roots on keyrack's own lock glyph 🔐 (no role
+        // mascot), so assert the domain-rooted blocked node + the caller-relevant content
+        expect(cleaned).toContain('🔐');
+        expect(cleaned).not.toContain('🐢');
+        expect(cleaned).toContain('✋ blocked');
         expect(cleaned).toContain('package.json.repository required');
         expect(cleaned).toContain('github.secrets vault');
       });

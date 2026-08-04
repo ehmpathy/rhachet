@@ -2,61 +2,65 @@
 
 ## .what
 
-keyrack cli output has a **signature domain glyph** — the lock `🔐` — that roots its
-**success / operation** output (`keyrack set`, `keyrack firewall`, `keyrack` list, the
-set summary). `🔐` is keyrack **domain vocabulary**: it is deliberately **not** the
-generic treestruct shell-root `🐚` and **not** any rhachet role mascot (the mechanic
-seaturtle `🐢`, the driver owl `🦉`, the dreamer moon `🌙`, etc.).
+keyrack cli output has a **signature domain glyph** — the lock `🔐` — that roots **all** of
+its output, both **success / operation** (`keyrack set`, `keyrack firewall`, `keyrack` list,
+the set summary) AND **blocked / error** (`getKeyrackBlockedReport`,
+`getKeyrackInfraInitErrorReport`). `🔐` is keyrack **domain vocabulary**: it is deliberately
+**not** the generic treestruct shell-root `🐚` and **not** any rhachet role mascot (the
+mechanic seaturtle `🐢`, the driver owl `🦉`, the dreamer moon `🌙`, etc.).
 
-when you read a keyrack **success** snapshot and see `🔐` where the generic treestruct
-spec would show `🐚`, that is **correct and intended** — not a blemish. keyrack owns its
-success root glyph.
+when you read a keyrack snapshot — success OR blocked — and see `🔐` where the generic
+treestruct spec would show `🐚` (or where the shared failure grammar would show a `🐢`
+mascot header), that is **correct and intended** — not a blemish. keyrack owns its root glyph
+across every output mode.
 
-**the one coexistence rule — success vs blocked.** keyrack does *not* claim `🔐` for
-*every* line. its two output modes root differently, by design:
+**both output modes root on `🔐`, by design:**
 
 | mode | root | example |
 |------|------|---------|
 | **success / operation** | `🔐 {command}` (keyrack signature — no vibe header) | `🔐 keyrack set …`, `🔐 keyrack list`, `🔐 keyrack firewall`, `🔐 keyrack infra init` |
-| **blocked / error** | `🐢 bummer dude…` + `🐚 {command}` (shared ergonomist standard) | `getKeyrackBlockedReport`, `getKeyrackInfraInitErrorReport` |
+| **blocked / error** | `🔐 {command}` + `└─ ✋ blocked: …` (keyrack signature — no seaturtle header) | `getKeyrackBlockedReport`, `getKeyrackInfraInitErrorReport` |
 
-**every** keyrack success roots directly on `🔐 {command}` — no `🐢 cowabunga!`/`🐢 righteous!`
-vibe header. this is the verified, uniform prior convention: `🔐 keyrack list`
-(`asKeyrackListTreestruct.ts:12`), `🔐 keyrack firewall` (`getKeyrackFirewallOutput.ts:50`),
-`🔐 keyrack set …` (every vault adapter). a keyrack success that opens with a `🐢` vibe header
-**diverges** from this convention and is a defect — the fresh-vs-found signal a vibe header
-might carry belongs in the leaf status phrases (`✨ created` / `👌 already found`), not the root.
+**every** keyrack output roots directly on `🔐 {command}` — no `🐢 cowabunga!`/`🐢 righteous!`
+success vibe header, and no `🐢 bummer dude…` blocked vibe header. a keyrack line that opens
+with any `🐢` mascot header **diverges** from this convention and is a defect. keyrack is a
+credential **domain**, not a rhachet **role**, so no role mascot belongs in its output — the
+fresh-vs-found / blocked signal belongs in the leaf phrases (`✨ created` / `👌 already found`
+/ `✋ blocked`), not a mascot at the root.
 
-the blocked path **intentionally** uses the repo-wide ergonomist blocked-output standard
-(`rule.require.treestruct-output`: blocked → `🐢 bummer dude...`) so keyrack failures read
-the same as every other tool's failures. so `🐢`/`🐚` in a keyrack **blocked report** is
-**correct** — it is the shared failure grammar, not a mascot leak. only the **success**
-root is keyrack's own (`🔐`).
+the blocked path keeps the shared **`✋ blocked: {message}`** node and the fix-naming **`hint`**
+leaves (the repo-wide ergonomist recovery grammar, `rule.require.errors-name-the-fix`) — only
+the **root** is keyrack's own `🔐`, in place of the shared `🐢 bummer dude…`/`🐚` header. so
+`🐢` never appears in keyrack output at all.
 
 ## .why
 
 - **keyrack is a credential domain.** a lock `🔐` reads instantly as "secrets / vault /
   credential setup." that recognizability is worth more, in this one domain, than
-  conformance to the generic shell-root glyph.
+  conformance to the generic shell-root glyph or the shared mascot failure header.
 - **domain glyphs are a feature, not drift.** the same way each rhachet role has a mascot
   that flavors its voice, keyrack — a domain, not a role — flavors its cli with a lock.
   the glyph tells the human *which tool speaks* before they read a word.
+- **no mascot leak, success or blocked.** a role mascot (the mechanic `🐢`) at the root of a
+  credential-domain tool blurs which thing speaks. keyrack's root is its own lock, uniformly,
+  so a human never mistakes a keyrack failure for a mechanic-role message.
 - **the confusion this rule prevents.** the generic treestruct rubric
   (`ergonomist/briefs/cli/rule.require.treestruct-output.md`) reserves `🐢` for the vibe
   header and `🐚` for the shell root. a reviewer who applies that rubric to a keyrack
   snapshot mis-reads keyrack's `🔐` root as "wrong emoji for the shell-root slot." it is
   not wrong — keyrack is exempt from the generic root glyph **by this rule**. keyrack's
-  `🔐` is its shell root.
+  `🔐` is its shell root, in both success and blocked output.
 
 ## .the palette
 
 | glyph | slot | denotes |
 |-------|------|---------|
-| `🔐` | **success root** (keyrack's own, in place of `🐚`) | a keyrack credential operation (`keyrack set`, `keyrack firewall`, …) |
-| `🐢 bummer dude…` + `🐚` | **blocked root** (shared ergonomist standard) | a keyrack failure report (`getKeyrackBlockedReport`, …) |
+| `🔐` | **root** (keyrack's own, in place of `🐚` / a `🐢` mascot header) | a keyrack credential operation OR a keyrack failure (`keyrack set`, `keyrack firewall`, a blocked report, …) |
+| `✋` | blocked leaf | the blocked node under the `🔐` root on a failure (`✋ blocked: {message}`) |
 | `🔑` | status leaf | a granted key / access confirmed |
 | `🔗` | value leaf | an auth url the human must visit |
 | `🚫` | status leaf | access blocked |
+| `💥` | status leaf | a per-key **malfunction** in a batch unlock — a live fault (throttle, network, decrypt-denied, no-identity) that was isolated so the batch continued (the shared `MalfunctionError` glyph; distinct from `🚫` access-blocked and `🫧` absent) |
 | `🫧` | status leaf | credential absent / not yet filled |
 | `👌` | confirm leaf | input received / choice accepted |
 | `✓` / `✗` | status leaf | step succeeded / failed (shared with the generic spec) |
@@ -66,46 +70,35 @@ root is keyrack's own (`🔐`).
 
 | you might confuse… | but it is… |
 |--------------------|------------|
-| `🔐` (keyrack **success** root) | keyrack's **domain** success glyph — NOT the treestruct `🐚`, NOT a mascot |
-| `🐢 bummer dude…` + `🐚` (keyrack **blocked** root) | the **shared ergonomist** failure grammar — correct in keyrack, not a mascot leak |
-| `🐢 cowabunga!` (a role's success header) | a **rhachet** role vibe — never a keyrack **success** root (keyrack uses `🔐` there) |
+| `🔐` (keyrack root, success OR blocked) | keyrack's **domain** glyph — NOT the treestruct `🐚`, NOT a mascot |
+| `🐢 cowabunga!` (a role's success header) | a **rhachet** role vibe — never a keyrack root (keyrack uses `🔐`) |
+| `🐢 bummer dude…` (a role's failure header) | a **rhachet** role vibe — never a keyrack root (keyrack uses `🔐`) |
 | `🦉` `🌙` etc. (role mascots) | **rhachet role** flavor — never in keyrack output |
 
-the disjointness that matters: keyrack's **success** root is `🔐` and only `🔐` — never a
-role mascot, never `🐢 cowabunga!`. keyrack's **blocked** root is the shared
-`🐢 bummer dude…`/`🐚` failure grammar, same as every other tool. do not read the shared
-blocked grammar as a mascot leak, and do not read the `🔐` success root as a treestruct
-violation.
+the disjointness that matters: keyrack's root is `🔐` and only `🔐` — never a role mascot,
+never `🐢 cowabunga!`, never `🐢 bummer dude…`, in success or in a blocked report. do not read
+the `🔐` root as a treestruct violation; do read any `🐢` header in keyrack output as a defect.
 
 ## .where
 
 - all keyrack cli output: `src/domain.operations/keyrack/**`
-- established across every vault + mechanism today (see .enforcement)
+- success roots: `vaultAdapterOsSecure.ts`, `vaultAdapter1Password.ts`,
+  `vaultAdapterGithubSecrets.ts`, `setupAwsSsoWithGuide.ts`, `getKeyrackFirewallOutput.ts`,
+  `asKeyrackListTreestruct.ts`
+- blocked roots: `getKeyrackBlockedReport.ts`, `getKeyrackInfraInitErrorReport.ts`
 
 ## .enforcement
 
-`🔐` as the keyrack **success** root is the **established, repo-wide keyrack convention** —
-it roots the success/operation output across every keyrack vault snapshot:
+`🔐` as the keyrack root — success AND blocked — is the **established, repo-wide keyrack
+convention**. therefore:
 
-- `blackbox/cli/__snapshots__/keyrack.vault.awsIamSso.acceptance.test.ts.snap`
-- `blackbox/cli/__snapshots__/keyrack.vault.1password.acceptance.test.ts.snap`
-- `blackbox/cli/__snapshots__/keyrack.vault.osSecure.githubApp.acceptance.test.ts.snap`
-- `blackbox/cli/__snapshots__/keyrack.vault.githubSecrets.acceptance.test.ts.snap`
-- `blackbox/cli/__snapshots__/keyrack.sudo.acceptance.test.ts.snap`
-- source of truth (success): `vaultAdapterOsSecure.ts`, `vaultAdapter1Password.ts`,
-  `vaultAdapterGithubSecrets.ts`, `setupAwsSsoWithGuide.ts`, `getKeyrackFirewallOutput.ts`
-- source of truth (blocked): `getKeyrackBlockedReport.ts`, `getKeyrackInfraInitErrorReport.ts`
-  — these use `🐢 bummer dude…`/`🐚` **by design** (the shared ergonomist failure grammar)
-
-therefore:
-
-- a flag on keyrack's `🔐` **success** root as a treestruct blemish = **not a defect**
-  (mis-applied generic rubric; keyrack owns its success root by this rule).
-- a flag on `🐢 bummer dude…`/`🐚` in a keyrack **blocked** report as a "mascot leak" =
-  **not a defect** (that is the shared ergonomist failure grammar, correct in keyrack).
-- conversion of a single keyrack vault's `🔐` **success** root to `🐢`/`🐚` = **a defect** —
-  it diverges that one vault from the other four and breaks the keyrack-wide convention.
-  such a change is a keyrack-wide UX decision (wisher scope), not a per-behavior edit.
+- a flag on keyrack's `🔐` root (success or blocked) as a treestruct blemish = **not a defect**
+  (mis-applied generic rubric; keyrack owns its root by this rule).
+- a `🐢` mascot header (`🐢 cowabunga!` on success, `🐢 bummer dude…` on a blocked report) in
+  keyrack output = **a defect** — keyrack roots on `🔐`, no role mascot.
+- conversion of a single keyrack vault's `🔐` root to `🐢`/`🐚` = **a defect** — it diverges
+  that one vault from the others and breaks the keyrack-wide convention. such a change is a
+  keyrack-wide UX decision (wisher scope), not a per-behavior edit.
 
 ## .see also
 

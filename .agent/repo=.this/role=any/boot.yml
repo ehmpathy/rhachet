@@ -11,7 +11,7 @@ briefs:
     - briefs/define.agent-dir.md
     # actively used patterns
     - briefs/howto.test-local-rhachet.md
-    - briefs/rule.require.local-binary-for-testing.md
+    - briefs/rule.forbid.node-modules-bin-rhx.md
     - briefs/bin.dispatcher.pattern.md
     - briefs/run.executable.lookup.pattern.md
     # test patterns (frequently referenced)

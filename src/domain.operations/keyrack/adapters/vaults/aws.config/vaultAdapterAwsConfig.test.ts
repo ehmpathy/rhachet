@@ -1415,7 +1415,11 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
     when('[t0] del called', () => {
       then('completes without error (no-op)', async () => {
         await expect(
-          vaultAdapterAwsConfig.del({ slug: 'acme.prod.AWS_PROFILE' }),
+          vaultAdapterAwsConfig.del({
+            slug: 'acme.prod.AWS_PROFILE',
+            mech: null,
+            meta: null,
+          }),
         ).resolves.toBeUndefined();
       });
     });

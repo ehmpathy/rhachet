@@ -176,7 +176,7 @@ describe('vaultAdapterOsEnvvar', () => {
     when('[t1] del called', () => {
       then('throws UnexpectedCodePathError', async () => {
         const error = await getError(
-          vaultAdapterOsEnvvar.del({ slug: 'ANY_KEY' }),
+          vaultAdapterOsEnvvar.del({ slug: 'ANY_KEY', mech: null, meta: null }),
         );
         expect(error).toBeDefined();
         expect(error?.message).toContain('os.envvar is read-only');

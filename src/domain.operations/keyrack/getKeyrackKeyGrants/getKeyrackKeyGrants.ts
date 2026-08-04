@@ -1,8 +1,8 @@
-import { getGitRepoRoot } from 'rhachet-artifact-git';
 import type { PickOne } from 'type-fns';
 
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
+import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 
 import { asKeyrackAttemptSlug } from '../asKeyrackAttemptSlug';
 import { asKeyrackKeyEnv } from '../asKeyrackKeyEnv';
@@ -39,8 +39,11 @@ export const getKeyrackKeyGrants = async (input: {
 }): Promise<KeyrackGrantAttempt[]> => {
   const { for: selector, owner, env, org, allow } = input;
 
-  // derive gitroot + light get-context (reads unlocked sources only, never the vault)
-  const gitroot = await getGitRepoRoot({ from: process.cwd() });
+  // derive gitroot + light get-context (reads unlocked sources only, never the vault).
+  // null-tolerant: a machine-wide @all key must be gettable from a cwd that is not a git repo
+  // (a credential helper from a bare clone) — a null gitroot yields a null repo manifest, and
+  // the @all read path needs no repo manifest.
+  const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
   const contextGet = await genContextKeyrackGrantGet({ gitroot, owner });
 
   // first pass: get every selected key from already-unlocked sources
@@ -63,8 +66,11 @@ export const getKeyrackKeyGrants = async (input: {
   );
   if (!lockedAttempts.length) return attemptsInitial;
 
-  // build one shared heavy context so the host manifest decrypts at most once
-  const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
+  // build one shared heavy context so the host manifest decrypts at most once.
+  // a null gitroot (non-repo cwd) means no repo manifest — the @all unlock path handles it.
+  const repoManifest = gitroot
+    ? await daoKeyrackRepoManifest.get({ gitroot })
+    : null;
   const contextUnlock = genContextKeyrack({ owner, repoManifest, gitroot });
 
   // derive each locked key's slug (repo mode may span envs, so scope unlock per slug)

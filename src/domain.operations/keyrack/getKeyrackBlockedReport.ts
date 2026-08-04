@@ -2,11 +2,12 @@ import { HelpfulError } from 'helpful-errors';
 
 /**
  * .what = build the human-readable blocked tree report for a keyrack command failure
- * .why = a keyrack command's success path renders a turtle treestruct; its error path
- *        must match so the caller reads one consistent visual language instead of a raw
- *        exception dump (e.g. a `ConstraintError: …` that exposes the internal class name)
+ * .why = keyrack roots its output on its own domain glyph, the lock 🔐 — a credential-domain
+ *        signature, never a role mascot. the blocked path roots on 🔐 too (no seaturtle vibe
+ *        header), so a failure reads as keyrack's own voice, uniform with the 🔐 success root,
+ *        instead of a raw exception dump (e.g. a `ConstraintError: …` that leaks the class name)
  *
- * .note = command is the `🐚` root label (e.g. 'keyrack infra init', 'keyrack set')
+ * .note = command is the `🔐` root label (e.g. 'keyrack infra init', 'keyrack set')
  * .note = reads the caller-relevant metadata a HelpfulError carries (slug, stderr, hint)
  *         and renders each present field as a tree leaf under the blocked node
  */
@@ -74,16 +75,13 @@ export const getKeyrackBlockedReport = (input: {
             ),
           ];
 
-  // assemble the blocked treestruct: 🐢 bummer header, 🐚 shell root, blocked node
-  // .note = the 🐢↔🐚 separator is a braille blank (\u2800), not an empty line: a pty
-  //         capture (acceptance snapshots) collapses a truly-empty line but preserves the
-  //         braille blank, so the visual gap survives snapshot capture and reads the same
-  //         as the success path's separator (see howto.pty-visual-space)
+  // assemble the blocked treestruct: 🔐 keyrack domain root, blocked node beneath it.
+  // .note = keyrack roots on its own lock glyph 🔐 (never a role mascot) — the blocked path
+  //         drops the seaturtle vibe header so a credential-domain failure reads as keyrack's
+  //         own voice, uniform with the 🔐 success root (rule.require.keyrack-emoji-palette)
   return [
     '',
-    '🐢 bummer dude...',
-    '\u2800',
-    `🐚 ${input.command}`,
+    `🔐 ${input.command}`,
     `   └─ ✋ blocked: ${bareMessage}`,
     ...flatLines,
     ...hintLines,

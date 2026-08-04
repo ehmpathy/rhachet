@@ -17,6 +17,7 @@ import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
 import { existsSync, readFileSync } from 'node:fs';
 import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
 import { vaultAdapterAwsConfig } from './adapters/vaults/aws.config/vaultAdapterAwsConfig';
+import { vaultAdapterAwsParams } from './adapters/vaults/aws.params/vaultAdapterAwsParams';
 import { vaultAdapterGithubSecrets } from './adapters/vaults/github.secrets/vaultAdapterGithubSecrets';
 import { vaultAdapterOsDaemon } from './adapters/vaults/os.daemon/vaultAdapterOsDaemon';
 import { vaultAdapterOsDirect } from './adapters/vaults/os.direct/vaultAdapterOsDirect';
@@ -136,6 +137,7 @@ export const genContextKeyrack = (input: {
       'os.daemon': vaultAdapterOsDaemon,
       '1password': vaultAdapter1Password,
       'aws.config': vaultAdapterAwsConfig,
+      'aws.params': vaultAdapterAwsParams,
       'github.secrets': vaultAdapterGithubSecrets,
     },
   };

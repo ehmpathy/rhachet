@@ -118,6 +118,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -169,6 +170,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -266,6 +268,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -360,6 +363,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -444,6 +448,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -544,6 +549,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -666,6 +672,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -719,6 +726,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -839,6 +847,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };
@@ -982,6 +991,7 @@ describe('unlockKeyrackKeys.integration', () => {
             'os.daemon': genMockVaultAdapter(),
             '1password': genMockVaultAdapter(),
             'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
             'github.secrets': genMockVaultAdapter(),
           },
         };

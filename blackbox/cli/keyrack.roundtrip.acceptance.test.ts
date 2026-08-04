@@ -1,5 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTestTempDirNonRepo } from '@/blackbox/.test/infra/genTestTempDirNonRepo';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -634,6 +635,269 @@ describe('keyrack roundtrip', () => {
       then('value matches what was set', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.grant.key.secret).toEqual('regular-secure-secret-value');
+      });
+    });
+  });
+
+  /**
+   * [uc5] @all machine-wide + NON-sudo env roundtrip (the write-only-namespace bug)
+   *
+   * .what = the exact repro of the @all read-path defect: an @all key set into a normal env
+   *   (camp) inside a repo that has its own manifest org. before the fix, @all was a WRITE-ONLY
+   *   namespace — set printed ✔ and wrote a real host, but every read threw
+   *   `slug org '@all' does not match manifest org '<org>'` (a full-slug read) or reported
+   *   `absent` (the --org @all read). this journey clamps that the full roundtrip now works.
+   *
+   * .why = covers F1 (full-slug @all read no longer ORG_MISMATCH), F2 (unlock enumerates the
+   *   @all.<env>.* machine-wide slug even with a repo manifest present), F4/F5/F6 (a set @all
+   *   entry is gettable, not absent, and both read forms agree).
+   */
+  given('[case5] @all machine-wide + non-sudo env roundtrip', () => {
+    // kill daemon to isolate from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      // a repo WITH its own manifest org — so @all is genuinely cross-org, not the repo org
+      const r = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+      return r;
+    });
+
+    when('[t0] set --key PROBE --org @all --env camp --vault os.secure --mech PERMANENT_VIA_REPLICA', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'PROBE',
+            '--org',
+            '@all',
+            '--env',
+            'camp',
+            '--vault',
+            'os.secure',
+            '--mech',
+            'PERMANENT_VIA_REPLICA',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          stdin: 'all-camp-probe-secret-value\n',
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('response registers the machine-wide @all slug', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.slug).toEqual('@all.camp.PROBE');
+      });
+    });
+
+    when('[t1] get --key @all.camp.PROBE (full slug, no --org) before unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', '@all.camp.PROBE', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('does NOT throw ORG_MISMATCH (F1: @all is exempt from the manifest-org check)', () => {
+        expect(result.stdout).not.toContain('does not match manifest org');
+        expect(result.stderr).not.toContain('does not match manifest org');
+      });
+
+      then('status is locked (readable, just not yet unlocked)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('locked');
+      });
+    });
+
+    when('[t2] unlock --env camp (enumerates @all.camp.* even with a repo manifest)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'camp'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output contains the unlocked @all slug (F2)', () => {
+        expect(result.stdout).toContain('PROBE');
+      });
+    });
+
+    when('[t3] get --key @all.camp.PROBE (full slug) after unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', '@all.camp.PROBE', '--json'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted (F5/F6: not absent)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value matches what was set', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('all-camp-probe-secret-value');
+      });
+    });
+
+    when('[t4] get --org @all --env camp (the --org read form) after unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'get',
+            '--key',
+            'PROBE',
+            '--org',
+            '@all',
+            '--env',
+            'camp',
+            '--json',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('status is granted (both read forms agree — F6)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value matches what was set', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('all-camp-probe-secret-value');
+      });
+    });
+
+    when('[t5] list shows the @all entry (list agrees with get — F6)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'list'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('output lists the @all.camp.PROBE machine-wide slug', () => {
+        expect(result.stdout).toContain('PROBE');
+      });
+    });
+  });
+
+  /**
+   * [uc6] @all read from a NON-git cwd (the credential-helper-from-any-clone path — F7)
+   *
+   * .what = a git credential helper is invoked by git from arbitrary clones — sometimes from a
+   *   cwd that is not a git repo at all. an @all key is machine-wide (host manifest, keyed by
+   *   HOME, not gitroot), so it MUST be readable from a non-repo cwd. before F7, get/unlock threw
+   *   on `getGitRepoRoot` because the cwd was not a git repo.
+   *
+   * .why = clamps F7: with the same HOME (where the host manifest + ssh identity live) but a cwd
+   *   OUTSIDE any git repo, unlock + get for an @all key still work.
+   */
+  given('[case6] @all read from a non-git cwd (credential helper from any clone)', () => {
+    // kill daemon to isolate from prior cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const scene = useBeforeAll(async () => {
+      // a real repo where the @all key is SET (host manifest lands under HOME=repo.path)
+      const repo = await genTestTempRepo({ fixture: 'with-keyrack-multi-env' });
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+      });
+      await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'PROBE',
+          '--org',
+          '@all',
+          '--env',
+          'camp',
+          '--vault',
+          'os.secure',
+          '--mech',
+          'PERMANENT_VIA_REPLICA',
+          '--json',
+        ],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        stdin: 'non-repo-cwd-secret-value\n',
+      });
+      // a cwd that is NOT a git repo — the non-repo twin of genTestTempRepo (same
+      // os.tmpdir() root, never git-inited), so unlock/get must tolerate a non-repo cwd
+      const nonRepoCwd = genTestTempDirNonRepo({ label: 'keyrack' }).path;
+      return { repo, nonRepoCwd };
+    });
+
+    when('[t0] unlock --env camp from a non-git cwd (same HOME)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'camp'],
+          cwd: scene.nonRepoCwd,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('exits with status 0 (no "not a git repo" crash — F7)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('does NOT complain about a git repo absence', () => {
+        expect(result.stdout).not.toContain('not a git');
+        expect(result.stderr).not.toContain('not a git');
+      });
+
+      then('output contains the unlocked @all slug', () => {
+        expect(result.stdout).toContain('PROBE');
+      });
+    });
+
+    when('[t1] get --key @all.camp.PROBE from a non-git cwd (same HOME)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--key', '@all.camp.PROBE', '--json'],
+          cwd: scene.nonRepoCwd,
+          env: { HOME: scene.repo.path },
+        }),
+      );
+
+      then('status is granted (readable from a non-repo cwd — F7)', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.status).toEqual('granted');
+      });
+
+      then('value matches what was set', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.grant.key.secret).toEqual('non-repo-cwd-secret-value');
       });
     });
   });

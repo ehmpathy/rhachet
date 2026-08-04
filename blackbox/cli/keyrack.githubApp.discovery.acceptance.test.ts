@@ -182,7 +182,10 @@ describe('keyrack set github-app discovery (acceptance)', () => {
           .replace(/\x1B\]/g, '')
           .replace(/\r/g, '')
           .replace(/·/g, '')
-          .replace(/\s+$/gm, '');
+          // strip only end-of-line spaces/tabs — NOT \s+, whose \n match would eat a
+          // blank line's own newline and collapse the intentional separator between the
+          // guided-tree and the compact confirmation (matches the osSecure github-app suite)
+          .replace(/[ \t]+$/gm, '');
         const treeStart = stripped.indexOf('\u{1F510}');
         expect(stripped.slice(treeStart >= 0 ? treeStart : 0).trim()).toMatchSnapshot();
       });

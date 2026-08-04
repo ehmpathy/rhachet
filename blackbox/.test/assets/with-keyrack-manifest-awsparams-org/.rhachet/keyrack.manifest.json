@@ -1,0 +1,29 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.test.XAI_API_KEY": {
+      "slug": "testorg.test.XAI_API_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.test.GITHUB_APP_CREDS": {
+      "slug": "testorg.test.GITHUB_APP_CREDS",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.test.AWS_PROFILE": {
+      "slug": "testorg.test.AWS_PROFILE",
+      "exid": "testorg-test",
+      "vault": "aws.config",
+      "mech": "EPHEMERAL_VIA_AWS_SSO",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

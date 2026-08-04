@@ -1,6 +1,7 @@
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
+import type { KeyrackHostManifest } from './KeyrackHostManifest';
 import type { KeyrackHostVault } from './KeyrackHostVault';
 import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
 import type { KeyrackKeyHostMetaOf } from './KeyrackKeyHostMeta';
@@ -19,6 +20,14 @@ type KeyrackHostVaultGetMethod<TVault extends KeyrackHostVault> = (input: {
   meta?: KeyrackKeyHostMetaOf<TVault> | null;
   owner?: string | null;
   identity?: string | null;
+  // .what = the host manifest, threaded by the batch driver so a vault can decide any manifest-
+  //         derived identity at its own boundary
+  // .why = the --org hardcut: aws.params derives WHICH AWS identity reads a key (the grove's IMDS
+  //        role for @all, the org's declared AWS_PROFILE for a specific org) from this manifest. a
+  //        GENERAL keyrack object is threaded here, never an aws.params-specific type — so the
+  //        generic contract stays vault-agnostic and every other vault simply ignores it
+  //        (see .agent/repo=.this/role=keyrack/briefs/define.keyrack-org-scope.grove-vs-tree.md)
+  hostManifest?: KeyrackHostManifest | null;
 }) => Promise<KeyrackKeyGrant | null>;
 
 /**
@@ -132,12 +141,32 @@ export interface KeyrackHostVaultAdapter<
    *
    * .note = exid is optional; only 1password requires it
    * .note = owner is optional; enables per-owner vault isolation (os.direct, os.secure)
+   * .note = mech is optional; aws.params destroys the SSM param it wrote for the key
+   * .note = meta is optional; aws.params uses meta.region to target the regional SSM param it
+   *         destroys (the vault destroys the param it manages, so a removed key strands no secret)
+   * .note = returns { destroyed: { exid } } when the adapter destroyed a remote secret it wrote
+   *         (aws.params), so the CLI can echo what changed. every other adapter returns
+   *         an implicit void (no remote secret destroyed to report); the `| void` arm keeps them
+   *         unedited
    */
-  del: (input: {
-    slug: string;
-    exid?: string | null;
-    owner?: string | null;
-  }) => Promise<void>;
+  del: (
+    input: {
+      slug: string;
+      exid?: string | null;
+      owner?: string | null;
+      // mech + meta are REQUIRED (null when unknown), not optional — an internal contract input
+      // must be consciously supplied so a forgotten value cannot hide behind `undefined`
+      // (rule.forbid.undefined-inputs). the caller (delKeyrackKeyHost) always has both from the
+      // manifest entry; aws.params reads them to target the owned SSM param it destroys, every
+      // other adapter ignores them
+      mech: KeyrackGrantMechanism | null;
+      meta: KeyrackKeyHostMetaOf<TVault> | null;
+    },
+    // context mirrors set: aws.params resolves the org-scope AWS_PROFILE from context.hostManifest
+    // so a scoped-org del authenticates as the org's declared identity (the --org hardcut governs
+    // the mutation exactly as the read); every other adapter ignores context
+    context?: ContextKeyrack,
+  ) => Promise<{ destroyed: { exid: string } } | null | void>;
 
   /**
    * .what = clear cached credentials for a key (optional)

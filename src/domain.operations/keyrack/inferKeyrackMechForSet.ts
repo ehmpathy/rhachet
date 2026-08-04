@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { BadRequestError, ConstraintError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -35,6 +35,18 @@ export const inferKeyrackMechForSet = async (input: {
   if (supported.length === 1) {
     return supported[0]!;
   }
+
+  // no-TTY guard: an interactive prompt has no answer when stdin is not a terminal (a
+  // provision task, a piped/redirected stdin). fail loud — state --mech as the fix — rather
+  // than block forever on a read no process can answer; unattended `set` must never hang
+  if (!process.stdin.isTTY)
+    throw new ConstraintError(
+      'a mechanism choice is required but stdin is not a terminal',
+      {
+        hint: `pass --mech <${supported.join('|')}> so no interactive prompt is needed`,
+        supported,
+      },
+    );
 
   // multiple mechs: prompt via stdin
   // build options list with treestruct markers

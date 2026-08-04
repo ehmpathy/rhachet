@@ -42,7 +42,8 @@ const envWithMockGh = (home: string) => ({
  * .why = locks the caller-visible tree so reviewers vibecheck exact output and drift
  *        surfaces in diffs; volatile temp paths are masked so snapshots stay stable
  *
- * .note = trims pty echo noise up to the first tree glyph (🔐 success or 🐢 blocked)
+ * .note = trims pty echo noise up to the keyrack lock root glyph (🔐) — keyrack roots BOTH
+ *         its success and its blocked output on 🔐, never a role mascot
  */
 const cleanPtyOutput = (str: string): string => {
   const stripped = str
@@ -50,16 +51,16 @@ const cleanPtyOutput = (str: string): string => {
     .replace(/\x1B\]/g, '') // OSC sequences
     .replace(/\r/g, '') // carriage returns from PTY
     .replace(/·/g, '') // middle dots from PTY
-    .replace(/\s+$/gm, '') // trim end-of-line whitespace
+    // strip only end-of-line spaces/tabs — NOT \s+, whose \n match would eat a
+    // blank line's own newline and collapse an intentional stdout/stderr separator
+    .replace(/[ \t]+$/gm, '') // strip end-of-line spaces + tabs
     .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX') // temp paths
     .replace(/node:events:[\s\S]*?Node\.js v[\d.]+/g, ''); // EPIPE stack noise from PTY
 
-  // trim pty echo noise up to the first tree glyph (🔐 success or 🐢 blocked)
+  // trim pty echo noise up to the keyrack lock root glyph (🔐) — keyrack roots both success
+  // and blocked output on 🔐, so the lock is the single tree-start marker
   const lockStart = stripped.indexOf('\u{1F510}');
-  const turtleStart = stripped.indexOf('\u{1F422}');
-  const candidates = [lockStart, turtleStart].filter((i) => i >= 0);
-  const treeStart = candidates.length ? Math.min(...candidates) : -1;
-  return stripped.slice(treeStart >= 0 ? treeStart : 0).trim();
+  return stripped.slice(lockStart >= 0 ? lockStart : 0).trim();
 };
 
 /**
@@ -71,7 +72,9 @@ const cleanPtyOutput = (str: string): string => {
  */
 const cleanCliOutput = (str: string): string =>
   asSnapshotSafe(str)
-    .replace(/\s+$/gm, '')
+    // strip only end-of-line spaces/tabs — NOT \s+, whose \n match would eat a
+    // blank line's own newline and collapse an intentional stdout/stderr separator
+    .replace(/[ \t]+$/gm, '')
     .trim();
 
 describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
@@ -184,7 +187,9 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
           .replace(/\x1B\]/g, '') // OSC sequences
           .replace(/\r/g, '') // carriage returns from PTY
           .replace(/·/g, '') // middle dots from PTY
-          .replace(/\s+$/gm, ''); // trim end-of-line whitespace
+          // strip only end-of-line spaces/tabs — NOT \s+, whose \n match would eat a
+          // blank line's own newline and collapse an intentional separator
+          .replace(/[ \t]+$/gm, ''); // strip end-of-line spaces + tabs
         // trim PTY echo noise before tree header
         const treeStart = stripped.indexOf('\u{1F510}');
         const clean = stripped

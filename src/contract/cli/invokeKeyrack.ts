@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError, ConstraintError } from 'helpful-errors';
+import { BadRequestError, ConstraintError, HelpfulError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
@@ -29,7 +29,10 @@ import { asResolvedAttempt } from '@src/domain.operations/keyrack/asResolvedAtte
 import { asResolvedEnvForSet } from '@src/domain.operations/keyrack/asResolvedEnvForSet';
 import { asSortedHostSlugs } from '@src/domain.operations/keyrack/asSortedHostSlugs';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
+import { asKeyrackDelReport } from '@src/domain.operations/keyrack/cli/asKeyrackDelReport';
+import { asKeyrackErroredKeyTip } from '@src/domain.operations/keyrack/cli/asKeyrackErroredKeyTip';
 import { asKeyrackListTreestruct } from '@src/domain.operations/keyrack/cli/asKeyrackListTreestruct';
+import { asKeyrackUnlockExitCode } from '@src/domain.operations/keyrack/cli/asKeyrackUnlockExitCode';
 import { asShellEscapedSecret } from '@src/domain.operations/keyrack/cli/asShellEscapedSecret';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
 import {
@@ -64,6 +67,7 @@ import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/se
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlockKeyrackKeys';
+import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -147,15 +151,7 @@ export const invokeKeyrack = ({
         const owner = deriveOwner(opts);
         // get gitroot to check for repo manifest
         // note: null is valid when not in a git repo; other errors propagate
-        const gitroot = await getGitRepoRoot({ from: process.cwd() }).catch(
-          (error) => {
-            // allow "not a git repo" case - return null
-            if (error instanceof Error && error.message.includes('not a git'))
-              return null;
-            // propagate other errors (permissions, git not installed, etc)
-            throw error;
-          },
-        );
+        const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
 
         // --prikey takes precedence over --pubkey (both accept private key paths)
         const keyPath = opts.prikey ?? opts.pubkey;
@@ -247,11 +243,17 @@ export const invokeKeyrack = ({
       try {
         result = genKeyrackInfra({ org: opts.org }, { ghRun });
       } catch (error) {
-        // presentation boundary: render the failure in the same turtle treestruct the
-        // success path uses (not a raw stack), surface it loud, and exit non-zero
-        if (!(error instanceof Error)) throw error;
+        // presentation boundary: render an EXPECTED (domain) failure in the same turtle
+        // treestruct the success path uses (not a raw stack), surface it loud, exit non-zero.
+        // allowlist ONLY helpful-errors — genKeyrackInfra + its gh seams throw these with a
+        // hint (e.g. gh unauthenticated / forbidden). any other error is a code defect:
+        // rethrow it UNCHANGED so its stack propagates and it is never masked as a friendly
+        // "blocked" report (rule.forbid.failhide)
+        if (!(error instanceof HelpfulError)) throw error;
         console.error(getKeyrackInfraInitErrorReport({ error }));
-        process.exitCode = 1;
+        // a ConstraintError is caller-fixable (exit 2); any other HelpfulError
+        // (a MalfunctionError) is server-side (exit 1) — rule.require.exit-code-semantics
+        process.exitCode = error instanceof ConstraintError ? 2 : 1;
         return;
       }
 
@@ -465,8 +467,9 @@ export const invokeKeyrack = ({
           throw new BadRequestError('--for must be "repo"');
         }
 
-        // get gitroot for repo manifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        // get gitroot for repo manifest — null-tolerant: a keyrack read must serve machine-wide
+        // @all keys even when the cwd is not a git repo (a git credential helper from a bare clone)
+        const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
 
         // generate lightweight context (no manifest decryption, no passphrase prompt)
         // .note = get uses --for as grant scope, not owner alias; only --owner or top-level --owner apply
@@ -625,8 +628,9 @@ export const invokeKeyrack = ({
           );
         }
 
-        // get gitroot for repo manifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
+        // get gitroot for repo manifest — null-tolerant: a keyrack read must serve machine-wide
+        // @all keys even when the cwd is not a git repo (a git credential helper from a bare clone)
+        const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
 
         // generate lightweight context (no manifest decryption, no passphrase prompt)
         const context = await genContextKeyrackGrantGet({
@@ -723,7 +727,7 @@ export const invokeKeyrack = ({
     )
     .requiredOption(
       '--vault <vault>',
-      'storage vault: os.direct, os.secure, os.daemon, os.envvar, 1password',
+      'storage vault: os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, aws.params, github.secrets',
     )
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
@@ -766,6 +770,7 @@ export const invokeKeyrack = ({
           'os.envvar',
           '1password',
           'aws.config',
+          'aws.params',
           'github.secrets',
         ];
         if (!validVaults.includes(opts.vault as KeyrackHostVault)) {
@@ -883,32 +888,45 @@ export const invokeKeyrack = ({
         //         registered, invalid app choice from the github-app guided setup) is
         //         rendered as the turtle blocked treestruct — the same visual language the
         //         success path uses — instead of a raw `ConstraintError: …` class-name dump
-        let results: Awaited<ReturnType<typeof setKeyrackKey>>['results'];
-        try {
-          ({ results } = await setKeyrackKey(
-            {
-              key: opts.key,
-              env: resolvedEnv,
-              org: resolvedOrg,
-              vault: opts.vault as KeyrackHostVault,
-              mech,
-              exid: opts.exid ?? null,
-              maxDuration: opts.maxDuration ?? null,
-              repoManifest: repoManifest ?? undefined,
-              at: opts.at ?? null,
-            },
-            context,
-          ));
-        } catch (error) {
-          if (!(error instanceof ConstraintError)) throw error;
-          console.error(
-            getKeyrackBlockedReport({ error, command: 'keyrack set' }),
-          );
-          // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics).
-          // set the code + return (not process.exit) so the boundary stays testable
+        // run the set inside a const IIFE that yields the outcome, or null on a
+        // caller-fixable ConstraintError — so results binds to const, never let
+        // (rule.require.immutable-vars). the boundary below reads the null sentinel and
+        // exits 2, so no mutable value is threaded out of the try
+        const setOutcome = await (async (): Promise<Awaited<
+          ReturnType<typeof setKeyrackKey>
+        > | null> => {
+          try {
+            return await setKeyrackKey(
+              {
+                key: opts.key,
+                env: resolvedEnv,
+                org: resolvedOrg,
+                vault: opts.vault as KeyrackHostVault,
+                mech,
+                exid: opts.exid ?? null,
+                maxDuration: opts.maxDuration ?? null,
+                repoManifest: repoManifest ?? undefined,
+                at: opts.at ?? null,
+              },
+              context,
+            );
+          } catch (error) {
+            if (!(error instanceof ConstraintError)) throw error;
+            console.error(
+              getKeyrackBlockedReport({ error, command: 'keyrack set' }),
+            );
+            return null; // caller-fixable fault → the boundary below exits 2
+          }
+        })();
+
+        // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics).
+        // set the code + return (not process.exit) so the boundary stays testable
+        if (setOutcome === null) {
           process.exitCode = 2;
           return;
         }
+
+        const results = setOutcome;
 
         // output results
         if (opts.json) {
@@ -931,8 +949,16 @@ export const invokeKeyrack = ({
           for (const result of results) {
             console.log(`   └─ ${result.slug}`);
             console.log(`      ├─ mech: ${result.mech}`);
-            console.log(`      └─ vault: ${result.vault}`);
+            // aws.params echoes the COMPUTED ssm param name (the exid) so the human sees exactly
+            // where the value is referenced — the autocompute path, with no path typed (vision uc1)
+            if (result.vault === 'aws.params' && result.exid) {
+              console.log(`      ├─ vault: ${result.vault}`);
+              console.log(`      └─ name: ${result.exid}`);
+            } else {
+              console.log(`      └─ vault: ${result.vault}`);
+            }
           }
+
           if (opts.env === 'sudo') {
             console.log('');
             console.log(
@@ -1082,20 +1108,36 @@ export const invokeKeyrack = ({
         // delegate to domain operation
         const result = await delKeyrackKey({ slug }, context);
 
-        // output results
+        // output results — json mode renders the shape and returns early.
         if (opts.json) {
-          console.log(JSON.stringify({ slug, effect: result.effect }, null, 2));
-        } else {
-          console.log('');
-          if (result.effect === 'deleted') {
-            console.log(`🗑️ keyrack del`);
-            console.log(`   └─ ${slug} removed`);
-          } else {
-            console.log(`🗑️ keyrack del`);
-            console.log(`   └─ ${slug} not found (already absent)`);
-          }
-          console.log('');
+          console.log(
+            JSON.stringify(
+              {
+                slug,
+                effect: result.effect,
+                // include the destroyed descriptor ONLY when keyrack destroyed a remote secret
+                // (the aws.params owned mech); a plain removal omits it, so a peer vault's del
+                // json is unchanged — mirrors the human-readable render (asKeyrackDelReport
+                // omits it when null) and holds zero peer blast radius
+                ...(result.destroyed ? { destroyed: result.destroyed } : {}),
+              },
+              null,
+              2,
+            ),
+          );
+          return;
         }
+
+        // human-readable tree output — the per-outcome render (absent, plain removal, removal +
+        // a destroyed remote secret) is a pure transformer so the operator-seen text is
+        // unit-snapshottable
+        console.log(
+          asKeyrackDelReport({
+            slug,
+            effect: result.effect,
+            destroyed: result.destroyed ?? null,
+          }),
+        );
       },
     );
 
@@ -1145,9 +1187,13 @@ export const invokeKeyrack = ({
           });
         }
 
-        // get gitroot and repoManifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
+        // get gitroot and repoManifest — null-tolerant: unlock must serve machine-wide @all keys
+        // from any cwd, even one that is not a git repo (a bare clone). a null gitroot means no
+        // repo manifest, and unlockKeyrackKeys' no-manifest branch handles the @all-only path.
+        const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
+        const repoManifest = gitroot
+          ? await daoKeyrackRepoManifest.get({ gitroot })
+          : null;
 
         // blank line before passphrase prompt (matches `set` output cadence)
         console.log('');
@@ -1161,32 +1207,39 @@ export const invokeKeyrack = ({
         });
         await daoKeyrackHostManifest.get({ owner }, context);
 
-        // unlock keys and send to daemon
+        // unlock keys and send to daemon — a const IIFE (no mutable var) mirrors the set
+        // path: it returns the batch outcome, or null on a caller-fixable fault.
         // .note = a caller-fixable ConstraintError (e.g. a malformed github-app pem the
         //         caller stored) is caught here and rendered as the turtle blocked
         //         treestruct — the same clean visual the set path uses — instead of a raw
         //         class-name dump or an uncaught crash
-        let unlocked: Awaited<ReturnType<typeof unlockKeyrackKeys>>['unlocked'];
-        let omitted: Awaited<ReturnType<typeof unlockKeyrackKeys>>['omitted'];
-        try {
-          ({ unlocked, omitted } = await unlockKeyrackKeys(
-            {
-              owner,
-              env: opts.env,
-              key: opts.key,
-              duration: opts.duration,
-            },
-            context,
-          ));
-        } catch (error) {
-          if (!(error instanceof ConstraintError)) throw error;
-          console.error(
-            getKeyrackBlockedReport({ error, command: 'keyrack unlock' }),
-          );
-          // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics)
+        const unlockOutcome = await (async () => {
+          try {
+            return await unlockKeyrackKeys(
+              {
+                owner,
+                env: opts.env,
+                key: opts.key,
+                duration: opts.duration,
+              },
+              context,
+            );
+          } catch (error) {
+            if (!(error instanceof ConstraintError)) throw error;
+            console.error(
+              getKeyrackBlockedReport({ error, command: 'keyrack unlock' }),
+            );
+            return null; // caller-fixable fault → the boundary below exits 2
+          }
+        })();
+
+        // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics)
+        if (unlockOutcome === null) {
           process.exitCode = 2;
           return;
         }
+
+        const { unlocked, omitted } = unlockOutcome;
 
         // output results
         if (opts.json) {
@@ -1204,27 +1257,58 @@ export const invokeKeyrack = ({
             const entry = allEntries[i]!;
             const isLast = i === allEntries.length - 1;
 
+            // an unlocked key — render its grant
             if (entry.type === 'unlocked') {
               emitKeyrackKeyBranch({
                 entry: { type: 'unlocked', grant: entry.key },
                 isLast,
               });
-            } else {
-              // omitted key — show absent or removed based on reason
-              const slug = entry.slug;
-              const { env: slugEnv, keyName } = asKeyrackSlugParts({ slug });
+              continue;
+            }
+
+            // a live fault isolated to this one key (G5) — surface it distinctly so a
+            // co-batched healthy key still unlocked. the tip render (bare message + fix-or-retry)
+            // lives in the asKeyrackErroredKeyTip transformer (rule.forbid.inline-decode-friction)
+            if (entry.reason === 'errored') {
               emitKeyrackKeyBranch({
                 entry: {
-                  type: entry.reason, // 'absent' or 'removed'
-                  slug,
-                  tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
+                  type: 'errored',
+                  slug: entry.slug,
+                  tip: asKeyrackErroredKeyTip({
+                    cause: entry.cause,
+                    env: opts.env ?? null,
+                  }),
                 },
                 isLast,
               });
+              continue;
             }
+
+            // an omitted key — show absent / lost / remote based on reason
+            const { env: slugEnv, keyName } = asKeyrackSlugParts({
+              slug: entry.slug,
+            });
+            emitKeyrackKeyBranch({
+              entry: {
+                type: entry.reason, // 'absent' | 'lost' | 'remote'
+                slug: entry.slug,
+                tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
+              },
+              isLast,
+            });
           }
           console.log('');
         }
+
+        // exit non-zero when any key errored (G5): the grove chains `unlock && start-app`, so a
+        // silent exit 0 with an absent credential would let the app start credential-less. the
+        // SPECIFIC code follows exit-code-semantics on the cause — a purely caller-fixable batch
+        // (every errored cause a ConstraintError: a grant/region/identity to fix) exits 2, so a
+        // retry-loop fixes config rather than a blind retry; any server/transient fault (a
+        // MalfunctionError or an unclassed cause) exits 1. both stay distinct from the
+        // all-succeeded / all-absent-benign case, which remains exit 0
+        const exitCode = asKeyrackUnlockExitCode({ omitted });
+        if (exitCode !== null) process.exitCode = exitCode;
       },
     );
 

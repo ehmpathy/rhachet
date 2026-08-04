@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`aws.whoami skill surface given: [case1] invoked with no --env when: [t0] the skill runs with no arguments then: stderr matches snapshot 1`] = `"usage: aws.whoami --env <test|prep|prod>"`;
+
+exports[`aws.whoami skill surface given: [case2] keyrack returns an empty AWS_PROFILE when: [t0] the skill runs with --env test then: stderr matches snapshot 1`] = `"aws.whoami: keyrack returned no AWS_PROFILE for env=test — unlock the session first"`;
+
+exports[`aws.whoami skill surface given: [case3] keyrack returns a profile and aws returns an identity when: [t0] the skill runs with --env test then: stdout matches snapshot 1`] = `
+"{
+    "UserId": "AIDAEXAMPLEUSERID",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:role/ehmpath-test"
+}"
+`;
