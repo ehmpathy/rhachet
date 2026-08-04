@@ -47,7 +47,6 @@ exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (p
 "🔐 keyrack fill (env: test, keys: 1, owners: 1)
 🔑 key 1/1, API_KEY, for 1 owner
    └─ for owner default
-[keyrack-daemon] spawned background daemon (pid: __PID__)
       ├─ set the key
       │  ├─
       │  │

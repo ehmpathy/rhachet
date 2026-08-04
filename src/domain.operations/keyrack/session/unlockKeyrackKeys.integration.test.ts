@@ -1,3 +1,32 @@
+/**
+ * .what = every case here injects `genMockVaultAdapter` as its vault
+ * .why = `rule.forbid.integration.mocks` asks that a test double in an integration
+ * test be documented as unavoidable. two facts settle it for this file:
+ *
+ *   1. it is an INJECTED FAKE, not a module mock. `genMockVaultAdapter` is a real
+ *      in-memory implementation of the `KeyrackHostVaultAdapter` interface, handed in
+ *      through `context.vaultAdapters`. there is no `jest.mock()` anywhere in this
+ *      file. the rule's own remedy for a mock is exactly this pair — "fakes:
+ *      simplified implementations that behave like the real dependency" plus
+ *      "dependency injection: pass the dependency as a parameter". the NAME says
+ *      mock; the shape is a fake. (filed to the council: rename it `genFakeVault*`,
+ *      so the label stops reading as the defect the rule forbids.)
+ *
+ *   2. the real vaults are unreachable from a test by construction. the seven
+ *      adapters this operation dispatches over are the host keychain, 1password,
+ *      an aws sso browser round trip, github secrets, and the daemon itself. each
+ *      needs an interactive human — a yubikey touch, an sso approval, a keychain
+ *      prompt — and several would MUTATE the developer's real credential store.
+ *      an integration test that writes to the host keychain is not a stronger test;
+ *      it is a destructive one.
+ *
+ * .what-IS-real = the boundary this file actually integrates against is the DAEMON,
+ * and none of it is faked: real unix sockets in the real `XDG_RUNTIME_DIR`, real
+ * spawned daemon processes, real `age` keypairs, a real host manifest written to a
+ * real temp HOME. the vault is faked precisely so the daemon can be real — every
+ * assertion below reads daemon state, never vault state.
+ */
+import { MalfunctionError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
@@ -13,6 +42,7 @@ import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemo
 import { daemonAccessGet } from '@src/domain.operations/keyrack/daemon/sdk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 describe('unlockKeyrackKeys.integration', () => {
@@ -715,6 +745,269 @@ describe('unlockKeyrackKeys.integration', () => {
         });
         // ownerA's daemon exists from previous test, but shouldn't have TOKEN_B
         expect(daemonResultA?.keys.length ?? 0).toBe(0);
+      });
+    });
+  });
+
+  given('[case6] every key omitted, so none reach the daemon', () => {
+    // .why = an unlock that grants zero keys must not leave a daemon behind. the
+    // findsert sits inside the `keysToUnlock.length > 0` branch precisely so this
+    // path spawns none — a leak closed at its source rather than by expiry.
+    // .note = this case uses its own owner so its socket path is untouched by the
+    // cases above, which each spawn a daemon of their own
+    const ownerNoKeys = 'ownernokeys';
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    // reap a daemon at this path, whether or not one should be here
+    // .why = when the regression this case clamps is present, the unlock DOES
+    // spawn a daemon — so a red run of this very case leaks one, and its orphaned
+    // socket would then fail the next run's precondition. observed for real
+    const reapOwnDaemon = () => {
+      const socketPath = getKeyrackDaemonSocketPath({ owner: ownerNoKeys });
+      const pidPath = socketPath.replace(/\.sock$/, '.pid');
+      if (existsSync(pidPath)) {
+        try {
+          process.kill(parseInt(readFileSync(pidPath, 'utf-8'), 10), 'SIGTERM');
+        } catch (error) {
+          // allow expected errors: ESRCH = no such process (already dead)
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+        }
+        unlinkSync(pidPath);
+      }
+      if (existsSync(socketPath)) unlinkSync(socketPath);
+    };
+
+    beforeAll(reapOwnDaemon);
+    afterAll(reapOwnDaemon);
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.age',
+          owner: ownerNoKeys,
+          recipients: [recipient],
+          hosts: {
+            'ehmpathy.sudo.GONE_TOKEN': {
+              slug: 'ehmpathy.sudo.GONE_TOKEN',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ehmpathy',
+              meta: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }),
+      });
+    });
+
+    when('[t0] the vault no longer holds the only configured key', () => {
+      then('the unlock omits it and spawns no daemon', async () => {
+        // an empty vault makes adapter.get return null, so the key is omitted
+        // as 'lost' and keysToUnlock stays empty
+        // .why-faked = see the file header for the general case. THIS case needs
+        // one more thing of its vault: a deterministic MISS. e17 is the claim that
+        // an unlock which grants zero keys spawns no daemon, so the vault must
+        // reliably fail to answer for a key the manifest declares. against a real
+        // vault that state is unreachable without a mutation of the host store —
+        // to prove the absence, we would have to create the absence
+        const context: ContextKeyrack = {
+          owner: ownerNoKeys,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': genMockVaultAdapter({ storage: {} }),
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        const socketPath = getKeyrackDaemonSocketPath({ owner: ownerNoKeys });
+        expect(existsSync(socketPath)).toBe(false);
+
+        const result = await unlockKeyrackKeys(
+          { owner: ownerNoKeys, env: 'sudo', key: 'GONE_TOKEN' },
+          context,
+        );
+
+        expect(result.unlocked.length).toBe(0);
+        expect(result.omitted.map((one) => one.reason)).toEqual(['lost']);
+
+        // the clamp: no socket, so no daemon was spawned for a session that
+        // established no keys. with the findsert at the top of the operation
+        // this file would exist, and its daemon would hold zero keys forever
+        expect(existsSync(socketPath)).toBe(false);
+      });
+    });
+  });
+
+  given('[case7] a vault slower to unlock than the daemon idle window', () => {
+    // .why = this clamps acceptance #2 — "the race the original guard prevented
+    // does NOT return". that race is spawn -> first-served-command, and the real
+    // vault flow between them is interactive and human-paced: yubikey, sso, a
+    // browser round trip, each with ~3min timeouts, looped once per key. with the
+    // findsert at the TOP of the operation a fresh daemon must survive that whole
+    // flow on startup grace alone; moved to just before the send, the window is
+    // milliseconds. this case makes the vault slower than the idle window, so the
+    // two orders give opposite outcomes and the clamp has teeth.
+    jest.setTimeout(30000);
+
+    const ownerSlowVault = 'ownerslowvault';
+    const slugSlowVault = 'ehmpathy.sudo.SLOW_TOKEN';
+    const secretSlowVault = 'slow-vault-secret';
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    const reapOwnDaemon = () => {
+      const socketPath = getKeyrackDaemonSocketPath({ owner: ownerSlowVault });
+      const pidPath = socketPath.replace(/\.sock$/, '.pid');
+      if (existsSync(pidPath)) {
+        try {
+          process.kill(parseInt(readFileSync(pidPath, 'utf-8'), 10), 'SIGTERM');
+        } catch (error) {
+          // allow expected errors: ESRCH = no such process (already dead)
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+        }
+        unlinkSync(pidPath);
+      }
+      if (existsSync(socketPath)) unlinkSync(socketPath);
+    };
+
+    beforeAll(reapOwnDaemon);
+    afterAll(() => {
+      delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
+      delete process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'];
+      reapOwnDaemon();
+    });
+
+    const manifest = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      return daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.age',
+          owner: ownerSlowVault,
+          recipients: [recipient],
+          hosts: {
+            [slugSlowVault]: {
+              slug: slugSlowVault,
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ehmpathy',
+              meta: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }),
+      });
+    });
+
+    when('[t0] the vault takes several idle windows to answer', () => {
+      then('the key still reaches the daemon', async () => {
+        // a 2s idle window against a 6s vault: the daemon cannot survive the
+        // vault flow on startup grace, so it must not be spawned before it
+        process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'] = '200';
+        process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'] = '2000';
+
+        // .why-faked = see the file header for the general case. THIS case needs
+        // one more thing of its vault: a CONTROLLED LATENCY. the race it clamps is
+        // spawn -> first-served-command, and its width is set by how long the vault
+        // takes. a real vault's latency is a human at a yubikey — unbounded above,
+        // near-zero when a token is cached, and never the same twice. a fake whose
+        // delay is a named number is what turns a race into an assertion; a real
+        // vault here would make this case a coin flip
+        // wrap the fake vault so its read is slower than three idle windows
+        const vaultFast = genMockVaultAdapter({
+          storage: { [slugSlowVault]: secretSlowVault },
+        });
+        // pin .get before we wrap it — the adapter contract types it as nullable
+        // .why = a wrapper that quietly no-ops when the method is absent would let
+        // this case pass for the wrong reason: the vault would answer at once
+        // rather than slowly, and the race it clamps would never be run at all
+        const getFast =
+          vaultFast.get ??
+          MalfunctionError.throw('mock vault adapter has no get method');
+        const vaultSlow = {
+          ...vaultFast,
+          get: async (...args: Parameters<typeof getFast>) => {
+            await new Promise<void>((emit) => setTimeout(emit, 6000));
+            return getFast(...args);
+          },
+        };
+
+        const context: ContextKeyrack = {
+          owner: ownerSlowVault,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
+          hostManifest: manifest,
+          repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': vaultSlow,
+            'os.secure': genMockVaultAdapter(),
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        const result = await unlockKeyrackKeys(
+          { owner: ownerSlowVault, env: 'sudo', key: 'SLOW_TOKEN' },
+          context,
+        );
+        expect(result.unlocked.length).toBe(1);
+
+        // the clamp: the daemon actually holds the key. move the findsert back
+        // to the top of the operation and the daemon spawns before the 6s vault
+        // read, idles out at 2s, unlinks its socket — so the UNLOCK that follows
+        // reaches no one and this read finds no key
+        const socketPath = getKeyrackDaemonSocketPath({
+          owner: ownerSlowVault,
+        });
+        const daemonResult = await daemonAccessGet({
+          socketPath,
+          slugs: [slugSlowVault],
+        });
+        expect(daemonResult?.keys.length).toBe(1);
+        expect(daemonResult?.keys[0]?.key.secret).toEqual(secretSlowVault);
+
+        delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
+        delete process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'];
       });
     });
   });

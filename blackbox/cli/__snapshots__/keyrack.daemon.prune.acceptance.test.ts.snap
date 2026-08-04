@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack daemon prune given: [case1] two daemons, each born under a HOME of its own when: [t0] prune --owner @all runs under only one of those HOMEs then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack daemon prune
+   ├─ pruned daemon for owner=default (pid: __PID__)
+   ├─ pruned daemon for owner=default (pid: __PID__)
+   └─ pruned 2 daemons
+
+"
+`;
+
+exports[`keyrack daemon prune given: [case1] two daemons, each born under a HOME of its own when: [t0] prune --owner @all runs under only one of those HOMEs then: the empty-reap report matches snapshot 1`] = `
+"
+🔐 keyrack daemon prune
+   └─ no daemon active for any owner
+
+"
+`;
+
+exports[`keyrack daemon prune given: [case2] a runtime dir with no keyrack daemon in it when: [t0] a human asks the command to explain itself then: help matches snapshot 1`] = `
+"Usage: rhachet keyrack daemon prune [options]
+
+kill daemon process so next command starts fresh
+
+Options:
+  --owner <owner>  owner identity (default: default, @all for all daemons)
+  --for <owner>    alias for --owner
+  --json           output as json (robot mode)
+  -h, --help       display help for command
+"
+`;
+
+exports[`keyrack daemon prune given: [case2] a runtime dir with no keyrack daemon in it when: [t1] prune runs for an owner that has no daemon then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack daemon prune
+   └─ no daemon active for owner=nosuchowner
+
+"
+`;
+
+exports[`keyrack daemon prune given: [case2] a runtime dir with no keyrack daemon in it when: [t2] the robot channel is asked for the same empty reap then: stdout matches snapshot 1`] = `
+"{
+  "pruned": []
+}
+"
+`;
+
+exports[`keyrack daemon prune given: [case3] exactly one daemon, under the caller’s own HOME when: [t0] prune runs with no --owner, as a human would then: stdout matches snapshot 1`] = `
+"
+🔐 keyrack daemon prune
+   └─ pruned daemon for owner=default (pid: __PID__)
+
+"
+`;
+
+exports[`keyrack daemon prune given: [case3] exactly one daemon, under the caller’s own HOME when: [t1] the robot channel reports a reap that is NOT empty then: stdout matches snapshot 1`] = `
+"{
+  "pruned": [
+    {
+      "owner": null,
+      "pid": 0
+    }
+  ]
+}
+"
+`;

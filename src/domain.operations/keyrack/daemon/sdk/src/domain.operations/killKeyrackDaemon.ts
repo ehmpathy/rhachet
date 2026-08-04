@@ -1,6 +1,8 @@
+import { asKeyrackDaemonPidPath } from '@src/domain.operations/keyrack/daemon/infra/asKeyrackDaemonPidPath';
+import { delFileSync } from '@src/domain.operations/keyrack/daemon/infra/delFileSync';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 
-import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 /**
  * .what = kill the keyrack daemon if active
@@ -16,14 +18,14 @@ export const killKeyrackDaemon = (input?: {
   // resolve socket path
   const socketPath =
     input?.socketPath ?? getKeyrackDaemonSocketPath({ owner: input?.owner });
-  const pidPath = socketPath.replace(/\.sock$/, '.pid');
-
-  // check if pid file exists
-  if (!existsSync(pidPath)) {
-    return { killed: false, pid: null };
-  }
+  const pidPath = asKeyrackDaemonPidPath({ socketPath });
 
   // read pid
+  // .note = no existsSync guard ahead of this read, deliberately. existsSync
+  // swallows every stat error, so an EACCES on the pid file would return "no
+  // daemon here" from the guard and the allowlist below would never see it —
+  // the exact failhide this catch exists to close, moved one line earlier. the
+  // read's own ENOENT branch reports absence, and it reports it honestly
   let pid: number;
   try {
     const pidStr = readFileSync(pidPath, 'utf-8').trim();
@@ -31,7 +33,14 @@ export const killKeyrackDaemon = (input?: {
     if (isNaN(pid)) {
       return { killed: false, pid: null };
     }
-  } catch {
+  } catch (error) {
+    // allow expected errors: ENOENT = the daemon unlinked its own pid file just
+    // before this read. that race is normal and benign — it means no daemon
+    // .why = EACCES here means a pid file this uid may not read — a live daemon owned
+    // by another user. to report that as { killed: false, pid: null } tells the caller
+    // no daemon is present, so `daemon prune` would count it reaped while it stays
+    // alive, and the caller would never learn a real daemon outlived the prune
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     return { killed: false, pid: null };
   }
 
@@ -44,18 +53,8 @@ export const killKeyrackDaemon = (input?: {
   }
 
   // cleanup files
-  try {
-    if (existsSync(socketPath)) unlinkSync(socketPath);
-  } catch (error) {
-    // allow expected errors: ENOENT = file already cleaned up
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  }
-  try {
-    if (existsSync(pidPath)) unlinkSync(pidPath);
-  } catch (error) {
-    // allow expected errors: ENOENT = file already cleaned up
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  }
+  delFileSync({ path: socketPath });
+  delFileSync({ path: pidPath });
 
   return { killed: true, pid };
 };

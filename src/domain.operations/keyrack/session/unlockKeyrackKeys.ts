@@ -44,9 +44,6 @@ export const unlockKeyrackKeys = async (
   // derive socket path from owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
 
-  // ensure daemon is alive
-  await findsertKeyrackDaemon({ socketPath });
-
   // fail fast if hostManifest not loaded
   // .note = caller-fixable (run: rhx keyrack init) → BadRequestError, not a server
   // fault; keeps the cli error render clean (no stack dump) and consistent with the
@@ -276,6 +273,18 @@ export const unlockKeyrackKeys = async (
 
   // send keys to daemon
   if (keysToUnlock.length > 0) {
+    // ensure daemon is alive
+    // .why = the findsert sits here, immediately before the send, rather than at the
+    // top of this operation. two reasons, both about the daemon's lifetime:
+    // 1. the vault flow above is interactive and human-paced (yubikey, sso, browser),
+    //    so a findsert at the top opens a spawn->first-command window minutes wide,
+    //    across which a fresh daemon must survive on startup grace alone.
+    // 2. when every key is omitted (absent / lost / remote), a findsert at the top
+    //    spawns a daemon that no command will ever reach — a leak at the source.
+    // .note = this matches vaultAdapterOsDaemon, which already findserts after its
+    // interactive prompt and immediately before its own daemonAccessUnlock
+    await findsertKeyrackDaemon({ socketPath });
+
     await daemonAccessUnlock({
       socketPath,
       keys: keysToUnlock,
