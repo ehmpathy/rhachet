@@ -316,6 +316,18 @@ describe('keyrack fill cli', () => {
           .replace(/\x1B\]/g, '') // OSC sequences
           .replace(/\r/g, '') // carriage returns from PTY
           .replace(/·/g, '') // middle dots from PTY
+          // drop the daemon spawn notice
+          // .why = it is written to STDERR by design, to keep stdout parseable for --json
+          //        (startKeyrackDaemon.ts). only this case sees it, because only this case
+          //        captures a PTY, where the two streams merge into one transcript.
+          // .note = its POSITION in that merged transcript depends on when each stream
+          //        flushes, so a snapshot that keeps it pins a runtime race rather than a
+          //        contract — a latent flake, not only a visual blemish. every non-PTY case
+          //        already drops this line via asSnapshotSafe; this makes the two agree
+          .replace(
+            /\[keyrack-daemon\] spawned background daemon \(pid: \d+\)\n?/g,
+            '',
+          )
           .replace(/\s+$/gm, '') // trim end-of-line whitespace
           .replace(/\(pid: \d+\)/g, '(pid: __PID__)'); // redact daemon PID
         // trim PTY echo noise before tree header

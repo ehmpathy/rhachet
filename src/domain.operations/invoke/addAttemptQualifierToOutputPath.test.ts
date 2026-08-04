@@ -113,18 +113,39 @@ describe('addAttemptQualifierToOutputPath', () => {
       });
     });
 
-    // explicitly not supported today
-    // todo: should we ever support this? folks can simply use template var replacement if needed. otherwise, seems like an infinite list of extensions to allowlist
-    describe.skip('double extension', () => {
+    /**
+     * a compound suffix like `.tar.gz` is NOT treated as one extension today
+     *
+     * .what = the operation's rule is "insert before the FINAL extension", and
+     * `path.parse` reads `output.tar.gz` as name `output.tar` + ext `.gz`. so the
+     * qualifier lands between `.tar` and `.gz`. a caller who needs exact placement has
+     * `{{attempt}}`, which the branch above honors verbatim.
+     *
+     * .todo = should compound suffixes ever be supported? the question is open, and
+     * these cases do not settle it — they pin what the code does now. the cost of a
+     * "yes" is an allowlist with no natural end (`.tar.gz`, `.tar.bz2`, `.tar.xz`,
+     * `.d.ts`, …); the cost of a "no" is the `{{attempt}}` detour. whoever answers it
+     * should change these expectations along with the rule.
+     *
+     * .note = these cases previously sat behind `describe.skip` and asserted the
+     * OPPOSITE — `output.i5.tar.gz` — an aspiration the code never implemented. a
+     * skipped aspiration clamps no boundary at all, and reads to the next maintainer as
+     * coverage that exists. they now assert what the operation actually does, so the
+     * boundary is pinned: were the parse rule to change, these go red rather than silent
+     */
+    describe('compound extension', () => {
       given('a nested path with .tar.gz', () => {
         const input = { path: 'build/artifacts/output.tar.gz', attempt: 5 };
 
-        when('qualifying the path', () => {
+        when('the path is qualified', () => {
           const result = addAttemptQualifierToOutputPath(input);
 
-          then('it inserts before the last extension only', () => {
-            expect(result).toBe('build/artifacts/output.i5.tar.gz');
-          });
+          then(
+            'it inserts before the final extension, so .tar stays in the name',
+            () => {
+              expect(result).toBe('build/artifacts/output.tar.i5.gz');
+            },
+          );
         });
       });
 
@@ -134,15 +155,30 @@ describe('addAttemptQualifierToOutputPath', () => {
           attempt: 8,
         };
 
-        when('qualifying the path', () => {
+        when('the path is qualified', () => {
           const result = addAttemptQualifierToOutputPath(input);
 
           then(
             'it qualifies before the final extension and keeps directory dots intact',
             () => {
-              expect(result).toBe('releases/2025.09.09/artifact.v2.i8.tar.gz');
+              expect(result).toBe('releases/2025.09.09/artifact.v2.tar.i8.gz');
             },
           );
+        });
+      });
+
+      given('a caller who needs exact placement', () => {
+        const input = {
+          path: 'build/artifacts/output.{{attempt}}.tar.gz',
+          attempt: 5,
+        };
+
+        when('the path is qualified', () => {
+          const result = addAttemptQualifierToOutputPath(input);
+
+          then('the {{attempt}} token gives them full control', () => {
+            expect(result).toBe('build/artifacts/output.i5.tar.gz');
+          });
         });
       });
     });

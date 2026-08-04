@@ -1,8 +1,28 @@
+/**
+ * .what = an INTEGRATION test, not a unit test
+ * .why = the subject crosses two remote boundaries on every call, so
+ * `rule.forbid.unit.remote-boundaries` bars it from a `.test.ts`:
+ *   1. `getLoginSessionId` reads `/proc/self/sessionid` — a kernel interface
+ *   2. `getHomeHash` calls `realpathSync` on `$HOME` — the filesystem
+ *
+ * .note = the alternative — inject both and fake them — would assert only what the
+ * fakes were told to return, while this subject's whole contract is the SHAPE it
+ * builds out of the real session id and the real home hash. a faked pair proves the
+ * template, not the identity the daemon is actually keyed on. so the real boundaries
+ * are the point of these cases, and the file is classified to match rather than the
+ * boundary hidden.
+ *
+ * .note = this mirrors the same reclassification made for
+ * `getAllKeyrackDaemonSocketPaths.integration.test.ts`, whose subject reads the same
+ * kernel interface. the two are the read and write halves of one identity scheme and
+ * belong at one scope.
+ */
 import { given, then, when } from 'test-fns';
 
 import { mkdtempSync, rmdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getKeyrackDaemonSocketPathForTests } from '../../../../../blackbox/.test/infra/getKeyrackDaemonSocketPathForTests';
 import { getHomeHash } from './getHomeHash';
 import { getKeyrackDaemonSocketPath } from './getKeyrackDaemonSocketPath';
 import { getLoginSessionId } from './getLoginSessionId';
@@ -210,6 +230,39 @@ describe('getKeyrackDaemonSocketPath', () => {
 
         // cleanup
         rmdirSync(tempDir);
+      });
+    });
+  });
+
+  given('[case5] the blackbox replica of this path builder', () => {
+    // .why = blackbox tests import no src, so their daemon cleanup rebuilds this
+    // path by hand. that replica silently fell a whole segment behind — it omitted
+    // homeHash — and every blackbox cleanup became a no-op no test could notice,
+    // because a cleanup that reaps zero daemons looks exactly like one that had
+    // zero to reap. this case is the conformance check that replica lacked.
+    // .note = the import direction is deliberate: src's test may read the blackbox
+    // util, but the blackbox util must never read src
+    const runtimeDirOriginal = process.env['XDG_RUNTIME_DIR'];
+
+    beforeEach(() => {
+      process.env['XDG_RUNTIME_DIR'] = '/run/user/1000';
+    });
+
+    afterEach(() => {
+      if (runtimeDirOriginal !== undefined) {
+        process.env['XDG_RUNTIME_DIR'] = runtimeDirOriginal;
+      } else {
+        delete process.env['XDG_RUNTIME_DIR'];
+      }
+    });
+
+    when('[t0] each owner shape is built by both', () => {
+      then('the replica agrees with the real builder', () => {
+        for (const owner of [null, 'default', 'mechanic', 'ehmpath.demo']) {
+          expect(getKeyrackDaemonSocketPathForTests({ owner })).toEqual(
+            getKeyrackDaemonSocketPath({ owner }),
+          );
+        }
       });
     });
   });
