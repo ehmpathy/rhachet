@@ -1,6 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
+import { genMockGhRun } from '@src/.test/assets/genMockGhRun';
+
 import { mechAdapterGithubApp } from './mechAdapterGithubApp';
 
 describe('mechAdapterGithubApp', () => {
@@ -175,7 +177,30 @@ describe('mechAdapterGithubApp', () => {
     () => {
       // an unattended provision task with explicit --mech EPHEMERAL_VIA_GITHUB_APP reaches
       // acquireForSet with no injected question; stdin is not a terminal, so the guided pem
-      // prompt can never be answered — it MUST fail loud, never open a readline that hangs
+      // prompt can never be answered — it MUST fail loud, never open a readline that hangs.
+      //
+      // the no-TTY guard is deferred to the actual pem-read point (mechAdapterGithubApp.ts:150):
+      // discovery runs first, so a mock gh runner seeds ONE registered app for the org, which
+      // auto-selects (no choice prompt). the flow then reaches getPemPath, whose first prompt
+      // trips the guard on the forced non-TTY stdin. the injected runner also keeps the unit
+      // test hermetic — it never touches the real gh cli (rule.forbid.unit.remote-boundaries).
+      const ghRun = genMockGhRun({
+        files: [
+          {
+            repo: 'ehmpathy/keyrack-infra',
+            path: 'registry/github-apps.json',
+            content: JSON.stringify([
+              {
+                org: 'ehmpathy',
+                appId: '123',
+                installationId: '456',
+                slug: 'my-app',
+              },
+            ]),
+          },
+        ],
+      });
+
       when(
         '[t0] acquireForSet called with no question and stdin is not a terminal',
         () => {
@@ -200,7 +225,7 @@ describe('mechAdapterGithubApp', () => {
               const error = await getError(
                 mechAdapterGithubApp.acquireForSet(
                   { keySlug: 'ehmpathy.test.XAI_API_KEY' },
-                  {},
+                  { ghRun },
                 ),
               );
               expect(error).toBeInstanceOf(ConstraintError);
