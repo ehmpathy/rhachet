@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
@@ -11,6 +11,7 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
+import { seedHostManifestAwsProfile } from '@/blackbox/.test/infra/seedHostManifestAwsProfile';
 
 /**
  * .what = blackbox CLI acceptance for the aws.params vault's EPHEMERAL_VIA_GITHUB_APP mech —
@@ -70,12 +71,44 @@ const cleanPtyOutput = (str: string): string => {
     // mask the volatile temp-repo path (a per-run uuid) so the snapshot stays deterministic —
     // mirrors the os.secure github-app suite's mask (rule.forbid.friction-hazards)
     .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX')
+    // strip the AWS SDK's multiple-credential-source advisory — environmental noise emitted when
+    // the org-profile overlay (AWS_PROFILE) coexists with the env static keys the test supplies.
+    // it is not keyrack output, so it must not lock into the caller-tree snapshot
+    .replace(
+      /@aws-sdk\/credential-provider-node[\s\S]*?AWS_ACCESS_KEY_ID\/AWS_SECRET_ACCESS_KEY pair\.\n?/g,
+      '',
+    )
     .replace(/node:events:[\s\S]*?Node\.js v[\d.]+/g, '');
   const lockStart = stripped.indexOf('\u{1F510}');
   const turtleStart = stripped.indexOf('\u{1F422}');
   const candidates = [lockStart, turtleStart].filter((i) => i >= 0);
   const treeStart = candidates.length ? Math.min(...candidates) : -1;
   return stripped.slice(treeStart >= 0 ? treeStart : 0).trim();
+};
+
+/**
+ * .what = seed a STATIC-creds `testorg-test` aws profile under the temp HOME's ~/.aws
+ * .why = a specific-org aws.params write authenticates as the org's declared AWS_PROFILE (the
+ *        org-scope hardcut). seedHostManifestAwsProfile declares `testorg.test.AWS_PROFILE →
+ *        testorg-test` in the owner=mechanic host manifest the set reads, so the write overlay
+ *        sets AWS_PROFILE=testorg-test; the SDK then prefers that profile over the env static
+ *        keys (see src/.test/infra/useKeyrack.ts). a STATIC profile (not sso) is
+ *        parsed synchronously by fromIni — no browser, no dynamic import — and the local SSM
+ *        stand-in ignores the signature, so any static keys authenticate the write creds-free
+ */
+const seedTestorgAwsProfile = (repoPath: string): void => {
+  const awsDir = join(repoPath, '.aws');
+  mkdirSync(awsDir, { recursive: true });
+  writeFileSync(
+    join(awsDir, 'credentials'),
+    ['[testorg-test]', 'aws_access_key_id = test-akid', 'aws_secret_access_key = test-secret', ''].join('\n'),
+    'utf-8',
+  );
+  writeFileSync(
+    join(awsDir, 'config'),
+    ['[profile testorg-test]', 'region = us-east-1', ''].join('\n'),
+    'utf-8',
+  );
 };
 
 describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
@@ -96,13 +129,26 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
     // host manifest for owner=mechanic the github-app key registers into
     const scene = useBeforeAll(async () => {
       const ssm = await genFakeSsmServerDetached();
-      const repo = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+      const repo = await genTestTempRepo({
+        fixture: 'with-keyrack-manifest-awsparams-org',
+      });
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init', '--owner', 'mechanic', '--org', 'testorg'],
         cwd: repo.path,
         env: { HOME: repo.path },
         logOnError: false,
       });
+      // the org-scope hardcut authenticates the SSM write as testorg's declared AWS_PROFILE.
+      // the manifest is owner-scoped, so the peer entry must land in the owner=mechanic manifest
+      // the `--owner mechanic` set reads — a fixture converted at owner=null is invisible to it
+      await seedHostManifestAwsProfile({
+        repoPath: repo.path,
+        owner: 'mechanic',
+        org: 'testorg',
+        env: 'test',
+        profile: 'testorg-test',
+      });
+      seedTestorgAwsProfile(repo.path);
       // the mock pem the guided setup reads as the app private key
       writeFileSync(
         `${repo.path}/mock-app.pem`,
@@ -237,13 +283,25 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
 
     const scene = useBeforeAll(async () => {
       const ssm = await genFakeSsmServerDetached();
-      const repo = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+      const repo = await genTestTempRepo({
+        fixture: 'with-keyrack-manifest-awsparams-org',
+      });
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init', '--owner', 'mechanic', '--org', 'testorg'],
         cwd: repo.path,
         env: { HOME: repo.path },
         logOnError: false,
       });
+      // the org-scope hardcut derives testorg's identity BEFORE the pem read, so the profile
+      // must be seeded even for the unreadable-pem case (it fails at the pem, not the identity)
+      await seedHostManifestAwsProfile({
+        repoPath: repo.path,
+        owner: 'mechanic',
+        org: 'testorg',
+        env: 'test',
+        profile: 'testorg-test',
+      });
+      seedTestorgAwsProfile(repo.path);
       // .note = no mock-app.pem is written — the guided answer points at a nonexistent path
       return { ssm, repo };
     });
@@ -330,13 +388,24 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
 
     const scene = useBeforeAll(async () => {
       const ssm = await genFakeSsmServerDetached();
-      const repo = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+      const repo = await genTestTempRepo({
+        fixture: 'with-keyrack-manifest-awsparams-org',
+      });
       await invokeRhachetCliBinary({
         args: ['keyrack', 'init', '--owner', 'mechanic', '--org', 'testorg'],
         cwd: repo.path,
         env: { HOME: repo.path },
         logOnError: false,
       });
+      // the org-scope hardcut authenticates the SSM write/delete as testorg's declared AWS_PROFILE
+      await seedHostManifestAwsProfile({
+        repoPath: repo.path,
+        owner: 'mechanic',
+        org: 'testorg',
+        env: 'test',
+        profile: 'testorg-test',
+      });
+      seedTestorgAwsProfile(repo.path);
       writeFileSync(
         `${repo.path}/mock-app.pem`,
         [

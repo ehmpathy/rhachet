@@ -14,6 +14,7 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] g
    │  ├─ private key path (.pem): ./mock-app.pem
    │  └─ pem read ✓
 
+
 🔐 keyrack set (org: testorg, env: test)
    └─ testorg.test.GITHUB_TOKEN
       ├─ mech: EPHEMERAL_VIA_GITHUB_APP
@@ -36,40 +37,6 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] g
   "updatedAt": "__TIMESTAMP__",
   "vault": "aws.params",
 }
-`;
-
-exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided github-app set persists the blob into SSM when: [t2] the owned github-app key is re-set to a reference mech, org=testorg has no AWS_PROFILE then: the failure stderr matches snapshot 1`] = `
-"
-🔐 keyrack set
-   └─ ✋ blocked: aws.params: no AWS_PROFILE declared for org "testorg"
-      └─ hint: this key is tree-scoped, so it authenticates as org "testorg"'s identity — the AWS_PROFILE this keyrack manages for that org. declare an AWS_PROFILE key for this org (env), or re-set the key with --org @all to use the grove's own identity.
-
-"
-`;
-
-exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case1] guided github-app set persists the blob into SSM when: [t3] the owned github-app key is re-set (re-persisted) at a NEW --exid (G7 residual) then: the residual-secret note matches snapshot 1`] = `
-"🔐 keyrack set testorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
-   │
-   ├─ which github app?
-   │  ├─ options
-   │  │  ├─ 1. my-test-app (id: 123456)
-   │  │  ├─ 2. other-app (id: 654321)
-   │  └─ choice: 1
-   │     └─ my-test-app ✓
-   │
-   ├─ which github app secret?
-   │  ├─ private key path (.pem): ./mock-app.pem
-   │  └─ pem read ✓
-
-🔐 keyrack set (org: testorg, env: test)
-   └─ testorg.test.GITHUB_TOKEN
-      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
-      ├─ vault: aws.params
-      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN_ROTATED
-
-   re-pointed: was /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN → now /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN_ROTATED
-
-   note: a prior owned secret remains at /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN — keyrack no longer manages it (destroy it out-of-band, or re-set an owned mech at that path to reclaim it)"
 `;
 
 exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case2] guided github-app set fails loud on an unreadable pem path when: [t0] keyrack set with a pem path that does not exist (guided, pseudo-TTY) then: the failure output matches snapshot 1`] = `
@@ -102,9 +69,11 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case3] d
 `;
 
 exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case4] set with no --mech drives the interactive mechanism prompt when: [t0] keyrack set --vault aws.params with no --mech (guided, pseudo-TTY) then: the prompt output matches snapshot 1`] = `
-"🔐 keyrack set (org: @all, env: test)
+"🔐 keyrack set @all.test.XAI_API_KEY via PERMANENT_VIA_REPLICA
+enter secret for XAI_API_KEY: ******************
+🔐 keyrack set (org: @all, env: test)
    └─ @all.test.XAI_API_KEY
-      ├─ mech: PERMANENT_VIA_REFERENCE
+      ├─ mech: PERMANENT_VIA_REPLICA
       ├─ vault: aws.params
       └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY"
 `;
