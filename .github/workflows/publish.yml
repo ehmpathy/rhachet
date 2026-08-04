@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/.test.yml
     with:
       creds-aws-region: us-east-1
-      creds-aws-role-arn: ${{ vars.CREDS_CICD_AWS_DEV_OIDC_ROLE_ARN }} # use aws auth via oidc, if this repo supplies it
+      creds-aws-role-arn: arn:aws:iam::805192865516:role/ehmpathy-demo-oidc # aws auth via oidc — the shared ehmpathy demo role (mirrors declastruct-aws) so aws.params integration tests reach real ssm
     secrets: inherit # keyrack firewall filters to keys declared in .agent/keyrack.yml
 
   publish:
