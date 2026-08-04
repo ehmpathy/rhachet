@@ -9,8 +9,5 @@ env.prep:
   - EHMPATHY_SEATURTLE_GITHUB_TOKEN
   - XAI_API_KEY
   - AWS_PROFILE
-env.test:
-  - AWS_PROFILE
-  - DEMO_AWS_PARAMS_DOGFOOD
-  - DEMO_PARAM
+env.test: []
 env.all: []
