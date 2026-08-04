@@ -129,14 +129,22 @@ describe('vaultAdapterOsDirect', () => {
 
     when('[t2] del called for stored key', () => {
       then('removes key', async () => {
-        await vaultAdapterOsDirect.del({ slug: 'KEY_A' });
+        await vaultAdapterOsDirect.del({
+          slug: 'KEY_A',
+          mech: null,
+          meta: null,
+        });
 
         const result = await vaultAdapterOsDirect.get({ slug: 'KEY_A' });
         expect(result).toBeNull();
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsDirect.del({ slug: 'KEY_A' });
+        await vaultAdapterOsDirect.del({
+          slug: 'KEY_A',
+          mech: null,
+          meta: null,
+        });
 
         const resultB = await vaultAdapterOsDirect.get({ slug: 'KEY_B' });
         expect(resultB?.key.secret).toEqual('value-b');

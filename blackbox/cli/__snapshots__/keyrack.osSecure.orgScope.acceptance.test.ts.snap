@@ -1,0 +1,115 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case1] --org @all with NO repo manifest at all (machine-wide static key) when: [t0] set --org @all os.secure (value via stdin, no repo manifest present) then: set --json (manifest internal state) matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "@all",
+  "slug": "@all.test.MACHINE_WIDE_NOMANIFEST",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+}
+`;
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case1] --org @all with NO repo manifest at all (machine-wide static key) when: [t1] unlock then get --json — the machine-wide value is served then: get --json (grant internal state) matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.test.MACHINE_WIDE_NOMANIFEST",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "@all"
+  }
+}
+"
+`;
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case2] --org @all WITH a repo manifest present (org: testorg) → ignores the manifest org when: [t0] set --org @all os.secure with the testorg manifest present then: set --json matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "@all",
+  "slug": "@all.test.MACHINE_WIDE_WITHMANIFEST",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+}
+`;
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case2] --org @all WITH a repo manifest present (org: testorg) → ignores the manifest org when: [t1] unlock then get --json — machine-wide value served despite the manifest then: get --json matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.test.MACHINE_WIDE_WITHMANIFEST",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "@all"
+  }
+}
+"
+`;
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case3] no --org @all (specific org testorg) → repo-wide, the org own namespace when: [t0] set --org testorg os.secure (a specific org, not @all) then: set --json matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "testorg",
+  "slug": "testorg.test.REPO_ORG_STATIC",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.secure",
+}
+`;
+
+exports[`keyrack vault os.secure org-scope matrix (cli) — @all is vault-agnostic given: [case3] no --org @all (specific org testorg) → repo-wide, the org own namespace when: [t1] unlock then get --json — the repo-wide value is served then: get --json matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.REPO_ORG_STATIC",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;

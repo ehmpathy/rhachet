@@ -62,6 +62,35 @@ describe('schemaKeyrackHostManifest', () => {
     });
   });
 
+  given('[case4] an aws.params vault entry', () => {
+    // clamps a regression: the TS union KeyrackHostVault included 'aws.params' but this
+    // runtime schema did not, so the first `set aws.params` wrote a manifest that failed
+    // schema validation on every later read (re-set/unlock/get/del) — the vault was
+    // write-once-then-unreadable. this asserts the schema accepts the vault value.
+    const awsParamsEntry = {
+      slug: 'testorg.prod.ANTHROPIC_API_KEY',
+      mech: 'PERMANENT_VIA_REFERENCE',
+      vault: 'aws.params',
+      exid: '/keyrack/infra/vault/aws.params/v1/mechanic/testorg/prod/ANTHROPIC_API_KEY',
+      env: 'prod',
+      org: 'testorg',
+      meta: { region: 'us-east-1' },
+      maxDuration: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    when('[t0] parsed through schemaKeyrackKeyHost', () => {
+      then('the aws.params vault value is accepted', () => {
+        const result = schemaKeyrackKeyHost.safeParse(awsParamsEntry);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.vault).toEqual('aws.params');
+        }
+      });
+    });
+  });
+
   given('[case3] a converted manifest with env/org set from slug', () => {
     // simulates what genTestTempRepo's convertLegacyManifest produces
     const convertedManifest = {

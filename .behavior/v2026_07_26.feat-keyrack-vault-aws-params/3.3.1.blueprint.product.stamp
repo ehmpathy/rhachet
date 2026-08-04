@@ -1,0 +1,93 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 3.3.1.blueprint.product
+   ├─ passage = overruled
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 7/7)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: mech-failhides (l1, 7/7)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r002._.given.by_peer.mech-failhides.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r002._.taken.by_self.mech-failhides.md
+   │  │   ├─ r3: mech-decode-friction (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r003._.given.by_peer.mech-decode-friction.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r003._.taken.by_self.mech-decode-friction.md
+   │  │   ├─ r4: arch-opport-decomposition (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r004._.given.by_peer.arch-opport-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r004._.taken.by_self.arch-opport-decomposition.md
+   │  │   ├─ r5: arch-smell-scopeleaks (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r005._.given.by_peer.arch-smell-scopeleaks.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r005._.taken.by_self.arch-smell-scopeleaks.md
+   │  │   ├─ r6: arch-hazards-maintenance (l1, 7/7)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r006._.given.by_peer.arch-hazards-maintenance.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r006._.taken.by_self.arch-hazards-maintenance.md
+   │  │   ├─ r7: arch-hazards-behavior (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r007._.given.by_peer.arch-hazards-behavior.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r007._.taken.by_self.arch-hazards-behavior.md
+   │  │   ├─ r8: arch-ambiguous-terms (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r008._.given.by_peer.arch-ambiguous-terms.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r008._.taken.by_self.arch-ambiguous-terms.md
+   │  │   ├─ r9: ergo-acceptance-journey-coverage (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r009._.given.by_peer.ergo-acceptance-journey-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r009._.taken.by_self.ergo-acceptance-journey-coverage.md
+   │  │   ├─ r10: ergo-snapshot-visual-blemishes (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r010._.given.by_peer.ergo-snapshot-visual-blemishes.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i013.5831c35bc4a46d4375.r010._.taken.by_self.ergo-snapshot-visual-blemishes.md
+   │  │   ├─ r11: enroll-blueprint-arch-defects (l3, 16/17)
+   │  │   │   ├─ rejected 808.5s
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ tallied by reviewer@fireworks/deepseek/v4-flash
+   │  │   │   ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i024.be25e6247049fa040b.r011._.given.by_peer.enroll-blueprint-arch-defects.md
+   │  │   │   └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i024.be25e6247049fa040b.r011._.taken.by_self.enroll-blueprint-arch-defects.md
+   │  │   └─ r12: enroll-blueprint-behavior-intent (l3, 16/17)
+   │  │       ├─ rejected 851.1s
+   │  │       ├─ 0 blockers ✓
+   │  │       ├─ 5 nitpicks 🟠
+   │  │       ├─ tallied by reviewer@fireworks/deepseek/v4-flash
+   │  │       ├─ given: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i024.be25e6247049fa040b.r012._.given.by_peer.enroll-blueprint-behavior-intent.md
+   │  │       └─ taken: .behavior/v2026_07_26.feat-keyrack-vault-aws-params/.reviews/peer/3.3.1.blueprint.product._.review.i024.be25e6247049fa040b.r012._.taken.by_self.enroll-blueprint-behavior-intent.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 3
+   │      │   └─ finished 1.5s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 1.1s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

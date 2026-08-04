@@ -70,8 +70,14 @@ export const asKeyrackKeySlug = (input: {
   const parsed = parseFullSlug({ key: input.key });
 
   if (parsed) {
-    // validate org matches manifest
-    if (parsed.org !== org) {
+    // @all is a MACHINE-WIDE sigil — it belongs to no org, so it is never compared
+    // to the manifest org (an @all key is readable from any repo, or none). @this
+    // maps to the manifest org (mirrors assertKeyrackOrgMatchesManifest).
+    const isMachineWide = parsed.org === '@all';
+    const slugOrg = parsed.org === '@this' ? org : parsed.org;
+
+    // validate org matches manifest (the machine-wide @all sigil is exempt)
+    if (!isMachineWide && slugOrg !== org) {
       throw new BadRequestError(
         `slug org '${parsed.org}' does not match manifest org '${org}'`,
         { code: 'ORG_MISMATCH', slugOrg: parsed.org, manifestOrg: org },
@@ -86,7 +92,12 @@ export const asKeyrackKeySlug = (input: {
       );
     }
 
-    return { slug: input.key, env: parsed.env };
+    // @this rewrites its sigil to the manifest org; @all + real orgs keep their segment
+    const slug =
+      parsed.org === '@this'
+        ? `${org}.${parsed.env}.${parsed.keyName}`
+        : input.key;
+    return { slug, env: parsed.env };
   }
 
   // raw key name - construct slug

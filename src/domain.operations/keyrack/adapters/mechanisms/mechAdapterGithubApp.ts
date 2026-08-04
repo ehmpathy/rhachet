@@ -132,17 +132,41 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
       );
     }
 
-    // otherwise open a real readline interface for the guided prompts
-    const rl = createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
+    // a lazily-guarded readline prompt. discovery (gh api calls — no stdin) runs first inside
+    // genGithubAppSource; the no-TTY guard fires ONLY at the point a real pem prompt is reached.
+    // so an infra-absent / ask-an-admin discovery failure surfaces its OWN specific error before
+    // any prompt is attempted (the guard no longer preempts discovery). unattended `set` of a
+    // github-app key still fails loud — the moment a real prompt is needed on a non-terminal
+    // stdin. the symmetric twin of inferKeyrackMechForSet's guard, deferred to the actual read
+    // an object holder (not a bare let) so the readline handle stays typed across the closure
+    // reassignment for the finally-block cleanup
+    const held: { rl: ReturnType<typeof createInterface> | null } = {
+      rl: null,
+    };
+    const question = (prompt: string): Promise<string> => {
+      // the guided pem prompt has no answer when stdin is not a terminal (an unattended
+      // provision task, a piped/redirected stdin). fail loud — name the fix — rather than open a
+      // readline that blocks forever on a read no process can answer
+      if (!process.stdin.isTTY)
+        throw new ConstraintError(
+          'a github app credential prompt is required but stdin is not a terminal',
+          {
+            keySlug: input.keySlug,
+            hint: 'run set from a terminal to supply the github app credential, or inject a question in tests',
+          },
+        );
 
-    // adapt readline into a promise-based question the orchestrator can inject
-    const question = (prompt: string): Promise<string> =>
-      new Promise((done) => {
-        rl.question(prompt, (answer) => done(answer));
+      // open the real readline once, on first prompt
+      if (!held.rl)
+        held.rl = createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
+      const active = held.rl;
+      return new Promise((done) => {
+        active.question(prompt, (answer) => done(answer));
       });
+    };
 
     try {
       // the orchestrator holds the testable flow with every dependency injected
@@ -151,7 +175,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
         { ghRun, question },
       );
     } finally {
-      rl.close();
+      held.rl?.close();
     }
   },
 

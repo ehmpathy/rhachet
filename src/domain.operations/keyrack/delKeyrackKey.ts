@@ -12,6 +12,10 @@ export const delKeyrackKey = async (
     slug: string;
   },
   context: ContextKeyrack,
-): Promise<{ effect: 'deleted' | 'not_found' }> => {
+): Promise<{
+  effect: 'deleted' | 'not_found';
+  // the remote secret keyrack destroyed, if the vault owned one (threaded up for CLI feedback)
+  destroyed?: { exid: string } | null;
+}> => {
   return delKeyrackKeyHost(input, context);
 };

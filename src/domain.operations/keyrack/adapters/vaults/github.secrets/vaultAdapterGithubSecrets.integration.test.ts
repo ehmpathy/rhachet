@@ -243,6 +243,8 @@ describe('vaultAdapterGithubSecrets', () => {
           await vaultAdapterGithubSecrets.del({
             slug: 'ehmpathy.test.API_KEY',
             exid: 'ehmpathy/rhachet',
+            mech: null,
+            meta: null,
           });
 
           expect(mockSpawnSync).toHaveBeenCalledWith(
@@ -262,6 +264,8 @@ describe('vaultAdapterGithubSecrets', () => {
           await vaultAdapterGithubSecrets.del({
             slug: 'ehmpathy.test.SOME.NESTED.KEY',
             exid: 'ehmpathy/rhachet',
+            mech: null,
+            meta: null,
           });
 
           expect(mockSpawnSync).toHaveBeenCalledWith(
@@ -287,6 +291,8 @@ describe('vaultAdapterGithubSecrets', () => {
           const error = await getError(
             vaultAdapterGithubSecrets.del({
               slug: 'ehmpathy.test.API_KEY',
+              mech: null,
+              meta: null,
             }),
           );
 

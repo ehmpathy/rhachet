@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault aws.params read (sdk) given: [case1] a real unlock seeds the daemon, then the sdk reads the aws.params grant when: [t0] the built sdk keyrack.get reads the aws.params grant from the daemon then: emit.stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ @all.test.SDK_AWS_PARAMS_SECRET
+      ├─ vault: aws.params
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+"
+`;
+
+exports[`keyrack vault aws.params read (sdk) given: [case2] an aws.params key registered but never unlocked reads as locked (sdk↔cli locked-get parity) when: [t0] the built sdk keyrack.get reads the never-unlocked aws.params key then: emit.stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ @all.test.SDK_AWS_PARAMS_LOCKED
+      ├─ status: locked 🔒
+      └─ tip: rhx keyrack unlock --owner mechanic --env test --key SDK_AWS_PARAMS_LOCKED
+"
+`;

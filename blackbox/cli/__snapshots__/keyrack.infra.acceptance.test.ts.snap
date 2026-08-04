@@ -39,9 +39,7 @@ exports[`keyrack infra init (acceptance) given: [case4] an org already fully set
 `;
 
 exports[`keyrack infra init (acceptance) given: [case5] the gh boundary fails mid-init (operational error) when: [t0] \`keyrack infra init --org erroorg\` hits a forbidden repo create then: the blocked treestruct stderr (failure contract) stays locked 1`] = `
-"🐢 bummer dude...
-⠀
-🐚 keyrack infra init
+"🔐 keyrack infra init
    └─ ✋ blocked: gh repo create failed
       ├─ repo: erroorg/keyrack-infra
       ├─ stderr: HTTP 403: Resource not accessible by integration (https://api.github.com/orgs/erroorg/repos)
@@ -51,9 +49,7 @@ exports[`keyrack infra init (acceptance) given: [case5] the gh boundary fails mi
 `;
 
 exports[`keyrack infra init (acceptance) given: [case6] the keyrack-infra repo exists but is public when: [t0] \`keyrack infra init --org puborg\` finds a public repo then: the blocked treestruct stderr (public-repo contract) stays locked 1`] = `
-"🐢 bummer dude...
-⠀
-🐚 keyrack infra init
+"🔐 keyrack infra init
    └─ ✋ blocked: keyrack-infra repo exists but is not private
       ├─ repo: puborg/keyrack-infra
       └─ hint: keyrack-infra must be private — its access is the lock. run: gh repo edit puborg/keyrack-infra --visibility private"

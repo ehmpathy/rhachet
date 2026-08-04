@@ -604,3 +604,122 @@ describe('keyrack vault 1password with EPHEMERAL_VIA_GITHUB_APP', () => {
     });
   });
 });
+
+/**
+ * .what = c58 — a 1password reference set/re-set emits NEITHER aws.params-only advisory
+ * .why = PERMANENT_VIA_REFERENCE is a SHARED mech (aws.params AND 1password use it), and both
+ *        aws.params-only CLI lines — the "existence not verified" advisory and the "re-pointed"
+ *        echo — sit under ONE `if (result.vault !== 'aws.params') continue;` guard in
+ *        invokeKeyrack.ts. absent that guard, a REFERENCE 1password set WOULD print the
+ *        existence advisory (mech is REFERENCE) and a re-set at a NEW exid WOULD print the
+ *        re-pointed echo. this clamp bites both: it drives a real 1password reference set +
+ *        re-set and asserts neither line surfaces — so a future drop of the vault guard trips it.
+ *
+ * .note = creds-free via the mock op CLI on PATH; --exid short-circuits the mech prompt to
+ *         PERMANENT_VIA_REFERENCE, so the set is non-interactive. exid vault segment is
+ *         'keyrack' to satisfy the 1password blast-radius assertions.
+ */
+describe('keyrack vault 1password reference set: no aws.params advisory leak (c58)', () => {
+  beforeAll(() => {
+    chmodSync(`${MOCK_OP_CLI_DIR}/op`, 0o755);
+  });
+
+  beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+  const envWithMockOp = (home: string) => ({
+    HOME: home,
+    PATH: `${MOCK_OP_CLI_DIR}:${process.env.PATH}`,
+  });
+
+  given('[case1] a 1password reference key set via cli', () => {
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: envWithMockOp(r.path),
+      });
+
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - ANTHROPIC_API_KEY\n',
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] set a reference key (first time — no prior entry)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'ANTHROPIC_API_KEY',
+            '--env',
+            'test',
+            '--vault',
+            '1password',
+            '--exid',
+            'op://keyrack/anthropic/credential',
+          ],
+          cwd: repo.path,
+          env: envWithMockOp(repo.path),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout does NOT contain the aws.params existence-not-verified advisory', () => {
+        expect(result.stdout).not.toContain('existence not verified');
+      });
+
+      then('stdout does NOT contain the aws.params re-pointed echo', () => {
+        expect(result.stdout).not.toContain('re-pointed');
+      });
+    });
+
+    when('[t1] re-set the same key at a DIFFERENT exid', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'ANTHROPIC_API_KEY',
+            '--env',
+            'test',
+            '--vault',
+            '1password',
+            '--exid',
+            'op://keyrack/anthropic/credential-v2',
+          ],
+          cwd: repo.path,
+          env: envWithMockOp(repo.path),
+        }),
+      );
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('stdout does NOT contain the re-pointed echo (guard confines it to aws.params)', () => {
+        // an aws.params reference re-point at a new exid WOULD echo "re-pointed: was → now";
+        // 1password shares the mech, so absence here proves the vault guard holds
+        expect(result.stdout).not.toContain('re-pointed');
+      });
+
+      then('stdout does NOT contain the existence-not-verified advisory', () => {
+        expect(result.stdout).not.toContain('existence not verified');
+      });
+    });
+  });
+});

@@ -9,6 +9,7 @@ import {
   setMockPromptValues,
 } from '@src/.test/infra/mockPromptHiddenInput';
 import {
+  clearMockPromptLineValues,
   genMockPromptLineInput,
   setMockPromptLineValues,
 } from '@src/.test/infra/mockPromptLineInput';
@@ -98,6 +99,9 @@ describe('fillKeyrackKeys.integration', () => {
     } else {
       delete process.env['XDG_RUNTIME_DIR'];
     }
+
+    // restore the stdin.isTTY override this file's prompts opted into
+    clearMockPromptLineValues();
 
     return testHome.teardown();
   });

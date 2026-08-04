@@ -84,6 +84,15 @@ export const formatKeyrackKeyBranch = (input: {
     return lines;
   }
 
+  if (entry.type === 'errored') {
+    lines.push(`${prefix} ${entry.slug}`);
+    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: errored 💥`);
+    if (entry.tip) {
+      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
+    }
+    return lines;
+  }
+
   // exhaustive check
   const _exhaustive: never = entry;
   throw new Error(`unexpected entry type: ${JSON.stringify(_exhaustive)}`);
@@ -110,4 +119,5 @@ export type KeyrackKeyBranchEntry =
   | { type: 'absent'; slug: string; tip: string | null }
   | { type: 'lost'; slug: string; tip: string | null }
   | { type: 'remote'; slug: string; tip: string | null }
+  | { type: 'errored'; slug: string; tip: string | null }
   | { type: 'unlocked'; grant: KeyrackKeyGrant };

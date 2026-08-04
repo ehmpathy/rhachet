@@ -276,15 +276,15 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     }
 
     // emit verification success for ephemeral mech tree output
-    // .note = mirrors the 1password + aws.config vault journeys verbatim so every vault's
-    //         guided setup shares one rhythm: a `perfect, now let's verify...` narration
-    //         parent, the roundtrip result as its child, then a braille blank (survives
-    //         PTY capture) that spaces the tree from the summary header
+    // .note = every vault's guided setup shares one rhythm: a `perfect, now let's verify...`
+    //         narration parent, then the roundtrip result as its child. the single blank
+    //         separator before the summary header is emitted once by the set-command boundary
+    //         (invokeKeyrack, for any EPHEMERAL mech), NOT here — a second blank here would
+    //         double-space the tree from the header
     if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
       console.log('   │');
       console.log("   └─ perfect, now let's verify...");
       console.log('      └─ ✓ roundtrip verified');
-      console.log('\u2800'); // braille blank for visual space (survives PTY)
     }
 
     return { mech };

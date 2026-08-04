@@ -1,6 +1,7 @@
 import {
   BadRequestError,
   ConstraintError,
+  MalfunctionError,
   UnexpectedCodePathError,
 } from 'helpful-errors';
 
@@ -20,6 +21,7 @@ import { getEnvAllFallbackSlug } from '@src/domain.operations/keyrack/decideIsKe
 import { filterSlugsByKeyAsk } from '@src/domain.operations/keyrack/filterSlugsByKeyAsk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { getAllMachineWideSlugsForEnv } from '@src/domain.operations/keyrack/getAllMachineWideSlugsForEnv';
 import { getAllSudoSlugsForKeyAsk } from '@src/domain.operations/keyrack/getAllSudoSlugsForKeyAsk';
 
 /**
@@ -39,7 +41,11 @@ export const unlockKeyrackKeys = async (
   context: ContextKeyrack,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
-  omitted: { slug: string; reason: 'absent' | 'lost' | 'remote' }[];
+  omitted: {
+    slug: string;
+    reason: 'absent' | 'lost' | 'remote' | 'errored';
+    cause?: unknown;
+  }[];
 }> => {
   // derive socket path from owner
   const socketPath = getKeyrackDaemonSocketPath({ owner: input.owner ?? null });
@@ -91,15 +97,37 @@ export const unlockKeyrackKeys = async (
         note: 'run: rhx keyrack set --key X --env sudo --vault ... to configure',
       });
     }
-  } else {
-    // regular keys: require repoManifest
-    if (!repoManifest) {
-      throw new UnexpectedCodePathError('no keyrack.yml found in repo', {
-        note: 'keyrack.yml declares which keys are required',
-      });
-    }
+  } else if (!repoManifest) {
+    // no repo manifest → the MACHINE-WIDE bootstrap path. an `@all` key belongs to the box
+    // itself (its own namespace), so it must unlock with NO repo manifest at all — the
+    // bootstrap-to-clone credential path: the github-app install token is vaulted under `@all`
+    // precisely so it can be fetched from anywhere, even outside any repo, before any repo is
+    // cloned. env comes from --env directly, since there is no manifest to default it from.
+    if (!env)
+      throw new BadRequestError(
+        'unlock without a repo manifest requires --env',
+        {
+          note: 'no keyrack.yml found; only machine-wide @all keys are unlockable, and --env names their scope',
+          fix: 'run: rhx keyrack unlock --env <env> [--key <key>]  (or add a repo .agent/keyrack.yml)',
+        },
+      );
 
-    // resolve env via assertion
+    // expand to the machine-wide `@all.{env}.*` slugs straight from the host manifest
+    slugsForEnv = getAllMachineWideSlugsForEnv({
+      env,
+      keyAsk: input.key ?? null,
+      hostManifest,
+    });
+
+    // fail-fast if a specific machine-wide key was asked but is absent from the host manifest
+    if (input.key && slugsForEnv.length === 0)
+      throw new BadRequestError(`machine-wide key not found: ${input.key}`, {
+        env,
+        note: `no @all.${env}.${input.key} key in the host manifest (and no repo keyrack.yml to declare a repo-scoped one)`,
+        fix: `rhx keyrack set --key ${input.key} --env ${env} --org @all --vault ...`,
+      });
+  } else {
+    // derive env via assertion
     const resolvedEnv = assertKeyrackEnvIsSpecified({
       manifest: repoManifest,
       env: env,
@@ -112,16 +140,28 @@ export const unlockKeyrackKeys = async (
     });
 
     // filter by key: match full slug or key name suffix
-    slugsForEnv = filterSlugsByKeyAsk({
+    const repoSlugsForEnv = filterSlugsByKeyAsk({
       slugs: allSlugsForEnv,
       keyAsk: input.key ?? null,
     });
 
-    // fail-fast if specific key requested but not found in repo manifest
+    // ALSO include machine-wide `@all` keys held in the host manifest — an `@all` key is the
+    // box's own namespace, always unlockable for its env regardless of the repo manifest. this
+    // is what makes `--org @all` keys unlock WITH a repo manifest present too, IGNORING the
+    // manifest org (a machine-wide key is never scoped to the tree). dedup by slug.
+    const machineWideSlugsForEnv = getAllMachineWideSlugsForEnv({
+      env: resolvedEnv,
+      keyAsk: input.key ?? null,
+      hostManifest,
+    });
+    slugsForEnv = [...new Set([...repoSlugsForEnv, ...machineWideSlugsForEnv])];
+
+    // fail-fast if a specific key was requested but found in neither the repo manifest nor as
+    // a machine-wide @all key
     if (input.key && slugsForEnv.length === 0) {
       throw new BadRequestError(`key not found in manifest: ${input.key}`, {
         env,
-        note: `key '${input.key}' is not declared in keyrack.yml for env=${env}`,
+        note: `key '${input.key}' is not declared in keyrack.yml for env=${env} (nor as a machine-wide @all.${resolvedEnv}.${input.key})`,
         fix: `rhx keyrack set --key ${input.key} --env ${env}`,
       });
     }
@@ -129,9 +169,19 @@ export const unlockKeyrackKeys = async (
 
   // collect keys to unlock and track omitted
   // .note = omitted includes both "absent" (not in host manifest) and "lost" (in manifest but vault doesn't have it)
+  // .note = DELIBERATE MUTATION (rule.require.immutable-vars scoped-zone carve-out): these two are
+  //         loop accumulators for the per-slug pass below. the pass is async and has several
+  //         early-`continue` classification branches (absent / remote / lost / errored / unlock), so
+  //         a single functional reduce cannot express it without a regression of the narrative flow
+  //         on a critical unlock path. the mutation stays confined to this one function's local
+  //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
+  //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
-  const keysOmitted: { slug: string; reason: 'absent' | 'lost' | 'remote' }[] =
-    [];
+  const keysOmitted: {
+    slug: string;
+    reason: 'absent' | 'lost' | 'remote' | 'errored';
+    cause?: unknown;
+  }[] = [];
   const effectiveSlugsUnlocked = new Set<string>(); // dedupe by effective slug
 
   for (const slug of slugsForEnv) {
@@ -165,9 +215,12 @@ export const unlockKeyrackKeys = async (
     }
     effectiveSlugsUnlocked.add(effectiveSlug);
 
-    // for non-sudo keys, verify key exists in repoManifest
+    // for non-sudo keys, verify key exists in repoManifest — EXCEPT machine-wide `@all` keys,
+    // which belong to the box's own namespace and are never declared in a repo manifest (they
+    // unlock manifest-or-not, IGNORING the repo org). a machine-wide slug is prefixed `@all.`.
     const spec = repoManifest?.keys[slug];
-    if (env !== 'sudo' && !spec) continue;
+    const isMachineWideSlug = slug.startsWith('@all.');
+    if (env !== 'sudo' && !isMachineWideSlug && !spec) continue;
 
     // get vault adapter
     const vault = hostConfig.vault;
@@ -192,83 +245,112 @@ export const unlockKeyrackKeys = async (
       continue;
     }
 
-    // get identity from context for vault operations
-    const identity = await context.identity.getOne({ for: 'manifest' });
+    // per-key fault isolation: a vault whose unlock/get throws on a LIVE, transient condition
+    // (an SSM throttle, a decrypt-denied, an absent param) must NOT hard-abort the whole batch
+    // and take down every co-batched healthy credential. route the caught fault to an 'errored'
+    // omission (with its cause) and CONTINUE the loop — one flaky key never crashes the rest
+    try {
+      // get identity from context for vault operations
+      const identity = await context.identity.getOne({ for: 'manifest' });
 
-    // unlock vault if needed
-    // .note = silent because CLI unlock output happens after all keys are processed
-    const isUnlocked = await adapter.isUnlocked({
-      exid: hostConfig.exid,
-      identity,
-      meta: hostConfig.meta,
-    });
-    if (!isUnlocked) {
-      await adapter.unlock({
-        identity,
+      // unlock vault if needed
+      // .note = silent because CLI unlock output happens after all keys are processed
+      const isUnlocked = await adapter.isUnlocked({
         exid: hostConfig.exid,
-        silent: true,
+        identity,
         meta: hostConfig.meta,
-        slug: effectiveSlug,
-        owner: input.owner ?? null,
       });
-    }
+      if (!isUnlocked) {
+        await adapter.unlock({
+          identity,
+          exid: hostConfig.exid,
+          silent: true,
+          meta: hostConfig.meta,
+          slug: effectiveSlug,
+          owner: input.owner ?? null,
+        });
+      }
 
-    // get grant from vault
-    // .note = vault may return null if key is absent (e.g., os.daemon after restart, deleted 1password item)
-    // .note = vault now returns full KeyrackKeyGrant with grade, env, org, expiresAt
-    const grant = await adapter.get({
-      slug: effectiveSlug,
-      mech: hostConfig.mech,
-      exid: hostConfig.exid,
-      meta: hostConfig.meta,
-      owner: input.owner ?? null,
-      identity,
-    });
-    if (!grant) {
-      // key exists in host manifest but vault no longer has it — track as lost
-      // .note = this is expected for ephemeral vaults (os.daemon) after session restart
-      // .note = this is expected for refed vaults (1password) if item was deleted
-      keysOmitted.push({ slug: effectiveSlug, reason: 'lost' });
-
-      // clean up inventory marker so subsequent get reports "absent" not "locked"
-      await daoKeyrackInventory.del({
+      // get grant from vault
+      // .note = vault may return null if key is absent (e.g., os.daemon after restart, deleted 1password item)
+      // .note = vault now returns full KeyrackKeyGrant with grade, env, org, expiresAt
+      // .note = thread the host manifest so aws.params decides its --org identity at its own
+      //         boundary (the grove's IMDS role for @all, the org's declared AWS_PROFILE for a
+      //         specific org — the tree-wide hardcut, a manifest fact, never an ambient env-grab)
+      const grant = await adapter.get({
         slug: effectiveSlug,
+        mech: hostConfig.mech,
+        exid: hostConfig.exid,
+        meta: hostConfig.meta,
         owner: input.owner ?? null,
+        identity,
+        hostManifest,
       });
-      continue;
+      if (!grant) {
+        // key exists in host manifest but vault no longer has it — track as lost
+        // .note = this is expected for ephemeral vaults (os.daemon) after session restart
+        // .note = this is expected for refed vaults (1password) if item was deleted
+        keysOmitted.push({ slug: effectiveSlug, reason: 'lost' });
+
+        // clean up inventory marker so subsequent get reports "absent" not "locked"
+        await daoKeyrackInventory.del({
+          slug: effectiveSlug,
+          owner: input.owner ?? null,
+        });
+        continue;
+      }
+
+      // calculate expiresAt with maxDuration cap (may override vault's expiresAt)
+      const { expiresAt } = computeExpiresAt({
+        requestedDurationMs,
+        maxDurationMs: hostConfig.maxDuration
+          ? asDurationMs({ duration: hostConfig.maxDuration })
+          : null,
+        effectiveSlug,
+        maxDurationLabel: hostConfig.maxDuration ?? null,
+      });
+
+      // derive env and org for daemon storage
+      // for sudo keys: use hostConfig (has env/org set)
+      // for regular keys: use grant's env/org or derive from effectiveSlug
+      const slugOrg = asKeyrackKeyOrg({ slug: effectiveSlug });
+      const slugEnv = asKeyrackKeyEnv({ slug: effectiveSlug });
+      const keyEnv = hostConfig.env ?? grant.env ?? slugEnv ?? env;
+      const keyOrg =
+        hostConfig.org ??
+        grant.org ??
+        slugOrg ??
+        repoManifest?.org ??
+        'unknown';
+
+      // collect key for daemon (with duration-capped expiresAt)
+      // .note = env=all fallback handled at daemon lookup time, not storage time
+      keysToUnlock.push(
+        new KeyrackKeyGrant({
+          slug: effectiveSlug,
+          key: grant.key,
+          source: grant.source,
+          env: keyEnv,
+          org: keyOrg,
+          expiresAt,
+        }),
+      );
+    } catch (cause) {
+      // allowlist boundary (rule.forbid.failhide): the per-key fault isolation exists ONLY for the
+      // LIVE, OPERATIONAL faults a vault adapter raises as a classed domain error — a ConstraintError
+      // (caller-fixable: no identity, denied, absent, malformed) or a MalfunctionError (server/
+      // transient: throttle, 5xx, unknown SSM, roundtrip defect). those are isolated to an 'errored'
+      // omission so one flaky key never aborts a co-batched healthy credential.
+      // a NATIVE code bug (a TypeError/ReferenceError in our own overlay/slug code) is NOT an
+      // operational fault — to absorb it as an omission would hide a real defect. so it rethrows
+      // UNCHANGED, with its own type + stack, exactly as a bare rethrow would surface it.
+      const isOperationalFault =
+        cause instanceof ConstraintError || cause instanceof MalfunctionError;
+      if (!isOperationalFault) throw cause;
+
+      // a live operational fault on this one key — isolate it, carry the cause for the CLI render, continue
+      keysOmitted.push({ slug: effectiveSlug, reason: 'errored', cause });
     }
-
-    // calculate expiresAt with maxDuration cap (may override vault's expiresAt)
-    const { expiresAt } = computeExpiresAt({
-      requestedDurationMs,
-      maxDurationMs: hostConfig.maxDuration
-        ? asDurationMs({ duration: hostConfig.maxDuration })
-        : null,
-      effectiveSlug,
-      maxDurationLabel: hostConfig.maxDuration ?? null,
-    });
-
-    // derive env and org for daemon storage
-    // for sudo keys: use hostConfig (has env/org set)
-    // for regular keys: use grant's env/org or derive from effectiveSlug
-    const slugOrg = asKeyrackKeyOrg({ slug: effectiveSlug });
-    const slugEnv = asKeyrackKeyEnv({ slug: effectiveSlug });
-    const keyEnv = hostConfig.env ?? grant.env ?? slugEnv ?? env;
-    const keyOrg =
-      hostConfig.org ?? grant.org ?? slugOrg ?? repoManifest?.org ?? 'unknown';
-
-    // collect key for daemon (with duration-capped expiresAt)
-    // .note = env=all fallback handled at daemon lookup time, not storage time
-    keysToUnlock.push(
-      new KeyrackKeyGrant({
-        slug: effectiveSlug,
-        key: grant.key,
-        source: grant.source,
-        env: keyEnv,
-        org: keyOrg,
-        expiresAt,
-      }),
-    );
   }
 
   // send keys to daemon

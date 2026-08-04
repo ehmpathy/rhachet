@@ -22,6 +22,10 @@ case "$ARGS" in
     echo "Account: test@example.com"
     echo "User: Test User"
     ;;
+  "whoami --format json")
+    # keyrack-account json for assertAccountIsKeyrack (url/email must include 'keyrack')
+    echo '{"url":"keyrack.1password.com","email":"test@keyrack.com","user_uuid":"u","account_uuid":"a"}'
+    ;;
   item\ edit\ *)
     # extract field=value from args
     # format: item edit <item> --vault=<vault> <field>=<value>
@@ -38,12 +42,12 @@ case "$ARGS" in
     exit 1
     ;;
   read\ op://*)
-    # read from mock storage
+    # read from mock storage, or a canned value when no prior write occurred
+    # (a reference set roundtrip reads before any write; the value is unused)
     if [[ -f "$MOCK_STORAGE" ]]; then
       cat "$MOCK_STORAGE"
     else
-      echo "mock op: no stored value" >&2
-      exit 1
+      echo "mock-op-canned-value"
     fi
     ;;
   *)

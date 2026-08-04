@@ -1,0 +1,146 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t0] keyrack set with an unsupported --mech for aws.params then: stderr matches snapshot 1`] = `
+"
+BadRequestError: host manifest not found. run: rhx keyrack init --owner mechanic
+
+{
+  "owner": "mechanic"
+}
+
+[args] keyrack,set,--key,TEST,--vault,aws.params,--mech,EPHEMERAL_VIA_AWS_SSO,--owner,mechanic,--env,test,--org,ehmpathy
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t1] keyrack set with PERMANENT_VIA_REFERENCE (dropped from aws.params) then: stderr matches snapshot 1`] = `
+"
+BadRequestError: host manifest not found. run: rhx keyrack init --owner mechanic
+
+{
+  "owner": "mechanic"
+}
+
+[args] keyrack,set,--key,TEST,--vault,aws.params,--mech,PERMANENT_VIA_REFERENCE,--owner,mechanic,--env,test,--org,ehmpathy
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case2] the general keyrack set --help stays clean of aws.params prereqs when: [t0] keyrack set --help then: stdout matches snapshot 1`] = `
+"Usage: rhachet keyrack set [options]
+
+configure storage for a credential key
+
+Options:
+  --key <keyname>            raw key name to configure (e.g., AWS_PROFILE)
+  --mech <mechanism>         grant mechanism (inferred from vault when omitted)
+  --vault <vault>            storage vault: os.direct, os.secure, os.daemon,
+                             os.envvar, 1password, aws.config, aws.params,
+                             github.secrets
+  --owner <owner>            owner identity (e.g., mechanic, foreman)
+  --for <owner>              alias for --owner
+  --env <env>                target env: prod, prep, test, all, sudo, or camp
+                             (inferred from manifest if unambiguous)
+  --org <org>                target org: @this or @all (default: @this)
+                             (default: "@this")
+  --exid <exid>              external id (vault-specific reference)
+  --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
+  --at <path>                custom keyrack.yml path (for role-level keyracks)
+  --prikey <path>            ssh private key for manifest decryption
+  --json                     output as json (robot mode)
+  -h, --help                 display help for command
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case3] set with no --mech on a non-terminal stdin (c40, unattended) when: [t0] keyrack set --vault aws.params with no --mech, stdin not a tty then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: a mechanism choice is required but stdin is not a terminal
+      └─ hint: pass --mech <PERMANENT_VIA_REPLICA|EPHEMERAL_VIA_GITHUB_APP> so no interactive prompt is needed
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case5] unlock exits non-zero when an aws.params key faults (G5, c45) when: [t0] keyrack unlock runs against a dead SSM endpoint then: the errored-key output matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   ├─ testorg.test.XAI_API_KEY
+   │  ├─ status: absent 🫧
+   │  └─ tip: rhx keyrack set --key XAI_API_KEY --env test
+   └─ @all.test.XAI_API_KEY
+      ├─ status: errored 💥
+      └─ tip: aws.params SSM read failed — retry: rhx keyrack unlock --env test
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case7] set fails loud when AWS_REGION is absent (region gate, c19) when: [t0] keyrack set --vault aws.params with no region in the env then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: aws.params requires a region
+      └─ hint: set AWS_REGION, or add \`region = ...\` to your aws profile in ~/.aws/config
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case9] set fails loud when --owner is omitted (owner gate, c49) when: [t0] keyrack set --vault aws.params with no --owner then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: aws.params requires an owner in the param name
+      └─ hint: pass --owner so the set-flow supplies context.owner
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the secret into SSM, then roundtrips set→unlock→get when: [t0] set --org @all --mech PERMANENT_VIA_REPLICA (secret via stdin → written to SSM) then: stdout matches snapshot 1`] = `
+"🔐 keyrack set @all.test.XAI_API_KEY via PERMANENT_VIA_REPLICA
+🔐 keyrack set (org: @all, env: test)
+   └─ @all.test.XAI_API_KEY
+      ├─ mech: PERMANENT_VIA_REPLICA
+      ├─ vault: aws.params
+      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the secret into SSM, then roundtrips set→unlock→get when: [t2] get --json after unlock returns the replicated secret with an encrypted grade then: get --json matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.test.XAI_API_KEY",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "@all"
+  }
+}
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the secret into SSM, then roundtrips set→unlock→get when: [t3] del of the replica key destroys the SSM secret keyrack wrote then: stdout matches snapshot 1`] = `
+"
+
+🔐 keyrack del
+   └─ @all.test.XAI_API_KEY removed
+      └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY was destroyed
+
+"
+`;
+
+exports[`keyrack vault aws.params (cli) given: [case11] a SPECIFIC-org set fails loud when the org declares no AWS_PROFILE (the hardcut) when: [t0] set --org testorg --mech REPLICA with no AWS_PROFILE declared for testorg then: stderr matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: aws.params: no AWS_PROFILE declared for org "testorg"
+      └─ hint: this key is tree-scoped, so it authenticates as org "testorg"'s identity — the AWS_PROFILE this keyrack manages for that org. declare an AWS_PROFILE key for this org (env), or re-set the key with --org @all to use the grove's own identity.
+
+"
+`;

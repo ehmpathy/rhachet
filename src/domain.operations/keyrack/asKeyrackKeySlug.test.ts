@@ -168,6 +168,67 @@ describe('asKeyrackKeySlug', () => {
     });
   });
 
+  given('[case6] full slug with the @all machine-wide sigil', () => {
+    const manifest = genMockManifest();
+
+    when('[t0] @all slug is passed against a specific-org manifest', () => {
+      then('passes through as-is (never compared to the manifest org)', () => {
+        const result = asKeyrackKeySlug({
+          key: '@all.prep.PROBE',
+          env: null,
+          manifest,
+        });
+        expect(result.slug).toEqual('@all.prep.PROBE');
+        expect(result.env).toEqual('prep');
+      });
+    });
+
+    when('[t1] @all slug with a matched --env', () => {
+      then('passes through as-is', () => {
+        const result = asKeyrackKeySlug({
+          key: '@all.prep.PROBE',
+          env: 'prep',
+          manifest,
+        });
+        expect(result.slug).toEqual('@all.prep.PROBE');
+        expect(result.env).toEqual('prep');
+      });
+    });
+
+    when('[t2] @all slug with a mismatched --env', () => {
+      then('still enforces the env conflict guard', async () => {
+        const error = await getError(
+          Promise.resolve().then(() =>
+            asKeyrackKeySlug({
+              key: '@all.prep.PROBE',
+              env: 'test',
+              manifest,
+            }),
+          ),
+        );
+        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error!.message).toContain('test');
+        expect(error!.message).toContain('prep');
+      });
+    });
+  });
+
+  given('[case7] full slug with the @this sigil', () => {
+    const manifest = genMockManifest();
+
+    when('[t0] @this slug is passed', () => {
+      then('rewrites the sigil to the manifest org', () => {
+        const result = asKeyrackKeySlug({
+          key: '@this.prep.PROBE',
+          env: null,
+          manifest,
+        });
+        expect(result.slug).toEqual('ehmpathy.prep.PROBE');
+        expect(result.env).toEqual('prep');
+      });
+    });
+  });
+
   given('[case5] raw key name not found in any env', () => {
     const manifest = genMockManifest();
 

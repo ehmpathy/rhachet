@@ -1,5 +1,6 @@
 import { DomainLiteral } from 'domain-objects';
-import { getGitRepoRoot } from 'rhachet-artifact-git';
+
+import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 
 /**
  * .what = context for CLI operations
@@ -32,6 +33,10 @@ export class ContextCli
 export const genContextCli = async (input: {
   cwd: string;
 }): Promise<ContextCli> => {
-  const gitroot = await getGitRepoRoot({ from: input.cwd });
+  // a cli must run from ANY cwd — even one that is not a git repo (a credential helper from a
+  // bare clone). when there is no repo, the cwd itself is the root: repo-level config discovery
+  // then finds no repo config there, which is correct — a non-repo cwd has none to find.
+  const gitroot =
+    (await getGitRepoRootOrNull({ from: input.cwd })) ?? input.cwd;
   return new ContextCli({ cwd: input.cwd, gitroot });
 };

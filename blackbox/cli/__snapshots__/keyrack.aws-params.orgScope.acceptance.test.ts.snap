@@ -1,0 +1,90 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case1] --org @all with NO repo manifest at all (bootstrap-to-clone) when: [t0] set --org @all (autocompute, no --exid, no repo manifest present) then: set stdout matches snapshot 1`] = `
+"🔐 keyrack set @all.test.ORGSCOPE_ALL_NOMANIFEST via PERMANENT_VIA_REPLICA
+🔐 keyrack set (org: @all, env: test)
+   └─ @all.test.ORGSCOPE_ALL_NOMANIFEST
+      ├─ mech: PERMANENT_VIA_REPLICA
+      ├─ vault: aws.params
+      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/ORGSCOPE_ALL_NOMANIFEST
+
+"
+`;
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case1] --org @all with NO repo manifest at all (bootstrap-to-clone) when: [t1] unlock --org @all (identity IS the unlock, no prompt) then: unlock stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.test.ORGSCOPE_ALL_NOMANIFEST
+      ├─ env: test
+      ├─ org: @all
+      ├─ vault: aws.params
+      └─ expires in: __TIMESTAMP__
+
+"
+`;
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case1] --org @all with NO repo manifest at all (bootstrap-to-clone) when: [t2] get --json after unlock — the machine-wide value is served then: get --json (grant internal state) matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.test.ORGSCOPE_ALL_NOMANIFEST",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "@all"
+  }
+}
+"
+`;
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case2] --org @all WITH a repo manifest present (org: testorg) → ignores the manifest org when: [t0] set --org @all with the testorg manifest present then: set stdout matches snapshot 1`] = `
+"🔐 keyrack set @all.test.ORGSCOPE_ALL_WITHMANIFEST via PERMANENT_VIA_REPLICA
+🔐 keyrack set (org: @all, env: test)
+   └─ @all.test.ORGSCOPE_ALL_WITHMANIFEST
+      ├─ mech: PERMANENT_VIA_REPLICA
+      ├─ vault: aws.params
+      └─ name: /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/ORGSCOPE_ALL_WITHMANIFEST
+
+"
+`;
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case2] --org @all WITH a repo manifest present (org: testorg) → ignores the manifest org when: [t1] unlock then get --json — machine-wide value served despite the manifest then: get --json matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.test.ORGSCOPE_ALL_WITHMANIFEST",
+    "key": {
+      "secret": "__SECRET__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "@all"
+  }
+}
+"
+`;
+
+exports[`keyrack vault aws.params org-scope matrix (cli) given: [case3] no --org @all (specific org testorg) → the identity hardcut surfaces at SET when: [t0] set --org testorg with no AWS_PROFILE declared for the org then: set failure stderr matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: aws.params: no AWS_PROFILE declared for org "testorg"
+      └─ hint: this key is tree-scoped, so it authenticates as org "testorg"'s identity — the AWS_PROFILE this keyrack manages for that org. declare an AWS_PROFILE key for this org (env), or re-set the key with --org @all to use the grove's own identity.
+
+"
+`;

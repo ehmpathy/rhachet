@@ -3,6 +3,7 @@ import { given, then, when } from 'test-fns';
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
+import { vaultAdapterAwsParams } from './adapters/vaults/aws.params/vaultAdapterAwsParams';
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
 import type { ContextKeyrack } from './genContextKeyrack';
 
@@ -71,6 +72,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': vaultAdapterAwsParams,
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -118,6 +120,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': vaultAdapterAwsParams,
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -169,6 +172,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': genMockVaultAdapter(),
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': vaultAdapterAwsParams,
         'github.secrets': genMockVaultAdapter(),
       },
     };
@@ -218,6 +222,7 @@ describe('delKeyrackKeyHost', () => {
         'os.daemon': vaultAdapter,
         '1password': genMockVaultAdapter(),
         'aws.config': genMockVaultAdapter(),
+        'aws.params': vaultAdapterAwsParams,
         'github.secrets': genMockVaultAdapter(),
       },
     };

@@ -27,6 +27,7 @@ export const schemaKeyrackKeyHost = z.object({
     'os.daemon',
     '1password',
     'aws.config',
+    'aws.params',
     'github.secrets',
   ]),
   mech: z.enum([

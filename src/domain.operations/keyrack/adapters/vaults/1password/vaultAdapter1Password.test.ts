@@ -48,7 +48,11 @@ describe('vaultAdapter1Password', () => {
           // del removes the pointer (manifest entry), not the 1password item
           // the adapter del is noop; delKeyrackKeyHost handles manifest removal
           await expect(
-            vaultAdapter1Password.del({ slug: 'TEST_KEY' }),
+            vaultAdapter1Password.del({
+              slug: 'TEST_KEY',
+              mech: null,
+              meta: null,
+            }),
           ).resolves.toBeUndefined();
         },
       );

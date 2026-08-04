@@ -63,6 +63,32 @@ describe('inferKeyGrade', () => {
         expect(grade.protection).toEqual('reference');
       });
     });
+
+    when('[t7] vault is aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
+      then(
+        'protection is encrypted (keyrack writes a KMS-encrypted blob into SSM)',
+        () => {
+          const grade = inferKeyGrade({
+            vault: 'aws.params',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
+          });
+          expect(grade.protection).toEqual('encrypted');
+        },
+      );
+    });
+
+    when('[t8] vault is aws.params with PERMANENT_VIA_REPLICA', () => {
+      then(
+        'protection is encrypted (keyrack writes a KMS-encrypted copy into SSM)',
+        () => {
+          const grade = inferKeyGrade({
+            vault: 'aws.params',
+            mech: 'PERMANENT_VIA_REPLICA',
+          });
+          expect(grade.protection).toEqual('encrypted');
+        },
+      );
+    });
   });
 
   given('[case2] mechanism determines duration', () => {

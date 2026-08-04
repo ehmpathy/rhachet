@@ -9,7 +9,8 @@ Options:
   --key <keyname>            raw key name to configure (e.g., AWS_PROFILE)
   --mech <mechanism>         grant mechanism (inferred from vault when omitted)
   --vault <vault>            storage vault: os.direct, os.secure, os.daemon,
-                             os.envvar, 1password
+                             os.envvar, 1password, aws.config, aws.params,
+                             github.secrets
   --owner <owner>            owner identity (e.g., mechanic, foreman)
   --for <owner>              alias for --owner
   --env <env>                target env: prod, prep, test, all, sudo, or camp
@@ -35,7 +36,7 @@ exports[`keyrack set github-app discovery (acceptance) given: [case1] an admin a
    │
    └─ perfect, now let's verify...
       └─ ✓ roundtrip verified
-⠀
+
 🔐 keyrack set (org: adminorg, env: test)
    └─ adminorg.test.GITHUB_TOKEN
       ├─ mech: EPHEMERAL_VIA_GITHUB_APP
@@ -43,9 +44,7 @@ exports[`keyrack set github-app discovery (acceptance) given: [case1] an admin a
 `;
 
 exports[`keyrack set github-app discovery (acceptance) given: [case2] keyrack-infra is not initialized for the org when: [t0] \`keyrack set --mech EPHEMERAL_VIA_GITHUB_APP\` runs then: the blocked treestruct stderr (init-first contract) stays locked 1`] = `
-"🐢 bummer dude...
-⠀
-🐚 keyrack set
+"🔐 keyrack set
    └─ ✋ blocked: keyrack-infra not reachable for noinfraorg
       └─ hint:
          ├─ if it is not set up yet, run: rhx keyrack infra init --org noinfraorg
@@ -53,9 +52,7 @@ exports[`keyrack set github-app discovery (acceptance) given: [case2] keyrack-in
 `;
 
 exports[`keyrack set github-app discovery (acceptance) given: [case3] the registry is empty and the caller is a member (403) when: [t0] \`keyrack set --mech EPHEMERAL_VIA_GITHUB_APP\` runs then: the blocked treestruct stderr (ask-an-admin contract) stays locked 1`] = `
-"🐢 bummer dude...
-⠀
-🐚 keyrack set
+"🔐 keyrack set
    └─ ✋ blocked: no github apps registered for noapporg
       └─ hint: ask an admin to add a github app to keyrack for this org"
 `;

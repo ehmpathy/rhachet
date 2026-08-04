@@ -1,4 +1,5 @@
-import { given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 
 import { mechAdapterGithubApp } from './mechAdapterGithubApp';
 
@@ -132,4 +133,82 @@ describe('mechAdapterGithubApp', () => {
       });
     });
   });
+
+  given(
+    '[case2b] deliverForGet mint error path — a malformed private key',
+    () => {
+      // the POSITIVE mint (a real ~1h installation token) needs a real GitHub App + installation, so
+      // it is not reachable creds-free at any grain (deliverForGet calls the real GitHub API and has
+      // NO endpoint-override seam, unlike the SSM read path). but the mint's caller-fixable ERROR path
+      // IS creds-free: a malformed .pem fails at the LOCAL jwt sign step (node crypto), BEFORE any
+      // network call, so this proves deliverForGet converts that crypto fault into a ConstraintError
+      // that names the fix — the one slice of the mint provable without GitHub (mechAdapterGithubApp.ts:236)
+      when(
+        '[t0] deliverForGet called with a syntactically-valid-json but non-rsa private key',
+        () => {
+          const source = JSON.stringify({
+            appId: '12345',
+            // passes parseGithubAppCredentials (all fields present) but is NOT a valid rsa key, so the
+            // local jwt sign throws a crypto DECODER error before any GitHub request is attempted
+            privateKey:
+              '-----BEGIN RSA PRIVATE KEY-----\nnot-a-real-rsa-key\n-----END RSA PRIVATE KEY-----',
+            installationId: '67890',
+          });
+
+          then(
+            'it throws a ConstraintError that names the invalid-private-key fix',
+            async () => {
+              const error = await getError(
+                mechAdapterGithubApp.deliverForGet({ source }),
+              );
+              expect(error).toBeInstanceOf(ConstraintError);
+              expect(error.message).toContain('private key');
+            },
+          );
+        },
+      );
+    },
+  );
+
+  given(
+    '[case3] acquireForSet on a non-TTY stdin (unattended, no injected question)',
+    () => {
+      // an unattended provision task with explicit --mech EPHEMERAL_VIA_GITHUB_APP reaches
+      // acquireForSet with no injected question; stdin is not a terminal, so the guided pem
+      // prompt can never be answered — it MUST fail loud, never open a readline that hangs
+      when(
+        '[t0] acquireForSet called with no question and stdin is not a terminal',
+        () => {
+          // force a deterministic non-TTY stdin regardless of the test runner's tty state
+          const priorIsTTY = process.stdin.isTTY;
+          beforeAll(() => {
+            Object.defineProperty(process.stdin, 'isTTY', {
+              value: false,
+              configurable: true,
+            });
+          });
+          afterAll(() => {
+            Object.defineProperty(process.stdin, 'isTTY', {
+              value: priorIsTTY,
+              configurable: true,
+            });
+          });
+
+          then(
+            'it throws a ConstraintError that states stdin is not a terminal',
+            async () => {
+              const error = await getError(
+                mechAdapterGithubApp.acquireForSet(
+                  { keySlug: 'ehmpathy.test.XAI_API_KEY' },
+                  {},
+                ),
+              );
+              expect(error).toBeInstanceOf(ConstraintError);
+              expect(error.message).toContain('stdin is not a terminal');
+            },
+          );
+        },
+      );
+    },
+  );
 });

@@ -173,8 +173,12 @@ export const setKeyrackKeyHost = async (
     await daoKeyrackInventory.set({ slug: input.slug, owner: context.owner });
   }
 
-  // for non-sudo keys: also write to keyrack.yml (if gitroot available)
-  if (envFromSlug !== 'sudo' && context.gitroot) {
+  // for non-sudo, non-machine-wide keys: also write to keyrack.yml (if gitroot available).
+  // a machine-wide `@all` key belongs to the box's own namespace (the host manifest), NOT to any
+  // repo tree — exactly like a sudo key — so it must NOT be written into a repo keyrack.yml. this
+  // keeps the bootstrap-to-clone path pure: an `@all` key sets with NO repo manifest and never
+  // creates one, and even inside a repo tree it is not added to that tree's manifest.
+  if (envFromSlug !== 'sudo' && orgExpanded !== '@all' && context.gitroot) {
     const keyName = asKeyrackKeyName({ slug: input.slug });
     await daoKeyrackRepoManifest.set.findsertKeyToEnv({
       gitroot: context.gitroot,

@@ -238,7 +238,11 @@ describe('vaultAdapterOsSecure', () => {
 
     when('[t2] del called for stored key', () => {
       then('removes encrypted file', async () => {
-        await vaultAdapterOsSecure.del({ slug: 'KEY_A' });
+        await vaultAdapterOsSecure.del({
+          slug: 'KEY_A',
+          mech: null,
+          meta: null,
+        });
 
         const result = await vaultAdapterOsSecure.get({
           slug: 'KEY_A',
@@ -248,7 +252,11 @@ describe('vaultAdapterOsSecure', () => {
       });
 
       then('does not affect other keys', async () => {
-        await vaultAdapterOsSecure.del({ slug: 'KEY_A' });
+        await vaultAdapterOsSecure.del({
+          slug: 'KEY_A',
+          mech: null,
+          meta: null,
+        });
 
         const resultB = await vaultAdapterOsSecure.get({
           slug: 'KEY_B',
