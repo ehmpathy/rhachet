@@ -887,6 +887,19 @@ describe('unlockKeyrackKeys.integration', () => {
     const secretSlowVault = 'slow-vault-secret';
     const keyPair = useBeforeAll(async () => generateAgeKeyPair());
 
+    // idempotent delete: tolerate ENOENT. the daemon reaps its own pid + socket
+    // on SIGTERM, so a check-then-unlink races that self-cleanup — the file can
+    // vanish between existsSync and unlinkSync and throw ENOENT. already-absent
+    // is the desired end state for a delete, so swallow it. this reproduces
+    // deterministically under CI's parallel shards (runs 30901814168 x2).
+    const delIfPresent = (path: string) => {
+      try {
+        unlinkSync(path);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+    };
+
     const reapOwnDaemon = () => {
       const socketPath = getKeyrackDaemonSocketPath({ owner: ownerSlowVault });
       const pidPath = socketPath.replace(/\.sock$/, '.pid');
@@ -897,9 +910,9 @@ describe('unlockKeyrackKeys.integration', () => {
           // allow expected errors: ESRCH = no such process (already dead)
           if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
         }
-        unlinkSync(pidPath);
+        delIfPresent(pidPath);
       }
-      if (existsSync(socketPath)) unlinkSync(socketPath);
+      delIfPresent(socketPath);
     };
 
     beforeAll(reapOwnDaemon);
