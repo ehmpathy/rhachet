@@ -1,0 +1,30 @@
+propose a blueprint for how we can implement the wish described
+- in .behavior/v2026_01_25.postlabor-asymptotes/0.wish.md
+
+---
+
+include a treestruct of filediffs
+
+**legend:**
+- `[+] create` — file to create
+- `[~] update` — file to update
+- `[-] delete` — file to delete
+
+
+---
+
+
+remember, the purpose of the blueprint is to declare what the execution will adhere to
+
+we want to see
+- what contracts will be used
+- what the codepaths are, their ease of maintenance and readability
+
+---
+
+reference the below for full context
+- .behavior/v2026_01_25.postlabor-asymptotes/0.wish.md
+
+---
+
+emit to .behavior/v2026_01_25.postlabor-asymptotes/3.3.blueprint.v1.i1.md
