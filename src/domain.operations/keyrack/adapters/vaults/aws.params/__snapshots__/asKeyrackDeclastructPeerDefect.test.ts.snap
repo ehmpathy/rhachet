@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackDeclastructPeerDefect given: [case1] a module-not-found error for the peer (by message) when: [t0] the caught error message names the absent peer module then: the rendered message headline + install hint match snapshot (user-faced) 1`] = `
+{
+  "hint": "run \`pnpm add declastruct-aws\`",
+  "message": "✋ ConstraintError: aws.params needs the declastruct-aws peer",
+}
+`;

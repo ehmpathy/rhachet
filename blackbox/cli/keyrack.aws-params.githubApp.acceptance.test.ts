@@ -588,8 +588,35 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
         );
       });
 
+      then('keyrack masks the secret and never re-renders it in the clear', () => {
+        // the mask guarantee, asserted on RAW stdout independent of the snapshot (which
+        // pre-strips the echoed line, so it cannot prove the mask on its own). a host pty may echo
+        // the typed secret bytes AT MOST ONCE as its own line before keyrack switches to masked
+        // input; keyrack's OWN render must add NO further occurrence. so bound the raw-secret lines
+        // to <= 1 (the single possible host echo) AND assert the masked prompt line is present —
+        // together they prove keyrack masked the secret, not merely that a pre-stripped snapshot
+        // matched. mirrors case2's standalone leak-guard so every secret path carries this check
+        const clean = cleanPtyOutput(result.stdout);
+        const rawSecretLines = clean
+          .split('\n')
+          .filter((line) => line.trim() === 'xai-fixture-secret');
+        expect(rawSecretLines.length).toBeLessThanOrEqual(1);
+        expect(clean).toContain('enter secret for XAI_API_KEY: ******************');
+      });
+
       then('the prompt output matches snapshot', () => {
-        expect(cleanPtyOutput(result.stdout)).toMatchSnapshot();
+        // strip the echoed-stdin line before the snapshot. some host ptys echo the typed
+        // secret bytes as their own line before keyrack switches to masked input — and the
+        // echo is INTERMITTENT (it surfaces under concurrent-suite load, not in isolation),
+        // so its presence is non-deterministic pty noise, exactly what cleanPtyOutput exists
+        // to drop. a full strip (not a `__SECRET__` redact) is required on two counts: it
+        // makes the snapshot deterministic whether or not the host echoes, AND it guarantees
+        // the plaintext secret never lands in a committed snapshot
+        const deechoed = cleanPtyOutput(result.stdout)
+          .split('\n')
+          .filter((line) => line.trim() !== 'xai-fixture-secret')
+          .join('\n');
+        expect(deechoed).toMatchSnapshot();
       });
     });
   });

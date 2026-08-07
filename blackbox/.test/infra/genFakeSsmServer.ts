@@ -23,6 +23,15 @@ import { text } from 'node:stream/consumers';
 export const genFakeSsmServer = async (input?: {
   /** parameters to pre-seed, so a get needs no prior put (the reference-read journey) */
   seed?: { name: string; value: string; type?: string }[];
+  /**
+   * operations to fault-inject a real-format AccessDeniedException on (names match the SSM
+   * operation, e.g. 'DeleteParameter'). lets an integration test drive the real
+   * delKeyrackAwsParam → asKeyrackAwsParamErrorGate({ op:'delete' }) path through a denied call and
+   * assert the classified gate + grant tree — the del error-classify seam end-to-end, in-worker. a
+   * denial is a real 400 AccessDeniedException over the wire, so keyrack's gate classifies it as a
+   * real AWS denial (a backend fault, not a mock — rule.forbid.integration.mocks holds)
+   */
+  deny?: string[];
 }): Promise<{
   /** the base url to hand to KEYRACK_AWS_SSM_ENDPOINT */
   url: string;
@@ -45,6 +54,11 @@ export const genFakeSsmServer = async (input?: {
       type: s.type ?? 'SecureString',
       version: 1,
     });
+
+  // the set of operations to fault-inject an AccessDeniedException on (a real IAM denial
+  // simulation). a denial is a real 400 over the wire, so keyrack's gate classifies it as a real
+  // AWS denial — the same seam a live IAM denial hits, exercised in-worker for an integration test
+  const deny = new Set(input?.deny ?? []);
 
   const server: Server = createServer((req, res) => {
     // tally the dial the instant a request lands, before any body parse
@@ -102,6 +116,25 @@ export const genFakeSsmServer = async (input?: {
           errorType: 'SerializationException',
         });
       const payload = parsed;
+
+      // fault-injection — a denied operation returns the REAL-format AccessDeniedException AWS emits
+      // (principal arn + action + resource + the "no identity-based policy" tail), so keyrack's gate
+      // names the true denied action + renders the paste-ready grant tree. DeleteParameter/GetParameter
+      // deny on the param name; DescribeParameters denies on `*` (it has no resource-level scope)
+      if (deny.has(operation ?? '')) {
+        const resource =
+          operation === 'DescribeParameters'
+            ? '*'
+            : (payload.Name ?? payload.ResourceId ?? '*');
+        return emit({
+          status: 400,
+          body: {
+            __type: 'AccessDeniedException',
+            message: `User: arn:aws:sts::000000000000:assumed-role/keyrack-standin-role/i-standin is not authorized to perform: ssm:${operation} on resource: ${resource} because no identity-based policy allows the action`,
+          },
+          errorType: 'AccessDeniedException',
+        });
+      }
 
       // GetParameter — the reference-read + roundtrip-verify seam
       if (operation === 'GetParameter') {

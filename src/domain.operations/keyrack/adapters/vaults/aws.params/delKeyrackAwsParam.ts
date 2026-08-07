@@ -1,10 +1,10 @@
-import { MalfunctionError } from 'helpful-errors';
 import { genLogMethods } from 'sdk-logs';
 
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 
 import { asContextAwsApi } from './asContextAwsApi';
 import { asKeyrackAwsParamCredsEnv } from './asKeyrackAwsParamCredsEnv';
+import { asKeyrackAwsParamErrorGate } from './asKeyrackAwsParamErrorGate';
 import type { KeyrackAwsParamIdentity } from './asKeyrackAwsParamIdentity';
 import { asKeyrackAwsParamName } from './asKeyrackAwsParamName';
 import { getOneDeclastructAws } from './getOneDeclastructAws';
@@ -73,14 +73,12 @@ export const delKeyrackAwsParam = async (input: {
     // every other cause — a native code bug, a foreign lib error, any unexpected fault — is NOT
     // an AWS error, so it rethrows UNCHANGED with its own type + stack, never a keyrack wrap
     if (!isAwsSdkError(cause)) throw cause;
-    throw new MalfunctionError(
-      'aws.params del: failed to destroy the SSM param',
-      {
-        name,
-        region: input.region,
-        hint: 'confirm ssm:DeleteParameter (+ kms:Decrypt for the type-check) on the identity',
-        cause: cause instanceof Error ? cause : undefined,
-      },
+    // classify the raw AWS error into the keyrack gate it represents — the SAME seam the read +
+    // write leaves use, so a del denial forwards the raw AWS line (req1) + names the true denied
+    // action + the paste-ready del grant list (req3), never a bare MalfunctionError that hides it
+    throw asKeyrackAwsParamErrorGate(
+      { cause, exid: name, region: input.region },
+      { op: 'delete' },
     );
   }
 

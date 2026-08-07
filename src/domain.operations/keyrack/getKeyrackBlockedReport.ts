@@ -60,7 +60,23 @@ export const getKeyrackBlockedReport = (input: {
     return isLast ? `      └─ ${leaf}` : `      ├─ ${leaf}`;
   });
 
-  // one hint part renders as a single leaf that closes the branch; multiple parts nest
+  // group the hint parts into a two-level tree: a part that ends with `:` is a HEADER, and the
+  // parts that come after it (until the next header) are its CHILDREN. this keeps a header — e.g.
+  // the grant-list's "aws.params set needs these grants on this identity:" — as the visual parent
+  // of its items, instead of a flat render of header + items as equal-weight siblings, so a human
+  // who reads the tree sees the grant lines belong to the header (rule.require.treestruct-output).
+  // a part with no `:` at its end, or a header with no children after it, renders as a plain leaf
+  const hintNodes: { text: string; children: string[] }[] = [];
+  for (const part of hintParts) {
+    const openNode = hintNodes[hintNodes.length - 1];
+    const isChild =
+      !!openNode && openNode.text.endsWith(':') && !part.endsWith(':');
+    if (isChild) openNode.children.push(part);
+    else hintNodes.push({ text: part, children: [] });
+  }
+
+  // one hint part renders as a single leaf that closes the branch; multiple parts nest under the
+  // `hint:` node, and a header node further nests its children one level deeper
   const hintLines =
     hintParts.length === 0
       ? []
@@ -68,11 +84,20 @@ export const getKeyrackBlockedReport = (input: {
         ? [`      └─ hint: ${hintParts[0]}`]
         : [
             '      └─ hint:',
-            ...hintParts.map((part, i) =>
-              i === hintParts.length - 1
-                ? `         └─ ${part}`
-                : `         ├─ ${part}`,
-            ),
+            ...hintNodes.flatMap((node, i) => {
+              const isLastNode = i === hintNodes.length - 1;
+              const nodeLine = `         ${isLastNode ? '└─' : '├─'} ${node.text}`;
+              if (node.children.length === 0) return [nodeLine];
+              // a header's children indent one level deeper; carry a `│` margin only when the
+              // header is not the last node, so the tree's vertical rail stays unbroken
+              const childMargin = isLastNode ? '            ' : '         │  ';
+              const childLines = node.children.map((child, j) =>
+                j === node.children.length - 1
+                  ? `${childMargin}└─ ${child}`
+                  : `${childMargin}├─ ${child}`,
+              );
+              return [nodeLine, ...childLines];
+            }),
           ];
 
   // assemble the blocked treestruct: 🔐 keyrack domain root, blocked node beneath it.

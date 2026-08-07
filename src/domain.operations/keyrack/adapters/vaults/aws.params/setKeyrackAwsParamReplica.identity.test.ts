@@ -1,4 +1,4 @@
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import type { DeclastructAws } from './getOneDeclastructAws';
 import { setKeyrackAwsParamReplica } from './setKeyrackAwsParamReplica';
@@ -137,4 +137,62 @@ describe('setKeyrackAwsParamReplica identity (unit)', () => {
       });
     });
   });
+
+  given(
+    '[case3] the declastruct-aws peer is absent (a pre-knowable gate)',
+    () => {
+      // req4 (never-waste-user-time): the peer load is a pre-knowable gate — its
+      // module-not-found does NOT depend on the secret — so it must fail loud BEFORE the secret
+      // prompt fires, never after the human types a 40-char secret only to be rejected. this
+      // clamps the ORDER: peer-load precedes acquireForSet. a future edit that swapped the two
+      // back (prompt first, gate after) would flip acquireCalled to true and fail this test
+      const scene = useBeforeAll(async () => {
+        let acquireCalled = false;
+        const error = await getError(
+          setKeyrackAwsParamReplica(
+            {
+              slug: 'ehmpathy.test.REPLICA',
+              exid: '/keyrack/journey/REPLICA',
+              region: 'us-east-1',
+              identity: { source: 'imds' },
+            },
+            {
+              deps: {
+                // the peer load throws (the absent-peer gate) — it runs first by design
+                getOneDeclastructAws: async () => {
+                  throw new Error('Cannot find module declastruct-aws');
+                },
+                // the secret prompt: records if it ever fired. it MUST NOT, since the peer
+                // gate precedes it — a fired prompt here is the wasted-effort defect req4 kills
+                acquireForSet: async () => {
+                  acquireCalled = true;
+                  return { source: SECRET };
+                },
+                getOneKeyrackAwsParamEndpoint: () => null,
+                getOneKeyrackAwsParam: async () => ({
+                  value: SECRET,
+                  type: 'SecureString',
+                }),
+              },
+            },
+          ),
+        );
+        return { error, acquireCalled };
+      });
+
+      when('[t0] the set is attempted', () => {
+        then('the absent-peer error propagates (fails loud)', () => {
+          expect(scene.error).toBeDefined();
+          expect(scene.error?.message).toContain('declastruct-aws');
+        });
+
+        then(
+          'the secret prompt NEVER fired — the gate ran before it (req4)',
+          () => {
+            expect(scene.acquireCalled).toEqual(false);
+          },
+        );
+      });
+    },
+  );
 });

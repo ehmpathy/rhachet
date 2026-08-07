@@ -5,9 +5,9 @@
  *        rethrow-UNCHANGED for every error outside it. this is that allowlist: only a recognized
  *        AWS SDK error is classified by asKeyrackAwsParamErrorGate; a native code bug, a foreign
  *        lib error, or any other unexpected fault is NOT an AWS error, so the catch rethrows it
- *        intact (its own type + stack survive, never reclassified). one predicate all three
- *        aws.params catch sites share (getOneKeyrackAwsParam, setKeyrackAwsParamGithubApp,
- *        delKeyrackAwsParam)
+ *        intact (its own type + stack survive, never reclassified). one predicate all four
+ *        aws.params catch sites share (getOneKeyrackAwsParam, setKeyrackAwsParamReplica,
+ *        setKeyrackAwsParamGithubApp, delKeyrackAwsParam)
  *
  * .note = AWS SDK v3 service exceptions all extend ServiceException, which carries `$metadata`
  *         (and usually `$fault`); credential-chain errors (thrown before any HTTP call, so they

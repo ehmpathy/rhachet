@@ -16,6 +16,12 @@ import { createInterface } from 'node:readline';
 export const genFakeSsmServerDetached = async (input?: {
   /** parameters to pre-seed, so a get needs no prior put (the reference-read journey) */
   seed?: { name: string; value: string; type?: string }[];
+  /**
+   * operations to fault-inject an AccessDeniedException on (names match the SSM operation, e.g.
+   * 'DescribeParameters'). lets an acceptance test drive the real CLI through a denied call and
+   * snapshot the rendered grant-tree — the failtrim forward + grant list, end-to-end
+   */
+  deny?: string[];
 }): Promise<{
   /** the base url to hand to KEYRACK_AWS_SSM_ENDPOINT */
   url: string;
@@ -30,6 +36,7 @@ export const genFakeSsmServerDetached = async (input?: {
     env: {
       ...process.env,
       KEYRACK_SSM_STANDIN_SEED: JSON.stringify(input?.seed ?? []),
+      KEYRACK_SSM_STANDIN_DENY: JSON.stringify(input?.deny ?? []),
     },
   });
 

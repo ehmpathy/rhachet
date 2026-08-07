@@ -66,6 +66,11 @@ export const setKeyrackAwsParamReplica = async (
   // as one coherent, header-anchored tree
   console.log(`🔐 keyrack set ${input.slug} via PERMANENT_VIA_REPLICA`);
 
+  // load the declastruct-aws peer BEFORE the secret prompt — an absent peer is a pre-knowable
+  // gate (its module-not-found does not depend on the secret), so it must fail loud NOW rather
+  // than after the human types a 40-char secret only to be rejected (req4, never-waste-user-time)
+  const declastruct = await getOneDeclastructAwsFn();
+
   // acquire the static secret via the replica mech's guided setup (a hidden stdin prompt).
   // .note = context.mech injects the prompt source (composition root / tests) so this owned-secret
   //         path is reachable headlessly; absent in prod, the mech falls back to the real terminal
@@ -73,7 +78,6 @@ export const setKeyrackAwsParamReplica = async (
     { keySlug: input.slug },
     context?.mech,
   );
-  const declastruct = await getOneDeclastructAwsFn();
 
   // the optional SSM endpoint — the SAME shared source the read path uses, so persist + read cannot
   // drift (null in prod; a local emulator URL under test)

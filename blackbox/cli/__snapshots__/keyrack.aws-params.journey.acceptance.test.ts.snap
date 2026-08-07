@@ -73,3 +73,20 @@ exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstrap
 
 "
 `;
+
+exports[`keyrack vault aws.params journey (cli) given: [case2] a set denied at DescribeParameters surfaces the paste-ready grant tree when: [t0] set is attempted while DescribeParameters is denied then: the rendered blocked tree matches snapshot (the human-seen grant tree) 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: aws.params identity cannot ssm:DescribeParameters
+      └─ hint:
+         ├─ add the absent grant to this identity, then re-run
+         ├─ why (raw AWS): AccessDeniedException — User: arn:aws:sts::000000000000:assumed-role/keyrack-standin-role/i-standin is not authorized to perform: ssm:DescribeParameters on resource: * because no identity-based policy allows the action
+         └─ aws.params set needs these grants on this identity:
+            ├─ ssm:DescribeParameters on * (MUST be "*", no resource scope)
+            ├─ ssm:ListTagsForResource on parameter/keyrack/infra/vault/aws.params/*
+            ├─ ssm:PutParameter on parameter/keyrack/infra/vault/aws.params/*
+            ├─ ssm:GetParameter on parameter/keyrack/infra/vault/aws.params/*
+            └─ kms:Encrypt, kms:Decrypt on the key that encrypts these params (implicit on the default alias/aws/ssm key)
+
+"
+`;

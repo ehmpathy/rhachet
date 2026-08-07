@@ -26,9 +26,23 @@ describe('asKeyrackDeclastructPeerDefect', () => {
 
       then('the hint states the exact install command', () => {
         const defect = asKeyrackDeclastructPeerDefect(cause);
-        // the one user-faced recovery step — pinned so a future phrasing change is caught
+        // the one user-faced recovery step — pinned so a future reword is caught
         expect(JSON.stringify(defect)).toContain('pnpm add declastruct-aws');
       });
+
+      then(
+        'the rendered message headline + install hint match snapshot (user-faced)',
+        () => {
+          // the peer-absent ConstraintError is the ONE message a user without the optional peer
+          // sees (uc14) — snap its full user-faced shape so a PR reviewer catches any drift. the
+          // return type carries a typed `metadata.hint`, so no as-cast is needed
+          const defect = asKeyrackDeclastructPeerDefect(cause);
+          expect({
+            message: defect?.message.split('\n')[0],
+            hint: defect?.metadata.hint,
+          }).toMatchSnapshot();
+        },
+      );
     });
   });
 
@@ -57,6 +71,52 @@ describe('asKeyrackDeclastructPeerDefect', () => {
       });
     });
   });
+
+  given(
+    '[case5] the transitive peer-of-peer: bare "declastruct" absent (by message)',
+    () => {
+      when('[t0] the caught error names the bare declastruct module', () => {
+        // the incident: declastruct-aws requires declastruct (CJS), which is absent, so the crash
+        // names 'declastruct' (NOT '-aws'). the old allowlist matched only '-aws' → 200-line crash
+        const cause = Object.assign(
+          new Error(
+            "Cannot find module 'declastruct'\nRequire stack:\n- /path/declastruct-aws/dist/index.js",
+          ),
+          { code: 'MODULE_NOT_FOUND' },
+        );
+
+        then(
+          'it returns the install-fix ConstraintError, not a raw crash',
+          () => {
+            const defect = asKeyrackDeclastructPeerDefect(cause);
+            expect(defect).toBeInstanceOf(ConstraintError);
+            expect(defect?.message).toContain('needs the declastruct-aws peer');
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case6] a CJS module-not-found for the peer (by code MODULE_NOT_FOUND)',
+    () => {
+      when(
+        '[t0] the caught error carries the CJS MODULE_NOT_FOUND code',
+        () => {
+          // CJS require throws code 'MODULE_NOT_FOUND' (ESM throws 'ERR_MODULE_NOT_FOUND'); the
+          // widened allowlist spans both loaders so a transitive CJS absence gates cleanly
+          const cause = Object.assign(new Error('boom'), {
+            code: 'MODULE_NOT_FOUND',
+          });
+
+          then('it returns the install-fix ConstraintError', () => {
+            const defect = asKeyrackDeclastructPeerDefect(cause);
+            expect(defect).toBeInstanceOf(ConstraintError);
+          });
+        },
+      );
+    },
+  );
 
   given('[case4] a thrown non-error value', () => {
     when('[t0] the caught value is not an Error instance', () => {
