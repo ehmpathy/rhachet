@@ -67,6 +67,12 @@ export const setKeyrackAwsParamGithubApp = async (
   // confirmation — the guided wizard falls out of the user-faced contract capture
   console.log(`🔐 keyrack set ${input.slug} via EPHEMERAL_VIA_GITHUB_APP`);
 
+  // load the declastruct-aws peer BEFORE the guided setup — an absent peer is a pre-knowable gate
+  // (its module-not-found does not depend on the acquired blob), so it must fail loud NOW rather
+  // than after the human walks the app-selection + pem prompts only to be rejected (req4,
+  // never-waste-user-time)
+  const declastruct = await getOneDeclastructAwsFn();
+
   // acquire the blob via the mech's guided setup.
   // .note = context.mech injects the gh runner + prompt (composition root / tests) so this
   //         owned-secret path is reachable headlessly; absent in prod, the mech falls back to
@@ -75,7 +81,6 @@ export const setKeyrackAwsParamGithubApp = async (
     { keySlug: input.slug },
     context?.mech,
   );
-  const declastruct = await getOneDeclastructAwsFn();
 
   // the optional SSM endpoint — the SAME shared source the read path uses, so the persist and the
   // read cannot drift (null in prod; a local emulator URL under test). declastruct builds the

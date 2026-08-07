@@ -481,4 +481,114 @@ describe('keyrack vault aws.params journey (cli)', () => {
       });
     });
   });
+
+  given(
+    '[case2] a set denied at DescribeParameters surfaces the paste-ready grant tree',
+    () => {
+      // the vision's headline "aha", proven END-TO-END through the real CLI (not only the pure-gate
+      // unit snapshot): the stand-in denies DescribeParameters — the incident's TRUE denied action,
+      // the metadata read the set findsert makes BEFORE the write — so the set fails at that exact
+      // call, and keyrack must render the classified gate (name the true action, forward the raw AWS
+      // line, print the paste-ready grant tree) that a human actually sees on stderr. this is the one
+      // path the whole behavior exists to fix, walked at the CLI contract boundary.
+      const scene = useBeforeAll(async () => {
+        const ssm = await genFakeSsmServerDetached({
+          deny: ['DescribeParameters'],
+        });
+        const repo = await genTestTempRepo({
+          fixture: 'with-keyrack-manifest',
+        });
+        writeFileSync(join(repo.path, '.agent', 'keyrack.yml'), "org: '@all'\n");
+        await invokeRhachetCliBinary({
+          args: ['keyrack', 'init', '--owner', 'mechanic', '--org', '@all'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        });
+        return { ssm, repo };
+      });
+
+      afterAll(async () => {
+        await scene.ssm.close();
+      });
+
+      const envFor = (): Record<string, string | undefined> => ({
+        HOME: scene.repo.path,
+        AWS_REGION: REGION,
+        AWS_ACCESS_KEY_ID: 'test-akid',
+        AWS_SECRET_ACCESS_KEY: 'test-secret',
+        NODE_ENV: 'test',
+        KEYRACK_AWS_SSM_ENDPOINT: scene.ssm.url,
+        [KEY]: undefined,
+      });
+
+      when('[t0] set is attempted while DescribeParameters is denied', () => {
+        const result = useBeforeAll(async () =>
+          invokeRhachetCliBinary({
+            args: [
+              'keyrack',
+              'set',
+              '--key',
+              KEY,
+              '--vault',
+              'aws.params',
+              '--mech',
+              'PERMANENT_VIA_REPLICA',
+              '--owner',
+              'mechanic',
+              '--env',
+              'test',
+              '--org',
+              '@all',
+              '--exid',
+              EXID,
+            ],
+            cwd: scene.repo.path,
+            env: envFor(),
+            stdin: SECRET,
+            logOnError: false,
+          }),
+        );
+
+        then('the set is rejected as caller-fixable (exit 2)', () => {
+          expect(result.status).toEqual(2);
+        });
+
+        then(
+          'it names the TRUE denied action ssm:DescribeParameters, NOT "no AWS identity" (req2)',
+          () => {
+            expect(result.stderr).toContain('ssm:DescribeParameters');
+            expect(result.stderr).not.toContain('no AWS identity');
+          },
+        );
+
+        then('the verbatim raw AWS line is forwarded to the human (req1)', () => {
+          expect(result.stderr).toContain('why (raw AWS)');
+          expect(result.stderr).toContain('AccessDeniedException');
+        });
+
+        then('the paste-ready grant list renders as a tree (req3)', () => {
+          expect(result.stderr).toContain(
+            'ssm:DescribeParameters on * (MUST be "*", no resource scope)',
+          );
+          expect(result.stderr).toContain('ssm:PutParameter');
+          expect(result.stderr).toContain('ssm:GetParameter');
+        });
+
+        then(
+          'the secret value never leaks into the rendered error (safety boundary)',
+          () => {
+            expect(result.stderr).not.toContain(SECRET);
+          },
+        );
+
+        then(
+          'the rendered blocked tree matches snapshot (the human-seen grant tree)',
+          () => {
+            expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
 });

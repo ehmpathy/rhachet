@@ -37,6 +37,19 @@ try {
   process.stderr.write('[ssm-standin] bad seed json: ' + String(e) + '\n');
 }
 
+// the set of operations to fault-inject an AccessDeniedException on (a real IAM denial
+// simulation). names match the X-Amz-Target operation (e.g. "DescribeParameters"). this lets an
+// acceptance test drive the real CLI through a denied call and snapshot the rendered grant-tree a
+// human actually sees — the failtrim forward + grant list, exercised end-to-end, not only at the
+// unit grain. a denial is a real 400 AccessDeniedException over the wire, so keyrack's gate
+// classifies it as a real AWS denial (a backend fault, not a mock — rule.forbid.acceptance.mocks)
+let deny = new Set();
+try {
+  deny = new Set(JSON.parse(process.env.KEYRACK_SSM_STANDIN_DENY || '[]'));
+} catch (e) {
+  process.stderr.write('[ssm-standin] bad deny json: ' + String(e) + '\n');
+}
+
 const server = http.createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => {
@@ -60,6 +73,25 @@ const server = http.createServer((req, res) => {
       });
       res.end(JSON.stringify(obj));
     };
+
+    // fault-injection — a denied operation returns the REAL-format AccessDeniedException AWS emits
+    // (principal arn + action + resource + the "no identity-based policy" tail), so keyrack's gate
+    // names the true denied action + renders the paste-ready grant tree. DescribeParameters denies
+    // on `*` (it has no resource-level scope — the exact incident trap); the rest echo the param name
+    if (deny.has(operation)) {
+      const resource =
+        operation === 'DescribeParameters'
+          ? '*'
+          : payload.Name || payload.ResourceId || '*';
+      return emit(
+        400,
+        {
+          __type: 'AccessDeniedException',
+          message: `User: arn:aws:sts::000000000000:assumed-role/keyrack-standin-role/i-standin is not authorized to perform: ssm:${operation} on resource: ${resource} because no identity-based policy allows the action`,
+        },
+        'AccessDeniedException',
+      );
+    }
 
     // GetParameter — the reference-read + roundtrip-verify seam
     if (operation === 'GetParameter') {

@@ -13,12 +13,18 @@ import { ConstraintError } from 'helpful-errors';
 export const asKeyrackDeclastructPeerDefect = (
   cause: unknown,
 ): ConstraintError<{ hint: string; cause: Error | undefined }> | null => {
-  // allowlist: only a module-not-found for the peer is caller-fixable (install it). narrow via
-  // `'code' in cause` (no as-cast, per rule.forbid.as-cast)
+  // allowlist: only a module-not-found for the peer is caller-fixable (install it). the message
+  // prefix 'declastruct' matches BOTH the direct peer ('declastruct-aws') AND its transitive
+  // peer-of-peer ('declastruct', a bare CJS require) — the 200-line crash the incident hit. the
+  // code check spans both loaders: ESM (ERR_MODULE_NOT_FOUND) + CJS (MODULE_NOT_FOUND). the code
+  // check is safe un-scoped because the ONLY imports in this try are declastruct-family, so any
+  // module-not-found here IS a declastruct absence. narrow via `'code' in cause` (no as-cast)
   const peerAbsent =
     cause instanceof Error &&
-    (cause.message.includes("Cannot find module 'declastruct-aws") ||
-      ('code' in cause && cause.code === 'ERR_MODULE_NOT_FOUND'));
+    (cause.message.includes("Cannot find module 'declastruct") ||
+      ('code' in cause &&
+        (cause.code === 'ERR_MODULE_NOT_FOUND' ||
+          cause.code === 'MODULE_NOT_FOUND')));
   if (!peerAbsent) return null;
 
   return new ConstraintError('aws.params needs the declastruct-aws peer', {
