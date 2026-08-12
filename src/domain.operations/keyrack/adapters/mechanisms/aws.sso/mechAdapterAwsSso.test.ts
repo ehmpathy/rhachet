@@ -1,4 +1,5 @@
-import { given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 
 // mock child_process.execSync before import
 jest.mock('node:child_process', () => {
@@ -251,6 +252,57 @@ describe('mechAdapterAwsSso', () => {
           expect(result.reasons?.[0]).toContain('no value to validate');
         }
       });
+    });
+  });
+
+  /**
+   * .what = binds that this adapter refuses a reach, and names the mech the CALLER invoked
+   * .why = this adapter object is registered under BOTH `EPHEMERAL_VIA_AWS_SSO` and
+   *        `EPHEMERAL_VIA_GITHUB_OIDC` (genContextKeyrackGrantGet), so it cannot name its own
+   *        identity — it would be right for one caller and wrong for the other
+   * .note = `[t1]` is the clamp that bites. under the defect (a hardcoded mech literal) the
+   *         refusal still FIRES, so a test that only asserted "it throws" stays green and
+   *         proves none of what matters. only an assertion on WHICH mech the error names
+   *         catches it
+   * .note = no guided-setup mock is needed: the refusal throws before `setupAwsSsoWithGuide`
+   *         is ever reached, which is itself the e13 guarantee (refuse before any side effect)
+   */
+  given('[case6] one adapter object, two mech identities', () => {
+    const reach = { exid: 'github://org=ehmpathy' };
+
+    when('[t0] invoked as EPHEMERAL_VIA_AWS_SSO with a reach', () => {
+      then('it refuses, and names aws sso', async () => {
+        const error = await getError(
+          mechAdapterAwsSso.acquireForSet({
+            keySlug: 'ehmpathy.prep.AWS_PROFILE',
+            reach,
+            mech: 'EPHEMERAL_VIA_AWS_SSO',
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('EPHEMERAL_VIA_AWS_SSO');
+      });
+    });
+
+    when('[t1] invoked as EPHEMERAL_VIA_GITHUB_OIDC with a reach', () => {
+      then(
+        'it refuses, and names OIDC — never the adapter it shares',
+        async () => {
+          const error = await getError(
+            mechAdapterAwsSso.acquireForSet({
+              keySlug: 'ehmpathy.prep.AWS_PROFILE',
+              reach,
+              mech: 'EPHEMERAL_VIA_GITHUB_OIDC',
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+
+          // THE clamp: under a hardcoded literal this reads EPHEMERAL_VIA_AWS_SSO, and a
+          // human debugs the wrong mechanism entirely
+          expect(error.message).toContain('EPHEMERAL_VIA_GITHUB_OIDC');
+          expect(error.message).not.toContain('EPHEMERAL_VIA_AWS_SSO');
+        },
+      );
     });
   });
 });

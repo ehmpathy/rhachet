@@ -239,7 +239,7 @@ describe('keyrack env=all roundtrip', () => {
     });
 
     when('[t0] set key with env=all', () => {
-      useBeforeAll(async () =>
+      const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -257,9 +257,11 @@ describe('keyrack env=all roundtrip', () => {
         }),
       );
 
+      // .why assert rather than `expect(true).toBe(true)` = this is the precondition every
+      //      claim below rests on. a placeholder here reports green when the set FAILED, so
+      //      the later cases would fail for a reason no one could read off this line
       then('env=all key is set', () => {
-        // implicit - no assertion needed, setup for next step
-        expect(true).toBe(true);
+        expect(result.status).toEqual(0);
       });
     });
 
@@ -422,7 +424,7 @@ describe('keyrack env=all roundtrip', () => {
     });
 
     when('[t0] set key without --env (defaults to all)', () => {
-      useBeforeAll(async () =>
+      const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -439,7 +441,7 @@ describe('keyrack env=all roundtrip', () => {
       );
 
       then('key is set', () => {
-        expect(true).toBe(true);
+        expect(result.status).toEqual(0);
       });
     });
 
@@ -614,7 +616,7 @@ describe('keyrack env=all roundtrip', () => {
     });
 
     when('[t0] set key with env=all', () => {
-      useBeforeAll(async () =>
+      const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
             'keyrack',
@@ -633,7 +635,7 @@ describe('keyrack env=all roundtrip', () => {
       );
 
       then('key is set', () => {
-        expect(true).toBe(true);
+        expect(result.status).toEqual(0);
       });
     });
 

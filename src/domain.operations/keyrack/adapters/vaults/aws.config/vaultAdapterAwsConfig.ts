@@ -1,9 +1,5 @@
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import {
-  ConstraintError,
-  MalfunctionError,
-  UnexpectedCodePathError,
-} from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genLogMethods } from 'sdk-logs';
 
 import type {
@@ -25,6 +21,7 @@ import {
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
@@ -47,7 +44,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -198,7 +195,7 @@ const validateSsoSession = async (
         return { valid: false };
       }
       // unknown error - fail fast
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'validateSsoTokenWithAwsSdk failed with unexpected error',
         { profileName, error },
       );
@@ -233,7 +230,7 @@ const validateSsoSession = async (
     }
 
     // unknown error - fail fast
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'aws configure export-credentials failed with unexpected error',
       { profileName, error },
     );
@@ -252,7 +249,7 @@ const validateSsoSession = async (
     return { valid: true, username };
   } catch (error) {
     // rethrow our own error types (code defects, invalid requests)
-    if (error instanceof UnexpectedCodePathError) throw error;
+    if (error instanceof MalfunctionError) throw error;
     if (error instanceof ConstraintError) throw error;
 
     // allow expected errors: command failed = session expired or profile invalid
@@ -604,6 +601,25 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
 
     const mech = input.mech ?? 'EPHEMERAL_VIA_AWS_SSO';
 
+    // .why a reach is refused on READ too, not only on `set` = the refusal in `set` is what
+    //      makes a reach-held aws.config entry unreachable through the CLI TODAY. that is a
+    //      property of one write path, not of this vault — a hand-edited manifest, or any
+    //      future write that does not route through `vault.set`, would produce an entry this
+    //      read would answer. and it would answer it with the REACHLESS sso profile, which is
+    //      a live credential for a reach the caller never asked for (e18's class)
+    // .note = every other vault already holds this line structurally: `os.envvar` and
+    //         `github.secrets` assert on read, and `os.direct` / `os.secure` bake the reach
+    //         into the storage ADDRESS, so a mismatched reach cannot retrieve the wrong entry.
+    //         this vault trusted "no caller will ever do that" instead, which is the one form
+    //         of the guarantee the design does not accept anywhere else
+    // .note = `Absent` rather than `Addressable`, and the axis matters. a vault-address refusal
+    //         would say "aws.config's address carries no reach" — which is FALSE here, since
+    //         its host entry is addressed by composite address like any other. the true reason
+    //         is the MECH: `EPHEMERAL_VIA_AWS_SSO` mints against an sso profile, its own
+    //         reach concept, so a reach would move where the value is filed yet leave what
+    //         it opens untouched (e13). this is the same refusal `set` makes, on the same axis
+    assertKeyrackReachAbsent({ reach: input.reach, mech });
+
     // get expiration time from mech adapter
     // .note = sso session validation happens in unlock, not here
     const mechAdapter = getMechAdapter(mech);
@@ -653,12 +669,21 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
       });
     }
 
+    // refuse a reach up front, not merely on the guided-setup branch below — that branch
+    // is skipped whenever --exid is supplied, which would drop the reach in silence
+    assertKeyrackReachAbsent({ reach: input.reach, mech });
+
     // derive profile name from exid, else from guided setup on a tty
     const profileName =
       input.exid ??
       (process.stdin.isTTY
-        ? (await getMechAdapter(mech).acquireForSet({ keySlug: input.slug }))
-            .source
+        ? (
+            await getMechAdapter(mech).acquireForSet({
+              keySlug: input.slug,
+              reach: input.reach,
+              mech,
+            })
+          ).source
         : null);
     if (!profileName) {
       throw new ConstraintError(
@@ -720,7 +745,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
       exid: profileName,
     });
     if (!grantRead || grantRead.key.secret !== profileName) {
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'roundtrip failed: get returned different profile',
         {
           slug: input.slug,

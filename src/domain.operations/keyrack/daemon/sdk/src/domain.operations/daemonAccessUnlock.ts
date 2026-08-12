@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
@@ -29,7 +29,7 @@ export const daemonAccessUnlock = async (input: {
   });
 
   if (!response.success) {
-    throw new UnexpectedCodePathError('daemon UNLOCK command failed', {
+    throw new MalfunctionError('daemon UNLOCK command failed', {
       error: response.error,
     });
   }

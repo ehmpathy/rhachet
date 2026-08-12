@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackListTreestruct given: [case1] a host that holds only reachless keys when: [t0] the rack is rendered then: it renders the extant shape 1`] = `
+[
+  "",
+  "🔐 keyrack list",
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ mech: PERMANENT_VIA_REPLICA",
+  "      └─ vault: os.secure",
+]
+`;
+
+exports[`asKeyrackListTreestruct given: [case2] one slug held at three reaches when: [t0] the rack is rendered then: the rack reads as three keys, one name 1`] = `
+[
+  "",
+  "🔐 keyrack list",
+  "   ├─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "   │  ├─ env: prep",
+  "   │  ├─ org: ahbode",
+  "   │  ├─ mech: PERMANENT_VIA_REPLICA",
+  "   │  └─ vault: os.secure",
+  "   ├─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "   │  ├─ env: prep",
+  "   │  ├─ org: ahbode",
+  "   │  ├─ reach: beav@ehmpathy.com",
+  "   │  ├─ mech: PERMANENT_VIA_REPLICA",
+  "   │  └─ vault: os.secure",
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ reach: github://org=ehmpathy",
+  "      ├─ mech: PERMANENT_VIA_REPLICA",
+  "      └─ vault: os.secure",
+]
+`;

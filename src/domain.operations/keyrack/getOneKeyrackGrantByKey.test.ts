@@ -1,4 +1,4 @@
-import { BadRequestError, ConstraintError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
@@ -67,8 +67,8 @@ describe('getOneKeyrackGrantByKey', () => {
             );
             throw new Error('expected to throw');
           } catch (error) {
-            expect(error).toBeInstanceOf(BadRequestError);
-            expect((error as BadRequestError).message).toContain(
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect((error as ConstraintError).message).toContain(
               'does not match manifest org',
             );
           }
@@ -112,6 +112,7 @@ describe('getOneKeyrackGrantByKey', () => {
             env: 'test',
             mech: 'PERMANENT_VIA_REPLICA',
             grade: null,
+            reaches: [],
             flags: { isOptionalIfHas: null },
           },
         },

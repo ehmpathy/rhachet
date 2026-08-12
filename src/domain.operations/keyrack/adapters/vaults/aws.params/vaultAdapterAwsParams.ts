@@ -5,6 +5,7 @@ import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
+import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAddressable';
 
 import { asKeyrackAwsParamName } from './asKeyrackAwsParamName';
 import { asKeyrackAwsParamRegion } from './asKeyrackAwsParamRegion';
@@ -66,6 +67,15 @@ export const vaultAdapterAwsParams: KeyrackHostVaultAdapter<
    *        the daemon, never this
    */
   get: async (input) => {
+    // ⛔ FIRST, before any SSM call. the v1 param path carries no reach segment, so a reach-ask
+    //    would read the REACHLESS param and hand back a live credential for a reach the caller
+    //    never named (e18's class). refuse instead of answer wrong
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'aws.params',
+      direction: 'read',
+    });
+
     // read + decrypt the SecureString through the org-scope identity, then run the value gates
     // (5 absent, 6 not-SecureString, 6b empty) — the ONE seam a set roundtrip-verify also calls, so
     // get and the set-verify walk the identical path
@@ -125,6 +135,15 @@ export const vaultAdapterAwsParams: KeyrackHostVaultAdapter<
    *        github-app it persists the blob into SSM (mirrors os.secure / 1password)
    */
   set: async (input, context) => {
+    // ⛔ FIRST, before the owner gate and any SSM write. two reaches of one slug compute the SAME
+    //    v1 param name, so a reach-set would silently OVERWRITE the reachless value — a credential
+    //    lost with no signal. refuse before a single byte is written
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'aws.params',
+      direction: 'write',
+    });
+
     // owner is mandatory (a segment of the path); read context.owner, never invent one
     const owner =
       context?.owner ??
@@ -209,6 +228,16 @@ export const vaultAdapterAwsParams: KeyrackHostVaultAdapter<
    *        write a value keyrack owns into SSM, so a del of the key destroys that value
    */
   del: async (input, context) => {
+    // ⛔ FIRST, before the destroy. a del is ADDRESSED — it removes the ONE key it was pointed at.
+    //    but the v1 param name has no reach segment, so a reach-del would compute the REACHLESS
+    //    param and destroy a credential the caller never named. the worst of the three directions,
+    //    since a wrong destroy is the one that cannot be undone
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'aws.params',
+      direction: 'write',
+    });
+
     // mech from the STORED manifest entry; NEVER defaulted. an absent mech = a corrupt entry →
     // fail loud, NEVER a silent no-op "removed": if the entry was actually owned (github-app), a
     // live SSM secret would SURVIVE while the operator believes the del touched no remote secret —

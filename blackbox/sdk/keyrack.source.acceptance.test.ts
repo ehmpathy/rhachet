@@ -948,4 +948,157 @@ console.log('key1:', process.env.${envKey1} || 'undefined');
       });
     });
   });
+
+  given('[case9] keyrack.source() SDK asked for a reach', () => {
+    // .why = the sdk `keyrack.source` is a SEPARATE implementation from the cli `source`
+    //        command — it shells to `keyrack get`, so no cli guard covers it. this case is
+    //        the sdk's own reach coverage, which stood at zero until 2026-08-06
+    // .note = the defect this clamps was not the absence of a guard, it was a LIE: the
+    //         collision error offered `pass \`reach\`` as its fix while the input contract had
+    //         no `reach` field at all (rule.require.errors-name-the-fix)
+    const envKey = '__TEST_SDK_REACH__';
+    const envValue = 'reach-test-value';
+
+    const rhachetDistPath = resolve(
+      process.cwd(),
+      'dist',
+      'contract',
+      'sdk.keyrack.js',
+    );
+
+    /**
+     * .what = stand up a temp repo whose manifest declares one key, then run one module
+     * .why = every when below differs by ONE line of the module body, so the setup is shared
+     *        and the call under test stays legible at each call site
+     */
+    const runSourceModule = (input: {
+      slug: string;
+      call: string;
+      env: Record<string, string>;
+    }) => {
+      const testDir = genTempDir({
+        slug: input.slug,
+        symlink: [{ at: 'node_modules', to: 'node_modules' }],
+        git: true,
+      });
+
+      const agentDir = join(testDir, '.agent');
+      spawnSync('mkdir', ['-p', agentDir]);
+      writeFileSync(
+        join(agentDir, 'keyrack.yml'),
+        `org: testorg
+
+env.test:
+  - ${envKey}
+`,
+      );
+
+      spawnSync('git', ['add', '.'], { cwd: testDir });
+      spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+      const modulePath = join(testDir, 'test-reach.mjs');
+      writeFileSync(
+        modulePath,
+        `
+import { keyrack } from '${rhachetDistPath}';
+
+${input.call}
+console.log('sourced:', process.env.${envKey} || 'undefined');
+`,
+      );
+
+      const spawnResult = spawnSync('node', [modulePath], {
+        cwd: testDir,
+        encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+        env: {
+          ...process.env,
+          HOME: testDir,
+          XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+          ...input.env,
+        },
+      });
+
+      return {
+        status: spawnResult.status,
+        stdout: spawnResult.stdout,
+        stderr: spawnResult.stderr,
+      };
+    };
+
+    when('[t0] a reach rides a BULK source, with no key named', () => {
+      const result = useBeforeAll(async () =>
+        runSourceModule({
+          slug: 'keyrack-sdk-reach-bulk',
+          call: `keyrack.source({ env: 'test', owner: 'testorg', reach: { exid: 'beav@ehmpathy.com' } });`,
+          env: { [envKey]: envValue },
+        }),
+      );
+
+      // ⚠️ THE clamp. absent `assertKeyrackReachRequiresKey` this exits 0 and sources the
+      //    REACHLESS key, so a caller who named a reach is handed a different one — with
+      //    no signal that the word they typed was dropped on the floor (q2)
+      then('it is refused rather than answered with the reachless key', () => {
+        expect(result.status).not.toEqual(0);
+        expect(result.stdout).not.toContain(`sourced: ${envValue}`);
+      });
+
+      then('the refusal names the axis, not merely the symptom', () => {
+        expect(result.stdout + result.stderr).toContain(
+          '--reach requires a key',
+        );
+      });
+
+      // the hint must name a fix THIS surface can accept — an sdk caller holds an input
+      // object, so a `--key` flag would name a lever that does not exist here
+      then('the hint is sdk-shaped, never cli-shaped', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('sourceAllKeysIntoEnv({ key, reach })');
+      });
+
+      // .note = NO stderr snapshot here, deliberately, and the reason is worth a record: this
+      //         path throws, so its stderr is a raw node stack trace that embeds the temp
+      //         dir's own timestamp and random hash
+      //         (`.temp/2026-08-06T13-11-11.018Z.keyrack-sdk-reach-bulk.fde1c8c6/`).
+      //         `asSnapshotSafe` strips the paths jest reports, never the one baked into a
+      //         `file://` frame — so such a snapshot goes red on EVERY run after the one that
+      //         wrote it, and red again on any edit that moves a line above the throw
+      // .note = a first-run green on a new snapshot proves only that it was written. this one
+      //         passed once, then failed on the very next sweep — which is how it was caught
+      // .note = the three assertions above lose no coverage to its removal. they name the
+      //         message, the axis, and the hint EXPLICITLY, which is stricter than a snapshot
+      //         a human would skim — and a stack trace is not the reviewable artifact
+      //         snapshots exist to diff (rule.require.snapshots)
+    });
+
+    when('[t1] the same bulk source omits the reach', () => {
+      const result = useBeforeAll(async () =>
+        runSourceModule({
+          slug: 'keyrack-sdk-reach-absent',
+          call: `keyrack.source({ env: 'test', owner: 'testorg' });`,
+          env: { [envKey]: envValue },
+        }),
+      );
+
+      // e1 — a reachless call takes zero new branches and behaves as it did before
+      then('e1: it succeeds and sources the key, exactly as before', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain(`sourced: ${envValue}`);
+      });
+
+      // ⚠️ .why stdout, and not stderr alone = this is the POSITIVE path, so its reviewable
+      //         artifact lives on stdout. the stderr snapshot beside it captures `""`, which
+      //         diffs nought a human would read — it proves only that the quiet path stayed
+      //         quiet. stdout is where a reviewer sees WHAT was sourced, under WHICH name,
+      //         with no reach in sight (e1). a change that sourced the wrong key, or emitted
+      //         a reach leaf on a reachless call, moves this line and not the other
+      //         (rule.require.contract-snapshot-exhaustiveness)
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+  });
 });

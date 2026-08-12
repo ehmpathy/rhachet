@@ -218,7 +218,7 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t8] fir
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t9] firewall with invalid --into format then: stderr matches snapshot 1`] = `
 "
-BadRequestError: invalid --into value
+✋ ConstraintError: invalid --into value
 
 {
   "into": "invalid-format",
@@ -235,7 +235,7 @@ BadRequestError: invalid --into value
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t10] firewall with malformed SECRETS_JSON then: stderr matches snapshot 1`] = `
 "
-BadRequestError: malformed secrets JSON
+✋ ConstraintError: malformed secrets JSON
 
 {
   "source": {
@@ -253,7 +253,7 @@ BadRequestError: malformed secrets JSON
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t11] firewall with SECRETS_JSON env var not set then: stderr matches snapshot 1`] = `
 "
-BadRequestError: env var not set
+✋ ConstraintError: env var not set
 
 {
   "envVar": "SECRETS_JSON",

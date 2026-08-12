@@ -74,8 +74,14 @@ export const setKeyrackAwsParamReplica = async (
   // acquire the static secret via the replica mech's guided setup (a hidden stdin prompt).
   // .note = context.mech injects the prompt source (composition root / tests) so this owned-secret
   //         path is reachable headlessly; absent in prod, the mech falls back to the real terminal
+  // .note = `mech` is REQUIRED, and naming it here is not redundant: the replica ADAPTER also
+  //         serves PERMANENT_VIA_REFERENCE and EPHEMERAL_VIA_SESSION, so it cannot infer which
+  //         of the three invoked it — and a wrong guess would put the wrong mech name in any
+  //         refusal a human reads. this arm is the replica one by construction
+  // .note = no `reach` is threaded, deliberately. aws.params is UNADDRESSABLE, so a reach was
+  //         already refused at the adapter boundary and none can survive to here
   const { source: secret } = await acquireForSet(
-    { keySlug: input.slug },
+    { keySlug: input.slug, mech: 'PERMANENT_VIA_REPLICA' },
     context?.mech,
   );
 

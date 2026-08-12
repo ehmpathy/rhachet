@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError, ConstraintError, HelpfulError } from 'helpful-errors';
+import { ConstraintError, HelpfulError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
@@ -28,30 +28,33 @@ import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlug
 import { asResolvedAttempt } from '@src/domain.operations/keyrack/asResolvedAttempt';
 import { asResolvedEnvForSet } from '@src/domain.operations/keyrack/asResolvedEnvForSet';
 import { asSortedHostSlugs } from '@src/domain.operations/keyrack/asSortedHostSlugs';
+import { assertKeyrackExportNamesDistinct } from '@src/domain.operations/keyrack/assertKeyrackExportNamesDistinct';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
 import { asKeyrackDelReport } from '@src/domain.operations/keyrack/cli/asKeyrackDelReport';
 import { asKeyrackErroredKeyTip } from '@src/domain.operations/keyrack/cli/asKeyrackErroredKeyTip';
+import { asKeyrackKeyReachOrEmitBlocked } from '@src/domain.operations/keyrack/cli/asKeyrackKeyReachOrEmitBlocked';
 import { asKeyrackListTreestruct } from '@src/domain.operations/keyrack/cli/asKeyrackListTreestruct';
+import { asKeyrackStatusKeyBranch } from '@src/domain.operations/keyrack/cli/asKeyrackStatusKeyBranch';
 import { asKeyrackUnlockExitCode } from '@src/domain.operations/keyrack/cli/asKeyrackUnlockExitCode';
 import { asShellEscapedSecret } from '@src/domain.operations/keyrack/cli/asShellEscapedSecret';
+import { emitKeyrackBlockedReport } from '@src/domain.operations/keyrack/cli/emitKeyrackBlockedReport';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
 import {
   formatKeyrackGetAllOutput,
   formatKeyrackGetOneOutput,
 } from '@src/domain.operations/keyrack/cli/formatKeyrackGetOneOutput';
+import { getAllKeyrackGrantsOrEmitBlocked } from '@src/domain.operations/keyrack/cli/getAllKeyrackGrantsOrEmitBlocked';
 import {
   isValidKeyrackEnv,
   KEYRACK_VALID_ENVS,
 } from '@src/domain.operations/keyrack/constants';
 import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
 import { decideIsKeyStrictlyRequired } from '@src/domain.operations/keyrack/decideIsKeyStrictlyRequired';
-import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
+import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fill/fillKeyrackKeys';
 import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
-import { getKeyrackBlockedReport } from '@src/domain.operations/keyrack/getKeyrackBlockedReport';
 import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
-import { getKeyrackKeyGrants } from '@src/domain.operations/keyrack/getKeyrackKeyGrants/getKeyrackKeyGrants';
 import { genKeyrackInfra } from '@src/domain.operations/keyrack/infra/genKeyrackInfra';
 import { getKeyrackInfraInitErrorReport } from '@src/domain.operations/keyrack/infra/getKeyrackInfraInitErrorReport';
 import { getKeyrackInfraInitReport } from '@src/domain.operations/keyrack/infra/getKeyrackInfraInitReport';
@@ -61,6 +64,9 @@ import {
 } from '@src/domain.operations/keyrack/infra/gh/runGh';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { isKeyrackSlugFormat } from '@src/domain.operations/keyrack/isKeyrackSlugFormat';
+import { asKeyrackAttemptReach } from '@src/domain.operations/keyrack/reach/asKeyrackAttemptAddress';
+import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
+import { assertKeyrackReachRequiresKey } from '@src/domain.operations/keyrack/reach/assertKeyrackReachRequiresKey';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
 import { getKeyrackRecipients } from '@src/domain.operations/keyrack/recipient/getKeyrackRecipients';
 import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/setKeyrackRecipient';
@@ -298,7 +304,7 @@ export const invokeKeyrack = ({
 
         // validate --stanza if provided
         if (opts.stanza && opts.stanza !== 'ssh')
-          throw new BadRequestError('--stanza must be "ssh" if specified');
+          throw new ConstraintError('--stanza must be "ssh" if specified');
 
         const recipientAdded = await setKeyrackRecipient({
           owner,
@@ -423,6 +429,10 @@ export const invokeKeyrack = ({
       '@this',
     )
     .option(
+      '--reach <exid>',
+      'reach to fetch (e.g., beav@ehmpathy.com, github://org=ehmpathy); requires --key',
+    )
+    .option(
       '--allow-dangerous',
       'bypass firewall for blocked long-lived tokens',
     )
@@ -443,28 +453,102 @@ export const invokeKeyrack = ({
         key?: string;
         env?: string;
         org: string;
+        reach?: string;
         allowDangerous?: boolean;
         unlock?: boolean;
         json?: boolean;
         output?: 'value' | 'json' | 'vibes';
         value?: boolean;
       }) => {
+        // parse the reach at the cli boundary, so a malformed exid fails before any lookup.
+        // an exid is PLAINTEXT — keyrack parses no scheme and reads no sense into it
+        // .note = --org is PROVENANCE (whose manifest declared the key) and --reach is
+        //         DESTINATION (which reach it opens). they sit inches apart and mean
+        //         opposite directions, which is exactly why each keeps its own word
+        const parsed = asKeyrackKeyReachOrEmitBlocked({
+          flag: opts.reach,
+          command: 'keyrack get',
+        });
+        if (!parsed) return;
+        const { reach } = parsed;
+
+        // a reach is an identity axis of one key — it cannot ride a whole-repo sweep
+        // .note = this is the SAME guard `unlockKeyrackKeys` states for a bulk unlock, so
+        //         it throws the same class and renders the same turtle blocked treestruct.
+        //         one sentence on one flag must not read two ways because a human typed a
+        //         different command (rule.forbid.surprises)
+        try {
+          assertKeyrackReachRequiresKey({
+            reach,
+            keyed: opts.for !== 'repo',
+            // the hint must name the fix the human has NOT already applied.
+            // `--for repo` WINS over `--key` downstream (see the `opts.for === 'repo'`
+            // branch below, which asks `for: { repo: true }` and reads neither flag), so
+            // an ask that carries BOTH genuinely resolves to a sweep — `keyed: false` is
+            // correct. but to answer that human with "name the key" names a fix they
+            // already applied, and walks them down a road that cannot work
+            // (rule.require.errors-name-the-fix). the flag to drop is the sweep
+            hint: opts.key
+              ? `drop --for repo — a reach is an identity axis of one key, and --for repo sweeps every key in the repo. rhx keyrack get --key ${opts.key} --reach ${opts.reach}`
+              : `name the key — rhx keyrack get --key $KEY --reach ${opts.reach}`,
+          });
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack get' });
+          return;
+        }
+
         // derive output mode: --value and --json are shorthands
         const outputMode: 'value' | 'json' | 'vibes' = opts.value
           ? 'value'
           : (opts.output ?? (opts.json ? 'json' : 'vibes'));
 
+        // the three usage guards below render the SAME blocked treestruct the reach guard
+        // above them does. they raw-threw a `BadRequestError` until 2026-08-04, which put
+        // two renders on one command inches apart: a human who typed `--reach` on a repo
+        // sweep got the turtle tree, and a human who forgot `--key` got a stack trace
+        // (rule.forbid.surprises). each is a plain usage fault, so each owes exit 2 and a
+        // named fix (rule.require.exit-code-semantics, rule.require.errors-name-the-fix)
+
         // validate: --value requires --key
         if (outputMode === 'value' && !opts.key) {
-          throw new BadRequestError('--value requires --key (single key only)');
+          emitKeyrackBlockedReport({
+            error: new ConstraintError(
+              '--value requires --key: a value is one secret, so it names one key',
+              {
+                hint: 'name the key — rhx keyrack get --key $KEY --value',
+              },
+            ),
+            command: 'keyrack get',
+          });
+          return;
         }
 
         // validate: must specify either --for repo or --key
         if (!opts.for && !opts.key) {
-          throw new BadRequestError('must specify --for repo or --key <slug>');
+          emitKeyrackBlockedReport({
+            error: new ConstraintError(
+              'must specify --for repo or --key <slug>',
+              {
+                hint: 'one key — rhx keyrack get --key $KEY; every key in this repo — rhx keyrack get --for repo',
+              },
+            ),
+            command: 'keyrack get',
+          });
+          return;
         }
         if (opts.for && opts.for !== 'repo') {
-          throw new BadRequestError('--for must be "repo"');
+          emitKeyrackBlockedReport({
+            error: new ConstraintError(
+              `--for must be "repo", got '${opts.for}'`,
+              {
+                forGiven: opts.for,
+                hint: 'use --for repo, or name one key with --key $KEY',
+              },
+            ),
+            command: 'keyrack get',
+          });
+          return;
         }
 
         // get gitroot for repo manifest — null-tolerant: a keyrack read must serve machine-wide
@@ -483,13 +567,30 @@ export const invokeKeyrack = ({
         if (opts.for === 'repo') {
           // always route through the get-or-unlock core; --unlock is just a parameter
           // (with.unlock:false is byte-identical to the pure repo get)
-          const attempts = await getKeyrackKeyGrants({
-            for: { repo: true },
-            with: { unlock: !!opts.unlock },
-            owner: opts.owner ?? null,
-            env: opts.env ?? null,
-            allow: { dangerous: opts.allowDangerous },
-          });
+          // .note = rendered through the SAME blocked treestruct `set` / `unlock` / `source`
+          //         use. `get`'s own --reach guard was already routed here, but the GRANT
+          //         call was not — so one command rendered its own refusals as a tree and
+          //         the core's refusals as a raw class dump. the sweep that converged the
+          //         guards has to reach the call sites too (rule.forbid.surprises)
+          // .note = `reaches: true` — this is a STRUCTURED surface. its tree and its json
+          //         both hold one branch per key, so they can carry every reach a key
+          //         declares, and a sweep that returned only the reachless one would read as
+          //         "this repo holds one key" while it holds three. the flat surfaces
+          //         (`source`, the secrets map) opt out for the opposite reason: one slot per
+          //         bare name, so they announce what they cannot carry instead
+          const attempts = await getAllKeyrackGrantsOrEmitBlocked(
+            {
+              for: { repo: true },
+              with: { unlock: !!opts.unlock, reaches: true },
+              owner: opts.owner ?? null,
+              env: opts.env ?? null,
+              allow: { dangerous: opts.allowDangerous },
+            },
+            { command: 'keyrack get' },
+          );
+
+          // null means the refusal is already rendered — no more to say
+          if (!attempts) return;
 
           // output results based on mode
           // .note = 'value' mode already rejected via validation above
@@ -514,16 +615,33 @@ export const invokeKeyrack = ({
             opts.org === '@this' ? undefined : (opts.org ?? undefined);
           // always route through the get-or-unlock core; --unlock is just a parameter
           // (with.unlock:false is byte-identical to the pure single-key get)
-          const attempt = (
-            await getKeyrackKeyGrants({
+          // .note = routed to the same blocked render as the repo branch above, and for the
+          //         same reason: a refusal from the grant core must read the same as a
+          //         refusal from this command's own guards
+          const attemptsForKey = await getAllKeyrackGrantsOrEmitBlocked(
+            {
               for: { keys: [opts.key] },
-              with: { unlock: !!opts.unlock },
+              // .note = `reaches: true` for the SAME reason the `--for repo` branch above
+              //         carries it — this is one structured surface, and its tree and json
+              //         both hold one branch per attempt. an ask that names a key but no
+              //         reach used to return the reachless credential alone, so a key cut
+              //         at two reaches rendered as `absent` with a tip to `keyrack set` —
+              //         a falsehood that invites a human to overwrite a key they hold
+              // .note = an explicit `--reach` names ONE reach and does not expand
+              with: { unlock: !!opts.unlock, reaches: true },
               owner: opts.owner ?? null,
               env: opts.env ?? null,
               org: orgForDomainOp,
+              reach,
               allow: { dangerous: opts.allowDangerous },
-            })
-          )[0]!;
+            },
+            { command: 'keyrack get' },
+          );
+
+          // null means the refusal is already rendered — no more to say
+          if (!attemptsForKey) return;
+
+          const attempt = attemptsForKey[0]!;
 
           // extract env and slug from attempt for downstream logic
           const slug =
@@ -583,6 +701,11 @@ export const invokeKeyrack = ({
   // keyrack source --env <env> --owner <owner> [--key <key>] [--strict|--lenient]
   keyrack
     .command('source')
+    // .note = the description states what the command DOES, and no more. that a bare sweep
+    //         carries only the reachless key is a fact about ONE run, not about the command,
+    //         and a permanent caveat here would be read by the ~every human who holds no reach
+    //         at all. the disclosure lives on the rack instead: `keyrack list` renders a
+    //         `reach:` leaf per key, so a human who asks what they hold is answered there
     .description('output export statements for shell eval')
     .option('--key <keyname>', 'single key to source (omit for all repo keys)')
     .requiredOption(
@@ -593,6 +716,15 @@ export const invokeKeyrack = ({
     .option('--for <owner>', 'alias for --owner')
     .option('--strict', 'fail if any key not granted (default)')
     .option('--lenient', 'skip absent keys silently')
+    .option(
+      '--reach <exid>',
+      // .note = `; requires --key` is stated here for the same reason `unlock` and `get`
+      //         state it: the constraint is discoverable BEFORE a human types the command
+      //         that refuses (rule.require.discoverability, recognition over recall). its
+      //         absence here was the help half of a two-part drift — the other half being
+      //         a refusal that rendered raw rather than as the turtle tree
+      'reach of the key to source (e.g., beav@ehmpathy.com, github://org=ehmpathy); requires --key',
+    )
     .option(
       '--allow-dangerous',
       'bypass firewall for blocked long-lived tokens',
@@ -605,14 +737,50 @@ export const invokeKeyrack = ({
         for?: string;
         strict?: boolean;
         lenient?: boolean;
+        reach?: string;
         allowDangerous?: boolean;
       }) => {
         // --owner takes precedence; --for is alias (null = default owner)
         const owner = deriveOwner(opts);
 
+        // parse at the boundary — an unusable reach fails here, never downstream
+        // .note = the parse runs BEFORE the key check, as `keyrack get` does. so a malformed
+        //         exid reports as malformed rather than as an absent `--key`, which is the
+        //         more specific of the two fixes (rule.require.errors-name-the-fix)
+        const parsed = asKeyrackKeyReachOrEmitBlocked({
+          flag: opts.reach,
+          command: 'keyrack source',
+        });
+        if (!parsed) return;
+        const { reach } = parsed;
+
+        // a reach names ONE reach, so it must name the key that reach belongs to
+        // (q2). a repo sweep is reach-blind by design — it asks each declared slug with no
+        // reach — so a `--reach` on a sweep would apply to not one key it swept
+        // .why the catch = `get` and `unlock` each render this refusal as the turtle blocked
+        //        treestruct. this call site threw BARE, so the identical rule surfaced as a
+        //        raw `ConstraintError:` dump trailed by an `[args] keyrack,source,…` echo —
+        //        one rule, two renders, picked by which command a human typed. that is the
+        //        exact inconsistency `rule.forbid.surprises` and nielsen's heuristic 4 forbid,
+        //        and it is the same shape `asKeyrackKeyReachOrEmitBlocked` was extracted to
+        //        end for the PARSE refusal three lines up
+        // .note = the hint stays per-caller per `assertKeyrackReachRequiresKey`'s contract —
+        //         the copy-paste fix is command-shaped, so it must name `source`
+        try {
+          assertKeyrackReachRequiresKey({
+            reach,
+            keyed: !!opts.key,
+            hint: `name the key — rhx keyrack source --env ${opts.env} --key $KEY --reach ${opts.reach}`,
+          });
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack source' });
+          return;
+        }
+
         // validate: --strict and --lenient are mutually exclusive
         if (opts.strict && opts.lenient) {
-          throw new BadRequestError(
+          throw new ConstraintError(
             '--strict and --lenient are mutually exclusive',
           );
         }
@@ -646,24 +814,51 @@ export const invokeKeyrack = ({
                   key: opts.key,
                   env: opts.env,
                   org: undefined,
+                  reach,
                   allow: { dangerous: opts.allowDangerous },
                 },
                 context,
               ),
             ]
-          : await getAllKeyrackGrantsByRepo(
-              { env: opts.env, allow: { dangerous: opts.allowDangerous } },
+          : // .note = `reaches: true` — the sweep ENUMERATES every declared reach even
+            //         though this surface can emit only one per name. that is deliberate: the
+            //         reaches it cannot carry are exactly the ones it must announce, and
+            //         a sweep that never asked for them has nothing to announce. the ask is
+            //         what ends the silence; the emit below is what the namespace permits
+            await getAllKeyrackGrantsByRepo(
+              {
+                env: opts.env,
+                allow: { dangerous: opts.allowDangerous },
+                with: { reaches: true },
+              },
               context,
             );
 
+        // split by what a flat namespace can carry
+        // .why = `export FOO=` holds ONE value per bare name, so a reach-held key can never be
+        //        emitted beside its reachless peer. it must sit outside the export set, outside
+        //        the collision guard, and outside the strict gate. to leave it in the strict
+        //        gate would fail `source` outright whenever a declared reach is merely locked,
+        //        which costs the human every credential to report one fact
+        // .note = a repo that declares no reach yields no reach attempt at all, so the set
+        //         below is identical to today's (e1)
+        const attemptsReachless = attempts.filter(
+          (attempt) => !asKeyrackAttemptReach({ attempt }),
+        );
+
         // filter to granted keys
-        const granted = asAttemptsByStatus({ attempts, status: 'granted' });
-        const notGranted = asNotGrantedAttempts({ attempts });
+        const granted = asAttemptsByStatus({
+          attempts: attemptsReachless,
+          status: 'granted',
+        });
+        const notGranted = asNotGrantedAttempts({
+          attempts: attemptsReachless,
+        });
 
         // manifest must exist for repo keys (required to get attempts)
         const { repoManifest } = context;
         if (!repoManifest)
-          throw new BadRequestError('keyrack.yml not found', {
+          throw new ConstraintError('keyrack.yml not found', {
             hint: 'run `rhx keyrack init --org <your-org>` to create one',
           });
 
@@ -700,6 +895,59 @@ export const invokeKeyrack = ({
           }
           process.exit(2);
         }
+
+        // refuse to emit when two keys would collide on one shell variable name
+        // .why = `asKeyrackKeyName` drops the org AND the env, so a shell variable name
+        //        carries neither. two keys that differ on any axis above the name emit the
+        //        SAME `export FOO=` and the last line silently wins — a caller who evals
+        //        this output holds one key with no hint the other was overwritten. that is
+        //        not a wrong-reach substitution, it is a silent LOSS, and it is the one
+        //        failure shape in this design that SUCCEEDS. so it throws rather than picks
+        // .note = ⚠️ which AXIS can collide here today, verified 2026-08-12 — because an
+        //         earlier draft of this note implied the reach axis was live, and it is not:
+        //         - ENV: reachable now. an `--env all` sweep yields two envs of one name,
+        //           and this is the collision the extant tests exercise. it predates reach
+        //         - REACH (e23): NOT reachable through any current caller. `--key` builds a
+        //           single-element array, which cannot collide with itself; and the sweep
+        //           asks each declared slug with no reach, so every attempt it yields is
+        //           reachless. a reach-held key never reaches the export set, so it can
+        //           never claim a variable name to collide over
+        //         ⚠️ the `attemptsReachless` filter is what keeps the axis dead, and it
+        //           carries weight: to pass the unfiltered set here would make this guard
+        //           THROW for every repo that declares a reach, which takes every credential
+        //           away to report one fact a human reads off `keyrack list` on purpose
+        // .note = the reach branch stays regardless, and is not a speculative abstraction:
+        //         it costs one reach comparison, and the repo manifest ALREADY declares
+        //         reaches (a flat `reaches:` list under a key, q8) that a reach-aware sweep will
+        //         enumerate. the day it does, this guard is the difference between a refusal
+        //         and a credential dropped on the floor
+        // .note = rendered through the SAME blocked treestruct `get` / `set` / `unlock` use
+        //         for this error class. uncaught, it would reach `invoke.ts`'s generic
+        //         top-level catch and print a bare `✋ ConstraintError:` + `[args]` dump —
+        //         so one rule would read two ways, per which command a human typed
+        //         (rule.forbid.surprises, rule.require.errors-name-the-fix)
+        try {
+          assertKeyrackExportNamesDistinct({ attempts: granted });
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack source' });
+          return;
+        }
+
+        // .note = a bare sweep emits the REACHLESS credential for every slug, and says no word
+        //         about a reach held beside it. that silence is DELIBERATE (2026-08-12): reach is
+        //         opt-in, so a human who cut a reach-key knows a reach-key needs `--reach`, and a
+        //         notice that fires on every `source` forever — always the same lines, never
+        //         actionable differently — is alarm fatigue. its real cost is that it trains a
+        //         human to ignore keyrack stderr, which weakens the two notices that DO vary: the
+        //         `assertKeyrackExportNamesDistinct` refusal above, and the uncut-reach throw
+        // .note = this is NOT the wrong-territory failure the design forbids. the reachless value
+        //         emitted here is the correct one; a reach simply is not among what a flat
+        //         namespace can carry. "fewer than exist", never "the wrong one"
+        // .note = the disclosure lives on the RACK. `keyrack list` renders a `reach:` leaf per
+        //         key, one branch per (slug, reach), so a human who asks "what do i hold?" sees
+        //         every reach. one home for the fact, and it is the one a human consults on
+        //         purpose rather than one that shouts on a hot path
 
         // emit export statements for granted keys
         for (const attempt of granted) {
@@ -740,6 +988,10 @@ export const invokeKeyrack = ({
       'target org: @this or @all (default: @this)',
       '@this',
     )
+    .option(
+      '--reach <exid>',
+      'reach this key is cut for (e.g., beav@ehmpathy.com, github://org=ehmpathy)',
+    )
     .option('--exid <exid>', 'external id (vault-specific reference)')
     .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
     .option('--at <path>', 'custom keyrack.yml path (for role-level keyracks)')
@@ -754,6 +1006,7 @@ export const invokeKeyrack = ({
         for?: string;
         env?: string;
         org: string;
+        reach?: string;
         exid?: string;
         maxDuration?: string;
         at?: string;
@@ -762,6 +1015,19 @@ export const invokeKeyrack = ({
       }) => {
         // --owner takes precedence; --for is alias
         const owner = deriveOwner(opts);
+
+        // parse the reach at the cli boundary, so a malformed exid fails before any prompt.
+        // an exid is PLAINTEXT — keyrack parses no scheme and reads no sense into it
+        // .note = on `set` a reach DECLARES the reach the stored credential is cut for.
+        //         it never writes itself into the repo's keyrack.yml — a `reaches:` line
+        //         there is hand-authored by a human, and no keyrack command mutates it
+        const parsed = asKeyrackKeyReachOrEmitBlocked({
+          flag: opts.reach,
+          command: 'keyrack set',
+        });
+        if (!parsed) return;
+        const { reach } = parsed;
+
         // validate vault first (needed for mech inference)
         const validVaults: KeyrackHostVault[] = [
           'os.direct',
@@ -774,7 +1040,7 @@ export const invokeKeyrack = ({
           'github.secrets',
         ];
         if (!validVaults.includes(opts.vault as KeyrackHostVault)) {
-          throw new BadRequestError(
+          throw new ConstraintError(
             `invalid --vault: must be one of ${validVaults.join(', ')}`,
           );
         }
@@ -793,7 +1059,7 @@ export const invokeKeyrack = ({
             'EPHEMERAL_VIA_GITHUB_OIDC',
           ];
           if (!validMechs.includes(opts.mech as KeyrackGrantMechanism)) {
-            throw new BadRequestError(
+            throw new ConstraintError(
               `invalid --mech: must be one of ${validMechs.join(', ')}`,
             );
           }
@@ -821,7 +1087,7 @@ export const invokeKeyrack = ({
           const initTip = owner
             ? `run: rhx keyrack init --owner ${owner}`
             : 'run: rhx keyrack init';
-          throw new BadRequestError(`host manifest not found. ${initTip}`, {
+          throw new ConstraintError(`host manifest not found. ${initTip}`, {
             owner,
           });
         }
@@ -891,7 +1157,7 @@ export const invokeKeyrack = ({
         // run the set inside a const IIFE that yields the outcome, or null on a
         // caller-fixable ConstraintError — so results binds to const, never let
         // (rule.require.immutable-vars). the boundary below reads the null sentinel and
-        // exits 2, so no mutable value is threaded out of the try
+        // returns, so no mutable value is threaded out of the try
         const setOutcome = await (async (): Promise<Awaited<
           ReturnType<typeof setKeyrackKey>
         > | null> => {
@@ -904,6 +1170,7 @@ export const invokeKeyrack = ({
                 vault: opts.vault as KeyrackHostVault,
                 mech,
                 exid: opts.exid ?? null,
+                reach,
                 maxDuration: opts.maxDuration ?? null,
                 repoManifest: repoManifest ?? undefined,
                 at: opts.at ?? null,
@@ -912,23 +1179,20 @@ export const invokeKeyrack = ({
             );
           } catch (error) {
             if (!(error instanceof ConstraintError)) throw error;
-            console.error(
-              getKeyrackBlockedReport({ error, command: 'keyrack set' }),
-            );
-            return null; // caller-fixable fault → the boundary below exits 2
+            // renders the blocked tree AND sets exit 2 in one operation, so a guard
+            // cannot land with one and not the other (term=blocked's invariant)
+            emitKeyrackBlockedReport({ error, command: 'keyrack set' });
+            return null;
           }
         })();
 
-        // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics).
-        // set the code + return (not process.exit) so the boundary stays testable
-        if (setOutcome === null) {
-          process.exitCode = 2;
-          return;
-        }
+        // caller-fixable fault: the emit above already set exit 2, so this only returns
+        if (setOutcome === null) return;
 
         const results = setOutcome;
 
-        // output results
+        // output results — json is a terminal render, so it returns and the human
+        // tree below reads as the straight-line narrative it is (rule.forbid.else-branches)
         if (opts.json) {
           console.log(
             JSON.stringify(
@@ -937,37 +1201,47 @@ export const invokeKeyrack = ({
               2,
             ),
           );
-        } else {
-          // blank line separates a guided-setup tree from this summary header
-          // .note = only ephemeral mechs print a guided tree (e.g. aws sso);
-          //         static-secret mechs (e.g. sudo) print no tree, so no blank
-          const printedGuidedTree = results.some((result) =>
-            result.mech.startsWith('EPHEMERAL'),
-          );
-          if (printedGuidedTree) console.log('');
-          console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
-          for (const result of results) {
-            console.log(`   └─ ${result.slug}`);
-            console.log(`      ├─ mech: ${result.mech}`);
-            // aws.params echoes the COMPUTED ssm param name (the exid) so the human sees exactly
-            // where the value is referenced — the autocompute path, with no path typed (vision uc1)
-            if (result.vault === 'aws.params' && result.exid) {
-              console.log(`      ├─ vault: ${result.vault}`);
-              console.log(`      └─ name: ${result.exid}`);
-            } else {
-              console.log(`      └─ vault: ${result.vault}`);
-            }
-          }
-
-          if (opts.env === 'sudo') {
-            console.log('');
-            console.log(
-              '   note: sudo credentials are stored in encrypted host manifest only.',
-            );
-            console.log('         they will NOT appear in keyrack.yml.');
-          }
-          console.log('');
+          return;
         }
+
+        // blank line separates a guided-setup tree from this summary header
+        // .note = only ephemeral mechs print a guided tree (e.g. aws sso);
+        //         static-secret mechs (e.g. sudo) print no tree, so no blank
+        const printedGuidedTree = results.some((result) =>
+          result.mech.startsWith('EPHEMERAL'),
+        );
+        if (printedGuidedTree) console.log('');
+        console.log(`🔐 keyrack set (org: ${resolvedOrg}, env: ${opts.env})`);
+        for (const result of results) {
+          // echo the ADDRESS, not the bare slug — a `set --reach` cuts a key AT a
+          // reach, and a human who cannot see which reach cannot confirm the
+          // key landed where they meant. `del`, `list`, `status`, and `unlock` all
+          // render the reach; `set` was the one command that accepted `--reach` and
+          // then stayed silent about it
+          // .note = e1 holds — `asKeyrackKeySlugAtReach` returns the bare slug byte for
+          //         byte when no reach is given, so every reachless render, and every
+          //         snapshot of one, is unchanged
+          console.log(
+            `   └─ ${asKeyrackKeySlugAtReach({ slug: result.slug, reach })}`,
+          );
+          console.log(`      ├─ mech: ${result.mech}`);
+          // aws.params echoes the COMPUTED ssm param name (the exid) so the human sees exactly
+          // where the value is referenced — the autocompute path, with no path typed (vision uc1)
+          if (result.vault === 'aws.params' && result.exid) {
+            console.log(`      ├─ vault: ${result.vault}`);
+            console.log(`      └─ name: ${result.exid}`);
+          } else {
+            console.log(`      └─ vault: ${result.vault}`);
+          }
+        }
+        if (opts.env === 'sudo') {
+          console.log('');
+          console.log(
+            '   note: sudo credentials are stored in encrypted host manifest only.',
+          );
+          console.log('         they will NOT appear in keyrack.yml.');
+        }
+        console.log('');
       },
     );
 
@@ -989,6 +1263,10 @@ export const invokeKeyrack = ({
       '@this',
     )
     .option('--prikey <path>', 'ssh private key for manifest decryption')
+    .option(
+      '--reach <exid>',
+      'reach of the key to remove (e.g., beav@ehmpathy.com, github://org=ehmpathy)',
+    )
     .option('--json', 'output as json (robot mode)')
     .action(
       async (opts: {
@@ -998,14 +1276,27 @@ export const invokeKeyrack = ({
         for?: string;
         org: string;
         prikey?: string;
+        reach?: string;
         json?: boolean;
       }) => {
         // --owner takes precedence; --for is alias
         const owner = deriveOwner(opts);
 
+        // parse the reach, when one is given
+        // .note = a del names ONE address. absent --reach it removes the reachless key, and
+        //         a key cut for a reach is removed only when its reach is named —
+        //         the same identity axis `set` writes on. this is deliberately NOT relock's
+        //         wide sweep (q1): to revoke a session is wide, to delete a key is addressed
+        const parsed = asKeyrackKeyReachOrEmitBlocked({
+          flag: opts.reach,
+          command: 'keyrack del',
+        });
+        if (!parsed) return;
+        const { reach } = parsed;
+
         // validate env
         if (!isValidKeyrackEnv(opts.env)) {
-          throw new BadRequestError(
+          throw new ConstraintError(
             `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
           );
         }
@@ -1078,42 +1369,99 @@ export const invokeKeyrack = ({
         // detect if key is already a full slug (org.env.key format)
         const isFullSlug = isKeyrackSlugFormat({ value: opts.key });
 
-        // construct or use slug
+        // ⚠️ the input guards below and the domain call share ONE try, deliberately. `del`
+        //    was the only command that rendered a caller-fixable fault as a raw class dump —
+        //    `set`, `source`, and `unlock` each wrap theirs — so a human who typo'd a slug got
+        //    a stack trace where every peer command gives the turtle tree
+        //    (rule.forbid.surprises, rule.require.errors-name-the-fix)
+        // .note = the guards sit INSIDE the try, not merely the domain call. `del` refuses a
+        //         caller in two places, and the two a human is far likelier to hit are these —
+        //         a mistyped slug, or an `--env` that disagrees with the slug it was given.
+        //         wrapped around the domain call alone, the fix would render the rarer fault
+        //         and leave the common ones raw
+        // .note = both guards throw `ConstraintError`, not `BadRequestError` as they did. the
+        //         class is what earns exit 2 (rule.require.exit-code-semantics) and what
+        //         `emitKeyrackBlockedReport` accepts by type; `ConstraintError` extends
+        //         `BadRequestError`, so any `instanceof BadRequestError` caller is unaffected
         let slug: string;
-        let effectiveEnv: string;
-        if (isFullSlug) {
-          slug = opts.key;
-          const keySlugParts = asKeyrackSlugParts({ slug: opts.key });
-          effectiveEnv = keySlugParts.env || opts.env;
-          const slugOrg = keySlugParts.org;
+        let result: Awaited<ReturnType<typeof delKeyrackKey>>;
+        try {
+          // construct or use slug
+          let effectiveEnv: string;
+          if (isFullSlug) {
+            slug = opts.key;
+            const keySlugParts = asKeyrackSlugParts({ slug: opts.key });
+            effectiveEnv = keySlugParts.env || opts.env;
+            const slugOrg = keySlugParts.org;
 
-          // validate org matches manifest
-          if (derivedOrg !== '@all' && slugOrg !== derivedOrg) {
-            throw new BadRequestError(
-              `slug org '${slugOrg}' does not match manifest org '${derivedOrg}'`,
-            );
+            // validate org matches manifest
+            if (derivedOrg !== '@all' && slugOrg !== derivedOrg) {
+              throw new ConstraintError(
+                `slug org '${slugOrg}' does not match manifest org '${derivedOrg}'`,
+                {
+                  // ⚠️ named `key`, NOT `slug`, deliberately. `getKeyrackBlockedReport`
+                  //    renders a `metadata.slug` leaf as `repo: …` — that key means a
+                  //    github repo slug to the infra errors it was written for, so a
+                  //    keyrack key slug under the same name renders as a flat lie
+                  key: opts.key,
+                  orgOfSlug: slugOrg,
+                  orgOfManifest: derivedOrg,
+                  hint: `use a slug under '${derivedOrg}', or pass --org @all`,
+                },
+              );
+            }
+
+            // validate env matches if explicitly provided and differs
+            if (opts.env !== 'all' && effectiveEnv !== opts.env) {
+              throw new ConstraintError(
+                `--env ${opts.env} conflicts with env in slug ${opts.key}`,
+                {
+                  key: opts.key, // `key`, not `slug` — see the note on the guard above
+                  envOfFlag: opts.env,
+                  envOfSlug: effectiveEnv,
+                  hint: `drop --env, or pass --env ${effectiveEnv} to match the slug`,
+                },
+              );
+            }
+          } else {
+            slug = `${derivedOrg}.${opts.env}.${opts.key}`;
+            effectiveEnv = opts.env;
           }
 
-          // validate env matches if explicitly provided and differs
-          if (opts.env !== 'all' && effectiveEnv !== opts.env) {
-            throw new BadRequestError(
-              `--env ${opts.env} conflicts with env in slug ${opts.key}`,
-            );
-          }
-        } else {
-          slug = `${derivedOrg}.${opts.env}.${opts.key}`;
-          effectiveEnv = opts.env;
+          // delegate to domain operation
+          result = await delKeyrackKey({ slug, reach }, context);
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack del' });
+          return;
         }
 
-        // delegate to domain operation
-        const result = await delKeyrackKey({ slug }, context);
+        // the address the human asked to remove — the slug alone would under-report it
+        const addressDeleted = asKeyrackKeySlugAtReach({ slug, reach });
 
-        // output results — json mode renders the shape and returns early.
+        // output results — json is a terminal render, so it returns and the human tree
+        // below reads as the straight-line narrative it is (rule.forbid.else-branches)
+        //
+        // .note = ⚠️ `slug` stays the BARE SLUG here, deliberately, though the human tree
+        //         below renders the ADDRESS. the two surfaces owe different things:
+        //         - a human named an address, so the tree echoes the address back
+        //         - a machine reads FIELDS, and `slug` is a field this payload has
+        //           published since 2026-02-08. to put an address under that name would
+        //           give one word two senses across two commands — `list --json` already
+        //           emits `slug` as the slug, with `reach` beside it
+        //           (rule.forbid.ambiguous-labels). worse, a reachless consumer would
+        //           still read it correctly while a reach-bearing one silently read a lie
+        // .note = so reach rides as its OWN optional field, exactly as `list --json` shapes
+        //         it. a caller reconstructs the address from the pair when it wants one.
+        //         absent a reach the field is `undefined`, which `JSON.stringify` DROPS —
+        //         so a reachless del emits byte-identical json to what it did before this
+        //         feature existed (e1/e16), and that is why it must not be `null`
         if (opts.json) {
           console.log(
             JSON.stringify(
               {
                 slug,
+                reach: reach ?? undefined,
                 effect: result.effect,
                 // include the destroyed descriptor ONLY when keyrack destroyed a remote secret
                 // (the aws.params owned mech); a plain removal omits it, so a peer vault's del
@@ -1131,9 +1479,13 @@ export const invokeKeyrack = ({
         // human-readable tree output — the per-outcome render (absent, plain removal, removal +
         // a destroyed remote secret) is a pure transformer so the operator-seen text is
         // unit-snapshottable
+        // .note = fed the ADDRESS, not the bare slug — a `del --reach` removes ONE key and the
+        //         human must see which. e1 holds: `asKeyrackKeySlugAtReach` returns the bare
+        //         slug byte for byte when no reach is given, so every reachless render, and
+        //         every snapshot of one, is unchanged
         console.log(
           asKeyrackDelReport({
-            slug,
+            address: addressDeleted,
             effect: result.effect,
             destroyed: result.destroyed ?? null,
           }),
@@ -1150,6 +1502,10 @@ export const invokeKeyrack = ({
     .option('--env <env>', 'target env: prod, prep, test, all, sudo, or camp')
     .option('--key <key>', 'specific key to unlock (required for --env sudo)')
     .option(
+      '--reach <exid>',
+      'reach to unlock (e.g., beav@ehmpathy.com, github://org=ehmpathy); requires --key',
+    )
+    .option(
       '--duration <duration>',
       'TTL for unlocked keys (default: 30m for sudo, 9h for others)',
     )
@@ -1164,6 +1520,7 @@ export const invokeKeyrack = ({
         for?: string;
         env?: string;
         key?: string;
+        reach?: string;
         duration?: string;
         prikey?: string;
         json?: boolean;
@@ -1171,10 +1528,22 @@ export const invokeKeyrack = ({
         // --owner takes precedence; --for is alias
         const owner = deriveOwner(opts);
 
+        // parse the reach at the cli boundary, so a malformed exid fails before any prompt.
+        // an exid is PLAINTEXT — keyrack parses no scheme and reads no sense into it
+        // .note = on `unlock` a reach SELECTS which of the stored keys to hand back. it
+        //         does not derive one — an unlock at a reach no key was cut for is an
+        //         absent key, and absent keys are loud (e6)
+        const parsed = asKeyrackKeyReachOrEmitBlocked({
+          flag: opts.reach,
+          command: 'keyrack unlock',
+        });
+        if (!parsed) return;
+        const { reach } = parsed;
+
         // validate env if provided
         if (opts.env) {
           if (!isValidKeyrackEnv(opts.env)) {
-            throw new BadRequestError(
+            throw new ConstraintError(
               `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
             );
           }
@@ -1182,9 +1551,36 @@ export const invokeKeyrack = ({
 
         // sudo env requires --key flag
         if (opts.env === 'sudo' && !opts.key) {
-          throw new BadRequestError('sudo credentials require --key flag', {
+          throw new ConstraintError('sudo credentials require --key flag', {
             note: 'run: rhx keyrack unlock --env sudo --key X',
           });
+        }
+
+        // a reach is an identity axis of one key — it cannot ride a bulk unlock (q2)
+        // .why HERE = ⚠️ `unlockKeyrackKeys` already states this invariant, and that deep guard
+        //        STAYS — it is the sdk-level rule, and it covers every caller that does not
+        //        come through this cli. but it sits BELOW the host manifest decrypt on line
+        //        ~1507. so a human who forgot `--key` used to pay that decrypt first: at best
+        //        a passphrase prompt for a mistake already knowable from the flags, and at
+        //        worst — on a host whose manifest cannot be decrypted, or that has none yet —
+        //        a raw `UnexpectedCodePathError` about ssh identities, which names a cause
+        //        that has zero relation to what they actually typed wrong
+        // .note = the rule three lines up (sudo requires --key) was already checked at this
+        //         boundary, so the late reach guard made one class of rule fire at two
+        //         different points of the same command (rule.forbid.surprises). now both are
+        //         cheap, both are pre-decrypt (rule.prefer.prevent-over-correct, rung 3)
+        // .note = the hint is worded to match the deep guard's exactly, so a human meets one
+        //         sentence no matter which of the two fires
+        try {
+          assertKeyrackReachRequiresKey({
+            reach,
+            keyed: !!opts.key,
+            hint: `name the key — rhx keyrack unlock --env ${opts.env ?? '$env'} --key $KEY --reach ${opts.reach}`,
+          });
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack unlock' });
+          return;
         }
 
         // get gitroot and repoManifest — null-tolerant: unlock must serve machine-wide @all keys
@@ -1220,85 +1616,23 @@ export const invokeKeyrack = ({
                 owner,
                 env: opts.env,
                 key: opts.key,
+                reach,
                 duration: opts.duration,
               },
               context,
             );
           } catch (error) {
             if (!(error instanceof ConstraintError)) throw error;
-            console.error(
-              getKeyrackBlockedReport({ error, command: 'keyrack unlock' }),
-            );
-            return null; // caller-fixable fault → the boundary below exits 2
+            // renders the blocked tree AND sets exit 2 in one operation (term=blocked)
+            emitKeyrackBlockedReport({ error, command: 'keyrack unlock' });
+            return null;
           }
         })();
 
-        // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics)
-        if (unlockOutcome === null) {
-          process.exitCode = 2;
-          return;
-        }
+        // caller-fixable fault: the emit above already set exit 2, so this only returns
+        if (unlockOutcome === null) return;
 
         const { unlocked, omitted } = unlockOutcome;
-
-        // output results
-        if (opts.json) {
-          console.log(JSON.stringify({ unlocked, omitted }, null, 2));
-        } else {
-          console.log('🔓 keyrack unlock');
-
-          // combine all entries for tree output
-          const allEntries = [
-            ...unlocked.map((k) => ({ type: 'unlocked' as const, key: k })),
-            ...omitted.map((o) => ({ type: 'omitted' as const, ...o })),
-          ];
-
-          for (let i = 0; i < allEntries.length; i++) {
-            const entry = allEntries[i]!;
-            const isLast = i === allEntries.length - 1;
-
-            // an unlocked key — render its grant
-            if (entry.type === 'unlocked') {
-              emitKeyrackKeyBranch({
-                entry: { type: 'unlocked', grant: entry.key },
-                isLast,
-              });
-              continue;
-            }
-
-            // a live fault isolated to this one key (G5) — surface it distinctly so a
-            // co-batched healthy key still unlocked. the tip render (bare message + fix-or-retry)
-            // lives in the asKeyrackErroredKeyTip transformer (rule.forbid.inline-decode-friction)
-            if (entry.reason === 'errored') {
-              emitKeyrackKeyBranch({
-                entry: {
-                  type: 'errored',
-                  slug: entry.slug,
-                  tip: asKeyrackErroredKeyTip({
-                    cause: entry.cause,
-                    env: opts.env ?? null,
-                  }),
-                },
-                isLast,
-              });
-              continue;
-            }
-
-            // an omitted key — show absent / lost / remote based on reason
-            const { env: slugEnv, keyName } = asKeyrackSlugParts({
-              slug: entry.slug,
-            });
-            emitKeyrackKeyBranch({
-              entry: {
-                type: entry.reason, // 'absent' | 'lost' | 'remote'
-                slug: entry.slug,
-                tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
-              },
-              isLast,
-            });
-          }
-          console.log('');
-        }
 
         // exit non-zero when any key errored (G5): the grove chains `unlock && start-app`, so a
         // silent exit 0 with an absent credential would let the app start credential-less. the
@@ -1307,8 +1641,72 @@ export const invokeKeyrack = ({
         // retry-loop fixes config rather than a blind retry; any server/transient fault (a
         // MalfunctionError or an unclassed cause) exits 1. both stay distinct from the
         // all-succeeded / all-absent-benign case, which remains exit 0
+        // ⚠️ set ABOVE the json return, deliberately. the json branch is a terminal render, so
+        //    an exit code computed below it would apply to the human tree ONLY — and the grove,
+        //    which is exactly who chains on the code, is exactly who passes --json
         const exitCode = asKeyrackUnlockExitCode({ omitted });
         if (exitCode !== null) process.exitCode = exitCode;
+
+        // output results — json is a terminal render, so it returns and the human tree
+        // below reads as the straight-line narrative it is (rule.forbid.else-branches)
+        if (opts.json) {
+          console.log(JSON.stringify({ unlocked, omitted }, null, 2));
+          return;
+        }
+
+        console.log('🔓 keyrack unlock');
+
+        // combine all entries for tree output
+        const allEntries = [
+          ...unlocked.map((k) => ({ type: 'unlocked' as const, key: k })),
+          ...omitted.map((o) => ({ type: 'omitted' as const, ...o })),
+        ];
+
+        for (let i = 0; i < allEntries.length; i++) {
+          const entry = allEntries[i]!;
+          const isLast = i === allEntries.length - 1;
+
+          // an unlocked key — render its grant
+          if (entry.type === 'unlocked') {
+            emitKeyrackKeyBranch({
+              entry: { type: 'unlocked', grant: entry.key },
+              isLast,
+            });
+            continue;
+          }
+
+          // a live fault isolated to this one key (G5) — surface it distinctly so a
+          // co-batched healthy key still unlocked. the tip render (bare message + fix-or-retry)
+          // lives in the asKeyrackErroredKeyTip transformer (rule.forbid.inline-decode-friction)
+          if (entry.reason === 'errored') {
+            emitKeyrackKeyBranch({
+              entry: {
+                type: 'errored',
+                slug: entry.slug,
+                tip: asKeyrackErroredKeyTip({
+                  cause: entry.cause,
+                  env: opts.env ?? null,
+                }),
+              },
+              isLast,
+            });
+            continue;
+          }
+
+          // an omitted key — show absent / lost / remote based on reason
+          const { env: slugEnv, keyName } = asKeyrackSlugParts({
+            slug: entry.slug,
+          });
+          emitKeyrackKeyBranch({
+            entry: {
+              type: entry.reason, // 'absent' | 'lost' | 'remote'
+              slug: entry.slug,
+              tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
+            },
+            isLast,
+          });
+        }
+        console.log('');
       },
     );
 
@@ -1387,7 +1785,7 @@ export const invokeKeyrack = ({
 
         // validate env if provided
         if (opts.env && !isValidKeyrackEnv(opts.env)) {
-          throw new BadRequestError(
+          throw new ConstraintError(
             `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
           );
         }
@@ -1453,16 +1851,12 @@ export const invokeKeyrack = ({
               }
             } else {
               console.log('   ├─ daemon: active ✨');
-              for (let i = 0; i < filteredKeys.length; i++) {
-                const key = filteredKeys[i]!;
-                const isLast = i === filteredKeys.length - 1;
-                const prefix = isLast ? '   └─' : '   ├─';
-                const indent = isLast ? '      ' : '   │  ';
-                const ttlMinutes = Math.round(key.ttlLeftMs / 1000 / 60);
-                console.log(`${prefix} ${key.slug}`);
-                console.log(`${indent}├─ env: ${key.env}`);
-                console.log(`${indent}├─ org: ${key.org}`);
-                console.log(`${indent}└─ expires in: ${ttlMinutes}m`);
+              for (const [i, key] of filteredKeys.entries()) {
+                for (const line of asKeyrackStatusKeyBranch({
+                  key,
+                  isLast: i === filteredKeys.length - 1,
+                }))
+                  console.log(line);
               }
             }
           }
@@ -1557,18 +1951,40 @@ export const invokeKeyrack = ({
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
 
         // fill keyrack keys
-        await fillKeyrackKeys(
-          {
-            env: opts.env,
-            owners: opts.owner,
-            prikeys: opts.prikey ?? [],
-            key: opts.key ?? null,
-            refresh: opts.refresh ?? false,
-            repair: opts.repair ?? false,
-            allowDangerous: opts.allowDangerous ?? false,
-          },
-          { gitroot },
-        );
+        // .why the catch = `fill` was the ONE keyrack command with no blocked-report guard,
+        //      so a caller-fixable halt inside it escaped to the top-level handler and
+        //      rendered as a bare `BadRequestError:` class name, a json metadata blob and an
+        //      `[args] keyrack,fill,--env,test` trailer — all flush-left, outside the tree it
+        //      interrupted. every sibling command (`get`, `source`, `set`, `del`, `unlock`)
+        //      already renders the same class of fault as the turtle report, so one rule read
+        //      two ways per which command a human typed (`rule.forbid.surprises`, nielsen 4)
+        // .note = this is the SAME defect shape found on `keyrack source` earlier in this
+        //         round, at a different command. that it recurred here is the evidence that a
+        //         per-command render must be proven per command — a guard added at one call
+        //         site makes no claim about its neighbours
+        // .note = narrows to `ConstraintError` and rethrows all else, so a `MalfunctionError`
+        //         still surfaces as a server fault at exit 1 rather than be dressed up as
+        //         caller-fixable (`rule.forbid.failhide`). those two are the only error words
+        //         this repo throws — never their `helpful-errors` parents, which name no
+        //         owner and so decide no exit code
+        try {
+          await fillKeyrackKeys(
+            {
+              env: opts.env,
+              owners: opts.owner,
+              prikeys: opts.prikey ?? [],
+              key: opts.key ?? null,
+              refresh: opts.refresh ?? false,
+              repair: opts.repair ?? false,
+              allowDangerous: opts.allowDangerous ?? false,
+            },
+            { gitroot },
+          );
+        } catch (error) {
+          if (!(error instanceof ConstraintError)) throw error;
+          emitKeyrackBlockedReport({ error, command: 'keyrack fill' });
+          return;
+        }
       },
     );
 
@@ -1651,7 +2067,7 @@ export const invokeKeyrack = ({
       }) => {
         // validate --env
         if (!isValidKeyrackEnv(opts.env)) {
-          throw new BadRequestError('invalid --env value', {
+          throw new ConstraintError('invalid --env value', {
             env: opts.env,
             valid: KEYRACK_VALID_ENVS,
           });
@@ -1659,7 +2075,7 @@ export const invokeKeyrack = ({
 
         // validate --into
         if (opts.into !== 'github.actions' && opts.into !== 'json') {
-          throw new BadRequestError('invalid --into value', {
+          throw new ConstraintError('invalid --into value', {
             into: opts.into,
             valid: ['github.actions', 'json'],
           });
@@ -1673,7 +2089,7 @@ export const invokeKeyrack = ({
         if (source.type === 'env') {
           rawJson = process.env[source.envVar!] ?? '';
           if (!rawJson) {
-            throw new BadRequestError('env var not set', {
+            throw new ConstraintError('env var not set', {
               envVar: source.envVar,
               hint: `set ${source.envVar} or use --from 'json(stdin://*)'`,
             });
@@ -1686,7 +2102,7 @@ export const invokeKeyrack = ({
           }
           rawJson = Buffer.concat(chunks).toString('utf8');
         } else {
-          throw new BadRequestError('unsupported source type', { source });
+          throw new ConstraintError('unsupported source type', { source });
         }
 
         // parse JSON
@@ -1694,7 +2110,7 @@ export const invokeKeyrack = ({
         try {
           secrets = JSON.parse(rawJson);
         } catch {
-          throw new BadRequestError('malformed secrets JSON', {
+          throw new ConstraintError('malformed secrets JSON', {
             source,
             hint: 'ensure the input is valid JSON object',
           });
@@ -1711,7 +2127,7 @@ export const invokeKeyrack = ({
         const gitroot = await getGitRepoRoot({ from: process.cwd() });
         const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
         if (!repoManifest) {
-          throw new BadRequestError('keyrack.yml not found', {
+          throw new ConstraintError('keyrack.yml not found', {
             hint: 'run `rhx keyrack init` to create keyrack.yml',
           });
         }

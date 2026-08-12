@@ -333,13 +333,36 @@ env.test:
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('exits 2 — caller-fixable, not a defect', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('error mentions --value requires --key', () => {
         const output = result.stderr + result.stdout;
         expect(output).toMatch(/--value.*requires.*--key/i);
+      });
+
+      // ⚠️ THE clamp. every assertion above passed while `get` raw-threw a
+      //    `BadRequestError` stack — `not.toEqual(0)` is satisfied by any crash, and a
+      //    phrase match by a trace that contains the phrase. this command rendered TWO
+      //    error shapes inches apart: its `--reach` guard gave the blocked tree while its
+      //    usage guards gave a stack trace (`rule.forbid.surprises`)
+      then('the refusal renders as the blocked tree, never a raw class dump', () => {
+        const output = result.stderr + result.stdout;
+        // keyrack roots on its own lock, never the generic `🐚` shell nor a role mascot
+        // (`rule.require.keyrack-emoji-palette`)
+        expect(output).toContain('🔐 keyrack get');
+        expect(output).toContain('✋ blocked:');
+        expect(output).not.toContain('bummer dude');
+        expect(output).not.toContain('🐢');
+        expect(output).not.toContain('BadRequestError');
+        expect(output).not.toContain('ConstraintError');
+      });
+
+      then('the refusal names the fix', () => {
+        const output = result.stderr + result.stdout;
+        expect(output).toContain('hint:');
+        expect(output).toContain('--key');
       });
     });
 
@@ -354,13 +377,26 @@ env.test:
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('exits 2 — caller-fixable, not a defect', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('error mentions --value requires --key', () => {
         const output = result.stderr + result.stdout;
         expect(output).toMatch(/--value.*requires.*--key/i);
+      });
+
+      // .note = the second of `get`'s usage refusals, clamped for the same reason. both
+      //         are far likelier to be hit than any vault-level fault — they are what a
+      //         human meets the first time they type the command from memory
+      then('the refusal renders as the blocked tree, never a raw class dump', () => {
+        const output = result.stderr + result.stdout;
+        expect(output).toContain('🔐 keyrack get');
+        expect(output).toContain('✋ blocked:');
+        expect(output).not.toContain('bummer dude');
+        expect(output).not.toContain('🐢');
+        expect(output).not.toContain('BadRequestError');
+        expect(output).not.toContain('ConstraintError');
       });
     });
   });

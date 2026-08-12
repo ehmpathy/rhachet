@@ -34,8 +34,15 @@ export interface KeyrackHostManifest {
   recipients: KeyrackKeyRecipient[];
 
   /**
-   * .what = map of key slug to host configuration
-   * .why = enables lookup by slug for grant operations
+   * .what = map of key address to host configuration
+   * .why = enables lookup for grant operations
+   *
+   * .note = the address is `asKeyrackKeySlugAtReach({ slug, reach })`, NOT the bare slug.
+   *         a key cut for no reach addresses as its bare slug, byte for byte — so every
+   *         manifest written before reach existed parses and re-serializes unchanged (e1).
+   *         only a key cut for a reach takes the composite form
+   * .note = a slug-keyed map could not hold two reaches of one slug; one would silently
+   *         evict the other, which is the exact failure reach-as-identity exists to prevent
    */
   hosts: Record<string, KeyrackKeyHost>;
 }

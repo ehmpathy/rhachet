@@ -425,7 +425,7 @@ describe('setKeyrackKeyHost', () => {
     };
 
     when('[t0] org defaults to @this', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(
           setKeyrackKeyHost(
             { slug: 'KEY', mech: 'PERMANENT_VIA_REPLICA', vault: 'os.direct' },
@@ -472,4 +472,17 @@ describe('setKeyrackKeyHost', () => {
       });
     });
   });
+
+  /**
+   * ⚠️ .moved = the reach-vs-keyrack.yml A/B that lived here is now
+   *         `setKeyrackKeyHost.integration.test.ts` `[case11]`.
+   * .why = it observed the claim through a `jest.mock`ed `daoKeyrackRepoManifest` and
+   *        asserted `not.toHaveBeenCalled()`. that is a module mock across a remote boundary
+   *        inside a `.test.ts` (`rule.forbid.unit.remote-boundaries`), AND it proved the
+   *        weaker fact — that a function went uncalled, rather than that the FILE holds no
+   *        such line. the integration twin writes a real `keyrack.yml`, runs the same set
+   *        twice (with and without a reach), and reads the file back through `parseYaml`
+   * .note = kept as a note rather than deleted silently, so a reader who greps this file for
+   *         the q8 guarantee is sent to where it now lives
+   */
 });

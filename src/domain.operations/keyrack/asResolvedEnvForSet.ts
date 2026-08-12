@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
@@ -12,7 +12,7 @@ export const asResolvedEnvForSet = (input: {
 }): string => {
   if (input.env) {
     if (!isValidKeyrackEnv(input.env)) {
-      throw new BadRequestError(
+      throw new ConstraintError(
         `invalid --env: must be one of ${KEYRACK_VALID_ENVS.join(', ')}`,
       );
     }

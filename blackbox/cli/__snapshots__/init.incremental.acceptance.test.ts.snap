@@ -297,8 +297,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 13 brief(s)
-      └─ 2 skill(s)
+      ├─ 16 brief(s)
+      └─ 3 skill(s)
 
 "
 `;
@@ -344,8 +344,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 13 brief(s)
-      └─ 2 skill(s)
+      ├─ 16 brief(s)
+      └─ 3 skill(s)
 
 "
 `;

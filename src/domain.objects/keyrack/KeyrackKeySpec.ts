@@ -1,6 +1,7 @@
 import { DomainLiteral } from 'domain-objects';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
+import type { KeyrackKeyReach } from './KeyrackKeyReach';
 
 /**
  * .what = specification for a single required key within an env-scoped keyrack
@@ -41,6 +42,21 @@ export interface KeyrackKeySpec {
     protection: 'encrypted' | null;
     duration: 'ephemeral' | null;
   } | null;
+
+  /**
+   * .what = the reaches this repo asks `fill` to provision for this key
+   * .why = a repo that dispatches into another org needs every developer here to hold
+   *        that reach's key, so the requirement is a property of the repo
+   *
+   * .note = a MINIMUM, never a maximum — a human may hold more reaches than any repo
+   *         declares, and no manifest line can take a reach away
+   * .note = empty when the manifest declares none; authored by hand only, since
+   *         `keyrack set --reach` never writes a repo manifest
+   * .note = every declared reach is UNCONDITIONAL — `fill` must satisfy each one, and a
+   *         failure on any halts. no strength tier sits beside the exid, so a repo
+   *         cannot declare a reach it treats as optional
+   */
+  reaches: KeyrackKeyReach[];
 
   /**
    * .what = behavioral flags that modify how keyrack handles this key

@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { execSync, spawnSync } from 'node:child_process';
 
@@ -12,7 +12,7 @@ export const validateGhAuth = (): void => {
   try {
     execSync('gh auth status', { stdio: 'pipe' });
   } catch (error) {
-    throw new BadRequestError('gh auth required', {
+    throw new ConstraintError('gh auth required', {
       hint: 'run: gh auth login',
       cause: error instanceof Error ? error : undefined,
     });
@@ -36,7 +36,7 @@ export const ghSecretSet = (input: {
 
   // validate repo format
   if (!input.repo.includes('/')) {
-    throw new BadRequestError('repo must be in owner/repo format', {
+    throw new ConstraintError('repo must be in owner/repo format', {
       repo: input.repo,
       hint: 'e.g., ehmpathy/rhachet',
     });
@@ -54,7 +54,7 @@ export const ghSecretSet = (input: {
 
   // failloud on gh error
   if (result.status !== 0) {
-    throw new UnexpectedCodePathError('gh secret set failed', {
+    throw new MalfunctionError('gh secret set failed', {
       name: input.name,
       repo: input.repo,
       stderr: result.stderr,

@@ -1,3 +1,4 @@
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { vaultAdapterOsEnvvar } from './vaultAdapterOsEnvvar';
@@ -162,7 +163,7 @@ describe('vaultAdapterOsEnvvar', () => {
 
   given('[case6] write operation attempted (os.envvar is read-only)', () => {
     when('[t0] set called', () => {
-      then('throws UnexpectedCodePathError', async () => {
+      then('throws MalfunctionError', async () => {
         const error = await getError(
           vaultAdapterOsEnvvar.set({
             slug: 'ANY_KEY',
@@ -174,12 +175,57 @@ describe('vaultAdapterOsEnvvar', () => {
     });
 
     when('[t1] del called', () => {
-      then('throws UnexpectedCodePathError', async () => {
+      then('throws MalfunctionError', async () => {
         const error = await getError(
           vaultAdapterOsEnvvar.del({ slug: 'ANY_KEY', mech: null, meta: null }),
         );
         expect(error).toBeDefined();
         expect(error?.message).toContain('os.envvar is read-only');
+      });
+    });
+  });
+
+  given('[case7] a reach-ask reaches this vault', () => {
+    const rawKey = '__TEST_VAULT_OS_ENVVAR_REACH__';
+    const slug = `ahbode.prep.${rawKey}`;
+
+    beforeEach(() => {
+      // the AMBIENT reachless value ci placed here — what must NOT be handed back
+      process.env[rawKey] = 'ghs_reachless_ambient_token';
+    });
+
+    afterEach(() => {
+      delete process.env[rawKey];
+    });
+
+    when('[t0] get called with a reach', () => {
+      then(
+        'e20: it throws rather than answer with the flat variable',
+        async () => {
+          const error = await getError(
+            vaultAdapterOsEnvvar.get({
+              slug,
+              reach: { exid: 'github://org=ehmpathy' },
+            }),
+          );
+
+          // the CLASS is the contract — a caller-fixable refusal, exit 2. asserted by class
+          // rather than by copy, so a reword of the message cannot move this clamp
+          expect(error).toBeInstanceOf(ConstraintError);
+
+          // and the guarantee that matters: the ambient reachless token is NOT what came
+          // back. e20's whole point is that a wrong-reach credential never surfaces here
+          expect(error?.message).not.toContain('ghs_reachless_ambient_token');
+          expect(error?.message).toContain('os.envvar');
+          expect(error?.message).toContain('github://org=ehmpathy');
+        },
+      );
+    });
+
+    when('[t1] get called without a reach', () => {
+      then('e1: it still reads the flat variable, unchanged', async () => {
+        const result = await vaultAdapterOsEnvvar.get({ slug });
+        expect(result!.key.secret).toEqual('ghs_reachless_ambient_token');
       });
     });
   });

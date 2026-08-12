@@ -45,6 +45,7 @@ exports[`keyrack fill cli given: [case6] repo with env.test key already set as e
 
 exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (pseudo-TTY) when: [t0] keyrack fill --env test via pseudo-TTY (prompts for mech) then: stdout matches snapshot 1`] = `
 "🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
 🔑 key 1/1, API_KEY, for 1 owner
    └─ for owner default
       ├─ set the key
@@ -60,6 +61,7 @@ exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (p
       └─ get after set, to verify
          ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner default
          └─ ✓ rhx keyrack get --key API_KEY --env test --owner default
+
 🔐 keyrack fill complete (1/1 keys verified)"
 `;
 
@@ -69,4 +71,193 @@ exports[`keyrack fill cli given: [case8] repo with keyrack manifest (test keys o
    └─ no keys found
 
 "
+`;
+
+exports[`keyrack fill cli given: [case9] a manifest that declares reaches, via the cli when: [t0] keyrack fill --env test via pseudo-TTY then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack fill cli given: [case9] a manifest that declares reaches, via the cli when: [t0] keyrack fill --env test via pseudo-TTY then: stdout matches snapshot: stdout 1`] = `
+"🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, PLAIN_KEY, for 1 owner
+   └─ for owner default
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for PLAIN_KEY: ************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key PLAIN_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key PLAIN_KEY --env test --owner default
+
+🔑 key 2/2, MULTI_REACH_KEY, for 1 owner
+   └─ for owner default
+      ├─ at reach default
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 1
+      │  │  │  enter secret for MULTI_REACH_KEY: **********************
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default
+      ├─ at reach beav@ehmpathy.com
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 1
+      │  │  │  enter secret for MULTI_REACH_KEY: ***************
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default --reach beav@ehmpathy.com
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default --reach beav@ehmpathy.com
+      └─ at reach vlad@ehmpathy.com
+         ├─ set the key
+         │  ├─
+         │  │
+         │  │  which mechanism?
+         │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+         │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+         │  │  choice: 1
+         │  │  enter secret for MULTI_REACH_KEY: ***************
+         │  │
+         │  └─
+         └─ get after set, to verify
+            ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default --reach vlad@ehmpathy.com
+            └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default --reach vlad@ehmpathy.com
+
+🔐 keyrack fill complete (4/4 keys verified)"
+`;
+
+exports[`keyrack fill cli given: [case10] the LAST declared reach cannot be provisioned when: [t0] the human fumbles the prompt on the last reach then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack fill cli given: [case10] the LAST declared reach cannot be provisioned when: [t0] the human fumbles the prompt on the last reach then: stdout matches snapshot: stdout 1`] = `
+"🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, PLAIN_KEY, for 1 owner
+   └─ for owner default
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for PLAIN_KEY: ************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key PLAIN_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key PLAIN_KEY --env test --owner default
+
+🔑 key 2/2, MULTI_REACH_KEY, for 1 owner
+   └─ for owner default
+      ├─ at reach default
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 1
+      │  │  │  enter secret for MULTI_REACH_KEY: **********************
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default
+      ├─ at reach beav@ehmpathy.com
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 1
+      │  │  │  enter secret for MULTI_REACH_KEY: ***************
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default --reach beav@ehmpathy.com
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default --reach beav@ehmpathy.com
+      └─ at reach vlad@ehmpathy.com
+         ├─ set the key
+         │  ├─
+         │  │
+         │  │  which mechanism?
+         │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+         │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+         │  │  choice: 9
+         │  │
+         │  └─
+
+🔐 keyrack fill
+   └─ ✋ blocked: invalid mechanism choice
+      └─ hint: enter a number between 1 and 2"
+`;
+
+exports[`keyrack fill cli given: [case11] the FIRST declared reach cannot be provisioned when: [t0] the human fumbles the prompt on the first reach then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack fill cli given: [case11] the FIRST declared reach cannot be provisioned when: [t0] the human fumbles the prompt on the first reach then: stdout matches snapshot: stdout 1`] = `
+"🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, PLAIN_KEY, for 1 owner
+   └─ for owner default
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for PLAIN_KEY: ************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key PLAIN_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key PLAIN_KEY --env test --owner default
+
+🔑 key 2/2, MULTI_REACH_KEY, for 1 owner
+   └─ for owner default
+      ├─ at reach default
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 1
+      │  │  │  enter secret for MULTI_REACH_KEY: **********************
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner default
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner default
+      ├─ at reach beav@ehmpathy.com
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │  which mechanism?
+      │  │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  │  choice: 9
+      │  │  │
+      │  │  └─
+
+🔐 keyrack fill
+   └─ ✋ blocked: invalid mechanism choice
+      └─ hint: enter a number between 1 and 2"
 `;

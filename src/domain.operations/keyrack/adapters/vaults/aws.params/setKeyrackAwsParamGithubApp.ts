@@ -77,8 +77,14 @@ export const setKeyrackAwsParamGithubApp = async (
   // .note = context.mech injects the gh runner + prompt (composition root / tests) so this
   //         owned-secret path is reachable headlessly; absent in prod, the mech falls back to
   //         the real gh cli + terminal (mirrors os.secure)
+  // .note = `mech` is REQUIRED so the adapter names the identity that invoked it rather than a
+  //         guess; this arm is the github-app one by construction
+  // .note = no `reach` is threaded, deliberately. the github-app mech DOES read a reach (it
+  //         derives the target org's installation from one), but aws.params is UNADDRESSABLE, so
+  //         the vault refused any reach at its boundary before this call. the mech keeps its
+  //         reach facet for the vaults that can file one
   const { source: blob } = await acquireForSet(
-    { keySlug: input.slug },
+    { keySlug: input.slug, mech: 'EPHEMERAL_VIA_GITHUB_APP' },
     context?.mech,
   );
 

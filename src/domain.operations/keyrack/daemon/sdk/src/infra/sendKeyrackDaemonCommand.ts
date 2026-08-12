@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type { KeyrackDaemonCommand } from '@src/domain.objects/keyrack/KeyrackDaemonCommand';
 
@@ -43,7 +43,7 @@ export const sendKeyrackDaemonCommand = async <T>(input: {
         resolve(response);
       } catch (error) {
         reject(
-          new UnexpectedCodePathError('failed to parse daemon response', {
+          new MalfunctionError('failed to parse daemon response', {
             buffer: buffer.slice(0, 200),
             cause: error instanceof Error ? error : undefined,
           }),

@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { createCache } from 'simple-in-memory-cache';
 import { withSimpleCache } from 'with-simple-cache';
 
@@ -172,8 +172,8 @@ const trialDecryptManifest = async (input: {
       return identity;
     } catch (error) {
       // rethrow our own error types (code defects, invalid requests)
-      if (error instanceof UnexpectedCodePathError) throw error;
-      if (error instanceof BadRequestError) throw error;
+      if (error instanceof MalfunctionError) throw error;
+      if (error instanceof ConstraintError) throw error;
 
       // expected: decryption failure with wrong identity (continue to next)
       // .note = age-encryption throws generic Error for decryption failures

@@ -2,6 +2,7 @@ import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 
 import { handleGetCommand } from './handleGetCommand';
@@ -234,6 +235,79 @@ describe('handleStatusCommand', () => {
       then('returns empty keys array', () => {
         const result = handleStatusCommand({}, { keyStore, homeHash });
         expect(result.keys).toEqual([]);
+      });
+    });
+  });
+
+  /**
+   * .what = the wire seam — the server's row must satisfy the client's declared row
+   * .why = ⚠️ the daemon protocol is declared TWICE, in two files the compiler does not
+   *        link: the svc handler states what it sends, and `DaemonStatusRow` states what
+   *        the sdk claims to receive. a divergence between them fails NO build and NO test
+   *
+   * .note = this seam has now drifted twice, in the same family, and each drift was found
+   *         by a human read rather than by a check:
+   *         - 2026-08-04 · `DaemonKeyRow.expiresAt` declared `number`, server sent a stamp
+   *         - 2026-08-06 · `DaemonStatusRow.expiresAt` declared `number`, the SAME defect,
+   *           in the sibling row, unrepaired by the first fix
+   *         a fix that must be applied by hand at each twin is a fix that will be missed.
+   *         this clamp is the generalization the first repair lacked
+   * .note = it bites at COMPILE time, which is the only grain that can see it. an assignment
+   *         is the whole assertion; the runtime `expect` below exists so the case is not a
+   *         silently empty test body (rule.forbid.failhide)
+   */
+  given('[case3] the status row as the sdk declares it', () => {
+    const keyStore = createDaemonKeyStore();
+
+    when('[t0] a key is held with NO expiry', () => {
+      beforeEach(() => {
+        keyStore.set({
+          grant: new KeyrackKeyGrant({
+            slug: 'KEY_FOREVER',
+            key: {
+              secret: 'secret-forever',
+              grade: { protection: 'encrypted', duration: 'permanent' },
+            },
+            source: { vault: '1password', mech: 'PERMANENT_VIA_REPLICA' },
+            env: 'prod',
+            org: 'ehmpathy',
+          }),
+        });
+      });
+
+      // ⚠️ THE clamp, and it is the ASSIGNMENT rather than the expect. under
+      //    `expiresAt: number` this line does not compile, because the server sends a stamp
+      then('the server rows are assignable to DaemonStatusRow', () => {
+        const rows: DaemonStatusRow[] = handleStatusCommand(
+          {},
+          { keyStore, homeHash },
+        ).keys;
+
+        expect(rows).toHaveLength(1);
+      });
+
+      // .why null rather than Infinity = the socket is JSON, and `JSON.stringify(Infinity)`
+      //      is `"null"`. so a server that sent `Infinity` was ALREADY sending null, while
+      //      both sides declared `number` — and `Math.round(null / 1000 / 60)` is `0`, which
+      //      rendered a key that never expires as `expires in: 0m`
+      then('a key with no expiry reports null, never Infinity', () => {
+        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
+
+        expect(row.expiresAt).toEqual(null);
+        expect(row.ttlLeftMs).toEqual(null);
+        expect(row.ttlLeftMs).not.toEqual(Infinity);
+      });
+
+      // .note = the proof that the JSON claim above is a fact rather than a reasoned guess.
+      //         a round-trip through the exact codec the socket uses
+      //         (`handleKeyrackDaemonConnection` writes `JSON.stringify`,
+      //         `sendKeyrackDaemonCommand` reads `JSON.parse`)
+      then('the row survives the socket codec unchanged', () => {
+        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
+        const overWire = JSON.parse(JSON.stringify(row)) as DaemonStatusRow;
+
+        expect(overWire.ttlLeftMs).toEqual(row.ttlLeftMs);
+        expect(overWire.expiresAt).toEqual(row.expiresAt);
       });
     });
   });

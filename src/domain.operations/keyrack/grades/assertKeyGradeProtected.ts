@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackKeyGrade } from '@src/domain.objects/keyrack';
 
@@ -8,7 +8,7 @@ import { detectKeyGradeChange } from './detectKeyGradeChange';
  * .what = assert that a grade change does not represent degradation
  * .why = grades must never degrade — this enforces the security boundary
  *
- * .note = throws BadRequestError if degradation detected (user mistake, not system error)
+ * .note = throws ConstraintError if degradation detected (user mistake, not system error)
  */
 export const assertKeyGradeProtected = (input: {
   source: KeyrackKeyGrade;
@@ -18,7 +18,7 @@ export const assertKeyGradeProtected = (input: {
 
   // throw if degradation detected
   if (result.degrades) {
-    throw new BadRequestError(`grade degradation forbidden: ${result.reason}`, {
+    throw new ConstraintError(`grade degradation forbidden: ${result.reason}`, {
       source: input.source,
       target: input.target,
     });

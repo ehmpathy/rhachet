@@ -5,6 +5,7 @@ import type { KeyrackHostManifest } from './KeyrackHostManifest';
 import type { KeyrackHostVault } from './KeyrackHostVault';
 import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
 import type { KeyrackKeyHostMetaOf } from './KeyrackKeyHostMeta';
+import type { KeyrackKeyReach } from './KeyrackKeyReach';
 
 /**
  * .what = get method signature for readable vaults
@@ -12,6 +13,10 @@ import type { KeyrackKeyHostMetaOf } from './KeyrackKeyHostMeta';
  *
  * .note = returns full KeyrackKeyGrant with inferred mech, grade, env, org
  * .note = vault is responsible for mech inference from JSON blobs
+ * .note = reach names the reach asked for. a vault that cannot tell one reach from
+ *         another MUST throw on a reach-ask rather than answer with the reachless value —
+ *         a wrong-reach credential handed back silently is the failure this design
+ *         exists to make impossible
  */
 type KeyrackHostVaultGetMethod<TVault extends KeyrackHostVault> = (input: {
   slug: string;
@@ -28,6 +33,7 @@ type KeyrackHostVaultGetMethod<TVault extends KeyrackHostVault> = (input: {
   //        generic contract stays vault-agnostic and every other vault simply ignores it
   //        (see .agent/repo=.this/role=keyrack/briefs/define.keyrack-org-scope.grove-vs-tree.md)
   hostManifest?: KeyrackHostManifest | null;
+  reach?: KeyrackKeyReach;
 }) => Promise<KeyrackKeyGrant | null>;
 
 /**
@@ -120,6 +126,9 @@ export interface KeyrackHostVaultAdapter<
    * .note = may also return { exid } when the adapter derives an exid (e.g., aws.config profile name)
    * .note = may also return { meta } for vault-specific metadata (e.g., awsSsoUsername for aws.config)
    * .note = context provides: owner, hostManifest.recipients, identity for verification
+   * .note = reach names the reach this credential is cut for. it steers mech setup (the
+   *         github app mech derives the target org's installation from it) and partitions
+   *         storage, so a key cut for one reach never overwrites a key cut for another
    */
   set: (
     input: {
@@ -127,6 +136,7 @@ export interface KeyrackHostVaultAdapter<
       mech?: KeyrackGrantMechanism | null;
       exid?: string | null;
       expiresAt?: string | null;
+      reach?: KeyrackKeyReach;
     },
     context?: ContextKeyrack,
   ) => Promise<{
@@ -148,12 +158,16 @@ export interface KeyrackHostVaultAdapter<
    *         (aws.params), so the CLI can echo what changed. every other adapter returns
    *         an implicit void (no remote secret destroyed to report); the `| void` arm keeps them
    *         unedited
+   * .note = reach names WHICH key to destroy — the one cut at that reach. a del is ADDRESSED: it
+   *         removes the one key it was pointed at and leaves its peers alone (unlike relock, which
+   *         sweeps every reach of a slug). a reach-blind del would strand the addressed secret
    */
   del: (
     input: {
       slug: string;
       exid?: string | null;
       owner?: string | null;
+      reach?: KeyrackKeyReach;
       // mech + meta are REQUIRED (null when unknown), not optional — an internal contract input
       // must be consciously supplied so a forgotten value cannot hide behind `undefined`
       // (rule.forbid.undefined-inputs). the caller (delKeyrackKeyHost) always has both from the

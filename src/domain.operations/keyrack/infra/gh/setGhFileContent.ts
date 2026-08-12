@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { isGhWriteConflictStderr } from './isGhWriteConflictStderr';
 import type { GhRun } from './runGh';
@@ -57,7 +57,7 @@ export const setGhFileContent = (
     return { effect: 'conflict' };
 
   // any other gh error → fail loud
-  throw new UnexpectedCodePathError('gh contents put failed', {
+  throw new MalfunctionError('gh contents put failed', {
     repo: input.repo,
     path: input.path,
     stderr: result.stderr,

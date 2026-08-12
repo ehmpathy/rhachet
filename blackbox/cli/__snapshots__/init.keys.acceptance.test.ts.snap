@@ -102,7 +102,7 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 
 exports[`rhachet init --keys given: [case6] org not detectable when: [t0] init --keys --roles tester (org undetectable) then: stderr matches snapshot 1`] = `
 "
-BadRequestError: unable to detect org from package.json. use \`keyrack init\` for custom org.
+✋ ConstraintError: unable to detect org from package.json. use \`keyrack init\` for custom org.
 
 {
   "note": "org detection checks: package.json#organization, scoped name (@org/), repository field",

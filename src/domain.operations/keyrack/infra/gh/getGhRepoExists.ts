@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { isGhNotFoundStderr } from './isGhNotFoundStderr';
 import type { GhRun } from './runGh';
@@ -28,7 +28,7 @@ export const getGhRepoExists = (
   if (isGhNotFoundStderr({ stderr: result.stderr })) return false;
 
   // any other failure (network, rate limit, gh error) → fail loud
-  throw new UnexpectedCodePathError('gh repo view failed', {
+  throw new MalfunctionError('gh repo view failed', {
     slug: input.slug,
     stderr: result.stderr,
     status: result.status,

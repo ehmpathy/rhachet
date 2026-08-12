@@ -1,4 +1,4 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockGhRun } from '@src/.test/assets/genMockGhRun';
@@ -83,7 +83,7 @@ describe('genKeyrackInfra', () => {
         const error = await getError(() =>
           genKeyrackInfra({ org: 'ehmpathy' }, { ghRun }),
         );
-        expect(error).toBeInstanceOf(UnexpectedCodePathError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toMatchSnapshot();
       });
     });

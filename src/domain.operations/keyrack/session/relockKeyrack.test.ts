@@ -75,18 +75,38 @@ describe('relockKeyrack', () => {
 
   given('[case4] slugs take priority over env', () => {
     when('[t0] relock called with both slugs and env', () => {
-      then('both are passed to daemon (daemon decides priority)', async () => {
-        mockDaemonAccessRelock.mockResolvedValue({ relocked: ['KEY_A'] });
+      // the priority is resolved HERE, at the call site, never handed down as an ambiguous
+      // pair for the daemon to unpick. the sdk's input is a union — a slug ask and an env
+      // sweep are two shapes — so a `{ slugs, env }` bag is unrepresentable by construction
+      then(
+        'only the slugs ask reaches the daemon — env is dropped',
+        async () => {
+          mockDaemonAccessRelock.mockResolvedValue({ relocked: ['KEY_A'] });
 
-        const result = await relockKeyrack({ slugs: ['KEY_A'], env: 'sudo' });
+          const result = await relockKeyrack({ slugs: ['KEY_A'], env: 'sudo' });
 
-        expect(mockDaemonAccessRelock).toHaveBeenCalledWith({
-          socketPath: '/tmp/keyrack.test.sock',
-          slugs: ['KEY_A'],
-          env: 'sudo',
-        });
-        expect(result.relocked).toEqual(['KEY_A']);
-      });
+          expect(mockDaemonAccessRelock).toHaveBeenCalledWith({
+            socketPath: '/tmp/keyrack.test.sock',
+            slugs: ['KEY_A'],
+          });
+          expect(result.relocked).toEqual(['KEY_A']);
+        },
+      );
+
+      // the clamp that bites: `toHaveBeenCalledWith` treats an absent key and an `undefined`
+      // one alike, so the assertion above cannot tell "env dropped" from "env: undefined".
+      // read the recorded call directly, where the difference is visible
+      then(
+        'the env key is absent from the payload, not merely undefined',
+        async () => {
+          mockDaemonAccessRelock.mockResolvedValue({ relocked: ['KEY_A'] });
+
+          await relockKeyrack({ slugs: ['KEY_A'], env: 'sudo' });
+
+          const payload = mockDaemonAccessRelock.mock.calls[0]![0];
+          expect(Object.keys(payload)).not.toContain('env');
+        },
+      );
     });
   });
 

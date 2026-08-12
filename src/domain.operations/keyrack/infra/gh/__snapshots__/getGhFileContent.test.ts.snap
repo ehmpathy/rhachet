@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`getGhFileContent given: [case3] a transient failure (non-404) when: [t0] read then: it fails loud (never mistaken for an absent file) 1`] = `
-"UnexpectedCodePathError: gh contents read failed
+"💥 MalfunctionError: gh contents read failed
 
 {
   "repo": "ehmpathy/keyrack-infra",

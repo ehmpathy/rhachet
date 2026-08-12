@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`emitKeyrackKeyBranch given: [case6] an unlocked entry cut for a reach when: [t0] the key was cut for no reach then: the branch carries no reach leaf (e1) 1`] = `
+[
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ vault: os.secure",
+  "      └─ expires in: 55m",
+]
+`;
+
+exports[`emitKeyrackKeyBranch given: [case6] an unlocked entry cut for a reach when: [t1] the key was cut for a github org then: the reach leaf sits directly after org 1`] = `
+[
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ reach: github://org=ehmpathy",
+  "      ├─ vault: os.secure",
+  "      └─ expires in: 55m",
+]
+`;
+
+exports[`emitKeyrackKeyBranch given: [case6] an unlocked entry cut for a reach when: [t2] the key was cut for a claude account then: a plaintext exid renders verbatim, with no scheme parsed 1`] = `
+[
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ reach: beav@ehmpathy.com",
+  "      ├─ vault: os.secure",
+  "      └─ expires in: 55m",
+]
+`;

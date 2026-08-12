@@ -1,9 +1,10 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
+  KeyrackKeyReach,
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import {
@@ -19,6 +20,8 @@ import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKe
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
+import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
@@ -46,12 +49,20 @@ const getSecureVaultDir = (input: { owner: string | null }): string => {
 /**
  * .what = path for a specific credential file
  * .why = each credential is stored as a separate .age file
+ *
+ * .note = the hash is taken over the key ADDRESS, not the bare slug — so a key cut for one
+ *         reach lands in its own file rather than overwrite the key beside it. a
+ *         reachless address IS the bare slug, so every file written before reach existed
+ *         keeps its extant path and stays readable (e1)
  */
 const getCredentialPath = (input: {
   slug: string;
   owner: string | null;
+  reach?: KeyrackKeyReach;
 }): string => {
-  const hash = asKeyrackSlugHash({ slug: input.slug });
+  const hash = asKeyrackSlugHash({
+    slug: asKeyrackKeySlugAtReach({ slug: input.slug, reach: input.reach }),
+  });
   return join(getSecureVaultDir({ owner: input.owner }), `${hash}.age`);
 };
 
@@ -71,7 +82,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -96,7 +107,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
   unlock: async (input: { identity: string | null }) => {
     // identity required for os.secure
     if (input.identity === null) {
-      throw new UnexpectedCodePathError('os.secure unlock requires identity', {
+      throw new MalfunctionError('os.secure unlock requires identity', {
         hint: 'use --prikey to specify ssh key or run keyrack init',
       });
     }
@@ -119,14 +130,21 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
    */
   get: async (input) => {
     // return null if file does not exist
+    // .note = a reach-ask reads the file cut for THAT reach. when none was cut, this is
+    //         a null — an absent key, which the caller reports as such. it never falls
+    //         through to the reachless file (e6)
     const owner = input.owner ?? null;
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getCredentialPath({
+      slug: input.slug,
+      owner,
+      reach: input.reach,
+    });
     if (!existsSync(path)) return null;
 
     // identity required for decryption
     const identity = input.identity ?? null;
     if (!identity) {
-      throw new UnexpectedCodePathError('os.secure vault is locked', {
+      throw new MalfunctionError('os.secure vault is locked', {
         input,
         hint: 'identity must be passed via context',
       });
@@ -175,6 +193,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     return new KeyrackKeyGrant({
       slug: input.slug,
       key: { secret, grade },
+      ...asKeyrackKeyReachField({ reach: input.reach }),
       source: { vault: 'os.secure', mech },
       env,
       org,
@@ -222,7 +241,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     // .note = context.mech injects the gh runner + prompt (composition root / tests);
     //         absent in prod, where the mech falls back to the real gh cli + terminal
     const { source: secret } = await mechAdapter.acquireForSet(
-      { keySlug: input.slug },
+      { keySlug: input.slug, reach: input.reach, mech },
       context?.mech,
     );
 
@@ -233,12 +252,16 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       mkdirSync(dir, { recursive: true });
     }
 
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getCredentialPath({
+      slug: input.slug,
+      owner,
+      reach: input.reach,
+    });
 
     // encrypt with recipients from context.hostManifest
     const recipients = context?.hostManifest?.recipients;
     if (!recipients || recipients.length === 0) {
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'os.secure set requires recipients from host manifest',
         {
           slug: input.slug,
@@ -266,13 +289,10 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       context,
     );
     if (!verified) {
-      throw new UnexpectedCodePathError(
-        'os.secure roundtrip verification failed',
-        {
-          slug: input.slug,
-          hint: 'no identity could decrypt the credential',
-        },
-      );
+      throw new MalfunctionError('os.secure roundtrip verification failed', {
+        slug: input.slug,
+        hint: 'no identity could decrypt the credential',
+      });
     }
 
     // emit verification success for ephemeral mech tree output
@@ -296,7 +316,11 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
    */
   del: async (input) => {
     const owner = input.owner ?? null;
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getCredentialPath({
+      slug: input.slug,
+      owner,
+      reach: input.reach,
+    });
     if (existsSync(path)) {
       unlinkSync(path);
     }

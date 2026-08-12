@@ -1,5 +1,59 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`keyrack list given: [case-reach] a host that holds one slug at two reaches when: [t0] keyrack list then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack list given: [case-reach] a host that holds one slug at two reaches when: [t0] keyrack list then: stdout matches snapshot: stdout 1`] = `
+"
+🔐 keyrack list
+   ├─ testorg.test.API_KEY
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ reach: beav@ehmpathy.com
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+"
+`;
+
+exports[`keyrack list given: [case-reach] a host that holds one slug at two reaches when: [t1] keyrack list --json then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack list given: [case-reach] a host that holds one slug at two reaches when: [t1] keyrack list --json then: stdout matches snapshot: stdout 1`] = `
+"{
+  "testorg.test.API_KEY": {
+    "slug": "testorg.test.API_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "testorg.test.API_KEY@beav@ehmpathy.com": {
+    "slug": "testorg.test.API_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "reach": {
+      "exid": "beav@ehmpathy.com"
+    },
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
+"
+`;
+
 exports[`keyrack list given: [case9] list with multi-env repo when: [t0] keyrack list then: stdout matches snapshot 1`] = `
 "
 🔐 keyrack list

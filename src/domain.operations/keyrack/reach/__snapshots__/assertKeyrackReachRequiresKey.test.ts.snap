@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertKeyrackReachRequiresKey given: [case3] a reach is asked for across a bulk sweep when: [t0] the invariant is checked then: the whole refusal is snapped 1`] = `
+"✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+
+{
+  "reach": "beav@ehmpathy.com",
+  "hint": "name the key — rhx keyrack get --key $KEY --reach $EXID"
+}"
+`;

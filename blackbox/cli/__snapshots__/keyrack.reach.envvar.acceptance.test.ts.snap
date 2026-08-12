@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t0] unlock names a reach then: the reply is snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: --reach does not apply to os.envvar: its storage address carries no reach, so a reach-ask would be answered with the reachless value — a live credential for the wrong reach
+      └─ hint: ci holds blobs, never reaches — supply the target reach's credential under its own name, then ask for it without --reach
+
+"
+`;
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t0] unlock names a reach then: the reply is snapped: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t1] a keyed reach-ask asks for the value then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t1] a keyed reach-ask asks for the value then: the reply is snapped: stdout 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.API_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t2] the same unlock omits the reach then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t2] the same unlock omits the reach then: the reply is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: os.envvar
+      └─ expires in: 540m
+
+"
+`;

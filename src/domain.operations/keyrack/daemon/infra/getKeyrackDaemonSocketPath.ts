@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { getHomeHash } from './getHomeHash';
 import { getLoginSessionId } from './getLoginSessionId';
@@ -21,7 +21,7 @@ export const getKeyrackDaemonSocketPath = (input?: {
 }): string => {
   // guard: getuid only available on POSIX (linux)
   if (typeof process.getuid !== 'function') {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'keyrack daemon requires POSIX (linux) — process.getuid is unavailable',
       { platform: process.platform },
     );
@@ -36,10 +36,9 @@ export const getKeyrackDaemonSocketPath = (input?: {
 
   // validate runtime dir is set
   if (!runtimeDir) {
-    throw new UnexpectedCodePathError(
-      'XDG_RUNTIME_DIR is unset and fallback failed',
-      { uid },
-    );
+    throw new MalfunctionError('XDG_RUNTIME_DIR is unset and fallback failed', {
+      uid,
+    });
   }
 
   // get home hash for per-HOME isolation

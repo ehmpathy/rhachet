@@ -1,4 +1,4 @@
-import { BadRequestError, ConstraintError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -62,9 +62,17 @@ export const inferKeyrackMechForSet = async (input: {
   const answer = await promptLineInput({ prompt: 'choice: ' });
   const choice = parseInt(answer, 10);
   if (isNaN(choice) || choice < 1 || choice > supported.length) {
-    throw new BadRequestError('invalid mechanism choice', {
+    // .why ConstraintError = a mistyped menu choice is the caller's to fix, so it owes exit 2
+    //      and the turtle blocked report. this repo throws two error words only —
+    //      `ConstraintError` (caller fixes it) and `MalfunctionError` (server fixes it) —
+    //      never their `helpful-errors` parents, which name no owner and so decide no exit
+    //      code (`rule.require.failloud`, `rule.require.exit-code-semantics`)
+    // .note = the hint names the fix rather than restate the symptom
+    //         (`rule.require.errors-name-the-fix`)
+    throw new ConstraintError('invalid mechanism choice', {
       answer,
       expected: `1-${supported.length}`,
+      hint: `enter a number between 1 and ${supported.length}`,
     });
   }
 

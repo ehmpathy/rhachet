@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackFillTargetBranch given: [case2] a key that declares two reaches when: [t0] every target is rendered then: the whole per-reach render holds still 1`] = `
+[
+  {
+    "header": "   │  ├─ at reach default",
+    "indent": "│  │  ",
+  },
+  {
+    "header": "   │  ├─ at reach github://org=ahbode",
+    "indent": "│  │  ",
+  },
+  {
+    "header": "   │  └─ at reach beav@ehmpathy.com",
+    "indent": "│     ",
+  },
+]
+`;

@@ -510,7 +510,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
         });
       });
 
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         await expect(
           setupAwsSsoProfile({
             profileName: 'test-profile',
@@ -538,7 +538,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
         });
       });
 
-      then('throws UnexpectedCodePathError', async () => {
+      then('throws MalfunctionError', async () => {
         await expect(
           setupAwsSsoProfile({
             profileName: 'new-profile',
@@ -569,7 +569,7 @@ describe('setupAwsSsoProfile interactive journey', () => {
         });
       });
 
-      then('throws UnexpectedCodePathError about validation', async () => {
+      then('throws MalfunctionError about validation', async () => {
         await expect(
           setupAwsSsoProfile({
             profileName: 'new-profile',

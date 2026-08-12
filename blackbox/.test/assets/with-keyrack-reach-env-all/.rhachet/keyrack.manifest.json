@@ -1,0 +1,30 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.all.CROSS_ENV_KEY": {
+      "slug": "testorg.all.CROSS_ENV_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.all.CROSS_ENV_KEY@beav@ehmpathy.com": {
+      "slug": "testorg.all.CROSS_ENV_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "reach": { "exid": "beav@ehmpathy.com" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.test.TEST_ONLY_KEY": {
+      "slug": "testorg.test.TEST_ONLY_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

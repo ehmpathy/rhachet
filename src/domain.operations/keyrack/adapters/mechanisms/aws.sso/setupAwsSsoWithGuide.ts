@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import readline from 'readline';
 
 import { asOrgLabelFromSsoStartUrl } from '@src/domain.operations/keyrack/adapters/vaults/aws.config/asOrgLabelFromSsoStartUrl';
@@ -108,12 +108,12 @@ export const setupAwsSsoWithGuide = async (input: {
       console.log('   │     └─ sso region');
       ssoRegion = await promptUser('   │        └─ ');
       if (!ssoRegion) {
-        throw new BadRequestError('sso region is required');
+        throw new ConstraintError('sso region is required');
       }
       process.stdout.write('\x1b[1A\x1b[2K');
       console.log(`   │        └─ ${ssoRegion} ✓`);
     } else {
-      throw new BadRequestError(
+      throw new ConstraintError(
         `invalid selection: enter 1-${portalsFound.length} or a url`,
       );
     }
@@ -122,7 +122,7 @@ export const setupAwsSsoWithGuide = async (input: {
     console.log('   │  ├─ sso start url');
     ssoStartUrl = await promptUser('   │  │  └─ ');
     if (!ssoStartUrl) {
-      throw new BadRequestError('sso start url is required');
+      throw new ConstraintError('sso start url is required');
     }
     process.stdout.write('\x1b[1A\x1b[2K');
     console.log(`   │  │  └─ ${ssoStartUrl} ✓`);
@@ -130,7 +130,7 @@ export const setupAwsSsoWithGuide = async (input: {
     console.log('   │  └─ sso region');
     ssoRegion = await promptUser('   │     └─ ');
     if (!ssoRegion) {
-      throw new BadRequestError('sso region is required');
+      throw new ConstraintError('sso region is required');
     }
     process.stdout.write('\x1b[1A\x1b[2K');
     console.log(`   │     └─ ${ssoRegion} ✓`);
@@ -177,7 +177,7 @@ export const setupAwsSsoWithGuide = async (input: {
   // list accounts (silent fetch)
   const accountsUnsorted = listAwsSsoAccounts({ ssoStartUrl, ssoRegion });
   if (accountsUnsorted.length === 0) {
-    throw new BadRequestError('no accounts found for this sso configuration');
+    throw new ConstraintError('no accounts found for this sso configuration');
   }
 
   // sort accounts alphabetically by name for stable order
@@ -209,7 +209,7 @@ export const setupAwsSsoWithGuide = async (input: {
     accountIndex < 0 ||
     accountIndex >= accounts.length
   ) {
-    throw new BadRequestError(`invalid selection: ${accountAnswer}`);
+    throw new ConstraintError(`invalid selection: ${accountAnswer}`);
   }
   const selectedAccount = accounts[accountIndex]!;
   // rewrite the choice line with confirmation + echo
@@ -224,7 +224,7 @@ export const setupAwsSsoWithGuide = async (input: {
     accountId: selectedAccount.accountId,
   });
   if (rolesUnsorted.length === 0) {
-    throw new BadRequestError('no roles found for this account');
+    throw new ConstraintError('no roles found for this account');
   }
 
   // sort roles alphabetically by name for stable order
@@ -244,7 +244,7 @@ export const setupAwsSsoWithGuide = async (input: {
   const roleAnswer = await promptUser('   │     └─ ');
   const roleIndex = parseInt(roleAnswer, 10) - 1;
   if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= roles.length) {
-    throw new BadRequestError(`invalid selection: ${roleAnswer}`);
+    throw new ConstraintError(`invalid selection: ${roleAnswer}`);
   }
   const selectedRole = roles[roleIndex]!;
   // rewrite the choice line with confirmation + echo

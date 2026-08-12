@@ -2,6 +2,7 @@ import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 
 import { createDaemonKeyStore } from './daemonKeyStore';
 
@@ -395,4 +396,232 @@ describe('daemonKeyStore', () => {
       });
     });
   });
+
+  // .note = a plaintext-exid juggle on os.secure + PERMANENT_VIA_REPLICA: one key name,
+  //         N copies, one per claude account. the exid is opaque here — the store only
+  //         ever files a value under it and looks it back up
+  given('[case9] one slug held at two reaches, plus reachless', () => {
+    const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
+    const reachBeav: KeyrackKeyReach = { exid: 'beav@ehmpathy.com' };
+    const reachVlad: KeyrackKeyReach = { exid: 'vlad@ehmpathy.com' };
+
+    const genGrant = (grant: {
+      secret: string;
+      reach?: KeyrackKeyReach;
+    }): KeyrackKeyGrant =>
+      new KeyrackKeyGrant({
+        slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+        key: {
+          secret: grant.secret,
+          grade: { protection: 'encrypted', duration: 'ephemeral' },
+        },
+        source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
+        env: 'prep',
+        org: 'ahbode',
+        reach: grant.reach,
+        expiresAt,
+      });
+
+    const genStoreWithAllThree = () => {
+      const store = createDaemonKeyStore();
+      // .note = reachless set LAST, to prove order does not decide who survives (e8)
+      store.set({
+        grant: genGrant({ secret: 'at-beav', reach: reachBeav }),
+      });
+      store.set({
+        grant: genGrant({ secret: 'at-vlad', reach: reachVlad }),
+      });
+      store.set({ grant: genGrant({ secret: 'reachless' }) });
+      return store;
+    };
+
+    when('[t0] all three are held', () => {
+      then('e8/e9: each reads back its own secret, none evicts another', () => {
+        const store = genStoreWithAllThree();
+        expect(store.size()).toBe(3);
+        expect(
+          store.get({ slug: 'ahbode.prep.ANTHROPIC_API_KEY' })?.key.secret,
+        ).toBe('reachless');
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachBeav,
+          })?.key.secret,
+        ).toBe('at-beav');
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachVlad,
+          })?.key.secret,
+        ).toBe('at-vlad');
+      });
+
+      then('e6: a reach no key was cut for reads back null', () => {
+        const store = genStoreWithAllThree();
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: { exid: 'someone-else@ehmpathy.com' },
+          }),
+        ).toBeNull();
+      });
+    });
+
+    when('[t1] the same reach is re-unlocked', () => {
+      then('e10: it overwrites only that one; the others are untouched', () => {
+        const store = genStoreWithAllThree();
+        store.set({
+          grant: genGrant({ secret: 'at-beav-v2', reach: reachBeav }),
+        });
+        expect(store.size()).toBe(3);
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachBeav,
+          })?.key.secret,
+        ).toBe('at-beav-v2');
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachVlad,
+          })?.key.secret,
+        ).toBe('at-vlad');
+        expect(
+          store.get({ slug: 'ahbode.prep.ANTHROPIC_API_KEY' })?.key.secret,
+        ).toBe('reachless');
+      });
+    });
+
+    when('[t2] del names one reach', () => {
+      then('e11: only that one is purged', () => {
+        const store = genStoreWithAllThree();
+        expect(
+          store.del({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachBeav,
+          }),
+        ).toBe(true);
+        expect(store.size()).toBe(2);
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachBeav,
+          }),
+        ).toBeNull();
+        expect(
+          store.get({
+            slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+            reach: reachVlad,
+          })?.key.secret,
+        ).toBe('at-vlad');
+      });
+    });
+
+    when('[t3] del names the slug alone', () => {
+      then('e12: every reach of that slug is swept', () => {
+        const store = genStoreWithAllThree();
+        expect(store.del({ slug: 'ahbode.prep.ANTHROPIC_API_KEY' })).toBe(true);
+        expect(store.size()).toBe(0);
+      });
+
+      then('e12: a peer slug is left alone', () => {
+        const store = genStoreWithAllThree();
+        store.set({
+          grant: new KeyrackKeyGrant({
+            slug: 'ahbode.prep.OTHER_TOKEN',
+            key: {
+              secret: 'other',
+              grade: { protection: 'encrypted', duration: 'ephemeral' },
+            },
+            source: { vault: 'os.secure', mech: 'EPHEMERAL_VIA_GITHUB_APP' },
+            env: 'prep',
+            org: 'ahbode',
+            reach: reachBeav,
+            expiresAt,
+          }),
+        });
+        store.del({ slug: 'ahbode.prep.ANTHROPIC_API_KEY' });
+        expect(store.size()).toBe(1);
+        expect(
+          store.get({ slug: 'ahbode.prep.OTHER_TOKEN', reach: reachBeav })?.key
+            .secret,
+        ).toBe('other');
+      });
+    });
+  });
+
+  given(
+    '[case10] an env=all key held at a reach, asked for by a scoped env',
+    () => {
+      const expiresAt = asIsoTimeStamp(new Date(Date.now() + 60000));
+      const reachBeav: KeyrackKeyReach = { exid: 'beav@ehmpathy.com' };
+
+      const genStore = () => {
+        const store = createDaemonKeyStore();
+        // the REACHLESS env=all key — what a reach-ask must never be handed
+        store.set({
+          grant: new KeyrackKeyGrant({
+            slug: 'ahbode.all.ANTHROPIC_API_KEY',
+            key: {
+              secret: 'reachless-all',
+              grade: { protection: 'encrypted', duration: 'ephemeral' },
+            },
+            source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
+            env: 'all',
+            org: 'ahbode',
+            expiresAt,
+          }),
+        });
+        return store;
+      };
+
+      when('[t0] a reach-ask falls through the env=all fallback', () => {
+        then(
+          'e18-reborn: it does NOT hand back the reachless env=all credential',
+          () => {
+            const store = genStore();
+            expect(
+              store.get({
+                slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+                reach: reachBeav,
+              }),
+            ).toBeNull();
+          },
+        );
+
+        then('e1: a reachless ask still gets the env=all fallback', () => {
+          const store = genStore();
+          expect(
+            store.get({ slug: 'ahbode.prep.ANTHROPIC_API_KEY' })?.key.secret,
+          ).toBe('reachless-all');
+        });
+      });
+
+      when('[t1] the env=all key is held AT that reach', () => {
+        then('the fallback carries the reach across and finds it', () => {
+          const store = genStore();
+          store.set({
+            grant: new KeyrackKeyGrant({
+              slug: 'ahbode.all.ANTHROPIC_API_KEY',
+              key: {
+                secret: 'all-at-beav',
+                grade: { protection: 'encrypted', duration: 'ephemeral' },
+              },
+              source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
+              env: 'all',
+              org: 'ahbode',
+              reach: reachBeav,
+              expiresAt,
+            }),
+          });
+          expect(
+            store.get({
+              slug: 'ahbode.prep.ANTHROPIC_API_KEY',
+              reach: reachBeav,
+            })?.key.secret,
+          ).toBe('all-at-beav');
+        });
+      });
+    },
+  );
 });

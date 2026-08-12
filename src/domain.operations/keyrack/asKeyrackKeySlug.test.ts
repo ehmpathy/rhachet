@@ -1,4 +1,4 @@
-import { BadRequestError, getError } from 'helpful-errors';
+import { ConstraintError, getError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
@@ -18,6 +18,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'test',
       mech: 'EPHEMERAL_VIA_AWS_SSO',
       grade: null,
+      reaches: [],
       flags: { isOptionalIfHas: null },
     },
     'ehmpathy.prod.AWS_PROFILE': {
@@ -26,6 +27,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'prod',
       mech: 'EPHEMERAL_VIA_AWS_SSO',
       grade: null,
+      reaches: [],
       flags: { isOptionalIfHas: null },
     },
     'ehmpathy.test.GITHUB_TOKEN': {
@@ -34,6 +36,7 @@ const genMockManifest = (): KeyrackRepoManifest => ({
       env: 'test',
       mech: 'EPHEMERAL_VIA_GITHUB_APP',
       grade: null,
+      reaches: [],
       flags: { isOptionalIfHas: null },
     },
   },
@@ -68,7 +71,7 @@ describe('asKeyrackKeySlug', () => {
     });
 
     when('[t2] slug org does not match manifest org', () => {
-      then('throws BadRequestError with ORG_MISMATCH code', async () => {
+      then('throws ConstraintError with ORG_MISMATCH code', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asKeyrackKeySlug({
@@ -78,14 +81,14 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('other-org');
         expect(error!.message).toContain('ehmpathy');
       });
     });
 
     when('[t3] --env conflicts with slug env', () => {
-      then('throws BadRequestError with ENV_CONFLICT code', async () => {
+      then('throws ConstraintError with ENV_CONFLICT code', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asKeyrackKeySlug({
@@ -95,7 +98,7 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('prod');
         expect(error!.message).toContain('test');
       });
@@ -150,7 +153,7 @@ describe('asKeyrackKeySlug', () => {
     const manifest = genMockManifest();
 
     when('[t0] AWS_PROFILE exists in test and prod', () => {
-      then('throws BadRequestError with AMBIGUOUS_KEY code', async () => {
+      then('throws ConstraintError with AMBIGUOUS_KEY code', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asKeyrackKeySlug({
@@ -160,7 +163,7 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('test');
         expect(error!.message).toContain('prod');
         expect(error!.message).toContain('--env');
@@ -206,7 +209,10 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        // a `--env` that fights the slug's own env is the CALLER's to fix, so it must render
+        // blocked + exit 2 rather than crash. `BadRequestError` is a helpful-errors PARENT and
+        // names no owner, so `getKeyrackBlockedReport` cannot admit it (`term=blocked`)
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('test');
         expect(error!.message).toContain('prep');
       });
@@ -233,7 +239,7 @@ describe('asKeyrackKeySlug', () => {
     const manifest = genMockManifest();
 
     when('[t0] UNKNOWN_KEY does not exist in manifest', () => {
-      then('throws BadRequestError with KEY_NOT_FOUND code', async () => {
+      then('throws ConstraintError with KEY_NOT_FOUND code', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asKeyrackKeySlug({
@@ -243,7 +249,7 @@ describe('asKeyrackKeySlug', () => {
             }),
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('UNKNOWN_KEY');
         expect(error!.message).toContain('--env');
       });

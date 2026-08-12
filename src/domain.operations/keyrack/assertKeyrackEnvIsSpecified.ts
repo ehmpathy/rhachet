@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
@@ -17,7 +17,7 @@ export const assertKeyrackEnvIsSpecified = (input: {
   if (input.manifest.envs.length === 0) return 'all';
 
   // env-specific sections exist but --env was omitted
-  throw new BadRequestError(
+  throw new ConstraintError(
     `--env is required (keyrack.yml declares ${input.manifest.envs.join(', ')})`,
     { availableEnvs: input.manifest.envs },
   );

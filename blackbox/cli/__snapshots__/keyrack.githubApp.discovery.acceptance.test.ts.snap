@@ -17,6 +17,8 @@ Options:
                              (inferred from manifest if unambiguous)
   --org <org>                target org: @this or @all (default: @this)
                              (default: "@this")
+  --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
+                             github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)
   --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
   --at <path>                custom keyrack.yml path (for role-level keyracks)
@@ -55,4 +57,24 @@ exports[`keyrack set github-app discovery (acceptance) given: [case3] the regist
 "🔐 keyrack set
    └─ ✋ blocked: no github apps registered for noapporg
       └─ hint: ask an admin to add a github app to keyrack for this org"
+`;
+
+exports[`keyrack set github-app discovery (acceptance) given: [case4] a repo of one org, a key cut for another org’s reach when: [t0] \`keyrack set --reach github://org=reachorg\` runs then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack set github-app discovery (acceptance) given: [case4] a repo of one org, a key cut for another org’s reach when: [t0] \`keyrack set --reach github://org=reachorg\` runs then: the cross-org guided-setup + summary stdout stays locked: stdout 1`] = `
+"🔐 keyrack set slugorg.test.GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ app: reachorg-bot (id: 987654, auto-selected)
+   │
+   ├─ which github app secret?
+   │  ├─ private key path (.pem): ./mock-app.pem
+   │  └─ pem read ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+
+🔐 keyrack set (org: slugorg, env: test)
+   └─ slugorg.test.GITHUB_TOKEN@github://org=reachorg
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ vault: os.secure"
 `;

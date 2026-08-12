@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { getLoginSessionId } from '@src/domain.operations/keyrack/daemon/infra/getLoginSessionId';
 import { getSocketPeerPid } from '@src/domain.operations/keyrack/daemon/svc/src/infra/getSocketPeerPid';
@@ -10,7 +10,7 @@ import type { Socket } from 'node:net';
  * .why = enforces per-login-session isolation for daemon access
  *
  * .note = uses kernel-managed sessionid (unforgeable)
- * .note = throws BadRequestError if caller is in a different session
+ * .note = throws ConstraintError if caller is in a different session
  */
 export const verifyCallerLoginSession = (input: {
   socket: Socket;
@@ -28,7 +28,7 @@ export const verifyCallerLoginSession = (input: {
 
   // verify session match
   if (callerSessionId !== daemonSessionId) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       'session mismatch: caller is in a different login session',
       {
         callerPid,

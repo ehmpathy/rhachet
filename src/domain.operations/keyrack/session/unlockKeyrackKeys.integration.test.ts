@@ -27,6 +27,7 @@
  * assertion below reads daemon state, never vault state.
  */
 import { MalfunctionError } from 'helpful-errors';
+import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
@@ -1031,6 +1032,195 @@ describe('unlockKeyrackKeys.integration', () => {
 
         delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
         delete process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'];
+      });
+    });
+  });
+
+  /**
+   * .what = the e17/q5 ttl clamp, proven at its CALL SITE rather than in isolation
+   * .why = the vision calls e17 an acceptance-breaker: a github-app token dies in an hour,
+   *        and before the clamp `unlockKeyrackKeys` discarded the mech's reported life and
+   *        advertised the requested duration instead — so `status` printed `540m` for a
+   *        secret github killed at 60, and the human who debugged the `401` was sent to look
+   *        at reach partitions when the cause was expiry
+   *
+   * .note = ⚠️ `computeExpiresAt.test.ts` proves the pure clamp, and it CANNOT see this. the
+   *         defect the vision names lives at the WIRE — a regression that dropped
+   *         `grantExpiresAt: grant.expiresAt` from the call site would leave the pure test
+   *         green while the exact hazard returned. that is why this case exists at this grain
+   *         (`rule.require.clamp-edge-cases`: clamp where the defect is observable)
+   * .note = `[t1]` reads the DAEMON, not the return value. `status` renders what the daemon
+   *         holds, so a clamp applied to the reply and not to what is stored would still lie
+   *         to every human who asks later
+   */
+  given('[case-ttl-clamp] a mech reports a life shorter than the ask', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+    const secretValue = 'ghs_ephemeral_token_value';
+
+    // the credential's OWN death, as a github-app mech reports it: 55 minutes out
+    // .note = ⚠️ a plain function, NOT a `useBeforeAll`. a `useBeforeAll` hands back a PROXY,
+    //         and a proxy handed to `new Date(...)` yields `NaN` rather than a timestamp — so
+    //         the clamp would read as absent and this case would fail against correct code.
+    //         called per test, it also pins the 55m window to the moment of the unlock
+    const genSelfLife = (): IsoTimeStamp =>
+      asIsoTimeStamp(new Date(Date.now() + 55 * 60 * 1000));
+
+    const manifest = useBeforeAll(async () =>
+      daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.age',
+          owner: 'ownerTtl',
+          recipients: [
+            new KeyrackKeyRecipient({
+              mech: 'age',
+              pubkey: keyPair.recipient,
+              label: 'test-key',
+              addedAt: new Date().toISOString(),
+            }),
+          ],
+          hosts: {
+            'ehmpathy.sudo.EPHEMERAL_TOKEN': {
+              slug: 'ehmpathy.sudo.EPHEMERAL_TOKEN',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ehmpathy',
+              meta: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            'ehmpathy.sudo.ETERNAL_TOKEN': {
+              slug: 'ehmpathy.sudo.ETERNAL_TOKEN',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+              exid: null,
+              env: 'sudo',
+              org: 'ehmpathy',
+              meta: null,
+              maxDuration: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }),
+      }),
+    );
+
+    const genContext = (input: {
+      slug: string;
+      selfLife: IsoTimeStamp | null;
+    }): ContextKeyrack => ({
+      owner: 'ownerTtl',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: manifest,
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter({
+          storage: { [input.slug]: secretValue },
+          grantExpiresAt: input.selfLife ?? undefined,
+        }),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    });
+
+    when('[t0] unlock asks for 9h', () => {
+      then(
+        'the session dies with the CREDENTIAL, not with the ask',
+        async () => {
+          const result = await unlockKeyrackKeys(
+            {
+              owner: 'ownerTtl',
+              env: 'sudo',
+              key: 'EPHEMERAL_TOKEN',
+              duration: '9h',
+            },
+            genContext({
+              slug: 'ehmpathy.sudo.EPHEMERAL_TOKEN',
+              selfLife: genSelfLife(),
+            }),
+          );
+
+          expect(result.unlocked.length).toBe(1);
+          const expiresIn =
+            new Date(result.unlocked[0]!.expiresAt!).getTime() - Date.now();
+
+          // ⚠️ THE clamp. before e17 this read ~540m — a nine-hour promise on a secret with
+          //    55 minutes to live. the upper bound is what bites; the lower bound only
+          //    guards against a clamp that overshoots to zero
+          expect(expiresIn).toBeLessThanOrEqual(55 * 60 * 1000);
+          expect(expiresIn).toBeGreaterThan(50 * 60 * 1000);
+        },
+      );
+    });
+
+    when('[t1] the daemon is asked what it holds', () => {
+      then('the STORED expiry is clamped too, not just the reply', async () => {
+        await unlockKeyrackKeys(
+          {
+            owner: 'ownerTtl',
+            env: 'sudo',
+            key: 'EPHEMERAL_TOKEN',
+            duration: '9h',
+          },
+          genContext({
+            slug: 'ehmpathy.sudo.EPHEMERAL_TOKEN',
+            selfLife: genSelfLife(),
+          }),
+        );
+
+        const daemonResult = await daemonAccessGet({
+          socketPath: getKeyrackDaemonSocketPath({ owner: 'ownerTtl' }),
+          slugs: ['ehmpathy.sudo.EPHEMERAL_TOKEN'],
+        });
+        expect(daemonResult?.keys.length).toBe(1);
+
+        // ⚠️ `new Date(...)`, not raw subtraction. the wire carries an iso STAMP, and the
+        //    row's type declared `number` until this round — under that lie a subtraction
+        //    compiled and produced `NaN`, which is how the wrong type was found at all
+        const expiresIn =
+          new Date(daemonResult!.keys[0]!.expiresAt).getTime() - Date.now();
+        expect(expiresIn).toBeLessThanOrEqual(55 * 60 * 1000);
+        expect(expiresIn).toBeGreaterThan(50 * 60 * 1000);
+      });
+    });
+
+    /**
+     * .note = the e1 half, and it is what keeps the clamp from over-reach. a permanent
+     *         credential reports NO life of its own, so the requested duration must stand
+     *         untouched — a clamp that treated an absent `expiresAt` as "expires now" would
+     *         break every non-ephemeral key on the rack, and `[t0]` alone would not notice
+     */
+    when('[t2] the mech reports no life of its own', () => {
+      then('the requested duration stands, unclamped', async () => {
+        const result = await unlockKeyrackKeys(
+          {
+            owner: 'ownerTtl',
+            env: 'sudo',
+            key: 'ETERNAL_TOKEN',
+            duration: '9h',
+          },
+          genContext({
+            slug: 'ehmpathy.sudo.ETERNAL_TOKEN',
+            selfLife: null,
+          }),
+        );
+
+        expect(result.unlocked.length).toBe(1);
+        const expiresIn =
+          new Date(result.unlocked[0]!.expiresAt!).getTime() - Date.now();
+        expect(expiresIn).toBeGreaterThan(9 * 60 * 60 * 1000 - 5000);
+        expect(expiresIn).toBeLessThanOrEqual(9 * 60 * 60 * 1000);
       });
     });
   });

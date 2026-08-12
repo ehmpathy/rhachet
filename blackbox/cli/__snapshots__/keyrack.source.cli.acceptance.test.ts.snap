@@ -48,7 +48,7 @@ exports[`keyrack source CLI given: [case5] validation errors when: [t1] no --own
 
 exports[`keyrack source CLI given: [case5] validation errors when: [t2] --strict and --lenient together then: stderr matches snapshot 1`] = `
 "
-BadRequestError: --strict and --lenient are mutually exclusive
+✋ ConstraintError: --strict and --lenient are mutually exclusive
 
 [args] keyrack,source,--env,test,--owner,testorg,--strict,--lenient
 
@@ -67,6 +67,8 @@ Options:
   --for <owner>      alias for --owner
   --strict           fail if any key not granted (default)
   --lenient          skip absent keys silently
+  --reach <exid>     reach of the key to source (e.g., beav@ehmpathy.com,
+                     github://org=ehmpathy); requires --key
   --allow-dangerous  bypass firewall for blocked long-lived tokens
   -h, --help         display help for command
 "

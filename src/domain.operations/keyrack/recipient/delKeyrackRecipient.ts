@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
@@ -26,7 +26,7 @@ export const delKeyrackRecipient = async (input: {
   // load manifest (context handles identity discovery)
   const result = await daoKeyrackHostManifest.get({ owner }, context);
   if (!result)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'keyrack manifest not found; run `rhx keyrack init` first',
       { owner },
     );
@@ -37,14 +37,14 @@ export const delKeyrackRecipient = async (input: {
     (r) => r.label === input.label,
   );
   if (recipientIndex === -1)
-    throw new BadRequestError('recipient not found', {
+    throw new ConstraintError('recipient not found', {
       label: input.label,
       owner,
     });
 
   // check not last recipient
   if (manifestFound.recipients.length === 1)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'cannot remove last recipient; at least one recipient is required',
       { label: input.label, owner },
     );

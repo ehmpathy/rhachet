@@ -1,8 +1,75 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t0] del ONE reach by its address then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t0] del ONE reach by its address then: the destruction renders as snapped: stdout 1`] = `
+"
+🔐 keyrack del
+   └─ testorg.test.MULTI_REACH_KEY@beav@ehmpathy.com removed
+
+"
+`;
+
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t1] the rack is read back then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t1] the rack is read back then: the rack after an addressed del renders as snapped: stdout 1`] = `
+"{
+  "testorg.test.MULTI_REACH_KEY@vlad@ehmpathy.com": {
+    "slug": "testorg.test.MULTI_REACH_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "reach": {
+      "exid": "vlad@ehmpathy.com"
+    },
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  }
+}
+"
+`;
+
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t2] del a reach this host never held then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack del given: [case-reach] one key name held at two reaches when: [t2] del a reach this host never held then: the reply is snapped: stdout 1`] = `
+"
+🔐 keyrack del
+   └─ testorg.test.MULTI_REACH_KEY@nobody@ehmpathy.com not found (already absent)
+
+"
+`;
+
+exports[`keyrack del given: [case-reach-json] an addressed del, read as json when: [t1] del ONE reach with --json then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack del given: [case-reach-json] an addressed del, read as json when: [t1] del ONE reach with --json then: the del json renders as snapped: stdout 1`] = `
+"
+{
+  "slug": "testorg.test.JSON_REACH_KEY",
+  "reach": {
+    "exid": "beav@ehmpathy.com"
+  },
+  "effect": "deleted"
+}
+"
+`;
+
+exports[`keyrack del given: [case-reach-json] an addressed del, read as json when: [t2] del a REACHLESS key with --json then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack del given: [case-reach-json] an addressed del, read as json when: [t2] del a REACHLESS key with --json then: the reachless del json renders as snapped: stdout 1`] = `
+"
+{
+  "slug": "testorg.test.JSON_PLAIN_KEY",
+  "effect": "deleted"
+}
+"
+`;
+
 exports[`keyrack del given: [case6] del with raw key and --env camp when: [t0] del with raw key and --env camp then: stdout matches snapshot 1`] = `
 "
-
 🔐 keyrack del
    └─ testorg.camp.DEL_CAMP_KEY removed
 

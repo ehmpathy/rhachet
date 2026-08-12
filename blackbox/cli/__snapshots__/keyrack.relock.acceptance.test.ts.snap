@@ -22,3 +22,23 @@ exports[`keyrack relock cli given: [case2] repo with keyrack manifest, relock ca
 
 "
 `;
+
+exports[`keyrack relock cli given: [case3] one slug held at two reaches, then relocked when: [t0] both reaches are unlocked, then the key is relocked then: the relock tree renders as snapped 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.API_KEY: pruned 🔒
+
+"
+`;
+
+exports[`keyrack relock cli given: [case3] one slug held at two reaches, then relocked when: [t1] the rack is read back after the relock then: the emptied rack renders as snapped 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   └─ daemon: active ✨
+      └─ (no keys unlocked)
+
+"
+`;

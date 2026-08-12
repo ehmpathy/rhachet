@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import * as childProcess from 'node:child_process';
@@ -76,7 +76,7 @@ describe('ghSecretSet', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('repo must be in owner/repo format');
       });
     });
@@ -103,9 +103,9 @@ describe('ghSecretSet', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(UnexpectedCodePathError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toContain('gh secret set failed');
-        expect((error as UnexpectedCodePathError).metadata).toMatchObject({
+        expect((error as MalfunctionError).metadata).toMatchObject({
           name: 'MY_SECRET',
           repo: 'owner/repo',
           stderr: 'error: secret not found or permission denied',
@@ -132,7 +132,7 @@ describe('ghSecretSet', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('gh auth required');
       });
     });
@@ -167,9 +167,9 @@ describe('validateGhAuth', () => {
       then('failloud with "gh auth required"', async () => {
         const error = await getError(async () => validateGhAuth());
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('gh auth required');
-        expect((error as BadRequestError).metadata?.hint).toContain(
+        expect((error as ConstraintError).metadata?.hint).toContain(
           'gh auth login',
         );
       });

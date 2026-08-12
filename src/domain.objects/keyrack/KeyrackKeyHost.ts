@@ -3,6 +3,7 @@ import { DomainLiteral } from 'domain-objects';
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
 import type { KeyrackHostVault } from './KeyrackHostVault';
 import type { KeyrackKeyHostMeta } from './KeyrackKeyHostMeta';
+import type { KeyrackKeyReach } from './KeyrackKeyReach';
 
 /**
  * .what = storage host for a single key on this machine
@@ -45,6 +46,20 @@ export interface KeyrackKeyHost {
    * .example = 'ehmpathy', '@all' (for cross-org)
    */
   org: string;
+
+  /**
+   * .what = the external reach this key opens, when it was cut for one
+   * .why = reach is an identity axis, so one slug may have several hosts — one per
+   *        reach — and each holds its own credential
+   *
+   * .note = OPTIONAL, never nullable. an absent reach means the key opens the reach
+   *         its own org implies, which is every key that exists today. `JSON.stringify`
+   *         drops an absent field but emits a null one, so `null` here would move every
+   *         extant manifest and snapshot (e16)
+   * .note = `org` is provenance (authorized FROM), `reach` is destination (authorized
+   *         INTO). a key declared by ahbode that opens ehmpathy keeps `org: ahbode`
+   */
+  reach?: KeyrackKeyReach;
 
   /**
    * .what = vault-specific metadata

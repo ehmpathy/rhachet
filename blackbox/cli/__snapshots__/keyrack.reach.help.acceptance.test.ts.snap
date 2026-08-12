@@ -1,0 +1,122 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-del] rhx keyrack del --help then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-del] rhx keyrack del --help then: the reply is snapped: stdout 1`] = `
+"Usage: rhachet keyrack del [options]
+
+remove a credential key from this host
+
+Options:
+  --key <keyname>  key name to remove (e.g., AWS_PROFILE)
+  --env <env>      target env: prod, prep, test, all, sudo, or camp (default:
+                   all) (default: "all")
+  --owner <owner>  owner identity (e.g., mechanic, foreman)
+  --for <owner>    alias for --owner
+  --org <org>      target org: @this or @all (default: @this) (default: "@this")
+  --prikey <path>  ssh private key for manifest decryption
+  --reach <exid>   reach of the key to remove (e.g., beav@ehmpathy.com,
+                   github://org=ehmpathy)
+  --json           output as json (robot mode)
+  -h, --help       display help for command
+"
+`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-get] rhx keyrack get --help then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-get] rhx keyrack get --help then: the reply is snapped: stdout 1`] = `
+"Usage: rhachet keyrack get [options]
+
+grant credentials from keyrack
+
+Options:
+  --for <scope>      grant scope: "repo" for all keys
+  --owner <owner>    owner identity (e.g., mechanic, foreman)
+  --key <keyname>    raw key name to grant (e.g., AWS_PROFILE)
+  --env <env>        target env: prod, prep, test, all, sudo, or camp
+  --org <org>        target org: @this or @all (default: @this) (default:
+                     "@this")
+  --reach <exid>     reach to fetch (e.g., beav@ehmpathy.com,
+                     github://org=ehmpathy); requires --key
+  --allow-dangerous  bypass firewall for blocked long-lived tokens
+  --unlock           auto-unlock locked keys (narrowly, by name) before get
+  --json             output as json (robot mode)
+  --output <mode>    output mode: value (raw secret), json, vibes (default)
+  --value            shorthand for --output value
+  -h, --help         display help for command
+"
+`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-set] rhx keyrack set --help then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-set] rhx keyrack set --help then: the reply is snapped: stdout 1`] = `
+"Usage: rhachet keyrack set [options]
+
+configure storage for a credential key
+
+Options:
+  --key <keyname>            raw key name to configure (e.g., AWS_PROFILE)
+  --mech <mechanism>         grant mechanism (inferred from vault when omitted)
+  --vault <vault>            storage vault: os.direct, os.secure, os.daemon,
+                             os.envvar, 1password, aws.config, aws.params,
+                             github.secrets
+  --owner <owner>            owner identity (e.g., mechanic, foreman)
+  --for <owner>              alias for --owner
+  --env <env>                target env: prod, prep, test, all, sudo, or camp
+                             (inferred from manifest if unambiguous)
+  --org <org>                target org: @this or @all (default: @this)
+                             (default: "@this")
+  --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
+                             github://org=ehmpathy)
+  --exid <exid>              external id (vault-specific reference)
+  --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
+  --at <path>                custom keyrack.yml path (for role-level keyracks)
+  --prikey <path>            ssh private key for manifest decryption
+  --json                     output as json (robot mode)
+  -h, --help                 display help for command
+"
+`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-source] rhx keyrack source --help then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-source] rhx keyrack source --help then: the reply is snapped: stdout 1`] = `
+"Usage: rhachet keyrack source [options]
+
+output export statements for shell eval
+
+Options:
+  --key <keyname>    single key to source (omit for all repo keys)
+  --env <env>        target env: prod, prep, test, all, sudo, camp
+  --owner <owner>    owner identity (e.g., mechanic, foreman)
+  --for <owner>      alias for --owner
+  --strict           fail if any key not granted (default)
+  --lenient          skip absent keys silently
+  --reach <exid>     reach of the key to source (e.g., beav@ehmpathy.com,
+                     github://org=ehmpathy); requires --key
+  --allow-dangerous  bypass firewall for blocked long-lived tokens
+  -h, --help         display help for command
+"
+`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-unlock] rhx keyrack unlock --help then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack --reach help given: [case1] any repo when: [t-unlock] rhx keyrack unlock --help then: the reply is snapped: stdout 1`] = `
+"Usage: rhachet keyrack unlock [options]
+
+unlock keys and send them to daemon for session access
+
+Options:
+  --owner <owner>        owner identity (e.g., mechanic, foreman)
+  --for <owner>          alias for --owner
+  --env <env>            target env: prod, prep, test, all, sudo, or camp
+  --key <key>            specific key to unlock (required for --env sudo)
+  --reach <exid>         reach to unlock (e.g., beav@ehmpathy.com,
+                         github://org=ehmpathy); requires --key
+  --duration <duration>  TTL for unlocked keys (default: 30m for sudo, 9h for
+                         others)
+  --prikey <path>        explicit ssh private key path (fallback when discovery
+                         fails)
+  --json                 output as json (robot mode)
+  -h, --help             display help for command
+"
+`;

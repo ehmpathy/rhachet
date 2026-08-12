@@ -18,6 +18,7 @@ export * from './KeyrackKeyGrade';
 export * from './KeyrackKeyGrant';
 export * from './KeyrackKeyHost';
 export * from './KeyrackKeyHostMeta';
+export * from './KeyrackKeyReach';
 export * from './KeyrackKeyRecipient';
 export * from './KeyrackKeySecret';
 export * from './KeyrackKeySpec';

@@ -108,7 +108,7 @@ describe('vaultAdapter1Password', () => {
 
   given('[case5] set validates exid format', () => {
     when('[t0] set called with invalid exid format', () => {
-      then('throws BadRequestError about invalid format', async () => {
+      then('throws ConstraintError about invalid format', async () => {
         if (!opAvailable) {
           // skip - set exits process if op not installed
           expect(true).toBe(true);

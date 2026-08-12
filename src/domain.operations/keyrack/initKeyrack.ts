@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
@@ -59,7 +59,7 @@ export const initKeyrack = async (input: {
       // pubkey input can be: value, .pub file path, or private key path
       if (input.pubkey.startsWith('ssh-') || input.pubkey.startsWith('age')) {
         // looks like a pubkey value — cannot derive private key
-        throw new BadRequestError(
+        throw new ConstraintError(
           'pubkey value provided but private key path required for init; pass path instead',
           { pubkey: input.pubkey.slice(0, 30) + '...' },
         );
@@ -77,7 +77,7 @@ export const initKeyrack = async (input: {
     // find default key
     const found = findDefaultSshKey();
     if (!found)
-      throw new BadRequestError(
+      throw new ConstraintError(
         'no ed25519 key found; create one with: ssh-keygen -t ed25519',
         { searched: '~/.ssh/id_ed25519, id_rsa, id_ecdsa' },
       );
@@ -90,11 +90,11 @@ export const initKeyrack = async (input: {
 
   // validate key files present
   if (!existsSync(keyPaths.prikeyPath))
-    throw new BadRequestError('private key not found', {
+    throw new ConstraintError('private key not found', {
       path: keyPaths.prikeyPath,
     });
   if (!existsSync(keyPaths.pubkeyPath))
-    throw new BadRequestError('public key not found', {
+    throw new ConstraintError('public key not found', {
       path: keyPaths.pubkeyPath,
     });
 
@@ -107,7 +107,7 @@ export const initKeyrack = async (input: {
     });
     const result = await daoKeyrackHostManifest.get({ owner }, context);
     if (!result)
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'manifest file present but could not be read',
         { manifestPath, owner },
       );
@@ -115,10 +115,10 @@ export const initKeyrack = async (input: {
     // return extant recipient
     const recipientFound = result.manifest.recipients[0];
     if (!recipientFound)
-      throw new UnexpectedCodePathError(
-        'manifest present but has no recipients',
-        { manifestPath, owner },
-      );
+      throw new MalfunctionError('manifest present but has no recipients', {
+        manifestPath,
+        owner,
+      });
 
     // handle repo manifest if gitroot provided
     const repoResult = await initRepoManifest({
@@ -163,7 +163,7 @@ export const initKeyrack = async (input: {
     // passphrase-protected key: keep raw ssh pubkey (age CLI path)
     // requires age CLI for encrypt AND decrypt
     if (!isAgeCLIAvailable())
-      throw new BadRequestError(
+      throw new ConstraintError(
         `🔐 your ssh key is passphrase-protected (cipher: ${cipher}).
 keyrack uses the \`age\` cli to encrypt/decrypt via ssh-agent — no passphrase prompt needed.
 

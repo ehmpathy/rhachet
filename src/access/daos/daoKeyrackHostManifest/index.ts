@@ -1,9 +1,10 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import type { PickOne } from 'type-fns';
 
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
+  KeyrackKeyReach,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 import {
@@ -12,6 +13,7 @@ import {
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
+import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 
 import {
   chmodSync,
@@ -21,6 +23,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
+import { assertKeyrackHostAddressed } from './assertKeyrackHostAddressed';
 import { schemaKeyrackHostManifest } from './schema';
 
 /**
@@ -78,7 +81,7 @@ export const daoKeyrackHostManifest = {
     try {
       plaintext = await decryptWithIdentity({ ciphertext, identity });
     } catch (error) {
-      throw new BadRequestError('failed to decrypt host manifest', {
+      throw new ConstraintError('failed to decrypt host manifest', {
         path,
         owner,
         error: error instanceof Error ? error.message : String(error),
@@ -90,7 +93,7 @@ export const daoKeyrackHostManifest = {
     try {
       parsed = JSON.parse(plaintext);
     } catch {
-      throw new BadRequestError('keyrack host manifest has invalid json', {
+      throw new ConstraintError('keyrack host manifest has invalid json', {
         path,
       });
     }
@@ -98,27 +101,41 @@ export const daoKeyrackHostManifest = {
     // validate schema
     const result = schemaKeyrackHostManifest.safeParse(parsed);
     if (!result.success) {
-      throw new BadRequestError('keyrack host manifest has invalid schema', {
+      throw new ConstraintError('keyrack host manifest has invalid schema', {
         path,
         issues: result.error.issues,
       });
     }
 
     // hydrate domain objects
+    // .note = the map key is a key ADDRESS (slug, or slug@reach) — never assume a bare slug
     const hosts: Record<string, KeyrackKeyHost> = {};
-    for (const [slug, host] of Object.entries(result.data.hosts)) {
-      hosts[slug] = new KeyrackKeyHost({
+    for (const [address, host] of Object.entries(result.data.hosts)) {
+      const hydrated = new KeyrackKeyHost({
         slug: host.slug,
         exid: host.exid,
         vault: host.vault,
         mech: host.mech,
         env: host.env,
         org: host.org,
+        // e16 lives in one home, so this site cannot drift from the other 14. the ternary
+        // that remains is about CONSTRUCTION (a raw yaml shape becomes a dobj), which is a
+        // hydrate concern — separate from the omit-never-null convention the helper owns
+        ...asKeyrackKeyReachField({
+          reach: host.reach ? new KeyrackKeyReach(host.reach) : undefined,
+        }),
         meta: host.meta,
         maxDuration: host.maxDuration,
         createdAt: host.createdAt,
         updatedAt: host.updatedAt,
       });
+
+      // the reach is recorded twice — in the address, and in the entry's own field —
+      // and different halves of the system read different ones. a drift between them would
+      // hand back a wrong-reach credential in silence, so it is caught at load
+      assertKeyrackHostAddressed({ address, host: hydrated });
+
+      hosts[address] = hydrated;
     }
 
     // hydrate recipients
@@ -183,7 +200,7 @@ export const daoKeyrackHostManifest = {
     // handle findsert: return found if exists with same uri
     if (input.findsert && manifestFound) {
       if (manifestFound.uri === input.findsert.uri) return manifestFound;
-      throw new BadRequestError(
+      throw new ConstraintError(
         'can not findsert; manifest already exists with different uri',
         { uriFound: manifestFound.uri, uriDesired: input.findsert.uri },
       );

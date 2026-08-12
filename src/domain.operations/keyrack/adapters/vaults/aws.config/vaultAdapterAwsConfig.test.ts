@@ -98,6 +98,8 @@ jest.mock('@aws-sdk/credential-provider-sso', () => ({
 }));
 
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
+import { ConstraintError } from 'helpful-errors';
+import { getError } from 'test-fns';
 
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
@@ -1474,6 +1476,53 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         });
 
         expect(unlinkSyncMock).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  /**
+   * .what = the READ side of the reach refusal, which this vault did not hold until 2026-08-06
+   * .why = `set` refused a reach; `get` accepted `input.reach` and never read it. that
+   *        asymmetry made the guarantee a property of ONE write path rather than of the vault
+   *        — a hand-edited manifest, or any future write that bypasses `vault.set`, produces
+   *        an entry this read would answer with the REACHLESS sso profile: a live credential
+   *        for a reach the caller never asked for (e18's class)
+   *
+   * .note = every peer vault already holds this line, one way or the other. `os.envvar` and
+   *         `github.secrets` assert on read; `os.direct` and `os.secure` bake the reach into
+   *         the storage ADDRESS, so a mismatched reach structurally cannot retrieve the wrong
+   *         entry. `aws.config` alone trusted "no caller will ever do that", which is the one
+   *         form of the guarantee this design accepts nowhere else
+   */
+  given('[case9] a reach-ask on the read side', () => {
+    when('[t0] get is called with a reach', () => {
+      // ⚠️ THE clamp — absent the guard this resolves to a grant for the reachless profile
+      then(
+        'it throws rather than answer with the reachless profile',
+        async () => {
+          const error = await getError(
+            vaultAdapterAwsConfig.get({
+              slug: 'acme.prod.AWS_PROFILE',
+              exid: 'acme-prod',
+              reach: { exid: 'beav@ehmpathy.com' },
+            }),
+          );
+
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('--reach does not apply');
+        },
+      );
+    });
+
+    when('[t1] the same get omits the reach', () => {
+      then('e1: the reachless read is byte-identical to today', async () => {
+        const grant = await vaultAdapterAwsConfig.get({
+          slug: 'acme.prod.AWS_PROFILE',
+          exid: 'acme-prod',
+        });
+
+        expect(grant).not.toBeNull();
+        expect(grant?.key.secret).toEqual('acme-prod');
       });
     });
   });

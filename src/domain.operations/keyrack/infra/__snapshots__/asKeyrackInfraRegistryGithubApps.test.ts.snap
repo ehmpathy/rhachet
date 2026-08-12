@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`asKeyrackInfraRegistryGithubApps given: [case3] malformed json when: [t0] parsed then: it fails loud as unexpected shared-repo state 1`] = `
-"UnexpectedCodePathError: keyrack-infra registry is not valid json
+"💥 MalfunctionError: keyrack-infra registry is not valid json
 
 {
   "hint": "registry/github-apps.json in $org/keyrack-infra must be a json array; fix the file in the repo",

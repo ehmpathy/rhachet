@@ -13,7 +13,7 @@ describe('asKeyrackDelReport', () => {
   given('[case1] a plain removal', () => {
     when('[t0] rendered', () => {
       const report = asKeyrackDelReport({
-        slug: 'ehmpathy.prod.REF_KEY',
+        address: 'ehmpathy.prod.REF_KEY',
         effect: 'deleted',
       });
 
@@ -30,7 +30,7 @@ describe('asKeyrackDelReport', () => {
   given('[case2] the key was already absent (not_found)', () => {
     when('[t0] rendered', () => {
       const report = asKeyrackDelReport({
-        slug: 'ehmpathy.prod.ABSENT_KEY',
+        address: 'ehmpathy.prod.ABSENT_KEY',
         effect: 'not_found',
       });
 
@@ -49,7 +49,7 @@ describe('asKeyrackDelReport', () => {
     () => {
       when('[t0] rendered', () => {
         const report = asKeyrackDelReport({
-          slug: 'ehmpathy.prod.EHMPATHY_SEATURTLE_GITHUB_TOKEN',
+          address: 'ehmpathy.prod.EHMPATHY_SEATURTLE_GITHUB_TOKEN',
           effect: 'deleted',
           destroyed: {
             exid: '/keyrack/infra/vault/aws.params/v1/mechanic/ehmpathy/prod/EHMPATHY_SEATURTLE_GITHUB_TOKEN',

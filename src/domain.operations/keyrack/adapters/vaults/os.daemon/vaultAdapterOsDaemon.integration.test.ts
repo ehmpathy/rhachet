@@ -272,5 +272,48 @@ describe('vaultAdapterOsDaemon integration', () => {
         expect(grant).toBeNull();
       });
     });
+
+    /**
+     * [t2] the env=all fallback must survive the adapter's own find
+     *
+     * .what = the daemon runs an env=all fallback INTERNALLY — asked for `org.test.KEY` it will
+     *         match `org.all.KEY` — and hands the entry back under the slug it actually matched
+     * .why = this adapter then picks the entry out of `result.keys` by itself. a strict
+     *        `k.slug === input.slug` throws away a lookup the daemon just SUCCEEDED at, and
+     *        reports `not_found` for a key it still holds
+     *
+     * .note = `getKeyrackKeyGrant` makes the identical daemon read and uses
+     *         `decideIsKeySlugEqual`. two read paths, one daemon, one fallback — a disagreement
+     *         here means one ask resolves two ways, per which path the caller happened to take
+     */
+    when('[t2] only an env=all key is held, and env=test is asked for', () => {
+      then('adapter.get honors the daemon env=all fallback', async () => {
+        const slugStored = 'testorg.all.ENVALL_FALLBACK_KEY';
+        const slugAsked = 'testorg.test.ENVALL_FALLBACK_KEY';
+        const testSecret = 'envall-fallback-secret';
+
+        setMockPromptValues(testSecret);
+
+        // store ONLY the env=all variant
+        await vaultAdapterOsDaemon.set({ slug: slugStored }, {
+          owner: testOwner,
+        } as Parameters<typeof vaultAdapterOsDaemon.set>[1]);
+
+        // ask for the env=test variant, which was never stored
+        const grant = await vaultAdapterOsDaemon.get({
+          slug: slugAsked,
+          owner: testOwner,
+        });
+
+        // ⚠️ THE clamp. under a strict `===` this is null, because the daemon answers with
+        //    `testorg.all.…` and the adapter was asked for `testorg.test.…`
+        expect(grant).not.toBeNull();
+        expect(grant?.key.secret).toBe(testSecret);
+
+        // the grant reports the slug it ACTUALLY came from, so the fallback stays legible
+        // rather than masquerade as an exact hit
+        expect(grant?.slug).toBe(slugStored);
+      });
+    });
   });
 });

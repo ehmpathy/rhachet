@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -44,7 +44,7 @@ export const initKeyrackRepoManifest = async (
   const org = await (async () => {
     const detected = await getOrgFromPackageJson({}, context);
     if (detected) return detected;
-    throw new BadRequestError(
+    throw new ConstraintError(
       'unable to detect org from package.json. use `keyrack init` for custom org.',
       {
         note: 'org detection checks: package.json#organization, scoped name (@org/), repository field',

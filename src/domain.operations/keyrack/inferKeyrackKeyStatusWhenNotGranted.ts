@@ -1,12 +1,13 @@
 import { asHashSha256Sync } from 'hash-fns';
 
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack';
 import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
 import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugHash';
+import { getAllKeyrackProbeAddresses } from '@src/domain.operations/keyrack/reach/getAllKeyrackProbeAddresses';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getEnvAllFallbackSlug } from './decideIsKeySlugEqual';
 
 /**
  * .what = check if inventory entry exists for a slug (sync)
@@ -95,50 +96,48 @@ const doesOsDirectVaultExist = (input: {
  * .note = falls back to vault-specific checks for legacy keys without inventory
  * .note = returns 'locked' if key was set (needs unlock)
  * .note = returns 'absent' if key was never set (needs set)
+ * .note = every probe below is addressed by (slug, reach), never by slug alone. were they
+ *         slug-only, an ask for a reach no key was ever cut for would read 'locked' —
+ *         because the REACHLESS key is set — and hand the human an `unlock --reach` that
+ *         cannot succeed. the diagnosis has to be as reach-aware as the lookup it explains
  */
 export const inferKeyrackKeyStatusWhenNotGranted = (input: {
   slug: string;
+  reach?: KeyrackKeyReach;
   owner: string | null;
 }): 'locked' | 'absent' => {
-  // compute env=all fallback slug (e.g., ehmpathy.test.KEY → ehmpathy.all.KEY)
-  const fallbackSlug = getEnvAllFallbackSlug({ for: { slug: input.slug } });
+  // the exact address, then its env=all twin at the SAME reach — one probe order,
+  // shared with the daemon store and the manifest lookup
+  const addresses = getAllKeyrackProbeAddresses({
+    slug: input.slug,
+    reach: input.reach,
+  }).map((probe) => probe.address);
 
   // check inventory first (vault-agnostic, works for all vault types)
-  if (doesInventoryExist({ slug: input.slug, owner: input.owner })) {
-    return 'locked';
-  }
   if (
-    fallbackSlug &&
-    doesInventoryExist({ slug: fallbackSlug, owner: input.owner })
-  ) {
+    addresses.some((slug) => doesInventoryExist({ slug, owner: input.owner }))
+  )
     return 'locked';
-  }
 
   // fallback: check vault-specific storage for legacy keys without inventory
   const home = process.env.HOME;
   if (!home) return 'absent';
 
   // check os.secure vault (encrypted .age files)
-  if (doesOsSecureVaultExist({ slug: input.slug, owner: input.owner, home })) {
-    return 'locked';
-  }
   if (
-    fallbackSlug &&
-    doesOsSecureVaultExist({ slug: fallbackSlug, owner: input.owner, home })
-  ) {
+    addresses.some((slug) =>
+      doesOsSecureVaultExist({ slug, owner: input.owner, home }),
+    )
+  )
     return 'locked';
-  }
 
   // check os.direct vault (plaintext json store)
-  if (doesOsDirectVaultExist({ slug: input.slug, owner: input.owner, home })) {
-    return 'locked';
-  }
   if (
-    fallbackSlug &&
-    doesOsDirectVaultExist({ slug: fallbackSlug, owner: input.owner, home })
-  ) {
+    addresses.some((slug) =>
+      doesOsDirectVaultExist({ slug, owner: input.owner, home }),
+    )
+  )
     return 'locked';
-  }
 
   return 'absent';
 };

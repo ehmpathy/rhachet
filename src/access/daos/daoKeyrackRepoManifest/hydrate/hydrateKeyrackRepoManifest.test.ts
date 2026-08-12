@@ -423,4 +423,176 @@ env.test:
       });
     });
   });
+
+  given('[case10] a key that declares reaches', () => {
+    const explicit: KeyrackManifestExplicit = {
+      org: 'ahbode',
+      envSections: {
+        'env.prep': [
+          'PLAIN_KEY',
+          {
+            BEAVER_TOKEN: {
+              reaches: [
+                // a mint convention the github-app mech will read...
+                'github://org=ahbode',
+                // ...and a plaintext account exid, which no reader interprets
+                'beav@ehmpathy.com',
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    when('[t0] the manifest is hydrated', () => {
+      const genResult = () =>
+        hydrateKeyrackRepoManifest(
+          { explicit, manifestPath: '/fake/path' },
+          { gitroot: testDir },
+        );
+
+      then('each declared reach lands on the key, in declared order', () => {
+        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        expect(reaches).toEqual([
+          { exid: 'github://org=ahbode' },
+          { exid: 'beav@ehmpathy.com' },
+        ]);
+      });
+
+      then('a reach exid is carried verbatim, never interpreted here', () => {
+        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        expect(reaches?.[1]?.exid).toEqual('beav@ehmpathy.com');
+      });
+
+      then('a declared reach carries no strength beside its exid', () => {
+        // the list is flat by design: a repo that declares a reach declares the
+        // checkout does not work without it, so there is no softer tier to record. a
+        // field added beside `exid` would show here
+        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        expect(Object.keys(reaches?.[0] ?? {})).toEqual(['exid']);
+      });
+
+      then('e1: a key that declares none carries an empty list', () => {
+        expect(genResult().keys['ahbode.prep.PLAIN_KEY']?.reaches).toEqual([]);
+      });
+    });
+  });
+
+  given('[case11] a manifest that declares a malformed reach', () => {
+    const genExplicit = (exid: string): KeyrackManifestExplicit => ({
+      org: 'ahbode',
+      envSections: {
+        'env.prep': [{ BEAVER_TOKEN: { reaches: [exid] } }],
+      },
+    });
+    const genError = (exid: string) =>
+      getError(async () =>
+        hydrateKeyrackRepoManifest(
+          { explicit: genExplicit(exid), manifestPath: '/fake/path' },
+          { gitroot: testDir },
+        ),
+      );
+
+    when('[t0] an empty exid is declared', () => {
+      then(
+        'e2: it throws — the manifest cannot legalize what the flag rejects',
+        async () => {
+          const error = await genError('');
+          expect(error.message).toContain('may not be empty');
+        },
+      );
+    });
+
+    when('[t1] an exid with whitespace is declared', () => {
+      then('e2: it throws — one parser serves flag and manifest', async () => {
+        const error = await genError('beav at ehmpathy');
+        expect(error.message).toContain('may not hold whitespace');
+      });
+    });
+
+    when('[t2] the block is a map rather than a list', () => {
+      then('it throws, and names the shape it expected', async () => {
+        // the map form was the shape while `reaches` carried strength words under
+        // `require:` / `prefer:` keys. those are gone, so a manifest still authored that
+        // way must halt loudly — a silent read of a map's KEYS as exids would provision
+        // reaches named `require` and `prefer`
+        const error = await getError(async () =>
+          hydrateKeyrackRepoManifest(
+            {
+              explicit: {
+                org: 'ahbode',
+                envSections: {
+                  'env.prep': [
+                    {
+                      BEAVER_TOKEN: {
+                        reaches: { require: ['github://org=ehmpathy'] },
+                      },
+                    },
+                  ],
+                },
+              },
+              manifestPath: '/fake/path',
+            },
+            { gitroot: testDir },
+          ),
+        );
+        expect(error.message).toContain('invalid reaches block');
+      });
+    });
+  });
+
+  given('[case12] a manifest that declares one reach twice', () => {
+    const genError = (reaches: string[]) =>
+      getError(async () =>
+        hydrateKeyrackRepoManifest(
+          {
+            explicit: {
+              org: 'ahbode',
+              envSections: {
+                'env.prep': [{ BEAVER_TOKEN: { reaches } }],
+              },
+            },
+            manifestPath: '/fake/path',
+          },
+          { gitroot: testDir },
+        ),
+      );
+
+    when('[t0] the same exid is listed twice', () => {
+      then('it throws — fill must walk each reach once', async () => {
+        const error = await genError([
+          'github://org=ahbode',
+          'github://org=ahbode',
+        ]);
+        expect(error.message).toContain('declared more than once');
+        expect(error.message).toContain('github://org=ahbode');
+      });
+    });
+
+    when('[t1] two exids differ only in case', () => {
+      then('both stand — a reach is never case-folded', async () => {
+        const result = hydrateKeyrackRepoManifest(
+          {
+            explicit: {
+              org: 'ahbode',
+              envSections: {
+                'env.prep': [
+                  {
+                    BEAVER_TOKEN: {
+                      reaches: ['beav@ehmpathy.com', 'Beav@Ehmpathy.com'],
+                    },
+                  },
+                ],
+              },
+            },
+            manifestPath: '/fake/path',
+          },
+          { gitroot: testDir },
+        );
+        expect(result.keys['ahbode.prep.BEAVER_TOKEN']?.reaches).toHaveLength(
+          2,
+        );
+      });
+    });
+  });
 });

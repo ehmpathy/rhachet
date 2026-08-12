@@ -4,6 +4,7 @@ import type { IsoTimeStamp } from 'iso-time';
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
 import type { KeyrackHostVault } from './KeyrackHostVault';
 import type { KeyrackKey } from './KeyrackKey';
+import type { KeyrackKeyReach } from './KeyrackKeyReach';
 
 /**
  * .what = a successfully granted credential with grade
@@ -50,6 +51,22 @@ export interface KeyrackKeyGrant {
    * .example = 'ehmpathy', '@all' (for cross-org)
    */
   org: string;
+
+  /**
+   * .what = the external reach this grant opens, when it was cut for one
+   * .why = a caller must be able to tell which reach the credential it holds reaches —
+   *        two grants of one slug at two reaches are two different credentials
+   *
+   * .note = `org` above is PROVENANCE (authorized FROM); `reach` is DESTINATION
+   *         (authorized INTO). a grant declared by ahbode that opens ehmpathy keeps
+   *         `org: ahbode` and carries `reach: { exid: 'github://org=ehmpathy' }` — the
+   *         exid is PLAINTEXT, and that one happens to look like a uri only because the
+   *         github-app mech imposes that convention on its own exids. an os.secure key
+   *         cut per claude account carries `reach: { exid: 'beav@ehmpathy.com' }`
+   * .note = OPTIONAL, never nullable — `JSON.stringify` drops an absent field but emits a
+   *         null one, so `null` would move every extant json payload and snapshot (e16)
+   */
+  reach?: KeyrackKeyReach;
 
   /**
    * .what = when this grant expires

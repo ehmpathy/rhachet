@@ -61,7 +61,7 @@ describe('unlockKeyrackKeys', () => {
     };
 
     when('[t0] unlock called without --key', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(
           unlockKeyrackKeys({ env: 'sudo' }, context),
         );
@@ -469,7 +469,7 @@ describe('unlockKeyrackKeys', () => {
     };
 
     when('[t0] unlock called with --key that does not exist', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(
           unlockKeyrackKeys({ env: 'sudo', key: 'NONEXISTENT_KEY' }, context),
         );
@@ -901,4 +901,159 @@ describe('unlockKeyrackKeys', () => {
       });
     },
   );
+
+  given('[case9] a reach asked for with no --key', () => {
+    // .note = never read — the guard under test fires before any context access
+    const context = {} as ContextKeyrack;
+
+    when('[t0] unlock called for a whole env', () => {
+      then(
+        'e14: it throws rather than scope every key in the env',
+        async () => {
+          const error = await getError(
+            unlockKeyrackKeys(
+              {
+                owner: 'ehmpath',
+                env: 'prep',
+                reach: { exid: 'github://org=ehmpathy' },
+              },
+              context,
+            ),
+          );
+          expect(error.message).toContain('--reach requires a key');
+        },
+      );
+
+      then('e14: the error names the fix, reach echoed back', async () => {
+        const error = await getError(
+          unlockKeyrackKeys(
+            {
+              owner: 'ehmpath',
+              env: 'prep',
+              reach: { exid: 'github://org=ehmpathy' },
+            },
+            context,
+          ),
+        );
+        expect(error.message).toContain('--env prep --key $KEY');
+        expect(error.message).toContain('--reach github://org=ehmpathy');
+      });
+    });
+  });
+
+  given('[case10] a reachless key is set, and a reach is asked for', () => {
+    const vaultAdapter = genMockVaultAdapter({
+      storage: { 'testorg.test.API_KEY': 'the-reachless-secret' },
+    });
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          // ONLY the reachless key is held on this host
+          'testorg.test.API_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'test',
+            org: 'testorg',
+          },
+        },
+      }),
+      repoManifest: genMockKeyrackRepoManifest({
+        org: 'testorg',
+        envs: ['test'],
+        keys: { 'testorg.test.API_KEY': { env: 'test', name: 'API_KEY' } },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': vaultAdapter,
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] unlock called at a reach no key was cut for', () => {
+      then(
+        'e6: it throws rather than hand back the reachless key',
+        async () => {
+          const error = await getError(
+            unlockKeyrackKeys(
+              {
+                env: 'test',
+                key: 'API_KEY',
+                reach: { exid: 'github://org=ehmpathy' },
+              },
+              context,
+            ),
+          );
+          expect(error.message).toContain(
+            "no key is set for reach 'github://org=ehmpathy'",
+          );
+        },
+      );
+
+      then('e6: the error names the `set` that would cut the key', async () => {
+        const error = await getError(
+          unlockKeyrackKeys(
+            {
+              env: 'test',
+              key: 'API_KEY',
+              reach: { exid: 'github://org=ehmpathy' },
+            },
+            context,
+          ),
+        );
+        expect(error.message).toContain(
+          'rhx keyrack set --env test --key API_KEY --reach github://org=ehmpathy',
+        );
+      });
+
+      /**
+       * .what = clamps the phrase `fillKeyrackKeys` matches this error on
+       * .why = fill's expected-error allowlist reads the MESSAGE, never the class
+       *        (raw age errors are plain Errors, so the extant allowlist has to read
+       *        text). so this exact phrase is a contract between two files that the
+       *        compiler cannot link — reword it and `fill` no longer recognizes a
+       *        legitimately-absent reach-key, then rethrows instead of it being set
+       * .note = the other end of the pair lives at fillKeyrackKeys.ts, in isExpectedError
+       */
+      then('the message keeps the phrase `fill` matches on', async () => {
+        const error = await getError(
+          unlockKeyrackKeys(
+            {
+              env: 'test',
+              key: 'API_KEY',
+              reach: { exid: 'github://org=ehmpathy' },
+            },
+            context,
+          ),
+        );
+        expect(error.message).toContain('no key is set for reach');
+      });
+    });
+
+    when('[t1] unlock called with no reach', () => {
+      then(
+        'e1: the reachless key unlocks exactly as it does today',
+        async () => {
+          const result = await unlockKeyrackKeys(
+            { env: 'test', key: 'API_KEY' },
+            context,
+          );
+          expect(result.unlocked.length).toBe(1);
+          expect(result.unlocked[0]!.key.secret).toEqual(
+            'the-reachless-secret',
+          );
+          expect(result.unlocked[0]!.reach).toBeUndefined();
+        },
+      );
+    });
+  });
 });

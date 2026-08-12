@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 
 import { asKeyrackKeySlug } from './asKeyrackKeySlug';
 import { isValidKeyrackEnv } from './constants';
@@ -14,12 +15,26 @@ import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
  * .note = handles both raw key names and full slugs
  * .note = uses manifest for slug construction when available
  * .note = falls back to org param when no manifest
+ * .note = org shapes the SLUG (provenance — whose manifest declared it); reach never does.
+ *         the slug stays `$org.$env.$key` so the manifest gate still passes, and the
+ *         destination rides its own axis
  */
 export const getOneKeyrackGrantByKey = async (
   input: {
     key: string;
     env: string | null;
     org?: string;
+
+    /**
+     * .what = the reach asked for; absent means the reachless key
+     * .why = OPTIONAL, not nullable — a deliberate exception to
+     *        `rule.forbid.undefined-inputs`, because `reach` rides into `KeyrackKeyGrant`
+     *        and onto the daemon wire, where e16 requires it be DROPPED when absent
+     * .note = the drop hazard that rule guards is covered structurally: a reach-ask that
+     *         finds no key THROWS (e6), never falls back to the reachless one
+     */
+    reach?: KeyrackKeyReach;
+
     allow?: { dangerous?: boolean };
   },
   context: ContextKeyrackGrantGet,
@@ -78,7 +93,7 @@ export const getOneKeyrackGrantByKey = async (
   })();
 
   return getKeyrackKeyGrant(
-    { for: { key: slug }, allow: input.allow },
+    { for: { key: slug }, reach: input.reach, allow: input.allow },
     context,
   );
 };
