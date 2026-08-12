@@ -1,8 +1,8 @@
-import { getError, given, then, useBeforeAll, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack/KeyrackGrantMechanism';
 import { KEYRACK_MECH_REACH_POLICY } from '@src/domain.objects/keyrack/KeyrackMechReachPolicy';
-import { genContextKeyrackGrantGet } from '@src/domain.operations/keyrack/genContextKeyrackGrantGet';
+import { KEYRACK_MECH_ADAPTERS } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
 import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
 /**
@@ -34,9 +34,15 @@ describe('mech reach policy conformance', () => {
 
   // .note = the real registry, not a hand-built map. a conformance test that assembled its
   //         own adapter table would conform to itself and prove no claim about production
-  const context = useBeforeAll(async () =>
-    genContextKeyrackGrantGet({ gitroot: process.cwd(), owner: null }),
-  );
+  //
+  // ⚠️ read the canonical constant DIRECTLY, never through `genContextKeyrackGrantGet`. that
+  //    context loads the REPO's own `.agent/keyrack.yml`, whose `extends` chain resolves
+  //    through the `.agent/repo=*/` symlinks into node_modules — so a context-built version
+  //    of this test passes on a linked dev box and throws `extended keyrack not found` in ci,
+  //    for a reason that has naught to do with reach policy. the context's `mechAdapters` IS
+  //    this constant, so the direct read costs no fidelity and buys the hermeticity the
+  //    header claims (rule.require.hermetic-tests)
+  const adapters = KEYRACK_MECH_ADAPTERS;
 
   given('[case1] the declared policy table', () => {
     when('[t0] it is read against the mechanism union', () => {
@@ -44,8 +50,7 @@ describe('mech reach policy conformance', () => {
       //         the other direction: an entry for a mech the union no longer holds. a stale
       //         key would sit unreachable and read as live policy
       then('every declared mech has an adapter wired for it', () => {
-        for (const mech of mechs)
-          expect(context.mechAdapters[mech]).toBeDefined();
+        for (const mech of mechs) expect(adapters[mech]).toBeDefined();
       });
 
       then('every policy value is one of the three kinds', () => {
@@ -88,7 +93,7 @@ describe('mech reach policy conformance', () => {
           //         under test is only whether the REFUSAL fires, which happens first
           then('the adapter refuses it, and names its own mech', async () => {
             const found = await getError(
-              context.mechAdapters[mech]!.acquireForSet({
+              adapters[mech]!.acquireForSet({
                 keySlug: 'testorg.test.API_KEY',
                 reach: { exid: 'beav@ehmpathy.com' },
                 mech,
