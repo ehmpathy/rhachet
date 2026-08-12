@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { execSync } from 'node:child_process';
 import { readlinkSync } from 'node:fs';
@@ -24,7 +24,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handle = (socket as any)._handle;
   if (!handle || typeof handle.fd !== 'number') {
-    throw new UnexpectedCodePathError('socket has no file descriptor', {
+    throw new MalfunctionError('socket has no file descriptor', {
       hasHandle: !!handle,
       fdType: handle ? typeof handle.fd : 'no handle',
     });
@@ -38,7 +38,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   try {
     linkTarget = readlinkSync(fdPath);
   } catch (error) {
-    throw new UnexpectedCodePathError('failed to read socket fd link', {
+    throw new MalfunctionError('failed to read socket fd link', {
       fdPath,
       cause: error instanceof Error ? error : undefined,
     });
@@ -47,7 +47,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   // linkTarget should be like "socket:[12345]" where 12345 is the inode
   const inodeMatch = linkTarget.match(/socket:\[(\d+)\]/);
   if (!inodeMatch) {
-    throw new UnexpectedCodePathError('fd link is not a socket', {
+    throw new MalfunctionError('fd link is not a socket', {
       fdPath,
       linkTarget,
     });
@@ -75,7 +75,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
       timeout: 5000,
     });
   } catch (error) {
-    throw new UnexpectedCodePathError('ss command failed', {
+    throw new MalfunctionError('ss command failed', {
       inode,
       signedInode,
       cause: error instanceof Error ? error : undefined,
@@ -83,7 +83,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   }
 
   if (!ssOutput.trim()) {
-    throw new UnexpectedCodePathError('no ss output for socket inode', {
+    throw new MalfunctionError('no ss output for socket inode', {
       inode,
     });
   }
@@ -92,7 +92,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   // format: ... users:(("process",pid=12345,fd=6)) ...
   const pidMatch = ssOutput.match(/pid=(\d+)/);
   if (!pidMatch) {
-    throw new UnexpectedCodePathError('failed to parse pid from ss output', {
+    throw new MalfunctionError('failed to parse pid from ss output', {
       inode,
       ssOutput: ssOutput.substring(0, 200),
     });
@@ -101,7 +101,7 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   const pidString = pidMatch[1]!; // guard: regex matched, group exists
   const pid = parseInt(pidString, 10);
   if (Number.isNaN(pid) || pid <= 0) {
-    throw new UnexpectedCodePathError('parsed pid is invalid', {
+    throw new MalfunctionError('parsed pid is invalid', {
       inode,
       pidString,
     });

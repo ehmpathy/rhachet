@@ -1,8 +1,11 @@
 import { ConstraintError } from 'helpful-errors';
-import { given, then, useThen, when } from 'test-fns';
+import { genTempDir, given, then, useThen, when } from 'test-fns';
 
 import { keyrack } from '@src/contract/sdk.keyrack';
 
+import { execSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { relockKeyrack } from '../session/relockKeyrack';
 import { getKeyrackKeySecrets } from './getKeyrackKeySecrets';
 
@@ -159,6 +162,110 @@ describe('getKeyrackKeySecrets.integration', () => {
     },
   );
 
+  /**
+   * .what = the export-name collision, reached through THIS operation rather than the guard
+   * .why = `getKeyrackKeySecrets` is the one flatten surface with no human at the terminal — a
+   *        brain receives the map, so a silent last-wins overwrite hands it one credential with
+   *        no hint another was lost. the guard's own unit test proves the ORG branch fires;
+   *        this proves the WIRE — that this operation calls it, and that the hint a caller of
+   *        THIS contract receives names a fix it can actually perform
+   *
+   * .note = the door is a repo with NO keyrack.yml. with one, `asKeyrackKeySlug` throws
+   *         ORG_MISMATCH and the org axis is closed; without one, `getOneKeyrackGrantByKey`
+   *         passes a full slug through verbatim, so two orgs both survive. a brain runs
+   *         wherever it is invoked, so a manifest-less checkout is an ordinary shape
+   * .note = both slugs are granted by ONE env var, which is the collision stated at its root:
+   *         `os.envvar` is keyed by the BARE name, so it answers `ahbode.prep.X` and
+   *         `ehmpathy.prep.X` with the same value. that is not a fixture trick — it is the
+   *         flat namespace the guard exists to refuse
+   */
+  given(
+    '[case5] two orgs claim one key name, in a repo with no manifest',
+    () => {
+      const keyShared = 'KEYRACK_ORG_COLLISION_TEST_KEY';
+      const tempDir = genTempDir({ slug: 'getKeyrackKeySecrets-orgcollision' });
+
+      when('[t0] both full slugs are asked for at once', () => {
+        // .note = a plain summary, never the error itself — a `useThen` proxy breaks
+        //         `instanceof`, so the class check is done HERE and its verdict carried out
+        const refusal = useThen(
+          'it refuses rather than overwrite',
+          async () => {
+            execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+
+            const cwdBefore = process.cwd();
+            process.env[keyShared] = 'plaintext-secret-value';
+            process.chdir(tempDir);
+            const caught = await getKeyrackKeySecrets({
+              for: {
+                keys: [
+                  `ahbode.prep.${keyShared}`,
+                  `ehmpathy.prep.${keyShared}`,
+                ],
+              },
+              with: { unlock: false },
+              owner,
+              env: 'prep',
+            })
+              .then((secrets) => ({ threw: false as const, secrets }))
+              .catch((error) => ({ threw: true as const, error }))
+              .finally(() => {
+                process.chdir(cwdBefore);
+                delete process.env[keyShared];
+              });
+
+            if (!caught.threw)
+              return {
+                isConstraintError: false,
+                exit: null,
+                message: '',
+                hint: '',
+                serialized: JSON.stringify(caught.secrets),
+              };
+            const error = caught.error;
+            return {
+              isConstraintError: error instanceof ConstraintError,
+              exit: error.code?.exit ?? null,
+              message: String(error.message ?? ''),
+              hint: String(error.metadata?.hint ?? ''),
+              serialized: JSON.stringify({
+                message: error.message,
+                metadata: error.metadata,
+              }),
+            };
+          },
+        );
+
+        then('it is a ConstraintError — the caller must act', () => {
+          expect(refusal.isConstraintError).toEqual(true);
+          expect(refusal.exit).toEqual(2);
+        });
+
+        then('the message names BOTH orgs, so the clash is legible', () => {
+          expect(refusal.message).toContain(`ahbode.prep.${keyShared}`);
+          expect(refusal.message).toContain(`ehmpathy.prep.${keyShared}`);
+        });
+
+        // ⚠️ THE clamp. before the org axis existed, this pair fell to the ENV hint — yet both
+        //    keys sit at `prep`, so a caller who obeyed `narrow env` would meet the identical
+        //    refusal. the hint must name the axis that actually differs
+        //    (rule.require.errors-name-the-fix)
+        then(
+          'the hint names the ORG, never the env and never a cli flag',
+          () => {
+            expect(refusal.hint).toContain('one org at a time');
+            expect(refusal.hint).not.toContain('narrow `env`');
+            expect(refusal.hint).not.toContain('--reach');
+          },
+        );
+
+        then('no secret value rides the error a brain would log', () => {
+          expect(refusal.serialized).not.toContain('plaintext-secret-value');
+        });
+      });
+    },
+  );
+
   given('[case4] an ungettable key with unlock disabled', () => {
     when(
       '[t0] the key (no live source) is requested with with.unlock=false',
@@ -197,5 +304,119 @@ describe('getKeyrackKeySecrets.integration', () => {
         );
       },
     );
+  });
+
+  /**
+   * .what = the brain-creds path against a repo that DECLARES a reach
+   * .why = this map is keyed by BARE key name, so it holds ONE value per name and cannot carry
+   *        a reach beside its reachless peer, so a declared reach must be filtered OUT of every
+   *        gate rather than fail the fetch. all three flatten surfaces behave alike — the cli
+   *        `source`, the sdk `sourceAllKeysIntoEnv`, and this one — so one fact reads one way
+   *
+   * .note = TWO clamps ride in one case, and they fail in opposite directions:
+   *           - the FILTER — a declared-but-absent reach must NOT reach the caller-fix gate.
+   *             without it, the enumerate turns every repo that declares a reach into a hard
+   *             ConstraintError: the human loses EVERY credential to gain one fact
+   *           - the SILENCE — no reach may be announced on stderr. an announce was built here
+   *             and cut (2026-08-12); this clamp goes red if one returns by any route
+   *         a change that lands one and drops the other goes red here
+   * .note = hermetic. `os.envvar` grants the reachless keys from `process.env`, and the declared
+   *         reach lands `absent` (a vault keyed by bare name cannot address one, e20/q9) —
+   *         which is the honest shape, since absent is the status the notice must survive
+   */
+  given('[case6] a repo that declares a reach beside a plain key', () => {
+    const keyPlain = 'KEYRACK_REACH_NOTICE_PLAIN';
+    const keyReached = 'KEYRACK_REACH_NOTICE_REACHED';
+    const exid = 'beav@ehmpathy.com';
+    const tempDir = genTempDir({ slug: 'getKeyrackKeySecrets-reachnotice' });
+
+    when('[t0] the whole repo is swept for secrets', () => {
+      const swept = useThen(
+        'it returns a map rather than a refusal',
+        async () => {
+          execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+          mkdirSync(join(tempDir, '.agent'), { recursive: true });
+          writeFileSync(
+            join(tempDir, '.agent', 'keyrack.yml'),
+            [
+              'org: testorg',
+              '',
+              'env.prep:',
+              `  - ${keyPlain}`,
+              `  - ${keyReached}:`,
+              '      reaches:',
+              `        - ${exid}`,
+              '',
+            ].join('\n'),
+          );
+
+          // capture stderr rather than let the notice escape into the jest report
+          const written: string[] = [];
+          const writeBefore = process.stderr.write.bind(process.stderr);
+          const cwdBefore = process.cwd();
+          process.env[keyPlain] = 'plaintext-plain-value';
+          process.env[keyReached] = 'plaintext-reached-value';
+          process.chdir(tempDir);
+          process.stderr.write = ((chunk: string | Uint8Array) => {
+            written.push(String(chunk));
+            return true;
+          }) as typeof process.stderr.write;
+
+          const caught = await getKeyrackKeySecrets({
+            for: { repo: true },
+            with: { unlock: false },
+            owner,
+            env: 'prep',
+          })
+            .then((secrets) => ({ threw: false as const, secrets }))
+            .catch((error) => ({ threw: true as const, error }))
+            .finally(() => {
+              process.stderr.write = writeBefore;
+              process.chdir(cwdBefore);
+              delete process.env[keyPlain];
+              delete process.env[keyReached];
+            });
+
+          return {
+            threw: caught.threw,
+            error: caught.threw ? String(caught.error?.message ?? '') : '',
+            secrets: caught.threw ? {} : caught.secrets,
+            stderr: written.join(''),
+          };
+        },
+      );
+
+      // ⚠️ CLAMP 1 — the filter. a declared reach with no key cut for it is `absent`, and
+      //    absent is caller-fix. unfiltered it would refuse the whole sweep, so a repo that
+      //    declares one reach could fetch NO credential at all
+      then('a declared-but-absent reach does not refuse the sweep', () => {
+        expect(swept.threw).toEqual(false);
+        expect(swept.error).toEqual('');
+      });
+
+      then('the reachless secrets still come back, byte for byte (e1)', () => {
+        expect(swept.secrets[keyPlain]).toEqual('plaintext-plain-value');
+        expect(swept.secrets[keyReached]).toEqual('plaintext-reached-value');
+      });
+
+      // ⚠️ CLAMP 2 — the SILENCE. an announce was built here (2026-08-07) and cut (2026-08-12),
+      //    so this clamp inverted with it. it fired on every sweep for any repo that holds a
+      //    reach, always the same lines, never actionable differently — alarm fatigue, whose
+      //    real cost is that it trains a runner to ignore keyrack stderr and so weakens the
+      //    notices that DO vary
+      // .note = silence is safe because CLAMP 1 above already proves the map comes back with
+      //         the CORRECT values. "fewer than exist", never "the wrong one". `keyrack list`
+      //         renders a `reach:` leaf, which is where a human reads what this host holds
+      then('the omitted reach is NOT announced — this path is silent', () => {
+        expect(swept.stderr).not.toContain('not sourced');
+        expect(swept.stderr).not.toContain(exid);
+      });
+
+      // holds regardless of what this path announces, so it outlives either decision
+      then('no secret value reaches a stream a runner would log', () => {
+        expect(swept.stderr).not.toContain('plaintext-plain-value');
+        expect(swept.stderr).not.toContain('plaintext-reached-value');
+      });
+    });
   });
 });

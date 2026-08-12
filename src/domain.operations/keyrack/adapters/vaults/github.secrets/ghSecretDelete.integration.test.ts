@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import * as childProcess from 'node:child_process';
@@ -72,7 +72,7 @@ describe('ghSecretDelete', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('repo must be in owner/repo format');
       });
     });
@@ -98,9 +98,9 @@ describe('ghSecretDelete', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(UnexpectedCodePathError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toContain('gh secret delete failed');
-        expect((error as UnexpectedCodePathError).metadata).toMatchObject({
+        expect((error as MalfunctionError).metadata).toMatchObject({
           name: 'MY_SECRET',
           repo: 'owner/repo',
           stderr: 'error: secret not found',
@@ -126,7 +126,7 @@ describe('ghSecretDelete', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('gh auth required');
       });
     });

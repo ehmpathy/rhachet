@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { spawnSync } from 'node:child_process';
 import { validateGhAuth } from './ghSecretSet';
@@ -15,7 +15,7 @@ export const ghSecretDelete = (input: { name: string; repo: string }): void => {
 
   // validate repo format
   if (!input.repo.includes('/')) {
-    throw new BadRequestError('repo must be in owner/repo format', {
+    throw new ConstraintError('repo must be in owner/repo format', {
       repo: input.repo,
       hint: 'e.g., ehmpathy/rhachet',
     });
@@ -32,7 +32,7 @@ export const ghSecretDelete = (input: { name: string; repo: string }): void => {
 
   // failloud on gh error
   if (result.status !== 0) {
-    throw new UnexpectedCodePathError('gh secret delete failed', {
+    throw new MalfunctionError('gh secret delete failed', {
       name: input.name,
       repo: input.repo,
       stderr: result.stderr,

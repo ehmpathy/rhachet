@@ -1,3 +1,5 @@
+import type { IsoTimeStamp } from 'iso-time';
+
 import type {
   KeyrackGrantMechanism,
   KeyrackHostVaultAdapter,
@@ -17,6 +19,18 @@ export const genMockVaultAdapter = (input?: {
   storage?: Record<string, string>;
   /** supported mechanisms (default: ['PERMANENT_VIA_REPLICA']) */
   supportedMechs?: KeyrackGrantMechanism[];
+  /**
+   * .what = the credential's OWN life, as a real mech would report it
+   * .why = an ephemeral mech (github app, aws sso) mints a secret that dies on its own
+   *        schedule, and `unlockKeyrackKeys` must clamp the session ttl to it (e17). absent
+   *        a way to say so here, the clamp's call site could only ever be proven by the pure
+   *        `computeExpiresAt` — and a regression that dropped `grantExpiresAt` at the call
+   *        site would leave every test green while `status` advertised hours of life for a
+   *        token github already killed
+   * .note = optional, and ABSENT by default, so every extant caller of this generator gets a
+   *         grant with no self-life and behaves byte-identically
+   */
+  grantExpiresAt?: IsoTimeStamp;
 }): KeyrackHostVaultAdapter => {
   let unlocked = input?.isUnlocked ?? true;
   const storage: Record<string, string> = input?.storage ?? {};
@@ -44,6 +58,7 @@ export const genMockVaultAdapter = (input?: {
         source: { vault: 'os.direct', mech: usedMech },
         env,
         org,
+        expiresAt: input?.grantExpiresAt,
       });
     },
     set: async ({ slug, mech }) => {

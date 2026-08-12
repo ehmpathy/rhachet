@@ -2,26 +2,17 @@
 
 exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t0] keyrack get --for repo then: stderr matches snapshot 1`] = `
 "
-BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
-
-{
-  "hint": "create keyrack.yml in repo root with env and key definitions"
-}
-
-[args] keyrack,get,--for,repo
+🔐 keyrack get
+   └─ ✋ blocked: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      └─ hint: create keyrack.yml in repo root with env and key definitions
 
 "
 `;
 
 exports[`keyrack validation given: [case0] repo without keyrack.yml when: [t1] keyrack unlock then: stderr matches snapshot 1`] = `
 "
-BadRequestError: host manifest not found. run: rhx keyrack init
-
-{
-  "owner": null
-}
-
-[args] keyrack,unlock
+🔐 keyrack unlock
+   └─ ✋ blocked: host manifest not found. run: rhx keyrack init
 
 "
 `;
@@ -64,7 +55,7 @@ exports[`keyrack validation given: [case2] repo with multiple keys, one absent w
 
 exports[`keyrack validation given: [case3] validation errors when: [t0] keyrack set with invalid --mech then: stderr matches snapshot 1`] = `
 "
-BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT_VIA_REFERENCE, EPHEMERAL_VIA_SESSION, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO, EPHEMERAL_VIA_GITHUB_OIDC
+✋ ConstraintError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT_VIA_REFERENCE, EPHEMERAL_VIA_SESSION, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO, EPHEMERAL_VIA_GITHUB_OIDC
 
 [args] keyrack,set,--key,TEST,--mech,INVALID_MECH,--vault,os.direct
 
@@ -73,7 +64,7 @@ BadRequestError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT
 
 exports[`keyrack validation given: [case3] validation errors when: [t1] keyrack set with invalid --vault then: stderr matches snapshot 1`] = `
 "
-BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, aws.params, github.secrets
+✋ ConstraintError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, aws.params, github.secrets
 
 [args] keyrack,set,--key,TEST,--mech,PERMANENT_VIA_REPLICA,--vault,invalid_vault
 
@@ -82,9 +73,11 @@ BadRequestError: invalid --vault: must be one of os.direct, os.secure, os.daemon
 
 exports[`keyrack validation given: [case3] validation errors when: [t2] keyrack get without --for or --key then: stderr matches snapshot 1`] = `
 "
-BadRequestError: must specify --for repo or --key <slug>
-
-[args] keyrack,get
+🔐 keyrack get
+   └─ ✋ blocked: must specify --for repo or --key <slug>
+      └─ hint:
+         ├─ one key — rhx keyrack get --key $KEY
+         └─ every key in this repo — rhx keyrack get --for repo
 
 "
 `;

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
@@ -78,7 +78,7 @@ export const asKeyrackKeySlug = (input: {
 
     // validate org matches manifest (the machine-wide @all sigil is exempt)
     if (!isMachineWide && slugOrg !== org) {
-      throw new BadRequestError(
+      throw new ConstraintError(
         `slug org '${parsed.org}' does not match manifest org '${org}'`,
         { code: 'ORG_MISMATCH', slugOrg: parsed.org, manifestOrg: org },
       );
@@ -86,7 +86,7 @@ export const asKeyrackKeySlug = (input: {
 
     // validate --env matches slug env (if both provided)
     if (input.env && input.env !== parsed.env) {
-      throw new BadRequestError(
+      throw new ConstraintError(
         `--env '${input.env}' conflicts with slug env '${parsed.env}'`,
         { code: 'ENV_CONFLICT', flagEnv: input.env, slugEnv: parsed.env },
       );
@@ -116,7 +116,7 @@ export const asKeyrackKeySlug = (input: {
 
   // key not in any env - fail fast with clear message
   if (envs.length === 0) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       `key '${keyName}' not found in manifest. specify --env or use full slug.`,
       { code: 'KEY_NOT_FOUND', keyName },
     );
@@ -132,7 +132,7 @@ export const asKeyrackKeySlug = (input: {
   }
 
   // key in multiple envs - ambiguous, fail fast
-  throw new BadRequestError(
+  throw new ConstraintError(
     `key '${keyName}' found in multiple envs: ${envs.join(', ')}. specify --env to disambiguate.`,
     { code: 'AMBIGUOUS_KEY', keyName, envs },
   );

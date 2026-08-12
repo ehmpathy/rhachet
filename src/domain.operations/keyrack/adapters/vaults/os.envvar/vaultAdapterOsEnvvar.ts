@@ -1,4 +1,4 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -12,6 +12,7 @@ import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyNam
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
+import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAddressable';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -29,7 +30,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -38,7 +39,7 @@ const getMechAdapter = (
  * .what = vault adapter that reads from process.env
  * .why = passthrough for env vars (ci secrets, local exports)
  *
- * .note = read-only vault — set and del throw UnexpectedCodePathError
+ * .note = read-only vault — set and del throw MalfunctionError
  * .note = always unlocked — no authentication required
  * .note = always checked first in grant flow (see getKeyrackKeyGrant)
  */
@@ -67,8 +68,17 @@ export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter<'readwrite'> = {
    * .note = extracts raw key name from slug (e.g., testorg.test.AWS_PROFILE -> AWS_PROFILE)
    * .note = infers mech from JSON blob if not supplied
    * .note = returns full KeyrackKeyGrant with grade, env, org
+   * .note = a reach-ask THROWS here — see the guard below
    */
   get: async (input) => {
+    // an env var namespace is flat by nature: the name drops the org, the env, and the
+    // reach alike. one refusal serves every vault whose address has no reach axis
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'os.envvar',
+      direction: 'read',
+    });
+
     const keyName = asKeyrackKeyName({ slug: input.slug });
     const source = process.env[keyName] ?? null;
     if (source === null) return null;
@@ -121,7 +131,7 @@ export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = read-only vault; env vars are set by caller (ci workflow, shell export)
    */
   set: async () => {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'os.envvar is read-only; env vars are set by the caller, not via keyrack',
     );
   },
@@ -131,7 +141,7 @@ export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter<'readwrite'> = {
    * .why = read-only vault; env vars are managed by the caller
    */
   del: async () => {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'os.envvar is read-only; env vars are managed by the caller, not via keyrack',
     );
   },

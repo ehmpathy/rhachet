@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import * as childProcess from 'node:child_process';
@@ -146,8 +146,13 @@ describe('vaultAdapterGithubSecrets', () => {
           });
 
           // verify mech adapter was called
+          // .note = `mech` is REQUIRED on `acquireForSet`, and it is asserted here rather
+          //         than left off: an adapter is NOT 1:1 with a mech (the registry aliases
+          //         several names onto one adapter), so an adapter that guessed its own
+          //         identity would name the wrong one in every refusal a human reads
           expect(mockMechAdapterReplica.acquireForSet).toHaveBeenCalledWith({
             keySlug: 'ehmpathy.test.API_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
           });
 
           // verify ghSecretSet was called via spawnSync
@@ -188,8 +193,12 @@ describe('vaultAdapterGithubSecrets', () => {
             mech: 'EPHEMERAL_VIA_GITHUB_APP',
           });
 
+          // .note = the mech the VAULT resolved, passed through verbatim. this is the pair
+          //         to `[case1]`'s assertion: two different mechs reach two different
+          //         adapters, and each must be told which name invoked it
           expect(mockMechAdapterGithubApp.acquireForSet).toHaveBeenCalledWith({
             keySlug: 'ehmpathy.test.GITHUB_TOKEN',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
           });
         });
 
@@ -231,6 +240,53 @@ describe('vaultAdapterGithubSecrets', () => {
               input: 'nested-secret',
             }),
           );
+        });
+      });
+    });
+
+    /**
+     * .what = the reach refusal, pinned for THIS vault
+     * .why = a github actions secret name is a flat namespace — `asKeyrackKeyName` drops the
+     *        org, the env, AND the reach alike, so two reaches of one slug would write
+     *        the SAME `gh secret set NAME` and the second would silently overwrite the first
+     * .note = `os.envvar` `[case7]` pins the same guard for the READ side, and the two vaults
+     *         share one `assertKeyrackReachAddressable` call. that shared helper is exactly
+     *         why a per-vault clamp is owed: a `direction` typo, or a guard deleted from one
+     *         call site, leaves the other vault's test green
+     *         (`rule.require.clamp-edge-cases`)
+     */
+    given('[case4] a reach-ask reaches this write-only vault', () => {
+      when('[t0] set is called with a reach', () => {
+        then('it refuses, caller-fixably, and never writes', async () => {
+          const error = await getError(
+            vaultAdapterGithubSecrets.set({
+              slug: 'ehmpathy.test.API_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              reach: { exid: 'beav@ehmpathy.com' },
+            }),
+          );
+
+          // by CLASS, so a reword of the copy cannot move the clamp
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error?.message).toContain('github.secrets');
+          expect(error?.message).toContain('beav@ehmpathy.com');
+        });
+
+        // ⚠️ the refusal must land BEFORE the mech is asked for a credential. a guard placed
+        //    after `acquireForSet` would prompt a human through a whole guided setup, then
+        //    refuse — and for the github-app mech that setup writes to a real registry
+        then('the mech is never asked to acquire a credential', async () => {
+          mockMechAdapterReplica.acquireForSet.mockClear();
+
+          await getError(
+            vaultAdapterGithubSecrets.set({
+              slug: 'ehmpathy.test.API_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              reach: { exid: 'beav@ehmpathy.com' },
+            }),
+          );
+
+          expect(mockMechAdapterReplica.acquireForSet).not.toHaveBeenCalled();
         });
       });
     });
@@ -287,7 +343,7 @@ describe('vaultAdapterGithubSecrets', () => {
 
     given('[case3] del without exid', () => {
       when('[t0] del is called', () => {
-        then('throws UnexpectedCodePathError', async () => {
+        then('throws MalfunctionError', async () => {
           const error = await getError(
             vaultAdapterGithubSecrets.del({
               slug: 'ehmpathy.test.API_KEY',
@@ -296,7 +352,7 @@ describe('vaultAdapterGithubSecrets', () => {
             }),
           );
 
-          expect(error).toBeInstanceOf(UnexpectedCodePathError);
+          expect(error).toBeInstanceOf(MalfunctionError);
           expect(error.message).toContain('exid (repo) required');
         });
       });

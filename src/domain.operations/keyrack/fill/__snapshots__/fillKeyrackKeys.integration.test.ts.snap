@@ -1,0 +1,150 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`fillKeyrackKeys.integration given: [case1] repo with env=all key already set when: [t0] fill is called with env=test then: skips the key because env=all fallback finds it 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
+🔑 key 1/1, API_KEY, for 1 owner
+   └─ for owner case1
+      └─ 🟢 found vaulted under testorg.all.API_KEY
+
+🔐 keyrack fill complete (1/1 keys verified)
+"
+`;
+
+exports[`fillKeyrackKeys.integration given: [case2] fresh fill with 2+ keys (journey 1) when: [t0] fill is called with env=test then: sets all 2 keys via prompts 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, API_KEY, for 1 owner
+   └─ for owner case2j1
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner case2j1
+         └─ ✓ rhx keyrack get --key API_KEY --env test --owner case2j1
+
+🔑 key 2/2, SECRET_TOKEN, for 1 owner
+   └─ for owner case2j1
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key SECRET_TOKEN --env test --owner case2j1
+         └─ ✓ rhx keyrack get --key SECRET_TOKEN --env test --owner case2j1
+
+🔐 keyrack fill complete (2/2 keys verified)
+"
+`;
+
+exports[`fillKeyrackKeys.integration given: [case9] a manifest that declares reaches (q8/q10) when: [t0] fill is called with env=test then: it provisions the reachless key AND both reaches 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 2, owners: 1)
+
+🔑 key 1/2, PLAIN_KEY, for 1 owner
+   └─ for owner case9
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key PLAIN_KEY --env test --owner case9
+         └─ ✓ rhx keyrack get --key PLAIN_KEY --env test --owner case9
+
+🔑 key 2/2, MULTI_REACH_KEY, for 1 owner
+   └─ for owner case9
+      ├─ at reach default
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner case9
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner case9
+      ├─ at reach beav@ehmpathy.com
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner case9 --reach beav@ehmpathy.com
+      │     └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner case9 --reach beav@ehmpathy.com
+      └─ at reach vlad@ehmpathy.com
+         ├─ set the key
+         │  ├─
+         │  │
+         │  │
+         │  └─
+         └─ get after set, to verify
+            ├─ ✓ rhx keyrack unlock --key MULTI_REACH_KEY --env test --owner case9 --reach vlad@ehmpathy.com
+            └─ ✓ rhx keyrack get --key MULTI_REACH_KEY --env test --owner case9 --reach vlad@ehmpathy.com
+
+🔐 keyrack fill complete (4/4 keys verified)
+"
+`;
+
+exports[`fillKeyrackKeys.integration given: [case10] a dangerous credential at every declared reach when: [t0] fill runs with --allow-dangerous then: every reach is accepted as-is, none is re-set 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
+🔑 key 1/1, DANGER_KEY, for 1 owner
+   └─ for owner case10
+      ├─ at reach default
+      │  └─ 🟡 found vaulted under testorg.test.DANGER_KEY dangerously, allowed via --allow-dangerous
+      ├─ at reach beav@ehmpathy.com
+      │  └─ 🟡 found vaulted under testorg.test.DANGER_KEY dangerously, allowed via --allow-dangerous
+      └─ at reach vlad@ehmpathy.com
+         └─ 🟡 found vaulted under testorg.test.DANGER_KEY dangerously, allowed via --allow-dangerous
+
+🔐 keyrack fill complete (3/3 keys verified)
+"
+`;
+
+exports[`fillKeyrackKeys.integration given: [case11] a dangerous credential repaired at every reach when: [t0] fill runs with --repair then: every reach is overwritten with its own new secret 1`] = `
+"
+🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
+🔑 key 1/1, DANGER_KEY, for 1 owner
+   └─ for owner case11
+      ├─ at reach default
+      │  ├─ 🟡 blocked (dangerous), will repair
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key DANGER_KEY --env test --owner case11
+      │     └─ ✓ rhx keyrack get --key DANGER_KEY --env test --owner case11
+      ├─ at reach beav@ehmpathy.com
+      │  ├─ 🟡 blocked (dangerous), will repair
+      │  ├─ set the key
+      │  │  ├─
+      │  │  │
+      │  │  │
+      │  │  └─
+      │  └─ get after set, to verify
+      │     ├─ ✓ rhx keyrack unlock --key DANGER_KEY --env test --owner case11 --reach beav@ehmpathy.com
+      │     └─ ✓ rhx keyrack get --key DANGER_KEY --env test --owner case11 --reach beav@ehmpathy.com
+      └─ at reach vlad@ehmpathy.com
+         ├─ 🟡 blocked (dangerous), will repair
+         ├─ set the key
+         │  ├─
+         │  │
+         │  │
+         │  └─
+         └─ get after set, to verify
+            ├─ ✓ rhx keyrack unlock --key DANGER_KEY --env test --owner case11 --reach vlad@ehmpathy.com
+            └─ ✓ rhx keyrack get --key DANGER_KEY --env test --owner case11 --reach vlad@ehmpathy.com
+
+🔐 keyrack fill complete (3/3 keys verified)
+"
+`;

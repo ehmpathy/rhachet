@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 /**
  * .what = parse duration string to milliseconds
@@ -7,7 +7,7 @@ import { UnexpectedCodePathError } from 'helpful-errors';
 export const asDurationMs = (input: { duration: string }): number => {
   const match = input.duration.match(/^(\d+)(h|m|s)$/);
   if (!match) {
-    throw new UnexpectedCodePathError('invalid duration format', {
+    throw new MalfunctionError('invalid duration format', {
       duration: input.duration,
       note: 'expected format: 1h, 30m, 60s',
     });
@@ -24,6 +24,6 @@ export const asDurationMs = (input: { duration: string }): number => {
     case 's':
       return value * 1000;
     default:
-      throw new UnexpectedCodePathError('invalid duration unit', { unit });
+      throw new MalfunctionError('invalid duration unit', { unit });
   }
 };

@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type { GhRun } from './runGh';
 
@@ -23,7 +23,7 @@ export const getGhRepoVisibility = (
 
   // any non-zero exit → fail loud (never assume a visibility)
   if (result.status !== 0)
-    throw new UnexpectedCodePathError('gh repo view (visibility) failed', {
+    throw new MalfunctionError('gh repo view (visibility) failed', {
       slug: input.slug,
       stderr: result.stderr,
       status: result.status,
@@ -41,12 +41,9 @@ export const getGhRepoVisibility = (
     return visibility;
 
   // an absent/unknown visibility → fail loud rather than assume private
-  throw new UnexpectedCodePathError(
-    'gh repo view returned an unknown visibility',
-    {
-      slug: input.slug,
-      stdout: result.stdout,
-      hint: 'expected a visibility of PUBLIC | PRIVATE | INTERNAL',
-    },
-  );
+  throw new MalfunctionError('gh repo view returned an unknown visibility', {
+    slug: input.slug,
+    stdout: result.stdout,
+    hint: 'expected a visibility of PUBLIC | PRIVATE | INTERNAL',
+  });
 };

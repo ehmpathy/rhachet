@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack ttl clamp (e17) given: [case1] a key capped at 5m, unlocked with a 60m ask when: [t1] it is unlocked for 60m — twelve times its cap then: the reply is snapped: stderr 1`] = `
+"⚠️ duration capped to 5m for key testorg.test.CAPPED_KEY (maxDuration limit)
+"
+`;
+
+exports[`keyrack ttl clamp (e17) given: [case1] a key capped at 5m, unlocked with a 60m ask when: [t1] it is unlocked for 60m — twelve times its cap then: the reply is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.CAPPED_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: os.direct
+      └─ expires in: 5m
+
+"
+`;

@@ -1,9 +1,11 @@
 import { BadRequestError } from 'helpful-errors';
 
 import {
+  type KeyrackKeyReach,
   KeyrackKeySpec,
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
+import { asKeyrackKeyReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReach';
 
 import { join } from 'node:path';
 import {
@@ -12,25 +14,98 @@ import {
 } from './loadManifestExplicit';
 
 /**
- * .what = parse a key entry from env.* array
- * .why = handles bare key names, key:grade shorthand, and { key, is-optional-if-has } form
+ * .what = one parsed key entry from an env.* array
+ * .why = named once so every parse branch below returns the same shape
  */
-const parseKeyEntry = (
-  entry: unknown,
-): {
+interface KeyEntryParsed {
   key: string;
   grade: KeyrackKeySpec['grade'];
   flags: KeyrackKeySpec['flags'];
-} => {
+  reaches: KeyrackKeyReach[];
+}
+
+/**
+ * .what = parse the `reaches:` list declared under a key
+ * .why = a repo declares which reaches every developer here must hold, so `fill`
+ *        provisions them without a human who names each one by hand
+ *
+ * .note = uses the same `asKeyrackKeyReach` parser the cli flag uses, so a manifest can
+ *         never legalize a reach exid the flag rejects (e2)
+ * .note = a declared reach is UNCONDITIONAL — every entry is one `fill` must satisfy, and
+ *         a failure on any one halts. the list carries no strength words: a repo that
+ *         declares a reach declares the checkout does not work without it, and a
+ *         softer tier would only invite a half-provisioned machine to read as done
+ */
+const parseReaches = (input: {
+  declared: unknown;
+  key: string;
+}): KeyrackKeyReach[] => {
+  if (input.declared == null) return [];
+  // .note = a MAP is refused, never flattened. the block was a map while `reaches` carried
+  //         strength words (`require:` / `prefer:`), so an old-shape manifest still sits on
+  //         real machines. to read its values leniently would provision the right
+  //         reaches from the wrong shape and leave the manifest silently stale; to read
+  //         its KEYS would provision reaches named `require` and `prefer`. a refusal is
+  //         the only answer that sends a human to the line that needs the edit
+  //         (rule.prefer.prevent-over-correct)
+  if (!Array.isArray(input.declared))
+    throw new BadRequestError('invalid reaches block in keyrack manifest', {
+      key: input.key,
+      declared: input.declared,
+      hint: 'reaches must be a list of plaintext reach exids',
+    });
+
+  const reaches: KeyrackKeyReach[] = [];
+  for (const exid of input.declared) {
+    if (typeof exid !== 'string')
+      throw new BadRequestError('a reach exid must be a string', {
+        key: input.key,
+        exid,
+      });
+
+    // an exid declared twice would have `fill` walk the same reach twice. the
+    // manifest is hand-authored, so this is a human's typo and it is cheaper to refuse
+    // than to silently collapse (rule.prefer.prevent-over-correct)
+    if (reaches.some((prior) => prior.exid === exid))
+      throw new BadRequestError(
+        `reach '${exid}' is declared more than once for one key`,
+        { key: input.key, exid, hint: `declare '${exid}' exactly once` },
+      );
+
+    reaches.push(asKeyrackKeyReach({ exid }));
+  }
+
+  return reaches;
+};
+
+/**
+ * .what = parse a key entry from env.* array
+ * .why = handles bare key names, key:grade shorthand, { key, is-optional-if-has } form,
+ *        and the { <name>: { reaches } } form
+ */
+const parseKeyEntry = (entry: unknown): KeyEntryParsed => {
   // bare string: just key name, no grade, no conditional
   if (typeof entry === 'string')
-    return { key: entry, grade: null, flags: { isOptionalIfHas: null } };
+    return {
+      key: entry,
+      grade: null,
+      flags: { isOptionalIfHas: null },
+      reaches: [],
+    };
 
   // object form
   if (typeof entry === 'object' && entry !== null) {
+    // .cast = yaml boundary. `entry` came off a hand-authored file, so its shape is not
+    //         ours to type — the guard above narrows it to a non-null object, and this
+    //         widens that to a readable map WITHOUT a claim about any value: each stays
+    //         `unknown` and is checked below before use. the alternative, `Object.entries`
+    //         on `object`, hands back `any` — strictly weaker (rule.forbid.as-cast, which
+    //         permits a documented cast at an external boundary)
+    // .removal = drops away the day the repo manifest is parsed through a zod schema, as
+    //         the HOST manifest already is
     const obj = entry as Record<string, unknown>;
 
-    // new form: { key: 'X', 'is-optional-if-has': 'Y', grade?: 'ephemeral' }
+    // new form: { key: 'X', 'is-optional-if-has': 'Y', grade?: 'ephemeral', reaches?: [...] }
     if ('key' in obj && typeof obj.key === 'string') {
       const isOptionalIfHas =
         'is-optional-if-has' in obj &&
@@ -42,20 +117,44 @@ const parseKeyEntry = (
         key: obj.key,
         grade: parseGradeShorthand(gradeStr),
         flags: { isOptionalIfHas },
+        reaches: parseReaches({
+          declared: obj.reaches ?? null,
+          key: obj.key,
+        }),
       };
     }
 
     // legacy form: { KEY_NAME: 'encrypted' } or { KEY_NAME: 'ephemeral' }
-    const [key, gradeStr] = Object.entries(obj)[0] ?? [];
+    // widened form: { KEY_NAME: { reaches: [ 'beav@ehmpathy.com', ... ] } }
+    const [key, declared] = Object.entries(obj)[0] ?? [];
     if (!key)
       throw new BadRequestError('empty key entry in keyrack manifest', {
         entry: obj,
         hint: 'each key entry must have a key name',
       });
+
+    // a mapped value that is an object carries facets (reaches, grade), not a grade shorthand
+    if (typeof declared === 'object' && declared !== null) {
+      // .cast = yaml boundary, same shape as the `obj` cast that heads this branch:
+      //         narrow by guard, widen to a map of `unknown`, check each value before
+      //         use (rule.forbid.as-cast)
+      const facets = declared as Record<string, unknown>;
+      return {
+        key,
+        grade: parseGradeShorthand(facets.grade ?? null),
+        flags: { isOptionalIfHas: null },
+        reaches: parseReaches({
+          declared: facets.reaches ?? null,
+          key,
+        }),
+      };
+    }
+
     return {
       key,
-      grade: parseGradeShorthand(gradeStr),
+      grade: parseGradeShorthand(declared),
       flags: { isOptionalIfHas: null },
+      reaches: [],
     };
   }
 
@@ -126,11 +225,7 @@ const extractKeysFromEnvSections = (input: {
   });
 
   // extract env.all entries
-  const envAllEntries: Array<{
-    key: string;
-    grade: KeyrackKeySpec['grade'];
-    flags: KeyrackKeySpec['flags'];
-  }> = [];
+  const envAllEntries: KeyEntryParsed[] = [];
   const envAll = envSections['env.all'];
   if (Array.isArray(envAll)) {
     for (const entry of envAll) {
@@ -139,7 +234,7 @@ const extractKeysFromEnvSections = (input: {
   }
 
   // register env.all keys with .all. slug (always directly resolvable)
-  for (const { key, grade, flags } of envAllEntries) {
+  for (const { key, grade, flags, reaches } of envAllEntries) {
     const slug = `${org}.all.${key}`;
     keys[slug] = new KeyrackKeySpec({
       slug,
@@ -147,6 +242,7 @@ const extractKeysFromEnvSections = (input: {
       env: 'all',
       name: key,
       grade,
+      reaches,
       flags,
     });
   }
@@ -154,7 +250,7 @@ const extractKeysFromEnvSections = (input: {
   // register keys for each declared env
   for (const env of declaredEnvs) {
     // expand env.all keys for this env
-    for (const { key, grade, flags } of envAllEntries) {
+    for (const { key, grade, flags, reaches } of envAllEntries) {
       const slug = `${org}.${env}.${key}`;
       keys[slug] = new KeyrackKeySpec({
         slug,
@@ -162,6 +258,7 @@ const extractKeysFromEnvSections = (input: {
         env,
         name: key,
         grade,
+        reaches,
         flags,
       });
     }
@@ -170,7 +267,7 @@ const extractKeysFromEnvSections = (input: {
     const envEntries = envSections[`env.${env}`];
     if (Array.isArray(envEntries)) {
       for (const entry of envEntries) {
-        const { key, grade, flags } = parseKeyEntry(entry);
+        const { key, grade, flags, reaches } = parseKeyEntry(entry);
         const slug = `${org}.${env}.${key}`;
         keys[slug] = new KeyrackKeySpec({
           slug,
@@ -178,6 +275,7 @@ const extractKeysFromEnvSections = (input: {
           env,
           name: key,
           grade,
+          reaches,
           flags,
         });
       }

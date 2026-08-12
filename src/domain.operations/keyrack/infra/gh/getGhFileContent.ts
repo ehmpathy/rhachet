@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { isGhNotFoundStderr } from './isGhNotFoundStderr';
 import type { GhRun } from './runGh';
@@ -28,7 +28,7 @@ export const getGhFileContent = (
     if (isGhNotFoundStderr({ stderr: result.stderr })) return null;
 
     // any other failure (network, rate limit, gh error) → fail loud
-    throw new UnexpectedCodePathError('gh contents read failed', {
+    throw new MalfunctionError('gh contents read failed', {
       repo: input.repo,
       path: input.path,
       stderr: result.stderr,
@@ -45,7 +45,7 @@ export const getGhFileContent = (
     try {
       return JSON.parse(result.stdout) as { content?: string; sha?: string };
     } catch (error) {
-      throw new UnexpectedCodePathError('gh contents response was not json', {
+      throw new MalfunctionError('gh contents response was not json', {
         repo: input.repo,
         path: input.path,
         stdout: result.stdout,
@@ -57,7 +57,7 @@ export const getGhFileContent = (
 
   // github returns base64 content for files
   if (!parsed.content || !parsed.sha) {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'github contents response lacked content or sha',
       { repo: input.repo, path: input.path },
     );

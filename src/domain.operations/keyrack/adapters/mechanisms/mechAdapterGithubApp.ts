@@ -1,5 +1,5 @@
 import { createAppAuth } from '@octokit/auth-app';
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
@@ -115,7 +115,9 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
    * .what = acquire source credential via guided setup
    * .why = discovers the app from keyrack-infra (admin-free), then prompts for pem
    *
-   * .note = keySlug is fully qualified (org.env.name); org is derived from it
+   * .note = keySlug is fully qualified (org.env.name); org is derived from it, UNLESS a
+   *         reach names a different reach — then that reach's org is used instead.
+   *         either way the lookup is the same admin-free keyrack-infra gate
    * .note = requires the org's keyrack-infra repo to exist (mandatory)
    * .note = registry-first discovery; admin install-list is only a fallback that
    *         auto-registers the chosen app so future members can discover it
@@ -127,7 +129,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     // if a prompt is injected (tests), use it directly — no real terminal needed
     if (options?.question) {
       return await genGithubAppSource(
-        { keySlug: input.keySlug },
+        { keySlug: input.keySlug, reach: input.reach },
         { ghRun, question: options.question },
       );
     }
@@ -171,7 +173,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     try {
       // the orchestrator holds the testable flow with every dependency injected
       return await genGithubAppSource(
-        { keySlug: input.keySlug },
+        { keySlug: input.keySlug, reach: input.reach },
         { ghRun, question },
       );
     } finally {
@@ -188,7 +190,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
   deliverForGet: async (input) => {
     const result = parseGithubAppCredentials(input.source);
     if (!result.valid) {
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'github_app deliverForGet called with invalid credentials',
         { reasons: result.reasons },
       );

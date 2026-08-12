@@ -2,6 +2,7 @@ import type {
   KeyrackGrantMechanism,
   KeyrackHostVault,
   KeyrackKeyHost,
+  KeyrackKeyReach,
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
@@ -24,6 +25,7 @@ export const setKeyrackKey = async (
     mech?: KeyrackGrantMechanism | null;
     secret?: string | null;
     exid?: string | null;
+    reach?: KeyrackKeyReach;
     maxDuration?: string | null;
     repoManifest?: KeyrackRepoManifest;
     at?: string | null;
@@ -44,6 +46,11 @@ export const setKeyrackKey = async (
           vault: input.vault,
           secret: input.secret ?? null,
           exid: input.exid ?? null,
+          // .note = the reach does NOT enter the slug. the slug stays `$org.$env.$key`, so
+          //         provenance is untouched and the repo-manifest gate still passes — that
+          //         single axis of difference is what makes this design work where a
+          //         destination-in-the-slug design would trip the gate and overload `org`
+          reach: input.reach,
           env: input.env,
           org: input.org,
           maxDuration: input.maxDuration ?? null,

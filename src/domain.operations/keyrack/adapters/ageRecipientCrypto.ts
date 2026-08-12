@@ -1,5 +1,5 @@
 import * as age from 'age-encryption';
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { SSH_KEY_PATH_MARKER } from '@src/infra/ssh';
@@ -24,7 +24,7 @@ export const encryptToRecipients = async (input: {
 }): Promise<string> => {
   // validate at least one recipient
   if (input.recipients.length === 0)
-    throw new UnexpectedCodePathError('no recipients provided for encryption', {
+    throw new MalfunctionError('no recipients provided for encryption', {
       recipientCount: input.recipients.length,
     });
 
@@ -36,7 +36,7 @@ export const encryptToRecipients = async (input: {
     const encrypter = new age.Encrypter();
     for (const recipient of input.recipients) {
       if (recipient.mech !== 'age')
-        throw new UnexpectedCodePathError(
+        throw new MalfunctionError(
           `recipient mech '${recipient.mech}' not supported; use 'age' or 'ssh'`,
           { recipient },
         );

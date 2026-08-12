@@ -5,13 +5,18 @@ import { withTempHome } from '@src/.test/infra/withTempHome';
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
+  KeyrackKeyReach,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
-import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import {
+  encryptToRecipients,
+  generateAgeKeyPair,
+} from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import {
   type ContextKeyrack,
   genContextKeyrack,
 } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
 import {
   ed25519SeedToAgeIdentity,
   extractEd25519Seed,
@@ -25,7 +30,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { daoKeyrackHostManifest } from './index';
 
 /**
@@ -780,4 +785,320 @@ describe('daoKeyrackHostManifest', () => {
       });
     },
   );
+
+  /**
+   * .what = the manifest records a key's reach twice, and this clamps that a drift
+   *         between the two halts the load
+   * .why = lookup addresses the manifest by the map KEY, while `unlockKeyrackKeys` builds its
+   *        grant from the entry's `reach` FIELD. an entry filed under one reach whose
+   *        field names another would hand back a credential for the wrong reach in
+   *        silence — e18's failure class
+   * .note = the unit clamp at `assertKeyrackHostAddressed.test.ts` proves the GUARD. this one
+   *         proves the WIRING — a guard that is never called guards no one, and the call site
+   *         and the guard are a pair no compiler links
+   */
+  given('[case13] a host entry misaddressed on disk', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    // setup: file a reach-bearing key under its BARE slug — the drift a hand edit produces
+    useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+
+      const host = new KeyrackKeyHost({
+        slug: 'ehmpathy.test.FOO',
+        exid: null,
+        vault: 'os.direct',
+        mech: 'PERMANENT_VIA_REPLICA',
+        env: 'test',
+        org: 'ehmpathy',
+        reach: new KeyrackKeyReach({ exid: 'beav@ehmpathy.com' }),
+        meta: null,
+        maxDuration: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await daoKeyrackHostManifest.set({
+        upsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.misaddressed.age',
+          owner: 'misaddressed',
+          recipients: [recipient],
+          // the defect: keyed by the bare slug while the entry names a reach
+          hosts: { 'ehmpathy.test.FOO': host },
+        }),
+      });
+      return {};
+    });
+
+    when('[t0] get called on the misaddressed manifest', () => {
+      then('the load halts rather than yields a wrong-reach key', async () => {
+        const error = await getError(
+          daoKeyrackHostManifest.get(
+            { owner: 'misaddressed' },
+            createTestContext(keyPair.identity),
+          ),
+        );
+
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('misaddressed');
+        expect(error?.message).toContain('ehmpathy.test.FOO@beav@ehmpathy.com');
+      });
+    });
+  });
+
+  /**
+   * .what = q12 / a4 — a LEGACY, pre-reach host manifest, written as the bytes an older
+   *         rhachet actually wrote, read back through the real decrypt → parse → hydrate path
+   * .why = a4 originally claimed a key-shape change carried "no migration cost". that was
+   *        verified against `daemonKeyStore` (in-memory) and NOT against this manifest, which
+   *        is encrypted, on disk, and extant on every machine that has ever run keyrack. the
+   *        correction promised a backward-compatible read; this is the proof of it
+   *
+   * .note = ⚠️ the plaintext is a hand-written JSON LITERAL, deliberately — it is the whole
+   *         point of the case. every other test here builds its fixture by `dao.set`, which
+   *         serializes a CURRENT-shape dobj, so it can only ever round-trip today's bytes. a
+   *         legacy file is one this codebase can no longer produce, so it must be authored
+   * .note = the coverage that already existed was `schema.test.ts` — zod alone, on a plain
+   *         object. that cannot see the hydrate loop, `asKeyrackKeyReachField`, or
+   *         `assertKeyrackHostAddressed`, each of which runs only on this path and each of
+   *         which could reject or mangle a legacy entry while the schema test stayed green
+   * .note = two entries, on purpose. `LEGACY_FULL` is the shape of a manifest written just
+   *         before reach landed; `LEGACY_MINIMAL` omits `env`, `org`, `meta`, and
+   *         `maxDuration` too, which is what the OLDEST manifests hold — so the defaults
+   *         path is exercised alongside the absent-reach path
+   */
+  given('[case14] a legacy pre-reach manifest on disk', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    // the bytes an older rhachet wrote: no `reach` anywhere, at any depth
+    useBeforeAll(async () => {
+      const plaintext = JSON.stringify(
+        {
+          uri: '~/.rhachet/keyrack/keyrack.host.legacy.age',
+          owner: 'legacy',
+          recipients: [
+            {
+              mech: 'age',
+              pubkey: keyPair.recipient,
+              label: 'test-key',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+          hosts: {
+            'ehmpathy.test.LEGACY_FULL': {
+              slug: 'ehmpathy.test.LEGACY_FULL',
+              exid: null,
+              vault: 'os.direct',
+              mech: 'PERMANENT_VIA_REPLICA',
+              env: 'test',
+              org: 'ehmpathy',
+              meta: null,
+              maxDuration: null,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+            'ehmpathy.test.LEGACY_MINIMAL': {
+              slug: 'ehmpathy.test.LEGACY_MINIMAL',
+              exid: null,
+              vault: 'os.direct',
+              mech: 'PERMANENT_VIA_REPLICA',
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        null,
+        2,
+      );
+
+      // encrypt and place the file by hand — `dao.set` would re-serialize a current dobj
+      const ciphertext = await encryptToRecipients({
+        plaintext,
+        recipients: [
+          new KeyrackKeyRecipient({
+            mech: 'age',
+            pubkey: keyPair.recipient,
+            label: 'test-key',
+            addedAt: '2026-01-01T00:00:00.000Z',
+          }),
+        ],
+      });
+      const path = getKeyrackHostManifestPath({ owner: 'legacy' });
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, ciphertext, 'utf8');
+      chmodSync(path, 0o600);
+
+      return {};
+    });
+
+    when('[t0] the legacy manifest is read through the real dao', () => {
+      const loaded = useBeforeAll(async () => {
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'legacy' },
+          createTestContext(keyPair.identity),
+        );
+        return { hosts: result?.manifest.hosts ?? null };
+      });
+
+      // load-bearing precondition — every claim below is about a manifest that LOADED. a
+      // throw here is the regression this case exists to catch, and it would otherwise
+      // surface only as an undefined-deref further down
+      then('it loads rather than rejects', () => {
+        expect(loaded.hosts).not.toBeNull();
+        expect(Object.keys(loaded.hosts!)).toHaveLength(2);
+      });
+
+      then('each entry stays keyed by its bare slug', () => {
+        expect(loaded.hosts!['ehmpathy.test.LEGACY_FULL']).toBeDefined();
+        expect(loaded.hosts!['ehmpathy.test.LEGACY_MINIMAL']).toBeDefined();
+      });
+
+      // THE clamp — e16 on the persisted path. a hydrate that defaulted an absent reach to
+      // `null` would pass every check above and then re-serialize EVERY extant manifest with
+      // a field it never held, which is the migration a4 promised there would not be
+      then('an absent reach stays absent, never null', () => {
+        for (const host of Object.values(loaded.hosts!)) {
+          expect('reach' in host).toEqual(false);
+          expect(JSON.stringify(host)).not.toContain('reach');
+        }
+      });
+
+      // the oldest shape: the fields that postdate it take their declared defaults rather
+      // than arrive undefined, so a legacy entry is usable and not merely parseable
+      then('the minimal entry takes its declared defaults', () => {
+        const host = loaded.hosts!['ehmpathy.test.LEGACY_MINIMAL']!;
+        expect(host.env).toEqual('all');
+        expect(host.org).toEqual('unknown');
+        expect(host.meta).toEqual(null);
+        expect(host.maxDuration).toEqual(null);
+      });
+
+      then('the full entry keeps the values it was written with', () => {
+        const host = loaded.hosts!['ehmpathy.test.LEGACY_FULL']!;
+        expect(host.env).toEqual('test');
+        expect(host.org).toEqual('ehmpathy');
+        expect(host.vault).toEqual('os.direct');
+      });
+    });
+  });
+
+  /**
+   * .what = the POSITIVE round-trip — a reach-bearing entry written at its correct address,
+   *         encrypted, and read back with its reach intact
+   * .why = the two reach cases beside this one are both NEGATIVE: `[case13]` proves a
+   *        misaddressed entry HALTS, and `[case14]` proves an absent reach STAYS ABSENT.
+   *        neither can tell a sound round-trip from a dao that drops the reach on the
+   *        way out — a drop would leave `[case13]` green (no address to conflict with) and
+   *        `[case14]` green (it asserts absence, which a drop produces)
+   *
+   * .note = ⚠️ a dropped reach here is not a cosmetic loss. the address is what separates one
+   *         reach's credential from another's, so an entry that returned reachless would
+   *         be indistinguishable from the reachless key of the same slug — and the caller
+   *         would be handed a credential for a reach it did not name. e18, via the
+   *         config store rather than the grant store
+   * .note = written via `dao.set`, deliberately — the opposite choice from `[case14]`. a
+   *         legacy file must be hand-authored because the codebase can no longer produce it;
+   *         a CURRENT file must go through `set` because the point is that the two halves of
+   *         the dao agree with each other
+   */
+  given('[case15] a reach-bearing entry round-tripped through the dao', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: '2026-01-01T00:00:00.000Z',
+      });
+
+      const reached = new KeyrackKeyHost({
+        slug: 'ehmpathy.test.ROUNDTRIP',
+        exid: null,
+        vault: 'os.direct',
+        mech: 'PERMANENT_VIA_REPLICA',
+        env: 'test',
+        org: 'ehmpathy',
+        reach: new KeyrackKeyReach({ exid: 'beav@ehmpathy.com' }),
+        meta: null,
+        maxDuration: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      });
+
+      // the reachless PEER of the same slug — without it, "the reach survived" could also
+      // hold for a dao that stored one entry and lost the other
+      const reachless = new KeyrackKeyHost({
+        slug: 'ehmpathy.test.ROUNDTRIP',
+        exid: null,
+        vault: 'os.direct',
+        mech: 'PERMANENT_VIA_REPLICA',
+        env: 'test',
+        org: 'ehmpathy',
+        meta: null,
+        maxDuration: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      });
+
+      await daoKeyrackHostManifest.set({
+        upsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.roundtrip.age',
+          owner: 'roundtrip',
+          recipients: [recipient],
+          hosts: {
+            'ehmpathy.test.ROUNDTRIP': reachless,
+            'ehmpathy.test.ROUNDTRIP@beav@ehmpathy.com': reached,
+          },
+        }),
+      });
+      return {};
+    });
+
+    when('[t0] the manifest is read back', () => {
+      const loaded = useBeforeAll(async () => {
+        const result = await daoKeyrackHostManifest.get(
+          { owner: 'roundtrip' },
+          createTestContext(keyPair.identity),
+        );
+        return { hosts: result?.manifest.hosts ?? null };
+      });
+
+      then('both reaches of the slug survive as separate entries', () => {
+        expect(loaded.hosts).not.toBeNull();
+        expect(Object.keys(loaded.hosts!)).toHaveLength(2);
+      });
+
+      // THE clamp — the reach survives encrypt → decrypt → parse → hydrate, as a real
+      // dobj rather than a bare string
+      then('the entry cut for a reach keeps its exid', () => {
+        const host =
+          loaded.hosts!['ehmpathy.test.ROUNDTRIP@beav@ehmpathy.com']!;
+        expect(host.reach).toBeDefined();
+        expect(host.reach!.exid).toEqual('beav@ehmpathy.com');
+      });
+
+      // e16, on the other half of the same manifest: one entry carries a reach, its peer
+      // carries no such field at all — and one load produces both shapes correctly
+      then('its reachless peer still carries no reach field', () => {
+        const host = loaded.hosts!['ehmpathy.test.ROUNDTRIP']!;
+        expect('reach' in host).toEqual(false);
+      });
+
+      then('the two entries are otherwise identical', () => {
+        const reached =
+          loaded.hosts!['ehmpathy.test.ROUNDTRIP@beav@ehmpathy.com']!;
+        const reachless = loaded.hosts!['ehmpathy.test.ROUNDTRIP']!;
+        expect(reached.slug).toEqual(reachless.slug);
+        expect(reached.env).toEqual(reachless.env);
+        expect(reached.org).toEqual(reachless.org);
+        expect(reached.vault).toEqual(reachless.vault);
+      });
+    });
+  });
 });

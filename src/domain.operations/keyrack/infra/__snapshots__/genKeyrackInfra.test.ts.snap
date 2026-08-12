@@ -10,7 +10,7 @@ exports[`genKeyrackInfra given: [case1] a fresh org (no keyrack-infra yet) when:
 `;
 
 exports[`genKeyrackInfra given: [case3] repo creation fails with a non-404 gh error when: [t0] genned then: it fails loud with an actionable hint 1`] = `
-"UnexpectedCodePathError: gh repo create failed
+"💥 MalfunctionError: gh repo create failed
 
 {
   "slug": "ehmpathy/keyrack-infra",

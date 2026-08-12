@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'fs';
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import os from 'os';
 import path from 'path';
 
@@ -30,12 +30,12 @@ export const getAwsSsoAccessToken = (input: {
       }
     }
   } catch {
-    throw new UnexpectedCodePathError(
+    throw new MalfunctionError(
       'could not find sso cache. run aws sso login first.',
     );
   }
 
-  throw new UnexpectedCodePathError(
+  throw new MalfunctionError(
     `no valid sso access token found for ${input.ssoStartUrl}. run aws sso login first.`,
   );
 };

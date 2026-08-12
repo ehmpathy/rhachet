@@ -321,7 +321,7 @@ describe('initKeyrackRepoManifest', () => {
 
   given('[case3] repo without detectable org', () => {
     when('[t0] initKeyrackRepoManifest called', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         // create package.json without org info
         writeFileSync(
           join(testDir, 'package.json'),

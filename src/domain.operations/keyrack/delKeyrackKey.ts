@@ -1,3 +1,5 @@
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack';
+
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
 import type { ContextKeyrack } from './genContextKeyrack';
 
@@ -10,6 +12,13 @@ import type { ContextKeyrack } from './genContextKeyrack';
 export const delKeyrackKey = async (
   input: {
     slug: string;
+
+    /**
+     * .what = the reach of the key to remove; absent means the reachless key
+     * .why = a del names one address, exactly as a set does. absent this passthrough, a key
+     *        cut only for a reach could never be removed at all
+     */
+    reach?: KeyrackKeyReach;
   },
   context: ContextKeyrack,
 ): Promise<{

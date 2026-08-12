@@ -60,7 +60,6 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case2] g
 
 exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case3] del of a github-app key destroys the SSM secret keyrack wrote when: [t1] the github-app key is deleted then: the destroyed-secret output matches snapshot 1`] = `
 "
-
 🔐 keyrack del
    └─ testorg.test.GITHUB_TOKEN removed
       └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN was destroyed

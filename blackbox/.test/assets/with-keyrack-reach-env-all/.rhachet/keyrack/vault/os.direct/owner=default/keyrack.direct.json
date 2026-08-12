@@ -1,0 +1,11 @@
+{
+  "testorg.all.CROSS_ENV_KEY": {
+    "value": "sk-all-env-reachless-ccc333"
+  },
+  "testorg.all.CROSS_ENV_KEY@beav@ehmpathy.com": {
+    "value": "sk-all-env-at-beav-ddd444"
+  },
+  "testorg.test.TEST_ONLY_KEY": {
+    "value": "sk-test-only-eee555"
+  }
+}

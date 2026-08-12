@@ -1,11 +1,11 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { getKeyrackInfraInitErrorReport } from './getKeyrackInfraInitErrorReport';
 
 describe('getKeyrackInfraInitErrorReport', () => {
   given('[case1] a helpful error with slug + stderr + hint metadata', () => {
-    const error = new UnexpectedCodePathError('gh repo create failed', {
+    const error = new MalfunctionError('gh repo create failed', {
       slug: 'ehmpathy/keyrack-infra',
       stderr: 'HTTP 403: forbidden',
       status: 1,

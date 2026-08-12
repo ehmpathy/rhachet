@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { readFileSync } from 'node:fs';
 
@@ -22,7 +22,7 @@ export const getLoginSessionId = (input: { pid: number }): number => {
 
     // validate parsed value
     if (Number.isNaN(sessionId)) {
-      throw new UnexpectedCodePathError('sessionid is not a number', {
+      throw new MalfunctionError('sessionid is not a number', {
         pid,
         sessionidPath,
         content,
@@ -38,7 +38,7 @@ export const getLoginSessionId = (input: { pid: number }): number => {
 
     // rethrow with context if file read failed
     if (errorCode === 'ENOENT') {
-      throw new UnexpectedCodePathError('process not found', {
+      throw new MalfunctionError('process not found', {
         pid,
         sessionidPath,
         cause: error,
@@ -46,7 +46,7 @@ export const getLoginSessionId = (input: { pid: number }): number => {
     }
 
     if (errorCode === 'EACCES') {
-      throw new UnexpectedCodePathError('permission denied to read sessionid', {
+      throw new MalfunctionError('permission denied to read sessionid', {
         pid,
         sessionidPath,
         cause: error,

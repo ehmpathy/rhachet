@@ -1,22 +1,19 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`asKeyrackDelReport given: [case1] a plain removal when: [t0] rendered then: it matches snapshot 1`] = `
-"
-🔐 keyrack del
+"🔐 keyrack del
    └─ ehmpathy.prod.REF_KEY removed
 "
 `;
 
 exports[`asKeyrackDelReport given: [case2] the key was already absent (not_found) when: [t0] rendered then: it matches snapshot 1`] = `
-"
-🔐 keyrack del
+"🔐 keyrack del
    └─ ehmpathy.prod.ABSENT_KEY not found (already absent)
 "
 `;
 
 exports[`asKeyrackDelReport given: [case3] a removal that destroyed a keyrack-managed SSM secret (owned mech) when: [t0] rendered then: it matches snapshot 1`] = `
-"
-🔐 keyrack del
+"🔐 keyrack del
    └─ ehmpathy.prod.EHMPATHY_SEATURTLE_GITHUB_TOKEN removed
       └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/ehmpathy/prod/EHMPATHY_SEATURTLE_GITHUB_TOKEN was destroyed
 "

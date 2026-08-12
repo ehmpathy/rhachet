@@ -5,7 +5,7 @@ import { assertKeyGradeProtected } from './assertKeyGradeProtected';
 describe('assertKeyGradeProtected', () => {
   given('[case1] grade degrades', () => {
     when('[t0] encrypted → plaintext', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(async () =>
           assertKeyGradeProtected({
             source: { protection: 'encrypted', duration: 'permanent' },
@@ -28,7 +28,7 @@ describe('assertKeyGradeProtected', () => {
     });
 
     when('[t1] ephemeral → permanent', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(async () =>
           assertKeyGradeProtected({
             source: { protection: 'encrypted', duration: 'ephemeral' },
@@ -51,7 +51,7 @@ describe('assertKeyGradeProtected', () => {
     });
 
     when('[t2] reference → encrypted', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(async () =>
           assertKeyGradeProtected({
             source: { protection: 'reference', duration: 'ephemeral' },
@@ -74,7 +74,7 @@ describe('assertKeyGradeProtected', () => {
     });
 
     when('[t3] reference → plaintext', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(async () =>
           assertKeyGradeProtected({
             source: { protection: 'reference', duration: 'ephemeral' },

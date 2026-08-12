@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import {
   type KeyrackInfraRegistryGithubApp,
@@ -11,7 +11,7 @@ import {
  *
  * .note = a corrupt registry is unexpected shared-repo state, not caller input the
  *         cli can fix by a different invocation — it needs a manual fix to the file
- *         in $org/keyrack-infra — so it fails loud as an UnexpectedCodePathError with
+ *         in $org/keyrack-infra — so it fails loud as an MalfunctionError with
  *         the raw content in metadata for diagnostics
  */
 export const asKeyrackInfraRegistryGithubApps = (input: {
@@ -22,14 +22,11 @@ export const asKeyrackInfraRegistryGithubApps = (input: {
   try {
     parsed = JSON.parse(input.content);
   } catch (error) {
-    throw new UnexpectedCodePathError(
-      'keyrack-infra registry is not valid json',
-      {
-        hint: 'registry/github-apps.json in $org/keyrack-infra must be a json array; fix the file in the repo',
-        content: input.content,
-        cause: error instanceof Error ? error : undefined,
-      },
-    );
+    throw new MalfunctionError('keyrack-infra registry is not valid json', {
+      hint: 'registry/github-apps.json in $org/keyrack-infra must be a json array; fix the file in the repo',
+      content: input.content,
+      cause: error instanceof Error ? error : undefined,
+    });
   }
 
   // validate the shape against the registry schema

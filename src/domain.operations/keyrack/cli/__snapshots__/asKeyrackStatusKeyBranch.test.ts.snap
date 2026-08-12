@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackStatusKeyBranch given: [case1] a key cut for no reach when: [t0] it is rendered then: it renders the extant shape 1`] = `
+[
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      └─ expires in: 55m",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case2] one slug held at three reaches — the rack when: [t0] the whole rack is rendered then: the rack reads as three keys, one name 1`] = `
+[
+  "   ├─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "   │  ├─ env: prep",
+  "   │  ├─ org: ahbode",
+  "   │  └─ expires in: 55m",
+  "   ├─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "   │  ├─ env: prep",
+  "   │  ├─ org: ahbode",
+  "   │  ├─ reach: github://org=ehmpathy",
+  "   │  └─ expires in: 55m",
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      ├─ reach: beav@ehmpathy.com",
+  "      └─ expires in: 540m",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case3] a key held with no expiry when: [t0] it is rendered then: it uses the same word \`unlock\` uses for the same fact 1`] = `
+[
+  "   └─ ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "      ├─ env: prep",
+  "      ├─ org: ahbode",
+  "      └─ expires in: never",
+]
+`;

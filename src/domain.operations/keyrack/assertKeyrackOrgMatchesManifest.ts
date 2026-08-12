@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
@@ -17,7 +17,7 @@ export const assertKeyrackOrgMatchesManifest = (input: {
   if (input.org === input.manifest.org) return input.org;
 
   // mismatch
-  throw new BadRequestError(
+  throw new ConstraintError(
     `org "${input.org}" does not match keyrack.yml org "${input.manifest.org}"`,
     { orgProvided: input.org, orgExpected: input.manifest.org },
   );

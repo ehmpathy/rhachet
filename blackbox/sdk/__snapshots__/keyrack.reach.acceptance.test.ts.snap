@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack.reach given: [case1] a reach named across a whole-repo sweep when: [t0] keyrack.get is called with for.repo and a reach then: the refusal renders as snapped: stderr 1`] = `""`;
+
+exports[`keyrack.reach given: [case1] a reach named across a whole-repo sweep when: [t0] keyrack.get is called with for.repo and a reach then: the refusal renders as snapped: stdout 1`] = `
+"error.name: Error
+error.message: ✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+
+{
+  "reach": "beav@ehmpathy.com",
+  "hint": "name exactly one key — rhx keyrack get --key $KEY --reach beav@ehmpathy.com"
+}
+"
+`;
+
+exports[`keyrack.reach given: [case2] a reach that is no exid at all when: [t0] keyrack.get is called with a blank reach then: the refusal renders as snapped: stderr 1`] = `""`;
+
+exports[`keyrack.reach given: [case2] a reach that is no exid at all when: [t0] keyrack.get is called with a blank reach then: the refusal renders as snapped: stdout 1`] = `
+"error.name: Error
+error.message: ✋ ConstraintError: a reach exid may not be empty: a reach names which copy of a key this is, so an empty name names no copy
+
+{
+  "hint": "give it a plaintext exid — --reach $exid"
+}
+"
+`;
+
+exports[`keyrack.reach given: [case3] a keyed reach-ask that no source can answer when: [t0] keyrack.get is called with a key and a reach then: the absent-report renders as snapped: stderr 1`] = `""`;
+
+exports[`keyrack.reach given: [case3] a keyed reach-ask that no source can answer when: [t0] keyrack.get is called with a key and a reach then: the absent-report renders as snapped: stdout 1`] = `
+"unexpected success: {"attempt":{"status":"absent","slug":"testorg.test.API_KEY","reach":{"exid":"beav@ehmpathy.com"},"message":"no key is set for 'testorg.test.API_KEY' at reach 'beav@ehmpathy.com'. a reach is never derived — a key must be cut at the reach you ask for.","fix":"rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com"},"emit":{"stdout":"\\n🔐 keyrack\\n   └─ testorg.test.API_KEY\\n      ├─ status: absent 🫧\\n      └─ \\u001b[2mtip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com\\u001b[0m\\n"}}
+"
+`;
+
+exports[`keyrack.reach given: [case4] a key cut at two reaches, asked for at one when: [t0] the reach names a reach a key WAS cut for then: the granted shape renders as snapped: stderr 1`] = `""`;
+
+exports[`keyrack.reach given: [case4] a key cut at two reaches, asked for at one when: [t0] the reach names a reach a key WAS cut for then: the granted shape renders as snapped: stdout 1`] = `
+"{"attempt":{"status":"granted","grant":{"slug":"testorg.test.API_KEY","key":{"secret":"sk-beav-bbb222","grade":{"protection":"plaintext","duration":"permanent"}},"reach":{"exid":"beav@ehmpathy.com"},"source":{"vault":"os.direct","mech":"PERMANENT_VIA_REPLICA"},"env":"test","org":"testorg"}},"emit":{"stdout":"\\n🔐 keyrack\\n   └─ testorg.test.API_KEY\\n      ├─ reach: beav@ehmpathy.com\\n      ├─ vault: os.direct\\n      ├─ mech: PERMANENT_VIA_REPLICA\\n      └─ status: granted 🔑\\n"}}
+"
+`;

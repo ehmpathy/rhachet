@@ -35,13 +35,9 @@ exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted)
 
 exports[`keyrack.source given: [case3] no keyrack.yml in repo (no keys required) when: [t0] rhx keyrack get --json called then: stderr matches snapshot 1`] = `
 "
-BadRequestError: no keyrack.yml found in repo. --for repo requires keyrack.yml
-
-{
-  "hint": "create keyrack.yml in repo root with env and key definitions"
-}
-
-[args] keyrack,get,--for,repo,--env,test,--json
+🔐 keyrack get
+   └─ ✋ blocked: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      └─ hint: create keyrack.yml in repo root with env and key definitions
 
 "
 `;
@@ -168,5 +164,12 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when: [t2] keyrack.source() with key filter for absent key (lenient) then: stdout matches snapshot 1`] = `
 "lenient key filter completed
 key1: undefined
+"
+`;
+
+exports[`keyrack.source given: [case9] keyrack.source() SDK asked for a reach when: [t1] the same bulk source omits the reach then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack.source given: [case9] keyrack.source() SDK asked for a reach when: [t1] the same bulk source omits the reach then: stdout matches snapshot 1`] = `
+"sourced: reach-test-value
 "
 `;

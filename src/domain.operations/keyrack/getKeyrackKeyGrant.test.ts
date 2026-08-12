@@ -378,4 +378,99 @@ describe('getKeyrackKeyGrant', () => {
       });
     });
   });
+
+  /**
+   * .what = a reach-ask that no source can answer must REPORT absence, never throw
+   * .why = this operation's whole contract is a status union — `granted` | `locked` |
+   *        `absent` | `blocked`. absence is a VALUE it returns, so an exception thrown for
+   *        the ordinary "no key here" case breaks the contract every caller relies on.
+   *
+   *        `fillKeyrackKeys` is the caller that proves it: it probes with this operation to
+   *        decide whether a reach still needs provisioned. a throw there kills the whole
+   *        `fill` run for a `require` reach — the exact scenario q8/q10 built the feature
+   *        for — and is mis-reported as a skip for a `prefer` one.
+   *
+   *        os.envvar cannot hold a reach-key (a flat name drops org, env, and reach alike),
+   *        so for a reach-ask it is an ABSENT SOURCE, not a refusal.
+   */
+  given('[case7] a reach-ask that no source can answer', () => {
+    const reach = { exid: 'beav@ehmpathy.com' };
+    const context: ContextKeyrackGrantGet = {
+      owner: null,
+      repoManifest: null,
+      envvarAdapter: vaultAdapterOsEnvvar,
+      mechAdapters,
+    };
+
+    when(
+      '[t0] get is called with a reach and the daemon holds no such key',
+      () => {
+        then('it reports absence rather than throws', async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: 'XAI_API_KEY' }, reach },
+            context,
+          );
+          expect(result.status).toEqual('absent');
+        });
+
+        then('the message names the reach, not the vault', async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: 'XAI_API_KEY' }, reach },
+            context,
+          );
+          if (result.status === 'absent') {
+            // the e6 report, reachable at last — it names WHAT is absent and why
+            expect(result.message).toContain('beav@ehmpathy.com');
+            expect(result.message).toContain('a reach is never derived');
+            // never the vault's internal limitation, which no human can act on
+            expect(result.message).not.toContain('os.envvar');
+          }
+        });
+
+        then('the fix carries the reach through', async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: 'XAI_API_KEY' }, reach },
+            context,
+          );
+          if (result.status === 'absent') {
+            // a fix that dropped the reach would walk the human into the WRONG reach (e6)
+            expect(result.fix).toContain('--reach beav@ehmpathy.com');
+            expect(result.fix).toContain('keyrack set');
+          }
+        });
+      },
+    );
+
+    when('[t1] the reachless variable IS present in the env', () => {
+      const rawKey = '__TEST_KEYRACK_REACH_FALLTHROUGH__';
+      const envSlug = `testorg.test.${rawKey}`;
+
+      beforeEach(() => {
+        process.env[rawKey] = 'sk-reachless-value-that-must-not-be-handed-back';
+      });
+
+      afterEach(() => {
+        delete process.env[rawKey];
+      });
+
+      then(
+        'the reach-ask is still absent — no reachless value substitutes (e18)',
+        async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: envSlug }, reach },
+            context,
+          );
+          expect(result.status).toEqual('absent');
+        },
+      );
+
+      then('the reachless ask still reads it, unchanged (e1)', async () => {
+        const result = await getKeyrackKeyGrant(
+          { for: { key: envSlug } },
+          context,
+        );
+        expect(result.status).toEqual('granted');
+      });
+    });
+  });
 });

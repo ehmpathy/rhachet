@@ -1,4 +1,4 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { getGhRepoExists } from './getGhRepoExists';
 import { getGhRepoVisibility } from './getGhRepoVisibility';
@@ -57,7 +57,7 @@ export const genGhRepo = (
   //         a 401 is authn (fix via `gh auth status`), a 403 is authz (the token is valid
   //         but the org has not granted repo-create — ask an owner). to conflate the two
   //         sends a 403 caller to the wrong lever, so we spell out both
-  throw new UnexpectedCodePathError('gh repo create failed', {
+  throw new MalfunctionError('gh repo create failed', {
     slug: input.slug,
     stderr: result.stderr,
     status: result.status,

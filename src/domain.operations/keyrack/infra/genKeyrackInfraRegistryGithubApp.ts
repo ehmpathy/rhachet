@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { asKeyrackInfraRegistryContent } from './asKeyrackInfraRegistryContent';
 import { asKeyrackInfraRegistryGithubAppCommitMessage } from './asKeyrackInfraRegistryGithubAppCommitMessage';
@@ -89,7 +89,7 @@ export const genKeyrackInfraRegistryGithubApp = (
   }
 
   // sustained contention exhausted our retries → fail loud
-  throw new UnexpectedCodePathError(
+  throw new MalfunctionError(
     'keyrack-infra registry write could not converge under concurrent writes',
     {
       repo,

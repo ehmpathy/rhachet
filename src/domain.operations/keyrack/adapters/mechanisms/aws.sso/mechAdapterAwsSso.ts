@@ -1,7 +1,8 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
+import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -109,6 +110,14 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
    * .note = writes profile to ~/.aws/config
    */
   acquireForSet: async (input) => {
+    // an sso profile's reach is the aws account+role the portal grants, picked in the
+    // guided flow — a github reach names no thing this mech can act on. refuse rather than
+    // drop. an `aws://account=…` scheme could be honored here later; none exists today
+    // the mech name comes from the CALLER, never from a literal here: this same adapter
+    // object is registered under EPHEMERAL_VIA_GITHUB_OIDC too, so a hardcoded name would
+    // report an oidc key's refusal as an sso one — a correct refusal that names the wrong mech
+    assertKeyrackReachAbsent({ reach: input.reach, mech: input.mech });
+
     // extract org from keySlug (org.env.keyName)
     const org = input.keySlug.split('.')[0] ?? '';
 
@@ -151,7 +160,7 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
         !credentials.AWS_ACCESS_KEY_ID ||
         !credentials.AWS_SECRET_ACCESS_KEY
       ) {
-        throw new UnexpectedCodePathError(
+        throw new MalfunctionError(
           'aws sso export did not return expected credentials',
           { stdout, credentials },
         );
@@ -166,9 +175,9 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
 
       return { secret: JSON.stringify(credentials), expiresAt };
     } catch (error) {
-      if (error instanceof UnexpectedCodePathError) throw error;
+      if (error instanceof MalfunctionError) throw error;
 
-      throw new UnexpectedCodePathError('aws sso credential refresh failed', {
+      throw new MalfunctionError('aws sso credential refresh failed', {
         profile,
         error,
       });

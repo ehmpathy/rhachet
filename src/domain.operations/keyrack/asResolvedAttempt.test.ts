@@ -27,6 +27,8 @@ describe('asResolvedAttempt', () => {
         env: 'test',
         name: 'REPO_KEY',
         grade: null,
+        // this fixture declares no reach — the reachless default every extant manifest carries (e1)
+        reaches: [],
         flags: { isOptionalIfHas: null },
       },
     },

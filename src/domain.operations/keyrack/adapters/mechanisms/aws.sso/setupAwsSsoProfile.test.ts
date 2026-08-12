@@ -2,7 +2,7 @@ import { execSync, spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import fsSync from 'fs';
 import fs from 'fs/promises';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import path from 'path';
 import { given, then, when } from 'test-fns';
 
@@ -352,7 +352,7 @@ sso_registration_scopes = sso:account:access`);
   describe('setupAwsSsoProfile', () => {
     given('[case1] aws cli not installed', () => {
       when('[t0] setup attempted', () => {
-        then('throws BadRequestError', async () => {
+        then('throws ConstraintError', async () => {
           mockExecSync.mockImplementationOnce(() => {
             throw new Error('command not found');
           });
@@ -365,7 +365,7 @@ sso_registration_scopes = sso:account:access`);
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
             }),
-          ).rejects.toThrow(BadRequestError);
+          ).rejects.toThrow(ConstraintError);
         });
 
         then('error message mentions aws cli', async () => {
@@ -388,7 +388,7 @@ sso_registration_scopes = sso:account:access`);
 
     given('[case2] profile already exists', () => {
       when('[t0] setup attempted', () => {
-        then('throws BadRequestError', async () => {
+        then('throws ConstraintError', async () => {
           // aws cli check passes
           mockExecSync.mockReturnValueOnce(Buffer.from('aws-cli/2.0.0'));
           // mkdir succeeds
@@ -406,7 +406,7 @@ sso_registration_scopes = sso:account:access`);
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
             }),
-          ).rejects.toThrow(BadRequestError);
+          ).rejects.toThrow(ConstraintError);
         });
 
         then('error message mentions profile exists', async () => {
@@ -431,7 +431,7 @@ sso_registration_scopes = sso:account:access`);
 
     given('[case3] sso login fails', () => {
       when('[t0] setup attempted', () => {
-        then('throws UnexpectedCodePathError', async () => {
+        then('throws MalfunctionError', async () => {
           // aws cli check passes
           mockExecSync.mockReturnValueOnce(Buffer.from('aws-cli/2.0.0'));
           // mkdir succeeds
@@ -453,7 +453,7 @@ sso_registration_scopes = sso:account:access`);
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
             }),
-          ).rejects.toThrow(UnexpectedCodePathError);
+          ).rejects.toThrow(MalfunctionError);
         });
 
         then('error message mentions sso login failed', async () => {
@@ -480,7 +480,7 @@ sso_registration_scopes = sso:account:access`);
 
     given('[case4] sts get-caller-identity fails', () => {
       when('[t0] setup attempted', () => {
-        then('throws UnexpectedCodePathError', async () => {
+        then('throws MalfunctionError', async () => {
           // aws cli check passes
           mockExecSync.mockReturnValueOnce(Buffer.from('aws-cli/2.0.0'));
           // mkdir succeeds
@@ -504,7 +504,7 @@ sso_registration_scopes = sso:account:access`);
               ssoAccountId: '123456789012',
               ssoRoleName: 'AdminRole',
             }),
-          ).rejects.toThrow(UnexpectedCodePathError);
+          ).rejects.toThrow(MalfunctionError);
         });
 
         then('error message mentions sts failed', async () => {
@@ -733,7 +733,7 @@ sso_registration_scopes = sso:account:access`);
   describe('listAwsSsoAccounts', () => {
     given('[case1] sso cache directory not found', () => {
       when('[t0] accounts listed', () => {
-        then('throws UnexpectedCodePathError', () => {
+        then('throws MalfunctionError', () => {
           mockReaddirSync.mockImplementationOnce(() => {
             throw new Error('ENOENT');
           });
@@ -743,7 +743,7 @@ sso_registration_scopes = sso:account:access`);
               ssoStartUrl: 'https://test.awsapps.com/start',
               ssoRegion: 'us-east-1',
             }),
-          ).toThrow(UnexpectedCodePathError);
+          ).toThrow(MalfunctionError);
         });
 
         then('error mentions sso cache', () => {
@@ -763,7 +763,7 @@ sso_registration_scopes = sso:account:access`);
 
     given('[case2] no valid token in cache', () => {
       when('[t0] all tokens expired', () => {
-        then('throws UnexpectedCodePathError', () => {
+        then('throws MalfunctionError', () => {
           mockReaddirSync.mockReturnValueOnce(['token.json'] as any);
           mockReadFileSync.mockReturnValueOnce(
             JSON.stringify({
@@ -777,7 +777,7 @@ sso_registration_scopes = sso:account:access`);
               ssoStartUrl: 'https://test.awsapps.com/start',
               ssoRegion: 'us-east-1',
             }),
-          ).toThrow(UnexpectedCodePathError);
+          ).toThrow(MalfunctionError);
         });
 
         then('error mentions no valid token', () => {
@@ -959,7 +959,7 @@ sso_registration_scopes = sso:account:access`);
   describe('listAwsSsoRoles', () => {
     given('[case1] sso cache directory not found', () => {
       when('[t0] roles listed', () => {
-        then('throws UnexpectedCodePathError', () => {
+        then('throws MalfunctionError', () => {
           mockReaddirSync.mockImplementationOnce(() => {
             throw new Error('ENOENT');
           });
@@ -970,14 +970,14 @@ sso_registration_scopes = sso:account:access`);
               ssoRegion: 'us-east-1',
               accountId: '123',
             }),
-          ).toThrow(UnexpectedCodePathError);
+          ).toThrow(MalfunctionError);
         });
       });
     });
 
     given('[case2] no valid token in cache', () => {
       when('[t0] all tokens expired', () => {
-        then('throws UnexpectedCodePathError', () => {
+        then('throws MalfunctionError', () => {
           mockReaddirSync.mockReturnValueOnce(['token.json'] as any);
           mockReadFileSync.mockReturnValueOnce(
             JSON.stringify({

@@ -29,7 +29,7 @@ describe('vaultAdapter1Password', () => {
 
   given('[case2] get requires exid', () => {
     when('[t0] get called without exid', () => {
-      then('throws UnexpectedCodePathError', async () => {
+      then('throws MalfunctionError', async () => {
         const error = await getError(
           vaultAdapter1Password.get({ slug: 'TEST_KEY' }),
         );
@@ -79,7 +79,7 @@ describe('vaultAdapter1Password', () => {
     });
 
     when('[t2] exid has invalid format', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(
           Promise.resolve().then(() =>
             asVaultNameFromExid({ exid: 'invalid-exid' }),
@@ -91,7 +91,7 @@ describe('vaultAdapter1Password', () => {
     });
 
     when('[t3] exid is missing vault segment', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(
           Promise.resolve().then(() => asVaultNameFromExid({ exid: 'op://' })),
         );

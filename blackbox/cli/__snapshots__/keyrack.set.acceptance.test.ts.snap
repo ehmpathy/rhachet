@@ -82,3 +82,165 @@ exports[`keyrack set given: [case6] set --key --env camp when: [t0] set --key CA
   "vault": "os.direct",
 }
 `;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t1] set the SAME key name at a reach then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t1] set the SAME key name at a reach then: stdout matches snapshot: stdout 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "test",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "testorg",
+  "reach": {
+    "exid": "beav@ehmpathy.com",
+  },
+  "slug": "testorg.test.CLAUDE_TOKEN",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.direct",
+}
+`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t3] list shows the rack then: the two-reach json leaves stderr empty: stderr 1`] = `""`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t3] list shows the rack then: the two-reach json renders as snapped: stdout 1`] = `
+"{
+  "testorg.test.XAI_API_KEY": {
+    "slug": "testorg.test.XAI_API_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  },
+  "testorg.test.GITHUB_APP_CREDS": {
+    "slug": "testorg.test.GITHUB_APP_CREDS",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  },
+  "testorg.test.CLAUDE_TOKEN": {
+    "slug": "testorg.test.CLAUDE_TOKEN",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  },
+  "testorg.test.CLAUDE_TOKEN@beav@ehmpathy.com": {
+    "slug": "testorg.test.CLAUDE_TOKEN",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "reach": {
+      "exid": "beav@ehmpathy.com"
+    },
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  },
+  "testorg.test.REACH_ONLY_TOKEN@vlad@ehmpathy.com": {
+    "slug": "testorg.test.REACH_ONLY_TOKEN",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "reach": {
+      "exid": "vlad@ehmpathy.com"
+    },
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  }
+}
+"
+`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t4] set at a reach, rendered for a human (no --json) then: the render is snapped: stdout 1`] = `
+"🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.HUMAN_RENDER_KEY@beav@ehmpathy.com
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+
+"
+`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t4] set at a reach, rendered for a human (no --json) then: the render leaves stderr empty: stderr 1`] = `""`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t5] set with NO reach, rendered for a human (e1) then: the render is snapped: stdout 1`] = `
+"🔐 keyrack set (org: testorg, env: test)
+   └─ testorg.test.REACHLESS_RENDER_KEY
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+
+"
+`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t5] set with NO reach, rendered for a human (e1) then: the render leaves stderr empty: stderr 1`] = `""`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t6] list rendered for a human (no --json) then: the render is snapped: stdout 1`] = `
+"
+🔐 keyrack list
+   ├─ testorg.test.CLAUDE_TOKEN
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.test.CLAUDE_TOKEN
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ reach: beav@ehmpathy.com
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.test.GITHUB_APP_CREDS
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.test.REACH_ONLY_TOKEN
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ reach: vlad@ehmpathy.com
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.test.XAI_API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+"
+`;
+
+exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t6] list rendered for a human (no --json) then: the render leaves stderr empty: stderr 1`] = `""`;
+
+exports[`keyrack set given: [case8] a reach aimed at a vault that cannot file one when: [t0] set --vault github.secrets with a --reach then: the whole blocked tree is snapped: stderr: stderr 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ blocked: --reach does not apply to github.secrets: its storage address carries no reach, so a second reach of this key would overwrite the first, and a credential would be lost with no signal
+      └─ hint: ci holds blobs, never reaches — supply the target reach's credential under its own name, then ask for it without --reach
+
+"
+`;
+
+exports[`keyrack set given: [case8] a reach aimed at a vault that cannot file one when: [t0] set --vault github.secrets with a --reach then: the whole blocked tree is snapped: stdout: stdout 1`] = `""`;

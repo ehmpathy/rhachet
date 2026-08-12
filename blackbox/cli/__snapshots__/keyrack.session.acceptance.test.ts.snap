@@ -1,0 +1,78 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t0] unlock names a reach but no key then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      └─ hint: name the key — rhx keyrack unlock --env test --key $KEY --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t0] unlock names a reach but no key then: the refusal renders the whole blocked tree: stdout: stdout 1`] = `""`;
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t1] get names a reach across a whole-repo sweep then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      └─ hint: name the key — rhx keyrack get --key $KEY --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t1] get names a reach across a whole-repo sweep then: the refusal renders the whole blocked tree: stdout: stdout 1`] = `""`;
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t2] get names a reach AND the key, across a whole-repo sweep then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      └─ hint: drop --for repo — a reach is an identity axis of one key, and --for repo sweeps every key in the repo. rhx keyrack get --key API_KEY --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t2] get names a reach AND the key, across a whole-repo sweep then: the refusal renders the whole blocked tree: stdout: stdout 1`] = `""`;
+
+exports[`keyrack session commands given: [case5] a key held reachless, asked for at a reach never cut when: [t0] unlock names a reach that was never cut then: the whole blocked tree is snapped: stderr: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: no key is set for reach 'beav@ehmpathy.com': a reach is never derived — a key must be cut at the reach you ask for
+      ├─ repo: testorg.test.UNCUT_REACH_KEY
+      └─ hint: cut the key — rhx keyrack set --env test --key UNCUT_REACH_KEY --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack session commands given: [case5] a key held reachless, asked for at a reach never cut when: [t0] unlock names a reach that was never cut then: the whole blocked tree is snapped: stdout: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack session commands given: [case6] a key cut at two reaches, unlocked at one when: [t0] unlock names the key and one of its reaches then: the unlock tree renders as snapped: stderr: stderr 1`] = `""`;
+
+exports[`keyrack session commands given: [case6] a key cut at two reaches, unlocked at one when: [t0] unlock names the key and one of its reaches then: the unlock tree renders as snapped: stdout: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ reach: beav@ehmpathy.com
+      ├─ vault: os.direct
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack session commands given: [case6] a key cut at two reaches, unlocked at one when: [t1] the unlocked reach is read back then: the get tree renders as snapped: stderr: stderr 1`] = `""`;
+
+exports[`keyrack session commands given: [case6] a key cut at two reaches, unlocked at one when: [t1] the unlocked reach is read back then: the get tree renders as snapped: stdout: stdout 1`] = `
+"
+🔐 keyrack
+   └─ testorg.test.API_KEY
+      ├─ reach: beav@ehmpathy.com
+      ├─ vault: os.direct
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+
+"
+`;

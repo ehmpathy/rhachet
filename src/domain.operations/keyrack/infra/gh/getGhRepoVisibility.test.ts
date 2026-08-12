@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockGhRun } from '@src/.test/assets/genMockGhRun';
@@ -44,7 +44,7 @@ describe('getGhRepoVisibility', () => {
         const error = await getError(() =>
           getGhRepoVisibility({ slug: 'ehmpathy/keyrack-infra' }, { ghRun }),
         );
-        expect(error).toBeInstanceOf(UnexpectedCodePathError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toContain('gh repo view (visibility) failed');
         expect(error.message).toMatchSnapshot();
       });

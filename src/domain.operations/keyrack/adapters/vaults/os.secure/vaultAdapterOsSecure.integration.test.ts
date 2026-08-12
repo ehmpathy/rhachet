@@ -314,4 +314,161 @@ describe('vaultAdapterOsSecure', () => {
       });
     });
   });
+
+  /**
+   * .what = the claude-account juggle, through REAL age encryption on disk
+   * .why = `getCredentialPath` hashes the key ADDRESS, never the bare slug — so a key cut
+   *        for one reach lands in its own `.age` file rather than overwrite the key
+   *        beside it. that is the storage-level twin of the daemon's `(slug, reach)`
+   *        partition, and it is the ONE place a reach could be lost to disk
+   *
+   * .note = every other reach test in this repo proves a pure link (a parser, a store, a
+   *         render). this one threads set → age encrypt → disk → age decrypt → get at a
+   *         reach, so it is the first proof that reach survives real crypto round trip
+   * .note = os.direct proves the same partition on a plaintext store. os.secure is the vault
+   *         the vision's demo actually uses, and it is the only one whose path is DERIVED
+   *         (a hash) rather than a literal key — so a hash over the wrong input is a defect
+   *         no plaintext-store test could catch
+   */
+  given('[case5] one slug cut for two reaches', () => {
+    const reachBeav = { exid: 'beav@ehmpathy.com' };
+    const reachVlad = { exid: 'vlad@ehmpathy.com' };
+
+    beforeEach(async () => {
+      const context = genTestContext({
+        identity: testIdentity,
+        recipient: testRecipient,
+      });
+
+      // the reachless key, then two reaches of the SAME slug
+      setMockPromptValues([
+        'secret-reachless',
+        'secret-for-beav',
+        'secret-for-vlad',
+      ]);
+      await vaultAdapterOsSecure.set(
+        { slug: 'ANTHROPIC_API_KEY', mech: 'PERMANENT_VIA_REPLICA' },
+        context,
+      );
+      await vaultAdapterOsSecure.set(
+        {
+          slug: 'ANTHROPIC_API_KEY',
+          mech: 'PERMANENT_VIA_REPLICA',
+          reach: reachBeav,
+        },
+        context,
+      );
+      await vaultAdapterOsSecure.set(
+        {
+          slug: 'ANTHROPIC_API_KEY',
+          mech: 'PERMANENT_VIA_REPLICA',
+          reach: reachVlad,
+        },
+        context,
+      );
+    });
+
+    when('[t0] the vault directory is read', () => {
+      // .note = THREE files, not one. a hash over the bare slug would write all three to
+      //         one path, so this count is what proves the address is the hash input
+      then('each reach holds its own encrypted file', () => {
+        const vaultDir = join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+          'owner=default',
+        );
+        expect(readdirSync(vaultDir)).toHaveLength(3);
+      });
+    });
+
+    when('[t1] each reach is read back', () => {
+      then('a reach-ask yields that reach’s own secret', async () => {
+        const beav = await vaultAdapterOsSecure.get({
+          slug: 'ANTHROPIC_API_KEY',
+          identity: testIdentity,
+          reach: reachBeav,
+        });
+        expect(beav?.key.secret).toEqual('secret-for-beav');
+
+        const vlad = await vaultAdapterOsSecure.get({
+          slug: 'ANTHROPIC_API_KEY',
+          identity: testIdentity,
+          reach: reachVlad,
+        });
+        expect(vlad?.key.secret).toEqual('secret-for-vlad');
+      });
+
+      // .note = e1 — a reachless address IS the bare slug, so the key written before any
+      //         reach existed keeps its path and stays readable
+      then('a reachless ask still yields the reachless secret', async () => {
+        const found = await vaultAdapterOsSecure.get({
+          slug: 'ANTHROPIC_API_KEY',
+          identity: testIdentity,
+        });
+        expect(found?.key.secret).toEqual('secret-reachless');
+      });
+
+      then('the grant carries the reach it was asked for', async () => {
+        const found = await vaultAdapterOsSecure.get({
+          slug: 'ANTHROPIC_API_KEY',
+          identity: testIdentity,
+          reach: reachBeav,
+        });
+        expect(found?.reach).toEqual(reachBeav);
+      });
+    });
+
+    when('[t2] a reach no key was cut for is asked for', () => {
+      // .note = e6 — an absent reach-key is ABSENT, never a cue to hand back the reachless
+      //         one. a fallback here would be the wrong-reach failure the whole design
+      //         exists to forbid (e18)
+      then('it yields null, never the reachless key beside it', async () => {
+        const found = await vaultAdapterOsSecure.get({
+          slug: 'ANTHROPIC_API_KEY',
+          identity: testIdentity,
+          reach: { exid: 'nobody@ehmpathy.com' },
+        });
+        expect(found).toBeNull();
+      });
+    });
+
+    when('[t3] one reach is deleted', () => {
+      then(
+        'its peers survive — to cut one key is not to cut them all',
+        async () => {
+          // mech + meta are REQUIRED (null when unknown) so a forgotten value cannot hide behind
+          // `undefined`. only aws.params reads them — os.secure ignores both
+          await vaultAdapterOsSecure.del({
+            slug: 'ANTHROPIC_API_KEY',
+            reach: reachBeav,
+            mech: null,
+            meta: null,
+          });
+
+          const beav = await vaultAdapterOsSecure.get({
+            slug: 'ANTHROPIC_API_KEY',
+            identity: testIdentity,
+            reach: reachBeav,
+          });
+          expect(beav).toBeNull();
+
+          const vlad = await vaultAdapterOsSecure.get({
+            slug: 'ANTHROPIC_API_KEY',
+            identity: testIdentity,
+            reach: reachVlad,
+          });
+          expect(vlad?.key.secret).toEqual('secret-for-vlad');
+
+          const reachless = await vaultAdapterOsSecure.get({
+            slug: 'ANTHROPIC_API_KEY',
+            identity: testIdentity,
+          });
+          expect(reachless?.key.secret).toEqual('secret-reachless');
+        },
+      );
+    });
+  });
 });

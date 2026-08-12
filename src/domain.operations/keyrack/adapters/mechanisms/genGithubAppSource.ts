@@ -1,10 +1,13 @@
 import { ConstraintError } from 'helpful-errors';
 
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack';
+
 import { asKeyrackKeyOrg } from '../../asKeyrackKeyOrg';
 import { genKeyrackInfraRegistryGithubApp } from '../../infra/genKeyrackInfraRegistryGithubApp';
 import { getKeyrackInfraCandidateApps } from '../../infra/getKeyrackInfraCandidateApps';
 import type { GhRun } from '../../infra/gh/runGh';
 import { asGithubAppSource } from './asGithubAppSource';
+import { asGithubOrgFromReach } from './asGithubOrgFromReach';
 import { getPemContent } from './getPemContent';
 import { getPemPath } from './getPemPath';
 import { getSelectedApp } from './getSelectedApp';
@@ -28,14 +31,24 @@ import { getSelectedApp } from './getSelectedApp';
  *         tests inject a fake GhRun + a scripted question
  */
 export const genGithubAppSource = async (
-  input: { keySlug: string },
+  input: { keySlug: string; reach?: KeyrackKeyReach },
   context: { ghRun: GhRun; question: (prompt: string) => Promise<string> },
 ): Promise<{ source: string }> => {
   const { question } = context;
   const ctxGh = { ghRun: context.ghRun };
 
-  // derive org from the fully-qualified key slug (org.env.name)
-  const org = asKeyrackKeyOrg({ slug: input.keySlug });
+  // pick the org whose installation this credential opens
+  // .note = a reach names the DESTINATION explicitly; with none, the destination is the
+  //         slug's own org — which is every key that exists today. the org is an argument
+  //         to one lookup, never a fork into a second discovery path: EVERY org, own or
+  //         reached, goes through keyrack-infra, so a non-admin can always use github apps
+  //         (rule.require.github-app-org-lookup-via-keyrack-infra)
+  // .note = a reach is PLAINTEXT to keyrack; this mech is the one place that asks more of
+  //         it, because it must mint FOR a reach rather than merely file a value under
+  //         one. so the `github://org=` convention is read here, and nowhere else
+  const org = input.reach
+    ? asGithubOrgFromReach({ reach: input.reach })
+    : asKeyrackKeyOrg({ slug: input.keySlug });
 
   // discover candidate apps (mandatory infra gate + registry-first + admin fallback)
   const candidates = getKeyrackInfraCandidateApps({ org }, ctxGh);

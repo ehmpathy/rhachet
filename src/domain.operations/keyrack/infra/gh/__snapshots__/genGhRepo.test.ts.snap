@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`genGhRepo given: [case3] a create failure (non-404 error on create) when: [t0] genned then: it fails loud with an actionable hint 1`] = `
-"UnexpectedCodePathError: gh repo create failed
+"💥 MalfunctionError: gh repo create failed
 
 {
   "slug": "ehmpathy/keyrack-infra",

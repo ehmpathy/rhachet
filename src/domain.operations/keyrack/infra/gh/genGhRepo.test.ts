@@ -1,4 +1,4 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockGhRun } from '@src/.test/assets/genMockGhRun';
@@ -50,7 +50,7 @@ describe('genGhRepo', () => {
         const error = await getError(() =>
           genGhRepo({ slug: 'ehmpathy/keyrack-infra' }, { ghRun }),
         );
-        expect(error).toBeInstanceOf(UnexpectedCodePathError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toContain('gh repo create failed');
         expect(error.message).toContain('gh auth status');
         expect(error.message).toMatchSnapshot();

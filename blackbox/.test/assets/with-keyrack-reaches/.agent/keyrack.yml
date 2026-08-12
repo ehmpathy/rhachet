@@ -1,0 +1,12 @@
+org: testorg
+
+# a repo declares the reaches every developer here must hold, so `fill` provisions
+# each one. every entry is unconditional — a repo that names a reach declares the
+# checkout does not work without it.
+# a `reaches:` line is hand-authored and committed by a human — no keyrack command writes it.
+env.test:
+  - PLAIN_KEY
+  - MULTI_REACH_KEY:
+      reaches:
+        - beav@ehmpathy.com
+        - vlad@ehmpathy.com

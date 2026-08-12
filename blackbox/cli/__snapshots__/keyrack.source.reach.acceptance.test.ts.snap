@@ -1,0 +1,118 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t1] the rack is read back then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t1] the rack is read back then: the reply is snapped: stdout 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   ├─ daemon: active ✨
+   ├─ testorg.test.API_KEY
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  └─ expires in: 540m
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ reach: beav@ehmpathy.com
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t2] the rack is read back as json then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t2] the rack is read back as json then: the reply is snapped: stdout 1`] = `
+{
+  "keys": [
+    {
+      "env": "test",
+      "expiresAt": "__REDACTED__",
+      "org": "testorg",
+      "slug": "testorg.test.API_KEY",
+      "ttlLeftMs": "__REDACTED__",
+    },
+    {
+      "env": "test",
+      "expiresAt": "__REDACTED__",
+      "org": "testorg",
+      "reach": {
+        "exid": "beav@ehmpathy.com",
+      },
+      "slug": "testorg.test.API_KEY",
+      "ttlLeftMs": "__REDACTED__",
+    },
+  ],
+  "owner": null,
+  "recipients": [
+    {
+      "addedAt": "__REDACTED__",
+      "label": "test-key",
+      "mech": "age",
+      "pubkey": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
+    },
+  ],
+  "socketPath": "__REDACTED__",
+}
+`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t3] source is run while both are held then: stderr matches snapshot 1`] = `""`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t3] source is run while both are held then: stdout matches snapshot 1`] = `
+"export API_KEY='sk-reachless-aaa111'
+"
+`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t4] one reach is fetched by name, as json then: the reply is snapped: stderr 1`] = `""`;
+
+exports[`keyrack source reach given: [case1] one slug held at two reaches at once when: [t4] one reach is fetched by name, as json then: the reply is snapped: stdout 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.API_KEY",
+    "key": {
+      "secret": "sk-beav-bbb222",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "reach": {
+      "exid": "beav@ehmpathy.com"
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack source reach given: [case2] one key name declared under two envs when: [t0] every env is unlocked, then sourced together then: the reply is snapped: stderr 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ blocked: two keys would both export 'SHARED_API_KEY': 'testorg.prod.SHARED_API_KEY' and 'testorg.prep.SHARED_API_KEY' — a shell variable name carries neither env nor reach, so the second would silently overwrite the first
+      └─ hint:
+         ├─ source one env at a time
+         └─ narrow --env, or use --key to name one
+
+"
+`;
+
+exports[`keyrack source reach given: [case2] one key name declared under two envs when: [t0] every env is unlocked, then sourced together then: the reply is snapped: stdout 1`] = `""`;
+
+exports[`keyrack source reach given: [case3] a reach named on a sweep, with no key to anchor it when: [t0] source is asked for a reach but given no key then: the reply is snapped: stderr 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      └─ hint: name the key — rhx keyrack source --env test --key $KEY --reach beav@ehmpathy.com
+
+"
+`;
+
+exports[`keyrack source reach given: [case3] a reach named on a sweep, with no key to anchor it when: [t0] source is asked for a reach but given no key then: the reply is snapped: stdout 1`] = `""`;

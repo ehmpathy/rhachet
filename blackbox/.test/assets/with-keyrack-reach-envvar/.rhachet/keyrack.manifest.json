@@ -1,0 +1,22 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.test.API_KEY": {
+      "slug": "testorg.test.API_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.envvar",
+      "exid": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.test.API_KEY@beav@ehmpathy.com": {
+      "slug": "testorg.test.API_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.envvar",
+      "exid": null,
+      "reach": { "exid": "beav@ehmpathy.com" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

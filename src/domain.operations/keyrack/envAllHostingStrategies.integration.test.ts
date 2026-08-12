@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
@@ -522,7 +522,7 @@ env.test:
     });
 
     when('[t1] unlock called with --env prod', () => {
-      then('throws BadRequestError (key not declared for prod)', async () => {
+      then('throws ConstraintError (key not declared for prod)', async () => {
         const vaultAdapter = genMockVaultAdapter({
           storage: { 'testorg.test.API_KEY': secretValue },
         });
@@ -533,7 +533,7 @@ env.test:
         });
         context.vaultAdapters['os.direct'] = vaultAdapter;
 
-        // key not in manifest for prod → BadRequestError
+        // key not in manifest for prod → ConstraintError
         const error = await getError(
           unlockKeyrackKeys(
             { owner: 'case4', env: 'prod', key: 'API_KEY' },
@@ -541,7 +541,7 @@ env.test:
           ),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('key not found in manifest');
       });
     });

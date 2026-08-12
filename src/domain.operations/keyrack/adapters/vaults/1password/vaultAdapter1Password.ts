@@ -1,8 +1,4 @@
-import {
-  BadRequestError,
-  ConstraintError,
-  UnexpectedCodePathError,
-} from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -16,6 +12,7 @@ import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlug
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 import { promptVisibleInput } from '@src/infra/promptVisibleInput';
 
 import { execFile } from 'node:child_process';
@@ -54,7 +51,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -80,7 +77,7 @@ export const REQUIRED_ACCOUNT_NAME = 'keyrack';
 export const asVaultNameFromExid = (input: { exid: string }): string => {
   const match = input.exid.match(/^op:\/\/([^/]+)\//);
   if (!match?.[1])
-    throw new BadRequestError('invalid 1password exid format', {
+    throw new ConstraintError('invalid 1password exid format', {
       exid: input.exid,
       expected: 'op://vault/item/field',
     });
@@ -282,7 +279,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
     // exid is the 1password secret reference uri
     // e.g., "op://vault/item/field"
     if (!input.exid)
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         '1password vault requires exid (secret reference uri)',
         { input },
       );
@@ -344,6 +341,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
     return new KeyrackKeyGrant({
       slug: input.slug,
       key: { secret, grade },
+      ...asKeyrackKeyReachField({ reach: input.reach }),
       source: { vault: '1password', mech },
       env,
       org,
@@ -374,14 +372,11 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
 
     // check mech compat
     if (!vaultAdapter1Password.mechs.supported.includes(mech)) {
-      throw new UnexpectedCodePathError(
-        `1password does not support mech: ${mech}`,
-        {
-          mech,
-          supported: vaultAdapter1Password.mechs.supported,
-          hint: 'try --vault aws.config for aws sso',
-        },
-      );
+      throw new MalfunctionError(`1password does not support mech: ${mech}`, {
+        mech,
+        supported: vaultAdapter1Password.mechs.supported,
+        hint: 'try --vault aws.config for aws sso',
+      });
     }
 
     // fail fast if op cli not installed
@@ -429,9 +424,14 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       console.log(`🔐 keyrack set ${input.slug} via ${mech}`);
 
       // mech guided setup continues the tree
+      // .note = this vault addresses by exid, a human-supplied `op://` uri — so a key cut
+      //         for a second reach lands at its own exid, held under its own address in
+      //         the host manifest. the reach steers WHICH installation the mech derives
       const mechAdapter = getMechAdapter(mech);
       const { source } = await mechAdapter.acquireForSet({
         keySlug: input.slug,
+        reach: input.reach,
+        mech,
       });
 
       // prompt for exid if not provided (where to store in 1password)
@@ -455,7 +455,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
 
       // validate exid format
       if (!exid || !exid.startsWith('op://')) {
-        throw new BadRequestError(
+        throw new ConstraintError(
           '1password exid must be a secret reference uri (op://vault/item/field)',
           { exid },
         );
@@ -465,7 +465,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       // format: op://vault/item/field
       const parts = exid.replace('op://', '').split('/');
       if (parts.length < 3) {
-        throw new BadRequestError(
+        throw new ConstraintError(
           '1password exid must include field (op://vault/item/field)',
           { exid, parts },
         );
@@ -512,7 +512,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       try {
         const { stdout } = await execOp(['read', exid]);
         if (stdout.trim() !== source) {
-          throw new UnexpectedCodePathError(
+          throw new MalfunctionError(
             'roundtrip failed: read returned different value',
             {
               exid,
@@ -551,7 +551,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
 
     // validate exid format
     if (!exid || !exid.startsWith('op://')) {
-      throw new BadRequestError(
+      throw new ConstraintError(
         '1password exid must be a secret reference uri (op://vault/item/field)',
         { exid },
       );

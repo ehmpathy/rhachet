@@ -992,4 +992,111 @@ describe('keyrack status: locked vs absent', () => {
       });
     });
   });
+
+  /**
+   * [case7] the `reach:` leaf on `keyrack status` — filed where it belongs
+   *
+   * .what = a key cut for one reach, unlocked, then read back through `status`. the rack
+   *         must name the reach each held key opens
+   * .why = `status` IS the audit surface for "which reaches are unlocked right now" — the
+   *        three-branch rack is the vision's headline demo. a leaf absent here means a human
+   *        cannot answer that question at all without an unlock of every key
+   *
+   * .note = ⚠️ this coverage DID exist — but only as a rider inside
+   *         `keyrack.relock.acceptance.test.ts`, whose subject is relock, not status. that is
+   *         misfiled coverage, and it is fragile in a specific way: a future edit that narrows
+   *         the relock suite would take the only acceptance-level proof of a `status` render
+   *         down with it, and the deletion would look unrelated to anyone who read the diff
+   * .note = the reachless twin is every other case in this file — read as a pair they are an
+   *         A/B on the reach axis alone, and they clamp e1: a reachless key renders no leaf
+   */
+  given('[case7] a key held at a reach, read back through status', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: envIsolated(r.path),
+      });
+
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - REACHED_KEY\n',
+        'utf-8',
+      );
+
+      // cut the key FOR one reach — the reach rides `set`, so it is part of identity
+      const setResult = await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'set',
+          '--key',
+          'REACHED_KEY',
+          '--env',
+          'test',
+          '--vault',
+          'os.secure',
+          '--mech',
+          'PERMANENT_VIA_REPLICA',
+          '--reach',
+          'beav@ehmpathy.com',
+          '--json',
+        ],
+        cwd: r.path,
+        env: envIsolated(r.path),
+        stdin: 'secret-for-one-reach\n',
+      });
+      expect(setResult.status).toEqual(0);
+
+      // unlock it, so the daemon holds a grant for `status` to render
+      const unlockResult = await invokeRhachetCliBinary({
+        args: [
+          'keyrack',
+          'unlock',
+          '--env',
+          'test',
+          '--key',
+          'REACHED_KEY',
+          '--reach',
+          'beav@ehmpathy.com',
+        ],
+        cwd: r.path,
+        env: envIsolated(r.path),
+        logOnError: false,
+      });
+      expect(unlockResult.status).toEqual(0);
+
+      return r;
+    });
+
+    when('[t0] status is read', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'status'],
+          cwd: repo.path,
+          env: envIsolated(repo.path),
+          logOnError: false,
+        }),
+      );
+
+      then('it succeeds', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the key is on the rack', () => {
+        expect(result.stdout).toContain('REACHED_KEY');
+      });
+
+      // THE clamp. a rack that lists the key yet omits its reach is the exact failure
+      // this case exists to catch — the human sees a held key and cannot tell what it opens
+      then('the reach it opens is named', () => {
+        expect(result.stdout).toContain('reach:');
+        expect(result.stdout).toContain('beav@ehmpathy.com');
+      });
+    });
+  });
 });

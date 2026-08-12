@@ -33,7 +33,7 @@ export const getKeyrackBlockedReport = (input: {
   const metadata =
     (input.error as { metadata?: Record<string, unknown> }).metadata ?? {};
 
-  // collect the flat leaves (repo, stderr) that precede the hint, in a stable order.
+  // collect the flat leaves (repo, stderr, note) that precede the hint, in a stable order.
   // .note = trim the stderr value: a gh boundary error carries a newline at its end, which
   //         would render as a blank line between this leaf and the hint and sever the tree's
   //         `│` margin (rule.require.treestruct-output)
@@ -42,10 +42,27 @@ export const getKeyrackBlockedReport = (input: {
     flatLeaves.push(`repo: ${metadata.slug}`);
   if (typeof metadata.stderr === 'string' && metadata.stderr.trim())
     flatLeaves.push(`stderr: ${metadata.stderr.trim()}`);
+  if (typeof metadata.note === 'string' && metadata.note.trim())
+    flatLeaves.push(`why: ${metadata.note.trim()}`);
+
+  // the last leaf is the FIX — the one line a human copy-pastes. two metadata keys carry it
+  // in this repo (`hint` and `fix`), and both must render.
+  // ⚠️ .why both = the message body is `redact(['metadata'])`ed above, so a field this
+  //    renderer does not explicitly re-emit is DROPPED. before `fix` was read here, every
+  //    throw site that named its remedy under `fix:` rendered as a bare symptom with no way
+  //    forward — `rule.require.errors-name-the-fix` violated by omission, and invisibly,
+  //    because the throw site looked correct and only the render lost it.
+  //    `unlockKeyrackKeys`'s "key not found in manifest" is the case that caught it: it
+  //    carries `fix: rhx keyrack set …` and a human saw none of it
+  const hint =
+    typeof metadata.hint === 'string'
+      ? metadata.hint
+      : typeof metadata.fix === 'string'
+        ? metadata.fix
+        : null;
 
   // a hint may carry multiple `;`-joined conditional branches; split so each renders as
   // its own sub-branch — a single semicolon-joined line wraps mid-phrase in a terminal
-  const hint = typeof metadata.hint === 'string' ? metadata.hint : null;
   const hintParts = hint
     ? hint
         .split(';')

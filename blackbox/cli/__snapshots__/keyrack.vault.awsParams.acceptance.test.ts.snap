@@ -2,7 +2,7 @@
 
 exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t0] keyrack set with an unsupported --mech for aws.params then: stderr matches snapshot 1`] = `
 "
-BadRequestError: host manifest not found. run: rhx keyrack init --owner mechanic
+✋ ConstraintError: host manifest not found. run: rhx keyrack init --owner mechanic
 
 {
   "owner": "mechanic"
@@ -15,7 +15,7 @@ BadRequestError: host manifest not found. run: rhx keyrack init --owner mechanic
 
 exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t1] keyrack set with PERMANENT_VIA_REFERENCE (dropped from aws.params) then: stderr matches snapshot 1`] = `
 "
-BadRequestError: host manifest not found. run: rhx keyrack init --owner mechanic
+✋ ConstraintError: host manifest not found. run: rhx keyrack init --owner mechanic
 
 {
   "owner": "mechanic"
@@ -43,6 +43,8 @@ Options:
                              (inferred from manifest if unambiguous)
   --org <org>                target org: @this or @all (default: @this)
                              (default: "@this")
+  --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
+                             github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)
   --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
   --at <path>                custom keyrack.yml path (for role-level keyracks)
@@ -128,7 +130,6 @@ exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the
 
 exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the secret into SSM, then roundtrips set→unlock→get when: [t3] del of the replica key destroys the SSM secret keyrack wrote then: stdout matches snapshot 1`] = `
 "
-
 🔐 keyrack del
    └─ @all.test.XAI_API_KEY removed
       └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY was destroyed

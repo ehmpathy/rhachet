@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { delFileSync } from '@src/domain.operations/keyrack/daemon/infra/delFileSync';
 import { genDaemonActivityClock } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonActivityClock';
@@ -78,7 +78,7 @@ export const createKeyrackDaemonServer = (input: {
   // handle server errors
   server.on('error', (err) => {
     console.error('[keyrack-daemon] server error:', err.message);
-    throw new UnexpectedCodePathError('daemon server error', {
+    throw new MalfunctionError('daemon server error', {
       socketPath,
       cause: err,
     });

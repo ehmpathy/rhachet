@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
@@ -36,7 +36,7 @@ export const setKeyrackRecipient = async (input: {
   // load manifest (context handles identity discovery)
   const result = await daoKeyrackHostManifest.get({ owner }, context);
   if (!result)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'keyrack manifest not found; run `rhx keyrack init` first',
       { owner },
     );
@@ -47,7 +47,7 @@ export const setKeyrackRecipient = async (input: {
     (r) => r.label === input.label,
   );
   if (labelFound)
-    throw new BadRequestError('recipient with this label already exists', {
+    throw new ConstraintError('recipient with this label already exists', {
       label: input.label,
       owner,
     });
@@ -61,7 +61,7 @@ export const setKeyrackRecipient = async (input: {
   // this is for ssh-keygen -p prevention flow: add ssh stanza while key is still passwordless
   if (input.stanza === 'ssh') {
     if (!pubkeyRaw.startsWith('ssh-'))
-      throw new BadRequestError(
+      throw new ConstraintError(
         '--stanza ssh requires ssh pubkey (ssh-ed25519, ssh-rsa, etc.)',
         { pubkeyRaw },
       );
@@ -75,7 +75,7 @@ export const setKeyrackRecipient = async (input: {
     mech = 'age';
     pubkey = sshPubkeyToAgeRecipient({ pubkey: pubkeyRaw });
   } else {
-    throw new BadRequestError(
+    throw new ConstraintError(
       'pubkey must be age (age1...) or ssh (ssh-ed25519, ssh-rsa, etc.)',
       { pubkeyRaw },
     );

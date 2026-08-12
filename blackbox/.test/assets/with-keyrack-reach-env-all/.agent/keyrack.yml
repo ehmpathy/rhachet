@@ -1,0 +1,14 @@
+org: testorg
+
+# .note = `env.all` is the subject of this fixture — the one declaration form whose STORED
+#         slug (`testorg.all.CROSS_ENV_KEY`) differs from the slug a scoped caller ASKS with
+#         (`testorg.test.CROSS_ENV_KEY`). that gap is the fallback under test
+env.all:
+  - CROSS_ENV_KEY
+
+# .note = load-bearing, though no test asserts on it: the manifest schema refuses an `env.all`
+#         section that stands alone (`env.all requires at least one env-specific section`).
+#         so this key exists to make the fixture legal, and it is given its own host entry so
+#         the `--env all` unlock sweep resolves cleanly rather than reports an omission
+env.test:
+  - TEST_ONLY_KEY

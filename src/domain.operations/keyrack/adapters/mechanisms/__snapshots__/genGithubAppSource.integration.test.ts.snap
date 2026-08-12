@@ -15,3 +15,11 @@ exports[`genGithubAppSource given: [case4] the registry is empty and the caller 
   "hint": "ask an admin to add a github app to keyrack for this org"
 }"
 `;
+
+exports[`genGithubAppSource given: [case8] the reached org registers no app, but the slug org does when: [t0] the source is acquired with a github reach then: the fix named is the extant admin-free remedy 1`] = `
+"✋ ConstraintError: no github apps registered for ehmpathy
+
+{
+  "hint": "ask an admin to add a github app to keyrack for this org"
+}"
+`;

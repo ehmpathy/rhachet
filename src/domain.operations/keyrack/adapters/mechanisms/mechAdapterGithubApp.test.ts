@@ -224,7 +224,10 @@ describe('mechAdapterGithubApp', () => {
             async () => {
               const error = await getError(
                 mechAdapterGithubApp.acquireForSet(
-                  { keySlug: 'ehmpathy.test.XAI_API_KEY' },
+                  {
+                    keySlug: 'ehmpathy.test.XAI_API_KEY',
+                    mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                  },
                   { ghRun },
                 ),
               );

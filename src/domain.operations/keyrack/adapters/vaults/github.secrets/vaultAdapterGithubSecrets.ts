@@ -1,14 +1,16 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
   KeyrackGrantMechanismAdapter,
   KeyrackHostVaultAdapter,
+  KeyrackKeyReach,
 } from '@src/domain.objects/keyrack';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAddressable';
 
 import { getGithubRepoFromContext } from './getGithubRepoFromContext';
 import { ghSecretDelete } from './ghSecretDelete';
@@ -30,7 +32,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -96,6 +98,7 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
       mech?: KeyrackGrantMechanism | null;
       exid?: string | null;
       expiresAt?: string | null;
+      reach?: KeyrackKeyReach;
     },
     context?: ContextKeyrack,
   ) => {
@@ -106,7 +109,7 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
 
     // check mech compat
     if (!vaultAdapterGithubSecrets.mechs.supported.includes(mech)) {
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         `github.secrets does not support mech: ${mech}`,
         {
           mech,
@@ -115,6 +118,15 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
         },
       );
     }
+
+    // a github actions secret name is a flat namespace, and the name this vault derives
+    // drops the org, the env, and the reach alike. one refusal serves every vault whose
+    // address has no reach axis — the same one os.envvar draws for the read side
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'github.secrets',
+      direction: 'write',
+    });
 
     // get github repo from context
     const repo = getGithubRepoFromContext({ gitroot: context?.gitroot });
@@ -128,8 +140,14 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
     }
 
     // mech guided setup to get the source credential
+    // .note = `reach` is passed though the guard above proves it undefined here. that is
+    //         deliberate: every peer vault (`aws.config`, `1password`, `os.direct`) threads it,
+    //         and a lone omission is the shape that drops a value with NO compiler signal if
+    //         the guard is ever loosened or moved below this line. uniform beats clever
     const { source: secret } = await mechAdapter.acquireForSet({
       keySlug: input.slug,
+      reach: input.reach,
+      mech,
     });
 
     // extract secret name from slug (format: $org.$env.$key)
@@ -161,15 +179,25 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
    *
    * .note = uses gh secret delete under the hood
    * .note = requires exid (repo) to be set during set operation
+   * .note = the input is INFERRED from `KeyrackHostVaultAdapter`, never re-declared inline.
+   *         an inline type that omits `reach` is structurally assignable — the interface's
+   *         field is optional, so a narrower implementation compiles with zero signal. that
+   *         is precisely how `os.daemon` dropped a reach and orphaned a credential (i006):
+   *         the vault did not write a WRONG branch, it wrote none, and no compiler said so
    */
-  del: async (input: {
-    slug: string;
-    exid?: string | null;
-    owner?: string | null;
-  }) => {
+  del: async (input) => {
+    // the refusal is symmetric with `set`: this vault's address carries no reach, so a
+    // reach-key can never have been stored here — and a del that accepted one would report
+    // success for a removal it never performed
+    assertKeyrackReachAddressable({
+      reach: input.reach,
+      vault: 'github.secrets',
+      direction: 'write',
+    });
+
     // guard: exid (repo) required
     if (!input.exid) {
-      throw new UnexpectedCodePathError(
+      throw new MalfunctionError(
         'exid (repo) required for github.secrets del',
         {
           slug: input.slug,

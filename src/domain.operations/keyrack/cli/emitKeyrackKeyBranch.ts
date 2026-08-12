@@ -1,5 +1,6 @@
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { asExpiresInMinutes } from '@src/domain.operations/keyrack/asExpiresInMinutes';
+import { asKeyrackKeyReachLeaves } from '@src/domain.operations/keyrack/cli/asKeyrackKeyReachLeaves';
 
 /**
  * .what = format a keyrack key status as a tree branch
@@ -16,6 +17,17 @@ export const formatKeyrackKeyBranch = (input: {
 
   if (entry.type === 'granted') {
     lines.push(`${prefix} ${entry.grant.slug}`);
+    // the reach leaf sits directly ABOVE `vault:`, the same slot it takes on the `unlocked`
+    // branch below — so a human reads one shape whether they ran `get` or `unlock`
+    // .why this branch needs it at all = `keyrack get` renders HERE, and it is the command a
+    //      consumer actually calls. without this line a caller could pass `--reach`, have it
+    //      honored end to end, and see no trace of WHICH reach answered — the one fact the
+    //      whole feature exists to make legible (rule.require.status-feedback)
+    // .note = `asKeyrackKeyReachLeaves` yields [] for a reachless grant, so a reachless render
+    //         is byte-identical to today and no extant snapshot moves (e1)
+    lines.push(
+      ...asKeyrackKeyReachLeaves({ indent, reach: entry.grant.reach }),
+    );
     lines.push(`${indent}├─ vault: ${entry.grant.source.vault}`);
     lines.push(`${indent}├─ mech: ${entry.grant.source.mech}`);
     lines.push(`${indent}└─ status: granted 🔑`);
@@ -25,11 +37,10 @@ export const formatKeyrackKeyBranch = (input: {
   if (entry.type === 'blocked') {
     lines.push(`${prefix} ${entry.slug}`);
     lines.push(`${indent}├─ status: blocked 🚫`);
-    for (let j = 0; j < entry.reasons.length; j++) {
-      const reason = entry.reasons[j]!;
-      const isLastReason = j === entry.reasons.length - 1;
+    entry.reasons.forEach((reason, index) => {
+      const isLastReason = index === entry.reasons.length - 1;
       lines.push(`${indent}│  ${isLastReason ? '└' : '├'}─ ${reason}`);
-    }
+    });
     lines.push(`${indent}└─ \x1b[2mtip: --allow-dangerous if you must\x1b[0m`);
     return lines;
   }
@@ -68,6 +79,9 @@ export const formatKeyrackKeyBranch = (input: {
     lines.push(`${prefix} ${entry.grant.slug}`);
     lines.push(`${indent}├─ env: ${entry.grant.env}`);
     lines.push(`${indent}├─ org: ${entry.grant.org}`);
+    lines.push(
+      ...asKeyrackKeyReachLeaves({ indent, reach: entry.grant.reach }),
+    );
     lines.push(`${indent}├─ vault: ${entry.grant.source.vault}`);
     lines.push(
       `${indent}└─ expires in: ${expiresIn !== null ? `${expiresIn}m` : 'never'}`,

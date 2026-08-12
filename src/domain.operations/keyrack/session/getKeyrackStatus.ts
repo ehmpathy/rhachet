@@ -2,7 +2,9 @@ import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest'
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 
 /**
  * .what = get status of unlocked keys in daemon
@@ -14,13 +16,7 @@ export const getKeyrackStatus = async (input?: {
   owner?: string | null;
   prikeys?: string[];
 }): Promise<{
-  keys: Array<{
-    slug: string;
-    env: string;
-    org: string;
-    expiresAt: number;
-    ttlLeftMs: number;
-  }>;
+  keys: DaemonStatusRow[];
   recipients: KeyrackKeyRecipient[];
   owner: string | null;
   socketPath: string;
@@ -51,6 +47,7 @@ export const getKeyrackStatus = async (input?: {
       slug: k.slug,
       env: k.env,
       org: k.org,
+      ...asKeyrackKeyReachField({ reach: k.reach }),
       expiresAt: k.expiresAt,
       ttlLeftMs: k.ttlLeftMs,
     })),

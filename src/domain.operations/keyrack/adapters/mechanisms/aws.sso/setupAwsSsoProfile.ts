@@ -1,6 +1,6 @@
 import { execSync, spawn } from 'child_process';
 import fs from 'fs/promises';
-import { BadRequestError, MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import os from 'os';
 import path from 'path';
 
@@ -32,7 +32,7 @@ export const setupAwsSsoProfile = async (input: {
   try {
     execSync('aws --version', { stdio: 'pipe' });
   } catch {
-    throw new BadRequestError(
+    throw new ConstraintError(
       'aws cli is required for EPHEMERAL_VIA_AWS_SSO. install via: brew install awscli (macos) or see https://aws.amazon.com/cli/',
     );
   }
@@ -58,7 +58,7 @@ export const setupAwsSsoProfile = async (input: {
   const profileExists = configCurrent.includes(profileHeader);
 
   if (profileExists && !input.overwrite) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       `profile '${input.profileName}' already exists in ${configPath}. choose a different name or set overwrite: true.`,
     );
   }

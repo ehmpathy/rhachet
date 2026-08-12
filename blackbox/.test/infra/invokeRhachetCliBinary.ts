@@ -28,6 +28,85 @@ export const asSnapshotSafe = (output: string): string => {
 };
 
 /**
+ * .what = strip pty noise from a guided-prompt run's stdout, then trim to the tree header
+ * .why = a guided `keyrack set` runs under a real pty so it can answer hidden prompts, and
+ *        a pty emits control bytes and echoes the caller's own keystrokes. snapped raw, a
+ *        snapshot captures terminal mechanics rather than the text a human reads
+ *
+ * .note = each strip is here because a pty produces it, and the reason belongs in ONE place
+ *         rather than re-derived at each call site:
+ *          - ansi   → color/cursor codes the tty writes around the text
+ *          - osc    → the title/hyperlink sequences some shells emit
+ *          - `\r`   → a pty ends lines `\r\n`; the `\r` would show as a diff artifact
+ *          - `·`    → the pty renders some spaces as middle dots
+ *          - eol pad → the pty pads to the terminal width, which varies by the runner.
+ *                      `[ \t]` and NOT `\s`: `\s` matches `\n`, so a run of newlines at an
+ *                      eol boundary matched as one blob and collapsed — which erased every
+ *                      blank line a command deliberately emits between its sections. a pad
+ *                      is spaces and tabs; it can never be a newline
+ *          - pid    → the daemon announces its own spawn, and a pid varies per run
+ *          - spawn  → the daemon's own spawn notice. it is written to STDERR by design, so
+ *                     stdout stays parseable for `--json` (startKeyrackDaemon.ts). only a
+ *                     PTY case sees it at all, because only a PTY merges the two streams
+ *                     into one transcript — and its POSITION in that merged transcript
+ *                     depends on which stream flushes first, so a snapshot that keeps the
+ *                     line pins a runtime race rather than a contract. that is a latent
+ *                     FLAKE, not merely a visual blemish. every non-PTY case already drops
+ *                     it via `asSnapshotSafe`; this makes the two agree
+ * .note = the trim to `🔐` drops the pty's echo of the command line itself, which precedes
+ *         the tree. an absent glyph falls back to the whole string rather than to an empty
+ *         one, so a run that failed BEFORE the tree still snaps its output instead of a
+ *         blank — a silent empty snapshot would read as a pass (`rule.forbid.failhide`)
+ */
+export const asPtySnapshotSafe = (output: string): string => {
+  const stripped = output
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: the ansi-escape pattern needs the esc control char
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: the osc pattern needs the esc control char
+    .replace(/\x1B\]/g, '')
+    .replace(/\r/g, '')
+    .replace(/·/g, '')
+    // drop the daemon spawn notice BEFORE the pid redaction — the notice carries a pid of
+    // its own, so the order decides whether the line vanishes or leaves a redacted stub
+    .replace(/\[keyrack-daemon\] spawned background daemon \(pid: \d+\)\n?/g, '')
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\(pid: \d+\)/g, '(pid: __PID__)');
+  const treeStart = stripped.indexOf('\u{1F510}');
+  return stripped.slice(treeStart >= 0 ? treeStart : 0).trim();
+};
+
+/**
+ * .what = parse a `keyrack status --json` payload and blank the fields that vary per run
+ * .why = a status payload carries THREE volatile fields, and every one of them will differ
+ *        on the next run: a live `ttlLeftMs` countdown, a per-daemon `socketPath` hash, and
+ *        the wall-clock stamps. snapped raw, such a snapshot is green exactly once — on the
+ *        run that wrote it — and red for everyone after, which is a flake shipped as a clamp
+ *
+ * .note = ⚠️ `--resnap` CANNOT catch this, and that is why the helper exists rather than a
+ *         convention. resnap writes what it just saw, so an immediate re-run compares a
+ *         volatile value against itself and passes. only a SECOND, independent run diverges
+ * .note = `asSnapshotSafe` does not cover these. it strips iso stamps, but `ttlLeftMs` is a
+ *         bare integer, and the socket lives under `/run/user/...`, which its path pattern
+ *         (home / Users / runner-work) does not reach
+ * .note = the redaction reads a PARSED OBJECT rather than scrubs a string, so a field rename
+ *         cannot silently stop the redaction — an absent key shows up as a visible diff
+ */
+export const asKeyrackStatusSnapshotSafe = (input: {
+  stdout: string;
+}): Record<string, unknown> => {
+  const parsed = JSON.parse(input.stdout);
+  parsed.socketPath = '__REDACTED__';
+  for (const key of parsed.keys ?? []) {
+    key.expiresAt = '__REDACTED__';
+    key.ttlLeftMs = '__REDACTED__';
+  }
+  for (const recipient of parsed.recipients ?? []) {
+    recipient.addedAt = '__REDACTED__';
+  }
+  return parsed;
+};
+
+/**
  * .what = paths to CLI binaries
  * .why = acceptance tests invoke compiled binaries for black-box test
  */

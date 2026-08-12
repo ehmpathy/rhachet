@@ -1,4 +1,4 @@
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 
 import type {
@@ -14,6 +14,8 @@ import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKe
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
+import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -105,7 +107,7 @@ const getMechAdapter = (
 
   const adapter = adapters[mech];
   if (!adapter) {
-    throw new UnexpectedCodePathError(`no adapter for mech: ${mech}`, { mech });
+    throw new MalfunctionError(`no adapter for mech: ${mech}`, { mech });
   }
   return adapter;
 };
@@ -147,14 +149,21 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
   get: async (input) => {
     const owner = input.owner ?? null;
     const store = readDirectStore({ owner });
-    const entry = store[input.slug];
+
+    // address by full identity — a reachless address IS the bare slug, so every entry
+    // written before reach existed keeps its extant key (e1)
+    const address = asKeyrackKeySlugAtReach({
+      slug: input.slug,
+      reach: input.reach,
+    });
+    const entry = store[address];
 
     // not found
     if (!entry) return null;
 
     // check expiry
     if (isExpired(entry)) {
-      delete store[input.slug];
+      delete store[address];
       writeDirectStore({ store, owner });
       return null;
     }
@@ -202,6 +211,7 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
     return new KeyrackKeyGrant({
       slug: input.slug,
       key: { secret, grade },
+      ...asKeyrackKeyReachField({ reach: input.reach }),
       source: { vault: 'os.direct', mech },
       env,
       org,
@@ -242,6 +252,8 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
     const mechAdapter = getMechAdapter(mech);
     const { source: secret } = await mechAdapter.acquireForSet({
       keySlug: input.slug,
+      reach: input.reach,
+      mech,
     });
 
     const owner = context?.owner ?? null;
@@ -250,7 +262,8 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
     if (input.expiresAt) {
       entry.expiresAt = input.expiresAt;
     }
-    store[input.slug] = entry;
+    store[asKeyrackKeySlugAtReach({ slug: input.slug, reach: input.reach })] =
+      entry;
     writeDirectStore({ store, owner });
 
     return { mech };
@@ -263,7 +276,9 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
   del: async (input) => {
     const owner = input.owner ?? null;
     const store = readDirectStore({ owner });
-    delete store[input.slug];
+    delete store[
+      asKeyrackKeySlugAtReach({ slug: input.slug, reach: input.reach })
+    ];
     writeDirectStore({ store, owner });
   },
 };

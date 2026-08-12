@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
@@ -22,7 +22,7 @@ export const getKeyrackRecipients = async (input: {
   // load manifest (context handles identity discovery)
   const result = await daoKeyrackHostManifest.get({ owner }, context);
   if (!result)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'keyrack manifest not found; run `rhx keyrack init` first',
       { owner },
     );

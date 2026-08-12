@@ -38,33 +38,7 @@ export const decideIsKeySlugEqual = (input: {
   return false;
 };
 
-/**
- * .what = substitute the env segment of a key slug
- * .why = enables callers to construct slug for a different env
- *
- * .note = returns null if slug is malformed (fewer than 3 segments)
- */
-export const getKeySlugWithEnv = (input: {
-  slug: string;
-  env: string;
-}): string | null => {
-  const parts = input.slug.split('.');
-  if (parts.length < 3) return null;
-  return `${parts[0]}.${input.env}.${parts.slice(2).join('.')}`;
-};
-
-/**
- * .what = compute the env=all fallback slug for a given slug
- * .why = enables callers to check for env=all keys directly
- *
- * .note = returns null if slug is already env=all or malformed
- */
-export const getEnvAllFallbackSlug = (input: {
-  for: { slug: string };
-}): string | null => {
-  const parts = input.for.slug.split('.');
-  if (parts.length < 3) return null;
-  if (parts[1] === 'all') return null;
-
-  return getKeySlugWithEnv({ slug: input.for.slug, env: 'all' });
-};
+// .note = `getKeySlugWithEnv` and `getEnvAllFallbackSlug` moved to
+//         `domain.objects/keyrack/`. both are pure string logic over a slug's own shape, and
+//         their placement here forced `daemonKeyStore` — which sits under a `domain.objects`
+//         folder — to import upward into `domain.operations`

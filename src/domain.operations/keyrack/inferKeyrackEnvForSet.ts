@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
@@ -16,7 +16,7 @@ export const inferKeyrackEnvForSet = (input: {
 }): string => {
   // if no manifest, cannot infer
   if (!input.manifest) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       `--env required: ${input.key} not found in manifest (no keyrack.yml)`,
       { hint: `specify --env explicitly, e.g.: --env test` },
     );
@@ -37,7 +37,7 @@ export const inferKeyrackEnvForSet = (input: {
 
   // not found in manifest
   if (envsForKey.length === 0) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       `--env required: ${input.key} not found in manifest`,
       { hint: `specify --env explicitly, e.g.: --env test` },
     );
@@ -55,7 +55,7 @@ export const inferKeyrackEnvForSet = (input: {
   }
 
   // found in multiple envs (ambiguous)
-  throw new BadRequestError(
+  throw new ConstraintError(
     `--env required: ${input.key} found in multiple envs: ${envsForKey.join(', ')}`,
     { hint: `specify --env explicitly, e.g.: --env ${envsForKey[0]}` },
   );

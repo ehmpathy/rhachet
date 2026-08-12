@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import { isGhForbiddenStderr } from './isGhForbiddenStderr';
 import type { GhRun } from './runGh';
@@ -33,7 +33,7 @@ export const getGhOrgInstalls = (
       return { forbidden: true };
 
     // any other failure (network, rate limit, gh error) → fail loud
-    throw new UnexpectedCodePathError('gh org installations list failed', {
+    throw new MalfunctionError('gh org installations list failed', {
       org: input.org,
       stderr: result.stderr,
       status: result.status,
@@ -53,15 +53,12 @@ export const getGhOrgInstalls = (
         installations?: { id: number; app_id: number; app_slug: string }[];
       };
     } catch (error) {
-      throw new UnexpectedCodePathError(
-        'gh org installations response was not json',
-        {
-          org: input.org,
-          stdout: result.stdout,
-          error,
-          hint: 'the github installations api returned a non-json body; check `gh auth status` and retry',
-        },
-      );
+      throw new MalfunctionError('gh org installations response was not json', {
+        org: input.org,
+        stdout: result.stdout,
+        error,
+        hint: 'the github installations api returned a non-json body; check `gh auth status` and retry',
+      });
     }
   })();
 
