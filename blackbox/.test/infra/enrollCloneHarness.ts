@@ -204,33 +204,44 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
 };
 
 /**
- * .what = pre-accept claude-code's folder-trust gate for a fixture dir — the same
- *   `hasTrustDialogAccepted: true` a real user writes the first time they trust a
- *   project — so a fresh temp dir never hangs a non-interactive enroll on the
- *   "Is this a project you trust?" prompt.
+ * .what = pre-accept claude-code's one-time first-run gates — BOTH the per-project
+ *   folder-trust dialog (`projects[<dir>].hasTrustDialogAccepted`) and the
+ *   account-level first-run setup (`hasCompletedOnboarding`, `theme`) — so a fresh
+ *   fixture dir on a fresh host never wedges a non-interactive enroll on a prompt
+ *   there is no keyboard to answer.
  * .why =
- *   - claude-code shows a one-time trust dialog per project dir and blocks on it
- *     until a human presses Enter. a fixture dir is always fresh, so that gate
- *     fires on EVERY run and wedges the enroll (no keyboard behind the pty).
- *   - a real user only ever sees that dialog once — the accept is persisted in
- *     ~/.claude.json under projects[<dir>].hasTrustDialogAccepted. a pre-accept of
- *     the fixture dir replicates the user's already-trusted project state; it does
- *     NOT fake the brain (real claude still boots + thinks), it just clears a trust
- *     gate the user would have cleared once.
- *   - findsert + non-destructive: reads the real ~/.claude.json, adds ONLY the one
- *     project key, preserves every other project + top-level field, writes it back.
+ *   - claude-code blocks on a one-time trust dialog per project dir until a human
+ *     presses Enter. a fixture dir is always fresh, so that gate fires on EVERY run.
+ *   - a fresh HOST (a ci runner with a just-installed claude and no ~/.claude.json)
+ *     hits a SECOND gate first: the account-level first-run setup (theme pick).
+ *     both its banner and the ready ui say "Welcome", so a wait on that word alone
+ *     cannot tell them apart — the enroll proceeds, the socket stands up, and every
+ *     `say` then types into a setup prompt instead of the input box: no turn is ever
+ *     submitted, the transcript stays empty, and `say` fails loud with "did NOT leave
+ *     its input buffer". clearing the gate up front is what makes a ci host behave
+ *     like the already-set-up dev box the tier was written on.
+ *   - a real user clears both gates once, by hand. this replicates that state; it
+ *     does NOT fake the brain — real claude still boots, thinks, and replies.
+ *   - findsert + non-destructive: reads the real ~/.claude.json, fills ONLY absent
+ *     keys, preserves every other project + top-level field, writes it back.
  */
-export const trustFolderForRealClaude = (input: { dir: string }): void => {
+export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
   const configPath = join(homedir(), '.claude.json');
   const prior = existsSync(configPath)
     ? (JSON.parse(readFileSync(configPath, 'utf-8')) as {
         projects?: Record<string, Record<string, unknown>>;
+        hasCompletedOnboarding?: boolean;
+        theme?: string;
       })
     : {};
   const projects = prior.projects ?? {};
   const project = projects[input.dir] ?? {};
   const next = {
     ...prior,
+    // fill the account-level gates ONLY when absent — an already-set-up host keeps
+    // whatever the human chose (their theme is theirs, not ours to overwrite)
+    hasCompletedOnboarding: prior.hasCompletedOnboarding ?? true,
+    theme: prior.theme ?? 'dark',
     projects: {
       ...projects,
       [input.dir]: { ...project, hasTrustDialogAccepted: true },
@@ -326,6 +337,12 @@ export const sayAndPollForMarker = async (input: {
   stdin?: string;
   timeoutMs?: number;
   maxAttempts?: number;
+  /**
+   * the clone's pty mirror, so an exhausted dispatch can report the brain's OWN
+   * screen. without it a failure reads only `exit 1` — with it, the screen names
+   * the cause (a first-run setup prompt, a trust dialog, a crashed tui)
+   */
+  getScreen?: () => string;
 }): Promise<{
   said: ReturnType<typeof invokeRhachetCliBinary>;
   lastRead: string;
@@ -388,5 +405,31 @@ export const sayAndPollForMarker = async (input: {
     if (attempt < maxAttempts)
       await new Promise((r) => setTimeout(r, 2000));
   }
+
+  // every attempt is spent and the marker never landed — the caller's `landed` assert
+  // will fail, but on its own it reads as a bare `false`. each say ran with
+  // logOnError:false (a retried say is expected to fail, so per-attempt logs are noise),
+  // so the WHY is otherwise swallowed. print it once, here, at the only moment it is
+  // load-bearing: the last say's exit + stderr, the last `get` read, and — when the
+  // caller supplies it — the brain's own screen, which names a cause no rhachet-side
+  // error can (a first-run setup prompt, a trust dialog, a crashed tui)
+  const screen = input.getScreen?.() ?? '(no screen supplied)';
+  console.error(
+    [
+      `⛈️ dispatch NEVER landed after ${maxAttempts} attempts`,
+      `   address = ${input.address}`,
+      `   marker  = ${input.marker}`,
+      `   say.status = ${String(said.status)}`,
+      `--- say.stderr ---`,
+      said.stderr,
+      `--- say.stdout ---`,
+      said.stdout,
+      `--- last get read ---`,
+      lastRead,
+      `--- brain screen (last 4000 chars) ---`,
+      screen.slice(-4000),
+    ].join('\n'),
+  );
+
   return { said, lastRead, landed: false };
 };

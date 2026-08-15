@@ -5,7 +5,7 @@ import {
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
-  trustFolderForRealClaude,
+  setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
   asSnapshotSafe,
@@ -66,10 +66,11 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
       const dir = genTempDir({ slug: 'clone-joker' });
       setupEnrollFixture({ dir });
 
-      // pre-accept the folder-trust gate for this fresh fixture dir — the same
-      // state a real user leaves behind after they trust a project once; without
-      // it a real claude hangs on the trust prompt with no keyboard behind the pty
-      trustFolderForRealClaude({ dir });
+      // pre-accept claude's one-time first-run gates — the per-project trust prompt
+      // AND (on a fresh ci host) the account-level setup screen. this is the state a
+      // real user leaves behind after they clear both once; without it a real claude
+      // hangs on a prompt with no keyboard behind the pty
+      setRealClaudeFirstRunAccepted({ dir });
 
       // put the REAL claude first on PATH; do NOT override CLAUDE_CONFIG_DIR — the real
       // brain must find its real ~/.claude credentials
@@ -125,6 +126,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
           marker: markerFor(1),
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         }),
       );
 
@@ -158,6 +160,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
           marker: markerFor(2),
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         }),
       );
 
@@ -177,6 +180,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
           marker: markerFor(3),
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         }),
       );
 
@@ -196,6 +200,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
           marker: markerFor(4),
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         }),
       );
 
@@ -215,6 +220,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
           marker: markerFor(5),
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         }),
       );
 

@@ -6,7 +6,7 @@ import {
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
-  trustFolderForRealClaude,
+  setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
@@ -49,9 +49,10 @@ describe('rhx clone reach vs a REAL claude (real acceptance)', () => {
       const dir = genTempDir({ slug: 'clone-real' });
       setupEnrollFixture({ dir });
 
-      // pre-accept the folder-trust gate so a fresh fixture dir never wedges the
-      // enroll on claude's one-time "trust this project?" prompt
-      trustFolderForRealClaude({ dir });
+      // pre-accept claude's one-time first-run gates — the per-project trust prompt
+      // AND (on a fresh ci host) the account-level setup screen. either one wedges a
+      // pty enroll that has no keyboard behind it
+      setRealClaudeFirstRunAccepted({ dir });
 
       // put the REAL claude first on PATH (its own binDir), and DO NOT override
       // CLAUDE_CONFIG_DIR — the real brain must find its real ~/.claude credentials
@@ -83,6 +84,7 @@ describe('rhx clone reach vs a REAL claude (real acceptance)', () => {
           marker: wanted,
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         });
       });
 

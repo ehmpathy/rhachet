@@ -6,7 +6,7 @@ import {
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
-  trustFolderForRealClaude,
+  setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
@@ -47,7 +47,7 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
       const { binDir } = getRealClaudeOrThrow();
       const dir = genTempDir({ slug: 'clone-bulk-probe' });
       setupEnrollFixture({ dir });
-      trustFolderForRealClaude({ dir });
+      setRealClaudeFirstRunAccepted({ dir });
       const env = { PATH: `${binDir}:${process.env.PATH ?? ''}` };
       const enrolled = await enrollRealClaudeAndWaitReach({ dir, env });
       return { dir, env, ...enrolled };
@@ -66,6 +66,7 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
           marker: wanted,
           dir: scene.dir,
           env: scene.env,
+          getScreen: () => scene.bg.getOutput(),
         });
       });
 
@@ -99,6 +100,7 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
           dir: scene.dir,
           env: scene.env,
           timeoutMs: 45000,
+          getScreen: () => scene.bg.getOutput(),
         });
       });
 
