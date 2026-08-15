@@ -29,6 +29,12 @@ import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
  *     by this bare-enroll reach and the multi-turn joker conversation)
  */
 
+// a real-brain tier needs a wall-clock far above the default: a cold claude boot plus real
+// LLM latency runs minutes on a 2-vCPU ci runner (it fits under the default on a dev box,
+// which is exactly how a too-tight bound hides until ci). the same 5-minute bound its two
+// peer real-brain clamps (clone.joker, clone.saybulk-probe) carry
+jest.setTimeout(300000);
+
 // the real-claude reply contract — a stable sentinel the prompt asks claude to echo
 // verbatim, so `get` can match it deterministically despite LLM nondeterminism
 const REACH_SENTINEL = 'RHACHET-REACH-OK';

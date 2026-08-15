@@ -26,6 +26,12 @@ import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
  *     this clamp goes red if the bulk path regresses to a fixed-tiny submit delay.
  */
 
+// a real-brain tier needs a wall-clock far above the default: a cold claude boot plus a
+// ~3760-char paste plus real LLM latency runs minutes on a 2-vCPU ci runner (it fits under
+// the default on a dev box, which is exactly how a too-tight bound hides until ci). the same
+// 5-minute bound its peer real-brain clamp (clone.joker.realbrain) already carries
+jest.setTimeout(300000);
+
 const REACH_SENTINEL = 'RHACHET-BULK-OK';
 
 // build a ~3760-char message that ENDS in the sentinel+nonce, so a landed reply proves
