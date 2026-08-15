@@ -312,6 +312,12 @@ jobs:
         env:
           SECRETS_JSON: ${{ toJSON(secrets) }}
 
+      # the real-brain acceptance tier spawns a genuine `claude` under our managed pty —
+      # it lives in the DEFAULT gate on purpose (rule.forbid.faked-or-quarantined-acceptance),
+      # so the runner needs the binary on PATH. absent it, the tier fails LOUD (never skips).
+      - name: install claude-code # the real brain-cli the reach tier spawns
+        run: npm install -g @anthropic-ai/claude-code
+
       - name: test:acceptance (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
         run: |
