@@ -1,6 +1,6 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
 import { getAllClonesGroupedByActor } from './getAllClonesGroupedByActor';
@@ -9,7 +9,7 @@ describe('getAllClonesGroupedByActor.integration', () => {
   given('[case1] one actor with a clone, and one actor with no clones', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genTempDir({ slug: 'grouped' });
-      const withClone = genSampleCloneOnDisk({
+      const withClone = genSampleCloneOndisk({
         repoPath,
         roles: ['mechanic'],
         serial: 'ser-1',

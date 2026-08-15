@@ -1,6 +1,6 @@
 import { genTempDir, given, then, when } from 'test-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
 
 import type { Server } from 'node:net';
@@ -20,13 +20,13 @@ describe('getOneCloneLiveCountForActor.integration', () => {
     when('[t0] the live count is gathered', () => {
       then('exactly the live clone is counted', async () => {
         const repoPath = genTempDir({ slug: 'liveCount' });
-        const live = genSampleCloneOnDisk({
+        const live = genSampleCloneOndisk({
           repoPath,
           serial: 'ser-live',
           slug: null,
         });
         // a second clone of the SAME actor, no server → DEAD
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           serial: 'ser-dead',
           slug: null,
@@ -73,7 +73,7 @@ describe('getOneCloneLiveCountForActor.integration', () => {
               (_, i) => `ser-accrual-${i}`,
             );
             const seeded = serials.map((serial) =>
-              genSampleCloneOnDisk({ repoPath, serial, slug: null }),
+              genSampleCloneOndisk({ repoPath, serial, slug: null }),
             );
             const servers = serials.map((serial) =>
               genCloneSocketServer({

@@ -21,7 +21,7 @@ import { getHomeHash } from '@src/infra/host/getHomeHash';
  *   setCloneIdentity + setCloneSlugIndex, the fixture stays faithful to what
  *   enroll actually writes (no hand-rolled dir shape to drift)
  */
-export const genSampleCloneOnDisk = (input: {
+export const genSampleCloneOndisk = (input: {
   repoPath: string;
   brain?: BrainSlug;
   roles?: RoleSlug[];

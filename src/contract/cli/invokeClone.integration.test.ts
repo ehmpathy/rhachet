@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
@@ -276,7 +276,7 @@ describe('invokeClone (integration)', () => {
         const foreignCwd = genTempDir({ slug: 'invokeClone-crosshost' });
         const repoPath = getOneRepoPath({ from: foreignCwd });
         const serial = getUuid();
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           serial,
           slug: null,

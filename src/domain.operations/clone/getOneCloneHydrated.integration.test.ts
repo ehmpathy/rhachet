@@ -1,6 +1,6 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,7 @@ import { getOneCloneHydrated } from './getOneCloneHydrated';
 describe('getOneCloneHydrated.integration', () => {
   given('[case1] a named clone on disk with a live slug claim', () => {
     const scene = useBeforeAll(async () => {
-      const sample = genSampleCloneOnDisk({
+      const sample = genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'hydrate-named' }),
         serial: 'ser-1',
         slug: 'driver',

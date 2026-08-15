@@ -12,7 +12,7 @@ import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { asClaudeProjectSlug } from '@src/domain.operations/clone/asClaudeProjectSlug';
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 /**
  * .what = the blackbox acceptance snapshot for `clone get`'s same-cwd-race
@@ -54,7 +54,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         const spawnedAt = asIsoTimeStamp(
           new Date(Date.now() - 5_000).toISOString(),
         );
-        const planted = genSampleCloneOnDisk({
+        const planted = genSampleCloneOndisk({
           repoPath: dir,
           brain: 'claude',
           serial: '7f3a0b12-1c2d-4e3f-8a4b-5c6d7e8f9a0b',

@@ -2,7 +2,7 @@ import { now } from 'iso-time';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { getAllClonesForActor } from './getAllClonesForActor';
 import { getAllClonesPrunable } from './getAllClonesPrunable';
@@ -16,7 +16,7 @@ describe('getAllClonesPrunable.integration', () => {
 
         // DEAD: socket-eligible but NO socket server bound → its socket refuses
         const serialDead = getUuid();
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           serial: serialDead,
           slug: null,
@@ -25,7 +25,7 @@ describe('getAllClonesPrunable.integration', () => {
 
         // DEAF: socketless AND this test process's pid is alive → active-but-deaf
         const serialDeaf = getUuid();
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           serial: serialDeaf,
           slug: null,
@@ -34,7 +34,7 @@ describe('getAllClonesPrunable.integration', () => {
 
         // cross-host: a foreign host digest → excluded regardless of reach
         const serialForeign = getUuid();
-        const on = genSampleCloneOnDisk({
+        const on = genSampleCloneOndisk({
           repoPath,
           serial: serialForeign,
           slug: null,
@@ -88,7 +88,7 @@ describe('getAllClonesPrunable.integration', () => {
     const scene = useThen('it is provisioned just now', () => {
       const repoPath = genTempDir({ slug: 'prunable-agegate' });
       const serial = getUuid();
-      const on = genSampleCloneOnDisk({
+      const on = genSampleCloneOndisk({
         repoPath,
         serial,
         slug: null,

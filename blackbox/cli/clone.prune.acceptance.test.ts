@@ -15,7 +15,7 @@ import {
 import { existsSync, writeFileSync } from 'node:fs';
 
 import { getCloneHistoryDir } from '@src/domain.operations/clone/getCloneHistoryDir';
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 /**
  * .what = THE mandated prune + reach-state-lifecycle clamp — a LIVE clone (keeper)
@@ -234,7 +234,7 @@ describe('rhx clone prune + reach-state lifecycle (acceptance)', () => {
  *     holds back a fresh death (the `--older-than` bound + its bad-value error)
  *   - a DEAD clone = socket-eligible with NO server (the reach probe refuses); a DEAF
  *     clone = socketless with a live process (the jest pid). the SETUP is on-disk via
- *     genSampleCloneOnDisk, the ACTION is the real binary, per
+ *     genSampleCloneOndisk, the ACTION is the real binary, per
  *     rule.require.acceptance.blackbox (internals for setup, the contract for the act)
  *
  * .note = DOGFOOD: drop the DEAD-only guard in getAllClonesPrunable and the DEAF
@@ -245,21 +245,21 @@ describe('rhx clone prune (acceptance)', () => {
   // provision two DEAD clones (a named `doomed` + a bare) and one DEAF `watcher`,
   // all under one actor. spawnedAt fixes the plan order (doomed, then the bare)
   const provisionThreeClones = (dir: string): void => {
-    genSampleCloneOnDisk({
+    genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: 'doomed',
       socketEligible: true, // socket-eligible, no server → the reach probe reads DEAD
       spawnedAt: asIsoTimeStamp('2026-08-11T00:00:00Z'),
     });
-    genSampleCloneOnDisk({
+    genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: null, // a bare clone — reached by its full serial, not a slug
       socketEligible: true,
       spawnedAt: asIsoTimeStamp('2026-08-11T01:00:00Z'),
     });
-    genSampleCloneOnDisk({
+    genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: 'watcher',
@@ -427,7 +427,7 @@ describe('rhx clone prune (acceptance)', () => {
       const dir = genTempDir({ slug: 'clone-prune-age' });
       setupEnrollFixture({ dir });
       // one DEAD clone that died JUST NOW — younger than the 1h gate below
-      genSampleCloneOnDisk({
+      genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'fresh',
@@ -604,7 +604,7 @@ describe('rhx clone prune (acceptance)', () => {
       // is a FILE, not a dir, so delClone's readdir throws ENOTDIR mid-reap. this
       // is a deterministic, portable reap failure — no chmod (root bypasses it),
       // no race — the same plant-a-broken-artifact discipline as clone.get-advisory
-      const stubborn = genSampleCloneOnDisk({
+      const stubborn = genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'stubborn',
@@ -617,7 +617,7 @@ describe('rhx clone prune (acceptance)', () => {
         'utf8',
       );
 
-      genSampleCloneOnDisk({
+      genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'reapable',
@@ -696,7 +696,7 @@ describe('rhx clone prune (acceptance)', () => {
 
       // same plant as case4: the stubborn clone's `history/` is a FILE, so delClone's
       // readdir throws ENOTDIR mid-reap — a deterministic, portable reap failure
-      const stubborn = genSampleCloneOnDisk({
+      const stubborn = genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'stubborn',
@@ -709,7 +709,7 @@ describe('rhx clone prune (acceptance)', () => {
         'utf8',
       );
 
-      genSampleCloneOnDisk({
+      genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'reapable',

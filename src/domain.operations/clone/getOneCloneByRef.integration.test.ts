@@ -1,6 +1,6 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,7 @@ import { getOneCloneByRef } from './getOneCloneByRef';
 describe('getOneCloneByRef.integration', () => {
   given('[case1] a named clone on disk', () => {
     const scene = useBeforeAll(async () => {
-      return genSampleCloneOnDisk({
+      return genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-named' }),
         serial: 'ser-1',
         slug: 'driver',
@@ -55,19 +55,19 @@ describe('getOneCloneByRef.integration', () => {
       // to distinct actor dirs, so three enrollments = three actors to scan across
       const scene = useBeforeAll(async () => {
         const repoPath = genTempDir({ slug: 'cloneByRef-multi' });
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           roles: ['mechanic'],
           serial: 'ser-mech',
           slug: 'mech-clone',
         });
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           roles: ['architect'],
           serial: 'ser-arch',
           slug: 'arch-clone',
         });
-        genSampleCloneOnDisk({
+        genSampleCloneOndisk({
           repoPath,
           roles: ['mechanic', 'architect'],
           serial: 'ser-both',
@@ -120,7 +120,7 @@ describe('getOneCloneByRef.integration', () => {
     // leaves NO `.serials/<serial>` entry. the reach must still find the clone via
     // the full-actor scan fallback — the index is a fast path, never the only path
     const scene = useBeforeAll(async () => {
-      const sample = genSampleCloneOnDisk({
+      const sample = genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-noindex' }),
         serial: 'ser-orphan',
         slug: null,
@@ -148,7 +148,7 @@ describe('getOneCloneByRef.integration', () => {
 
   given('[case2] an address that names no clone', () => {
     const scene = useBeforeAll(async () => {
-      return genSampleCloneOnDisk({
+      return genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-unknown' }),
         serial: 'ser-real',
         slug: null,

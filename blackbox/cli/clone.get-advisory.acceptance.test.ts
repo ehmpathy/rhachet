@@ -10,7 +10,7 @@ import { mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { getCloneHistoryDir } from '@src/domain.operations/clone/getCloneHistoryDir';
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 /**
  * .what = the mode-gate clamp for `clone get`'s stderr advisories — a `--output
@@ -37,7 +37,7 @@ describe('rhx clone get advisory mode-gate (acceptance)', () => {
 
       // provision one real actor + clone on disk (the reach index too), then plant
       // an orphan history symlink so getCloneOutput reports exidsUnreadable
-      const planted = genSampleCloneOnDisk({
+      const planted = genSampleCloneOndisk({
         repoPath: dir,
         serial: '3f9c0b12-7a4e-4c1d-9e2f-0a1b2c3d4e5f',
         slug: null,

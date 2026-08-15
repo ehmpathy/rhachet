@@ -1,7 +1,7 @@
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { getActorsIndexDir } from '@src/domain.operations/actor/enrolled/getActorsIndexDir';
 
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -15,7 +15,7 @@ describe('delClone.integration', () => {
     const scene = useThen('it is provisioned', () => {
       const repoPath = genTempDir({ slug: 'delClone-named' });
       const serial = getUuid();
-      const on = genSampleCloneOnDisk({
+      const on = genSampleCloneOndisk({
         repoPath,
         serial,
         slug: 'doomed',
@@ -64,7 +64,7 @@ describe('delClone.integration', () => {
     const scene = useThen('it is provisioned with an exid claim', () => {
       const repoPath = genTempDir({ slug: 'delClone-exid' });
       const serial = getUuid();
-      const on = genSampleCloneOnDisk({ repoPath, serial, slug: null });
+      const on = genSampleCloneOndisk({ repoPath, serial, slug: null });
 
       // provision one transcript + its history link + its `.exids/` claim, the way
       // genCloneHistoryLink would — so delClone has an exid claim to free

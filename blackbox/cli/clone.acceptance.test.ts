@@ -12,7 +12,7 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
-import { genSampleCloneOnDisk } from '@src/.test/assets/genSampleCloneOnDisk';
+import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -1132,7 +1132,7 @@ describe('rhx clone reach (acceptance)', () => {
         setupEnrollFixture({ dir });
         // actor A (roles=[mechanic]) OWNS a socketless clone → renders (DEAF: process alive,
         // no socket). planted via the SAME real ops enroll uses, so the tree stays faithful
-        const owner = genSampleCloneOnDisk({
+        const owner = genSampleCloneOndisk({
           repoPath: dir,
           roles: ['mechanic'],
           serial: 'aaaa1111-2222-3333-4444-555566667777',
