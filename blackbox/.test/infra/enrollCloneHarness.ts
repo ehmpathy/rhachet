@@ -204,26 +204,28 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
 };
 
 /**
- * .what = pre-accept claude-code's one-time first-run gates — BOTH the per-project
- *   folder-trust dialog (`projects[<dir>].hasTrustDialogAccepted`) and the
- *   account-level first-run setup (`hasCompletedOnboarding`, `theme`) — so a fresh
- *   fixture dir on a fresh host never wedges a non-interactive enroll on a prompt
- *   there is no keyboard to answer.
+ * .what = pre-accept EVERY one-time gate claude-code puts between a cold start and a
+ *   ready input box — the per-project folder-trust dialog, the account-level first-run
+ *   setup, and the "detected a custom API key in your environment" prompt — so a fresh
+ *   fixture dir on a fresh host never wedges an enroll on a question there is no
+ *   keyboard to answer.
  * .why =
- *   - claude-code blocks on a one-time trust dialog per project dir until a human
- *     presses Enter. a fixture dir is always fresh, so that gate fires on EVERY run.
- *   - a fresh HOST (a ci runner with a just-installed claude and no ~/.claude.json)
- *     hits a SECOND gate first: the account-level first-run setup (theme pick).
- *     both its banner and the ready ui say "Welcome", so a wait on that word alone
- *     cannot tell them apart — the enroll proceeds, the socket stands up, and every
- *     `say` then types into a setup prompt instead of the input box: no turn is ever
- *     submitted, the transcript stays empty, and `say` fails loud with "did NOT leave
- *     its input buffer". clearing the gate up front is what makes a ci host behave
- *     like the already-set-up dev box the tier was written on.
- *   - a real user clears both gates once, by hand. this replicates that state; it
- *     does NOT fake the brain — real claude still boots, thinks, and replies.
+ *   - each of these blocks the tui until a human presses Enter, and a pty enroll has
+ *     no human behind it. a dev box cleared all three by hand, long ago; a ci runner
+ *     with a just-installed claude and no ~/.claude.json meets all three at once.
+ *   - the API-key gate is the one that actually bit (ci run 31886980514): the runner
+ *     exports ANTHROPIC_API_KEY from keyrack, claude asks whether to use it and waits
+ *     on `1. Yes / 2. No`. the enroll's own handoff still prints and the socket still
+ *     stands up, so the clone reads LIVE — but every `say` types into that prompt
+ *     instead of the input box. no turn is submitted, the transcript stays empty,
+ *     `get` reads empty, and `say` fails loud with "did NOT leave its input buffer".
+ *   - claude records the answer as the key's LAST 20 CHARACTERS under
+ *     customApiKeyResponses.approved (the same suffix its prompt displays), so
+ *     recording it up front is exactly the state a human's "1. Yes" leaves behind.
+ *   - this replicates a set-up host; it does NOT fake the brain — real claude still
+ *     boots, thinks, and replies.
  *   - findsert + non-destructive: reads the real ~/.claude.json, fills ONLY absent
- *     keys, preserves every other project + top-level field, writes it back.
+ *     keys, unions the approved-key list, preserves every other field, writes it back.
  */
 export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
   const configPath = join(homedir(), '.claude.json');
@@ -232,16 +234,31 @@ export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
         projects?: Record<string, Record<string, unknown>>;
         hasCompletedOnboarding?: boolean;
         theme?: string;
+        customApiKeyResponses?: { approved?: string[]; rejected?: string[] };
       })
     : {};
   const projects = prior.projects ?? {};
   const project = projects[input.dir] ?? {};
+
+  // approve the key this run will actually hand claude, by the last-20 suffix claude
+  // itself keys on. absent a key, leave the list exactly as found
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const approvedPrior = prior.customApiKeyResponses?.approved ?? [];
+  const approvedNext = apiKey
+    ? Array.from(new Set([...approvedPrior, apiKey.slice(-20)]))
+    : approvedPrior;
+
   const next = {
     ...prior,
     // fill the account-level gates ONLY when absent — an already-set-up host keeps
     // whatever the human chose (their theme is theirs, not ours to overwrite)
     hasCompletedOnboarding: prior.hasCompletedOnboarding ?? true,
     theme: prior.theme ?? 'dark',
+    customApiKeyResponses: {
+      ...prior.customApiKeyResponses,
+      approved: approvedNext,
+      rejected: prior.customApiKeyResponses?.rejected ?? [],
+    },
     projects: {
       ...projects,
       [input.dir]: { ...project, hasTrustDialogAccepted: true },
