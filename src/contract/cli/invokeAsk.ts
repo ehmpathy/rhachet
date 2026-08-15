@@ -8,6 +8,7 @@ import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatc
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { onInvokeAskInput } from '@src/domain.operations/invoke/hooks/onInvokeAskInput';
@@ -80,8 +81,10 @@ const performAskViaActorMode = async (input: {
       'no brains available. add getBrainRepls() to your rhachet.use.ts',
     );
 
-  // create actor with all available brains
-  const actor = genActor({ role: input.role, brains: input.brains });
+  // bake a clone from the actor (recipe) — the clone carries the engage methods
+  const clone = genCloneInmem({
+    actor: genActor({ roles: [input.role], brains: input.brains }),
+  });
 
   // validate prompt is provided
   if (!input.opts.ask)
@@ -98,8 +101,8 @@ const performAskViaActorMode = async (input: {
   console.log(`💧 ask fluid skill repo=${repo.slug}/role=${input.opts.role}`);
   console.log(``);
 
-  // invoke actor.ask
-  const result = await actor.ask({
+  // invoke clone.ask
+  const result = await clone.ask({
     prompt: input.opts.ask,
     schema: ACTOR_ASK_DEFAULT_SCHEMA,
   });

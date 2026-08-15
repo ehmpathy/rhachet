@@ -1,0 +1,408 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t0] the clone is enrolled then: the clone-list json machine shape is locked (catches a drifted shape) 1`] = `
+"{
+  "actors": [
+    {
+      "hash": "ee65f291",
+      "brain": "claude",
+      "roles": [
+        "driver",
+        "architect",
+        "mechanic"
+      ],
+      "clones": [
+        {
+          "serial": "__SERIAL__",
+          "slug": "driver",
+          "reachState": "LIVE",
+          "spawnedAt": "__TIMESTAMP__"
+        }
+      ]
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t0] the clone is enrolled then: the clone-list tree format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      └─ @:driver  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t1] say poke <nonce> BY SLUG, then get then: the say tree (human) success format is locked (visual spot-check) 1`] = `
+"😶🎙️ said to @:driver
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t3] a process runs \`clone whoami\` FROM WITHIN the clone then: the whoami tree (human) success format is locked (visual spot-check) 1`] = `
+"😶 you are @:driver
+   ├─ serial=__SERIAL__
+   ├─ state=LIVE
+   └─ actor=@ee65f291
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t4] a process says to an UNKNOWN address then: the unknown-address error format is locked (visual spot-check) 1`] = `
+"
+✋ no clone answers to '@:ghostclone'
+   └─ list clones with \`rhx clone list\`
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t5] \`clone whoami --output json\` (machine self-identity) then: the whoami json machine shape is locked (catches a drifted shape) 1`] = `
+"{
+  "serial": "__SERIAL__",
+  "slug": "driver",
+  "reachState": "LIVE",
+  "actorHash": "ee65f291"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t5b] \`clone whoami\` run OUTSIDE any enrolled clone then: the not-a-clone error format is locked (visual spot-check) 1`] = `
+"
+✋ not run inside an enrolled clone
+   └─ whoami works from within a clone spawned by \`rhx enroll\`
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t5c] \`clone whoami --output json\` run OUTSIDE any enrolled clone then: the not-a-clone json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "not run inside an enrolled clone",
+  "hint": "whoami works from within a clone spawned by \`rhx enroll\`",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t7] the talk verbs under --output json + --tail (machine reads) then: the get json machine shape is locked (catches a drifted shape) 1`] = `
+"{
+  "messages": [
+    {
+      "direction": "out",
+      "text": "ack:__NONCE__",
+      "at": null
+    }
+  ],
+  "exidsUnreadable": [],
+  "exidsAmbiguous": [],
+  "total": 10,
+  "truncated": true
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t7] the talk verbs under --output json + --tail (machine reads) then: the say json machine shape is locked (catches a drifted shape) 1`] = `
+"{
+  "delivered": true,
+  "serial": "__SERIAL__",
+  "slug": "driver"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8] \`get --tail <bad>\` (the tail-bound guard) then: the bad-tail error format is locked (visual spot-check) 1`] = `
+"
+✋ invalid --tail "notanumber"
+   └─ use a non-negative integer (e.g. --tail 20) or --tail all
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8b] \`get --tail <bad> --output json\` (the machine twin) then: the bad-tail json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "invalid --tail \\"notanumber\\"",
+  "hint": "use a non-negative integer (e.g. --tail 20) or --tail all",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8c] \`get --format <bad>\` (the render-mode guard) then: the bad-format error format is locked (visual spot-check) 1`] = `
+"
+✋ invalid --format "bogus"
+   └─ use --format blocks (default, directioned) or --format raw (verbatim replies)
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8d] \`get --format <bad> --output json\` (the machine twin) then: the bad-format json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "invalid --format \\"bogus\\"",
+  "hint": "use --format blocks (default, directioned) or --format raw (verbatim replies)",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t10] the talk verbs fail as machine JSON for an unknown address then: the get JSON-error shape is locked (visual spot-check) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no clone answers to '@:ghostclone'",
+  "hint": "list clones with \`rhx clone list\`",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t10] the talk verbs fail as machine JSON for an unknown address then: the say JSON-error shape is locked (visual spot-check) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no clone answers to '@:ghostclone'",
+  "hint": "list clones with \`rhx clone list\`",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t10b] a process GETs an UNKNOWN address (the human tree) then: the unknown-address get tree format is locked (visual spot-check) 1`] = `
+"
+✋ no clone answers to '@:ghostclone'
+   └─ list clones with \`rhx clone list\`
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t11] \`get\` human-tree read (the primary observe variant) then: the get tree (human) success format is locked (visual spot-check) 1`] = `
+"😶🎧 talk of @:driver  ·  tail 1
+   │
+   └─ 🎧
+      ├─
+      │
+      │  ack:__NONCE__
+      │
+      └─
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t12] \`get\` renders a directioned in/out conversation (better-get) then: the \`--format raw\` relay stream is locked (mask each nonce) 1`] = `
+"ack:__NONCE__
+ack:__NONCE__
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t12] \`get\` renders a directioned in/out conversation (better-get) then: the directioned tree layout is locked (mask each nonce) 1`] = `
+"😶🎧 talk of @:driver  ·  tail 4
+   │
+   ├─ 🎙️
+   │  ├─
+   │  │
+   │  │  poke __NONCE__
+   │  │
+   │  └─
+   │
+   ├─ 🎧
+   │  ├─
+   │  │
+   │  │  ack:__NONCE__
+   │  │
+   │  └─
+   │
+   ├─ 🎙️
+   │  ├─
+   │  │
+   │  │  poke __NONCE__
+   │  │
+   │  └─
+   │
+   └─ 🎧
+      ├─
+      │
+      │  ack:__NONCE__
+      │
+      └─
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t0] a process says to the dead clone then: the dead-clone error format is locked (visual spot-check) 1`] = `
+"
+✋ no live clone for this address — its socket is gone
+   └─ re-enroll to spawn a fresh clone
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t1] a process says to the dead clone with --output json then: the dead-clone json error shape is locked (catches a drifted shape) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no live clone for this address — its socket is gone",
+  "hint": "re-enroll to spawn a fresh clone",
+  "reachState": "DEAD",
+  "reachCause": "DEAD-same-host"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t2] a process GETs the dead clone (the human tree) then: the dead-clone get tree format is locked (visual spot-check) 1`] = `
+"😶🎧 talk of @:ranger  ·  tail 20
+   │
+   └─ (no messages yet)
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t3] a process GETs the dead clone with --output json then: the dead-clone get json shape is locked (machine contract) 1`] = `
+"{
+  "messages": [],
+  "exidsUnreadable": [],
+  "exidsAmbiguous": [],
+  "total": 0,
+  "truncated": false
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case3] a SECOND enroll of a still-live --as slug (idempotent reuse) when: [t0] the same slug is enrolled again with --output json then: the reused json handoff shape is locked (catches a drifted shape) 1`] = `
+"{"outcome":"reused","serial":"__SERIAL__","slug":"driver","socketEligible":true}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case3] a SECOND enroll of a still-live --as slug (idempotent reuse) when: [t1] the same slug is enrolled again in DEFAULT tree mode then: the reused tree line is locked (visual spot-check) 1`] = `
+"♻ reused the live clone that already answers to @:driver (no new brain spawned)
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t0] \`clone list\` on a repo with no clones then: the empty clone-list format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ (no actors enrolled yet)
+      └─ enroll one with \`rhx enroll <brain>\`
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t0] \`clone list\` on a repo with no clones then: the empty clone-list json machine shape is locked (catches a drifted shape) 1`] = `
+"{
+  "actors": []
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t1] \`clone list @<unknown-actor>\` (an invalid actor scope) then: the unknown-actor error format is locked (visual spot-check) 1`] = `
+"
+✋ no enrolled actor matches '@deadbeef'
+   └─ list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t1] \`clone list @<unknown-actor>\` (an invalid actor scope) then: the unknown-actor json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no enrolled actor matches '@deadbeef'",
+  "hint": "list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t2] \`clone whoami\` with a STALE clone-serial env (names no on-disk clone) then: the stale-serial whoami error format is locked (visual spot-check) 1`] = `
+"
+✋ the clone env serial names no on-disk clone
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t2] \`clone whoami\` with a STALE clone-serial env (names no on-disk clone) then: the stale-serial whoami json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "MalfunctionError",
+  "message": "the clone env serial names no on-disk clone",
+  "hint": null,
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case5] a repo with NO .agent/ directory (never linked) when: [t0] \`clone list\` in an unlinked repo (no .agent/) then: the unlinked-repo not-linked format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ (repo not linked)
+      └─ link roles first with \`rhx init --roles <role>\`
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case5] a repo with NO .agent/ directory (never linked) when: [t1] \`clone list --output json\` in an unlinked repo (no .agent/) then: the unlinked-repo clone-list json shape is locked (machine contract) 1`] = `
+"{
+  "actors": []
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case6] a linked repo with an actor enrolled but NO clones under it when: [t0] \`clone list @<hash>\` for an actor with no clones then: the actor-scoped empty format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ actor 8967acd… (brain=claude roles=mechanic)
+      └─ (no clones)
+         └─ enroll one with \`rhx enroll <brain>\`
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case6] a linked repo with an actor enrolled but NO clones under it when: [t0] \`clone list @<hash>\` for an actor with no clones then: the actor-scoped empty json machine shape is locked 1`] = `
+"{
+  "actors": [
+    {
+      "hash": "8967acd9",
+      "brain": "claude",
+      "roles": [
+        "mechanic"
+      ],
+      "clones": []
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case7] UNSCOPED \`clone list\` with a MIX — one actor owns a clone, one is clone-less when: [t0] a bare \`clone list\` is run then: json hides the clone-less actor too (tree ≡ json) 1`] = `
+"{
+  "actors": [
+    {
+      "hash": "8967acd9",
+      "brain": "claude",
+      "roles": [
+        "mechanic"
+      ],
+      "clones": [
+        {
+          "serial": "__SERIAL__",
+          "slug": null,
+          "reachState": "DEAF",
+          "spawnedAt": "__TIMESTAMP__"
+        }
+      ]
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case7] UNSCOPED \`clone list\` with a MIX — one actor owns a clone, one is clone-less when: [t0] a bare \`clone list\` is run then: the unscoped-mixed tree format is locked (visual regression) 1`] = `
+"😶 clones
+   └─ actor 8967acd… (brain=claude roles=mechanic)
+      └─ @:__SERIAL8__  state=DEAF  since=__TIMESTAMP__
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case8] UNSCOPED \`clone list\` where EVERY enrolled actor is clone-less when: [t0] a bare \`clone list\` is run then: json hides all clone-less actors too (tree ≡ json) 1`] = `
+"{
+  "actors": []
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case8] UNSCOPED \`clone list\` where EVERY enrolled actor is clone-less when: [t0] a bare \`clone list\` is run then: the all-clone-less empty-state format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ (no clones)
+      └─ enroll one with \`rhx enroll <brain>\`, or see identities with \`rhx actor list\`
+"
+`;

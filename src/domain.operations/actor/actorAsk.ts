@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { Role } from '@src/domain.objects/Role';
 import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';

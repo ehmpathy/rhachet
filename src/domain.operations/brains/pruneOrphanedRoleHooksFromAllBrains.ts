@@ -14,6 +14,7 @@ export const pruneOrphanedRoleHooksFromAllBrains = async (
   input: {
     authorsDesired: Set<string>;
     brains?: BrainSpecifier[];
+    configTargetDir?: string;
   },
   context: ContextCli,
 ): Promise<{
@@ -22,7 +23,7 @@ export const pruneOrphanedRoleHooksFromAllBrains = async (
     hooks: BrainHook[];
   }>;
 }> => {
-  // resolve brain slugs
+  // derive brain slugs
   const brainSlugs = input.brains ?? (await detectBrainReplsInRepo(context));
 
   const removed: Array<{
@@ -30,10 +31,10 @@ export const pruneOrphanedRoleHooksFromAllBrains = async (
     hooks: BrainHook[];
   }> = [];
 
-  // prune from each brain
+  // prune from each brain (the config write path may be an actor dir)
   for (const brain of brainSlugs) {
     const adapter = await getBrainHooksAdapterByConfigImplicit(
-      { brain },
+      { brain, configTargetDir: input.configTargetDir },
       context,
     );
 

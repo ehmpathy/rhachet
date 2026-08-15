@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone get advisory mode-gate (acceptance) given: [case1] a clone whose only linked episode is a vanished transcript when: [t0] \`clone get --output json\` reads the empty-but-unreadable history then: the unreadable-episode json body shape is locked (machine contract) 1`] = `
+"{
+  "messages": [],
+  "exidsUnreadable": [
+    "gone-exid"
+  ],
+  "exidsAmbiguous": [],
+  "total": 0,
+  "truncated": false
+}
+"
+`;
+
+exports[`rhx clone get advisory mode-gate (acceptance) given: [case1] a clone whose only linked episode is a vanished transcript when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"⚠ 1 episode(s) could not be read (a moved transcript)"`;

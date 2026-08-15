@@ -2,9 +2,10 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 
-import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 
 import {
   chmodSync,
@@ -77,9 +78,11 @@ echo '{"content":"drafted content about $1"}'
     const brain = genBrainRepl({
       slug: 'openai/codex',
     }) as unknown as ActorBrain;
-    const author = genActor({
-      role: authorRole,
-      brains: [brain],
+    const author = genCloneInmem({
+      actor: genActor({
+        roles: [authorRole],
+        brains: [brain],
+      }),
     });
 
     when('[t0] author.run({ skill: { wordcount: { text } } })', () => {

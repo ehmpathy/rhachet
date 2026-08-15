@@ -2,9 +2,10 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-openai';
 import { given, then, when } from 'test-fns';
 
-import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 
 import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { EXAMPLE_REPO_COLLOCATED } from '../../../.test/assets/example.repo/directory';
@@ -75,9 +76,11 @@ echo '{"summary":"summarized content"}'
     const brain = genBrainRepl({
       slug: 'openai/codex',
     }) as unknown as ActorBrain;
-    const scribe = genActor({
-      role: scribeRole,
-      brains: [brain],
+    const scribe = genCloneInmem({
+      actor: genActor({
+        roles: [scribeRole],
+        brains: [brain],
+      }),
     });
 
     when('[t0] scribe.run({ skill: { linecount: { text } } })', () => {

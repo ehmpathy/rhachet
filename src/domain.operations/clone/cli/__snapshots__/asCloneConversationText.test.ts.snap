@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneConversationText given: [case1] a two-turn in/out conversation when: [t0] rendered as blocks (the default treebucket) then: a \`😶🎧 talk of <addr>\` root names whose talk + the tail cap, each turn a directioned branch 1`] = `
+"😶🎧 talk of @:driver  ·  tail 20
+   │
+   ├─ 🎙️ T0+00H00M
+   │  ├─
+   │  │
+   │  │  wrap up and commit what you have
+   │  │
+   │  └─
+   │
+   └─ 🎧 T0+01H05M
+      ├─
+      │
+      │  on it — commit the WIP now 🐢
+      │  done, pushed to the branch.
+      │
+      └─"
+`;
+
+exports[`asCloneConversationText given: [case1] a two-turn in/out conversation when: [t0] rendered as raw (the relay path) then: only the outbound replies survive, bare, no glyphs 1`] = `
+"on it — commit the WIP now 🐢
+done, pushed to the branch."
+`;

@@ -13,10 +13,17 @@ import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExpo
  * .note = scans package.json for rhachet-brains-* packages
  * .note = calls getBrainHooks({ brain, repoPath }) on each
  * .note = throws if multiple adapters match (ambiguous)
+ *
+ * .note = `configTargetDir` re-roots ONLY the adapter's config write path (the
+ *   `.claude/settings.json` the dao owns); package discovery + brain detection
+ *   stay rooted at `context.cwd`. init uses this to apply the same hooks into each
+ *   enrolled actor's `brain/` dir (`actor.via.hash=<hash>/brain/`) without a second package scan.
+ *   absent => the write path is `context.cwd` (the extant repo-root behavior)
  */
 export const getBrainHooksAdapterByConfigImplicit = async (
   input: {
     brain: BrainSpecifier;
+    configTargetDir?: string;
   },
   context: ContextCli,
 ): Promise<BrainHooksAdapter | null> => {
@@ -62,10 +69,11 @@ export const getBrainHooksAdapterByConfigImplicit = async (
       // check if package exports getBrainHooks
       if (!loaded.module.getBrainHooks) continue;
 
-      // call getBrainHooks to see if it supports this brain
+      // call getBrainHooks to see if it supports this brain; the config write path
+      // is the configTargetDir when given (an actor dir), else the repo cwd
       const adapter = loaded.module.getBrainHooks({
         brain: input.brain,
-        repoPath: context.cwd,
+        repoPath: input.configTargetDir ?? context.cwd,
       });
       if (adapter) {
         adaptersMatched.push(adapter);

@@ -3,6 +3,7 @@ import { BadRequestError } from 'helpful-errors';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { getBrainSlugParts } from '@src/domain.operations/brains/getBrainSlugParts';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 import { getBrainsByConfigExplicit } from '@src/domain.operations/config/getBrainsByConfigExplicit';
 import { getRoleRegistriesByConfigExplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigExplicit';
 
@@ -47,8 +48,8 @@ export const performInCurrentThreadForActor = async (input: {
     ? getBrainSlugParts(input.opts.brain)
     : undefined;
 
-  // create actor
-  const actor = genActor({ role, brains });
+  // bake a clone from the actor (recipe) — the clone carries the engage methods
+  const clone = genCloneInmem({ actor: genActor({ roles: [role], brains }) });
 
   // parse skill input from opts
   const skillInput = extractSkillInputFromOpts({ opts: input.opts });
@@ -72,8 +73,8 @@ export const performInCurrentThreadForActor = async (input: {
   );
   console.log(``);
 
-  // invoke actor.act
-  const result = await actor.act({
+  // invoke clone.act
+  const result = await clone.act({
     brain: brainRef,
     skill: { [input.opts.skill]: skillInputWithOutput },
   });

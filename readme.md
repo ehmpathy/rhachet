@@ -186,6 +186,27 @@ rhx enroll claude --roles mechanic --resume
 rhx enroll claude --roles mechanic "review this code"
 ```
 
+beyond `--roles`, `enroll` accepts:
+
+| flag | what | example |
+| ---- | ---- | ------- |
+| `--as @:<slug>` | name the spawned clone with a stable handle, to `say`/`get` it by `@:<slug>` later | `rhx enroll claude --as @:driver` |
+| `--reason <text>` | record WHY this enrollment happened in the actor's audit log (accepts `@stdin`) | `rhx enroll claude --reason "nightly cron"` |
+| `--no-socket` | skip the reach socket — spawn the brain plain, no `say`/`get` | `rhx enroll claude --no-socket` |
+| `--output <mode>` | `tree` (default, human) or `json` (a machine handoff of the clone's serial + reachability) | `rhx enroll claude --output json` |
+
+```sh
+# name the clone so a cron can reach it later
+rhx enroll claude --roles mechanic --as @:driver
+
+# record the motive; a supervisor reads the serial back as json
+rhx enroll claude --reason "nightly cron" --output json
+```
+
+a bare `rhx enroll <brain>` with no `--as` still prints the clone's own `@:<serial>` to stderr,
+so you can reach your own clone without a second command. reach the spawned clone with
+`rhx clone say`/`get` (see the `clone` section below).
+
 #### why
 
 `init` sets the default roles for a repo — every agent spawned inherits those roles automatically.
@@ -200,6 +221,62 @@ under the hood:
 1. generates a unique config (`.claude/settings.enroll.$hash.json`)
 2. filters hooks to only the specified roles
 3. spawns with `--setting-sources local` to skip all default configs
+
+### clone
+
+#### how
+
+an actor is a recipe; bake it into a clone, then talk with the clone easily (from any process, not just the keyboard):
+
+**talk** — list, message, observe, self-identify, prune:
+
+```bash
+rhx actor list                                 # actors (the identities)
+rhx clone list                                 # clones + state (LIVE|DEAF|DEAD)
+rhx clone say @:<serial|slug> --what <m>        # dispatch a message (single-line; --what @stdin ok)
+rhx clone get @:<serial|slug> --tail 40         # observe (--tail all = whole log; --format blocks|raw)
+rhx clone whoami                                # from within a clone: its own address
+rhx clone prune [@<actor>] [--older-than <dur>] # reap dead clones (plan by default; --mode apply)
+```
+
+`clone get` renders a directioned conversation (`🎙️` say / `🎧` reply turns) by default; `--format raw`
+keeps the verbatim pipe-clean stream a comms relay forwards.
+
+`clone prune` is plan-by-default (a safe preview); `--mode apply` reaps. it NEVER prunes a LIVE clone,
+nor a cross-host clone whose pid it cannot verify.
+
+every talk verb takes `--output tree|json` (default `tree`): `json` emits a machine shape a
+cron/comms consumer reads by field, never by tree-glyph. `whoami --output json` also carries the
+clone's own `actorHash`, so a clone can `clone list @<actorHash>` to enumerate its peers.
+
+**bake** — make, fork, or wake _(planned — the [`rhx clone` dream](.dream/2026_08_07.clone-actor-from-actors-yml.dream.md); NOT yet registered. today a clone is baked by `rhx enroll`)_:
+
+```bash
+rhx clone make @<slug>          [--as @:<slug>]   # (planned) from a declared actor
+rhx clone fork @:<serial|slug>  [--as @:<slug>]   # (planned) from an extant clone
+rhx clone wake @:<serial|slug>                    # (planned) reopen an extant clone
+```
+
+address an actor with `@<slug>` (≡ `actor://<slug>`) and a clone with `@:<serial>` (≡
+`clone://<serial>`) or `@:<slug>` (≡ `clone://<slug>`) — the actor is the unmarked base, the clone
+wears the `:` grain-marker, and it answers to two bodies: its **serial** (the primary ref, always
+present) or its **slug** (the `--as` unique ref, if named).
+
+howtos — **[use clones](.agent/repo=.this/role=user/briefs/actors/howto.use.clones.md)** ·
+**[author actors.yml](.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md)** ·
+**[address sigils](.agent/repo=.this/role=any/briefs/define.address-sigils.md)** ·
+**[experience inventory](.agent/repo=.this/role=user/briefs/actors/inventory.of=experience._.md)**.
+
+#### why
+
+`enroll` spawns the **same exact clone** — equally addressable by any process, not just the keyboard —
+it is simply based on a **default or ad-hoc actor** (anonymous, hash-derived). `clone` enables
+**reusable actors** (declared by slug in `actors.yml`, **beyond** default and ad-hoc), so every actor is
+addressable and any process can reach it:
+
+- **talk from anywhere** — a cron or comms handler can `say` into a live clone and `get` its output, no terminal takeover
+- **per-brain safety** — the interface scopes control to one brain-cli, not your whole terminal (e.g., kitty, tmux)
+- **recipe reuse** — declare an actor once in `actors.yml`, bake many clones from it that stay in sync
 
 ### use
 
@@ -254,75 +331,82 @@ npx rhachet ask \
 
 ## sdk
 
-the sdk powers programmatic actor usage with strict contracts. applications and services depend on it to leverage actors for reliable, composable, and improvable thought.
+the sdk powers programmatic clone usage with strict contracts. applications and services depend on it to leverage clones for reliable, composable, and improvable thought. an **actor** is the recipe (a brain enrolled with roles); a **clone** is the live embodiment you engage.
 
 ### tldr
 
 ```ts
-import { genActor } from 'rhachet';
+import { genActor, genClone } from 'rhachet';
 import { genBrainRepl } from 'rhachet-brains-openai';
-import { mechanicRole } from './domain.roles/mechanic';
+import { surfCoachRole } from './domain.roles/surf-coach';
+import { lifeguardRole } from './domain.roles/lifeguard';
 
-// init actor
-const mechanic = genActor({
-  role: mechanicRole,
+// `longboarder` is an actor — the recipe: a list of roles enrolled with an allowlist of brains
+const longboarder = genActor({
+  roles: [surfCoachRole, lifeguardRole],
   brains: [genBrainRepl({ slug: 'openai/codex' })],
 });
 
-// use actor
-await mechanic.ask({ prompt: 'how to simplify ...?' });        // 💧 fluid
-await mechanic.act({ skill: { review: { pr } } });             // 🔩 rigid
-await mechanic.run({ skill: { 'fetch.pr-comments': { pr } } }) // 🪨 solid
+// `waikiki9am` is a clone — a live run baked from the `longboarder` actor
+const waikiki9am = genClone({ actor: longboarder });
+await waikiki9am.ask({ prompt: 'how do i coach a faster pop-up?' });   // 💧 fluid
+await waikiki9am.act({ skill: { 'plan.session': { level: 'beginner' } } }); // 🔩 rigid
+await waikiki9am.run({ skill: { 'waves.report': { spot: 'waikiki' } } })    // 🪨 solid
 ```
 
 ### init
 
 #### how
 
-generate an actor from a role with an allowlist of brains:
+first declare an actor (the recipe — a list of roles + an allowlist of brains), then bake a clone from it:
 
 ```ts
-import { genActor } from 'rhachet';
+import { genActor, genClone } from 'rhachet';
 import { genBrainRepl } from 'rhachet-brains-openai';
-import { mechanicRole } from './domain.roles/mechanic';
+import { surfCoachRole } from './domain.roles/surf-coach';
+import { lifeguardRole } from './domain.roles/lifeguard';
 
-export const mechanic = genActor({
-  role: mechanicRole,
+// `longboarder` — the actor: the durable recipe (named for its composite specialty, not any role slug)
+export const longboarder = genActor({
+  roles: [surfCoachRole, lifeguardRole],
   brains: [
     genBrainRepl({ slug: 'openai/codex' }),       // default (first in list)
     genBrainRepl({ slug: 'openai/codex/mini' }),  // fast + cheap alternative
   ],
 });
+
+// `waikiki9am` — a clone: a live run you engage (named for the run, not a role or a person)
+export const waikiki9am = genClone({ actor: longboarder });
 ```
 
 #### why
 
-the actor interface provides:
+the clone interface provides:
 - **strict enrollment** — brains allowlist ensures only approved brains can be used
 - **isomorphic with cli** — same `.run()`, `.act()`, `.ask()` interface as cli commands
-- **composition** — actors can be composed into higher-order workflows and skills
+- **composition** — clones can be composed into higher-order workflows and skills
 - **consistent contracts** — type-safe inputs and outputs across all thought routes
 
 common usecases:
 - create reusable skills that leverage brain capabilities
-- deliver product behaviors powered by enrolled actors
+- deliver product behaviors powered by enrolled clones
 - build automation pipelines with reliable, testable thought
 
 ### use
 
 | method        | route   | what it does                               |
 | ------------- | ------- | ------------------------------------------ |
-| `actor.run()` | 🪨 solid | execute a shell skill, no brain            |
-| `actor.act()` | 🔩 rigid | execute a skill with deterministic harness |
-| `actor.ask()` | 💧 fluid | converse with an actor, brain decides path |
+| `clone.run()` | 🪨 solid | execute a shell skill, no brain            |
+| `clone.act()` | 🔩 rigid | execute a skill with deterministic harness |
+| `clone.ask()` | 💧 fluid | converse with a clone, brain decides path  |
 
 #### 🪨 solid: run
 
 deterministic operations, no brain.
 
 ```ts
-await mechanic.run({
-  skill: { 'gh.workflow.logs': { workflow: 'test' } },
+await waikiki9am.run({
+  skill: { 'waves.report': { spot: 'waikiki' } },
 });
 ```
 
@@ -332,14 +416,14 @@ augmented orchestration, harness controls flow, brain augments.
 
 ```ts
 // uses default brain (first in allowlist)
-await mechanic.act({
-  skill: { review: { input: 'https://github.com/org/repo/pull/9' } },
+await waikiki9am.act({
+  skill: { 'plan.session': { level: 'beginner', students: 6 } },
 });
 
 // uses explicit brain (must be in allowlist)
-await mechanic.act({
+await waikiki9am.act({
   brain: { repo: 'openai', slug: 'codex/mini' },
-  skill: { review: { input: 'https://github.com/org/repo/pull/9' } },
+  skill: { 'plan.session': { level: 'beginner', students: 6 } },
 });
 ```
 
@@ -587,22 +671,23 @@ the spec is light: a readme, a briefs dir, a skills dir. that's it.
 
 a 🧠 brain is an inference provider (openai, anthropic, etc).
 
-enroll a 🧠 brain with a 🧢 role → produce an 🎭 actor.
+enroll a 🧠 brain with a 🧢 role → produce an 🎭 actor (the recipe); bake it into a 😶 clone (the live embodiment) to engage.
 
-🎭 actors can:
+😶 clones can:
 - `.ask()` → 💧 fluid thought, brain decides the path
 - `.act()` → 🔩 rigid thought, harness controls, brain augments
 - `.run()` → 🪨 solid execution, no brain needed
 
 ```ts
-const mechanic = genActor({
-  role: mechanicRole,
+const longboarder = genActor({
+  roles: [surfCoachRole, lifeguardRole],
   brains: [genBrainRepl({ slug: 'openai/codex' })],
 });
 
-await mechanic.ask({ prompt: 'how to simplify ...?' });        // 💧 fluid
-await mechanic.act({ skill: { review: { pr } } });             // 🔩 rigid
-await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
+const waikiki9am = genClone({ actor: longboarder });
+await waikiki9am.ask({ prompt: 'how do i coach a faster pop-up?' });     // 💧 fluid
+await waikiki9am.act({ skill: { 'plan.session': { level: 'beginner' } } }); // 🔩 rigid
+await waikiki9am.run({ skill: { 'waves.report': { spot: 'waikiki' } } })    // 🪨 solid
 ```
 
 ---
@@ -615,7 +700,8 @@ await mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) // 🪨 solid
 | ------- | ----- | ------------------------------------------------------- |
 | role    | 🧢     | bundle of skills + briefs                               |
 | brain   | 🧠     | inference provider (atom = one-shot, repl = multi-turn) |
-| actor   | 🎭     | brain enrolled in a role                                |
+| actor   | 🎭     | a recipe — a brain enrolled with roles                  |
+| clone   | 😶     | a live embodiment of an actor                           |
 | skill   | 💪     | executable capability                                   |
 | brief   | 📚     | curated knowledge                                       |
 
@@ -707,7 +793,7 @@ briefs are suffixed to every system prompt and survive compaction — reliable e
 example:
 ```
 wout skill: "please fetch the pr comments" → brain imagines how, calls gh api, parses response
-with skill: mechanic.run({ skill: { 'fetch-pr-comments': { pr } } }) → instant, deterministic
+with skill: clone.run({ skill: { 'fetch-pr-comments': { pr } } }) → instant, deterministic
 ```
 
 skills unlock consistency. 🧠 brains are probabilistic — they won't do the same task the same way twice. 💪 skills maximize determinism and composition — via distillation of thought routes from fluid → rigid → solid.

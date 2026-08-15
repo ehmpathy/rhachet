@@ -19,11 +19,12 @@
  */
 import { given, then, when } from 'test-fns';
 
+import { getHomeHash } from '@src/infra/host/getHomeHash';
+
 import { mkdtempSync, rmdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getKeyrackDaemonSocketPathForTests } from '../../../../../blackbox/.test/infra/getKeyrackDaemonSocketPathForTests';
-import { getHomeHash } from './getHomeHash';
 import { getKeyrackDaemonSocketPath } from './getKeyrackDaemonSocketPath';
 import { getLoginSessionId } from './getLoginSessionId';
 

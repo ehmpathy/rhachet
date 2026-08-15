@@ -16,6 +16,7 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (
   input: {
     roles: HasRepo<Role>[];
     brains?: BrainSpecifier[];
+    configTargetDir?: string;
   },
   context: ContextCli,
 ): Promise<{
@@ -58,9 +59,9 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (
   for (const role of input.roles) {
     for (const brain of brainSlugs) {
       try {
-        // resolve adapter for this brain
+        // derive the adapter for this brain (the config write path may be an actor dir)
         const adapter = await getBrainHooksAdapterByConfigImplicit(
-          { brain },
+          { brain, configTargetDir: input.configTargetDir },
           context,
         );
 

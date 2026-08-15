@@ -27,6 +27,13 @@ const config: Config = {
     // 'node_modules/(?!(@octokit|universal-user-agent|before-after-hook)/)',
   ],
   testMatch: [
+    // ONE acceptance suite — every acceptance test drives the REAL external
+    // contract, the real-claude reach tier included. there is no separate
+    // real-brain config: `rule.forbid.faked-or-quarantined-acceptance` bans a
+    // quarantine of the only real-contract tests out of the default gate. a
+    // real-brain test bounds its own cost WITHIN the test (one shared spawn, a
+    // deterministic marker, a bounded wall-clock) and fails LOUD — never skips —
+    // when the brain/credential is absent.
     '**/*.acceptance.test.ts',
     '!**/.yalc/**',
     // exclude rmsafe trash — deleted test files land in this gitignored cache dir;

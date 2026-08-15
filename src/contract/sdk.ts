@@ -16,6 +16,7 @@ export { calcBrainOutputCost } from '@src/domain.operations/brainCost/calcBrainO
 export { calcBrainTokens } from '@src/domain.operations/brainCost/calcBrainTokens';
 export { getAvailableBrains } from '@src/domain.operations/brains/getAvailableBrains';
 export { castBriefsToPrompt } from '@src/domain.operations/briefs/castBriefsToPrompt';
+export { genCloneInmem as genClone } from '@src/domain.operations/clone.inmem/genCloneInmem';
 export { genContextBrain } from '@src/domain.operations/context/genContextBrain';
 export { genContextBrainSupplier } from '@src/domain.operations/context/genContextBrainSupplier';
 export { genContextStitchTrail } from '@src/domain.operations/context/genContextStitchTrail';

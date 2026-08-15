@@ -57,6 +57,18 @@ if [ "$1" = "enroll" ]; then
   exec "$SCRIPT_DIR/run" enroll "$@"
 fi
 
+# short-circuit actor command (top-level rhachet command, not a skill)
+if [ "$1" = "actor" ]; then
+  shift
+  exec "$SCRIPT_DIR/run" actor "$@"
+fi
+
+# short-circuit clone command (top-level rhachet command, not a skill)
+if [ "$1" = "clone" ]; then
+  shift
+  exec "$SCRIPT_DIR/run" clone "$@"
+fi
+
 # short-circuit init command (top-level rhachet command, not a skill)
 if [ "$1" = "init" ]; then
   shift

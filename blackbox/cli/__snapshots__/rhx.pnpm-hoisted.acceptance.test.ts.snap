@@ -35,7 +35,10 @@ Commands:
   readme [options]          print documentation for the registry, a role, or a
                             skill
   run [options]             run a solid skill (deterministic, no brain)
-  enroll [options] <brain>  enroll a brain CLI with customized roles
+  enroll [options] [brain]  enroll a brain cli as a managed, addressable clone
+  actor                     inspect enrolled actor identities
+  clone                     reach an enrolled clone: list, say, get, whoami,
+                            prune
   choose [options]          select one attempt file, archive its peer files, and
                             remove unrelated ones
   ask [options]             invoke a skill or start a fluid conversation with an

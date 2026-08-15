@@ -1,10 +1,12 @@
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { syncHooksForLinkedRoles } from './syncHooksForLinkedRoles';
 
-// mock dependencies
+// mock the leaf collaborators so this unit exercises the orchestrator's OWN
+// error-collection + operator-report logic, not the leaves (whose behavior has
+// its own coverage — e.g. syncAllRoleHooksIntoEachBrainRepl.test.ts)
 jest.mock('@src/domain.operations/brains/getLinkedRolesWithHooks');
 jest.mock('@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains');
 jest.mock('@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl');
@@ -20,11 +22,14 @@ const mockSyncAllRoleHooksIntoEachBrainRepl =
   syncAllRoleHooksIntoEachBrainRepl as jest.Mock;
 
 /**
- * .what = captures console.log output for snapshot test
+ * .what = captures console.log output so the operator summary lines can be
+ *   asserted (the orchestrator reports via console.log)
  */
 const captureConsoleOutput = async (
   fn: () => Promise<unknown>,
 ): Promise<string> => {
+  // .note = deliberate mutation — a local log buffer swapped in for the duration
+  //   of the call and restored in `finally`; scoped to this helper, never leaks
   const logs: string[] = [];
   const originalLog = console.log;
   console.log = (...args: unknown[]) => logs.push(args.join(' '));
@@ -36,190 +41,25 @@ const captureConsoleOutput = async (
   return logs.join('\n');
 };
 
-describe('syncHooksForLinkedRoles', () => {
+/**
+ * .what = the two loud error paths of syncHooksForLinkedRoles — the operator
+ *   summary a human reads when a hook sync FAILS, and when role DISCOVERY fails
+ * .why = restores the coverage the deleted syncHooksForLinkedRoles.test.ts held
+ *   for these paths (rule.require.clamp-edge-cases). the leaf error CONSTRUCTION
+ *   is tested one layer down, but the orchestrator's own error-collection +
+ *   `⛈️ N hook sync error(s)` summary was left unguarded — a regression that
+ *   dropped the summary (a silent failure) would go undetected. a REAL temp cwd
+ *   makes getAllActorsOndisk return [] (no .agent/.actors), so the test is
+ *   hermetic without a mock of the actor read
+ */
+describe('syncHooksForLinkedRoles (error paths)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  given('[case1] no roles with hooks found', () => {
+  given('[case1] a role whose hook sync FAILS', () => {
     const scene = useBeforeAll(async () => {
-      mockGetLinkedRolesWithHooks.mockResolvedValue({
-        roles: [],
-        errors: [],
-      });
-
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
-    });
-
-    when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case2] one role, one brain, one hook created', () => {
-    const scene = useBeforeAll(async () => {
-      mockGetLinkedRolesWithHooks.mockResolvedValue({
-        roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
-        errors: [],
-      });
-      mockPruneOrphanedRoleHooksFromAllBrains.mockResolvedValue({
-        removed: [],
-      });
-      mockSyncAllRoleHooksIntoEachBrainRepl.mockResolvedValue({
-        applied: [
-          {
-            role: { slug: 'mechanic', repo: 'ehmpathy' },
-            brain: 'claude-code',
-            hooks: {
-              created: [{ command: 'echo hello' }],
-              updated: [],
-              deleted: [],
-              unchanged: [],
-            },
-          },
-        ],
-        errors: [],
-      });
-
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
-    });
-
-    when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case3] multiple roles, multiple brains, mixed changes', () => {
-    const scene = useBeforeAll(async () => {
-      mockGetLinkedRolesWithHooks.mockResolvedValue({
-        roles: [
-          { slug: 'mechanic', repo: 'ehmpathy' },
-          { slug: 'designer', repo: 'ehmpathy' },
-        ],
-        errors: [],
-      });
-      mockPruneOrphanedRoleHooksFromAllBrains.mockResolvedValue({
-        removed: [
-          {
-            brain: 'claude-code',
-            hooks: [{ command: 'orphan1' }, { command: 'orphan2' }],
-          },
-        ],
-      });
-      mockSyncAllRoleHooksIntoEachBrainRepl.mockResolvedValue({
-        applied: [
-          {
-            role: { slug: 'mechanic', repo: 'ehmpathy' },
-            brain: 'claude-code',
-            hooks: {
-              created: [{ command: 'echo boot' }],
-              updated: [],
-              deleted: [],
-              unchanged: [],
-            },
-          },
-          {
-            role: { slug: 'mechanic', repo: 'ehmpathy' },
-            brain: 'opencode',
-            hooks: {
-              created: [],
-              updated: [{ command: 'echo updated' }],
-              deleted: [],
-              unchanged: [],
-            },
-          },
-          {
-            role: { slug: 'designer', repo: 'ehmpathy' },
-            brain: 'claude-code',
-            hooks: {
-              created: [
-                { command: 'echo design1' },
-                { command: 'echo design2' },
-              ],
-              updated: [],
-              deleted: [{ command: 'echo old' }],
-              unchanged: [],
-            },
-          },
-        ],
-        errors: [],
-      });
-
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
-    });
-
-    when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case4] no changes needed', () => {
-    const scene = useBeforeAll(async () => {
-      mockGetLinkedRolesWithHooks.mockResolvedValue({
-        roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
-        errors: [],
-      });
-      mockPruneOrphanedRoleHooksFromAllBrains.mockResolvedValue({
-        removed: [],
-      });
-      mockSyncAllRoleHooksIntoEachBrainRepl.mockResolvedValue({
-        applied: [
-          {
-            role: { slug: 'mechanic', repo: 'ehmpathy' },
-            brain: 'claude-code',
-            hooks: {
-              created: [],
-              updated: [],
-              deleted: [],
-              unchanged: [{ command: 'echo hello' }],
-            },
-          },
-        ],
-        errors: [],
-      });
-
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
-    });
-
-    when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case5] errors on sync', () => {
-    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'sync-hooks-err' });
       mockGetLinkedRolesWithHooks.mockResolvedValue({
         roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
         errors: [],
@@ -238,24 +78,41 @@ describe('syncHooksForLinkedRoles', () => {
         ],
       });
 
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
+      // .note = a real temp cwd → getAllActorsOndisk reads no actors root → []
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      let errors: Awaited<
+        ReturnType<typeof syncHooksForLinkedRoles>
+      >['errors'] = [];
+      const output = await captureConsoleOutput(async () => {
+        errors = (await syncHooksForLinkedRoles({}, context)).errors;
+      });
+      return { output, errors };
     });
 
     when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
+      then('the sync error is collected into the returned errors', () => {
+        expect(scene.errors).toHaveLength(1);
+        expect(scene.errors[0]?.source).toContain('sync:ehmpathy/mechanic');
+        expect(scene.errors[0]?.error.message).toEqual('no adapter found');
+      });
+
+      then('the per-error line names the role, brain, and cause', () => {
+        expect(scene.output).toContain(
+          '⛈️  ehmpathy/mechanic → unknown-brain: no adapter found',
+        );
+      });
+
+      then('the operator sees the loud `N hook sync error(s)` summary', () => {
+        // the exact line syncHooksForLinkedRoles emits when sync errors > 0 —
+        // the summary the deleted test locked, now re-guarded
+        expect(scene.output).toContain('⛈️  1 hook sync error(s) occurred');
       });
     });
   });
 
-  given('[case6] discovery errors', () => {
+  given('[case2] a role DISCOVERY error (a broken role config)', () => {
     const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'sync-hooks-discover-err' });
       mockGetLinkedRolesWithHooks.mockResolvedValue({
         roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
         errors: [
@@ -275,29 +132,28 @@ describe('syncHooksForLinkedRoles', () => {
           {
             role: { slug: 'mechanic', repo: 'ehmpathy' },
             brain: 'claude-code',
-            hooks: {
-              created: [{ command: 'echo hello' }],
-              updated: [],
-              deleted: [],
-              unchanged: [],
-            },
+            hooks: { created: [], updated: [], deleted: [], unchanged: [] },
           },
         ],
         errors: [],
       });
 
-      const output = await captureConsoleOutput(() =>
-        syncHooksForLinkedRoles(
-          {},
-          new ContextCli({ cwd: '/tmp/test-repo', gitroot: '/tmp/test-repo' }),
-        ),
-      );
-      return { output };
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      let errors: Awaited<
+        ReturnType<typeof syncHooksForLinkedRoles>
+      >['errors'] = [];
+      const output = await captureConsoleOutput(async () => {
+        errors = (await syncHooksForLinkedRoles({}, context)).errors;
+      });
+      return { output, errors };
     });
 
     when('[t0] sync is executed', () => {
-      then('output matches snapshot', () => {
-        expect(scene.output).toMatchSnapshot();
+      then('the discovery error is collected into the returned errors', () => {
+        expect(scene.errors).toHaveLength(1);
+        expect(scene.errors[0]?.source).toContain(
+          'discover:broken-repo/broken-role',
+        );
       });
 
       then(

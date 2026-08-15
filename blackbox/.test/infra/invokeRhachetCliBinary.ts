@@ -22,8 +22,36 @@ export const asSnapshotSafe = (output: string): string => {
       )
       // strip temp test repo paths (vary by run)
       .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
-      // strip ISO timestamps (vary by run)
-      .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '__TIMESTAMP__')
+      // strip ISO timestamps (vary by run). the millis are OPTIONAL: iso-time's
+      // now() omits `.000` when the instant lands on a whole second, so a spawn on
+      // an exact second renders `…30Z` (no millis) — the mask must catch both forms
+      // or the clone-list `since=` snapshot flakes ~1-in-1000 (rule.require.clamp-edge-cases)
+      .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z/g, '__TIMESTAMP__')
+      // strip a clone socket path (host-scoped, varies by run) BEFORE the serial
+      // mask, so the whole `.sock` token collapses to one stable placeholder
+      .replace(/\S*clone\.[0-9a-f-]+\.[0-9a-f]+\.sock/gi, '__SOCKET__')
+      // strip a clone serial (a uuid — varies every spawn). the actor hash is a
+      // 64-char sha256 (a different shape) and stays UNMASKED — it is deterministic
+      .replace(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        '__SERIAL__',
+      )
+      // strip an ABBREVIATED clone serial (the 8-hex prefix + `…`) — a legacy render
+      // form. the actor hash abbreviates to 7 hex + `…` (a shorter shape), so this
+      // 8-hex-before-ellipsis mask never touches the deterministic actor hash
+      .replace(/[0-9a-f]{8}…/gi, '__SERIAL8__…')
+      // strip the `serial=<8hex>` field `clone list` shows for a NAMED clone (the
+      // human short form, asCloneSerialHuman — the first uuid segment, so it varies
+      // every spawn). the actor line carries no `serial=`, so this is serial-only
+      .replace(/serial=[0-9a-f]{8}\b/gi, 'serial=__SERIAL8__')
+      // strip the `@:<8hex>` short ADDRESS `clone list` shows for an UNNAMED clone. the
+      // lookahead bounds it to exactly 8 hex as the whole token, so a full serial (already
+      // masked to `@:__SERIAL__` above) and a slug like `@:driver` are never touched
+      .replace(/@:[0-9a-f]{8}(?=\s|$)/gi, '@:__SERIAL8__')
+      // strip the `clone get` relative-time offset (`T0+HHhMM`) — the wall-clock gap
+      // between turns varies by run (a say + reply may straddle a minute boundary), so
+      // the offset is masked; a functional assert checks the `T0+\d\dH\d\dM` FORMAT
+      .replace(/T0\+\d{2}H\d{2}M/g, 'T0+__ELAPSED__')
   );
 };
 
@@ -138,6 +166,12 @@ export const invokeRhachetCliBinary = (input: {
 
   // merge env vars, filter out undefined to unset inherited vars
   const mergedEnv = { ...process.env, ...input.env };
+  // .note = deliberate cast: the filter above removes every undefined value, so the
+  //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
+  //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.
+  //   the runtime filter guarantees no undefined survives, so the cast only re-narrows
+  //   the compile-time type to what the value already is. removal path: drops when a
+  //   typed fromEntries utility lands (rule.forbid.as-cast, test boundary)
   const envFiltered = Object.fromEntries(
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
   ) as NodeJS.ProcessEnv;
@@ -194,6 +228,12 @@ export const invokeRhachetCliBinaryChain = (input: {
 
   // merge env vars, filter out undefined to unset inherited vars
   const mergedEnv = { ...process.env, ...input.env };
+  // .note = deliberate cast: the filter above removes every undefined value, so the
+  //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
+  //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.
+  //   the runtime filter guarantees no undefined survives, so the cast only re-narrows
+  //   the compile-time type to what the value already is. removal path: drops when a
+  //   typed fromEntries utility lands (rule.forbid.as-cast, test boundary)
   const envFiltered = Object.fromEntries(
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
   ) as NodeJS.ProcessEnv;

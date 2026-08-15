@@ -1,6 +1,6 @@
 import { BadRequestError } from 'helpful-errors';
 
-import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { getBrainSlugFull } from '@src/domain.operations/brains/getBrainSlugFull';
 
 /**

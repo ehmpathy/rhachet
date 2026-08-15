@@ -94,7 +94,7 @@
     "preversion": "npm run prepush",
     "postversion": "git push origin HEAD --tags --no-verify",
     "prepare:husky": "husky install && chmod ug+x .husky/*",
-    "prepare:rhachet": "npm run build && rhachet init --hooks --roles mechanic behaver driver architect ergonomist reviewer dreamer dispatcher",
+    "prepare:rhachet": "rhachet init --keys --hooks --roles mechanic behaver driver reviewer librarian ergonomist architect dispatcher learner operator observer deployer playwright enroller",
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi",
     "upgrade:rhachet": "rhachet upgrade"
   },
@@ -132,6 +132,9 @@
     "with-simple-cache": "0.17.3",
     "yaml": "2.8.2"
   },
+  "optionalDependencies": {
+    "node-pty": "1.1.0"
+  },
   "peerDependencies": {
     "declastruct-aws": ">=1.10.1",
     "zod": ">=4.3.0"
@@ -155,7 +158,7 @@
     "bun": "1.3.5",
     "cz-conventional-changelog": "3.3.0",
     "declapract": "0.13.15",
-    "declapract-typescript-ehmpathy": "0.49.3",
+    "declapract-typescript-ehmpathy": "0.49.9",
     "declastruct": "1.7.3",
     "declastruct-aws": "1.10.1",
     "declastruct-github": "1.3.0",
@@ -170,6 +173,7 @@
     "rhachet-brains-openai": "0.3.1",
     "rhachet-brains-xai": "0.3.3",
     "rhachet-roles-bhrain": "0.32.1",
+    "rhachet-roles-bhrowser": "0.1.0",
     "rhachet-roles-bhuild": "0.21.32",
     "rhachet-roles-ehmpathy": "1.38.6",
     "rhachet-roles-ghlitch": "0.2.10",
@@ -188,7 +192,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "bun"
+      "bun",
+      "node-pty"
     ]
   },
   "packageManager": "pnpm@10.24.0"

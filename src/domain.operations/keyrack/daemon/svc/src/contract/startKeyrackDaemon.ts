@@ -1,8 +1,8 @@
 import { asKeyrackDaemonPidPath } from '@src/domain.operations/keyrack/daemon/infra/asKeyrackDaemonPidPath';
-import { delFileSync } from '@src/domain.operations/keyrack/daemon/infra/delFileSync';
-import { getHomeHash } from '@src/domain.operations/keyrack/daemon/infra/getHomeHash';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { createKeyrackDaemonServer } from '@src/domain.operations/keyrack/daemon/svc/src/infra/createKeyrackDaemonServer';
+import { delFileSync } from '@src/infra/filesystem/delFileSync';
+import { getHomeHash } from '@src/infra/host/getHomeHash';
 
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';

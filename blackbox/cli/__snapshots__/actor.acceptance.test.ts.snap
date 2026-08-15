@@ -1,0 +1,79 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx actor list (acceptance) given: [case1] a linked repo with NO actors enrolled when: [t0] \`actor list\` on the empty repo then: the empty-state format is locked (visual spot-check) 1`] = `
+"🎭 actors
+   └─ (no actors enrolled yet)
+      └─ enroll one with \`rhx enroll <brain>\`
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case1] a linked repo with NO actors enrolled when: [t1] \`actor list --output json\` on the empty repo then: the empty-actors json shape is locked (catches a drifted shape) 1`] = `
+"{
+  "actors": []
+}
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor enrolled when: [t0] \`actor list\` after an enroll then: the populated-actor format is locked (visual spot-check) 1`] = `
+"🎭 actors
+   └─ @ee65f29…  brain=claude  roles=architect,driver,mechanic
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor enrolled when: [t1] \`actor list --output json\` after an enroll then: the one-actor json shape is locked (catches a drifted shape) 1`] = `
+"{
+  "actors": [
+    {
+      "repoPath": "__REPO__",
+      "hash": "ee65f291",
+      "brain": "claude",
+      "roles": [
+        "driver",
+        "architect",
+        "mechanic"
+      ]
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case3] an invalid --output mode when: [t0] \`actor list --output xml\` (an unsupported mode) then: the edge-case error output is locked to a snapshot 1`] = `
+"
+✋ unknown --output mode "xml"
+   └─ use --output tree (default) or --output json
+
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case4] a repo with NO .agent/ directory (never linked) when: [t0] \`actor list\` in an unlinked repo (no .agent/) then: the unlinked-repo not-linked format is locked (visual spot-check) 1`] = `
+"🎭 actors
+   └─ (repo not linked)
+      └─ link roles first with \`rhx init --roles <role>\`
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case4] a repo with NO .agent/ directory (never linked) when: [t1] \`actor list --output json\` in an unlinked repo (no .agent/) then: the unlinked-repo json shape is locked (machine contract) 1`] = `
+"{
+  "actors": []
+}
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on disk (server fault) when: [t0] \`actor list\` on the corrupt repo (tree) then: the corrupt-manifest tree error is locked to a snapshot 1`] = `
+"
+✋ enrolled actor manifest is corrupt — actor.json is not valid JSON
+
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on disk (server fault) when: [t1] \`actor list --output json\` on the corrupt repo (machine) then: the corrupt-manifest json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "MalfunctionError",
+  "message": "enrolled actor manifest is corrupt — actor.json is not valid JSON",
+  "hint": null,
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;

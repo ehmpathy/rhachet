@@ -118,6 +118,59 @@ const readEnrollmentConfig = (input: { dir: string }): string => {
 };
 
 /**
+ * .what = reads the append-only enrollment.jsonl roles log for the one enrolled
+ *   actor, parsed to its event objects (latest last)
+ * .why = the `--reason` audit motive is recorded to this log BEFORE the spawn, so a
+ *   stub-exit-0 run lets the acceptance assert the WHY landed — a spawn-free readout
+ *   of the audit trail, the same shape the config-artifact readout uses for roles
+ */
+const readEnrollmentLog = (input: {
+  dir: string;
+}): Array<{ roles: string[]; delta: string | null; reason: string | null }> => {
+  const actorsRoot = join(input.dir, '.agent', '.actors');
+  const actorDir = readdirSync(actorsRoot).find((name) =>
+    name.startsWith('actor.via.hash='),
+  );
+  if (!actorDir)
+    throw new UnexpectedCodePathError('no enrolled actor dir was authored', {
+      actorsRoot,
+      hint: 'check the stub brain exited 0 and that enroll findserted the actor before the spawn',
+    });
+  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
+  return readFileSync(logPath, 'utf-8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((raw) => JSON.parse(raw));
+};
+
+/**
+ * .what = reads the raw enrollment.jsonl line(s) with the per-run wall-clock `at`
+ *   stamp masked to a stable `$AT` token
+ * .why = the `--reason` audit case snapshots the WHOLE persisted line (not just the
+ *   reason field) to honor the suite's snapshot-paired discipline — a field assert
+ *   cannot catch a widened/renamed schema, a drifted delta shape, or a lost
+ *   `schemaVersion`. the `at` stamp is the one non-deterministic field, so it is
+ *   masked; every other field is drift-locked in the pr diff
+ */
+const readEnrollmentLogRaw = (input: { dir: string }): string => {
+  const actorsRoot = join(input.dir, '.agent', '.actors');
+  const actorDir = readdirSync(actorsRoot).find((name) =>
+    name.startsWith('actor.via.hash='),
+  );
+  if (!actorDir)
+    throw new UnexpectedCodePathError('no enrolled actor dir was authored', {
+      actorsRoot,
+      hint: 'check the stub brain exited 0 and that enroll findserted the actor before the spawn',
+    });
+  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
+  return readFileSync(logPath, 'utf-8').replace(
+    /"at":"[^"]+"/g,
+    '"at":"$AT"',
+  );
+};
+
+/**
  * .what = blackbox acceptance for `rhachet enroll <brain> --roles <spec>`
  * .why = the enroll `--roles` delta regression (`-driver` → `\u0000driver`) lived
  *        in the entry-layer argv path (getPreprocessedRoleArgv), which only the
@@ -166,6 +219,46 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(run.stderr.toLowerCase()).toContain('not found');
       });
       then('the error output is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t0b] `enroll claude --roles -ghostrole --output json` (the machine channel)', () => {
+      // the MACHINE counterpart of t0: the human `✋` snapshot above renders the
+      // readable fix (the intended withCliOutputErrors contract, criteria uc.1); the
+      // STRUCTURED verification lives HERE — a cron/supervisor reads the same failure
+      // as a parseable {class,message,hint}, so the structured error shape is drift-
+      // locked in the machine channel (usecase.11 addendum 4). the role-not-found path
+      // thus owns BOTH its human AND its machine snapshot — exhaustive coverage per
+      // rule.require.contract-snapshot-exhaustiveness (this is where the pre-`✋`
+      // json debug data is preserved, NOT lost — it moved to --output json)
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-ghostrole', '--output', 'json'],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+
+      then('the failure is a parseable structured error, not human prose', () => {
+        expect(run.status).not.toEqual(0);
+        // the human tree glyph must NOT appear — this is the machine channel
+        expect(run.stderr).not.toContain('✋');
+        // stderr parses as json the consumer branches on by field — the structured
+        // {class,message,hint} the ergo/mech lenses feared was lost is captured here
+        const shape = JSON.parse(run.stderr) as {
+          class: string;
+          message: string;
+          hint: string | null;
+        };
+        expect(shape.class).toEqual('BadRequestError');
+        expect(shape.message.toLowerCase()).toContain('ghostrole');
+        expect(shape.message.toLowerCase()).toContain('not found');
+        // the rolesLinked context survives — it rides the hint field (never dropped)
+        expect(`${shape.hint}`.toLowerCase()).toContain('linked roles');
+      });
+
+      then('the structured error is locked to a snapshot', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });
     });
@@ -333,6 +426,98 @@ describe('rhx enroll --roles (acceptance)', () => {
         // the stub brain emits no output; this locks that the success path leaks
         // no unexpected rhachet output to stderr before the spawn
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2b] the PRIMARY journey — bare `enroll claude` keeps the DEFAULT roleset', () => {
+    // the wish's most common hot path: `rhx enroll claude` with NO --roles. it must
+    // boot the repo's FULL default roleset (mechanic + architect + driver) unchanged.
+    // the primary user experience owed a snapshot per rule.require.acceptance-journey-
+    // coverage — every user-faced contract variant, above all the default one, needs
+    // a locked snapshot so a regression in the default behavior cannot ship undetected
+    const dir = genTempDir({ slug: 'enroll-default-roles' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture(dir);
+      seedRoleAuthoredHooks({ dir });
+      stubPath = setupStubBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude` (no --roles → the default roleset)', () => {
+      const run = useThen('exits 0 (valid bare path, reaches the stub brain)', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('no null byte leaks and no "not found" — the bare path is clean', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).not.toContain('not found');
+      });
+
+      then('the authored config keeps ALL default roles (none dropped, none added)', () => {
+        const config = readEnrollmentConfig({ dir });
+        expect(config).toContain('role=mechanic');
+        expect(config).toContain('role=architect');
+        expect(config).toContain('role=driver');
+      });
+
+      then('the authored default-roleset config body is locked to a snapshot', () => {
+        // the default-roleset config IS the primary user experience — snapshot the
+        // full authored hook set so a regression that silently drops OR adds a default
+        // role surfaces in the pr diff (the toContain checks above cannot catch a
+        // widened set that keeps too much)
+        expect(
+          asSnapshotSafe(readEnrollmentConfig({ dir })),
+        ).toMatchSnapshot();
+      });
+
+      then('the success output is locked to a snapshot', () => {
+        // the stub brain emits no output; this locks that the bare default-roles
+        // success path leaks no unexpected rhachet output before the spawn
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the same bare enroll with --output json (the machine handoff)', () => {
+      // the MACHINE twin of the tree success above — a supervisor that spawns the bare
+      // enroll with --output json reads a parseable handoff off stdout. this path runs
+      // via spawnSync (no tty), so the clone is socketless → socketEligible=false, a
+      // DISTINCT machine variant from the pty handoff (case2c, socketEligible=true) that
+      // owes its own snapshot per rule.require.contract-snapshot-exhaustiveness
+      const run = useThen('exits 0 (bare enroll, machine handoff)', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--output', 'json'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('a parseable handoff carries the serial + a NULL slug (socketless)', () => {
+        expect(run.status).toEqual(0);
+        const parsed = JSON.parse(run.stdout) as {
+          outcome: string;
+          serial: string;
+          slug: string | null;
+          socketEligible: boolean;
+        };
+        expect(parsed.outcome).toEqual('baked');
+        expect(parsed.serial).toMatch(/^[0-9a-f-]{36}$/);
+        expect(parsed.slug).toEqual(null);
+        // no tty under spawnSync → no socket stands up
+        expect(parsed.socketEligible).toEqual(false);
+      });
+
+      then('the socketless machine handoff shape is locked (machine contract)', () => {
+        // the serial (a uuid) is masked; outcome/slug/socketEligible stay stable — this
+        // locks the plain-spawn (socketless) handoff, distinct from the pty variant
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -621,17 +806,24 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
     });
 
-    when('[t2] `enroll claude` (required --roles absent)', () => {
+    when('[t2] `enroll claude --brain codex` (brain conflict)', () => {
+      // --roles is now OPTIONAL (absent => the default roleset), so the old
+      // "required --roles" error no longer exists. the pre-spawn negative this
+      // slot now proves is the three-form brain conflict: a positional brain and
+      // a `--brain` flag that disagree fail loud, and name BOTH values.
       const run = useThen('exits non-zero', () =>
         invokeRhachetCliBinary({
-          args: ['enroll', 'claude'],
+          args: ['enroll', 'claude', '--brain', 'codex'],
           cwd: dir,
           logOnError: false,
         }),
       );
-      then('commander reports the required --roles option is absent', () => {
+      then('the conflict fails loud and shows both brain values', () => {
         expect(run.status).not.toEqual(0);
-        expect(run.stderr).toContain('--roles');
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain('brain conflict');
+        expect(run.stderr).toContain('claude');
+        expect(run.stderr).toContain('codex');
       });
       then('the error output is locked to a snapshot', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
@@ -665,6 +857,375 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
       then('the error output is locked to a snapshot', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t4] `enroll claude --as @:<uuid>` (an unreachable uuid-shaped handle)', () => {
+      // a uuid-shaped --as parses as a SERIAL on every reach path (say/get/list), so
+      // a clone named this way would be permanently unreachable by its own address.
+      // enroll must reject it at mint time, not let it fail loud only when a caller
+      // tries to reach it (i009 r011 blocker 1). before the fix, isSafeCloneSlug
+      // accepted a lowercase uuid, so the dead end shipped silently
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--as',
+            '@:12345678-1234-1234-1234-123456789abc',
+          ],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+      then('the uuid-shaped --as is rejected pre-spawn, the fix named', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain('uuid-shaped');
+        expect(run.stderr.toLowerCase()).toContain('unreachable');
+        // the fix names a non-uuid handle
+        expect(run.stderr).toContain('--as @:driver');
+      });
+      then('the error output is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t4b] `enroll claude --as @:<unsafe>` (an unsafe-charset handle)', () => {
+      // a slug with uppercase / space / punctuation is rejected at mint time — a
+      // handle must be a safe path segment (lowercase, digits, - . _), so it can
+      // never traverse or collide. acceptance parity with the uuid case (t4), so
+      // BOTH `--as` rejection branches are locked at the blackbox grain (i022 r010 #7)
+      const runUnsafe = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--as', '@:Bad Slug!'],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+      then('the unsafe --as is rejected pre-spawn, the safe charset named', () => {
+        expect(runUnsafe.status).not.toEqual(0);
+        expect(runUnsafe.stderr).not.toContain('\u0000');
+        expect(runUnsafe.stderr.toLowerCase()).toContain('not a safe handle');
+        expect(runUnsafe.stderr.toLowerCase()).toContain('lowercase letters');
+        expect(runUnsafe.stderr).toContain('--as @:driver');
+      });
+      then('the error output is locked to a snapshot', () => {
+        expect(asSnapshotSafe(runUnsafe.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t4c] `enroll claude --as <no-marker>` (a dropped @: sigil)', () => {
+      // a handle without the `@:` clone-grain marker is rejected with a did-you-mean
+      // that names the correct form — the clone grain is never guessed. the
+      // acceptance twin of the integration-grade did-you-mean coverage (i022 r010 #7)
+      const runNoMarker = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--as', 'driver'],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+      then('the marker-less --as is rejected with a did-you-mean', () => {
+        expect(runNoMarker.status).not.toEqual(0);
+        expect(runNoMarker.stderr.toLowerCase()).toContain('not a clone address');
+        expect(runNoMarker.stderr).toContain("did you mean '@:driver'");
+      });
+      then('the error output is locked to a snapshot', () => {
+        expect(asSnapshotSafe(runNoMarker.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t5] `enroll claude --brain codex --output json` (failing enroll, machine channel)', () => {
+      // criteria usecase.11 addendum4, second scenario: a supervisor/cron that
+      // spawns enroll with --output json must, on FAILURE, get a machine-parseable
+      // STRUCTURED error (not human prose) with a non-zero exit — so it branches on
+      // error fields the same way it branches on the talk verbs' errors. the brain
+      // conflict is the cleanest failing enroll: it throws a ConstraintError at
+      // parse (pre-spawn), which withCliOutputErrors renders as json on stderr.
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--brain', 'codex', '--output', 'json'],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+
+      then('the failure is a parseable structured error, not human prose', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        // the human tree glyph must NOT appear — this is the machine channel
+        expect(run.stderr).not.toContain('✋');
+        // stderr parses as json the consumer branches on by field
+        const shape = JSON.parse(run.stderr) as {
+          class: string;
+          message: string;
+          hint: string | null;
+        };
+        expect(shape.class).toEqual('ConstraintError');
+        expect(shape.message.toLowerCase()).toContain('brain conflict');
+        expect(shape.message).toContain('claude');
+        expect(shape.message).toContain('codex');
+      });
+
+      then('the structured error is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+});
+
+/**
+ * .what = blackbox acceptance for `rhachet enroll <brain> --reason <text|@stdin>`
+ * .why = the wish names enrollment.jsonl as the record of "the history of WHY and
+ *   which roles were enrolled" (criteria usecase.11 addendum 6). the reason is
+ *   written to that log BEFORE the spawn, so a stub-exit-0 run proves — at the real
+ *   CLI surface, spawn-free — that the caller's motive is captured (plain AND piped),
+ *   and that an absent reason records as null (a truthful audit, never a fabrication)
+ *
+ * .note = the reason threads through genCloneOndisk → findsertActorOndisk →
+ *   setActorOndiskRolesLog, all of which run before the child spawn, so a stub
+ *   `claude` that exits 0 leaves the enrollment.jsonl for a deterministic readout —
+ *   the same spawn-free-artifact pattern the `--roles` positive cases use
+ */
+describe('rhx enroll --reason (acceptance)', () => {
+  const setupReasonFixture = (dir: string): string => {
+    setupRoleFixtureRepo({ dir });
+    invokeRhachetCliBinary({
+      args: ['init', '--roles', 'mechanic', 'architect', 'driver'],
+      cwd: dir,
+    });
+    return setupStubBrainPath({ dir });
+  };
+
+  given('[case1] a linked repo, `--reason "<text>"` (plain)', () => {
+    const dir = genTempDir({ slug: 'enroll-reason-plain' });
+    let stubPath: string;
+    beforeAll(() => {
+      stubPath = setupReasonFixture(dir);
+    });
+
+    when('[t0] `enroll claude --reason "nightly cron refresh"` runs', () => {
+      const run = useThen('exits 0 (valid enroll, reaches the stub brain)', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--reason', 'nightly cron refresh'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('the audit log records WHY this enrollment happened', () => {
+        expect(run.status).toEqual(0);
+        const log = readEnrollmentLog({ dir });
+        expect(log.at(-1)!.reason).toEqual('nightly cron refresh');
+      });
+
+      then('the full persisted audit line is locked to a snapshot', () => {
+        // snapshot the WHOLE jsonl line (schemaVersion, roles, delta, reason),
+        // not just the reason field — a field assert cannot catch a widened schema
+        // or a lost schemaVersion. the wall-clock `at` is the one varying field, so
+        // it is masked; everything else is drift-locked in the pr diff
+        expect(readEnrollmentLogRaw({ dir })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2] a linked repo, `--reason @stdin` (piped motive)', () => {
+    const dir = genTempDir({ slug: 'enroll-reason-stdin' });
+    let stubPath: string;
+    beforeAll(() => {
+      stubPath = setupReasonFixture(dir);
+    });
+
+    when('[t0] `enroll claude --reason @stdin` with the motive piped in', () => {
+      const run = useThen('exits 0 (valid enroll, reaches the stub brain)', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--reason', '@stdin'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          stdin: 'payload-heavy motive from a pipe\nwith a second line',
+          logOnError: false,
+        }),
+      );
+
+      then('the piped motive is captured in the audit log (trimmed)', () => {
+        expect(run.status).toEqual(0);
+        const log = readEnrollmentLog({ dir });
+        expect(log.at(-1)!.reason).toEqual(
+          'payload-heavy motive from a pipe\nwith a second line',
+        );
+      });
+    });
+  });
+
+  given('[case3] a linked repo, a bare enroll with NO `--reason`', () => {
+    const dir = genTempDir({ slug: 'enroll-reason-absent' });
+    let stubPath: string;
+    beforeAll(() => {
+      stubPath = setupReasonFixture(dir);
+    });
+
+    when('[t0] `enroll claude` runs with no motive', () => {
+      const run = useThen('exits 0 (valid enroll, reaches the stub brain)', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('the reason records as null — a truthful audit, never a fabrication', () => {
+        expect(run.status).toEqual(0);
+        const log = readEnrollmentLog({ dir });
+        expect(log.at(-1)!.reason).toBeNull();
+      });
+    });
+  });
+});
+
+/**
+ * .what = blackbox acceptance for the global `--as @:<slug>` collision — a slug
+ *   claimed by one actor cannot be re-claimed by a DIFFERENT actor
+ * .why = the `.slugs/` index is GLOBAL-unique across actors (criteria usecase.2 /
+ *   usecase.5 addressing). the collision was proven only at integration grain
+ *   (genCloneOndisk / setCloneSlugIndex); this drives it through the REAL cli and
+ *   snapshots the fail-loud error, matching the snapshot discipline its sibling
+ *   negative (the uuid-shaped `--as` rejection, case10 t4) already follows.
+ *
+ * .note = spawn-free-ish: both enrolls run the full path via a stub `claude` (exit
+ *   0). enroll 1 (default roleset) bakes a clone and writes `.slugs/foreman`; enroll
+ *   2 (a DIFFERENT roleset via `-driver`, so a different actor hash) hits the
+ *   collision at genCloneOndisk BEFORE its own spawn — a deterministic fail-loud, no brain
+ */
+describe('rhx enroll --as slug collision (acceptance)', () => {
+  const setupCollisionFixture = (dir: string): string => {
+    setupRoleFixtureRepo({ dir });
+    invokeRhachetCliBinary({
+      args: ['init', '--roles', 'mechanic', 'architect', 'driver'],
+      cwd: dir,
+    });
+    return setupStubBrainPath({ dir });
+  };
+
+  given('[case1] `@:foreman` already claimed by the default-roleset actor', () => {
+    const dir = genTempDir({ slug: 'enroll-slug-collision' });
+    let stubPath: string;
+    beforeAll(() => {
+      stubPath = setupCollisionFixture(dir);
+      // enroll 1: default roleset → actor H1, claims `.slugs/foreman`
+      invokeRhachetCliBinary({
+        args: ['enroll', 'claude', '--as', '@:foreman'],
+        cwd: dir,
+        env: { PATH: stubPath },
+        logOnError: false,
+      });
+    });
+
+    when('[t0] a DIFFERENT actor tries `--as @:foreman` (`-driver` roleset)', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver', '--as', '@:foreman'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('the second actor is refused — the slug is globally claimed', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr.toLowerCase()).toContain(
+          'already claimed by a different actor',
+        );
+        expect(run.stderr).toContain('foreman');
+        // the fix names the two ways forward: a new slug, or reach the extant clone
+        expect(run.stderr).toContain('--as @:<slug>');
+      });
+
+      then('the collision error is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the same collision under `--output json` (the machine twin)', () => {
+      // a supervisor/cron that bakes with `--as @:<slug> --output json` must read a
+      // global slug collision as a structured error field, symmetric with the talk
+      // verbs — NOT scrape the human tree (usecase.11 addendum 4, second scenario).
+      // `.slugs/foreman` is still owned by the default-roleset actor from setup, so
+      // the `-driver` actor is refused again, deterministically
+      const run = useThen('exits non-zero with a machine shape', () =>
+        invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--roles',
+            '-driver',
+            '--as',
+            '@:foreman',
+            '--output',
+            'json',
+          ],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('the collision is a parseable structured error, not prose', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).not.toContain('✋');
+        const parsed = JSON.parse(run.stderr) as {
+          class: string;
+          message: string;
+        };
+        expect(parsed.class).toEqual('ConstraintError');
+        expect(parsed.message.toLowerCase()).toContain(
+          'already claimed by a different actor',
+        );
+      });
+
+      then('the collision json error shape is locked (machine contract)', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+});
+
+/**
+ * .what = a bare `rhx enroll --help` (no brain named) must render enroll's OWN
+ *   usage — its flags stay discoverable (rule.require.help-on-demand)
+ * .why = enroll disables the built-in --help so `enroll <brain> --help` forwards
+ *   to the brain (the wish's passthrough mandate). that would leave a bare
+ *   `enroll --help` a dead end, so the no-brain case renders enroll help instead.
+ *   this clamps that fix: a human who explores enroll learns its flags, no source
+ */
+describe('rhx enroll --help (acceptance)', () => {
+  given('[case1] a bare `enroll --help` with NO brain', () => {
+    const dir = genTempDir({ slug: 'enroll-help' });
+
+    when('[t0] the human asks for help without a brain', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', '--help'],
+          cwd: dir,
+          logOnError: false,
+        }),
+      );
+
+      then('enroll renders its own usage + every registered flag', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stdout).toContain('--brain');
+        expect(run.stdout).toContain('--roles');
+        expect(run.stdout).toContain('--as');
+        expect(run.stdout).toContain('--no-socket');
+        expect(run.stdout).toContain('--reason');
+        expect(run.stdout).toContain('--output');
+      });
+
+      then('the help format is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
       });
     });
   });

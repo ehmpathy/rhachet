@@ -81,6 +81,42 @@
             "command": "./node_modules/.bin/rhachet roles boot --role learner",
             "timeout": 30,
             "author": "repo=bhrain/role=learner"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --role librarian",
+            "timeout": 30,
+            "author": "repo=bhrain/role=librarian"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo bhrowser --role playwright",
+            "timeout": 60,
+            "author": "repo=bhrowser/role=playwright"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo ghlitch --role deployer",
+            "timeout": 60,
+            "author": "repo=ghlitch/role=deployer"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo ghlitch --role observer",
+            "timeout": 60,
+            "author": "repo=ghlitch/role=observer"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo ghlitch --role operator",
+            "timeout": 60,
+            "author": "repo=ghlitch/role=operator"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --repo rhachet --role enroller",
+            "timeout": 60,
+            "author": "repo=rhachet/role=enroller"
           }
         ]
       },

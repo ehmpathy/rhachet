@@ -1,132 +1,106 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhx enroll --as slug collision (acceptance) given: [case1] \`@:foreman\` already claimed by the default-roleset actor when: [t0] a DIFFERENT actor tries \`--as @:foreman\` (\`-driver\` roleset) then: the collision error is locked to a snapshot 1`] = `
+"
+✋ slug "foreman" is already claimed by a different actor
+   └─ pick a different --as @:<slug>, or reach the extant clone by that slug
+
+"
+`;
+
+exports[`rhx enroll --as slug collision (acceptance) given: [case1] \`@:foreman\` already claimed by the default-roleset actor when: [t1] the same collision under \`--output json\` (the machine twin) then: the collision json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "slug \\"foreman\\" is already claimed by a different actor",
+  "hint": "pick a different --as @:<slug>, or reach the extant clone by that slug",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx enroll --help (acceptance) given: [case1] a bare \`enroll --help\` with NO brain when: [t0] the human asks for help without a brain then: the help format is locked (visual spot-check) 1`] = `
+"Usage: rhachet enroll [options] [brain]
+
+enroll a brain cli as a managed, addressable clone
+
+Options:
+  --brain <brain>     the brain to enroll (alias of the positional)
+  -r, --roles <spec>  roles to enroll — a single spec (e.g. mechanic,
+                      +architect, -driver). for multiple use the comma form
+                      (--roles -driver,-reviewer) or quote the space form
+                      (--roles "-driver -reviewer")
+  --as <address>      name the clone with a stable handle (@:<slug>)
+  --no-socket         enroll without a managed reach socket
+  --reason <text>     why this enrollment happened (or @stdin)
+  --output <mode>     output mode: tree (default) or json (default: "tree")
+"
+`;
+
+exports[`rhx enroll --reason (acceptance) given: [case1] a linked repo, \`--reason "<text>"\` (plain) when: [t0] \`enroll claude --reason "nightly cron refresh"\` runs then: the full persisted audit line is locked to a snapshot 1`] = `
+"{"schemaVersion":1,"at":"$AT","roles":["driver","architect","mechanic"],"delta":null,"reason":"nightly cron refresh"}
+"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t0] \`enroll claude --roles -ghostrole\` (the regression path) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: role 'ghostrole' not found
+✋ role 'ghostrole' not found
+   └─ linked roles: driver, architect, mechanic
 
-{
-  "role": "ghostrole",
-  "rolesLinked": [
-    "driver",
-    "architect",
-    "mechanic"
-  ],
-  "suggestion": null
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t0b] \`enroll claude --roles -ghostrole --output json\` (the machine channel) then: the structured error is locked to a snapshot 1`] = `
+"{
+  "class": "BadRequestError",
+  "message": "role 'ghostrole' not found",
+  "hint": "linked roles: driver, architect, mechanic",
+  "reachState": null,
+  "reachCause": null
 }
-
-[args] enroll,claude,--roles,-ghostrole
-
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t1] \`enroll claude --roles -ghostrole,+architect\` (comma form) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: role 'ghostrole' not found
-
-{
-  "role": "ghostrole",
-  "rolesLinked": [
-    "driver",
-    "architect",
-    "mechanic"
-  ],
-  "suggestion": null
-}
-
-[args] enroll,claude,--roles,-ghostrole,+architect
+✋ role 'ghostrole' not found
+   └─ linked roles: driver, architect, mechanic
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t2] \`enroll claude --roles "-ghostrole +architect"\` (quoted space form) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: role 'ghostrole' not found
-
-{
-  "role": "ghostrole",
-  "rolesLinked": [
-    "driver",
-    "architect",
-    "mechanic"
-  ],
-  "suggestion": null
-}
-
-[args] enroll,claude,--roles,-ghostrole +architect
+✋ role 'ghostrole' not found
+   └─ linked roles: driver, architect, mechanic
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t3] \`enroll claude --roles +mechanic,-mechanic\` (contradiction) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: cannot both add and remove role "mechanic" in one call
-
-{
-  "additions": [
-    "mechanic"
-  ],
-  "subtractions": [
-    "mechanic"
-  ],
-  "tokens": [
-    "+mechanic",
-    "-mechanic"
-  ]
-}
-
-[args] enroll,claude,--roles,+mechanic,-mechanic
+✋ cannot both add and remove role "mechanic" in one call
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t4] \`enroll claude --roles mechanic,+architect\` (mixed call) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
-
-{
-  "absolutes": [
-    "mechanic"
-  ],
-  "additions": [
-    "architect"
-  ],
-  "subtractions": [],
-  "tokens": [
-    "mechanic",
-    "+architect"
-  ]
-}
-
-[args] enroll,claude,--roles,mechanic,+architect
+✋ cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t5] \`enroll claude --roles +\` (empty role after sigil) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: role specifier cannot be empty after "+"
-
-{
-  "token": "+",
-  "tokens": [
-    "+"
-  ]
-}
-
-[args] enroll,claude,--roles,+
+✋ role specifier cannot be empty after "+"
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t6] \`enroll claude --roles ""\` (empty spec) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults
-
-{
-  "tokens": []
-}
-
-[args] enroll,claude,--roles,
+✋ no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults
 
 "
 `;
@@ -161,7 +135,60 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
 "
 `;
 
-exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `""`;
+exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `
+"🔌 reach this clone: rhx clone say @:__SERIAL__ --what "…"
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t0] \`enroll claude\` (no --roles → the default roleset) then: the authored default-roleset config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t0] \`enroll claude\` (no --roles → the default roleset) then: the success output is locked to a snapshot 1`] = `
+"🔌 reach this clone: rhx clone say @:__SERIAL__ --what "…"
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t1] the same bare enroll with --output json (the machine handoff) then: the socketless machine handoff shape is locked (machine contract) 1`] = `
+"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":false}
+"
+`;
 
 exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
 "{
@@ -315,79 +342,80 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
 
 exports[`rhx enroll --roles (acceptance) given: [case8] a repo with no .agent/ directory when: [t0] \`enroll claude --roles mechanic\` with no .agent/ then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: no .agent/ found. run "rhachet roles link" first to initialize.
-
-{
-  "gitroot": "$TESTDIR"
-}
-
-[args] enroll,claude,--roles,mechanic
+✋ no .agent/ found in this repo
+   └─ run \`rhachet roles link\` first to initialize
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case9] a repo with an empty .agent/ (no roles linked) when: [t0] \`enroll claude --roles mechanic\` with empty .agent/ then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: no roles found in .agent/. run "rhachet roles link" first to link roles.
-
-{
-  "gitroot": "$TESTDIR"
-}
-
-[args] enroll,claude,--roles,mechanic
+✋ no roles found in .agent/
+   └─ run \`rhachet roles link\` first to link roles
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t0] \`enroll claude --roles mechnic\` (replace-mode typo) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: role 'mechnic' not found, did you mean 'mechanic'?
-
-{
-  "role": "mechnic",
-  "rolesLinked": [
-    "driver",
-    "architect",
-    "mechanic"
-  ],
-  "suggestion": "mechanic"
-}
-
-[args] enroll,claude,--roles,mechnic
+✋ role 'mechnic' not found, did you mean 'mechanic'?
+   └─ linked roles: driver, architect, mechanic
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t1] \`enroll openai --roles mechanic\` (unsupported brain) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: brain 'openai' not supported. supported: claude, claude-code
-
-{
-  "brain": "openai"
-}
-
-[args] enroll,openai,--roles,mechanic
+✋ brain 'openai' not supported. supported: claude, claude-code
 
 "
 `;
 
-exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t2] \`enroll claude\` (required --roles absent) then: the error output is locked to a snapshot 1`] = `
-"[commander error] error: required option '-r, --roles <spec>' not specified
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t2] \`enroll claude --brain codex\` (brain conflict) then: the error output is locked to a snapshot 1`] = `
+"
+✋ brain conflict: positional 'claude' vs --brain 'codex'. pass just one, or make them match
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t3] \`enroll claude --roles -driver -architect\` (unquoted space, 2 deltas) then: the error output is locked to a snapshot 1`] = `
 "
-BadRequestError: enroll's --roles takes a single spec; saw an extra role token '-architect' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer").
+✋ enroll's --roles takes a single spec; saw an extra role token '-architect' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer")
 
-{
-  "brain": "claude",
-  "rolesSpec": "-driver",
-  "collision": "-architect"
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t4] \`enroll claude --as @:<uuid>\` (an unreachable uuid-shaped handle) then: the error output is locked to a snapshot 1`] = `
+"
+✋ --as '@:__SERIAL__' is uuid-shaped, which reads as a serial — a clone named this way would be unreachable
+   └─ pick a non-uuid handle, e.g. --as @:driver
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t4b] \`enroll claude --as @:<unsafe>\` (an unsafe-charset handle) then: the error output is locked to a snapshot 1`] = `
+"
+✋ --as slug 'Bad Slug!' is not a safe handle
+   └─ use lowercase letters, digits, and - . _ (e.g. --as @:driver)
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t4c] \`enroll claude --as <no-marker>\` (a dropped @: sigil) then: the error output is locked to a snapshot 1`] = `
+"
+✋ 'driver' is not a clone address; clone addresses start with '@:'. did you mean '@:driver'?
+   └─ use '@:driver'
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t5] \`enroll claude --brain codex --output json\` (failing enroll, machine channel) then: the structured error is locked to a snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "brain conflict: positional 'claude' vs --brain 'codex'. pass just one, or make them match",
+  "hint": null,
+  "reachState": null,
+  "reachCause": null
 }
-
-[args] enroll,claude,--roles,-driver,-architect
-
 "
 `;

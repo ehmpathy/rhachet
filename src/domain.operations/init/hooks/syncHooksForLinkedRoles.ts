@@ -1,8 +1,13 @@
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
+import { abbreviate } from '@src/utils/abbreviate';
+
+import { join } from 'node:path';
 
 /**
  * .what = syncs brain hooks for linked roles
@@ -160,6 +165,84 @@ export const syncHooksForLinkedRoles = async (
     console.log(`⛈️  ${syncResult.errors.length} hook sync error(s) occurred`);
   }
   console.log('');
+
+  // apply the SAME hooks into every enrolled actor's brain config dir, so an
+  // actor's own brain/.claude/settings.json never drifts from the repo root
+  // (usecase.9 — one boot/link keeps root AND all actors in sync)
+  const actorsEnrolled = getAllActorsOndisk({ repoPath: context.cwd });
+  if (actorsEnrolled.length > 0) {
+    console.log('🧢 apply hooks to enrolled actors...');
+    // .note = deliberate mutation — `i` is a loop induction index; the tree render
+    //   needs the position to know which actor is last (└─ vs ├─); bounded to the loop
+    for (let i = 0; i < actorsEnrolled.length; i++) {
+      const actor = actorsEnrolled[i]!;
+      const isLast = i === actorsEnrolled.length - 1;
+      const prefix = isLast ? '└─' : '├─';
+
+      // the config write path is the actor's brain dir; package discovery + brain
+      // detection still root at context.cwd (only the write target moves)
+      const configTargetDir = join(
+        getActorOndiskDir({ repoPath: context.cwd, hash: actor.hash }),
+        'brain',
+      );
+
+      // .note = deliberate mutation — a per-actor change summary, rendered on this
+      //   actor's log row below; scoped to the loop iteration, never escapes
+      let changes = '';
+      try {
+        await pruneOrphanedRoleHooksFromAllBrains(
+          { authorsDesired, brains, configTargetDir },
+          context,
+        );
+        const actorSync = await syncAllRoleHooksIntoEachBrainRepl(
+          { roles, brains, configTargetDir },
+          context,
+        );
+        // tally created/updated/deleted across every role→brain apply, so the actor
+        // row carries the SAME +N/~N/-N summary the brain rows do — never a bare hash
+        // (rule.forbid.snapshot-visual-blemishes: the two rows share a shape)
+        const created = actorSync.applied.reduce(
+          (sum, a) => sum + a.hooks.created.length,
+          0,
+        );
+        const updated = actorSync.applied.reduce(
+          (sum, a) => sum + a.hooks.updated.length,
+          0,
+        );
+        const deleted = actorSync.applied.reduce(
+          (sum, a) => sum + a.hooks.deleted.length,
+          0,
+        );
+        changes = [
+          created > 0 ? `+${created}` : null,
+          updated > 0 ? `~${updated}` : null,
+          deleted > 0 ? `-${deleted}` : null,
+        ]
+          .filter(Boolean)
+          .join(', ');
+        for (const err of actorSync.errors) {
+          errors.push({
+            source: `sync:actor=${actor.hash.slice(0, 7)}:${err.role.repo}/${err.role.slug}→${err.brain}`,
+            error: err.error,
+          });
+        }
+      } catch (error) {
+        errors.push({
+          source: `sync:actor=${actor.hash.slice(0, 7)}`,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+
+      // a decorative short handle for the log row (NOT a real path) — the same
+      // abbreviate the list views use, so this display never misuses the on-disk
+      // dir-name token transformer (whose contract is a real path segment). the
+      // change summary mirrors the brain row so the reader sees WHAT changed per actor
+      console.log(
+        `   ${prefix} ${abbreviate({ value: actor.hash, keep: 7 })}${changes ? `: ${changes}` : ''}`,
+      );
+    }
+    console.log('');
+  }
 
   return { errors };
 };

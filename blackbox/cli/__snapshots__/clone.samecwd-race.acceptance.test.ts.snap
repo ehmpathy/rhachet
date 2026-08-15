@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone get same-cwd-race degradation (acceptance) given: [case1] a clone whose only in-window transcript was quarantined as ambiguous when: [t0] \`clone get --output json\` reads the quarantined-empty history then: the quarantined-empty json body shape is locked (machine contract) 1`] = `
+"{
+  "messages": [],
+  "exidsUnreadable": [],
+  "exidsAmbiguous": [
+    "__SERIAL__"
+  ],
+  "total": 0,
+  "truncated": false
+}
+"
+`;
+
+exports[`rhx clone get same-cwd-race degradation (acceptance) given: [case1] a clone whose only in-window transcript was quarantined as ambiguous when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"⚠ history is empty because this clone shared a cwd with another at spawn — enroll each in its own worktree to separate their transcripts"`;

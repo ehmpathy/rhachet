@@ -4,7 +4,10 @@ import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet init --hooks', () => {
   given('[case1] repo with claude config but no roles linked', () => {
@@ -287,6 +290,107 @@ module.exports = { getRoleRegistry };
         const config = JSON.parse(content);
         expect(config.hooks.SessionStart).toHaveLength(1);
         expect(config.hooks.SessionStart[0].command).toContain('boot-hook-1');
+      });
+    });
+  });
+
+  given('[case7] a repo with an enrolled actor on disk (usecase.9)', () => {
+    // the per-actor pass of syncHooksForLinkedRoles: one `init --hooks` must apply
+    // the SAME role hooks to the repo root AND to every enrolled actor's own brain
+    // config dir, so an actor's brain/.claude/settings.json never drifts from root.
+    // this proves it end-to-end with a REAL role-with-hooks package + a REAL actor
+    // dir on disk — no mocks (the mocked unit case is retired in favor of this).
+    const actorHash = 'deadbeef';
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+
+      // link the tester role + apply hooks to the repo root
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester', '--hooks'],
+        cwd: r.path,
+      });
+
+      // seed a REAL enrolled actor dir on disk (the shape findsertActorOndisk
+      // writes: an actor.json manifest + a brain/ config dir). schemaVersion 1 is
+      // the current ACTOR_MANIFEST_SCHEMA_VERSION; an older value is tolerant-read
+      // (upgrade-on-read), so this fixture stays valid across a field-add bump.
+      const actorDir = path.join(
+        r.path,
+        '.agent/.actors',
+        `actor.via.hash=${actorHash}`,
+      );
+      const actorBrainClaudeDir = path.join(actorDir, 'brain', '.claude');
+      await fs.mkdir(actorBrainClaudeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(actorDir, 'actor.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          brain: 'claude-code',
+          roles: ['tester'],
+        }) + '\n',
+        'utf-8',
+      );
+      // mirror the root's initial claude config (empty hooks) into the actor's
+      // brain dir, exactly as an enroll would have left it before the sync
+      await fs.writeFile(
+        path.join(actorBrainClaudeDir, 'settings.json'),
+        JSON.stringify({ hooks: {} }, null, 2),
+        'utf-8',
+      );
+
+      // re-run init --hooks — this is the per-actor pass under test
+      const result = invokeRhachetCliBinary({
+        args: ['init', '--hooks'],
+        cwd: r.path,
+      });
+
+      return { path: r.path, actorBrainClaudeDir, result };
+    });
+
+    when('[t0] init --hooks re-run with an actor on disk', () => {
+      then('exits with status 0', () => {
+        expect(repo.result.status).toEqual(0);
+      });
+
+      then('stdout names the actor in the per-actor apply tree', () => {
+        // the row shows the abbreviated hash (7 chars), never the on-disk token
+        expect(repo.result.stdout).toContain('apply hooks to enrolled actors');
+        expect(repo.result.stdout).toContain(actorHash.slice(0, 7));
+      });
+
+      then('the per-actor apply tree stdout is locked', () => {
+        // lock the new "apply hooks to enrolled actors" surface so a reviewer
+        // vibechecks the whole tree in the pr diff — the deterministic actor hash
+        // (`deadbeef`) stays visible, temp paths mask to /TMP_REPO. paired with
+        // the functional asserts above, never snapshot-only (rule.forbid.failhide)
+        expect(asSnapshotSafe(repo.result.stdout)).toMatchSnapshot();
+      });
+
+      then(
+        'the actor`s OWN brain config gets the role SessionStart hooks (not just root)',
+        async () => {
+          const actorConfigPath = path.join(
+            repo.actorBrainClaudeDir,
+            'settings.json',
+          );
+          const content = await fs.readFile(actorConfigPath, 'utf-8');
+          const config = JSON.parse(content);
+          expect(config.hooks.SessionStart).toBeDefined();
+          expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
+          const matchers = config.hooks.SessionStart.map(
+            (h: { matcher: string }) => h.matcher,
+          );
+          expect(matchers).toContainEqual(
+            expect.stringContaining('role=tester'),
+          );
+        },
+      );
+
+      then('the repo root config ALSO still carries the role hooks', async () => {
+        const rootConfigPath = path.join(repo.path, '.claude', 'settings.json');
+        const content = await fs.readFile(rootConfigPath, 'utf-8');
+        const config = JSON.parse(content);
+        expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
       });
     });
   });

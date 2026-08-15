@@ -1,0 +1,112 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t0] actor --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet actor [options] [command]
+
+inspect enrolled actor identities
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  list [options]  list the enrolled actors on disk
+  help [command]  display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t1] actor list --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet actor list [options]
+
+list the enrolled actors on disk
+
+Options:
+  --output <mode>  output mode: tree (default) or json (default: "tree")
+  -h, --help       display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t2] clone --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone [options] [command]
+
+reach an enrolled clone: list, say, get, whoami, prune
+
+Options:
+  -h, --help               display help for command
+
+Commands:
+  list [options] [actor]   list clones (all, or scoped to one actor by
+                           @<hash-prefix>)
+  say [options] <address>  dispatch a message into a live clone (by
+                           @:<slug|serial>)
+  get [options] <address>  observe a clone's recent output (by @:<slug|serial>)
+  whoami [options]         show THIS clone's own address (run from within a
+                           clone)
+  prune [options] [actor]  reap dead clones (all, or scoped to one actor by
+                           @<hash-prefix>)
+  help [command]           display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t3] clone list --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone list [options] [actor]
+
+list clones (all, or scoped to one actor by @<hash-prefix>)
+
+Options:
+  --output <mode>  output mode: tree (default) or json (default: "tree")
+  -h, --help       display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t4] clone say --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone say [options] <address>
+
+dispatch a message into a live clone (by @:<slug|serial>)
+
+Options:
+  --what <message>  the message to dispatch (or @stdin)
+  --output <mode>   output mode: tree (default) or json (default: "tree")
+  -h, --help        display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t5] clone get --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone get [options] <address>
+
+observe a clone's recent output (by @:<slug|serial>)
+
+Options:
+  --tail <n>       how many recent messages to show (or all) (default: "20")
+  --format <fmt>   tree render: blocks (default, directioned) or raw (verbatim
+                   replies) (default: "blocks")
+  --output <mode>  output mode: tree (default) or json (default: "tree")
+  -h, --help       display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t6] clone whoami --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone whoami [options]
+
+show THIS clone's own address (run from within a clone)
+
+Options:
+  --output <mode>  output mode: tree (default) or json (default: "tree")
+  -h, --help       display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t7] clone prune --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone prune [options] [actor]
+
+reap dead clones (all, or scoped to one actor by @<hash-prefix>)
+
+Options:
+  --older-than <dur>  only reap clones spawned at least this long ago (e.g. 1h,
+                      30m); measures age since spawn, not since death (a clone
+                      has no recorded death time)
+  --mode <mode>       plan (default, preview) or apply (remove) (default:
+                      "plan")
+  --output <mode>     output mode: tree (default) or json (default: "tree")
+  -h, --help          display help for command
+"
+`;

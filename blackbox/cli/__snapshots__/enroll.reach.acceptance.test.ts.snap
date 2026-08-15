@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the bare-enroll breadcrumb tree line is locked (human variant) 1`] = `
+"🔌 reach this clone: rhx clone say @:__SERIAL__ --what "…"
+"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case2] an enroll with --output json (the machine handoff) when: [t0] the machine reads stdout then: the json handoff shape is locked (machine contract) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":"super","socketEligible":true}"`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case2c] a bare enroll (no --as) with --output json — the DEFAULT machine handoff when: [t0] the machine reads stdout then: the default json handoff shape is locked (slug=null machine contract) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t0] \`clone list\` after a socketless enroll then: the socketless clone-list format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      └─ @:plain  serial=__SERIAL8__  state=DEAF  since=__TIMESTAMP__
+"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t1] the DEAF clone is addressed by say vs get then: \`clone get\` still observes it — DEAF is observe-only, not dead 1`] = `
+"😶🎧 talk of @:plain  ·  tail 20
+   │
+   └─ (no messages yet)
+"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t1] the DEAF clone is addressed by say vs get then: \`clone say\` is refused loud — a DEAF clone cannot hear a say 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`",
+  "hint": "observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable",
+  "reachState": "DEAF",
+  "reachCause": "DEAF"
+}
+"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t1] the DEAF clone is addressed by say vs get then: the DEAF-say human error format is locked (visual spot-check) 1`] = `
+"
+✋ this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`
+   └─ observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable
+
+"
+`;

@@ -9,8 +9,10 @@ import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/get
 import { defineGlobalOptions } from './defineGlobalOptions';
 import { getExitCodeFromError } from './getExitCodeFromError';
 import { invokeAct } from './invokeAct';
+import { invokeActor } from './invokeActor';
 import { invokeAsk } from './invokeAsk';
 import { invokeChoose } from './invokeChoose';
+import { invokeClone } from './invokeClone';
 import { invokeEnroll } from './invokeEnroll';
 import { invokeInit } from './invokeInit';
 import { invokeKeyrack } from './invokeKeyrack';
@@ -68,6 +70,8 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   invokeReadme({ program }, context);
   invokeRun({ program }); // filesystem only, no context needed
   invokeEnroll({ program }); // filesystem only, no context needed
+  invokeActor({ program }); // filesystem only, no context needed
+  invokeClone({ program }); // filesystem only, no context needed
   invokeChoose({ program }); // no config needed
   invokeAsk({ program }, context);
   invokeAct({ program }, context);
