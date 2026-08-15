@@ -5,10 +5,11 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import type { ActorBrain } from '@src/domain.objects/Actor';
+import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
@@ -107,9 +108,11 @@ When writing about ocean themes:
     }) as unknown as ActorBrain;
 
     // create actor with mixed brains (BrainAtom first)
-    const author = genActor({
-      role: authorRole,
-      brains: [brainAtom, brainRepl],
+    const author = genCloneInmem({
+      actor: genActor({
+        roles: [authorRole],
+        brains: [brainAtom, brainRepl],
+      }),
     });
 
     when('[t0] author.ask() is called with BrainAtom', () => {
@@ -143,9 +146,11 @@ When writing about ocean themes:
         'also returns prose response (BrainRepl supports .ask())',
         async () => {
           // create actor with BrainRepl as default
-          const authorWithRepl = genActor({
-            role: authorRole,
-            brains: [brainRepl],
+          const authorWithRepl = genCloneInmem({
+            actor: genActor({
+              roles: [authorRole],
+              brains: [brainRepl],
+            }),
           });
 
           const result = await authorWithRepl.ask({

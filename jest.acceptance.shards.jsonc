@@ -1,4 +1,18 @@
 {
+  // the real-brain tier gets its OWN shard, run serially.
+  //
+  // .why = each of these spawns a REAL claude under a managed pty. on a 2-vcpu runner,
+  //   several real brains alongside ~23 other suites starve each other and a healthy
+  //   send reads as wedged. an explicit shard runs them alone, in their own job.
+  //
+  // .note = this is a PLACEMENT, not a quarantine — the shard is a member of the same
+  //   test-shards-acceptance matrix the default gate aggregates, so the real-brain proof
+  //   still blocks merge (rule.forbid.faked-or-quarantined-acceptance).
+  "explicit": [
+    {
+      "patterns": ["realbrain.acceptance.test.ts"]
+    }
+  ],
   "dynamic": {
     "shards": 5
   }

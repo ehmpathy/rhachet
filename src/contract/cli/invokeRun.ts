@@ -91,7 +91,13 @@ const emitHelpOutput = (): void => {
   console.log(`   │  ├─ [skill]     run a skill (default)`);
   console.log(`   │  ├─ list        show available skills`);
   console.log(`   │  ├─ keyrack     manage credentials`);
-  console.log(`   │  ├─ enroll      enroll brain in role`);
+  console.log(
+    `   │  ├─ enroll      enroll a brain cli as a managed, addressable clone`,
+  );
+  console.log(`   │  ├─ actor       inspect enrolled actor identities`);
+  console.log(
+    `   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune`,
+  );
   console.log(`   │  └─ upgrade     upgrade rhachet`);
   console.log(`   └─ options`);
   console.log(

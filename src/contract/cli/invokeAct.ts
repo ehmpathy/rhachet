@@ -6,6 +6,7 @@ import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import type { RoleHooksOnDispatch } from '@src/domain.objects/RoleHooksOnDispatch';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 import { genActor } from '@src/domain.operations/actor/genActor';
+import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
 import { assureRigidSkillHasOutputInput } from '@src/domain.operations/invoke/assureRigidSkillHasOutputInput';
@@ -117,8 +118,10 @@ const performActInCurrentThread = async (input: {
     brainRef = { repo, slug };
   }
 
-  // create actor with all available brains
-  const actor = genActor({ role, brains: input.brains });
+  // bake a clone from the actor (recipe) — the clone carries the engage methods
+  const clone = genCloneInmem({
+    actor: genActor({ roles: [role], brains: input.brains }),
+  });
 
   // parse skill input
   const skillArgs = input.opts.input ? JSON.parse(input.opts.input) : {};
@@ -144,8 +147,8 @@ const performActInCurrentThread = async (input: {
   );
   console.log(``);
 
-  // invoke actor.act with skill
-  const result = await actor.act({
+  // invoke clone.act with skill
+  const result = await clone.act({
     brain: brainRef,
     skill: { [input.opts.skill]: inputWithHooks },
   });

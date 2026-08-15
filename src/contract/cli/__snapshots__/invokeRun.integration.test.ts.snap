@@ -6,7 +6,9 @@ exports[`invokeRun (integration) given: [case: help] a CLI program with invokeRu
    │  ├─ [skill]     run a skill (default)
    │  ├─ list        show available skills
    │  ├─ keyrack     manage credentials
-   │  ├─ enroll      enroll brain in role
+   │  ├─ enroll      enroll a brain cli as a managed, addressable clone
+   │  ├─ actor       inspect enrolled actor identities
+   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)

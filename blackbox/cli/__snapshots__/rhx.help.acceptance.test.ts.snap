@@ -6,7 +6,9 @@ exports[`rhx help commands given: [case1] repo with skills when: [t0] rhx help i
    │  ├─ [skill]     run a skill (default)
    │  ├─ list        show available skills
    │  ├─ keyrack     manage credentials
-   │  ├─ enroll      enroll brain in role
+   │  ├─ enroll      enroll a brain cli as a managed, addressable clone
+   │  ├─ actor       inspect enrolled actor identities
+   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -24,7 +26,9 @@ exports[`rhx help commands given: [case1] repo with skills when: [t1] rhx --help
    │  ├─ [skill]     run a skill (default)
    │  ├─ list        show available skills
    │  ├─ keyrack     manage credentials
-   │  ├─ enroll      enroll brain in role
+   │  ├─ enroll      enroll a brain cli as a managed, addressable clone
+   │  ├─ actor       inspect enrolled actor identities
+   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -42,7 +46,9 @@ exports[`rhx help commands given: [case1] repo with skills when: [t2] rhx -h is 
    │  ├─ [skill]     run a skill (default)
    │  ├─ list        show available skills
    │  ├─ keyrack     manage credentials
-   │  ├─ enroll      enroll brain in role
+   │  ├─ enroll      enroll a brain cli as a managed, addressable clone
+   │  ├─ actor       inspect enrolled actor identities
+   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -60,7 +66,9 @@ exports[`rhx help commands given: [case1] repo with skills when: [t3] rhx --help
    │  ├─ [skill]     run a skill (default)
    │  ├─ list        show available skills
    │  ├─ keyrack     manage credentials
-   │  ├─ enroll      enroll brain in role
+   │  ├─ enroll      enroll a brain cli as a managed, addressable clone
+   │  ├─ actor       inspect enrolled actor identities
+   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)

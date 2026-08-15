@@ -1,6 +1,5 @@
 import { MalfunctionError } from 'helpful-errors';
 
-import { delFileSync } from '@src/domain.operations/keyrack/daemon/infra/delFileSync';
 import { genDaemonActivityClock } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonActivityClock';
 import {
   createDaemonKeyStore,
@@ -9,6 +8,7 @@ import {
 import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
 import { scheduleAutoTermination } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleAutoTermination';
 import { verifyCallerLoginSession } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/verifyCallerLoginSession';
+import { delFileSync } from '@src/infra/filesystem/delFileSync';
 
 import { chmodSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';

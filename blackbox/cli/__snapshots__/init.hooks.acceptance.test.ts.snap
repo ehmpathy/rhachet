@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init --hooks given: [case7] a repo with an enrolled actor on disk (usecase.9) when: [t0] init --hooks re-run with an actor on disk then: the per-actor apply tree stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: ~3
+
+✨ hooks
+   └─ 3 updated
+
+🧢 apply hooks to enrolled actors...
+   └─ deadbee…: +3
+
+"
+`;

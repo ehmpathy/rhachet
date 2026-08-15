@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone say BULK-write probe vs a REAL claude (real acceptance) given: [case1] a real, authenticated claude, the bulk-write say path when: [t0] a SHORT message is bulk-dispatched then: the say-delivered tree (human) is locked — brain-independent, so snapshot-safe 1`] = `
+"😶🎙️ said to @:__SERIAL__
+"
+`;

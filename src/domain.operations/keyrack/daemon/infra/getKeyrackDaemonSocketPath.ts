@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
-import { getHomeHash } from './getHomeHash';
+import { getHomeHash } from '@src/infra/host/getHomeHash';
+
 import { getLoginSessionId } from './getLoginSessionId';
 
 /**

@@ -1,9 +1,10 @@
 import { given, then, when } from 'test-fns';
 
+import { getHomeHash } from '@src/infra/host/getHomeHash';
+
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getAllKeyrackDaemonSocketPaths } from './getAllKeyrackDaemonSocketPaths';
-import { getHomeHash } from './getHomeHash';
 import { getLoginSessionId } from './getLoginSessionId';
 
 /**

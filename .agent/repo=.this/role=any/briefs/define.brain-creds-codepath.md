@@ -45,6 +45,24 @@ then `pnpm install`. the stale `.pnpm/node_modules/rhachet` disappears and all c
 3. `pnpm why rhachet` — who drags in a published rhachet?
 4. bisect runtime, not just disk: a tiny repro that calls `genContextBrain({ creds })` from repo root can pass while bhrain's `review()` fails — the difference is *which module instance each resolved*.
 
+## .the two 401 sub-cases (locked vault vs stale key value)
+
+a `401 Unauthorized` from `rhachet-brains-fireworksai/genBrainAtom.ask` is NOT the phantom-dependency trap —
+that trap throws a DIFFERENT error, `FIREWORKS_API_KEY required — provide via context`, because the creds
+never reach the brain. a genuine 401 means the key WAS threaded + SENT to fireworks and REJECTED. so:
+
+- **`keyrack status` shows the key ABSENT or locked** → driver-fixable: `rhx keyrack unlock --owner ehmpath --env prep`.
+- **`keyrack status` shows `ehmpathy.prep.FIREWORKS_API_KEY` present + unlocked (lease time left), yet still 401**
+  → the STORED KEY VALUE is invalid/revoked on fireworks' side (the keyrack lease ≠ the fireworks key's own
+  validity). this is **human-only**: refresh the value — get a fresh key from fireworks.ai, then
+  `rhx keyrack fill --owner ehmpath` to update the stored secret, then re-unlock.
+
+this bit an entire peer-review round (v2026_08_07.enroll-with-interface, stone 3.3.1): every reviewer
+(l1 rubric + l3 prose-tally) 401'd while the key showed UNLOCKED with a 483m lease — the stale-value case,
+not a lock and not the phantom trap. the l3 reviewers still produced genuine prose findings (only their
+numeric TALLY sub-brain 401'd → `malfunction: review tally fallback failed`), so converge on those findings
+regardless; but the stone cannot PASS until the human refreshes the key value.
+
 ## .upstream defect
 
 `rhachet-roles-bhrain` should declare `rhachet` as a **peerDependency** so hosts materialize the link and phantom resolution can never drift. file against ehmpathy/rhachet-roles-bhrain.

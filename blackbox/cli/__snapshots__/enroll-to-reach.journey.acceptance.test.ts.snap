@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t2] a process slips on the address grain, then recovers then: the grain-confusion error format is locked (visual spot-check) 1`] = `
+"
+✋ '@pilot' is an ACTOR address; a clone is addressed with '@:'. did you mean '@:pilot'?
+   └─ use '@:pilot'
+
+"
+`;
+
+exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t2] a process slips on the address grain, then recovers then: the grain-confusion json error shape is locked (self-contained machine twin) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "'@pilot' is an ACTOR address; a clone is addressed with '@:'. did you mean '@:pilot'?",
+  "hint": "use '@:pilot'",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t3] the brain exits — the clone is watched to go DEAD in \`clone list\` then: the DEAD-transition clone-list format is locked (visual spot-check) 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      └─ @:pilot  serial=__SERIAL8__  state=DEAD  since=__TIMESTAMP__
+
+💡 tip
+   └─ reap dead clones with \`rhx clone prune [--older-than <dur>]\`
+"
+`;
+
+exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t3] the brain exits — the clone is watched to go DEAD in \`clone list\` then: the DEAD-transition clone-list json shape is locked (self-contained machine twin) 1`] = `
+"{
+  "actors": [
+    {
+      "hash": "ee65f291",
+      "brain": "claude",
+      "roles": [
+        "driver",
+        "architect",
+        "mechanic"
+      ],
+      "clones": [
+        {
+          "serial": "__SERIAL__",
+          "slug": "pilot",
+          "reachState": "DEAD",
+          "spawnedAt": "__TIMESTAMP__"
+        }
+      ]
+    }
+  ]
+}
+"
+`;

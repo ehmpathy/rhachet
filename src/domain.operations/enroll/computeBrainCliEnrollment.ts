@@ -108,10 +108,21 @@ const validateRoleExists = (input: {
 
   const suggestionText = suggestion ? `, did you mean '${suggestion}'?` : '';
 
+  // name the fix in the human error: the caller must pick from the roles actually
+  // linked (or link one first when none are). withCliOutputErrors renders this
+  // `hint` as the `└─ <fix>` line and asCliErrorJson carries it as a field, so the
+  // valid-roles context is preserved in the ergonomic form (not a raw metadata
+  // dump) — rule.require.errors-name-the-fix
+  const hint =
+    input.rolesLinked.length > 0
+      ? `linked roles: ${input.rolesLinked.join(', ')}`
+      : 'no roles linked yet — run `rhx init --roles <role>` first';
+
   throw new BadRequestError(`role '${input.role}' not found${suggestionText}`, {
     role: input.role,
     rolesLinked: input.rolesLinked,
     suggestion,
+    hint,
   });
 };
 

@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone — a 5-turn conversation with a real @:joker (real acceptance) given: [case1] a real claude enrolled as @:joker through a real pty when: [t1] turn 1 — ask for a joke BY SLUG then: the say-delivered tree (human) is locked — brain-independent, so snapshot-safe 1`] = `
+"😶🎙️ said to @:joker
+"
+`;

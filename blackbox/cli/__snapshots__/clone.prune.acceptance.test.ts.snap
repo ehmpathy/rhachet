@@ -1,0 +1,184 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + a bare) and one DEAF clone when: [t0] \`clone prune\` runs with no mode (plan is the default) then: the plan tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   ├─ @:doomed  serial=__SERIAL__  since=__TIMESTAMP__
+   └─ @:__SERIAL__  serial=__SERIAL__  since=__TIMESTAMP__
+   plan: 2 dead clone(s) would be pruned — re-run with --mode apply to remove
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + a bare) and one DEAF clone when: [t1] \`clone prune --output json\` reads the same plan then: the json shape matches the snapshot 1`] = `
+"{
+  "mode": "plan",
+  "count": 2,
+  "clones": [
+    {
+      "serial": "__SERIAL__",
+      "slug": "doomed",
+      "spawnedAt": "__TIMESTAMP__"
+    },
+    {
+      "serial": "__SERIAL__",
+      "slug": null,
+      "spawnedAt": "__TIMESTAMP__"
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case2] apply reaps the DEAD clones and keeps the DEAF one when: [t0] \`clone prune --mode apply\` commits the reap then: the apply tree matches the snapshot 1`] = `
+"🧹 clone prune (apply)
+   ├─ @:doomed  serial=__SERIAL__  since=__TIMESTAMP__
+   └─ @:__SERIAL__  serial=__SERIAL__  since=__TIMESTAMP__
+   pruned: 2 dead clone(s)
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case2b] apply --output json emits the populated machine shape when: [t0] \`clone prune --mode apply --output json\` commits + reports then: the apply json shape is locked (machine contract) 1`] = `
+"{
+  "mode": "apply",
+  "count": 2,
+  "clones": [
+    {
+      "serial": "__SERIAL__",
+      "slug": "doomed",
+      "spawnedAt": "__TIMESTAMP__"
+    },
+    {
+      "serial": "__SERIAL__",
+      "slug": null,
+      "spawnedAt": "__TIMESTAMP__"
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t0] \`clone prune --older-than 1h\` requires an hour of death then: the empty-plan json machine shape is locked (count 0, no clones) 1`] = `
+"{
+  "mode": "plan",
+  "count": 0,
+  "clones": []
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t0] \`clone prune --older-than 1h\` requires an hour of death then: the empty-plan tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   └─ (no dead clones to prune)
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t1] a bad \`--older-than\` value fails loud with the fix then: the fail-loud message matches the snapshot 1`] = `
+"
+✋ invalid --older-than "soon"
+   └─ use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h
+
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t1b] the same bad \`--older-than\` value with --output json then: the bad \`--older-than\` json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "invalid --older-than \\"soon\\"",
+  "hint": "use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t2] a bad \`--mode\` value fails loud with the fix then: the fail-loud message matches the snapshot 1`] = `
+"
+✋ invalid --mode "bogus"
+   └─ use --mode plan (default, preview) or --mode apply (remove)
+
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t2b] the same bad \`--mode\` value with --output json then: the bad \`--mode\` json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "invalid --mode \\"bogus\\"",
+  "hint": "use --mode plan (default, preview) or --mode apply (remove)",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case4] a reap that fails mid-batch reaps the rest, then fails loud when: [t0] \`clone prune --mode apply\` hits the stubborn clone first then: the fail-loud message matches the snapshot 1`] = `
+"
+✋ pruned 1 clone(s), but 1 could not be reaped
+   └─ check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`
+
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case4b] the mid-batch reap failure emits a MACHINE json error when: [t0] \`clone prune --mode apply --output json\` hits the stubborn clone then: the mid-batch-failure json error shape is locked (machine contract) 1`] = `
+"{
+  "class": "MalfunctionError",
+  "message": "pruned 1 clone(s), but 1 could not be reaped",
+  "hint": "check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`",
+  "reachState": null,
+  "reachCause": null
+}
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t0] both clones are alive then: the alive-state list format is locked (DEAF + LIVE) 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      ├─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
+      └─ @:goner  serial=__SERIAL8__  state=DEAF  since=__TIMESTAMP__
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t1] the goner process exits (DEAF → DEAD) then: the DEAD-after-exit list format is locked 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      ├─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
+      └─ @:goner  serial=__SERIAL8__  state=DEAD  since=__TIMESTAMP__
+
+💡 tip
+   └─ reap dead clones with \`rhx clone prune [--older-than <dur>]\`
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t2] \`clone prune --mode plan\` previews the reap then: the prune-plan format is locked (visual spot-check) 1`] = `
+"🧹 clone prune (plan)
+   └─ @:goner  serial=__SERIAL__  since=__TIMESTAMP__
+   plan: 1 dead clone(s) would be pruned — re-run with --mode apply to remove
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t2] \`clone prune --mode plan\` previews the reap then: the prune-plan json machine shape is locked 1`] = `
+"{
+  "mode": "plan",
+  "count": 1,
+  "clones": [
+    {
+      "serial": "__SERIAL__",
+      "slug": "goner",
+      "spawnedAt": "__TIMESTAMP__"
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t3] \`clone prune --mode apply\` reaps the dead goner then: the post-apply list format is locked (goner gone, keeper LIVE) 1`] = `
+"😶 clones
+   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+      └─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
+"
+`;
+
+exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t3] \`clone prune --mode apply\` reaps the dead goner then: the prune-apply confirmation format is locked 1`] = `
+"🧹 clone prune (apply)
+   └─ @:goner  serial=__SERIAL__  since=__TIMESTAMP__
+   pruned: 1 dead clone(s)
+"
+`;

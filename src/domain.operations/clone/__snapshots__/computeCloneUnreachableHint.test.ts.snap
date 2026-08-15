@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeCloneUnreachableHint the whole cause→{message,hint} map matches the snapshot (fix-words regression) 1`] = `
+{
+  "DEAD-cross-host": {
+    "hint": "reach it from the host that spawned it, or re-enroll here for a fresh clone",
+    "message": "this clone was spawned on another host (abc123); its socket is not reachable here",
+  },
+  "DEAD-same-host": {
+    "hint": "re-enroll to spawn a fresh clone",
+    "message": "no live clone for this address — its socket is gone",
+  },
+  "DEAF": {
+    "hint": "observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable",
+    "message": "this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`",
+  },
+  "exited-mid-dispatch": {
+    "hint": "re-enroll to spawn a fresh clone, then re-send",
+    "message": "the clone exited while the message was in flight",
+  },
+  "wedged": {
+    "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+    "message": "the clone accepted the connection but did not answer in time",
+  },
+}
+`;

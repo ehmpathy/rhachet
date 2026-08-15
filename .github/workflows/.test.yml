@@ -312,11 +312,20 @@ jobs:
         env:
           SECRETS_JSON: ${{ toJSON(secrets) }}
 
+      # the real-brain acceptance tier spawns a genuine `claude` under our managed pty —
+      # it lives in the DEFAULT gate on purpose (rule.forbid.faked-or-quarantined-acceptance),
+      # so the runner needs the binary on PATH. absent it, the tier fails LOUD (never skips).
+      - name: install claude-code # the real brain-cli the reach tier spawns
+        run: npm install -g @anthropic-ai/claude-code
+
+      # an explicit shard is hand-picked for ISOLATION — a suite that needs the runner to
+      # itself (a real brain-cli spawn, a port bind). so it runs SERIAL: a parallel worker
+      # would reintroduce the contention the shard exists to remove
       - name: test:acceptance (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
         run: |
           patterns='${{ join(matrix.shard.patterns, '|') }}'
-          THOROUGH=true npm run test:acceptance -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
+          THOROUGH=true npm run test:acceptance -- --testPathPatterns="$patterns" --runInBand --json --outputFile=jest-results.json
 
       - name: test:acceptance (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
         if: matrix.shard.type == 'dynamic'

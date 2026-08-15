@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asClonePruneView given: [case1] no prunable clones when: [t0] a plan view is built then: the tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   └─ (no dead clones to prune)"
+`;
+
+exports[`asClonePruneView given: [case2] two prunable clones (a named + a bare) when: [t0] a PLAN view is built then: the plan tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   ├─ @:driver  serial=7f3a0000-0000-0000-0000-000000000000  since=__SPAWNED_AT_1__
+   └─ @:11110000-0000-0000-0000-000000000000  serial=11110000-0000-0000-0000-000000000000  since=__SPAWNED_AT_2__
+   plan: 2 dead clone(s) would be pruned — re-run with --mode apply to remove"
+`;
+
+exports[`asClonePruneView given: [case2] two prunable clones (a named + a bare) when: [t1] an APPLY view is built then: the apply tree matches the snapshot 1`] = `
+"🧹 clone prune (apply)
+   ├─ @:driver  serial=7f3a0000-0000-0000-0000-000000000000  since=__SPAWNED_AT_1__
+   └─ @:11110000-0000-0000-0000-000000000000  serial=11110000-0000-0000-0000-000000000000  since=__SPAWNED_AT_2__
+   pruned: 2 dead clone(s)"
+`;

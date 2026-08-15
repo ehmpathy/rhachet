@@ -1,5 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
+import { asSocketPeerPidFromSs } from '@src/infra/socket/asSocketPeerPidFromSs';
+
 import { execSync } from 'node:child_process';
 import { readlinkSync } from 'node:fs';
 import type { Socket } from 'node:net';
@@ -68,6 +70,8 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
   const grepPattern =
     inodeNum > INT32_MAX ? `(${inode}|${signedInode})` : inode;
 
+  // .note = deliberate mutation — `ssOutput` is assigned once inside the try (an
+  //         execSync that may throw); bounded to this scope, never escapes
   let ssOutput: string;
   try {
     ssOutput = execSync(`ss -xp | grep -E "${grepPattern}" || true`, {
@@ -88,22 +92,20 @@ export const getSocketPeerPid = (input: { socket: Socket }): number => {
     });
   }
 
-  // step 3: parse pid from ss output
-  // format: ... users:(("process",pid=12345,fd=6)) ...
-  const pidMatch = ssOutput.match(/pid=(\d+)/);
-  if (!pidMatch) {
+  // step 3: parse pid from the line whose inode field EXACTLY equals ours —
+  // the SHARED parser (asSocketPeerPidFromSs) so this daemon gate and the clone's
+  // getSocketPeerCred never diverge on the wrong-peer hazard. a bare grep + a single
+  // `pid=` match could attribute a connection to the wrong peer (a shorter inode
+  // partial-matches a longer one on an unrelated line)
+  const pid = asSocketPeerPidFromSs({
+    ssOutput,
+    inode,
+    signedInode: String(signedInode),
+  });
+  if (pid === null || Number.isNaN(pid) || pid <= 0) {
     throw new MalfunctionError('failed to parse pid from ss output', {
       inode,
-      ssOutput: ssOutput.substring(0, 200),
-    });
-  }
-
-  const pidString = pidMatch[1]!; // guard: regex matched, group exists
-  const pid = parseInt(pidString, 10);
-  if (Number.isNaN(pid) || pid <= 0) {
-    throw new MalfunctionError('parsed pid is invalid', {
-      inode,
-      pidString,
+      ssOutput: ssOutput.slice(0, 200),
     });
   }
 

@@ -19,6 +19,7 @@ ignores:
   - "@src/.*"
   - tsc-alias
   - rhachet-roles-bhrain
+  - rhachet-roles-bhrowser
   - rhachet-roles-bhuild
   - rhachet-roles-ehmpathy
   - rhachet-roles-ghlitch
@@ -29,3 +30,8 @@ ignores:
   - rhachet-brains-openai
   - rhachet-brains-xai
   - rhachet-roles-rhachet
+  # deps imported by a LINKED SUPPLIER role's own skills (.agent/repo=*/role=*), never
+  # by this repo's src. the supplier package ships them; depcheck follows the symlink
+  # and mistakes them for ours
+  - declastruct-unix-network # .agent/repo=ghlitch/role=operator/skills/use.vpc.tunnel.ts
+  - playwright # .agent/repo=bhrowser/role=playwright/skills/browser.describe.ts

@@ -537,4 +537,86 @@ describe('rhx', () => {
       });
     });
   });
+
+  // the reach surface (`rhx actor`, `rhx clone`) are top-level commands, NOT
+  // skills. the `bin/rhx` proxy must short-circuit them to `run <cmd>` exactly
+  // like `enroll`/`upgrade` — otherwise they fall to the default `run --skill`
+  // path and fail with "no skill <cmd> found". a `with-skills` fixture makes the
+  // hazard real: the skill proxy IS live, so a missed short-circuit lands on it.
+  given('[case6] rhx reach-surface short-circuit (actor + clone)', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-skills' }),
+    );
+
+    when('[t0] rhx clone --help', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['clone', '--help'],
+          cwd: repo.path,
+        }),
+      );
+      const rhachetResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '--help'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('does NOT fall to the skill proxy ("no skill found")', () => {
+        // pre-fix, `rhx clone` routed to `run --skill clone` and failed with a
+        // skill-lookup error; a routed command never mentions a skill lookup
+        expect(rhxResult.stderr).not.toContain('no skill');
+        expect(rhxResult.stderr).not.toContain('did you');
+      });
+
+      then('rhx exits 0 (the clone command was reached)', () => {
+        expect(rhxResult.status).toEqual(0);
+      });
+
+      then('stdout lists the clone subcommands (list, say, get, whoami)', () => {
+        expect(rhxResult.stdout).toContain('list');
+        expect(rhxResult.stdout).toContain('say');
+        expect(rhxResult.stdout).toContain('get');
+        expect(rhxResult.stdout).toContain('whoami');
+      });
+
+      then('rhx output matches the routed rhachet clone output', () => {
+        expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+      });
+    });
+
+    when('[t1] rhx actor --help', () => {
+      const rhxResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['actor', '--help'],
+          cwd: repo.path,
+        }),
+      );
+      const rhachetResult = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['actor', '--help'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('does NOT fall to the skill proxy ("no skill found")', () => {
+        expect(rhxResult.stderr).not.toContain('no skill');
+        expect(rhxResult.stderr).not.toContain('did you');
+      });
+
+      then('rhx exits 0 (the actor command was reached)', () => {
+        expect(rhxResult.status).toEqual(0);
+      });
+
+      then('stdout lists the actor list subcommand', () => {
+        expect(rhxResult.stdout).toContain('list');
+      });
+
+      then('rhx output matches the routed rhachet actor output', () => {
+        expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+      });
+    });
+  });
 });

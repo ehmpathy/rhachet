@@ -4,6 +4,7 @@
 *.log
 *.tsbuildinfo
 .agent/.cache/
+.agent/.actors/
 .artifact
 .env
 .review/

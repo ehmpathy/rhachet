@@ -1,0 +1,92 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 3.3.1.blueprint.product
+   ├─ passage = overruled
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 16/21)
+   │  │   │   ├─ approved 123.2s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: mech-failhides (l1, 16/21)
+   │  │   │   ├─ approved 193.8s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r002._.given.by_peer.mech-failhides.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r002._.taken.by_self.mech-failhides.md
+   │  │   ├─ r3: mech-decode-friction (l1, 16/21)
+   │  │   │   ├─ approved 127.5s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r003._.given.by_peer.mech-decode-friction.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r003._.taken.by_self.mech-decode-friction.md
+   │  │   ├─ r4: arch-opport-decomposition (l1, 16/21)
+   │  │   │   ├─ approved 112.4s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r004._.given.by_peer.arch-opport-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r004._.taken.by_self.arch-opport-decomposition.md
+   │  │   ├─ r5: arch-smell-scopeleaks (l1, 19/24)
+   │  │   │   ├─ approved 128.1s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r005._.given.by_peer.arch-smell-scopeleaks.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r005._.taken.by_self.arch-smell-scopeleaks.md
+   │  │   ├─ r6: arch-hazards-maintenance (l1, 16/21)
+   │  │   │   ├─ approved 106.0s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r006._.given.by_peer.arch-hazards-maintenance.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r006._.taken.by_self.arch-hazards-maintenance.md
+   │  │   ├─ r7: arch-hazards-behavior (l1, 22/27)
+   │  │   │   ├─ approved 154.5s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r007._.given.by_peer.arch-hazards-behavior.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r007._.taken.by_self.arch-hazards-behavior.md
+   │  │   ├─ r8: arch-ambiguous-terms (l1, 16/21)
+   │  │   │   ├─ approved 138.9s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r008._.given.by_peer.arch-ambiguous-terms.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r008._.taken.by_self.arch-ambiguous-terms.md
+   │  │   ├─ r9: ergo-acceptance-journey-coverage (l1, 19/24)
+   │  │   │   ├─ approved 94.7s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r009._.given.by_peer.ergo-acceptance-journey-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r009._.taken.by_self.ergo-acceptance-journey-coverage.md
+   │  │   ├─ r10: ergo-snapshot-visual-blemishes (l1, 19/24)
+   │  │   │   ├─ approved 93.3s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r010._.given.by_peer.ergo-snapshot-visual-blemishes.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r010._.taken.by_self.ergo-snapshot-visual-blemishes.md
+   │  │   ├─ r11: enroll-blueprint-arch-defects (l3, 25/30)
+   │  │   │   ├─ rejected 370.4s
+   │  │   │   ├─ overruled ✓ — forgiven by human
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ tallied by reviewer@fireworks/deepseek/v4-flash
+   │  │   │   ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r011._.given.by_peer.enroll-blueprint-arch-defects.md
+   │  │   │   └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r011._.taken.by_self.enroll-blueprint-arch-defects.md
+   │  │   └─ r12: enroll-blueprint-behavior-intent (l3, 25/30)
+   │  │       ├─ approved 377.8s
+   │  │       ├─ overruled ✓ — forgiven by human
+   │  │       ├─ 0 blockers ✓
+   │  │       ├─ 2 nitpicks 🟠
+   │  │       ├─ tallied by reviewer@fireworks/deepseek/v4-flash
+   │  │       ├─ given: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r012._.given.by_peer.enroll-blueprint-behavior-intent.md
+   │  │       └─ taken: .behavior/v2026_08_07.enroll-with-interface/.reviews/peer/3.3.1.blueprint.product._.review.i064.5cd39c967853227c0e.r012._.taken.by_self.enroll-blueprint-behavior-intent.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │      │   └─ finished 0.4s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 0.3s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

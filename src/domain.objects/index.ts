@@ -16,7 +16,13 @@ export * from './Threads';
 // export * from './Weave';
 // export * from './Weaver';
 
-export * from './Actor';
+// export * from './Weave';
+// export * from './Weaver';
+
+// export * from './Weave';
+// export * from './Weaver';
+
+export * from './ActorInmem';
 export * from './ActorRoleSkill';
 export * from './BrainAtom';
 export * from './BrainChoiceNotFoundError';
@@ -35,6 +41,7 @@ export * from './BrainSeries';
 export * from './BrainSpec';
 export * from './BrainSpecifier';
 export * from './BrainSuppliesCreds';
+export * from './CloneInmem';
 export * from './ContextBrain';
 export * from './ContextBrainSupplier';
 export * from './ContextCli';
