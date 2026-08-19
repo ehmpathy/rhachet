@@ -8,6 +8,7 @@ import {
 
 import { mkdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { findsertAgentEphemeralGitignore } from './findsertAgentEphemeralGitignore';
 import { findsertFile, type LinkResult } from './findsertFile';
 import { findsertRepoGitignore } from './findsertRepoGitignore';
 import { symlinkFile } from './symlinkFile';
@@ -83,6 +84,13 @@ export const execRoleLink = (
       template: getAgentRepoThisReadmeTemplate(),
     }),
   );
+
+  // findsert self-ignores for the .agent ephemeral dirs — these hold host-local
+  // records + caches that must never enter git history
+  // .note = not pushed to linkResults; this is infra housekeeping, not a
+  //   role-specific link, so it stays out of the per-role link tree
+  findsertAgentEphemeralGitignore({ dir: resolve(agentDir, '.actors') });
+  findsertAgentEphemeralGitignore({ dir: resolve(agentDir, '.cache') });
 
   // symlink .agent/repo=$repo/readme.md
   if (input.repo.readme?.uri) {
