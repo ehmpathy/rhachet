@@ -1,4 +1,3 @@
-import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { createCache } from 'simple-in-memory-cache';
 import { withSimpleCache } from 'with-simple-cache';
 
@@ -11,8 +10,9 @@ import type {
 } from '@src/domain.objects/keyrack';
 import { decryptWithIdentity } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { discoverIdentities } from '@src/domain.operations/keyrack/discoverIdentities';
+import { getAllAgeIdentitiesForKeyPaths } from '@src/domain.operations/keyrack/getAllAgeIdentitiesForKeyPaths';
 import { getKeyrackHostManifestPath } from '@src/domain.operations/keyrack/getKeyrackHostManifestPath';
-import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
+import { isExpectedCryptoMiss } from '@src/domain.operations/keyrack/isExpectedCryptoMiss';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { vaultAdapter1Password } from './adapters/vaults/1password/vaultAdapter1Password';
@@ -93,7 +93,7 @@ export const genContextKeyrack = (input: {
 
   // getAll.discovered: lazy cached identity discovery
   const discovered = withSimpleCache(
-    async () => discoverIdentities({ owner: input.owner }),
+    async () => await discoverIdentities({ owner: input.owner }),
     { cache: createCache() },
   );
 
@@ -103,16 +103,10 @@ export const genContextKeyrack = (input: {
   // getOne: lazy cached, calls getAll internally when pool is built
   const getOne = withSimpleCache(
     async (_args: { for: 'manifest' }) => {
-      // convert paths to identities
-      const prescribedIdentities = prescribed
-        .map((path) => {
-          try {
-            return sshPrikeyToAgeIdentity({ keyPath: path });
-          } catch {
-            return null;
-          }
-        })
-        .filter((id): id is string => id !== null);
+      // convert paths to identities (skip a per-key parse miss; a broken crypto load fails loud, e6)
+      const prescribedIdentities = await getAllAgeIdentitiesForKeyPaths({
+        keyPaths: prescribed,
+      });
 
       // build pool: prescribed first (explicit takes precedence), then discovered
       const pool = [...prescribedIdentities, ...(await discovered())];
@@ -171,9 +165,8 @@ const trialDecryptManifest = async (input: {
       await decryptWithIdentity({ ciphertext, identity });
       return identity;
     } catch (error) {
-      // rethrow our own error types (code defects, invalid requests)
-      if (error instanceof MalfunctionError) throw error;
-      if (error instanceof ConstraintError) throw error;
+      // rethrow any rhachet-native error (code defects, invalid requests) — fail loud (e6)
+      if (!isExpectedCryptoMiss(error)) throw error;
 
       // expected: decryption failure with wrong identity (continue to next)
       // .note = age-encryption throws generic Error for decryption failures

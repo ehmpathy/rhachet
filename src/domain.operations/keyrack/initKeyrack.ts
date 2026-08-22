@@ -148,10 +148,12 @@ export const initKeyrack = async (input: {
   const cipher = extractSshKeyCipher({ keyContent });
 
   // create recipient with cipher-aware format
-  const recipient = (() => {
+  const recipient = await (async () => {
     // passwordless key: convert to native age recipient (npm library path)
     if (cipher === 'none') {
-      const ageRecipient = sshPubkeyToAgeRecipient({ pubkey: pubkeyContent });
+      const ageRecipient = await sshPubkeyToAgeRecipient({
+        pubkey: pubkeyContent,
+      });
       return new KeyrackKeyRecipient({
         mech: 'age',
         pubkey: ageRecipient,

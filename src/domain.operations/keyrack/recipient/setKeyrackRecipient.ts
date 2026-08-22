@@ -73,7 +73,7 @@ export const setKeyrackRecipient = async (input: {
   } else if (pubkeyRaw.startsWith('ssh-')) {
     // convert ssh pubkey to age format (enables npm library encryption path)
     mech = 'age';
-    pubkey = sshPubkeyToAgeRecipient({ pubkey: pubkeyRaw });
+    pubkey = await sshPubkeyToAgeRecipient({ pubkey: pubkeyRaw });
   } else {
     throw new ConstraintError(
       'pubkey must be age (age1...) or ssh (ssh-ed25519, ssh-rsa, etc.)',

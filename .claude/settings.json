@@ -111,6 +111,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --repo rhachet --role enroller",
             "timeout": 60,
             "author": "repo=rhachet/role=enroller"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --role dreamer",
+            "timeout": 10,
+            "author": "repo=bhuild/role=dreamer"
           }
         ]
       },

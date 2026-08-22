@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ageRecipientCrypto given: [case1] generateAgeKeyPair when: [t0] called then: returns identity and recipient 1`] = `
+{
+  "identity": "AGE-SECRET-KEY-1<masked-body>",
+  "recipient": "age1<masked-body>",
+}
+`;
+
+exports[`ageRecipientCrypto given: [case2] encryptToRecipients when: [t0] no recipients provided then: throws error 1`] = `
+"💥 MalfunctionError: no recipients provided for encryption
+
+{
+  "recipientCount": 0
+}"
+`;
+
+exports[`ageRecipientCrypto given: [case2] encryptToRecipients when: [t1] unsupported recipient mech then: throws error 1`] = `
+"💥 MalfunctionError: recipient mech 'yubikey' not supported; use 'age' or 'ssh'
+
+{
+  "recipient": {
+    "mech": "yubikey",
+    "pubkey": "age1yubikey1...",
+    "label": "test",
+    "addedAt": ""
+  }
+}"
+`;
+
+exports[`ageRecipientCrypto given: [case2] encryptToRecipients when: [t2] valid age recipient then: returns armored ciphertext 1`] = `
+"-----BEGIN AGE ENCRYPTED FILE-----
+<masked-armor-body>
+-----END AGE ENCRYPTED FILE-----"
+`;
+
+exports[`ageRecipientCrypto given: [case2] encryptToRecipients when: [t3] multiple recipients then: all recipients can decrypt 1`] = `
+{
+  "armoredShape": "-----BEGIN AGE ENCRYPTED FILE-----
+<masked-armor-body>
+-----END AGE ENCRYPTED FILE-----",
+  "recipientStanzaCount": 2,
+}
+`;
+
+exports[`ageRecipientCrypto given: [case3] decryptWithIdentity when: [t0] wrong identity then: throws error 1`] = `
+{
+  "isError": true,
+  "message": "<age-decrypt-error>",
+}
+`;

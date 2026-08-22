@@ -4,7 +4,7 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import {
   createTestHomeWithSshKey,
-  TEST_SSH_AGE_RECIPIENT,
+  getTestSshAgeRecipient,
 } from '@src/.test/infra';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
@@ -93,7 +93,7 @@ env.prod: []
       const manifest = useBeforeAll(async () => {
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
-          pubkey: TEST_SSH_AGE_RECIPIENT,
+          pubkey: await getTestSshAgeRecipient(),
           label: 'test-key',
           addedAt: new Date().toISOString(),
         });
@@ -232,7 +232,7 @@ env.prod: []
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -345,7 +345,7 @@ env.prod: []
       const manifest = useBeforeAll(async () => {
         const recipient = new KeyrackKeyRecipient({
           mech: 'age',
-          pubkey: TEST_SSH_AGE_RECIPIENT,
+          pubkey: await getTestSshAgeRecipient(),
           label: 'test-key',
           addedAt: new Date().toISOString(),
         });
@@ -469,7 +469,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -574,7 +574,7 @@ env.prod: []
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });

@@ -14,7 +14,7 @@ import { join, resolve } from 'node:path';
 
 import { encryptToRecipients } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
-import { sshPubkeyToAgeRecipient } from '@src/infra/ssh/sshPubkeyToAgeRecipient';
+import { getTestSshAgeRecipient } from '@src/.test/infra/withTestSshAgent';
 
 /**
  * .what = path to test SSH key assets
@@ -23,17 +23,15 @@ import { sshPubkeyToAgeRecipient } from '@src/infra/ssh/sshPubkeyToAgeRecipient'
 const TEST_SSH_KEY_DIR = resolve(__dirname, '../../../src/.test/assets/keyrack/ssh');
 
 /**
- * .what = derive the age recipient from the test SSH pubkey
- * .why = manifests must be encrypted to the SSH key's age recipient
- *        so auto-discovery (via $HOME/.ssh/id_ed25519) can decrypt them
+ * .what = the test ssh pubkey converted to an age recipient (shared memoized getter)
+ * .why = manifests must be encrypted to the test ssh key's age recipient so auto-discovery
+ *        (via $HOME/.ssh/id_ed25519) can decrypt them. the derivation is the ONE shared fixture
+ *        from src/.test/infra/withTestSshAgent (rule.require.shared-test-fixtures) — it reads the
+ *        same committed pubkey (src/.test/assets/keyrack/ssh/test_key_ed25519.pub, the same file
+ *        TEST_SSH_KEY_DIR points at) and memoizes the async lazy-esm conversion once. re-exported
+ *        here so blackbox fixtures import it from one place, not a second copy of the getter.
  */
-const TEST_SSH_PUBKEY = readFileSync(
-  join(TEST_SSH_KEY_DIR, 'test_key_ed25519.pub'),
-  'utf8',
-).trim();
-export const TEST_SSH_AGE_RECIPIENT = sshPubkeyToAgeRecipient({
-  pubkey: TEST_SSH_PUBKEY,
-});
+export { getTestSshAgeRecipient };
 
 /**
  * .what = known os.secure credential values for test fixtures
@@ -188,7 +186,7 @@ const convertLegacyManifest = async (input: {
     recipients: [
       {
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: now,
       },
@@ -222,7 +220,7 @@ const convertLegacyManifest = async (input: {
   const plaintext = JSON.stringify(newManifest, null, 2);
   const recipient = new KeyrackKeyRecipient({
     mech: 'age',
-    pubkey: TEST_SSH_AGE_RECIPIENT,
+    pubkey: await getTestSshAgeRecipient(),
     label: 'test-key',
     addedAt: now,
   });

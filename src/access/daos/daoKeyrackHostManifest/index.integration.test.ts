@@ -67,7 +67,7 @@ n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
  * .what = derive age identity from test ssh key
  * .why = used to create manifests encrypted to the ssh key
  */
-const getTestSshKeyAgeIdentity = (): string => {
+const getTestSshKeyAgeIdentity = async (): Promise<string> => {
   const seed = extractEd25519Seed({ keyContent: TEST_SSH_KEY });
   return ed25519SeedToAgeIdentity({ seed });
 };
@@ -77,7 +77,7 @@ const getTestSshKeyAgeIdentity = (): string => {
  * .why = used to encrypt manifests that can be decrypted by the ssh key
  */
 const getTestSshKeyAgeRecipient = async (): Promise<string> => {
-  const identity = getTestSshKeyAgeIdentity();
+  const identity = await getTestSshKeyAgeIdentity();
   return age.identityToRecipient(identity);
 };
 

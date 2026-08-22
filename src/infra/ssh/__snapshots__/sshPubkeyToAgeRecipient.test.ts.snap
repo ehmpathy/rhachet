@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`sshPubkeyToAgeRecipient given: [case1] a valid ssh-ed25519 public key when: [t0] sshPubkeyToAgeRecipient is called then: it returns an age1... prefixed string 1`] = `"age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf"`;
+
+exports[`sshPubkeyToAgeRecipient given: [case3] an invalid key type when: [t0] sshPubkeyToAgeRecipient is called then: it throws an error about unsupported key type 1`] = `"only ed25519 keys supported (found: ssh-rsa)"`;
+
+exports[`sshPubkeyToAgeRecipient given: [case4] malformed pubkey when: [t0] sshPubkeyToAgeRecipient is called then: it throws an error about invalid format 1`] = `"invalid ssh pubkey format: expected "type base64 [comment]""`;

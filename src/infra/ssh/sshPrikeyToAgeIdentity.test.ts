@@ -29,14 +29,14 @@ n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
     when('[t1] ed25519SeedToAgeIdentity is called', () => {
       const seed = extractEd25519Seed({ keyContent: testKeyContent });
 
-      then('it returns an AGE-SECRET-KEY- prefixed string', () => {
-        const identity = ed25519SeedToAgeIdentity({ seed });
+      then('it returns an AGE-SECRET-KEY- prefixed string', async () => {
+        const identity = await ed25519SeedToAgeIdentity({ seed });
         expect(identity).toMatch(/^AGE-SECRET-KEY-1[A-Z0-9]+$/);
       });
 
-      then('identity is deterministic for the same seed', () => {
-        const identity1 = ed25519SeedToAgeIdentity({ seed });
-        const identity2 = ed25519SeedToAgeIdentity({ seed });
+      then('identity is deterministic for the same seed', async () => {
+        const identity1 = await ed25519SeedToAgeIdentity({ seed });
+        const identity2 = await ed25519SeedToAgeIdentity({ seed });
         expect(identity1).toEqual(identity2);
       });
     });

@@ -5,8 +5,8 @@ export { withTempHome } from './withTempHome';
 export {
   TEST_SSH_KEY_PATH,
   TEST_SSH_PUBKEY_PATH,
-  TEST_SSH_AGE_RECIPIENT,
-  TEST_SSH_AGE_IDENTITY,
+  getTestSshAgeRecipient,
+  getTestSshAgeIdentity,
   withTestSshAgent,
 } from './withTestSshAgent';
 export {

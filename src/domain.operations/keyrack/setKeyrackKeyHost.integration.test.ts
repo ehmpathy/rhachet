@@ -5,8 +5,8 @@ import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepo
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import {
   createTestHomeWithSshKey,
-  TEST_SSH_AGE_IDENTITY,
-  TEST_SSH_AGE_RECIPIENT,
+  getTestSshAgeIdentity,
+  getTestSshAgeRecipient,
 } from '@src/.test/infra';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
@@ -39,7 +39,7 @@ describe('setKeyrackKeyHost.integration', () => {
   afterAll(() => testHome.teardown());
 
   given('[case1] set --env sudo', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     const repo = useBeforeAll(async () => {
       const root = join(testHome.path, 'repo-case1');
       mkdirSync(join(root, '.agent'), { recursive: true });
@@ -56,7 +56,7 @@ describe('setKeyrackKeyHost.integration', () => {
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -76,9 +76,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: null,
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -150,7 +150,7 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case2] set --env all', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     const repo = useBeforeAll(async () => {
       const root = join(testHome.path, 'repo-case2');
       mkdirSync(join(root, '.agent'), { recursive: true });
@@ -167,7 +167,7 @@ describe('setKeyrackKeyHost.integration', () => {
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -187,9 +187,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case2',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -251,12 +251,12 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case3] set --org @all', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -276,9 +276,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case3',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -326,14 +326,14 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case4] set with meta for os.secure', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     // separate keypair for vault recipient (different from manifest recipient)
     const vaultKeyPair = useBeforeAll(async () => generateAgeKeyPair());
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -353,9 +353,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case4',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -404,12 +404,12 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case5] set with maxDuration', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -429,9 +429,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case5',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -479,7 +479,7 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case6] set --at custom keyrack path', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     const repo = useBeforeAll(async () => {
       const root = join(testHome.path, 'repo-case6');
       mkdirSync(join(root, '.agent'), { recursive: true });
@@ -504,7 +504,7 @@ describe('setKeyrackKeyHost.integration', () => {
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -524,9 +524,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case6',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -595,12 +595,12 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case7] set creates inventory entry', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -620,9 +620,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case7',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -679,12 +679,12 @@ describe('setKeyrackKeyHost.integration', () => {
   });
 
   given('[case8] del removes inventory entry', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -704,9 +704,9 @@ describe('setKeyrackKeyHost.integration', () => {
         const context: ContextKeyrack = {
           owner: 'case8',
           identity: {
-            getOne: async () => TEST_SSH_AGE_IDENTITY,
+            getOne: async () => getTestSshAgeIdentity(),
             getAll: {
-              discovered: async () => [TEST_SSH_AGE_IDENTITY],
+              discovered: async () => [await getTestSshAgeIdentity()],
               prescribed: [],
             },
           },
@@ -787,13 +787,13 @@ describe('setKeyrackKeyHost.integration', () => {
    *        one of them gone the next time they looked
    */
   given('[case9] one slug set at several reaches', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     const SLUG = 'ehmpathy.sudo.ANTHROPIC_API_KEY';
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -812,9 +812,9 @@ describe('setKeyrackKeyHost.integration', () => {
       const genContext = (): ContextKeyrack => ({
         owner: 'case9',
         identity: {
-          getOne: async () => TEST_SSH_AGE_IDENTITY,
+          getOne: async () => getTestSshAgeIdentity(),
           getAll: {
-            discovered: async () => [TEST_SSH_AGE_IDENTITY],
+            discovered: async () => [await getTestSshAgeIdentity()],
             prescribed: [],
           },
         },
@@ -909,13 +909,13 @@ describe('setKeyrackKeyHost.integration', () => {
    *        destroy. this clamps the sweep
    */
   given('[case10] one reach deleted from a slug that holds three', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
     const SLUG = 'ehmpathy.sudo.ANTHROPIC_API_KEY';
 
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -934,9 +934,9 @@ describe('setKeyrackKeyHost.integration', () => {
       const genContext = (): ContextKeyrack => ({
         owner: 'case10',
         identity: {
-          getOne: async () => TEST_SSH_AGE_IDENTITY,
+          getOne: async () => getTestSshAgeIdentity(),
           getAll: {
-            discovered: async () => [TEST_SSH_AGE_IDENTITY],
+            discovered: async () => [await getTestSshAgeIdentity()],
             prescribed: [],
           },
         },
@@ -1055,7 +1055,7 @@ describe('setKeyrackKeyHost.integration', () => {
    *         human would open, which is what the rule actually protects
    */
   given('[case11] a repo whose keyrack.yml a set could write into', () => {
-    const testRecipient = TEST_SSH_AGE_RECIPIENT;
+    const testRecipient = getTestSshAgeRecipient;
 
     const repo = useBeforeAll(async () => {
       const root = join(testHome.path, 'repo-case11');
@@ -1071,7 +1071,7 @@ describe('setKeyrackKeyHost.integration', () => {
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: testRecipient,
+        pubkey: await testRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -1106,9 +1106,9 @@ describe('setKeyrackKeyHost.integration', () => {
     const genContext = (): ContextKeyrack => ({
       owner: 'case11',
       identity: {
-        getOne: async () => TEST_SSH_AGE_IDENTITY,
+        getOne: async () => getTestSshAgeIdentity(),
         getAll: {
-          discovered: async () => [TEST_SSH_AGE_IDENTITY],
+          discovered: async () => [await getTestSshAgeIdentity()],
           prescribed: [],
         },
       },

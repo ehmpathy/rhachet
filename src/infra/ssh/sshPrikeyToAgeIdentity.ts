@@ -1,18 +1,35 @@
-import { sha512 } from '@noble/hashes/sha2.js';
-import { bech32 } from '@scure/base';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
+
+import { getOneLazyEsmModuleLoader } from '@src/infra/importEsmSafe/getOneLazyEsmModuleLoader';
 
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { getOneScureBase } from './getOneScureBase';
+import { SSH_KEY_PATH_MARKER } from './sshKeyPathMarker';
+
+// re-export the marker from its own zero-dependency file, so a consumer that needs ONLY the
+// marker can import it without dragging in this file's lazy @noble/@scure (pure-esm) crypto deps.
+// see rule.forbid.eager-esm-imports-in-prod + ehmpathy/rhachet#468.
+export { SSH_KEY_PATH_MARKER };
 
 /**
- * .what = marker prefix for ssh key path identity
- * .why = distinguishes ssh key paths from age identity strings
- *
- * .note = when identity starts with this, decryptWithIdentity shells out to age CLI
+ * .what = lazy, memoized, fail-loud loader for the pure-esm crypto dep @noble/hashes
+ * .why = a top-level `import { sha512 } from '@noble/hashes/sha2.js'` compiles (under
+ *        module:commonjs) to a `require('@noble/hashes/sha2.js')` in dist, which throws
+ *        `Must use import to load ES Module` whenever rhachet's dist is loaded under a CJS
+ *        `require()` (jest, or a brain package's compiled CJS). @noble/hashes publishes as pure esm
+ *        (type: module, no cjs require condition), so the load defers to first crypto use via the
+ *        shared esm-safe loader. @scure/base loads via the shared getOneScureBase (one single-flight
+ *        cache across both ssh-crypto files). see rule.forbid.eager-esm-imports-in-prod +
+ *        ehmpathy/rhachet#468.
+ * .note = `typeof import(...)` is a type-only reference (tsc erases it), so it emits no require.
  */
-export const SSH_KEY_PATH_MARKER = 'SSH_KEY_PATH:';
+type NobleHashesSha2Module = typeof import('@noble/hashes/sha2.js');
+const getOneNobleHashesSha2 = getOneLazyEsmModuleLoader<NobleHashesSha2Module>({
+  specifier: '@noble/hashes/sha2.js',
+  purpose: 'ssh prikey to age identity conversion',
+});
 
 /**
  * .what = convert an ed25519 ssh private key to an age identity
@@ -26,20 +43,24 @@ export const SSH_KEY_PATH_MARKER = 'SSH_KEY_PATH:';
  *         returns SSH_KEY_PATH:$absolutePath marker instead of age identity
  *         downstream code (decryptWithIdentity) shells out to age CLI
  */
-export const sshPrikeyToAgeIdentity = (input: { keyPath: string }): string => {
+export const sshPrikeyToAgeIdentity = async (input: {
+  keyPath: string;
+}): Promise<string> => {
   const keyContent = readFileSync(input.keyPath, 'utf8');
   const cipher = extractSshKeyCipher({ keyContent });
 
   // for unencrypted keys: in-process conversion (no external deps)
   if (cipher === 'none') {
     const seed = extractEd25519Seed({ keyContent });
-    const identity = ed25519SeedToAgeIdentity({ seed });
+    const identity = await ed25519SeedToAgeIdentity({ seed });
     return identity;
   }
 
   // for passphrase-protected keys: check for age CLI, return marker
+  // the caller fixes this (install age), so it is a ConstraintError (exit 2), never the
+  // owner-less BadRequestError parent — rule.forbid.helpful-error-parents
   if (!isAgeCLIAvailable())
-    throw new BadRequestError(
+    throw new ConstraintError(
       `🔐 your ssh key is passphrase-protected (cipher: ${cipher}).
 keyrack uses the \`age\` cli to decrypt via ssh-agent — no passphrase prompt needed.
 
@@ -80,14 +101,16 @@ export const isAgeCLIAvailable = (): boolean => {
  * .note = age's x25519 identity is SHA-512(ed25519_seed)[:32] encoded as bech32
  * .note = this matches the go age implementation's ssh key support
  */
-export const ed25519SeedToAgeIdentity = (input: {
+export const ed25519SeedToAgeIdentity = async (input: {
   seed: Uint8Array;
-}): string => {
+}): Promise<string> => {
   // x25519 scalar = SHA-512(ed25519_seed)[:32]
+  const { sha512 } = await getOneNobleHashesSha2();
   const hash = sha512(input.seed);
   const scalar = hash.slice(0, 32);
 
   // encode as age identity (bech32 with AGE-SECRET-KEY- prefix)
+  const { bech32 } = await getOneScureBase();
   const identity = bech32
     .encodeFromBytes('AGE-SECRET-KEY-', scalar)
     .toUpperCase();

@@ -1,4 +1,4 @@
-import { given, then, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,14 +13,25 @@ describe('sshPubkeyToAgeRecipient', () => {
     const pubkeyContent = readFileSync(TEST_SSH_PUBKEY_PATH, 'utf-8').trim();
 
     when('[t0] sshPubkeyToAgeRecipient is called', () => {
-      then('it returns an age1... prefixed string', () => {
-        const recipient = sshPubkeyToAgeRecipient({ pubkey: pubkeyContent });
+      then('it returns an age1... prefixed string', async () => {
+        const recipient = await sshPubkeyToAgeRecipient({
+          pubkey: pubkeyContent,
+        });
         expect(recipient).toMatch(/^age1[a-z0-9]+$/);
+
+        // pin the caller-visible recipient VERBATIM — the ed25519->x25519->bech32 derivation is
+        // deterministic for a fixed fixture pubkey, so a @noble/curves or @scure/base upgrade that
+        // shifts the crypto shape surfaces byte-for-byte in this snapshot diff.
+        expect(recipient).toMatchSnapshot();
       });
 
-      then('recipient is deterministic for the same pubkey', () => {
-        const recipient1 = sshPubkeyToAgeRecipient({ pubkey: pubkeyContent });
-        const recipient2 = sshPubkeyToAgeRecipient({ pubkey: pubkeyContent });
+      then('recipient is deterministic for the same pubkey', async () => {
+        const recipient1 = await sshPubkeyToAgeRecipient({
+          pubkey: pubkeyContent,
+        });
+        const recipient2 = await sshPubkeyToAgeRecipient({
+          pubkey: pubkeyContent,
+        });
         expect(recipient1).toEqual(recipient2);
       });
     });
@@ -31,11 +42,11 @@ describe('sshPubkeyToAgeRecipient', () => {
     const pubkeyWithComment = `${pubkeyContent} my-laptop`;
 
     when('[t0] sshPubkeyToAgeRecipient is called', () => {
-      then('it ignores the comment and returns valid recipient', () => {
-        const recipientNoComment = sshPubkeyToAgeRecipient({
+      then('it ignores the comment and returns valid recipient', async () => {
+        const recipientNoComment = await sshPubkeyToAgeRecipient({
           pubkey: pubkeyContent,
         });
-        const recipientWithComment = sshPubkeyToAgeRecipient({
+        const recipientWithComment = await sshPubkeyToAgeRecipient({
           pubkey: pubkeyWithComment,
         });
         expect(recipientWithComment).toEqual(recipientNoComment);
@@ -47,10 +58,14 @@ describe('sshPubkeyToAgeRecipient', () => {
     const rsaPubkey = 'ssh-rsa AAAA... test';
 
     when('[t0] sshPubkeyToAgeRecipient is called', () => {
-      then('it throws an error about unsupported key type', () => {
-        expect(() => sshPubkeyToAgeRecipient({ pubkey: rsaPubkey })).toThrow(
-          /only ed25519 keys supported/,
+      then('it throws an error about unsupported key type', async () => {
+        const error = await getError(
+          sshPubkeyToAgeRecipient({ pubkey: rsaPubkey }),
         );
+        expect(error.message).toMatch(/only ed25519 keys supported/);
+
+        // pin the caller-visible NEGATIVE-path error message (deterministic)
+        expect(error.message).toMatchSnapshot();
       });
     });
   });
@@ -59,10 +74,14 @@ describe('sshPubkeyToAgeRecipient', () => {
     const malformedPubkey = 'not-a-valid-key';
 
     when('[t0] sshPubkeyToAgeRecipient is called', () => {
-      then('it throws an error about invalid format', () => {
-        expect(() =>
+      then('it throws an error about invalid format', async () => {
+        const error = await getError(
           sshPubkeyToAgeRecipient({ pubkey: malformedPubkey }),
-        ).toThrow(/invalid ssh pubkey format/);
+        );
+        expect(error.message).toMatch(/invalid ssh pubkey format/);
+
+        // pin the caller-visible EDGE-path error message (deterministic)
+        expect(error.message).toMatchSnapshot();
       });
     });
   });

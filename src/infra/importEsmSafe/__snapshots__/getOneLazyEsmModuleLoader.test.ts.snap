@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneLazyEsmModuleLoader given: [case2] the module is absent/broken (import rejects) — vision edge e6 when: [t0] the loader is called then: the full caller-visible error output is pinned (message + hint + reason) 1`] = `
+{
+  "hint": "under jest, age-encryption loads via require(); ensure it is installed AND covered by your jest transform + transformIgnorePatterns so it down-levels to cjs",
+  "message": "💥 MalfunctionError: failed to load the age-encryption module for keyrack crypto
+
+{
+  "hint": "under jest, age-encryption loads via require(); ensure it is installed AND covered by your jest transform + transformIgnorePatterns so it down-levels to cjs",
+  "reason": "boom-from-loader"
+}",
+  "reason": "boom-from-loader",
+}
+`;
+
+exports[`getOneLazyEsmModuleLoader given: [case4] the failure hint keys off the runtime, not a fixed transform when: [t0] the runtime is jest then: the hint names the consumer jest transform path 1`] = `"under jest, age-encryption loads via require(); ensure it is installed AND covered by your jest transform + transformIgnorePatterns so it down-levels to cjs"`;
+
+exports[`getOneLazyEsmModuleLoader given: [case4] the failure hint keys off the runtime, not a fixed transform when: [t1] the runtime is real node (a downstream consumer) then: the hint names the esm-load fix, never a jest transform 1`] = `"ensure age-encryption is installed and loads as esm in this node runtime (a genuine import() of this pure-esm package must succeed)"`;

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -38,14 +38,18 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
     when('[t0] age CLI is available on PATH', () => {
       then(
         'sshPrikeyToAgeIdentity returns SSH_KEY_PATH_MARKER with absolute path',
-        () => {
-          // skip test if age is not installed on this machine
-          if (!isAgeCLIAvailable()) {
-            console.log('test skipped: age CLI not installed');
-            return;
-          }
+        async () => {
+          // the age cli is a required resource for this path — fail loud if absent, never
+          // silently skip (rule.require.failfast / rule.forbid.failhide). age backs the
+          // passphrase-protected marker path this case exercises; an absent binary is a
+          // setup constraint the caller fixes, not a reason to pass without verification.
+          if (!isAgeCLIAvailable())
+            throw new ConstraintError(
+              'age CLI required for this test but not found on PATH',
+              { hint: 'install age: `brew install age` or `apt install age`' },
+            );
 
-          const identity = sshPrikeyToAgeIdentity({ keyPath });
+          const identity = await sshPrikeyToAgeIdentity({ keyPath });
 
           // should return marker instead of age identity
           expect(identity.startsWith(SSH_KEY_PATH_MARKER)).toBe(true);
@@ -53,6 +57,11 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
           // should contain absolute path
           const extractedPath = identity.slice(SSH_KEY_PATH_MARKER.length);
           expect(extractedPath).toEqual(keyPath);
+
+          // pin the caller-visible passphrase-protected identity SHAPE. the temp keyPath is volatile,
+          // so it is masked; the deterministic `SSH_KEY_PATH:` marker prefix — which
+          // decryptWithIdentity's dispatch branches on — is pinned. a drift of that prefix surfaces.
+          expect(identity.replace(keyPath, '<masked-path>')).toMatchSnapshot();
         },
       );
     });
@@ -62,7 +71,7 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
       const pathWithoutAge = '/tmp';
 
       then(
-        'sshPrikeyToAgeIdentity throws BadRequestError with install instructions',
+        'sshPrikeyToAgeIdentity throws ConstraintError with install instructions',
         async () => {
           // save original PATH
           const originalPath = process.env.PATH;
@@ -79,8 +88,8 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
               sshPrikeyToAgeIdentity({ keyPath }),
             );
 
-            // verify it threw BadRequestError
-            expect(error).toBeInstanceOf(BadRequestError);
+            // verify it threw ConstraintError (the caller fixes it — install age; exit 2)
+            expect(error).toBeInstanceOf(ConstraintError);
 
             // verify error message contains install instructions
             expect(error.message).toContain('passphrase-protected');
@@ -113,7 +122,13 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
             '"keyPath": "<redacted>"',
           );
 
-          // snapshot the error message shown to the user
+          // snapshot the error message shown to the user.
+          // .note = the snapshot's header reads `✋ ConstraintError:` (not `BadRequestError:`). this is
+          //         an INTENDED change: sshPrikeyToAgeIdentity now throws ConstraintError, because
+          //         rule.forbid.helpful-error-parents forbids a throw of the BadRequestError parent —
+          //         only ConstraintError (caller-fixes, exit 2) / MalfunctionError (server-fixes, exit 1)
+          //         are legal throws. an absent age binary is a caller-fixable setup constraint, so
+          //         ConstraintError is the correct class; the body text (install steps) is unchanged.
           expect(messageRedacted).toMatchSnapshot();
         } finally {
           // restore original PATH
@@ -166,7 +181,7 @@ n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
             expect(isAgeCLIAvailable()).toBe(false);
 
             // should still work — in-process conversion for unencrypted keys
-            const identity = sshPrikeyToAgeIdentity({ keyPath });
+            const identity = await sshPrikeyToAgeIdentity({ keyPath });
 
             // should return native age identity (not marker)
             expect(identity.startsWith('AGE-SECRET-KEY-')).toBe(true);

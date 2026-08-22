@@ -1,12 +1,34 @@
-import { createAppAuth } from '@octokit/auth-app';
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
+import { getOneLazyEsmModuleLoader } from '@src/infra/importEsmSafe/getOneLazyEsmModuleLoader';
 
 import { createInterface } from 'node:readline';
 import { runGh } from '../../infra/gh/runGh';
 import { genGithubAppSource } from './genGithubAppSource';
+
+/**
+ * .what = lazy, memoized, fail-loud loader for the pure-esm `@octokit/auth-app` module
+ * .why = a top-level `import { createAppAuth } from '@octokit/auth-app'` compiles (under
+ *        module:commonjs) to a `require('@octokit/auth-app')` in dist, which throws `Must use
+ *        import to load ES Module` whenever rhachet's dist is loaded under a CJS `require()`
+ *        (jest, or a brain package's compiled CJS — @octokit/auth-app is `type: module`). the
+ *        shared loader defers the esm load to first github-app delivery and fails loud + actionable
+ *        if the module is genuinely absent/broken.
+ *        see rule.forbid.eager-esm-imports-in-prod + ehmpathy/rhachet#468.
+ * .note = `typeof import(...)` is a type-only reference (tsc erases it), so it emits no require.
+ * .note = memoize + single-flight + fail-loud all live in getOneLazyEsmModuleLoader (shared with
+ *         ageRecipientCrypto's age-encryption loader). the real-node (prod) load-path is proven by a
+ *         real-node acceptance clamp (keyrackEsmRequire.realnode.acceptance.test.ts); the fail-loud
+ *         path by a jest unit clamp (getOneLazyEsmModuleLoader.test.ts).
+ */
+type OctokitAuthAppModule = typeof import('@octokit/auth-app');
+const getOneOctokitAuthAppModule =
+  getOneLazyEsmModuleLoader<OctokitAuthAppModule>({
+    specifier: '@octokit/auth-app',
+    purpose: 'github app auth',
+  });
 
 /**
  * .what = expected shape of github app credentials json
@@ -199,6 +221,7 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     const { creds } = result;
 
     // create auth instance
+    const { createAppAuth } = await getOneOctokitAuthAppModule();
     const auth = createAppAuth({
       appId: creds.appId,
       privateKey: creds.privateKey,
