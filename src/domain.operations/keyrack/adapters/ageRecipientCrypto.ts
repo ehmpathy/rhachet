@@ -1,13 +1,33 @@
-import * as age from 'age-encryption';
 import { MalfunctionError } from 'helpful-errors';
 
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
-import { SSH_KEY_PATH_MARKER } from '@src/infra/ssh';
+import { getOneLazyEsmModuleLoader } from '@src/infra/importEsmSafe/getOneLazyEsmModuleLoader';
+import { SSH_KEY_PATH_MARKER } from '@src/infra/ssh/sshKeyPathMarker';
 
 import { execSync } from 'node:child_process';
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+/**
+ * .what = lazy, memoized, fail-loud loader for the pure-esm `age-encryption` package
+ * .why = a top-level `import * as age from 'age-encryption'` compiles (under module:commonjs)
+ *        to a `require('age-encryption')` in dist, which throws `Must use import to load ES
+ *        Module` whenever rhachet's dist is loaded under a CJS `require()` (jest, or a brain
+ *        package's compiled CJS). the shared loader defers the esm load to first crypto use and
+ *        fails loud + actionable if the module is genuinely absent/broken.
+ *        see rule.forbid.eager-esm-imports-in-prod + ehmpathy/rhachet#468.
+ * .note = `typeof import(...)` is a type-only reference (tsc erases it), so it emits no require.
+ * .note = memoize + single-flight + fail-loud all live in getOneLazyEsmModuleLoader (shared with
+ *         mechAdapterGithubApp's @octokit/auth-app loader). the real-node (prod) load-path is
+ *         proven by a real-node acceptance clamp (keyrackEsmRequire.realnode.acceptance.test.ts);
+ *         the fail-loud path by a jest unit clamp (getOneLazyEsmModuleLoader.test.ts).
+ */
+type AgeModule = typeof import('age-encryption');
+const getOneAgeModule = getOneLazyEsmModuleLoader<AgeModule>({
+  specifier: 'age-encryption',
+  purpose: 'keyrack crypto',
+});
 
 /**
  * .what = encrypt plaintext to multiple age recipients
@@ -33,6 +53,7 @@ export const encryptToRecipients = async (input: {
 
   // if all recipients are native age (mech: 'age'), use npm library
   if (!hasSshRecipient) {
+    const age = await getOneAgeModule();
     const encrypter = new age.Encrypter();
     for (const recipient of input.recipients) {
       if (recipient.mech !== 'age')
@@ -73,6 +94,7 @@ export const decryptWithIdentity = async (input: {
   }
 
   // decode armor if needed
+  const age = await getOneAgeModule();
   const ciphertextBytes =
     typeof input.ciphertext === 'string'
       ? age.armor.decode(input.ciphertext)
@@ -191,6 +213,7 @@ export const generateAgeKeyPair = async (): Promise<{
   identity: string;
   recipient: string;
 }> => {
+  const age = await getOneAgeModule();
   const identity = await age.generateIdentity();
   const recipient = await age.identityToRecipient(identity);
   return { identity, recipient };

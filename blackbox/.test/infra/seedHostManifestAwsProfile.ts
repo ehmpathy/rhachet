@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { encryptToRecipients } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 
-import { TEST_SSH_AGE_RECIPIENT } from './genTestTempRepo';
+import { getTestSshAgeRecipient } from './genTestTempRepo';
 
 /**
  * .what = seed a `{org}.{env}.AWS_PROFILE` peer entry into an owner-scoped host manifest
@@ -38,7 +38,7 @@ export const seedHostManifestAwsProfile = async (input: {
     recipients: [
       {
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: now,
       },
@@ -61,7 +61,7 @@ export const seedHostManifestAwsProfile = async (input: {
 
   const recipient = new KeyrackKeyRecipient({
     mech: 'age',
-    pubkey: TEST_SSH_AGE_RECIPIENT,
+    pubkey: await getTestSshAgeRecipient(),
     label: 'test-key',
     addedAt: now,
   });

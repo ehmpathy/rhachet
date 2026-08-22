@@ -1,9 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import {
-  genTestTempRepo,
-  TEST_SSH_AGE_RECIPIENT,
-} from '@/blackbox/.test/infra/genTestTempRepo';
+import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 

@@ -23,24 +23,42 @@ export const TEST_SSH_KEY_PATH = join(
 export const TEST_SSH_PUBKEY_PATH = `${TEST_SSH_KEY_PATH}.pub`;
 
 /**
- * .what = age recipient derived from test ssh pubkey
- * .why = enables tests to encrypt manifests to the test ssh key
- *
- * .note = computed at module load from the committed pubkey
+ * .what = age recipient derived from test ssh pubkey (memoized async getter)
+ * .why = enables tests to encrypt manifests to the test ssh key. sshPubkeyToAgeRecipient is now
+ *        async (it lazy-loads pure-esm @noble/@scure crypto — rhachet#468), so the derived recipient
+ *        is an awaited getter rather than a module-eval const. memoized so the conversion runs once.
  */
-export const TEST_SSH_AGE_RECIPIENT = sshPubkeyToAgeRecipient({
-  pubkey: readFileSync(TEST_SSH_PUBKEY_PATH, 'utf8'),
-});
+let testSshAgeRecipientCached: Promise<string> | undefined;
+export const getTestSshAgeRecipient = (): Promise<string> => {
+  if (!testSshAgeRecipientCached)
+    testSshAgeRecipientCached = sshPubkeyToAgeRecipient({
+      pubkey: readFileSync(TEST_SSH_PUBKEY_PATH, 'utf8'),
+    }).catch((error) => {
+      // do not cache a failed load — clear so a later call re-attempts (mirrors getOneLazyEsmModuleLoader)
+      testSshAgeRecipientCached = undefined;
+      throw error;
+    });
+  return testSshAgeRecipientCached;
+};
 
 /**
- * .what = age identity derived from test ssh private key
- * .why = enables tests to decrypt manifests encrypted to the test ssh key
- *
- * .note = computed at module load from the committed private key
+ * .what = age identity derived from test ssh private key (memoized async getter)
+ * .why = enables tests to decrypt manifests encrypted to the test ssh key. sshPrikeyToAgeIdentity is
+ *        now async (it lazy-loads pure-esm @noble/@scure crypto — rhachet#468), so the derived
+ *        identity is an awaited getter rather than a module-eval const. memoized so it runs once.
  */
-export const TEST_SSH_AGE_IDENTITY = sshPrikeyToAgeIdentity({
-  keyPath: TEST_SSH_KEY_PATH,
-});
+let testSshAgeIdentityCached: Promise<string> | undefined;
+export const getTestSshAgeIdentity = (): Promise<string> => {
+  if (!testSshAgeIdentityCached)
+    testSshAgeIdentityCached = sshPrikeyToAgeIdentity({
+      keyPath: TEST_SSH_KEY_PATH,
+    }).catch((error) => {
+      // do not cache a failed load — clear so a later call re-attempts (mirrors getOneLazyEsmModuleLoader)
+      testSshAgeIdentityCached = undefined;
+      throw error;
+    });
+  return testSshAgeIdentityCached;
+};
 
 /**
  * .what = spawns an isolated ssh-agent, loads the test key, runs fn, then cleans up

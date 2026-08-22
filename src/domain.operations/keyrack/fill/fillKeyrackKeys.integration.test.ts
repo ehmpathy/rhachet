@@ -3,7 +3,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import {
   createTestHomeWithSshKey,
-  TEST_SSH_AGE_RECIPIENT,
+  getTestSshAgeRecipient,
 } from '@src/.test/infra';
 import {
   genMockPromptHiddenInput,
@@ -163,7 +163,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -259,7 +259,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -337,7 +337,7 @@ env.test:
     const manifests = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -418,7 +418,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -504,7 +504,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -642,7 +642,7 @@ env.test:
     const manifests = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -788,7 +788,7 @@ env.prod:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toISOString(),
       });
@@ -886,7 +886,7 @@ env.test:
     const manifest = useBeforeAll(async () => {
       const recipient = new KeyrackKeyRecipient({
         mech: 'age',
-        pubkey: TEST_SSH_AGE_RECIPIENT,
+        pubkey: await getTestSshAgeRecipient(),
         label: 'test-key',
         addedAt: new Date().toJSON(),
       });
@@ -1062,7 +1062,7 @@ env.test:
           recipients: [
             new KeyrackKeyRecipient({
               mech: 'age',
-              pubkey: TEST_SSH_AGE_RECIPIENT,
+              pubkey: await getTestSshAgeRecipient(),
               label: 'test-key',
               addedAt: now,
             }),

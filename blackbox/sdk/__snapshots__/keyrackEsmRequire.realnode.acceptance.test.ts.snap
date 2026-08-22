@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrackEsmRequire.realnode.acceptance given: [case1] the built keyrack dist, require()d in a real node child when: [t3] the SECOND landmine (@octokit/auth-app) loads via the real adapter path then: the caller-visible bad-pem ConstraintError shape (headline + hint) is pinned 1`] = `
+{
+  "hint": "re-set the key with a valid github app private key (.pem) file",
+  "messageHeadline": "✋ ConstraintError: failed to mint github app token — the stored private key (.pem) is not a valid rsa key",
+}
+`;
+
+exports[`keyrackEsmRequire.realnode.acceptance given: [case1] the built keyrack dist, require()d in a real node child when: [t5] the real-node contract output shapes are snapshotted then: the deterministic ssh recipient + identity are pinned verbatim 1`] = `
+{
+  "sshIdentity": "AGE-SECRET-KEY-1QX4MV2EPN56YDQSJE5TYGR3P49J0RHYZN7Q2MUEEAFLX4HTQSX2QF9J7D9",
+  "sshRecipient": "age1qzd7j8sdwzn8a75lsxyw2sx7e7rn7g6w3a7x08m95pxan3c3u9fq7c6xuf",
+}
+`;
+
+exports[`keyrackEsmRequire.realnode.acceptance given: [case1] the built keyrack dist, require()d in a real node child when: [t5] the real-node contract output shapes are snapshotted then: the random age keypair + ciphertext shapes are pinned (body masked) 1`] = `
+{
+  "ageKeyShapeMasked": {
+    "identity": "AGE-SECRET-KEY-1<masked-body>",
+    "recipient": "age1<masked-body>",
+  },
+  "armoredShapeMasked": "-----BEGIN AGE ENCRYPTED FILE-----
+<masked-armor-body>
+-----END AGE ENCRYPTED FILE-----",
+}
+`;
+
+exports[`keyrackEsmRequire.realnode.acceptance given: [case1] the built keyrack dist, require()d in a real node child when: [t6] a genuinely-absent pure-esm dep fails loud in real node (vision e6) then: the fail-loud MalfunctionError shape (headline + hint + masked reason) is pinned 1`] = `
+{
+  "hint": "ensure this-esm-package-is-absent-for-468-probe is installed and loads as esm in this node runtime (a genuine import() of this pure-esm package must succeed)",
+  "messageHeadline": "💥 MalfunctionError: failed to load the this-esm-package-is-absent-for-468-probe module for a real-node load-failure probe",
+  "reason": "<node-esm-load-error>",
+}
+`;

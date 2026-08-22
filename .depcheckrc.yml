@@ -35,3 +35,15 @@ ignores:
   # and mistakes them for ours
   - declastruct-unix-network # .agent/repo=ghlitch/role=operator/skills/use.vpc.tunnel.ts
   - playwright # .agent/repo=bhrowser/role=playwright/skills/browser.describe.ts
+  # pure-esm dep loaded LAZILY via importEsmOrRequire's runtime string specifier (a dynamic
+  # import), not a static import — so depcheck's static scan cannot see the usage. the fix for
+  # ehmpathy/rhachet#468 (rule.forbid.eager-esm-imports-in-prod). mechAdapterGithubApp only ever
+  # references it as `typeof import(...)` (type-only, erased) + the specifier string.
+  - "@octokit/auth-app" # src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp.ts
+  # same reason: the ssh-crypto pure-esm deps are loaded LAZILY via getOneLazyEsmModuleLoader's
+  # runtime string specifier (a dynamic import), referenced only as `typeof import(...)` (type-only,
+  # erased) + the specifier string — so depcheck's static scan cannot see the usage. the fix for
+  # ehmpathy/rhachet#468 (rule.forbid.eager-esm-imports-in-prod).
+  - "@noble/curves" # src/infra/ssh/sshPubkeyToAgeRecipient.ts
+  - "@noble/hashes" # src/infra/ssh/sshPrikeyToAgeIdentity.ts
+  - "@scure/base" # src/infra/ssh/getOneScureBase.ts (one shared loader, both ssh-crypto files import it)

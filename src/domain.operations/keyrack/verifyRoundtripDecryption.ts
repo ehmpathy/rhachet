@@ -1,7 +1,8 @@
 import { decryptWithIdentity } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { discoverIdentities } from '@src/domain.operations/keyrack/discoverIdentities';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
-import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
+import { getAllAgeIdentitiesForKeyPaths } from '@src/domain.operations/keyrack/getAllAgeIdentitiesForKeyPaths';
+import { isExpectedCryptoMiss } from '@src/domain.operations/keyrack/isExpectedCryptoMiss';
 
 /**
  * .what = verify roundtrip decryption of encrypted content
@@ -9,6 +10,7 @@ import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
  *
  * .note = tries all identities from context (prescribed + discovered)
  * .note = returns true if any identity successfully decrypts to expected plaintext
+ * .note = getOneAgeIdentityOrNull skips a per-key parse miss but rethrows a broken crypto load (e6)
  */
 export const verifyRoundtripDecryption = async (
   input: {
@@ -18,19 +20,14 @@ export const verifyRoundtripDecryption = async (
   context?: ContextKeyrack,
 ): Promise<{ verified: boolean }> => {
   // build identity pool from context (prescribed + discovered)
-  const prescribedIdentities = (context?.identity?.getAll.prescribed ?? [])
-    .map((keyPath) => {
-      try {
-        return sshPrikeyToAgeIdentity({ keyPath });
-      } catch {
-        return null;
-      }
-    })
-    .filter((id): id is string => id !== null);
+  const prescribedKeyPaths = context?.identity?.getAll.prescribed ?? [];
+  const prescribedIdentities = await getAllAgeIdentitiesForKeyPaths({
+    keyPaths: prescribedKeyPaths,
+  });
 
   const discoveredIdentities = context?.identity?.getAll.discovered
     ? await context.identity.getAll.discovered()
-    : discoverIdentities({ owner: input.owner });
+    : await discoverIdentities({ owner: input.owner });
 
   const identityPool = [...prescribedIdentities, ...discoveredIdentities];
 
@@ -44,8 +41,12 @@ export const verifyRoundtripDecryption = async (
       if (decrypted === input.expected.plaintext) {
         return { verified: true };
       }
-    } catch {
-      // continue to next identity
+    } catch (error) {
+      // rethrow any rhachet-native error (broken crypto load, code defect) — fail loud (e6)
+      if (!isExpectedCryptoMiss(error)) throw error;
+
+      // expected: decryption failure with wrong identity (continue to next)
+      // .note = age-encryption throws generic Error for decryption failures
     }
   }
 
