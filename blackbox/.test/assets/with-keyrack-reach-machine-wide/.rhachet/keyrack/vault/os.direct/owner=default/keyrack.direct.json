@@ -1,0 +1,11 @@
+{
+  "@all.prep.BRAINS_AUTH@casey@ahction.com": {
+    "value": "sk-ant-machine-wide-at-ahction-fff666"
+  },
+  "@all.prep.BRAINS_AUTH@casey@ahbode.com": {
+    "value": "sk-ant-machine-wide-at-ahbode-ggg777"
+  },
+  "testorg.prep.REPO_KEY": {
+    "value": "sk-repo-scoped-hhh888"
+  }
+}

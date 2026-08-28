@@ -280,7 +280,7 @@ console.log(JSON.stringify(result));
 
       then('the report names the REACH that has no key', () => {
         expect(result.stdout).toContain('beav@ehmpathy.com');
-        expect(result.stdout).toContain('a reach is never derived');
+        expect(result.stdout).toContain('each reach needs its own key');
       });
 
       then('no value is handed back in its place (e18)', () => {

@@ -139,9 +139,19 @@ const attemptGrantKey = async (
       status: 'absent',
       slug,
       ...asKeyrackKeyReachField({ reach }),
-      message: reach
-        ? `no key is set for '${slug}'${atReach}. a reach is never derived — a key must be cut at the reach you ask for.`
-        : `credential '${slug}' does not exist. set it first.`,
+      // ⚠️ ONE stem, one suffix — never two messages for one status. the reach arm used to
+      //    open `no key is set for …` while the reachless arm opened `credential … does not
+      //    exist`, so a single `status: 'absent'` spoke two vocabularies and a consumer who
+      //    matched on either read the other as a different outcome
+      //    (`rule.forbid.ambiguous-labels`, `rule.require.ubiqlang`)
+      // .note = the reach itself needs NO branch — `atReach` above already interpolates to ''
+      //         when absent, exactly as `reachFlag` does. only the closing WHY differs, so
+      //         only the closing WHY is conditional (`rule.avoid.unnecessary-ifs`)
+      // .note = the reachless render is byte-identical to its prior form, deliberately — it is
+      //         the common path, carried in 8 snapshot files
+      message: `credential '${slug}'${atReach} does not exist.${
+        reach ? ' each reach needs its own key.' : ' set it first.'
+      }`,
       fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}${reachFlag}`,
     };
   }

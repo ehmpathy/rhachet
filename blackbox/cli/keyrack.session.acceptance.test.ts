@@ -389,8 +389,8 @@ describe('keyrack session commands', () => {
       // hardest guarantee was broken
       then('it is refused rather than answered by the reachless key', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toContain('no key is set for reach');
-        expect(output).toContain('beav@ehmpathy.com');
+        expect(output).toContain("credential at reach 'beav@ehmpathy.com'");
+        expect(output).toContain('does not exist');
       });
 
       // .note = e6 is the design's headline guarantee, so its exit code carries the most
@@ -401,9 +401,14 @@ describe('keyrack session commands', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('the refusal says WHY a reach is never derived', () => {
+      // .note = the WHY is clamped in the HUMAN's words, never the mechanism's. the tree
+      //         renders the found slug one line below the refusal, so a bare "not found"
+      //         invites "you just printed it, why not use it?" — this line is the answer
+      //         to that, and it must stay legible to a human who has no view of the
+      //         lookup beneath it (`rule.forbid.ambiguous-labels`)
+      then('the refusal says WHY, in plain words', () => {
         expect(result.stdout + result.stderr).toContain(
-          'a reach is never derived',
+          'each reach needs its own key',
         );
       });
 

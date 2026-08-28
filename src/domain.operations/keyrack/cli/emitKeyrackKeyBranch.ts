@@ -1,6 +1,49 @@
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
+import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { asExpiresInMinutes } from '@src/domain.operations/keyrack/asExpiresInMinutes';
 import { asKeyrackKeyReachLeaves } from '@src/domain.operations/keyrack/cli/asKeyrackKeyReachLeaves';
+
+/**
+ * .what = the status label each omission reason renders as
+ * .why = the four omission branches (`absent`, `lost`, `remote`, `errored`) render ONE shape —
+ *        slug head, reach leaf, status line, optional tip — and differ ONLY in this label. that
+ *        shape was hand-written four times, so a future edit to the leaf's slot in one branch and
+ *        not the others would re-open the byte-identical-row ambiguity this behavior exists to
+ *        close. one home means one place to get it right
+ *
+ * .note = ⚠️ this record is ALSO the render's conformance clamp, and that is not incidental.
+ *         `Record<KeyrackKeyOmission['reason'], string>` is exhaustive by construction, so a
+ *         FIFTH reason added to the domain fails `--what types` HERE until it is given a label.
+ *         before this, the tags were a structurally independent copy of the reason union and an
+ *         added reason would compile everywhere and silently render as no branch at all
+ * .note = the glyphs are a published palette (`rule.require.keyrack-emoji-palette`) and a
+ *         snapshot asserts each, so these strings are a contract rather than decoration
+ */
+export const KEYRACK_OMISSION_STATUS_LABEL: Record<
+  KeyrackKeyOmission['reason'],
+  string
+> = {
+  absent: 'absent 🫧',
+  lost: 'lost 👻',
+  remote: 'remote 🌐',
+  errored: 'errored 💥',
+};
+
+/**
+ * .what = whether a branch entry is one of the four OMISSION variants
+ * .why = the four share one render, so the dispatch needs to name them as a set rather than
+ *        test four tags in a row
+ *
+ * .note = it probes the label record, never a hand-listed tag set — so the guard and the render
+ *         can never come to disagree about which tags are omissions
+ */
+const isKeyrackKeyBranchEntryOmitted = (
+  entry: KeyrackKeyBranchEntry,
+): entry is Extract<
+  KeyrackKeyBranchEntry,
+  { type: KeyrackKeyOmission['reason'] }
+> => entry.type in KEYRACK_OMISSION_STATUS_LABEL;
 
 /**
  * .what = format a keyrack key status as a tree branch
@@ -54,18 +97,16 @@ export const formatKeyrackKeyBranch = (input: {
     return lines;
   }
 
-  if (entry.type === 'absent') {
+  // the four omission variants share ONE render and differ only in their status label, so they
+  // dispatch together rather than as four hand-repeated branches
+  // .note = the reach leaf names WHICH reach this row reports on — one slug can file several
+  //         rows in one run, and absent this leaf two of them read byte-identical
+  if (isKeyrackKeyBranchEntryOmitted(entry)) {
     lines.push(`${prefix} ${entry.slug}`);
-    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: absent 🫧`);
-    if (entry.tip) {
-      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
-    }
-    return lines;
-  }
-
-  if (entry.type === 'lost') {
-    lines.push(`${prefix} ${entry.slug}`);
-    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: lost 👻`);
+    lines.push(...asKeyrackKeyReachLeaves({ indent, reach: entry.reach }));
+    lines.push(
+      `${indent}${entry.tip ? '├' : '└'}─ status: ${KEYRACK_OMISSION_STATUS_LABEL[entry.type]}`,
+    );
     if (entry.tip) {
       lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
     }
@@ -86,24 +127,6 @@ export const formatKeyrackKeyBranch = (input: {
     lines.push(
       `${indent}└─ expires in: ${expiresIn !== null ? `${expiresIn}m` : 'never'}`,
     );
-    return lines;
-  }
-
-  if (entry.type === 'remote') {
-    lines.push(`${prefix} ${entry.slug}`);
-    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: remote 🌐`);
-    if (entry.tip) {
-      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
-    }
-    return lines;
-  }
-
-  if (entry.type === 'errored') {
-    lines.push(`${prefix} ${entry.slug}`);
-    lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: errored 💥`);
-    if (entry.tip) {
-      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
-    }
     return lines;
   }
 
@@ -130,8 +153,32 @@ export type KeyrackKeyBranchEntry =
   | { type: 'granted'; grant: KeyrackKeyGrant }
   | { type: 'blocked'; slug: string; reasons: string[] }
   | { type: 'locked'; slug: string; tip: string | null }
-  | { type: 'absent'; slug: string; tip: string | null }
-  | { type: 'lost'; slug: string; tip: string | null }
-  | { type: 'remote'; slug: string; tip: string | null }
-  | { type: 'errored'; slug: string; tip: string | null }
+  // ⚠️ the four FAILURE branches carry an optional `reach` for the same cause the `granted` and
+  //    `unlocked` branches do: a reachless bulk unlock now enumerates one target PER REACH the
+  //    rack holds, so ONE slug can file several omission rows in a single run. a vault-level
+  //    fault hits every reach of a slug at once (an expired sso session, a pruned daemon), and
+  //    absent this leaf the human reads two byte-identical rows and cannot tell which account
+  //    failed — or that two accounts are even involved rather than a duplicate-render defect
+  //    (`rule.forbid.ambiguous-labels`, `rule.require.status-feedback`)
+  // .note = OPTIONAL, never nullable, and `asKeyrackKeyReachLeaves` yields [] when it is absent
+  //         — so every reachless row stays byte-identical and no extant snapshot moves
+  | {
+      type: 'absent';
+      slug: string;
+      tip: string | null;
+      reach?: KeyrackKeyReach;
+    }
+  | { type: 'lost'; slug: string; tip: string | null; reach?: KeyrackKeyReach }
+  | {
+      type: 'remote';
+      slug: string;
+      tip: string | null;
+      reach?: KeyrackKeyReach;
+    }
+  | {
+      type: 'errored';
+      slug: string;
+      tip: string | null;
+      reach?: KeyrackKeyReach;
+    }
   | { type: 'unlocked'; grant: KeyrackKeyGrant };

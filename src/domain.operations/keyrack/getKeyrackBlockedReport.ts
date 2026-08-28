@@ -1,5 +1,7 @@
 import { HelpfulError } from 'helpful-errors';
 
+import { asKeyrackKeyOrg } from './asKeyrackKeyOrg';
+
 /**
  * .what = build the human-readable blocked tree report for a keyrack command failure
  * .why = keyrack roots its output on its own domain glyph, the lock 🔐 — a credential-domain
@@ -38,8 +40,23 @@ export const getKeyrackBlockedReport = (input: {
   //         would render as a blank line between this leaf and the hint and sever the tree's
   //         `│` margin (rule.require.treestruct-output)
   const flatLeaves: string[] = [];
+  // ⚠️ the label names the key's SCOPE, so it must follow the slug's namespace. a machine-wide
+  //    slug opens with the reserved `@all` org, which MEANS "not repo-scoped" — so a flat
+  //    `repo:` label contradicts its own value and sends a human who debugs a reach miss to
+  //    look in a repo that has no part in it (`rule.forbid.ambiguous-labels`: one label may
+  //    carry exactly one sense). this surfaced the first time a refusal was captured for an
+  //    `@all` key, in the machine-wide reach journey
+  //
+  // .note = the org is read through `asKeyrackKeyOrg`, the CANONICAL extractor, rather than a
+  //         raw `startsWith('@all.')` probe. a bare prefix test is decode-friction that each
+  //         reader must re-derive and keep in agreement forever
+  //         (`rule.require.named-transformers`); the extractor also gets the boundary right for
+  //         free, since an org that merely OPENS with those letters (`@allstate`) splits to its
+  //         own name and is never mistaken for the reserved one
   if (typeof metadata.slug === 'string')
-    flatLeaves.push(`repo: ${metadata.slug}`);
+    flatLeaves.push(
+      `${asKeyrackKeyOrg({ slug: metadata.slug }) === '@all' ? 'machine' : 'repo'}: ${metadata.slug}`,
+    );
   if (typeof metadata.stderr === 'string' && metadata.stderr.trim())
     flatLeaves.push(`stderr: ${metadata.stderr.trim()}`);
   if (typeof metadata.note === 'string' && metadata.note.trim())

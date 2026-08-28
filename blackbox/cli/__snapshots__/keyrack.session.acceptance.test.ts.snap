@@ -36,9 +36,9 @@ exports[`keyrack session commands given: [case4] a reach named without the key i
 exports[`keyrack session commands given: [case5] a key held reachless, asked for at a reach never cut when: [t0] unlock names a reach that was never cut then: the whole blocked tree is snapped: stderr: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: no key is set for reach 'beav@ehmpathy.com': a reach is never derived — a key must be cut at the reach you ask for
+   └─ ✋ blocked: credential at reach 'beav@ehmpathy.com' does not exist — each reach needs its own key
       ├─ repo: testorg.test.UNCUT_REACH_KEY
-      └─ hint: cut the key — rhx keyrack set --env test --key UNCUT_REACH_KEY --reach beav@ehmpathy.com
+      └─ hint: cut the key — rhx keyrack set --key UNCUT_REACH_KEY --env test --reach beav@ehmpathy.com
 
 "
 `;

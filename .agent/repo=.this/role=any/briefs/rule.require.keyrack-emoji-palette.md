@@ -61,10 +61,30 @@ the **root** is keyrack's own `🔐`, in place of the shared `🐢 bummer dude�
 | `🔗` | value leaf | an auth url the human must visit |
 | `🚫` | status leaf | access blocked |
 | `💥` | status leaf | a per-key **malfunction** in a batch unlock — a live fault (throttle, network, decrypt-denied, no-identity) that was isolated so the batch continued (the shared `MalfunctionError` glyph; distinct from `🚫` access-blocked and `🫧` absent) |
-| `🫧` | status leaf | credential absent / not yet filled |
+| `🫧` | status leaf | credential absent / not yet filled — the rack does not hold it at the shape asked for (omission reason `absent`) |
+| `👻` | status leaf | credential **lost** — the rack holds a record, but the vault no longer serves the value (omission reason `lost`). distinct from `🫧`: the record is present, the value is gone, so the remedy is to re-cut rather than to first register |
+| `🌐` | status leaf | credential **remote** — a write-only vault, whose `get` is null by construction (omission reason `remote`). not a fault at all: the value lives somewhere this host cannot read, so no local remedy applies |
 | `👌` | confirm leaf | input received / choice accepted |
 | `✓` / `✗` | status leaf | step succeeded / failed (shared with the generic spec) |
 | `├─` `└─` `│` | branches | tree structure (shared with the generic spec) |
+
+### the omission-status subset — one glyph per `reason`, no spares
+
+four of the status leaves above (`🫧` absent, `👻` lost, `🌐` remote, `💥` errored) are not
+loose decoration: they are a **closed set**, one per value of
+`KeyrackKeyOmission['reason']`, rendered through the single
+`KEYRACK_OMISSION_STATUS_LABEL` map. the `reason` union is itself a published contract — it
+is the exit-code input (`asKeyrackUnlockExitCode`) and the render discriminant
+(`emitKeyrackKeyBranch`) — so the glyph set moves only when that union moves.
+
+the four are deliberately distinguishable **because the remedy inverts between them**: a
+`🫧 absent` key must be registered, a `👻 lost` key must be re-cut, a `🌐 remote` key needs no
+local action at all, and a `💥 errored` key names a live fault to diagnose
+(`rule.require.errors-name-the-fix`). one glyph for all four would name the wrong move for
+three of them.
+
+⚠️ to add a fifth `reason` is therefore a **two-part** contract change: the union AND this
+table. a fifth reason that renders with a reused glyph is a defect.
 
 ## .the boundary — keyrack glyphs vs rhachet glyphs
 

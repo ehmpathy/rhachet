@@ -1,0 +1,8 @@
+org: testorg
+
+# .note = the sudo key `@all.sudo.SUDO_AT_REACH` is DELIBERATELY ABSENT from this file.
+#         a sudo key is never declared in a repo manifest — it lives in the HOST manifest
+#         alone, and `unlock --env sudo` must surface it regardless of what this file says.
+#         that is the same asymmetry the machine-wide fixture turns on, on the sudo axis
+env.prep:
+  - REPO_KEY

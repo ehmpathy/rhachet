@@ -1,0 +1,48 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "@all.prep.LOST_AT_REACH@casey@ahction.com": {
+      "slug": "@all.prep.LOST_AT_REACH",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "@all",
+      "env": "prep",
+      "reach": { "exid": "casey@ahction.com" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "@all.prep.LOST_AT_REACH@casey@ahbode.com": {
+      "slug": "@all.prep.LOST_AT_REACH",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "@all",
+      "env": "prep",
+      "reach": { "exid": "casey@ahbode.com" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "@all.prep.ENVVAR_AT_REACH@casey@ahction.com": {
+      "slug": "@all.prep.ENVVAR_AT_REACH",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.envvar",
+      "exid": null,
+      "org": "@all",
+      "env": "prep",
+      "reach": { "exid": "casey@ahction.com" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.prep.REPO_KEY": {
+      "slug": "testorg.prep.REPO_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "testorg",
+      "env": "prep",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

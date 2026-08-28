@@ -24,8 +24,21 @@ export const getOneKeyrackAwsParamOrgProfile = (input: {
   const org = asKeyrackKeyOrg({ slug: input.slug });
   if (org === '@all') return null;
 
-  // the org's AWS_PROFILE lives in its own peer host-manifest entry, keyed by org+env
+  // the org's AWS_PROFILE lives in its own peer host-manifest entry, named by org+env
+  //
+  // ⚠️ matched on each entry's own `slug` FIELD, never by index into the map — `hosts` is keyed
+  //    by ADDRESS (`slug@reachExid`), so a hand-built slug can never match an entry cut at a
+  //    reach, and the tree-scoped key would silently fall back to no profile at all. an address
+  //    is construct-only and is never split back on `@` (`term=address`)
+  // .note = a reachless entry has `slug === address`, so every extant rack answers identically
+  // .note = it takes the FIRST match, and a rack that holds this peer at several reaches is a
+  //         state the org-scope hardcut does not sanction: the tree-wide identity is ONE profile
+  //         per (org, env) by construction, so a per-reach AWS_PROFILE is not a shape to choose
+  //         between (`define.keyrack-org-scope.grove-vs-tree`)
   const env = asKeyrackKeyEnv({ slug: input.slug });
   const peerSlug = `${org}.${env}.AWS_PROFILE`;
-  return input.hostManifest.hosts[peerSlug]?.exid ?? null;
+  const peerHost = Object.values(input.hostManifest.hosts).find(
+    (host) => host.slug === peerSlug,
+  );
+  return peerHost?.exid ?? null;
 };

@@ -24,6 +24,7 @@ import {
 } from '@src/domain.operations/keyrack/asAttemptsByStatus';
 import { asKeyrackFirewallSource } from '@src/domain.operations/keyrack/asKeyrackFirewallSource';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
+import { asKeyrackOmittedKeyTip } from '@src/domain.operations/keyrack/asKeyrackOmittedKeyTip';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { asResolvedAttempt } from '@src/domain.operations/keyrack/asResolvedAttempt';
 import { asResolvedEnvForSet } from '@src/domain.operations/keyrack/asResolvedEnvForSet';
@@ -36,6 +37,7 @@ import { asKeyrackKeyReachOrEmitBlocked } from '@src/domain.operations/keyrack/c
 import { asKeyrackListTreestruct } from '@src/domain.operations/keyrack/cli/asKeyrackListTreestruct';
 import { asKeyrackStatusKeyBranch } from '@src/domain.operations/keyrack/cli/asKeyrackStatusKeyBranch';
 import { asKeyrackUnlockExitCode } from '@src/domain.operations/keyrack/cli/asKeyrackUnlockExitCode';
+import { asKeyrackUnlockRenderEntries } from '@src/domain.operations/keyrack/cli/asKeyrackUnlockRenderEntries';
 import { asShellEscapedSecret } from '@src/domain.operations/keyrack/cli/asShellEscapedSecret';
 import { emitKeyrackBlockedReport } from '@src/domain.operations/keyrack/cli/emitKeyrackBlockedReport';
 import { emitKeyrackKeyBranch } from '@src/domain.operations/keyrack/cli/emitKeyrackKeyBranch';
@@ -53,6 +55,7 @@ import { decideIsKeyStrictlyRequired } from '@src/domain.operations/keyrack/deci
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fill/fillKeyrackKeys';
 import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
+import { getAllKeyrackSlugsHeld } from '@src/domain.operations/keyrack/getAllKeyrackSlugsHeld';
 import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { genKeyrackInfra } from '@src/domain.operations/keyrack/infra/genKeyrackInfra';
@@ -1332,7 +1335,14 @@ export const invokeKeyrack = ({
                 console.log('');
                 process.exit(2);
               }
-              const hostSlugs = Object.keys(hostManifest.hosts);
+              // .note = `getAllKeyrackSlugsHeld` carries the address-vs-slug invariant this
+              //         behavior repaired. `hosts` is keyed by ADDRESS (`slug@reachExid`), so a
+              //         map key handed on as a slug would carry a reach into
+              //         `findSlugByEnvAndKeyName`'s name match, and the org of a reach-cut sudo
+              //         key could never be derived
+              const hostSlugs = getAllKeyrackSlugsHeld({
+                hosts: hostManifest.hosts,
+              });
               const matchedSlug = findSlugByEnvAndKeyName({
                 slugs: hostSlugs,
                 env: opts.env,
@@ -1656,11 +1666,8 @@ export const invokeKeyrack = ({
 
         console.log('🔓 keyrack unlock');
 
-        // combine all entries for tree output
-        const allEntries = [
-          ...unlocked.map((k) => ({ type: 'unlocked' as const, key: k })),
-          ...omitted.map((o) => ({ type: 'omitted' as const, ...o })),
-        ];
+        // the one sequence the tree numbers its connectors against — grants, then omissions
+        const allEntries = asKeyrackUnlockRenderEntries({ unlocked, omitted });
 
         for (let i = 0; i < allEntries.length; i++) {
           const entry = allEntries[i]!;
@@ -1669,24 +1676,27 @@ export const invokeKeyrack = ({
           // an unlocked key — render its grant
           if (entry.type === 'unlocked') {
             emitKeyrackKeyBranch({
-              entry: { type: 'unlocked', grant: entry.key },
+              entry: { type: 'unlocked', grant: entry.grant },
               isLast,
             });
             continue;
           }
 
+          const omission = entry.omission;
+
           // a live fault isolated to this one key (G5) — surface it distinctly so a
           // co-batched healthy key still unlocked. the tip render (bare message + fix-or-retry)
           // lives in the asKeyrackErroredKeyTip transformer (rule.forbid.inline-decode-friction)
-          if (entry.reason === 'errored') {
+          if (omission.reason === 'errored') {
             emitKeyrackKeyBranch({
               entry: {
                 type: 'errored',
-                slug: entry.slug,
+                slug: omission.slug,
                 tip: asKeyrackErroredKeyTip({
-                  cause: entry.cause,
+                  cause: omission.cause,
                   env: opts.env ?? null,
                 }),
+                ...(omission.reach ? { reach: omission.reach } : {}),
               },
               isLast,
             });
@@ -1694,14 +1704,35 @@ export const invokeKeyrack = ({
           }
 
           // an omitted key — show absent / lost / remote based on reason
-          const { env: slugEnv, keyName } = asKeyrackSlugParts({
-            slug: entry.slug,
-          });
+          //
+          // ⚠️ the tip INVERTS on whether the manifest holds this slug at a reach, so it is
+          //    decided by `asKeyrackOmittedKeyTip` rather than built inline. a flat reachless
+          //    `set` tip is actively harmful for a key held only at reaches: obeyed literally it
+          //    cuts a reachless TWIN and the unlock still fails, with no signal the duplicate
+          //    exists (`rule.require.errors-name-the-fix`)
+          //
+          // ⚠️ the row carries the reach of the TARGET that failed. a reachless bulk unlock
+          //    enumerates one target per reach the rack holds, so ONE slug can file several
+          //    rows in a single run — and a vault-level fault (an expired sso session, a
+          //    pruned daemon) hits every reach at once. absent this leaf the human reads
+          //    byte-identical rows and cannot tell which account failed
+          //    (`rule.forbid.ambiguous-labels`)
           emitKeyrackKeyBranch({
             entry: {
-              type: entry.reason, // 'absent' | 'lost' | 'remote'
-              slug: entry.slug,
-              tip: `rhx keyrack set --key ${keyName} --env ${slugEnv}`,
+              type: omission.reason, // 'absent' | 'lost' | 'remote'
+              slug: omission.slug,
+              // ⚠️ the row's OWN reach rides into the TIP, never merely onto the leaf below.
+              //    a tip built without it named the sorted-first reach on EVERY row of a
+              //    multi-reach slug — so the row that read `reach: casey@ahction.com` was
+              //    tipped to re-cut `casey@ahbode.com`, a tip that contradicts its own leaf
+              //    and re-cuts the wrong account when a human obeys it
+              tip: asKeyrackOmittedKeyTip({
+                slug: omission.slug,
+                reason: omission.reason,
+                reach: omission.reach,
+                hostManifest: context.hostManifest ?? null,
+              }),
+              ...(omission.reach ? { reach: omission.reach } : {}),
             },
             isLast,
           });

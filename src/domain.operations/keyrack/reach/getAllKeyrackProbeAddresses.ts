@@ -1,7 +1,7 @@
-import { getEnvAllFallbackSlug } from '@src/domain.objects/keyrack/getEnvAllFallbackSlug';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 
 import { asKeyrackKeySlugAtReach } from './asKeyrackKeySlugAtReach';
+import { getAllKeyrackProbeSlugs } from './getAllKeyrackProbeSlugs';
 
 /**
  * .what = the ordered addresses a lookup should probe for one key at one reach —
@@ -28,31 +28,13 @@ import { asKeyrackKeySlugAtReach } from './asKeyrackKeySlugAtReach';
 export const getAllKeyrackProbeAddresses = (input: {
   slug: string;
   reach?: KeyrackKeyReach;
-}): { address: string; slug: string }[] => {
-  // shot 1 — the slug as asked, at the reach as asked. a reachless address IS the
-  // bare slug, so a reachless caller gets a one-element list identical to today (e1)
-  const addresses = [
-    {
-      address: asKeyrackKeySlugAtReach({
-        slug: input.slug,
-        reach: input.reach,
-      }),
-      slug: input.slug,
-    },
-  ];
-
-  // shot 2 — the same key declared under env=all, at the SAME reach
-  const slugForEnvAll = getEnvAllFallbackSlug({ for: { slug: input.slug } });
-  if (!slugForEnvAll) return addresses;
-
-  return [
-    ...addresses,
-    {
-      address: asKeyrackKeySlugAtReach({
-        slug: slugForEnvAll,
-        reach: input.reach,
-      }),
-      slug: slugForEnvAll,
-    },
-  ];
-};
+}): { address: string; slug: string }[] =>
+  // the shots themselves come from the SHARED list, so the enumeration that walks the same two
+  // (`getAllKeyrackReachesForSlug`) cannot drift out of step with this lookup. this function's
+  // own job is the part that is its alone: pin the reach onto each shot
+  // .note = a reachless address IS the bare slug, so a reachless caller reads a list identical
+  //         to what it read before the reach axis existed (e1)
+  getAllKeyrackProbeSlugs({ slug: input.slug }).map((slug) => ({
+    address: asKeyrackKeySlugAtReach({ slug, reach: input.reach }),
+    slug,
+  }));

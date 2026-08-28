@@ -1,0 +1,121 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case1] a rack whose reach-held keys cannot be handed back when: [t0] the whole rack is unlocked in bulk then: the whole render is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   ├─ testorg.prep.REPO_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   ├─ @all.prep.LOST_AT_REACH
+   │  ├─ reach: casey@ahbode.com
+   │  ├─ status: lost 👻
+   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com  # also cut at: casey@ahction.com
+   ├─ @all.prep.LOST_AT_REACH
+   │  ├─ reach: casey@ahction.com
+   │  ├─ status: lost 👻
+   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahction.com  # also cut at: casey@ahbode.com
+   └─ @all.prep.ENVVAR_AT_REACH
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key ENVVAR_AT_REACH --env prep --org @all
+
+"
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case1] a rack whose reach-held keys cannot be handed back when: [t1] the same bulk unlock, asked in robot mode (--json) then: the projected omitted payload is snapped: omitted.projected 1`] = `
+[
+  {
+    "reach": {
+      "exid": "casey@ahbode.com",
+    },
+    "reason": "lost",
+    "slug": "@all.prep.LOST_AT_REACH",
+  },
+  {
+    "reach": {
+      "exid": "casey@ahction.com",
+    },
+    "reason": "lost",
+    "slug": "@all.prep.LOST_AT_REACH",
+  },
+  {
+    "reason": "absent",
+    "slug": "@all.prep.ENVVAR_AT_REACH",
+  },
+]
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case1] a rack whose reach-held keys cannot be handed back when: [t2] one lost key is unlocked at one named reach then: the targeted render is snapped: rendered 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.prep.LOST_AT_REACH
+      ├─ reach: casey@ahbode.com
+      ├─ status: lost 👻
+      └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com  # also cut at: casey@ahction.com
+
+"
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case2] a rack whose reach-held key faults on a caller-fixable cause when: [t0] the whole rack is unlocked in bulk then: the whole render is snapped: rendered 1`] = `
+"
+🔓 keyrack unlock
+   ├─ testorg.prep.REPO_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   ├─ @all.prep.ERRORED_AT_REACH
+   │  ├─ reach: casey@ahction.com
+   │  ├─ status: errored 💥
+   │  └─ tip: mech mismatch: host manifest and blob disagree — fix: update host manifest or blob to match
+   └─ @all.prep.REMOTE_KEY
+      ├─ status: remote 🌐
+      └─ tip: rhx keyrack set --key REMOTE_KEY --env prep --org @all
+
+"
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case2] a rack whose reach-held key faults on a caller-fixable cause when: [t1] the same bulk unlock, asked in robot mode (--json) then: the projected omitted payload is snapped: omitted.projected 1`] = `
+[
+  {
+    "reach": {
+      "exid": "casey@ahction.com",
+    },
+    "reason": "errored",
+    "slug": "@all.prep.ERRORED_AT_REACH",
+  },
+  {
+    "reason": "remote",
+    "slug": "@all.prep.REMOTE_KEY",
+  },
+]
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case3] a rack whose reach-held key faults on a server cause when: [t0] the whole rack is unlocked in bulk then: the whole render is snapped: rendered 1`] = `
+"
+🔓 keyrack unlock
+   ├─ testorg.prep.REPO_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   └─ @all.prep.FAULTED_AT_REACH
+      ├─ reach: casey@ahbode.com
+      ├─ status: errored 💥
+      └─ tip: no adapter for mech: EPHEMERAL_VIA_GITHUB_APP — retry: rhx keyrack unlock --env prep
+
+"
+`;
+
+exports[`keyrack reach omissions — the tip a human pastes given: [case3] a rack whose reach-held key faults on a server cause when: [t1] the same bulk unlock, asked in robot mode (--json) then: the projected omitted payload is snapped: omitted.projected 1`] = `
+[
+  {
+    "reach": {
+      "exid": "casey@ahbode.com",
+    },
+    "reason": "errored",
+    "slug": "@all.prep.FAULTED_AT_REACH",
+  },
+]
+`;

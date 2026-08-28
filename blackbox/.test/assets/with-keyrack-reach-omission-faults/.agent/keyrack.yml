@@ -1,0 +1,8 @@
+org: testorg
+
+# .note = the two machine-wide keys are DELIBERATELY ABSENT from this file, as in every peer
+#         reach fixture. an `@all` key belongs to the box's namespace, never to a repo, so the
+#         omission ROWS under test must come from the machine-wide expansion rather than from a
+#         repo declaration
+env.prep:
+  - REPO_KEY

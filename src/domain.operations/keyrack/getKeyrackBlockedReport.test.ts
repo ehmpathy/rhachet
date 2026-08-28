@@ -199,6 +199,68 @@ describe('getKeyrackBlockedReport', () => {
     });
   });
 
+  /**
+   * .what = the scope leaf follows the slug's NAMESPACE — `machine:` for `@all`, `repo:` else
+   * .why = `@all` is the reserved MACHINE-WIDE org, so it means the opposite of repo-scoped. a
+   *        flat `repo:` leaf contradicted its own value and sent a human who hunted a reach
+   *        miss to look in a repo with no part in it (`rule.forbid.ambiguous-labels`)
+   * .note = clamped at UNIT grain on purpose. the branch is also asserted by the machine-wide
+   *         reach journey, but this is a pure transformer, and
+   *         `rule.require.test-coverage-by-grain` wants its own case rather than coverage that
+   *         leans on the one acceptance journey which happens to walk it
+   */
+  given('[case7] the scope leaf follows the slug namespace', () => {
+    when('[t0] the slug is MACHINE-WIDE (`@all`)', () => {
+      const report = getKeyrackBlockedReport({
+        error: new ConstraintError('no key is set for reach', {
+          slug: '@all.prep.BRAINS_AUTH',
+        }),
+        command: 'keyrack unlock',
+      });
+
+      then('it is labelled `machine:`, never `repo:`', () => {
+        expect(report).toContain('machine: @all.prep.BRAINS_AUTH');
+        expect(report).not.toContain('repo: @all.');
+      });
+    });
+
+    when('[t1] the slug is REPO-scoped', () => {
+      const report = getKeyrackBlockedReport({
+        error: new ConstraintError('no key is set for reach', {
+          slug: 'testorg.prep.REPO_KEY',
+        }),
+        command: 'keyrack unlock',
+      });
+
+      // ⚠️ the extant label must NOT move — every peer snapshot in the repo renders `repo:`
+      //    for a repo-scoped slug, and the namespace branch is additive by construction
+      then('it keeps the extant `repo:` label', () => {
+        expect(report).toContain('repo: testorg.prep.REPO_KEY');
+      });
+    });
+
+    when(
+      '[t2] a slug that merely OPENS with `@all` but is not machine-wide',
+      () => {
+        // .note = the probe is `startsWith('@all.')`, dot included — so an org whose name begins
+        //         with the letters `@all` (e.g. `@allstate`) is NOT caught by the machine branch
+        const report = getKeyrackBlockedReport({
+          error: new ConstraintError('no key is set for reach', {
+            slug: '@allstate.prep.REPO_KEY',
+          }),
+          command: 'keyrack unlock',
+        });
+
+        then(
+          'it stays `repo:` — the dot is what marks the reserved org',
+          () => {
+            expect(report).toContain('repo: @allstate.prep.REPO_KEY');
+          },
+        );
+      },
+    );
+  });
+
   given('[case6] a refusal that names NEITHER a hint nor a fix', () => {
     const error = new ConstraintError('the vault is unreachable');
 

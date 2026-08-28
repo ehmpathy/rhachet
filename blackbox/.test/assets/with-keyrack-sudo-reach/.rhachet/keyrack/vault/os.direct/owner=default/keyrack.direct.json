@@ -1,0 +1,11 @@
+{
+  "@all.sudo.SUDO_AT_REACH@github://org=ehmpathy": {
+    "value": "ghp-sudo-at-ehmpathy-aaa111"
+  },
+  "@all.sudo.SUDO_AT_REACH@github://org=ahbode": {
+    "value": "ghp-sudo-at-ahbode-bbb222"
+  },
+  "testorg.prep.REPO_KEY": {
+    "value": "sk-repo-scoped-hhh888"
+  }
+}

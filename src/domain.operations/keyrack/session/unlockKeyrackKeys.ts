@@ -3,8 +3,8 @@ import { now } from 'iso-time';
 
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
-import { KEYRACK_VAULT_REACH_POLICY } from '@src/domain.objects/keyrack/KeyrackVaultReachPolicy';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
@@ -28,6 +28,12 @@ import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/as
 import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAddressable';
 import { assertKeyrackReachRequiresKey } from '@src/domain.operations/keyrack/reach/assertKeyrackReachRequiresKey';
 import { getOneKeyrackHostForSlugAtReach } from '@src/domain.operations/keyrack/reach/getOneKeyrackHostForSlugAtReach';
+import { isKeyrackVaultReachUnaddressable } from '@src/domain.operations/keyrack/reach/isKeyrackVaultReachUnaddressable';
+
+import { asKeyrackOmittedRow } from './asKeyrackOmittedRow';
+import { getAllKeyrackOmissionsExceptHeldAtReach } from './getAllKeyrackOmissionsExceptHeldAtReach';
+import { getAllKeyrackUnlockTargets } from './getAllKeyrackUnlockTargets';
+import { getOneKeyrackUnlockTargetDisposition } from './getOneKeyrackUnlockTargetDisposition';
 
 /**
  * .what = unlock keyrack keys and send them to daemon memory
@@ -60,11 +66,7 @@ export const unlockKeyrackKeys = async (
   context: ContextKeyrack,
 ): Promise<{
   unlocked: KeyrackKeyGrant[];
-  omitted: {
-    slug: string;
-    reason: 'absent' | 'lost' | 'remote' | 'errored';
-    cause?: unknown;
-  }[];
+  omitted: KeyrackKeyOmission[];
 }> => {
   // a reach is meaningful for exactly one key, so it cannot ride a bulk unlock (q2)
   assertKeyrackReachRequiresKey({
@@ -207,14 +209,19 @@ export const unlockKeyrackKeys = async (
   //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
   //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
-  const keysOmitted: {
-    slug: string;
-    reason: 'absent' | 'lost' | 'remote' | 'errored';
-    cause?: unknown;
-  }[] = [];
-  const effectiveSlugsUnlocked = new Set<string>(); // dedupe by effective slug
+  const keysOmitted: KeyrackKeyOmission[] = [];
+  const addressesUnlocked = new Set<string>(); // dedupe by ADDRESS — see the .note below
+  const slugsHeldAtReach = new Set<string>(); // slugs the rack holds at SOME reach
 
-  for (const slug of slugsForEnv) {
+  // what an unlock operates on is one target per (slug, reach) — a reachless ask enumerates
+  // every reach the rack holds, so a key cut only at reaches is reachable from a bulk unlock
+  const unlockTargets = getAllKeyrackUnlockTargets({
+    slugs: slugsForEnv,
+    reach: input.reach,
+    hosts: hostManifest.hosts,
+  });
+
+  for (const { slug, reach: reachTarget } of unlockTargets) {
     // find host config for this key — addressed by (slug, reach), with fallback to env=all
     // .note = the env=all fallback CARRIES THE REACH ACROSS. a slug-only fallback would let
     //         a reach-unlock at org.test.KEY land on the REACHLESS org.all.KEY and hand
@@ -222,37 +229,82 @@ export const unlockKeyrackKeys = async (
     const hostFound = getOneKeyrackHostForSlugAtReach({
       hosts: hostManifest.hosts,
       slug,
-      reach: input.reach,
+      reach: reachTarget,
     });
 
     // a reach-unlock that finds no key is an ABSENT KEY, and an absent key must be
     // loud. under the mint-time design this could have quietly fallen through to the
     // reachless key — a live credential for the wrong org. here there is no peer to
     // fall through to, and the human is told to cut the key they actually want (e6)
+    //
+    // .note = the message names WHAT missed and WHY, and stops there — the FIX rides in the
+    //         `hint:` leaf below it. the WHY earns its place because the tree renders the found
+    //         slug one line down, so a bare "not found" invites "you just printed it, why not
+    //         use it?" — the refusal reads as a lookup defect rather than a deliberate one. the
+    //         answer is stated in the human's own words (`each reach needs its own key`), never
+    //         in the mechanism's (an earlier draft said "a reach is never derived", which
+    //         describes the ABSENT FALLBACK LOOKUP — true of the code, opaque to the human it
+    //         is handed to). a prose restatement of the fix is NOT carried here: it would
+    //         render the hint twice in one tree (`rule.require.errors-name-the-fix` wants the
+    //         fix named once, not echoed; `rule.forbid.ambiguous-labels` on the double render)
+    // .note = `credential … does not exist` is the SHARED stem, matched verbatim against the
+    //         absent report `getKeyrackKeyGrant` returns. one `absent` outcome must read one
+    //         way across the cli and the sdk, or a human who meets both in a session reads
+    //         two failures where the tool had one (`rule.require.ubiqlang`). the slug is left
+    //         OUT of the stem here, and only here — this surface renders it as its own tree
+    //         leaf one line below, so to name it twice would be the same echo defect
+    // .note = a ConstraintError, never a Malfunction — the caller cuts the key and proceeds,
+    //         so it exits 2 (`rule.require.exit-code-semantics`)
     if (!hostFound && input.reach)
       throw new ConstraintError(
-        `no key is set for reach '${asKeyrackKeyReachExid({ reach: input.reach })}': a reach is never derived — a key must be cut at the reach you ask for`,
+        `credential at reach '${asKeyrackKeyReachExid({ reach: input.reach })}' does not exist — each reach needs its own key`,
         {
           slug,
           reach: asKeyrackKeyReachExid({ reach: input.reach }),
-          hint: `cut the key — rhx keyrack set${input.owner ? ` --owner ${input.owner}` : ''} --env ${input.env ?? '$env'} --key ${asKeyrackKeyName({ slug })} --reach ${asKeyrackKeyReachExid({ reach: input.reach })}`,
+          // .note = flag order is `--key` before `--env`, which is the repo-wide shape for a
+          //         suggested `keyrack set` — `getKeyrackKeyGrant`, `asResolvedAttempt`,
+          //         `asKeyrackOmittedKeyTip`, and `getKeyrackBlockedReport` all render it that
+          //         way. this line was the lone outlier, so a human who met a refusal hint and
+          //         an omission tip in one session read the same command two ways and could
+          //         pattern-match neither (`rule.forbid.ambiguous-labels`)
+          //
+          // ⛔ `--org @all` rides along for a MACHINE-WIDE slug, and it carries real weight
+          //    rather than decoration. `keyrack set --org` defaults to `@this`, which resolves
+          //    to the REPO manifest's org — so a human who pastes this hint from inside any
+          //    orged repo silently cuts a TREE-grain `testorg.$env.$KEY@$reach` twin while the
+          //    GROVE-grain `@all.$env.$KEY@$reach` key they actually asked for stays uncut. the
+          //    unlock then fails exactly as before, with no signal a duplicate now exists
+          //    (`rule.require.org-scope-grain-hardcut`, `rule.require.errors-name-the-fix`)
+          // .note = this mirrors `asKeyrackOmittedKeyTip.ts:132`, which carries the same flag
+          //         for the same cause. the hazard belongs to the word `set`, not to either
+          //         render — `set` is the command that infers grain from the repo manifest, so
+          //         EVERY tip that names it owes the flag. an `unlock` tip owes none
+          hint: `cut the key — rhx keyrack set${input.owner ? ` --owner ${input.owner}` : ''} --key ${asKeyrackKeyName({ slug })} --env ${input.env ?? '$env'}${asKeyrackKeyOrg({ slug }) === '@all' ? ' --org @all' : ''} --reach ${asKeyrackKeyReachExid({ reach: input.reach })}`,
         },
       );
 
     // key not configured on this host — track as absent
     if (!hostFound) {
-      keysOmitted.push({ slug, reason: 'absent' });
+      keysOmitted.push(asKeyrackOmittedRow({ slug, reason: 'absent' }));
       continue;
     }
 
     const { hostConfig, effectiveSlug } = hostFound;
 
-    // dedupe: skip if we've already unlocked this effective slug
+    // dedupe: skip if we've already unlocked this exact ADDRESS
     // .note = env.all expansion creates multiple slugs that map to same host key
-    if (effectiveSlugsUnlocked.has(effectiveSlug)) {
+    // .note = ⚠️ keyed by ADDRESS, not by slug. a slug key was correct while one slug could
+    //         yield only one target; now a reachless ask enumerates N reaches of ONE slug,
+    //         and a slug key would unlock the first and silently evict every peer — the
+    //         exact eviction the reach identity axis exists to remove (term=address)
+    const addressUnlocked = asKeyrackKeySlugAtReach({
+      slug: effectiveSlug,
+      reach: hostConfig.reach,
+    });
+    if (addressesUnlocked.has(addressUnlocked)) {
       continue;
     }
-    effectiveSlugsUnlocked.add(effectiveSlug);
+    addressesUnlocked.add(addressUnlocked);
 
     // for non-sudo keys, verify key exists in repoManifest — EXCEPT machine-wide `@all` keys,
     // which belong to the box's own namespace and are never declared in a repo manifest (they
@@ -263,6 +315,21 @@ export const unlockKeyrackKeys = async (
 
     // get vault adapter
     const vault = hostConfig.vault;
+
+    // ⚠️ ONE read decides both halves of one invariant: whether this target is dropped, and
+    //    whether it may vouch that its slug was reported on at a reach. they were two adjacent
+    //    statements whose ORDER carried the guarantee — a skip that fired after the vouch would
+    //    prune the reachless `absent` row on behalf of a target that then vanished, and the key
+    //    would appear in neither `unlocked` nor `omitted` (rule.forbid.failhide). the leaf makes
+    //    that pair unsplittable and clamps it at unit grain
+    const disposition = getOneKeyrackUnlockTargetDisposition({
+      reachTarget,
+      reachAsked: input.reach,
+      vault,
+    });
+    if (disposition.skipped) continue;
+    if (disposition.marksSlugHeldAtReach) slugsHeldAtReach.add(slug);
+
     const adapter = context.vaultAdapters[vault];
     if (!adapter) {
       throw new MalfunctionError('vault adapter not found', { vault });
@@ -280,7 +347,13 @@ export const unlockKeyrackKeys = async (
         });
       }
       // bulk unlock → skip silently, add to omitted
-      keysOmitted.push({ slug: effectiveSlug, reason: 'remote' });
+      keysOmitted.push(
+        asKeyrackOmittedRow({
+          slug: effectiveSlug,
+          reason: 'remote',
+          host: hostConfig,
+        }),
+      );
       continue;
     }
 
@@ -299,7 +372,13 @@ export const unlockKeyrackKeys = async (
     //         (rule.prefer.prevent-over-correct)
     // .note = the adapter-level guards stay, as defense in depth: the sdk reaches an adapter
     //         directly, with no unlock loop above it to hoist a check into
-    if (KEYRACK_VAULT_REACH_POLICY[vault] === 'UNADDRESSABLE')
+    // .note = the ASK's reach, deliberately — NOT the target's. this refusal says "you named a
+    //         reach this vault cannot address", which is a caller error and owes a loud
+    //         ConstraintError. an ENUMERATED reach was never named by the caller, so to refuse
+    //         the whole ask over it would abort a bulk unlock on a key the human never
+    //         mentioned. an enumerated target on such a vault is left to the adapter's own
+    //         guard below, which isolates it as one `errored` row (defense in depth)
+    if (isKeyrackVaultReachUnaddressable({ vault }))
       assertKeyrackReachAddressable({
         reach: input.reach,
         vault,
@@ -341,6 +420,10 @@ export const unlockKeyrackKeys = async (
       // .note = thread the reach so a vault that files per-reach reads the key cut for THIS
       //         reach. a vault that cannot tell one reach from another throws rather than
       //         answer with the reachless value (e20/q9)
+      // .note = the TARGET's reach, never the ask's. under a reachless bulk ask the two
+      //         differ: the ask names none while the target names the one this pass is for,
+      //         and a vault handed the ask's `undefined` would read the REACHLESS value and
+      //         report a reach-cut key `lost` — the very state the enumeration exists to end
       const grant = await adapter.get({
         slug: effectiveSlug,
         mech: hostConfig.mech,
@@ -348,14 +431,20 @@ export const unlockKeyrackKeys = async (
         meta: hostConfig.meta,
         owner: input.owner ?? null,
         identity,
-        reach: input.reach,
+        reach: reachTarget,
         hostManifest,
       });
       if (!grant) {
         // key exists in host manifest but vault no longer has it — track as lost
         // .note = this is expected for ephemeral vaults (os.daemon) after session restart
         // .note = this is expected for refed vaults (1password) if item was deleted
-        keysOmitted.push({ slug: effectiveSlug, reason: 'lost' });
+        keysOmitted.push(
+          asKeyrackOmittedRow({
+            slug: effectiveSlug,
+            reason: 'lost',
+            host: hostConfig,
+          }),
+        );
 
         // clean up inventory marker so subsequent get reports "absent" not "locked"
         // .note = pulled by the full ADDRESS, since setKeyrackKeyHost stocks it by address —
@@ -363,7 +452,7 @@ export const unlockKeyrackKeys = async (
         await daoKeyrackInventory.del({
           slug: asKeyrackKeySlugAtReach({
             slug: effectiveSlug,
-            reach: input.reach,
+            reach: reachTarget,
           }),
           owner: input.owner ?? null,
         });
@@ -432,9 +521,22 @@ export const unlockKeyrackKeys = async (
       if (!isOperationalFault) throw cause;
 
       // a live operational fault on this one key — isolate it, carry the cause for the CLI render, continue
-      keysOmitted.push({ slug: effectiveSlug, reason: 'errored', cause });
+      keysOmitted.push(
+        asKeyrackOmittedRow({
+          slug: effectiveSlug,
+          reason: 'errored',
+          host: hostConfig,
+          cause,
+        }),
+      );
     }
   }
+
+  // a key a reach target reported on was never `absent` — drop the reachless miss that says so
+  const keysOmittedTruly = getAllKeyrackOmissionsExceptHeldAtReach({
+    omissions: keysOmitted,
+    slugsHeldAtReach,
+  });
 
   // send keys to daemon
   if (keysToUnlock.length > 0) {
@@ -456,5 +558,5 @@ export const unlockKeyrackKeys = async (
     });
   }
 
-  return { unlocked: keysToUnlock, omitted: keysOmitted };
+  return { unlocked: keysToUnlock, omitted: keysOmittedTruly };
 };
