@@ -1369,10 +1369,36 @@ describe('keyrack sudo', () => {
    *   t2: unlock --env sudo --key X (no --prikey, no agent keys) returns clear error
    *       - verifies the error message mentions --prikey as the recovery path
    *
-   * .why deferred:
-   *   requires test infrastructure to spawn an isolated ssh-agent with zero keys loaded,
-   *   then override SSH_AUTH_SOCK for the child process. this is complex to set up without
-   *   side effects on the host agent, and risks flakiness if agent cleanup fails.
+   * .why deferred — ⚠️ REWRITTEN 2026-08-26 after a real attempt, because the note that stood
+   *   here was WRONG about the cost, and a wrong deferral note is worse than none: it sends the
+   *   next traveler at the wrong obstacle. what it claimed, and what is actually true:
+   *
+   *   ❌ CLAIMED: "requires test infrastructure to spawn an isolated ssh-agent with zero keys,
+   *      then override SSH_AUTH_SOCK ... complex to set up without side effects on the host
+   *      agent, and risks flakiness if agent cleanup fails."
+   *   ✅ TRUE: no agent is spawned at all. `SSH_AUTH_SOCK: ''` disables agent discovery for the
+   *      child, costs one line, touches no host agent, and leaks no cleanup. this file ALREADY
+   *      uses that idiom twice, in `[case17]`. that half of the deferral was never real.
+   *
+   *   ✅ THE ACTUAL BLOCKER, found empirically:
+   *      the --prikey path is only REACHED when the host manifest is age-encrypted, because an
+   *      unencrypted manifest needs no identity at all. two attempts proved it:
+   *        1. fixture `minimal` + `keyrack init` (encrypted manifest, but NO sudo key held) →
+   *           the ask dies at the key-existence check, `✋ blocked: sudo key not found`, long
+   *           before identity discovery. every assertion is vacuous — it would pass for any
+   *           absent key and prove nought about --prikey
+   *        2. fixture `with-keyrack-multi-env` + a real sudo key → `unlock` EXITS 0 even with
+   *           `--prikey <nonexistent>` and `SSH_AUTH_SOCK: ''`, because that fixture's manifest
+   *           is NOT encrypted, so no identity is ever wanted
+   *      so the case needs all four at once: an ENCRYPTED manifest, a sudo key SET INTO it, a
+   *      known ssh keypair as its recipient, and the agent disabled at unlock. no extant fixture
+   *      supplies that combination, and the scene's own `set` needs the identity present before
+   *      the test removes it.
+   *
+   *   ✅ AND a hard environmental bound, recorded by gap.4 in `keyrack.recipient.acceptance`:
+   *      "age CLI must be installed in the test env (not guaranteed in CI)". so even a correct
+   *      test could fail for a reason unrelated to the behavior.
+   *
    *   unit tests already cover `sshPrikeyToAgeIdentity` — this gap is blackbox-only.
    */
   given.skip('[case16] --prikey fallback for unlock (gap.3: deferred)', () => {

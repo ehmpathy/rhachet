@@ -1,6 +1,6 @@
 import { given, then, when } from 'test-fns';
 
-import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { genMockKeyrackKeyGrant } from '@src/.test/assets/genMockKeyrackKeyGrant';
 import { asKeyrackKeyReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReach';
 
 import {
@@ -8,33 +8,43 @@ import {
   formatKeyrackKeyBranch,
 } from './emitKeyrackKeyBranch';
 
+/**
+ * .what = collects the lines `emitKeyrackKeyBranch` writes to stdout
+ * .why = every case here reads the emitted tree, so each one patches `console.log`. with the
+ *        restore placed AFTER the emit, a throw inside the emit skips it and leaves
+ *        `console.log` patched for every later test in the process — later suites then write
+ *        into an array nobody reads, and their output vanishes with no signal
+ *        (`rule.forbid.failhide`). the restore belongs in a `finally`, which runs on the throw
+ *        path too, so one faulted case can never silence the rest of the run.
+ */
+const getAllLinesEmitted = (
+  input: Parameters<typeof emitKeyrackKeyBranch>[0],
+): string[] => {
+  const lines: string[] = [];
+  const logBefore = console.log;
+  console.log = (msg: string): number => lines.push(msg);
+  try {
+    emitKeyrackKeyBranch(input);
+  } finally {
+    console.log = logBefore;
+  }
+  return lines;
+};
+
 describe('emitKeyrackKeyBranch', () => {
   given('[case1] granted entry', () => {
     when('[t0] is last entry', () => {
       then('emits tree with └─ prefix', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'granted',
-            grant: new KeyrackKeyGrant({
+            grant: genMockKeyrackKeyGrant({
               slug: 'ehmpathy.test.API_KEY',
-              key: {
-                secret: 'secret',
-                grade: { protection: 'encrypted', duration: 'permanent' },
-              },
-              source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
-              env: 'test',
-              org: 'ehmpathy',
-              expiresAt: '2025-01-01T00:00:00.000Z' as any,
+              expiresAt: '2025-01-01T00:00:00.000Z' as never,
             }),
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output).toEqual([
           '   └─ ehmpathy.test.API_KEY',
@@ -47,29 +57,16 @@ describe('emitKeyrackKeyBranch', () => {
 
     when('[t1] is not last entry', () => {
       then('emits tree with ├─ prefix', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'granted',
-            grant: new KeyrackKeyGrant({
+            grant: genMockKeyrackKeyGrant({
               slug: 'ehmpathy.test.API_KEY',
-              key: {
-                secret: 'secret',
-                grade: { protection: 'encrypted', duration: 'permanent' },
-              },
-              source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
-              env: 'test',
-              org: 'ehmpathy',
-              expiresAt: '2025-01-01T00:00:00.000Z' as any,
+              expiresAt: '2025-01-01T00:00:00.000Z' as never,
             }),
           },
           isLast: false,
         });
-
-        console.log = originalLog;
 
         expect(output[0]).toEqual('   ├─ ehmpathy.test.API_KEY');
         expect(output[1]).toContain('│  ├─');
@@ -77,14 +74,74 @@ describe('emitKeyrackKeyBranch', () => {
     });
   });
 
+  /**
+   * .what = clamps that a FAILURE row names WHICH reach it reports on
+   * .why = a reachless bulk unlock enumerates one target per reach the rack holds, so ONE slug
+   *        can file several rows in a single run. a vault-level fault (an expired sso session,
+   *        a pruned daemon) hits every reach at once, so the human meets two byte-identical
+   *        rows and cannot tell which account failed — or that two accounts are even involved
+   *        rather than a duplicate-render defect (`rule.forbid.ambiguous-labels`)
+   * .note = the SUCCESS branches (`granted`, `unlocked`) already solve exactly this. the fix
+   *         carries their own treatment to the failure path rather than invent a second shape
+   */
+  given('[case1b] the same slug, failed at two different reaches', () => {
+    const emitAt = (reach: { exid: string }): string[] =>
+      getAllLinesEmitted({
+        entry: {
+          type: 'errored',
+          slug: '@all.prep.BRAINS_AUTH',
+          tip: 'sso session expired',
+          reach,
+        },
+        isLast: true,
+      });
+
+    when('[t0] both rows are rendered', () => {
+      // ⛔ THE CLAMP. before the repair both rows rendered slug + status + tip alone, so they
+      //    were byte-identical and the human could read neither which account failed nor that
+      //    two accounts were involved
+      then('each row names its own reach', () => {
+        expect(emitAt({ exid: 'casey@ahction.com' })).toEqual([
+          '   └─ @all.prep.BRAINS_AUTH',
+          '      ├─ reach: casey@ahction.com',
+          '      ├─ status: errored 💥',
+          '      └─ \x1b[2mtip: sso session expired\x1b[0m',
+        ]);
+      });
+
+      then('the two rows are no longer identical', () => {
+        expect(emitAt({ exid: 'casey@ahction.com' })).not.toEqual(
+          emitAt({ exid: 'casey@ahbode.com' }),
+        );
+      });
+    });
+
+    // ⚠️ acceptance 2 at render grain: a reachless row must stay byte-identical, or every
+    //    extant omission snapshot in the repo moves
+    when('[t1] a REACHLESS failure row is rendered', () => {
+      then('it carries no reach leaf at all', () => {
+        const output = getAllLinesEmitted({
+          entry: {
+            type: 'lost',
+            slug: 'testorg.prep.REPO_KEY',
+            tip: 'rhx keyrack set --key REPO_KEY --env prep',
+          },
+          isLast: true,
+        });
+
+        expect(output).toEqual([
+          '   └─ testorg.prep.REPO_KEY',
+          '      ├─ status: lost 👻',
+          '      └─ \x1b[2mtip: rhx keyrack set --key REPO_KEY --env prep\x1b[0m',
+        ]);
+      });
+    });
+  });
+
   given('[case2] absent entry', () => {
     when('[t0] with tip', () => {
       then('emits status and dimmed tip', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'absent',
             slug: 'ehmpathy.test.MISSING_KEY',
@@ -92,8 +149,6 @@ describe('emitKeyrackKeyBranch', () => {
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output).toEqual([
           '   └─ ehmpathy.test.MISSING_KEY',
@@ -105,11 +160,7 @@ describe('emitKeyrackKeyBranch', () => {
 
     when('[t1] without tip', () => {
       then('emits status only', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'absent',
             slug: 'ehmpathy.test.MISSING_KEY',
@@ -117,8 +168,6 @@ describe('emitKeyrackKeyBranch', () => {
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output).toEqual([
           '   └─ ehmpathy.test.MISSING_KEY',
@@ -131,11 +180,7 @@ describe('emitKeyrackKeyBranch', () => {
   given('[case3] locked entry', () => {
     when('[t0] with tip', () => {
       then('emits status and dimmed tip', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'locked',
             slug: 'ehmpathy.test.LOCKED_KEY',
@@ -143,8 +188,6 @@ describe('emitKeyrackKeyBranch', () => {
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output).toEqual([
           '   └─ ehmpathy.test.LOCKED_KEY',
@@ -158,11 +201,7 @@ describe('emitKeyrackKeyBranch', () => {
   given('[case4] blocked entry', () => {
     when('[t0] with reasons', () => {
       then('emits status, reasons tree, and dimmed tip', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'blocked',
             slug: 'ehmpathy.test.BLOCKED_KEY',
@@ -170,8 +209,6 @@ describe('emitKeyrackKeyBranch', () => {
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output).toEqual([
           '   └─ ehmpathy.test.BLOCKED_KEY',
@@ -187,32 +224,19 @@ describe('emitKeyrackKeyBranch', () => {
   given('[case5] unlocked entry', () => {
     when('[t0] with expiresAt', () => {
       then('emits env, org, vault, and expires in', () => {
-        const output: string[] = [];
-        const originalLog = console.log;
-        console.log = (msg: string) => output.push(msg);
-
         // set expiresAt to 30 minutes from now
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
-        emitKeyrackKeyBranch({
+        const output = getAllLinesEmitted({
           entry: {
             type: 'unlocked',
-            grant: new KeyrackKeyGrant({
+            grant: genMockKeyrackKeyGrant({
               slug: 'ehmpathy.test.API_KEY',
-              key: {
-                secret: 'secret',
-                grade: { protection: 'encrypted', duration: 'permanent' },
-              },
-              source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
-              env: 'test',
-              org: 'ehmpathy',
-              expiresAt: expiresAt as any,
+              expiresAt: expiresAt as never,
             }),
           },
           isLast: true,
         });
-
-        console.log = originalLog;
 
         expect(output[0]).toEqual('   └─ ehmpathy.test.API_KEY');
         expect(output[1]).toEqual('      ├─ env: test');
@@ -235,7 +259,7 @@ describe('emitKeyrackKeyBranch', () => {
       formatKeyrackKeyBranch({
         entry: {
           type: 'unlocked',
-          grant: new KeyrackKeyGrant({
+          grant: genMockKeyrackKeyGrant({
             slug: 'ahbode.prep.EHMPATH_BEAVER_GITHUB_TOKEN',
             key: {
               secret: 'secret',
@@ -253,7 +277,7 @@ describe('emitKeyrackKeyBranch', () => {
             // .note = 55m out from the clock, so the rendered ttl holds still in the snap
             expiresAt: new Date(
               Date.now() + 55 * 60 * 1000,
-            ).toISOString() as any,
+            ).toISOString() as never,
           }),
         },
         isLast: true,
@@ -298,15 +322,8 @@ describe('emitKeyrackKeyBranch', () => {
    *         `unlock` named it
    */
   given('[case8] a granted entry that carries a reach', () => {
-    const grantWithReach = new KeyrackKeyGrant({
+    const grantWithReach = genMockKeyrackKeyGrant({
       slug: 'ehmpathy.test.API_KEY',
-      key: {
-        secret: 'secret',
-        grade: { protection: 'encrypted', duration: 'permanent' },
-      },
-      source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
-      env: 'test',
-      org: 'ehmpathy',
       reach: asKeyrackKeyReach({ exid: 'beav@ehmpathy.com' }),
       expiresAt: '2025-01-01T00:00:00.000Z' as never,
     });
@@ -346,15 +363,8 @@ describe('emitKeyrackKeyBranch', () => {
         const lines = formatKeyrackKeyBranch({
           entry: {
             type: 'granted',
-            grant: new KeyrackKeyGrant({
+            grant: genMockKeyrackKeyGrant({
               slug: 'ehmpathy.test.API_KEY',
-              key: {
-                secret: 'secret',
-                grade: { protection: 'encrypted', duration: 'permanent' },
-              },
-              source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
-              env: 'test',
-              org: 'ehmpathy',
               expiresAt: '2025-01-01T00:00:00.000Z' as never,
             }),
           },
@@ -363,6 +373,49 @@ describe('emitKeyrackKeyBranch', () => {
 
         expect(lines.some((line) => line.includes('reach:'))).toEqual(false);
       });
+    });
+  });
+
+  /**
+   * .what = clamps that the stdout capture restores `console.log` even when the emit throws
+   * .why = every case in this file patches `console.log` to read the tree back. with the
+   *        restore placed after the emit, a throw skips it and leaves the patch in place for
+   *        the REST OF THE PROCESS — later suites then push their output into an array nobody
+   *        reads, and their logs vanish with no signal (`rule.forbid.failhide`). the damage
+   *        lands on tests that share no code with this one, which is what makes the leak
+   *        expensive to trace
+   * .note = the throw is real, not synthetic: `emitKeyrackKeyBranch` ends in an exhaustive
+   *         `never` check that throws on an unknown entry type, so this exercises the actual
+   *         fault path a future entry variant would take
+   */
+  given('[case9] the emit throws part way through a capture', () => {
+    when('[t0] an unknown entry type reaches the exhaustive check', () => {
+      then('the throw still reaches the caller', () => {
+        expect(() =>
+          getAllLinesEmitted({
+            entry: { type: 'unheard-of' } as never,
+            isLast: true,
+          }),
+        ).toThrow('unexpected entry type');
+      });
+
+      // ⛔ THE clamp. with the restore after the emit rather than in a `finally`, this is the
+      //    assertion that goes red — `console.log` would still be the capture stub here
+      then(
+        'console.log is handed back, so later tests still write to stdout',
+        () => {
+          const logBefore = console.log;
+
+          expect(() =>
+            getAllLinesEmitted({
+              entry: { type: 'unheard-of' } as never,
+              isLast: true,
+            }),
+          ).toThrow();
+
+          expect(console.log).toBe(logBefore);
+        },
+      );
     });
   });
 });

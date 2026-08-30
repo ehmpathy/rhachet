@@ -1,0 +1,135 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t0] the key is unlocked at a reach it was cut for then: the reply is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.prep.BRAINS_AUTH
+      ├─ env: prep
+      ├─ org: @all
+      ├─ reach: casey@ahction.com
+      ├─ vault: os.direct
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t2] an uncut reach is asked for then: the refusal is snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: credential at reach 'casey@nowhere.com' does not exist — each reach needs its own key
+      ├─ machine: @all.prep.BRAINS_AUTH
+      └─ hint: cut the key — rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@nowhere.com
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t2] an uncut reach is asked for then: the refusal leaves stdout empty — the sibling stream, snapped: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t3] the rack is unlocked in BULK (no --key, so no reach) then: the bulk reply is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   ├─ testorg.prep.REPO_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   ├─ @all.prep.BRAINS_AUTH
+   │  ├─ env: prep
+   │  ├─ org: @all
+   │  ├─ reach: casey@ahbode.com
+   │  ├─ vault: os.direct
+   │  └─ expires in: 540m
+   └─ @all.prep.BRAINS_AUTH
+      ├─ env: prep
+      ├─ org: @all
+      ├─ reach: casey@ahction.com
+      ├─ vault: os.direct
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t5] the same bulk unlock, asked in robot mode (--json) then: the projected payload is snapped: unlocked.projected 1`] = `
+[
+  {
+    "env": "prep",
+    "org": "testorg",
+    "slug": "testorg.prep.REPO_KEY",
+  },
+  {
+    "env": "prep",
+    "org": "@all",
+    "reach": {
+      "exid": "casey@ahbode.com",
+    },
+    "slug": "@all.prep.BRAINS_AUTH",
+  },
+  {
+    "env": "prep",
+    "org": "@all",
+    "reach": {
+      "exid": "casey@ahction.com",
+    },
+    "slug": "@all.prep.BRAINS_AUTH",
+  },
+]
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t6] an uncut reach is asked for in robot mode (--json) then: the refused robot stderr is snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: credential at reach 'casey@nowhere.com' does not exist — each reach needs its own key
+      ├─ machine: @all.prep.BRAINS_AUTH
+      └─ hint: cut the key — rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@nowhere.com
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case1] an @all key cut at two reaches, and no reachless twin when: [t6] an uncut reach is asked for in robot mode (--json) then: the refused robot stdout is snapped: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case2] the same key, but from a cwd with NO repo manifest when: [t0] the key is unlocked at a reach it was cut for then: the bootstrap reply is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.prep.BRAINS_AUTH
+      ├─ env: prep
+      ├─ org: @all
+      ├─ reach: casey@ahction.com
+      ├─ vault: os.direct
+      └─ expires in: 540m
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case2] the same key, but from a cwd with NO repo manifest when: [t2] the bootstrap unlock is asked in robot mode (--json) then: the bootstrap projected payload is snapped: unlocked.projected 1`] = `
+[
+  {
+    "env": "prep",
+    "org": "@all",
+    "reach": {
+      "exid": "casey@ahction.com",
+    },
+    "slug": "@all.prep.BRAINS_AUTH",
+  },
+]
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case2] the same key, but from a cwd with NO repo manifest when: [t3] an uncut reach is asked in robot mode, still with no manifest then: the refused robot streams are snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: credential at reach 'casey@nowhere.com' does not exist — each reach needs its own key
+      ├─ machine: @all.prep.BRAINS_AUTH
+      └─ hint: cut the key — rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@nowhere.com
+
+"
+`;
+
+exports[`keyrack reach on a machine-wide @all key given: [case2] the same key, but from a cwd with NO repo manifest when: [t3] an uncut reach is asked in robot mode, still with no manifest then: the refused robot streams are snapped: stdout 1`] = `
+"
+"
+`;

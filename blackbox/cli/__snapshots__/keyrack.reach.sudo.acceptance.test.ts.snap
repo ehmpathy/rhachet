@@ -1,0 +1,80 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t0] the sudo key is unlocked at a reach it was cut for then: the primary reach render is snapped: stdout 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.sudo.SUDO_AT_REACH
+      ├─ env: sudo
+      ├─ org: @all
+      ├─ reach: github://org=ehmpathy
+      ├─ vault: os.direct
+      └─ expires in: 30m
+
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t2] the sudo key is asked at a reach it was NOT cut for then: the refusal leaves stdout empty — the sibling stream, snapped: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t2] the sudo key is asked at a reach it was NOT cut for then: the refusal render is snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
+      ├─ machine: @all.sudo.SUDO_AT_REACH
+      └─ hint: cut the key — rhx keyrack set --key SUDO_AT_REACH --env sudo --org @all --reach github://org=nowhere
+
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t3] the PEER reach is unlocked and read on its own then: the render is stable 1`] = `
+"
+🔓 keyrack unlock
+   └─ @all.sudo.SUDO_AT_REACH
+      ├─ env: sudo
+      ├─ org: @all
+      ├─ reach: github://org=ahbode
+      ├─ vault: os.direct
+      └─ expires in: 30m
+
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t4] the same sudo unlock, asked in robot mode (--json) then: the projected payload is snapped: unlocked.projected 1`] = `
+[
+  {
+    "env": "sudo",
+    "org": "@all",
+    "reach": {
+      "exid": "github://org=ehmpathy",
+    },
+    "slug": "@all.sudo.SUDO_AT_REACH",
+  },
+]
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t5] an uncut reach is asked for in robot mode (--json) then: the refused robot stderr is snapped: stderr 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ blocked: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
+      ├─ machine: @all.sudo.SUDO_AT_REACH
+      └─ hint: cut the key — rhx keyrack set --key SUDO_AT_REACH --env sudo --org @all --reach github://org=nowhere
+
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t5] an uncut reach is asked for in robot mode (--json) then: the refused robot stdout is snapped: stdout 1`] = `
+"
+"
+`;
+
+exports[`keyrack reach on a sudo key given: [case2] a reach-cut sudo key, deleted from a repo with no manifest when: [t0] the key is deleted at one reach, with the org left to derive then: stderr matches snapshot: stderr 1`] = `""`;
+
+exports[`keyrack reach on a sudo key given: [case2] a reach-cut sudo key, deleted from a repo with no manifest when: [t0] the key is deleted at one reach, with the org left to derive then: the destruction renders as snapped: stdout 1`] = `
+"
+🔐 keyrack del
+   └─ @all.sudo.SUDO_AT_REACH@github://org=ehmpathy removed
+
+"
+`;

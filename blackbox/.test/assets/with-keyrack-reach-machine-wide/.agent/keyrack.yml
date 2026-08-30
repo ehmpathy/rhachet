@@ -1,0 +1,8 @@
+org: testorg
+
+# .note = the machine-wide `@all.prep.BRAINS_AUTH` key is DELIBERATELY ABSENT from this file.
+#         an `@all` key belongs to the box's own namespace, never to a repo — it is declared in
+#         the HOST manifest alone, and `unlock` must surface it regardless of what this file says.
+#         that asymmetry is the whole subject of the fixture
+env.prep:
+  - REPO_KEY

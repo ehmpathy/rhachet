@@ -1,0 +1,6 @@
+org: testorg
+
+# .note = the machine-wide key is DELIBERATELY ABSENT from this file, as in every peer reach
+#         fixture. an `@all` key belongs to the box's namespace, never to a repo
+env.prep:
+  - REPO_KEY

@@ -268,6 +268,86 @@ export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
 };
 
 /**
+ * .what = the marks a real claude draws once its tui is up and its input reader is armed
+ * .why = the readiness signal must survive a banner redesign, so it names SEVERAL marks
+ *   any one of which proves the tui took over, rather than one word that a release can
+ *   retire. claude v1 opened with a "Welcome" box; v2.1.251 opens with a version banner
+ *   (`Claude Code` / `Haiku 4.5 · API Usage Billing` / cwd), an input box, and a mode
+ *   footer (`⏸ manual mode on · ← for agents`) — and holds no "Welcome" at all.
+ *
+ *   ⚠️ every alternative here is ONE contiguous token in the pty stream. the tui draws
+ *      each word with a `[NNG` cursor-move between, so a multi-word literal like
+ *      `Claude Code v` never matches. verify any new mark against a raw capture before
+ *      it is added, never against the rendered screen.
+ */
+const CLAUDE_IS_READY = /Welcome|API Usage Billing|manual mode on/;
+
+/**
+ * .what = drive claude's folder-trust menu(s) through the outer pty until the brain boots
+ * .why = a fresh dir raises a one-time trust menu before claude boots. a
+ *   `~/.claude.json` pre-accept CAN clear it, but a nested claude session races that
+ *   write and clobbers it, so the menu must be driven the way a human drives it.
+ *
+ *   ⚠️ three properties of that menu defeat a fixed key burst, and each is observed:
+ *   1. the SELECTED option is not stable across claude versions. a build that
+ *      pre-approves many tool permissions renders the safe refusal first —
+ *      `❯ No, exit`, with `Yes, I trust this folder` below — so a bare Enter confirms
+ *      the EXIT and the brain never boots
+ *   2. the menu can render MORE THAN ONCE (the nested session raises its own), each
+ *      fresh render back on the refusal
+ *   3. it redraws async, so keys fired back-to-back outrun the render
+ *
+ *   so poll instead: act only when the stream has gone quiet (the menu awaits a key)
+ *   AND the menu is the last panel drawn, then step toward the trust option or confirm
+ *   it. yields as soon as claude's welcome box appears.
+ */
+const driveTrustMenus = async (input: {
+  bg: RhachetBackgroundHandle;
+  timeoutMs?: number;
+}): Promise<void> => {
+  // the cursor sits on whichever option follows the LAST `❯` drawn. the menu writes each
+  // word with a `[NNG` cursor-move between, but never a newline mid-option, so the option
+  // label is read as the remainder of that line.
+  const cursorSitsOnTrust = (): boolean => {
+    const output = input.bg.getOutput();
+    const at = output.lastIndexOf('❯');
+    if (at < 0) return false;
+    return (output.slice(at, at + 200).split(/[\r\n]/)[0] ?? '').includes('Yes,');
+  };
+
+  // the menu is ON SCREEN when its cursor, its trust option, and its confirm footer are
+  // all among the last bytes drawn. the buffer only ever grows, so a tail read is what
+  // distinguishes "menu up now" from "menu was up earlier".
+  // ⚠️ NEVER match a multi-word literal here. the menu draws each word with a `[NNG`
+  //    cursor-move between, so `to confirm` and `trust this folder` are NOT contiguous
+  //    in the stream — a plain `.includes()` on either silently never matches, and the
+  //    loop then sits on its hands for the whole timeout. match single words, or span
+  //    the escapes with a same-line `[^\r\n]*`.
+  const menuIsOnScreen = (): boolean => {
+    const tail = input.bg.getOutput().slice(-1500);
+    return /❯/.test(tail) && /confirm/.test(tail) && /Yes,[^\r\n]*folder/.test(tail);
+  };
+
+  const deadline = Date.now() + (input.timeoutMs ?? 120000);
+  // .note = deliberate mutation — a pty is driven over time, so the loop MUST carry the
+  //   prior byte count to tell a quiet stream from a live one. bounded to this closure.
+  let lengthPrior = -1;
+  while (!CLAUDE_IS_READY.test(input.bg.getOutput()) && Date.now() < deadline) {
+    const output = input.bg.getOutput();
+    const streamIsQuiet = output.length === lengthPrior;
+    lengthPrior = output.length;
+
+    // one key per quiet tick: step down toward the trust option, or confirm it once the
+    // cursor is there. a key per tick keeps every press paired with a fresh read, so a
+    // wrap or a second menu is handled the same way the first one was.
+    if (streamIsQuiet && menuIsOnScreen())
+      input.bg.write(cursorSitsOnTrust() ? '\r' : '\u001b[B');
+
+    await new Promise<void>((done) => setTimeout(done, 400));
+  }
+};
+
+/**
  * .what = enroll a REAL claude through the outer pty and wait for its serial handoff
  * .why = the real-tier counterpart of enrollCloneAndWaitReady. a real claude prints no
  *   stub `ready serial=` line, and the human F7 breadcrumb (`rhx clone say @:<serial>`)
@@ -310,27 +390,26 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   const serial = reach.groups!.serial!;
 
   // claude shows a one-time folder-trust menu for a fresh dir before it boots ("Is this
-  // a project you trust?", option 1 "Yes, I trust this folder" pre-selected). a
-  // ~/.claude.json pre-accept CAN clear it, but a nested claude session races that write
-  // and clobbers it, so the robust path is to drive the menu the way a human does: race
-  // the trust prompt against the welcome box, and if the menu appears, confirm it with
-  // an Enter through the outer pty. the menu text is drawn char-by-char with `[1C`
-  // cursor-move escapes between words, so "trust this folder" is NOT contiguous; the
-  // header "you trust?" gives a reliable contiguous literal to match.
+  // a project you created or one you trust?"). race that menu against the ready marks —
+  // whichever lands first says whether the menu must be driven at all. the menu text is
+  // drawn word-by-word with `[NNG` cursor-move escapes between words, so
+  // "trust this folder" is NOT contiguous; the header "you trust?" gives a reliable
+  // contiguous literal to match.
   const gate = await bg.waitForOutput({
-    pattern: /trust\?|Welcome/,
+    pattern: new RegExp(`trust\\?|${CLAUDE_IS_READY.source}`),
     timeoutMs: input.timeoutMs ?? 120000,
   });
-  if (!gate[0].includes('Welcome')) bg.write('\r');
+  if (gate[0].includes('trust?'))
+    await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
   // buffers it as literal text; a booted claude discards a burst). so wait for claude's
-  // OWN readiness marker — its welcome box renders "Welcome" — then a short settle, so
-  // the reach `say` types into a ready reader. a signal, not a fixed delay (claude boot
-  // time varies run to run). the stub prints no such box, so this is real-claude-only.
+  // OWN readiness marks — then a short settle, so the reach `say` types into a ready
+  // reader. a signal, not a fixed delay (claude boot time varies run to run). the stub
+  // draws no such banner, so this is real-claude-only.
   await bg.waitForOutput({
-    pattern: /Welcome/,
+    pattern: CLAUDE_IS_READY,
     timeoutMs: input.timeoutMs ?? 120000,
   });
   await new Promise<void>((done) => setTimeout(done, 2000));

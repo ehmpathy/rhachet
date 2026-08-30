@@ -1,5 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
+import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
+
 /**
  * .what = cast the unlock batch's omitted keys into the process exit code the CLI should set
  * .why = the grove chains `unlock && start-app`, so a silent exit 0 with an absent credential
@@ -12,10 +14,7 @@ import { ConstraintError } from 'helpful-errors';
  *        (rule.forbid.inline-decode-friction)
  */
 export const asKeyrackUnlockExitCode = (input: {
-  omitted: {
-    reason: 'absent' | 'lost' | 'remote' | 'errored';
-    cause?: unknown;
-  }[];
+  omitted: Pick<KeyrackKeyOmission, 'reason' | 'cause'>[];
 }): 2 | 1 | null => {
   // only an isolated live fault (reason 'errored') drives a non-zero exit; absent/lost/remote are
   // benign omissions (a key not registered), so they leave the exit code at 0

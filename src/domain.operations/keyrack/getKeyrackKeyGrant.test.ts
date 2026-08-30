@@ -421,7 +421,7 @@ describe('getKeyrackKeyGrant', () => {
           if (result.status === 'absent') {
             // the e6 report, reachable at last — it names WHAT is absent and why
             expect(result.message).toContain('beav@ehmpathy.com');
-            expect(result.message).toContain('a reach is never derived');
+            expect(result.message).toContain('each reach needs its own key');
             // never the vault's internal limitation, which no human can act on
             expect(result.message).not.toContain('os.envvar');
           }

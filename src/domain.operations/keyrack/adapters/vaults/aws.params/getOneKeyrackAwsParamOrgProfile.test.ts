@@ -98,6 +98,35 @@ describe('getOneKeyrackAwsParamOrgProfile', () => {
     });
   });
 
+  given('[case1b] the peer AWS_PROFILE entry is cut AT A REACH', () => {
+    // ⛔ THE ADDRESS-VS-SLUG CLAMP. `hosts` is keyed by ADDRESS, so a reach-cut peer sits under
+    //    `ehmpathy.prod.AWS_PROFILE@casey@ahction.com` while its `slug` field stays bare. the
+    //    old read indexed the map with the hand-built SLUG, so it could never match — and the
+    //    tree-scoped key silently fell back to NO profile at all, then failed at the api with a
+    //    credential error that named no cause
+    const hostManifest = genManifest({
+      'ehmpathy.prod.AWS_PROFILE@casey@ahction.com': new KeyrackKeyHost({
+        ...genProfileHost({
+          slug: 'ehmpathy.prod.AWS_PROFILE',
+          exid: 'ehmpathy-prod',
+        }),
+        reach: { exid: 'casey@ahction.com' },
+      }),
+    });
+
+    when('[t0] the profile is looked up for the aws.params key', () => {
+      then('the peer entry exid is still found', () => {
+        expect(
+          getOneKeyrackAwsParamOrgProfile({
+            vault: 'aws.params',
+            slug: 'ehmpathy.prod.ANTHROPIC_API_KEY',
+            hostManifest,
+          }),
+        ).toEqual('ehmpathy-prod');
+      });
+    });
+  });
+
   given(
     '[case4] a tree-scoped aws.params key with NO peer AWS_PROFILE entry',
     () => {

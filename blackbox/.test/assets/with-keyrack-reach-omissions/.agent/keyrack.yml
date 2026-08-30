@@ -1,0 +1,9 @@
+org: testorg
+
+# .note = both machine-wide keys are DELIBERATELY ABSENT from this file, the same way the
+#         `with-keyrack-reach-machine-wide` peer omits its own. an `@all` key belongs to the
+#         box's namespace, never to a repo, so `unlock` must surface it from the HOST manifest
+#         alone — and the omission ROWS under test here must come from the machine-wide
+#         expansion rather than from a repo declaration
+env.prep:
+  - REPO_KEY

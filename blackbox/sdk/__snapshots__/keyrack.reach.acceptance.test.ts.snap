@@ -28,7 +28,7 @@ error.message: ✋ ConstraintError: a reach exid may not be empty: a reach names
 exports[`keyrack.reach given: [case3] a keyed reach-ask that no source can answer when: [t0] keyrack.get is called with a key and a reach then: the absent-report renders as snapped: stderr 1`] = `""`;
 
 exports[`keyrack.reach given: [case3] a keyed reach-ask that no source can answer when: [t0] keyrack.get is called with a key and a reach then: the absent-report renders as snapped: stdout 1`] = `
-"unexpected success: {"attempt":{"status":"absent","slug":"testorg.test.API_KEY","reach":{"exid":"beav@ehmpathy.com"},"message":"no key is set for 'testorg.test.API_KEY' at reach 'beav@ehmpathy.com'. a reach is never derived — a key must be cut at the reach you ask for.","fix":"rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com"},"emit":{"stdout":"\\n🔐 keyrack\\n   └─ testorg.test.API_KEY\\n      ├─ status: absent 🫧\\n      └─ \\u001b[2mtip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com\\u001b[0m\\n"}}
+"unexpected success: {"attempt":{"status":"absent","slug":"testorg.test.API_KEY","reach":{"exid":"beav@ehmpathy.com"},"message":"credential 'testorg.test.API_KEY' at reach 'beav@ehmpathy.com' does not exist. each reach needs its own key.","fix":"rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com"},"emit":{"stdout":"\\n🔐 keyrack\\n   └─ testorg.test.API_KEY\\n      ├─ status: absent 🫧\\n      └─ \\u001b[2mtip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com\\u001b[0m\\n"}}
 "
 `;
 

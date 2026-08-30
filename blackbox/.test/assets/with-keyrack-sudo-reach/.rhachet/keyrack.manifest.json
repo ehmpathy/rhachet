@@ -1,0 +1,37 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "@all.sudo.SUDO_AT_REACH@github://org=ehmpathy": {
+      "slug": "@all.sudo.SUDO_AT_REACH",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "@all",
+      "env": "sudo",
+      "reach": { "exid": "github://org=ehmpathy" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "@all.sudo.SUDO_AT_REACH@github://org=ahbode": {
+      "slug": "@all.sudo.SUDO_AT_REACH",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "@all",
+      "env": "sudo",
+      "reach": { "exid": "github://org=ahbode" },
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "testorg.prep.REPO_KEY": {
+      "slug": "testorg.prep.REPO_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "org": "testorg",
+      "env": "prep",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

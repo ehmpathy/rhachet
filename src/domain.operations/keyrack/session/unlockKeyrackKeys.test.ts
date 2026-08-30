@@ -12,6 +12,7 @@ import type { KeyrackHostManifest } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
 import type { KeyrackAwsParamIdentity } from '@src/domain.operations/keyrack/adapters/vaults/aws.params/asKeyrackAwsParamIdentity';
 import { getOneKeyrackAwsParamIdentity } from '@src/domain.operations/keyrack/adapters/vaults/aws.params/getOneKeyrackAwsParamIdentity';
+import { isKeyrackFillProbeMiss } from '@src/domain.operations/keyrack/fill/isKeyrackFillProbeMiss';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
@@ -994,7 +995,7 @@ describe('unlockKeyrackKeys', () => {
             ),
           );
           expect(error.message).toContain(
-            "no key is set for reach 'github://org=ehmpathy'",
+            "credential at reach 'github://org=ehmpathy' does not exist",
           );
         },
       );
@@ -1011,20 +1012,32 @@ describe('unlockKeyrackKeys', () => {
           ),
         );
         expect(error.message).toContain(
-          'rhx keyrack set --env test --key API_KEY --reach github://org=ehmpathy',
+          'rhx keyrack set --key API_KEY --env test --reach github://org=ehmpathy',
         );
       });
 
       /**
-       * .what = clamps the phrase `fillKeyrackKeys` matches this error on
-       * .why = fill's expected-error allowlist reads the MESSAGE, never the class
-       *        (raw age errors are plain Errors, so the extant allowlist has to read
-       *        text). so this exact phrase is a contract between two files that the
-       *        compiler cannot link — reword it and `fill` no longer recognizes a
-       *        legitimately-absent reach-key, then rethrows instead of it being set
-       * .note = the other end of the pair lives at fillKeyrackKeys.ts, in isExpectedError
+       * .what = clamps the CLASS `fill` recognizes this refusal by
+       * .why = `fill` unlocks only to ask "is this key vaulted yet?", so an uncut reach is
+       *        the NORMAL answer and must be absorbed — otherwise fill halts on the very
+       *        key it was asked to provision. `isKeyrackFillProbeMiss` decides that, and it
+       *        decides by class: a `ConstraintError` is a miss. throw any other class here
+       *        and fill rethrows instead
+       *
+       * .note = ⚠️ this replaces a clamp on the MESSAGE TEXT (`no key is set for reach`),
+       *         which was stale. that phrase was a cross-file string contract back when
+       *         fill's allowlist read message text for every fault; the refactor that
+       *         extracted `isKeyrackFillProbeMiss` moved the decision to the class and
+       *         bounded the text clause to `age`'s own two phrases, which are the only
+       *         foreign ones with no class to read (`isKeyrackFillProbeMiss.ts:38-49`).
+       *         the old clamp therefore froze our own error copy against a contract that
+       *         no longer read it — it blocked a reword and guarded none of the behavior
+       * .note = the class clamp is the one that BITES: swap the throw to a
+       *         MalfunctionError and fill rethrows, which is the live regression. no
+       *         wording change can reproduce that, which is precisely why the text clamp
+       *         was the wrong instrument (`rule.require.clamp-edge-cases`)
        */
-      then('the message keeps the phrase `fill` matches on', async () => {
+      then('it throws the class `fill` absorbs as a probe miss', async () => {
         const error = await getError(
           unlockKeyrackKeys(
             {
@@ -1035,7 +1048,8 @@ describe('unlockKeyrackKeys', () => {
             context,
           ),
         );
-        expect(error.message).toContain('no key is set for reach');
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(isKeyrackFillProbeMiss({ error })).toBe(true);
       });
     });
 

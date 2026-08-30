@@ -1,0 +1,8 @@
+{
+  "testorg.prep.REPO_KEY": {
+    "value": "sk-repo-scoped-hhh888"
+  },
+  "@all.prep.ERRORED_AT_REACH@casey@ahction.com": {
+    "value": "{\"mech\":\"EPHEMERAL_VIA_GITHUB_APP\",\"appId\":\"111\",\"installationId\":\"222\"}"
+  }
+}
