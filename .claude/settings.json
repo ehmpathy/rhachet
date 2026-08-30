@@ -253,17 +253,6 @@
         ]
       },
       {
-        "matcher": "Write|Edit|Read|NotebookEdit|Grep|Glob|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-cross-repo-access",
-            "timeout": 5,
-            "author": "repo=ehmpathy/role=mechanic"
-          }
-        ]
-      },
-      {
         "matcher": "Write|Edit|Bash",
         "hooks": [
           {

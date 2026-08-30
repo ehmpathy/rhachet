@@ -159,6 +159,36 @@ the trick: every circular reading (*"the reach this key reaches"*) comes from a 
 where `territory` was the object. swap to **"cut for" / "cut at"** — the term's own locksmith
 idiom — and the sentence names the axis once, with no second noun owed.
 
+## ⚠️ the never-derived invariant — say it in HUMAN words, never mechanism words
+
+the reach axis carries one invariant a human meets head-on: **a key must be cut at the reach you
+ask for; a reach-ask never falls back to the reachless key.** which WORDS carry that invariant is a
+settled choice, because it shipped worded wrong.
+
+| where | say |
+|-------|-----|
+| copy a human reads (a cli refusal, an sdk `message`) | **"each reach needs its own key"** |
+| dev prose (a comment, a `.why`, a brief, a test name) | "a reach is never derived" — fine, and used widely |
+
+⚠️ **"a reach is never derived" shipped in published copy, at two sites, and was removed
+(2026-08-28).** it named the MECHANISM — the absent fallback lookup — which is true of the code and
+opaque to the human handed it. the tree renders the found slug one line BELOW the refusal, so the
+question a human actually asks is *"you just printed it, why not use it?"*. the human words answer
+that; the mechanism words do not.
+
+the boundary is checkable: `derive` appears ~239 times in dev prose across `src/` and **zero** times
+in the output a human reads. that asymmetry is the rule, not an accident.
+
+⚠️ **why the invariant must be said at all**, rather than a bare "not found": the SIBLING axis DOES
+derive. the `env=all` fallback resolves a key across envs (`unlockKeyrackKeys.ts`), so a human who
+learned that behavior reasonably expects the same of a reach. absent the WHY, the refusal reads as a
+lookup defect rather than a deliberate one. say the invariant once — and let the `hint:` / `fix:`
+leaf carry the fix, never a second prose copy of it.
+
+⚠️ **`derive` gets no cluster of its own, deliberately.** it is plain english this repo did not
+coin, so a `term=derive` would be the over-reach this glossary's readme warns of. what is repo-born
+is the FACT above — which is why it lives here, in the term it addresses.
+
 ## .refs
 where the term is declared / used, plus notable examples:
 - `.behavior/v2026_07_31.feat-keyrack-unlock-scope/1.vision.yield.md`  # coined here (vision)
