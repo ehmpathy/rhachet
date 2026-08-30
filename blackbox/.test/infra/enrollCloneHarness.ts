@@ -310,18 +310,36 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   const serial = reach.groups!.serial!;
 
   // claude shows a one-time folder-trust menu for a fresh dir before it boots ("Is this
-  // a project you trust?", option 1 "Yes, I trust this folder" pre-selected). a
-  // ~/.claude.json pre-accept CAN clear it, but a nested claude session races that write
-  // and clobbers it, so the robust path is to drive the menu the way a human does: race
-  // the trust prompt against the welcome box, and if the menu appears, confirm it with
-  // an Enter through the outer pty. the menu text is drawn char-by-char with `[1C`
-  // cursor-move escapes between words, so "trust this folder" is NOT contiguous; the
-  // header "you trust?" gives a reliable contiguous literal to match.
+  // a project you created or one you trust?"). a ~/.claude.json pre-accept CAN clear it,
+  // but a nested claude session races that write and clobbers it, so the robust path is
+  // to drive the menu the way a human does: race the trust prompt against the welcome
+  // box, and if the menu appears, pick the trust option through the outer pty. the menu
+  // text is drawn word-by-word with `[NNG` cursor-move escapes between words, so
+  // "trust this folder" is NOT contiguous; the header "you trust?" gives a reliable
+  // contiguous literal to match.
   const gate = await bg.waitForOutput({
     pattern: /trust\?|Welcome/,
     timeoutMs: input.timeoutMs ?? 120000,
   });
-  if (!gate[0].includes('Welcome')) bg.write('\r');
+  if (!gate[0].includes('Welcome')) {
+    // ⚠️ the SELECTED option is NOT stable across claude versions, so never assume a
+    //    pre-selection. a build that pre-approves many tool permissions renders the
+    //    safe refusal first — `❯ No, exit`, with `Yes, I trust this folder` below it —
+    //    and a bare Enter then confirms the EXIT, so claude never boots and the
+    //    `/Welcome/` wait below times out with no clue why. read WHICH option carries
+    //    the `❯` cursor instead, then step onto the trust option before the Enter.
+    // .note = wait for the trust OPTION to render before the cursor is read — the
+    //         `trust?` header prints first, and the option list follows. the option
+    //         words carry `[NNG` escapes between them, but no newline, so a
+    //         same-line match spans them.
+    await bg.waitForOutput({
+      pattern: /Yes,[^\r\n]*folder/,
+      timeoutMs: 30000,
+    });
+    const cursorSitsOnRefusal = /❯[^\r\n]*No,/.test(bg.getOutput());
+    if (cursorSitsOnRefusal) bg.write('\u001b[B'); // ↓ onto "Yes, I trust this folder"
+    bg.write('\r');
+  }
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
