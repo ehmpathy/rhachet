@@ -300,12 +300,17 @@ const driveTrustMenus = async (input: {
     return (output.slice(at, at + 200).split(/[\r\n]/)[0] ?? '').includes('Yes,');
   };
 
-  // the menu is ON SCREEN when its confirm footer is among the last bytes drawn. the
-  // buffer only ever grows, so a tail read is what distinguishes "menu up now" from
-  // "menu was up earlier".
+  // the menu is ON SCREEN when its cursor, its trust option, and its confirm footer are
+  // all among the last bytes drawn. the buffer only ever grows, so a tail read is what
+  // distinguishes "menu up now" from "menu was up earlier".
+  // ⚠️ NEVER match a multi-word literal here. the menu draws each word with a `[NNG`
+  //    cursor-move between, so `to confirm` and `trust this folder` are NOT contiguous
+  //    in the stream — a plain `.includes()` on either silently never matches, and the
+  //    loop then sits on its hands for the whole timeout. match single words, or span
+  //    the escapes with a same-line `[^\r\n]*`.
   const menuIsOnScreen = (): boolean => {
     const tail = input.bg.getOutput().slice(-1500);
-    return tail.includes('to confirm') && tail.includes('trust this folder');
+    return /❯/.test(tail) && /confirm/.test(tail) && /Yes,[^\r\n]*folder/.test(tail);
   };
 
   const deadline = Date.now() + (input.timeoutMs ?? 120000);
