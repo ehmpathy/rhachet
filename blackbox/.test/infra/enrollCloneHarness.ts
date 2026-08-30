@@ -268,6 +268,21 @@ export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
 };
 
 /**
+ * .what = the marks a real claude draws once its tui is up and its input reader is armed
+ * .why = the readiness signal must survive a banner redesign, so it names SEVERAL marks
+ *   any one of which proves the tui took over, rather than one word that a release can
+ *   retire. claude v1 opened with a "Welcome" box; v2.1.251 opens with a version banner
+ *   (`Claude Code` / `Haiku 4.5 · API Usage Billing` / cwd), an input box, and a mode
+ *   footer (`⏸ manual mode on · ← for agents`) — and holds no "Welcome" at all.
+ *
+ *   ⚠️ every alternative here is ONE contiguous token in the pty stream. the tui draws
+ *      each word with a `[NNG` cursor-move between, so a multi-word literal like
+ *      `Claude Code v` never matches. verify any new mark against a raw capture before
+ *      it is added, never against the rendered screen.
+ */
+const CLAUDE_IS_READY = /Welcome|API Usage Billing|manual mode on/;
+
+/**
  * .what = drive claude's folder-trust menu(s) through the outer pty until the brain boots
  * .why = a fresh dir raises a one-time trust menu before claude boots. a
  *   `~/.claude.json` pre-accept CAN clear it, but a nested claude session races that
@@ -317,7 +332,7 @@ const driveTrustMenus = async (input: {
   // .note = deliberate mutation — a pty is driven over time, so the loop MUST carry the
   //   prior byte count to tell a quiet stream from a live one. bounded to this closure.
   let lengthPrior = -1;
-  while (!/Welcome/.test(input.bg.getOutput()) && Date.now() < deadline) {
+  while (!CLAUDE_IS_READY.test(input.bg.getOutput()) && Date.now() < deadline) {
     const output = input.bg.getOutput();
     const streamIsQuiet = output.length === lengthPrior;
     lengthPrior = output.length;
@@ -375,27 +390,26 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   const serial = reach.groups!.serial!;
 
   // claude shows a one-time folder-trust menu for a fresh dir before it boots ("Is this
-  // a project you created or one you trust?"). a ~/.claude.json pre-accept CAN clear it,
-  // but a nested claude session races that write and clobbers it, so the robust path is
-  // to drive the menu the way a human does: race the trust prompt against the welcome
-  // box, and if the menu appears, pick the trust option through the outer pty. the menu
-  // text is drawn word-by-word with `[NNG` cursor-move escapes between words, so
+  // a project you created or one you trust?"). race that menu against the ready marks —
+  // whichever lands first says whether the menu must be driven at all. the menu text is
+  // drawn word-by-word with `[NNG` cursor-move escapes between words, so
   // "trust this folder" is NOT contiguous; the header "you trust?" gives a reliable
   // contiguous literal to match.
   const gate = await bg.waitForOutput({
-    pattern: /trust\?|Welcome/,
+    pattern: new RegExp(`trust\\?|${CLAUDE_IS_READY.source}`),
     timeoutMs: input.timeoutMs ?? 120000,
   });
-  if (!gate[0].includes('Welcome')) await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
+  if (gate[0].includes('trust?'))
+    await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
   // buffers it as literal text; a booted claude discards a burst). so wait for claude's
-  // OWN readiness marker — its welcome box renders "Welcome" — then a short settle, so
-  // the reach `say` types into a ready reader. a signal, not a fixed delay (claude boot
-  // time varies run to run). the stub prints no such box, so this is real-claude-only.
+  // OWN readiness marks — then a short settle, so the reach `say` types into a ready
+  // reader. a signal, not a fixed delay (claude boot time varies run to run). the stub
+  // draws no such banner, so this is real-claude-only.
   await bg.waitForOutput({
-    pattern: /Welcome/,
+    pattern: CLAUDE_IS_READY,
     timeoutMs: input.timeoutMs ?? 120000,
   });
   await new Promise<void>((done) => setTimeout(done, 2000));
