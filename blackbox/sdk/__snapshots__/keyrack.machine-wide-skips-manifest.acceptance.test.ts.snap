@@ -68,7 +68,7 @@ exports[`keyrack machine-wide skips manifest (sdk) given: [case1] a repo whose k
 
 exports[`keyrack machine-wide skips manifest (sdk) given: [case1] a repo whose keyrack.yml extends an absent file when: [t2] the ask is repo-scoped, with NO org named — THE GUARD then: the refusal a consumer catches is snapped 1`] = `
 "error.name: Error
-error.message: BadRequestError: extended keyrack not found
+error.message: ✋ ConstraintError: extended keyrack not found
 
 {
   "path": ".agent/does-not-exist/keyrack.yml",

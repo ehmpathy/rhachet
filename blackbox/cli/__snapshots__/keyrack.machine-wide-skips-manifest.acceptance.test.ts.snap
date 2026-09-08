@@ -61,30 +61,24 @@ exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack
 
 exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t4] a REPO-scoped key is read from the same repo — THE GUARD then: the refusal render matches snapshot 1`] = `
 "
-BadRequestError: extended keyrack not found
-
-{
-  "path": ".agent/does-not-exist/keyrack.yml",
-  "absolutePath": "/TMP_REPO/.agent/does-not-exist/keyrack.yml",
-  "from": "/TMP_REPO/.agent/keyrack.yml"
-}
-
-[args] keyrack,get,--key,REPO_KEY,--env,test
+🔐 keyrack get
+   └─ ✋ ConstraintError: extended keyrack not found
+      ├─ path: .agent/does-not-exist/keyrack.yml
+      ├─ absolutePath: /TMP_REPO/.agent/does-not-exist/keyrack.yml
+      ├─ from: /TMP_REPO/.agent/keyrack.yml
+      └─ ran: keyrack get --key REPO_KEY --env test
 
 "
 `;
 
 exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t5] a repo SWEEP is asked from the same repo — THE GUARD then: the refusal render matches snapshot 1`] = `
 "
-BadRequestError: extended keyrack not found
-
-{
-  "path": ".agent/does-not-exist/keyrack.yml",
-  "absolutePath": "/TMP_REPO/.agent/does-not-exist/keyrack.yml",
-  "from": "/TMP_REPO/.agent/keyrack.yml"
-}
-
-[args] keyrack,get,--for,repo,--env,test
+🔐 keyrack get
+   └─ ✋ ConstraintError: extended keyrack not found
+      ├─ path: .agent/does-not-exist/keyrack.yml
+      ├─ absolutePath: /TMP_REPO/.agent/does-not-exist/keyrack.yml
+      ├─ from: /TMP_REPO/.agent/keyrack.yml
+      └─ ran: keyrack get --for repo --env test
 
 "
 `;

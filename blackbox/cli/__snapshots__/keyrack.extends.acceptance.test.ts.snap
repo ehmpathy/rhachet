@@ -92,33 +92,23 @@ exports[`keyrack extends given: [case4] repo with deep extends chain (A extends 
 
 exports[`keyrack extends given: [case5] repo with extends that points to non-existent file when: [t0] keyrack.yml modified to extend non-existent file then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: extended keyrack not found
-
-{
-  "path": ".agent/does-not-exist/keyrack.yml",
-  "absolutePath": "/TMP_REPO/.agent/does-not-exist/keyrack.yml",
-  "from": "/TMP_REPO/.agent/keyrack.yml"
-}
-
-[args] keyrack,get,--for,repo,--env,test,--json
+🔐 keyrack get
+   └─ ✋ ConstraintError: extended keyrack not found
+      ├─ path: .agent/does-not-exist/keyrack.yml
+      ├─ absolutePath: /TMP_REPO/.agent/does-not-exist/keyrack.yml
+      ├─ from: /TMP_REPO/.agent/keyrack.yml
+      └─ ran: keyrack get --for repo --env test --json
 
 "
 `;
 
 exports[`keyrack extends given: [case6] repo with circular extends chain when: [t0] keyrack.yml modified to have self-referential extends then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: circular extends detected in keyrack chain
-
-{
-  "manifestPath": "/TMP_REPO/.agent/pathA/keyrack.yml",
-  "visitedPaths": [
-    "/TMP_REPO/.agent/keyrack.yml",
-    "/TMP_REPO/.agent/pathA/keyrack.yml",
-    "/TMP_REPO/.agent/pathB/keyrack.yml"
-  ]
-}
-
-[args] keyrack,get,--for,repo,--env,test,--json
+🔐 keyrack get
+   └─ ✋ ConstraintError: circular extends detected in keyrack chain
+      ├─ manifestPath: /TMP_REPO/.agent/pathA/keyrack.yml
+      ├─ visitedPaths: /TMP_REPO/.agent/keyrack.yml, /TMP_REPO/.agent/pathA/keyrack.yml, /TMP_REPO/.agent/pathB/keyrack.yml
+      └─ ran: keyrack get --for repo --env test --json
 
 "
 `;
