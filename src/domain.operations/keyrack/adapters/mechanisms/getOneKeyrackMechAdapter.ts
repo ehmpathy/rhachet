@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 
 import type {
   KeyrackGrantMechanism,
@@ -48,4 +48,8 @@ export const getOneKeyrackMechAdapter = (
   mech: KeyrackGrantMechanism,
 ): KeyrackGrantMechanismAdapter =>
   KEYRACK_MECH_ADAPTERS[mech] ??
-  UnexpectedCodePathError.throw(`no adapter for mech: ${mech}`, { mech });
+  // .why = a declared mech with no adapter is an internal invariant break; the server fixes it
+  MalfunctionError.throw(`no adapter for mech: ${mech}`, {
+    mech,
+    mechsWithAdapter: Object.keys(KEYRACK_MECH_ADAPTERS),
+  });

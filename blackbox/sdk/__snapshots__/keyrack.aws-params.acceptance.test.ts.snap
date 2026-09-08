@@ -15,6 +15,6 @@ exports[`keyrack vault aws.params read (sdk) given: [case2] an aws.params key re
 🔐 keyrack
    └─ @all.test.SDK_AWS_PARAMS_LOCKED
       ├─ status: locked 🔒
-      └─ tip: rhx keyrack unlock --owner mechanic --env test --key SDK_AWS_PARAMS_LOCKED
+      └─ tip: rhx keyrack unlock --owner mechanic --env test --key SDK_AWS_PARAMS_LOCKED --org @all
 "
 `;

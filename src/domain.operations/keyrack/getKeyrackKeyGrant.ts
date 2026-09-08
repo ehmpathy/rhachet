@@ -15,6 +15,7 @@ import { daemonAccessGet } from './daemon/sdk';
 import { decideIsKeySlugEqual } from './decideIsKeySlugEqual';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
+import { isKeyrackSlugMachineWide } from './isKeyrackSlugMachineWide';
 
 /**
  * .what = attempt to grant a single key from unlocked sources
@@ -118,6 +119,14 @@ const attemptGrantKey = async (
     const reachFlag = reach
       ? ` --reach ${asKeyrackKeyReachExid({ reach })}`
       : '';
+    // ⚠️ the org rides through for the SAME reason the reach does (see the note above). a
+    //    machine-wide slug's fix line WITHOUT `--org @all` names `<repoOrg>.<env>.<key>` —
+    //    a DIFFERENT key than the one asked for, since `set` defaults org to the repo's.
+    //    a fix line that lands where the ask cannot reach is worse than no fix line at all
+    //    (`rule.require.errors-name-the-fix`, `term=peer`)
+    // .note = only `@all` is spelled. a real org (`ehmpathy.prep.FOO`) is already what `set`
+    //         defaults to from the manifest, so to spell it would add noise, never reach
+    const orgFlag = isKeyrackSlugMachineWide({ slug }) ? ' --org @all' : '';
     const atReach = reach
       ? ` at reach '${asKeyrackKeyReachExid({ reach })}'`
       : '';
@@ -132,7 +141,7 @@ const attemptGrantKey = async (
         slug,
         ...asKeyrackKeyReachField({ reach }),
         message: `credential '${slug}'${atReach} is locked. unlock it first.`,
-        fix: `rhx keyrack unlock ${ownerFlag}--env ${envFromSlug} --key ${asKeyrackKeyName({ slug })}${reachFlag}`,
+        fix: `rhx keyrack unlock ${ownerFlag}--env ${envFromSlug} --key ${asKeyrackKeyName({ slug })}${orgFlag}${reachFlag}`,
       };
     }
     return {
@@ -152,7 +161,7 @@ const attemptGrantKey = async (
       message: `credential '${slug}'${atReach} does not exist.${
         reach ? ' each reach needs its own key.' : ' set it first.'
       }`,
-      fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}${reachFlag}`,
+      fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}${orgFlag}${reachFlag}`,
     };
   }
 

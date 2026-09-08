@@ -46,7 +46,17 @@ export const emitKeyrackBlockedReport = <
   command: string;
 }): void => {
   console.error(
-    getKeyrackBlockedReport({ error: input.error, command: input.command }),
+    getKeyrackBlockedReport({
+      error: input.error,
+      command: input.command,
+      // ⚠️ .why = the argv is read HERE, at the one boundary that owns the process, and handed
+      //    to the pure renderer. a human reads a refusal minutes after they typed it — often
+      //    from a scrollback or a CI log where the command is long gone — so the refusal must
+      //    carry its own reproduction (`rule.require.refusals-carry-context`)
+      // .note = `slice(2)` drops the node binary and the entrypoint path, so the echo reads as
+      //         the command a human typed rather than as an execve trace
+      invocation: process.argv.slice(2),
+    }),
   );
   // caller-fixable fault: exit 2 (see rule.require.exit-code-semantics)
   process.exitCode = 2;

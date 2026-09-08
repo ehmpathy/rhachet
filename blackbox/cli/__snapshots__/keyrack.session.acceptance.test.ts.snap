@@ -3,7 +3,9 @@
 exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t0] unlock names a reach but no key then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+   └─ ✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      ├─ reach: beav@ehmpathy.com
+      ├─ ran: keyrack unlock --env test --reach beav@ehmpathy.com
       └─ hint: name the key — rhx keyrack unlock --env test --key $KEY --reach beav@ehmpathy.com
 
 "
@@ -14,7 +16,9 @@ exports[`keyrack session commands given: [case4] a reach named without the key i
 exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t1] get names a reach across a whole-repo sweep then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
 "
 🔐 keyrack get
-   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+   └─ ✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      ├─ reach: beav@ehmpathy.com
+      ├─ ran: keyrack get --for repo --reach beav@ehmpathy.com
       └─ hint: name the key — rhx keyrack get --key $KEY --reach beav@ehmpathy.com
 
 "
@@ -25,7 +29,9 @@ exports[`keyrack session commands given: [case4] a reach named without the key i
 exports[`keyrack session commands given: [case4] a reach named without the key it belongs to when: [t2] get names a reach AND the key, across a whole-repo sweep then: the refusal renders the whole blocked tree: stderr: stderr 1`] = `
 "
 🔐 keyrack get
-   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+   └─ ✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      ├─ reach: beav@ehmpathy.com
+      ├─ ran: keyrack get --for repo --key API_KEY --reach beav@ehmpathy.com
       └─ hint: drop --for repo — a reach is an identity axis of one key, and --for repo sweeps every key in the repo. rhx keyrack get --key API_KEY --reach beav@ehmpathy.com
 
 "
@@ -36,9 +42,11 @@ exports[`keyrack session commands given: [case4] a reach named without the key i
 exports[`keyrack session commands given: [case5] a key held reachless, asked for at a reach never cut when: [t0] unlock names a reach that was never cut then: the whole blocked tree is snapped: stderr: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: credential at reach 'beav@ehmpathy.com' does not exist — each reach needs its own key
+   └─ ✋ ConstraintError: no key is set for reach 'beav@ehmpathy.com': a reach is never derived — a key must be cut at the reach you ask for
       ├─ repo: testorg.test.UNCUT_REACH_KEY
-      └─ hint: cut the key — rhx keyrack set --key UNCUT_REACH_KEY --env test --reach beav@ehmpathy.com
+      ├─ reach: beav@ehmpathy.com
+      ├─ ran: keyrack unlock --key UNCUT_REACH_KEY --env test --reach beav@ehmpathy.com
+      └─ hint: cut the key — rhx keyrack set --env test --key UNCUT_REACH_KEY --reach beav@ehmpathy.com
 
 "
 `;

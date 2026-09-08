@@ -49,16 +49,55 @@ const envLive = (input: {
  *
  * .scope = the CLI contract layer; the live SSM read/write is proven in the adapter
  *   + communicator integration tests (real backend, no mock)
+ *
+ * .backend = the stand-in this suite dials is a BACKEND SWAP, never a mock — the real
+ *   `@aws-sdk/client-ssm` really serializes, really SigV4-signs, really POSTs; only the remote
+ *   service is local. the swap seam itself is clamped at
+ *   `src/domain.operations/keyrack/adapters/vaults/aws.params/getOneKeyrackAwsParam.emulator.integration.test.ts`,
+ *   whose header argues why (an SDK bump that drops `AWS_ENDPOINT_URL_SSM` would otherwise dial
+ *   real AWS and hang, and every snapshot below would be a lie).
+ *
+ * .gap = what the rows in THIS suite do not re-prove is the wire hop to the aws service itself.
+ *   every row here dials the stand-in, so a real parameter-shape change or a reworded iam refusal
+ *   would pass all of them. the emulator tier is that same stand-in, so it is not the real-aws
+ *   backstop a reader might assume from `.scope` alone.
+ *
+ * ⚠️ .gap.bound = that gap bounds this TIER, never the repo. the wire hop is covered one tier
+ *   down by four suites that dial REAL ssm — each passes `endpoint: null`, and none appears at any
+ *   `KEYRACK_AWS_SSM_ENDPOINT` call site, so the override cannot reach them:
+ *     - `getOneKeyrackAwsParam.integration.test.ts` — provisions its own SecureString, reads it
+ *       back decrypted, asserts value + type, tears it down
+ *     - `delKeyrackAwsParam.integration.test.ts` — the real destroy, a confirm-gone read, and an
+ *       idempotent re-del
+ *     - `vaultAdapterAwsParams.integration.test.ts` — unlock → get → grant, plus the real
+ *       absent-param and plaintext-`String` refusals
+ *     - `setKeyrackAwsParamGithubApp.integration.test.ts` — the real write path
+ *   so `.scope`'s "proven in the adapter + communicator integration tests" is literal rather than
+ *   aspirational, and this note AGREES with it. a prior draft of this note claimed no repo test
+ *   dialed real ssm — which contradicted the `.scope` line six lines above it, and was false. an
+ *   unbounded "no test does X" reads as a survey of the repo when it surveys only one file
  */
 describe('keyrack vault aws.params (cli)', () => {
   // the replica roundtrip cases touch the daemon (unlock pushes, get reads); clear any prior
   // daemon state so a stale grant cannot mask a regression
   beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
 
+  /**
+   * ⚠️ .why.scene = these two rows assert on the MECH refusal, so the run must REACH it. with a
+   *        bare temp repo they refused at `host manifest not found` — three guards above the mech
+   *        check — and both rows stayed green, because every assertion they carried was satisfied
+   *        by any failure at all: `not.toContain('invalid --vault')` passes when the run refuses
+   *        for an unrelated cause, and `status !== 0` passes on a crash.
+   * ⚠️ .why.masked = the two snapshots LOOKED distinct under the old raw dump, because its `[args]`
+   *        trailer echoed each row's own `--mech` value. strip the trailer and they collapse to
+   *        identical text — which is the signal that neither row ever reached its subject. an echo
+   *        can hide a vacuous row as easily as it can help a human reproduce a real one
+   *        (`rule.require.refusals-carry-context`, `rule.forbid.failhide`).
+   * .note = `--org testorg` + `--key XAI_API_KEY` match the fixture manifest, so no org guard and
+   *        no absent-key guard fire above the mech check either
+   */
   given('[case1] the aws.params vault is a valid --vault value', () => {
-    const repo = useBeforeAll(async () =>
-      genTestTempRepo({ fixture: 'with-keyrack-manifest' }),
-    );
+    const repo = useBeforeAll(async () => genAwsParamsScene());
 
     when('[t0] keyrack set with an unsupported --mech for aws.params', () => {
       const result = useBeforeAll(async () =>
@@ -67,7 +106,7 @@ describe('keyrack vault aws.params (cli)', () => {
             'keyrack',
             'set',
             '--key',
-            'TEST',
+            'XAI_API_KEY',
             '--vault',
             'aws.params',
             '--mech',
@@ -77,7 +116,7 @@ describe('keyrack vault aws.params (cli)', () => {
             '--env',
             'test',
             '--org',
-            'ehmpathy',
+            'testorg',
           ],
           cwd: repo.path,
           env: { HOME: repo.path, AWS_REGION: 'us-east-1' },
@@ -91,6 +130,14 @@ describe('keyrack vault aws.params (cli)', () => {
 
       then('exits non-zero (the mech is what fails, not the vault)', () => {
         expect(result.status).not.toEqual(0);
+      });
+
+      // ⛔ THE ANTI-VACUITY CLAMP. without this the row passes on ANY refusal — which is exactly
+      //    how it read green while it refused at `host manifest not found`
+      then('it refuses ON THE MECH, and names the supported set', () => {
+        expect(result.stderr).toContain('EPHEMERAL_VIA_AWS_SSO');
+        expect(result.stderr).toContain('PERMANENT_VIA_REPLICA');
+        expect(result.stderr).not.toContain('host manifest not found');
       });
 
       then('stderr matches snapshot', () => {
@@ -108,7 +155,7 @@ describe('keyrack vault aws.params (cli)', () => {
             'keyrack',
             'set',
             '--key',
-            'TEST',
+            'XAI_API_KEY',
             '--vault',
             'aws.params',
             '--mech',
@@ -118,7 +165,7 @@ describe('keyrack vault aws.params (cli)', () => {
             '--env',
             'test',
             '--org',
-            'ehmpathy',
+            'testorg',
           ],
           cwd: repo.path,
           env: { HOME: repo.path, AWS_REGION: 'us-east-1' },
@@ -132,6 +179,14 @@ describe('keyrack vault aws.params (cli)', () => {
 
       then('exits non-zero (reference is not a supported aws.params mech)', () => {
         expect(result.status).not.toEqual(0);
+      });
+
+      // ⛔ the twin anti-vacuity clamp — and the one that makes the two rows distinguishable by
+      //    their message rather than by an echoed flag
+      then('it refuses ON THE MECH, and names the supported set', () => {
+        expect(result.stderr).toContain('PERMANENT_VIA_REFERENCE');
+        expect(result.stderr).toContain('PERMANENT_VIA_REPLICA');
+        expect(result.stderr).not.toContain('host manifest not found');
       });
 
       then('stderr matches snapshot', () => {

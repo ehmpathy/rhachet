@@ -237,7 +237,11 @@ exports[`keyrack set given: [case7] one key name, cut at two reaches when: [t6] 
 exports[`keyrack set given: [case8] a reach aimed at a vault that cannot file one when: [t0] set --vault github.secrets with a --reach then: the whole blocked tree is snapped: stderr: stderr 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: --reach does not apply to github.secrets: its storage address carries no reach, so a second reach of this key would overwrite the first, and a credential would be lost with no signal
+   └─ ✋ ConstraintError: --reach does not apply to github.secrets: its storage address carries no reach, so a second reach of this key would overwrite the first, and a credential would be lost with no signal
+      ├─ reach: beav@ehmpathy.com
+      ├─ vault: github.secrets
+      ├─ direction: write
+      ├─ ran: keyrack set --key CI_BLOB_KEY --env test --vault github.secrets --mech PERMANENT_VIA_REPLICA --reach beav@ehmpathy.com
       └─ hint: ci holds blobs, never reaches — supply the target reach's credential under its own name, then ask for it without --reach
 
 "

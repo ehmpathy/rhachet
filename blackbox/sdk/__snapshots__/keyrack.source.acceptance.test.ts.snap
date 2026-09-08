@@ -36,8 +36,9 @@ exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted)
 exports[`keyrack.source given: [case3] no keyrack.yml in repo (no keys required) when: [t0] rhx keyrack get --json called then: stderr matches snapshot 1`] = `
 "
 🔐 keyrack get
-   └─ ✋ blocked: no keyrack.yml found in repo. --for repo requires keyrack.yml
-      └─ hint: create keyrack.yml in repo root with env and key definitions
+   └─ ✋ ConstraintError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      ├─ ran: keyrack get --for repo --env test --json
+      └─ hint: run: rhx keyrack init --org <your-org>
 
 "
 `;
@@ -165,6 +166,17 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 "lenient key filter completed
 key1: undefined
 "
+`;
+
+exports[`keyrack.source given: [case9] keyrack.source() SDK asked for a reach when: [t0] a reach rides a BULK source, with no key named then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack.source given: [case9] keyrack.source() SDK asked for a reach when: [t0] a reach rides a BULK source, with no key named then: the refusal render on stderr matches snapshot 1`] = `
+"✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+
+{
+  "reach": "beav@ehmpathy.com",
+  "hint": "name the key too: sourceAllKeysIntoEnv({ key, reach })"
+}"
 `;
 
 exports[`keyrack.source given: [case9] keyrack.source() SDK asked for a reach when: [t1] the same bulk source omits the reach then: stderr matches snapshot 1`] = `""`;

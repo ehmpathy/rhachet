@@ -96,7 +96,10 @@ exports[`keyrack source reach given: [case1] one slug held at two reaches at onc
 exports[`keyrack source reach given: [case2] one key name declared under two envs when: [t0] every env is unlocked, then sourced together then: the reply is snapped: stderr 1`] = `
 "
 🔐 keyrack source
-   └─ ✋ blocked: two keys would both export 'SHARED_API_KEY': 'testorg.prod.SHARED_API_KEY' and 'testorg.prep.SHARED_API_KEY' — a shell variable name carries neither env nor reach, so the second would silently overwrite the first
+   └─ ✋ ConstraintError: two keys would both export 'SHARED_API_KEY': 'testorg.prod.SHARED_API_KEY' and 'testorg.prep.SHARED_API_KEY' — a shell variable name carries neither env nor reach, so the second would silently overwrite the first
+      ├─ keyName: SHARED_API_KEY
+      ├─ addresses: testorg.prod.SHARED_API_KEY, testorg.prep.SHARED_API_KEY
+      ├─ ran: keyrack source --env all --lenient
       └─ hint:
          ├─ source one env at a time
          └─ narrow --env, or use --key to name one
@@ -109,7 +112,9 @@ exports[`keyrack source reach given: [case2] one key name declared under two env
 exports[`keyrack source reach given: [case3] a reach named on a sweep, with no key to anchor it when: [t0] source is asked for a reach but given no key then: the reply is snapped: stderr 1`] = `
 "
 🔐 keyrack source
-   └─ ✋ blocked: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+   └─ ✋ ConstraintError: --reach requires a key: a reach is an identity axis of ONE key, so it is meaningless across a sweep
+      ├─ reach: beav@ehmpathy.com
+      ├─ ran: keyrack source --env test --reach beav@ehmpathy.com
       └─ hint: name the key — rhx keyrack source --env test --key $KEY --reach beav@ehmpathy.com
 
 "

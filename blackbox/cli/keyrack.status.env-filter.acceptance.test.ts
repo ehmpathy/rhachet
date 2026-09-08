@@ -5,7 +5,10 @@ import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { envIsolated } from '../.test/infra/envIsolated';
 import { genTestTempRepo } from '../.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '../.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '../.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '../.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -401,6 +404,59 @@ env.prep:
 
       then('stdout matches snapshot', () => {
         expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    /**
+     * .what = the SAME cold daemon, asked with `--json` — the robot twin of `[t0]`
+     * .why = the two surfaces answer this state differently and only one of them was proven.
+     *        `[t0]`'s human render says "daemon: not found" in prose; the json render is the
+     *        bare literal `null`, which a caller cannot tell apart from "the filter matched
+     *        no keys" — a state that reads `{ "keys": [] }`. so the cause is carried out of
+     *        band, on stderr, and this row is the only place the SPLIT is proven end to end:
+     *        that the notice reaches a human AND that stdout stayed parseable while it did
+     * .note = the emitter has a unit clamp (`emitKeyrackDaemonAbsentNotice.test.ts`), but a
+     *        unit clamp cannot see whether the orchestrator routed it to the right stream, or
+     *        called it at all on this branch (`rule.require.acceptance-journey-coverage`)
+     */
+    when('[t1] the SAME cold daemon is asked with --json', () => {
+      const result = useThen('command succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'status', '--env', 'test', '--json'],
+          cwd: repo.path,
+          env: envIsolated(repo.path),
+        }),
+      );
+
+      then('exit code is 0 — a cold daemon is an ordinary answer', () => {
+        expect(result.status).toBe(0);
+      });
+
+      then('stdout is still valid json, and still the bare null', () => {
+        // ⚠️ the guard row. every `jq` caller of `status --json` breaks if one guidance byte
+        //    lands here, which is strictly worse than the silent null the notice repairs
+        expect(JSON.parse(result.stdout)).toEqual(null);
+      });
+
+      then('stderr names the cause, and tells it from an empty filter', () => {
+        const said = result.stderr;
+        expect(said).toContain('no daemon was found');
+        // the disambiguation is the payload: `null` means no daemon; an empty NARROW would
+        // have rendered `{ "keys": [] }` instead
+        expect(said).toContain('{ "keys": [] }');
+      });
+
+      then('stderr names a runnable fix', () => {
+        expect(result.stderr).toContain('rhx keyrack unlock');
+      });
+
+      then('the combined contract a caller and a human see is snapped', () => {
+        // both streams, labelled, so a reviewer reads the SPLIT itself in the pr — the two
+        // halves are only correct together (`rule.require.contract-snapshot-exhaustiveness`)
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });

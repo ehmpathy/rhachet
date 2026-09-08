@@ -91,10 +91,19 @@ describe('keyrack reach on the os.envvar vault', () => {
         // keyrack roots on its own lock, never the generic `🐚` nor a role mascot
         // (`rule.require.keyrack-emoji-palette`)
         expect(output).toContain('🔐 keyrack unlock');
-        expect(output).toContain('✋ blocked:');
+        expect(output).toContain('✋ ConstraintError:');
         expect(output).not.toContain('bummer dude');
         expect(output).not.toContain('🐢');
-        expect(output).not.toContain('ConstraintError');
+        // ⚠️ what is forbidden is the DUMP, never the CLASS NAME — and the two are told apart
+        //    by COLUMN, never by the token. the class is REQUIRED at the tree node (asserted
+        //    above); the dump is the same token at column 0, outside the tree it interrupted,
+        //    beside an `[args]` trailer (`rule.forbid.helpful-error-parents`)
+        // ⚠️ .why.anchored = this row read `not.toContain('ConstraintError')` until 2026-09-05
+        //    — a bare word ban, which forbids the class ANYWHERE and so encodes the exact
+        //    regression `rule.require.unabridged-error-prefix` grades a blocker. it passed only
+        //    while the node said `✋ blocked:`, so it was a clamp that HELD the defect in place
+        expect(output).not.toMatch(/^✋ ConstraintError:/m);
+        expect(output).not.toContain('[args]');
       });
 
       // ⚠️ THE clamp for WHERE the refusal lands, and it bit for real. the unlock batch wraps
@@ -107,7 +116,7 @@ describe('keyrack reach on the os.envvar vault', () => {
       //    the fix hoists the vault-posture assert ABOVE the isolation, where a static refusal
       //    belongs; this assertion names the invariant so a future re-sink goes red on WHY
       then('the refusal is on stderr, and stdout stays a result-only stream', () => {
-        expect(result.stderr).toContain('✋ blocked:');
+        expect(result.stderr).toContain('✋ ConstraintError:');
         expect(result.stdout.trim()).toEqual('');
         // the malfunction glyph must never mark a caller-fixable refusal
         expect(result.stdout + result.stderr).not.toContain('💥');

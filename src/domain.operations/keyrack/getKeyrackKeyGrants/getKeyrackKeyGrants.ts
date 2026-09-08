@@ -1,6 +1,5 @@
 import type { PickOne } from 'type-fns';
 
-import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGrantAttempt';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { asKeyrackKeyReachExid } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachExid';
@@ -14,6 +13,7 @@ import { genContextKeyrackGrantGet } from '../genContextKeyrackGrantGet';
 import { getAllKeyrackGrantsByRepo } from '../getAllKeyrackGrantsByRepo';
 import { getKeyrackKeyGrant } from '../getKeyrackKeyGrant';
 import { getOneKeyrackGrantByKey } from '../getOneKeyrackGrantByKey';
+import { getOneKeyrackRepoManifestForAsk } from '../getOneKeyrackRepoManifestForAsk';
 import { isKeyrackGrantAttemptLocked } from '../isKeyrackGrantAttemptLocked';
 import {
   asKeyrackAttemptAddress,
@@ -108,7 +108,12 @@ export const getKeyrackKeyGrants = async (input: {
   // (a credential helper from a bare clone) — a null gitroot yields a null repo manifest, and
   // the @all read path needs no repo manifest.
   const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
-  const contextGet = await genContextKeyrackGrantGet({ gitroot, owner });
+  const contextGet = await genContextKeyrackGrantGet({
+    gitroot,
+    owner,
+    for: selector,
+    org,
+  });
 
   // first pass: get every selected key from already-unlocked sources
   const attemptsInitial = await (async (): Promise<KeyrackGrantAttempt[]> => {
@@ -166,10 +171,15 @@ export const getKeyrackKeyGrants = async (input: {
   if (!lockedAttempts.length) return attemptsInitial;
 
   // build one shared heavy context so the host manifest decrypts at most once.
-  // a null gitroot (non-repo cwd) means no repo manifest — the @all unlock path handles it.
-  const repoManifest = gitroot
-    ? await daoKeyrackRepoManifest.get({ gitroot })
-    : null;
+  // .note = the SECOND load site on this path. it is skipped on the same two conditions as the
+  //         first (genContextKeyrackGrantGet): a null gitroot, or a machine-wide ask. to fix
+  //         only the first would leave the reported repro dead, since that repro passes
+  //         --unlock and this branch runs precisely when a key comes back locked
+  const repoManifest = await getOneKeyrackRepoManifestForAsk({
+    gitroot,
+    for: selector ?? null,
+    org: org ?? null,
+  });
   const contextUnlock = genContextKeyrack({ owner, repoManifest, gitroot });
 
   // derive each locked key's ADDRESS — its slug and the reach it asked for
@@ -188,6 +198,15 @@ export const getKeyrackKeyGrants = async (input: {
   );
 
   // assert an unlock identity is discoverable before the unlock loop runs
+  // ⚠️ .why.env-is-metadata = the `env ?? 'all'` here can DISAGREE with a full slug's own env
+  //        segment, which reads like a live divergence and has been raised as one. it is not:
+  //        `assertKeyrackUnlockIdentityAvailable` spends `env` in exactly ONE place — the
+  //        `metadata` bag of its `MalfunctionError.wrap` — and hands the dao `{ owner }` alone.
+  //        so no identity, manifest, or key is SELECTED by this value; it is a field that prints
+  //        only when the host manifest fails to load
+  // .note = the unlock below takes its env from the SLUG (`:215`), never from this value, so the
+  //        two cannot drift into a wrong unlock. to widen `env`'s role here without a re-read of
+  //        that line is what would turn this label into a gate
   await assertKeyrackUnlockIdentityAvailable(
     { owner, env: env ?? 'all', keys: lockedKeyNames },
     contextUnlock,

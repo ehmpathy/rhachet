@@ -32,6 +32,56 @@ when a self-review bounces:
    `howto.run-self-reviews`).
 4. **re-run** `rhx route.stone.set --stone <stone> --as promised --that <slug>`. repeat until it advances.
 
+## .what the guard asks for — a review that is NEW, not a review that is LONGER
+
+the guard file is sealed (`route.mutate.guard` denies read), so a driver cannot inspect what
+"barely rippled" measures. what it demands is legible from its own name:
+
+> **each level's review must differ from the PRIOR LEVEL's review** — r4 is read against r3, never
+> against the subject artifact.
+
+⚠️ that is the right demand. a level that repeats the prior level's angle has produced no new
+scrutiny, however much text it added — and a review's worth is the questions it asks, not the
+pages it fills. so what the gate wants is a **distinct lens**, and volume is no substitute.
+
+three consequences a driver cannot guess from the render alone:
+
+- **large edits to the SUBJECT do not satisfy it.** the subject is what you review; the gate reads
+  whether your review of it is new. improve the subject because it needs improvement, never to
+  clear this gate
+- **an append to an already-large `rN` cannot express a new lens.** a lens is the file's frame; a
+  paragraph tacked onto a file framed the old way carries the old frame still
+- **a rehash of the prior level's shape is a rehash**, whatever its file name
+
+### how to answer it honestly
+
+1. `rhx route.stone.set --stone <s> --as arrived` — takes a fresh snapshot
+2. pick a lens the prior level genuinely lacks (the table below), **run it against the artifact**,
+   and let the `rN` file be that lens's findings. it reads as a rewrite rather than an append
+   because a new frame yields a different document — never because a rewrite is a trick
+3. `rhx route.stone.set --stone <s> --as promised --that <slug>`
+
+⚠️ **the order is the whole of it: pick the lens, do the review, write what it found.** a file
+shaped to look new with no review behind it is a daydream (`howto.run-self-reviews`: "can
+articulate neither → you have not reviewed"), and it costs the one guarantee this gate protects —
+that each level truly examined what the last one did not.
+
+### a lens is distinct in KIND, not in phrasing
+
+each level must carry a genuinely new angle. lenses that have worked:
+
+| lens | the question it asks |
+|------|----------------------|
+| grounded-in-reality | are my citations real? did i open what i cited? |
+| converged-requirements ledger | did i read each requirement too narrowly? |
+| counterfactual stress-test | what if the opposite were true? |
+| decision-provenance log | who decided this, on what evidence? |
+| **exhaustive sweep** | walk EVERY section, one test each — proves completeness, not plausibility |
+| **falsification ledger** | for each answer i gave: what would prove it wrong, and who would catch it? |
+
+note the pattern: a strong lens **inverts** the prior one. r1–r3 hunt for wrong claims; a
+falsification ledger instead tests the *strength of the answers* those hunts produced.
+
 ## .a bounce does NOT demand an edit — only a true review
 
 the ripple wall ("the pond barely rippled") is easy to misread as "keep up deletions/changes until

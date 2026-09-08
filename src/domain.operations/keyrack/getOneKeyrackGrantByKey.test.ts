@@ -6,6 +6,27 @@ import { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getOneKeyrackGrantByKey } from './getOneKeyrackGrantByKey';
 
+/**
+ * ⚠️ .status = a KNOWN VIOLATION of `rule.forbid.unit.remote-boundaries`, recorded with its
+ *        remedy — never an exception. that rule grants none: its integration and acceptance
+ *        twins each carry a documented-unavoidable escape clause, and this one deliberately
+ *        does not. an earlier draft of this comment asserted an exemption the rule does not
+ *        offer; that claim was false and is withdrawn. what follows is why a deletion of the
+ *        mock does not cure the violation, and what would.
+ *
+ * .why.mock = the mock is LOAD-BEARING rather than decorative. `getOneKeyrackGrantByKey` reaches
+ *        `getKeyrackKeyGrant`, which imports `daemonAccessGet` directly; that operation derives
+ *        a socket path from the ambient `HOME` and probes it (`isDaemonReachable`). so with the
+ *        mock removed this unit test performs a real socket probe — and on a box where a keyrack
+ *        daemon IS live (every acceptance run spawns one) it would talk to it. that is the exact
+ *        remote boundary the rule forbids, so to delete the mock would introduce the defect
+ *        rather than repair it. verified, not assumed: removed here, the suite still passed —
+ *        which is precisely why a real probe would go unnoticed
+ * .note = the rule's preferred remedy is injection, and that needs a PROD seam this codebase
+ *         lacks: `daemonAccessGet` would have to arrive on `ContextKeyrackGrantGet` rather than
+ *         be imported. that is a real refactor of the grant context and its call sites, not a
+ *         test-file edit — recorded as a follow-on in `5.3.verification.yield.md`
+ */
 // mock daemon SDK to avoid real socket calls in unit tests
 jest.mock('./daemon/sdk', () => ({
   daemonAccessGet: jest.fn().mockResolvedValue(null),
@@ -217,6 +238,58 @@ describe('getOneKeyrackGrantByKey', () => {
         );
 
         expect((result as { slug: string }).slug).toBe('myorg.test.API_KEY');
+      });
+    });
+  });
+
+  /**
+   * .what = the clamp for `ONE decoder answers "is this a full slug?" at this call site`
+   * .why = this operation asked that question inline, TWICE, with its own hand-rolled
+   *        `parts.length >= 3 && isValidKeyrackEnv(parts[1])`. a second copy of a parser is
+   *        precisely how `isKeyrackSlugMachineWide` and `isKeyrackSlugRepoBound` came to
+   *        answer differently for one string. the rows below pin the shared decoder's answer
+   *        on BOTH branches that consult it, so a re-inline with a looser test goes red here
+   */
+  given('[case8] a dotted key whose env segment is NOT a valid env', () => {
+    when('[t0] the --org @all branch decodes it', () => {
+      // .why = `@all.badenv.FOO` LOOKS like a full slug and is not one. a looser test would
+      //        pass it through verbatim; the shared decoder composes it as a bare key NAME
+      //        that merely holds dots
+      then('it is composed as a bare name, never passed through', async () => {
+        const result = await getOneKeyrackGrantByKey(
+          { key: '@all.badenv.FOO', env: 'camp', org: '@all' },
+          genMockContext(null),
+        );
+
+        expect((result as { slug: string }).slug).toBe(
+          '@all.camp.@all.badenv.FOO',
+        );
+      });
+    });
+
+    when('[t1] the no-manifest branch decodes it', () => {
+      // .why = the SECOND site the check was spelled at. both branches must read one string
+      //        one way, which is only guaranteed while one decoder serves both
+      then('it is composed from --org, never passed through', async () => {
+        const result = await getOneKeyrackGrantByKey(
+          { key: 'my.api.KEY', env: 'test', org: 'myorg' },
+          genMockContext(null),
+        );
+
+        expect((result as { slug: string }).slug).toBe('myorg.test.my.api.KEY');
+      });
+    });
+
+    when('[t2] a VALID env rides the same shape', () => {
+      // .why = the paired row. without it, a decoder that called EVERY dotted key bare would
+      //        satisfy [t0] and [t1] and still be wrong
+      then('it IS a full slug, so it passes through verbatim', async () => {
+        const result = await getOneKeyrackGrantByKey(
+          { key: '@all.camp.FOO', env: null, org: '@all' },
+          genMockContext(null),
+        );
+
+        expect((result as { slug: string }).slug).toBe('@all.camp.FOO');
       });
     });
   });

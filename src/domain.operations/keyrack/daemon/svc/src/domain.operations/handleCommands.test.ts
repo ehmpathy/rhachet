@@ -2,7 +2,7 @@ import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus';
+import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 
 import { handleGetCommand } from './handleGetCommand';

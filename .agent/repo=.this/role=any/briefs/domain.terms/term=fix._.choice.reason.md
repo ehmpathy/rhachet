@@ -168,10 +168,98 @@ feeds* — `hint` was correct at each one. to have written `fix` would have manu
 `tip: attempt.fix` boundaries in new code. **the deferral is honored, and its price is now
 measured across three subsystems rather than one.**
 
+## ⚠️ .2026-09-04 — `note` vs `hint` is a SPLIT, not a synonym pair, and the confusion cost a defect
+
+the census above lists `hint` as a synonym of `fix` (beat 3). it does **not** list `note`, and this
+round proves why that omission is correct rather than an oversight: **`note` is beat 2.** the two
+metadata keys carry different beats of the same failure, and `getKeyrackBlockedReport` routes them
+to different places on purpose:
+
+| key | renders as | beat | position |
+|---|---|---|---|
+| `note` | `why: …` (`:58-59`) | 2 — the **cause** | a mid-branch leaf |
+| `hint` / `fix` | `hint: …` (`:129-134`) | 3 — the **remedy** | the leaf that ends the branch |
+
+so `note` and `hint` are **not** interchangeable, and a throw site that picks the wrong one does
+not merely choose an off-word — it **misfiles its content under the wrong beat**.
+
+### the defect that proved it
+
+`unlock`'s sudo guard carried its remedy under `note`, at both of its twin sites:
+
+```ts
+// invokeKeyrack.ts:1921  AND  getAllKeyrackSlugsForUnlock.ts:58
+throw new ConstraintError('sudo credentials require --key flag', {
+  note: 'run: rhx keyrack unlock --env sudo --key X',   // ⚠️ an imperative, under the CAUSE key
+});
+```
+
+which rendered as `why: run: rhx keyrack unlock …` — **a command labelled as a rationale.** every
+other `why:` in that render explains a cause. its twin one verb over, `source`, already rode `hint`
+and rendered correctly, so one rule produced two renders (`rule.forbid.ambiguous-labels`).
+
+⇒ both sites moved to `hint`, and each now carries a `.why.hint` comment that names the two-beat
+split, so the next author does not re-pick `note` for a remedy.
+
+### what this settles, and what it does NOT
+
+- **settled:** `note` is not a fourth synonym in the `fix`/`tip`/`hint` set. it is the carrier of a
+  **different beat**, and the census's three-word count stands
+- **settled:** the beat, not the taste, decides the key. a remedy takes `hint`/`fix`; a cause takes
+  `note`. this is checkable at every throw site
+- **unchanged:** the open dispute above. this round moved a site from the wrong beat to the right
+  one — it did **not** touch which of `hint`/`fix` wins beat 3. the migration is still owed, still
+  wholesale, still for the wisher
+
+⚠️ the same conform rule applies as in the section above: the sites took `hint` rather than the
+canonical `fix` because the contract they feed is the renderer's `hint`-first branch. to write `fix`
+here would be correct-by-glossary and would have manufactured a fresh rename boundary inside a wish
+scoped to *when a repo manifest loads*.
+
+## the CONTENT test — settled 2026-09-05
+
+the prior sections settle which **key** carries beat 3. this one settles what may go **in** it.
+
+> a `fix` names a **runnable command**. an artifact the human must hand-author is not a fix.
+
+**the evidence is a divergence the glossary caught.** two throw sites carried the identical
+remedy — *"this repo has no keyrack.yml; make one"* — and spelled it two ways:
+
+| site | text | verdict |
+|---|---|---|
+| `asKeyrackFilterOrg.ts:54` | `run: rhx keyrack init --org <your-org> (or filter by --org @all for machine-wide keys)` | ✅ a command |
+| `getAllKeyrackGrantsByRepo.ts:47` | `create keyrack.yml in repo root with env and key definitions` | ⛔ a file, plus a schema to guess |
+
+both are grammatical fixes; only the first is **actionable**. the second restates the goal in the
+imperative and leaves the human to author a schema it never shows — so it fails the etymology's
+own beat-3 test above (*"the flag to add, the command to run, the value to change"*) while it
+passes every label check. ⇒ conformed to the first.
+
+### the corollary — a divergence with a stated cause is not fragmentation
+
+the two texts do NOT converge to one string, and that is correct. the sweep site appends
+`(or filter by --org @all for machine-wide keys)`; the repo-scoped site does not, because a
+repo-scoped ask has no `--org @all` re-scope available. **to append it there would name a fix that
+does not fix** — worse than the divergence it would cure.
+
+⇒ the unit of convergence is the **remedy**, never the sentence. two sites converge when they
+offer the same runnable move; they may still differ where the moves available to their callers
+differ, so long as the difference is stated at the site.
+
+⚠️ this cuts against a naive read of `rule.forbid.domain-term-synonyms` — that rule governs the
+**word chosen for a concept**, not the tail of a sentence. a `fix` is a contract in its *shape*
+(a command) and in its *label* (`fix`/`hint`), never in its exact bytes.
+
 ## .evidence
 
+- discovery (2026-09-05): the two-site divergence above, found by a `grep` for the remedy text
+  across `src` after peer `r6` flagged the fix text as fragmented across ~4 phrases in one
+  snapshot file. the census is what showed the fragmentation was **two** real spellings plus two
+  justified variants, never four equals
 - discovery: census by `grepsafe` over `src`, 2026-08-06, plus a direct read of
   `formatKeyrackGetOneOutput.ts:42,53`
+- discovery (2026-09-04): the `note`/`hint` split, read directly from `getKeyrackBlockedReport.ts`
+  `:58-59` vs `:129-134`, and confirmed by the render diff on two acceptance snapshots
 - precedent: `directive` vs `grade` — the extant case of two words held apart because each
   carries a genuinely distinct sense (declared ask vs derived fact). `fix`/`tip`/`hint` is the
   **opposite** case: three words, one sense, which is why it is a dispute rather than a split

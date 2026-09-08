@@ -4,7 +4,8 @@ import type { KeyrackGrantAttempt } from '@src/domain.objects/keyrack/KeyrackGra
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 
 import { asKeyrackKeySlug } from './asKeyrackKeySlug';
-import { isValidKeyrackEnv } from './constants';
+import { asKeyrackOrgMismatchRefusal } from './asKeyrackOrgMismatchRefusal';
+import { asKeyrackSlugFullOrNull } from './asKeyrackSlugFullOrNull';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 
@@ -41,13 +42,25 @@ export const getOneKeyrackGrantByKey = async (
 ): Promise<KeyrackGrantAttempt> => {
   // construct slug from key input
   const { slug } = (() => {
-    // @all bypasses manifest validation (access keys across orgs)
+    // decode the key ONCE. this is the SAME question `asKeyrackKeySlug` asks of the same
+    // string (:48), and the same one `asKeyrackSlugOrgKind` is built on — a key that names
+    // its own org rides through verbatim; a bare name must be composed. it was spelled
+    // inline twice below before it was hoisted here, and two copies of a parser is exactly
+    // how `isKeyrackSlugMachineWide` and `isKeyrackSlugRepoBound` came to disagree about
+    // `@all.badenv.FOO`
+    const slugFull = asKeyrackSlugFullOrNull({ key: input.key });
+
+    // ⚠️ an explicit `--org @all` bypasses the manifest gate — this is the DOCUMENTED
+    //    cross-org read (`access keys across orgs`), and it is deliberate. a full slug
+    //    passes through with its own org segment intact, so `--org @all --key
+    //    ehmpathy.prep.FOO` reads another org's key from this repo without an ORG_MISMATCH
+    //    throw. that is the capability, not an oversight
+    // .note = `asKeyrackAskOrg` declines to call that same ask machine-wide, so the manifest
+    //         still LOADS for it. the two are consistent in the safe direction: the load is
+    //         paid (an understatement costs one read), and the gate is waived only here,
+    //         where the caller asked for it by name
     if (input.org === '@all') {
-      const parts = input.key.split('.');
-      const isFullSlug = parts.length >= 3 && isValidKeyrackEnv(parts[1] ?? '');
-      if (isFullSlug) {
-        return { slug: input.key };
-      }
+      if (slugFull) return { slug: input.key };
       const envFallback = input.env ?? 'all';
       return { slug: `@all.${envFallback}.${input.key}` };
     }
@@ -56,9 +69,15 @@ export const getOneKeyrackGrantByKey = async (
     if (context.repoManifest) {
       // fail fast if org param doesn't match manifest org
       if (input.org && input.org !== context.repoManifest.org) {
-        throw new ConstraintError(
-          `org '${input.org}' does not match manifest org '${context.repoManifest.org}'`,
-        );
+        // .note = `key: null` deliberately, so the two FLAG sites render the same tree. the key
+        //   is not lost to the human — the `ran:` line echoes the whole command, `--key` and
+        //   all. a `key:` leaf is reserved for the SLUG sites, where the org came FROM the key
+        throw asKeyrackOrgMismatchRefusal({
+          givenBy: 'flag',
+          orgRejected: input.org,
+          orgOfManifest: context.repoManifest.org,
+          key: null,
+        });
       }
       return asKeyrackKeySlug({
         key: input.key,
@@ -67,12 +86,8 @@ export const getOneKeyrackGrantByKey = async (
       });
     }
 
-    // no manifest - check if full slug format
-    const parts = input.key.split('.');
-    const isFullSlug = parts.length >= 3 && isValidKeyrackEnv(parts[1] ?? '');
-    if (isFullSlug) {
-      return { slug: input.key };
-    }
+    // no manifest — a key that names its own org needs none
+    if (slugFull) return { slug: input.key };
 
     // no manifest but org provided - construct slug
     if (input.org) {

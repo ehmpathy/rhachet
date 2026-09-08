@@ -1,8 +1,8 @@
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
+import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
 import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 

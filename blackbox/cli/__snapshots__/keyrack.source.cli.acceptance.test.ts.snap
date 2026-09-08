@@ -48,9 +48,10 @@ exports[`keyrack source CLI given: [case5] validation errors when: [t1] no --own
 
 exports[`keyrack source CLI given: [case5] validation errors when: [t2] --strict and --lenient together then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: --strict and --lenient are mutually exclusive
-
-[args] keyrack,source,--env,test,--owner,testorg,--strict,--lenient
+🔐 keyrack source
+   └─ ✋ ConstraintError: --strict and --lenient are mutually exclusive
+      ├─ ran: keyrack source --env test --owner testorg --strict --lenient
+      └─ hint: drop one — strict is the default, so pass --lenient alone to skip absent keys
 
 "
 `;
@@ -63,6 +64,8 @@ output export statements for shell eval
 Options:
   --key <keyname>    single key to source (omit for all repo keys)
   --env <env>        target env: prod, prep, test, all, sudo, camp
+  --org <org>        filter by provenance: @all (machine-wide keys) or @this
+                     (repo keys); default: no filter
   --owner <owner>    owner identity (e.g., mechanic, foreman)
   --for <owner>      alias for --owner
   --strict           fail if any key not granted (default)

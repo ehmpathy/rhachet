@@ -253,7 +253,7 @@ describe('keyrack del', () => {
         //         refusal is about a credential, not about whichever role typed the command
         //         (`rule.require.keyrack-emoji-palette`)
         expect(output).toContain('🔐 keyrack del');
-        expect(output).toContain('✋ blocked:');
+        expect(output).toContain('✋ ConstraintError:');
 
         // ⛔ the mascot must never come back. a `🐢 bummer dude...` banner is a DEFECT here by
         //    that same rule, and this branch carried one until it was rebased onto the fix —
@@ -261,9 +261,19 @@ describe('keyrack del', () => {
         expect(output).not.toContain('bummer dude');
         expect(output).not.toContain('🐢');
 
-        // the class name is an internal fact; a human owes none of it
+        // ⚠️ the PARENT class is forbidden — it names no owner and no exit code, so a throw
+        //    site that reaches for one owes a leaf instead (`rule.forbid.helpful-error-parents`)
         expect(output).not.toContain('BadRequestError');
-        expect(output).not.toContain('ConstraintError');
+
+        // ⚠️ the LEAF class is REQUIRED at the node (asserted above) and forbidden only as a
+        //    flush-left DUMP — the two are told apart by COLUMN, never by the token.
+        // ⚠️ .why = this row read `not.toContain('ConstraintError')` under the comment "the
+        //    class name is an internal fact; a human owes none of it". that premise is FALSE
+        //    and is the origin of this regression: the class is the one token that says WHO
+        //    must fix the fault and what the exit code is, so it is the most actionable field
+        //    a human is owed, never an internal fact (`rule.require.unabridged-error-prefix`)
+        expect(output).not.toMatch(/^✋ ConstraintError:/m);
+        expect(output).not.toContain('[args]');
       });
 
       // a refusal that only names the symptom has done half its job
@@ -318,11 +328,14 @@ describe('keyrack del', () => {
       then('the refusal renders as the blocked tree, never a raw class dump', () => {
         const output = result.stdout + result.stderr;
         expect(output).toContain('🔐 keyrack del');
-        expect(output).toContain('✋ blocked:');
+        expect(output).toContain('✋ ConstraintError:');
         expect(output).not.toContain('bummer dude');
         expect(output).not.toContain('🐢');
+        // the PARENT is forbidden outright; the LEAF only as a flush-left dump
+        // (`rule.forbid.helpful-error-parents` + `rule.require.unabridged-error-prefix`)
         expect(output).not.toContain('BadRequestError');
-        expect(output).not.toContain('ConstraintError');
+        expect(output).not.toMatch(/^✋ ConstraintError:/m);
+        expect(output).not.toContain('[args]');
       });
 
       // the fix here is the more useful half: it names the env the slug actually carries,

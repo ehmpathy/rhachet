@@ -54,6 +54,24 @@ second sense.
 carries weight: a repo that declares ONE key still takes this path, and to call that a "bulk ask"
 reads false to the human who typed it.
 
+## .the scope is the VERB's; the ask's org is the CALLER's
+
+a corollary of *"members are derived from a scope"*: **a sweep's result set is a property of the
+verb, never a statement about what the caller asked for.**
+
+so a flag reads differently by arity, without any change of sense:
+
+| flag | on a **keyed** ask (`get --key FOO`) | on a **sweep** (`unlock --env camp`) |
+|---|---|---|
+| `--env` | **selects** the slug's env segment | **filters** the swept set |
+| `--org` | **selects** the slug's org segment | **filters** the swept set |
+
+⚠️ the trap this closes: a sweep whose scope is a **union** returns members from namespaces the
+caller never named. to read those members back as the ask's identity is a category error — see
+the worked example.
+
 ## .reason
 see the ref-level cluster beside this choice:
 - `term=sweep._.choice.reason.md` — etymology, the `bulk` dispute, evidence, invariants
+- `term=sweep._.choice.example=org-filter-vs-selector.md` — a flag filters a sweep and selects a
+  keyed ask; why a filter's default must be the verb's extant scope

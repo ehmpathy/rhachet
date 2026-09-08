@@ -236,8 +236,8 @@ describe('keyrack sudo', () => {
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('exits 2 — a caller-fixable refusal', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('error mentions sudo credentials require --key flag', () => {
@@ -246,8 +246,16 @@ describe('keyrack sudo', () => {
         expect(output).toContain('--key');
       });
 
-      then('stdout matches snapshot', () => {
-        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      /**
+       * ⚠️ BOTH streams, and stderr is the one that matters. the refusal renders on stderr, so a
+       *    `result.stdout`-only snapshot pins an empty string and is blind to every byte a human
+       *    reads — a green row no render regression can move (`rule.forbid.failhide`)
+       */
+      then('the two streams a human reads are snapped', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
 
@@ -275,6 +283,117 @@ describe('keyrack sudo', () => {
       then('error mentions key not found', () => {
         const output = result.stdout + result.stderr;
         expect(output.toLowerCase()).toMatch(/not found|absent/);
+      });
+    });
+
+    /**
+     * .what = the `source` twin of `[t0]`, driven through the real binary
+     * .why = `source --env sudo` carries the SAME absent-`--key` rule as `unlock`. held at the
+     *        contract-integration grain, that rule needs `console.error` spied to read the
+     *        render and `process.exit` spied to keep the jest worker alive. through the binary
+     *        both are native — stderr is captured by the subprocess and the exit code is
+     *        `result.status` — so the coverage lands with NO mock at all
+     *        (`rule.forbid.integration.mocks`: fixed at cause rather than held as an exception)
+     *
+     * ⚠️ .why.rule-not-render = the assertions below are the full set the rule owes: the three
+     *        sentences of the refusal, the branded tree, and exit 2. the grain moved; not one
+     *        clamp is weaker for it (`rule.forbid.test-intent-violations`)
+     */
+    when('[t2] source --env sudo without --key', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'source', '--env', 'sudo'],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      then('exits 2 — a caller-fixable refusal', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      // the rule under test, and it still names the fix
+      then('the refusal names the cause and the fix', () => {
+        const said = asSnapshotSafe(result.stderr);
+        expect(said).toContain('sudo credentials require --key');
+        expect(said).toContain('not stored in keyrack.yml');
+        expect(said).toContain('rhx keyrack source --env sudo --key');
+      });
+
+      // it is the keyrack blocked tree, named for the command a human typed
+      then('it renders as the branded blocked tree, and names its class', () => {
+        const said = asSnapshotSafe(result.stderr);
+        expect(said).toContain('keyrack source');
+        // ⚠️ the node names the CLASS, never the term `blocked`
+        //    (`rule.require.unabridged-error-prefix`) — `✋` already says *refused*, so
+        //    `ConstraintError` is what adds the owner (the caller) and the exit code (2)
+        expect(said).toContain('✋ ConstraintError: ');
+      });
+
+      /**
+       * ⚠️ stdout must stay EMPTY. `source` is eval'd by a shell — `eval "$(rhx keyrack
+       *    source ...)"` — so one guidance byte on stdout is executed rather than read. that
+       *    makes the stream split a safety property here, not a preference
+       */
+      then('stdout stays empty — a shell evals it', () => {
+        expect(result.stdout).toEqual('');
+      });
+
+      then('the two streams a human reads are snapped', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] source --env sudo --key TEST_KEY', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'source',
+            '--env',
+            'sudo',
+            '--key',
+            'TEST_KEY',
+          ],
+          cwd: repo.path,
+          env: { HOME: repo.path },
+          logOnError: false,
+        }),
+      );
+
+      /**
+       * ⚠️ the teeth. a bare "it did not refuse for an absent key" would pass under an
+       *    implementation that refused for the wrong reason, or that no-oped before the gate
+       *    ran at all. so read the render: the absent-key sentence must be gone AND the named
+       *    key must appear, which together prove the run got PAST the flag gate into a real
+       *    key lookup
+       */
+      then('the absent-key refusal is not raised', () => {
+        expect(asSnapshotSafe(result.stderr)).not.toContain(
+          'sudo credentials require --key',
+        );
+      });
+
+      then('the run reached a real key lookup', () => {
+        const said = asSnapshotSafe(result.stdout + result.stderr);
+        expect(said).toContain('TEST_KEY');
+      });
+
+      // ⚠️ .why = the PASS row of this case. [t0] and [t2] snap the two refusals; this row
+      //    is what a human sees when the same flag gate LETS
+      //    THEM THROUGH, and its two asserts describe that render only by what it lacks and
+      //    one word it holds. a regression that renders a second, differently-worded
+      //    refusal — or that leaks the sudo value it just looked up — satisfies both. the
+      //    refusal pair is snapped; the pass beside it must be too
+      then('the two streams a human reads are snapped', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });
@@ -356,8 +475,25 @@ describe('keyrack sudo', () => {
 
       then('response contains resolved org', () => {
         const parsed = JSON.parse(result.stdout);
-        // @this resolves to manifest org (testorg) at storage time
+        // @this expands to the manifest org (testorg) at storage time
         expect(parsed.org).toEqual('testorg');
+      });
+
+      /**
+       * ⚠️ .why = `[t0]`'s REFUSAL render is snapped, and so is the `set` success render at
+       *        `[case1][t1]` — but this row, the one POSITIVE org-expansion path in the verb
+       *        family, asserted a single parsed field and snapped no render at all. a field
+       *        assertion pins `org`; it says not one word about the rest of what a human reads,
+       *        so every other field could regress green
+       *        (`rule.require.contract-snapshot-exhaustiveness`)
+       * .note = redacts the same two volatile fields as its `[case1][t1]` sibling, so the two
+       *        `set --json` renders stay diffable against each other
+       */
+      then('stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        if (parsed.createdAt) parsed.createdAt = '__TIMESTAMP__';
+        if (parsed.updatedAt) parsed.updatedAt = '__TIMESTAMP__';
+        expect(parsed).toMatchSnapshot();
       });
     });
   });

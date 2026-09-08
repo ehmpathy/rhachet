@@ -218,62 +218,45 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t8] fir
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t9] firewall with invalid --into format then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: invalid --into value
-
-{
-  "into": "invalid-format",
-  "valid": [
-    "github.actions",
-    "json"
-  ]
-}
-
-[args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,invalid-format
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: invalid --into: must be one of github.actions, json
+      ├─ intoGiven: invalid-format
+      └─ ran: keyrack firewall --env test --from json(env://SECRETS_JSON) --into invalid-format
 
 "
 `;
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t10] firewall with malformed SECRETS_JSON then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: malformed secrets JSON
-
-{
-  "hint": "ensure the input is valid JSON object",
-  "source": {
-    "type": "env",
-    "format": "json",
-    "envVar": "SECRETS_JSON"
-  }
-}
-
-[args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,json
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: malformed secrets json
+      ├─ source
+      │  ├─ type: env
+      │  ├─ format: json
+      │  └─ envVar: SECRETS_JSON
+      ├─ ran: keyrack firewall --env test --from json(env://SECRETS_JSON) --into json
+      └─ hint: ensure the input is a valid json object
 
 "
 `;
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t11] firewall with SECRETS_JSON env var not set then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: env var not set
-
-{
-  "hint": "set SECRETS_JSON or use --from 'json(stdin://*)'",
-  "envVar": "SECRETS_JSON"
-}
-
-[args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,json
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: env var not set
+      ├─ envVar: SECRETS_JSON
+      ├─ ran: keyrack firewall --env test --from json(env://SECRETS_JSON) --into json
+      └─ hint: set SECRETS_JSON or use --from 'json(stdin://*)'
 
 "
 `;
 
 exports[`keyrack firewall given: [case1] keyrack firewall command when: [t12] firewall github.actions output requires GITHUB_ENV then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: GITHUB_ENV not set
-
-{
-  "hint": "--into github.actions requires a GitHub Actions workflow context"
-}
-
-[args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,github.actions
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: GITHUB_ENV not set
+      ├─ ran: keyrack firewall --env test --from json(env://SECRETS_JSON) --into github.actions
+      └─ hint: --into github.actions requires a GitHub Actions workflow context
 
 "
 `;

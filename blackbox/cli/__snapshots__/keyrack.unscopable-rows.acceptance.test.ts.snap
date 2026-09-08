@@ -1,0 +1,132 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack list — rows no scope flag can address given: [case1] a host rack that holds two full slugs and two unfilterable rows when: [t0] keyrack list — no filter at all then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔐 keyrack list
+   ├─ LEGACY_KEY
+   │  ├─ env: all
+   │  ├─ org: unknown
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.mainframe.OTHER_KEY
+   │  ├─ env: mainframe
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.prep.API_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+",
+}
+`;
+
+exports[`keyrack list — rows no scope flag can address given: [case1] a host rack that holds two full slugs and two unfilterable rows when: [t1] keyrack list --org testorg then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+💡 heads up — 2 row(s) on this rack carry no scope a filter can read
+   ├─ rows:
+   │  ├─ LEGACY_KEY
+   │  └─ testorg.mainframe.OTHER_KEY
+   ├─ why: a filter narrows on a slug's \`<org>.<env>.<key>\` segments, and <env>
+   │       must be one of sudo, prod, prep, test, all, camp — so a row that
+   │       names none, or that merely LOOKS like a slug (a middle segment that
+   │       is no env), survives NO filter. it is hidden here, not absent
+   └─ fix: re-run without --org/--env to see it, or re-key the row in the host
+           manifest as \`<org>.<env>.<key>\` so a scope flag can address it
+
+",
+  "stdout": "
+🔐 keyrack list
+   ├─ testorg.prep.API_KEY
+   │  ├─ env: prep
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.test.API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+",
+}
+`;
+
+exports[`keyrack list — rows no scope flag can address given: [case1] a host rack that holds two full slugs and two unfilterable rows when: [t2] keyrack list --env prep — the OTHER filter axis then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+💡 heads up — 2 row(s) on this rack carry no scope a filter can read
+   ├─ rows:
+   │  ├─ LEGACY_KEY
+   │  └─ testorg.mainframe.OTHER_KEY
+   ├─ why: a filter narrows on a slug's \`<org>.<env>.<key>\` segments, and <env>
+   │       must be one of sudo, prod, prep, test, all, camp — so a row that
+   │       names none, or that merely LOOKS like a slug (a middle segment that
+   │       is no env), survives NO filter. it is hidden here, not absent
+   └─ fix: re-run without --org/--env to see it, or re-key the row in the host
+           manifest as \`<org>.<env>.<key>\` so a scope flag can address it
+
+",
+  "stdout": "
+🔐 keyrack list
+   └─ testorg.prep.API_KEY
+      ├─ env: prep
+      ├─ org: testorg
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+",
+}
+`;
+
+exports[`keyrack list — rows no scope flag can address given: [case1] a host rack that holds two full slugs and two unfilterable rows when: [t3] keyrack list --org testorg --json then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+💡 heads up — 2 row(s) on this rack carry no scope a filter can read
+   ├─ rows:
+   │  ├─ LEGACY_KEY
+   │  └─ testorg.mainframe.OTHER_KEY
+   ├─ why: a filter narrows on a slug's \`<org>.<env>.<key>\` segments, and <env>
+   │       must be one of sudo, prod, prep, test, all, camp — so a row that
+   │       names none, or that merely LOOKS like a slug (a middle segment that
+   │       is no env), survives NO filter. it is hidden here, not absent
+   └─ fix: re-run without --org/--env to see it, or re-key the row in the host
+           manifest as \`<org>.<env>.<key>\` so a scope flag can address it
+
+",
+  "stdout": "{
+  "testorg.prep.API_KEY": {
+    "slug": "testorg.prep.API_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "prep",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  },
+  "testorg.test.API_KEY": {
+    "slug": "testorg.test.API_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "test",
+    "org": "testorg",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  }
+}
+",
+}
+`;

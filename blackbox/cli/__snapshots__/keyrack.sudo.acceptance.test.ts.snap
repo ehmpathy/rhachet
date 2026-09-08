@@ -27,9 +27,61 @@ exports[`keyrack sudo given: [case1] sudo credential set when: [t1] set --key SU
 "
 `;
 
-exports[`keyrack sudo given: [case2] sudo unlock requires --key when: [t0] unlock --env sudo without --key then: stdout matches snapshot 1`] = `""`;
+exports[`keyrack sudo given: [case2] sudo unlock requires --key when: [t0] unlock --env sudo without --key then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: sudo credentials require --key. sudo keys are not stored in keyrack.yml.
+      ├─ ran: keyrack unlock --env sudo
+      └─ hint: use: rhx keyrack unlock --env sudo --key <keyname>
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`keyrack sudo given: [case2] sudo unlock requires --key when: [t2] source --env sudo without --key then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+🔐 keyrack source
+   └─ ✋ ConstraintError: sudo credentials require --key. sudo keys are not stored in keyrack.yml.
+      ├─ ran: keyrack source --env sudo
+      └─ hint: use: rhx keyrack source --env sudo --key <keyname>
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`keyrack sudo given: [case2] sudo unlock requires --key when: [t3] source --env sudo --key TEST_KEY then: the two streams a human reads are snapped 1`] = `
+{
+  "stderr": "
+🔐 keyrack
+   └─ testorg.sudo.TEST_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key TEST_KEY --env sudo
+
+",
+  "stdout": "",
+}
+`;
 
 exports[`keyrack sudo given: [case3] org validation when: [t0] set --org invalid-org (not @this or @all) then: stdout matches snapshot 1`] = `""`;
+
+exports[`keyrack sudo given: [case3] org validation when: [t1] set --org @this (valid) then: stdout matches snapshot 1`] = `
+{
+  "createdAt": "__TIMESTAMP__",
+  "env": "sudo",
+  "exid": null,
+  "maxDuration": null,
+  "mech": "PERMANENT_VIA_REPLICA",
+  "meta": null,
+  "org": "testorg",
+  "slug": "testorg.sudo.VALID_ORG_KEY",
+  "updatedAt": "__TIMESTAMP__",
+  "vault": "os.direct",
+}
+`;
 
 exports[`keyrack sudo given: [case4] relock behavior when: [t0] relock (bare, no flags) then: stdout matches snapshot 1`] = `
 "

@@ -1,4 +1,4 @@
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus';
+import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
 
 import { asKeyrackKeyReachLeaves } from './asKeyrackKeyReachLeaves';
 

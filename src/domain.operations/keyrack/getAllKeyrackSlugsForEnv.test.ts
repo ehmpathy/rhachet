@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 
 import { getAllKeyrackSlugsForEnv } from './getAllKeyrackSlugsForEnv';
@@ -108,4 +110,63 @@ describe('getAllKeyrackSlugsForEnv', () => {
       }),
     );
   });
+
+  /**
+   * ⚠️ .what = the ONE-ORG invariant, pinned — and the flag default that leans on it
+   * .why = `get --org` carries a `'@this'` DEFAULT (`invokeKeyrack.ts`), unlike every peer
+   *        sweep, whose filter defaults to "no filter". that default is a NO-OP only because a
+   *        repo sweep yields one org's slugs — so `@this` expands to the one org the sweep can
+   *        yield and drops not one row. break the invariant and the default starts to drop rows
+   *        SILENTLY, with no error and no message
+   * ⚠️ .where.the.guarantee.lives = NOT here. this operation returns `manifest.keys`' own slugs
+   *        verbatim; it never reads `manifest.org` and never re-checks a slug against it. the
+   *        one-org property is minted UPSTREAM, by the hydrator that builds each slug from
+   *        `manifest.org`. so these rows pin the property at the grain a reader will check it,
+   *        and name where it is actually enforced
+   */
+  given('[case1] a manifest whose keys all carry its own org', () => {
+    when('[t0] a repo sweep yields its slugs', () => {
+      then('every slug carries the manifest\u0027s own org', () => {
+        const slugs = getAllKeyrackSlugsForEnv({ manifest, env: 'all' });
+
+        // .note = asserted as a PROPERTY over the whole set, never as a slug list — a list is
+        //         green for the wrong reason the moment a fixture gains a key
+        expect(slugs.length).toBeGreaterThan(0);
+        for (const slug of slugs)
+          expect(slug.split('.')[0]).toEqual('ehmpathy');
+      });
+    });
+  });
+
+  given(
+    '[case2] a manifest whose keys carry a FOREIGN org alongside its own',
+    () => {
+      const manifestWithForeignOrg = genMockKeyrackRepoManifest({
+        org: 'ehmpathy',
+        envs: ['prod'],
+        keys: {
+          'ehmpathy.prod.OWN_KEY': { env: 'prod', name: 'OWN_KEY' },
+          'otherorg.prod.FOREIGN_KEY': { env: 'prod', name: 'FOREIGN_KEY' },
+        },
+      });
+
+      when('[t0] a repo sweep yields its slugs', () => {
+        then(
+          'the foreign-org slug is yielded UNCHECKED — the hazard, on the record',
+          () => {
+            // ⚠️ .why = this row does not endorse the behavior; it documents that the guarantee is
+            //        upstream. a reader who assumes this operation filters by org would leave
+            //        `get`'s `'@this'` default unexamined — and that default is what would silently
+            //        drop the foreign row, with no error, if a hydrator change ever let one in
+            expect(
+              getAllKeyrackSlugsForEnv({
+                manifest: manifestWithForeignOrg,
+                env: 'prod',
+              }),
+            ).toEqual(['ehmpathy.prod.OWN_KEY', 'otherorg.prod.FOREIGN_KEY']);
+          },
+        );
+      });
+    },
+  );
 });

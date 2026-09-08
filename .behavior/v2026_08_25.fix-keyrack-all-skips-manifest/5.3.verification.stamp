@@ -1,0 +1,295 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 5.3.verification
+   ├─ passage = blocked
+   ├─ reason = reviewer constraint
+   ├─ options
+   │  ├─ overrule the constraint
+   │  │  └─ rhx route.stone.set --stone 5.3.verification --as overruled
+   │  └─ or fix the reviewer, then retry
+   └─ guard
+      ├─ artifacts
+      │   ├─ $route/5.3.verification.yield.md
+      │   └─ src/**/*
+      ├─ reviews
+      │   ├─ r1: repo-rules (l1, 3/16)
+      │   │   ├─ constraint ✋
+      │   │   ├─ terminal — does not block higher levels
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r001._.given.by_peer.repo-rules.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r001._.taken.by_self.repo-rules.md
+      │   ├─ r2: ergo-contract-snapshots (l1, 3/16)
+      │   │   ├─ constraint ✋
+      │   │   ├─ terminal — does not block higher levels
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r002._.given.by_peer.ergo-contract-snapshots.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r002._.taken.by_self.ergo-contract-snapshots.md
+      │   ├─ r3: mech-external-contracts (l1, 3/16)
+      │   │   ├─ constraint ✋
+      │   │   ├─ terminal — does not block higher levels
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r003._.given.by_peer.mech-external-contracts.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r003._.taken.by_self.mech-external-contracts.md
+      │   ├─ r4: ergo-acceptance-journey-coverage (l1, 3/16)
+      │   │   ├─ constraint ✋
+      │   │   ├─ terminal — does not block higher levels
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r004._.given.by_peer.ergo-acceptance-journey-coverage.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r004._.taken.by_self.ergo-acceptance-journey-coverage.md
+      │   ├─ r5: ergo-snapshot-visual-blemishes (l1, 3/16)
+      │   │   ├─ constraint ✋
+      │   │   ├─ terminal — does not block higher levels
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r005._.given.by_peer.ergo-snapshot-visual-blemishes.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r005._.taken.by_self.ergo-snapshot-visual-blemishes.md
+      │   ├─ r6: mech-given-when-then (l1, 15/16)
+      │   │   ├─ approved 60.7s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 2 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r006._.given.by_peer.mech-given-when-then.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r006._.taken.by_self.mech-given-when-then.md
+      │   ├─ r7: mech-test-intent (l1, 15/16)
+      │   │   ├─ approved 58.0s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r007._.given.by_peer.mech-test-intent.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r007._.taken.by_self.mech-test-intent.md
+      │   ├─ r8: mech-test-scope-purity (l1, 16/16)
+      │   │   ├─ approved 101.5s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 1 nitpick 🟠
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r008._.given.by_peer.mech-test-scope-purity.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r008._.taken.by_self.mech-test-scope-purity.md
+      │   ├─ r9: enroll-verif-snapshot-coverage (l3, 10/16)
+      │   │   ├─ approved 480.6s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 0 nitpicks ✓
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r009._.given.by_peer.enroll-verif-snapshot-coverage.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r009._.taken.by_self.enroll-verif-snapshot-coverage.md
+      │   ├─ r10: enroll-verif-snapshot-blemishes (l3, 11/16)
+      │   │   ├─ approved 349.2s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 3 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r010._.given.by_peer.enroll-verif-snapshot-blemishes.md
+      │   │   └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r010._.taken.by_self.enroll-verif-snapshot-blemishes.md
+      │   └─ r11: enroll-verif-test-intent (l3, 9/16)
+      │       ├─ constraint ✋
+      │       ├─ terminal — does not block higher levels
+      │       ├─ given: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r011._.given.by_peer.enroll-verif-test-intent.md
+      │       └─ taken: .behavior/v2026_08_25.fix-keyrack-all-skips-manifest/.reviews/peer/5.3.verification._.review.i025.93d68364241bff3621.r011._.taken.by_self.enroll-verif-test-intent.md
+      └─ judges
+          └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+              └─ finished 0.5s ✓
+
+────────────────────────────────────────────────────────────────
+
+🔎 review 1
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 109.0% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=.this/**/rule.*.md
+   │  │     │  ├─ files: 49
+   │  │     │  └─ tokens: 49.2k
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 237
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 210
+   │  │     │     └─ tokens: 848.9k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-05T16-19-35-050Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-05T16-19-35-050Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 2
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 104.6% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.contract-snapshot-exhaustiveness.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 732
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 237
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 210
+   │  │     │     └─ tokens: 848.9k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-05T16-19-45-291Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-05T16-19-45-291Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 3
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 104.1% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.external-contract-integration-tests.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 545
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 237
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 210
+   │  │     │     └─ tokens: 848.9k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-05T16-19-53-625Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-05T16-19-53-625Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 4
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 105.0% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.require.acceptance-journey-coverage.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 791
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 237
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 210
+   │  │     │     └─ tokens: 848.9k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-05T16-20-02-614Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-05T16-20-02-614Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 5
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 104.6% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.forbid.snapshot-visual-blemishes.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 657
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 237
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 210
+   │  │     │     └─ tokens: 848.9k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-05T16-20-14-254Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-05T16-20-14-254Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋

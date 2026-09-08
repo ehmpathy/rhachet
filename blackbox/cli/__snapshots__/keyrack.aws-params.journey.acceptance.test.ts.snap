@@ -16,7 +16,7 @@ exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstrap
   "status": "locked",
   "slug": "@all.test.JOURNEY_AWS_PARAMS_SECRET",
   "message": "credential '@all.test.JOURNEY_AWS_PARAMS_SECRET' is locked. unlock it first.",
-  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET"
+  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET --org @all"
 }
 "
 `;
@@ -57,7 +57,7 @@ exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstrap
   "status": "locked",
   "slug": "@all.test.JOURNEY_AWS_PARAMS_SECRET",
   "message": "credential '@all.test.JOURNEY_AWS_PARAMS_SECRET' is locked. unlock it first.",
-  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET"
+  "fix": "rhx keyrack unlock --owner mechanic --env test --key JOURNEY_AWS_PARAMS_SECRET --org @all"
 }
 "
 `;
@@ -77,7 +77,10 @@ exports[`keyrack vault aws.params journey (cli) given: [case1] a grove bootstrap
 exports[`keyrack vault aws.params journey (cli) given: [case2] a set denied at DescribeParameters surfaces the paste-ready grant tree when: [t0] set is attempted while DescribeParameters is denied then: the rendered blocked tree matches snapshot (the human-seen grant tree) 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: aws.params identity cannot ssm:DescribeParameters
+   └─ ✋ ConstraintError: aws.params identity cannot ssm:DescribeParameters
+      ├─ exid: /keyrack/journey/JOURNEY_AWS_PARAMS_SECRET
+      ├─ region: us-east-1
+      ├─ ran: keyrack set --key JOURNEY_AWS_PARAMS_SECRET --vault aws.params --mech PERMANENT_VIA_REPLICA --owner mechanic --env test --org @all --exid /keyrack/journey/JOURNEY_AWS_PARAMS_SECRET
       └─ hint:
          ├─ add the absent grant to this identity, then re-run
          ├─ why (raw AWS): AccessDeniedException — User: arn:aws:sts::000000000000:assumed-role/keyrack-standin-role/i-standin is not authorized to perform: ssm:DescribeParameters on resource: * because no identity-based policy allows the action

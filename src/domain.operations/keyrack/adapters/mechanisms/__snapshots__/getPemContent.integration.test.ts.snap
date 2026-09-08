@@ -5,12 +5,7 @@ exports[`getPemContent given: [case2] a pem path that does not exist when: [t0] 
 
 {
   "pemPath": "/no/such/app.pem",
-  "hint": "check the path exists and is readable: /no/such/app.pem",
-  "error": {
-    "errno": -2,
-    "code": "ENOENT",
-    "syscall": "open",
-    "path": "/no/such/app.pem"
-  }
+  "errorCode": "ENOENT",
+  "hint": "check the path exists and is readable: /no/such/app.pem"
 }"
 `;

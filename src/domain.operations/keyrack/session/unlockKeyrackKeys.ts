@@ -6,10 +6,10 @@ import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
+import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilterOrg';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { asKeyrackKeyOrg } from '@src/domain.operations/keyrack/asKeyrackKeyOrg';
-import { assertKeyrackEnvIsSpecified } from '@src/domain.operations/keyrack/assertKeyrackEnvIsSpecified';
 import { emitKeyrackDurationCapWarn } from '@src/domain.operations/keyrack/cli/emitKeyrackDurationCapWarn';
 import { computeExpiresAt } from '@src/domain.operations/keyrack/computeExpiresAt';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
@@ -17,11 +17,8 @@ import {
   daemonAccessUnlock,
   findsertKeyrackDaemon,
 } from '@src/domain.operations/keyrack/daemon/sdk';
-import { filterSlugsByKeyAsk } from '@src/domain.operations/keyrack/filterSlugsByKeyAsk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
-import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
-import { getAllMachineWideSlugsForEnv } from '@src/domain.operations/keyrack/getAllMachineWideSlugsForEnv';
-import { getAllSudoSlugsForKeyAsk } from '@src/domain.operations/keyrack/getAllSudoSlugsForKeyAsk';
+import { isKeyrackSlugMachineWide } from '@src/domain.operations/keyrack/isKeyrackSlugMachineWide';
 import { asKeyrackKeyReachExid } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachExid';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
@@ -29,6 +26,7 @@ import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/re
 import { assertKeyrackReachRequiresKey } from '@src/domain.operations/keyrack/reach/assertKeyrackReachRequiresKey';
 import { getOneKeyrackHostForSlugAtReach } from '@src/domain.operations/keyrack/reach/getOneKeyrackHostForSlugAtReach';
 import { isKeyrackVaultReachUnaddressable } from '@src/domain.operations/keyrack/reach/isKeyrackVaultReachUnaddressable';
+import { getAllKeyrackSlugsForUnlock } from '@src/domain.operations/keyrack/session/getAllKeyrackSlugsForUnlock';
 
 import { asKeyrackOmittedRow } from './asKeyrackOmittedRow';
 import { getAllKeyrackOmissionsExceptHeldAtReach } from './getAllKeyrackOmissionsExceptHeldAtReach';
@@ -49,6 +47,25 @@ export const unlockKeyrackKeys = async (
     owner?: string | null;
     env?: string;
     key?: string;
+
+    /**
+     * .what = filter the swept set to one provenance — `@this` (repo keys) or `@all`
+     *         (machine-wide keys). absent means NO filter: the verb's extant scope
+     * .why = `unlock` is a SWEEP verb, so an org FILTERS the set rather than SELECTS a slug's
+     *        segment. its default scope is a UNION (repo ∪ machine-wide), so a default of
+     *        `@this` here would silently drop every machine-wide key from a bare unlock —
+     *        which would kill the bootstrap-to-clone path the `@all` sigil exists for
+     * .note = OPTIONAL, a deliberate exception to `rule.forbid.undefined-inputs`, and a WEAK
+     *         one: `org: string | null` would carry "no filter" just as well, so semantics do
+     *         not earn the waiver here. what earns it is CONSISTENCY — every other field on
+     *         this input (`owner`, `env`, `key`, `reach`, `duration`) is already optional, so a
+     *         lone required-nullable field would read as significant when it is not, and would
+     *         break every extant caller of an operation no contract surface publishes
+     * .note = contrast `reach?` below, whose waiver IS earned on its own terms (a wire-format
+     *         reason: `JSON.stringify` drops `undefined` and keeps `null`). the two are not
+     *         the same strength of argument, and should not be read as such
+     */
+    org?: string;
 
     /**
      * .what = the reach to unlock; absent means the reachless key
@@ -103,101 +120,33 @@ export const unlockKeyrackKeys = async (
   // env from input (null if not provided; assertKeyrackEnvIsSpecified will validate)
   const env = input.env ?? null;
 
-  // for sudo keys, find matched keys in hostManifest by key name suffix
-  // for regular keys, use repoManifest + hostManifest intersection
-  let slugsForEnv: string[];
+  // `--org` FILTERS the swept set; absent, there is no filter and the verb's extant scope
+  // stands. so a caller who passes no --org is byte-identical to before the flag existed
+  // ⚠️ .why = expanded ONCE, ABOVE the branch, and applied on EVERY path. a filter computed
+  //         inside one branch is silently dropped on the others — and the drop is not a
+  //         failure but a WRONG ANSWER: `unlock --org @this` from a non-repo cwd would yield
+  //         every machine-wide key, the opposite provenance to the one asked for. the ask is
+  //         the same on every path, so the filter must be too
+  // .note = `@this` with no manifest REFUSES loud here, via the same rule `status` and `list`
+  //         apply (asKeyrackFilterOrg) — never a soft fallback to the machine-wide grain
+  //         (rule.require.org-scope-grain-hardcut)
+  const orgFilter = asKeyrackFilterOrg({
+    org: input.org ?? null,
+    orgOfRepo: repoManifest?.org ?? null,
+  });
 
-  if (env === 'sudo') {
-    // sudo keys: search hostManifest for keys that match the key name and env=sudo
-    if (!input.key) {
-      throw new ConstraintError('sudo credentials require --key flag', {
-        note: 'run: rhx keyrack unlock --env sudo --key X',
-      });
-    }
-
-    // get matched sudo slugs for key ask
-    slugsForEnv = getAllSudoSlugsForKeyAsk({
-      keyAsk: input.key,
-      repoOrg: repoManifest?.org ?? null,
-      hostManifest,
-    });
-
-    if (slugsForEnv.length === 0) {
-      throw new ConstraintError(`sudo key not found: ${input.key}`, {
-        note: 'run: rhx keyrack set --key X --env sudo --vault ... to configure',
-      });
-    }
-  } else if (!repoManifest) {
-    // no repo manifest → the MACHINE-WIDE bootstrap path. an `@all` key belongs to the box
-    // itself (its own namespace), so it must unlock with NO repo manifest at all — the
-    // bootstrap-to-clone credential path: the github-app install token is vaulted under `@all`
-    // precisely so it can be fetched from anywhere, even outside any repo, before any repo is
-    // cloned. env comes from --env directly, since there is no manifest to default it from.
-    // .note = a ConstraintError, never a parent word — an absent --env is the caller's to fix,
-    //         so it owes a blocked render + exit 2 rather than a stack trace (term=blocked)
-    if (!env)
-      throw new ConstraintError(
-        'unlock without a repo manifest requires --env',
-        {
-          note: 'no keyrack.yml found; only machine-wide @all keys are unlockable, and --env names their scope',
-          fix: 'run: rhx keyrack unlock --env <env> [--key <key>]  (or add a repo .agent/keyrack.yml)',
-        },
-      );
-
-    // expand to the machine-wide `@all.{env}.*` slugs straight from the host manifest
-    slugsForEnv = getAllMachineWideSlugsForEnv({
-      env,
-      keyAsk: input.key ?? null,
-      hostManifest,
-    });
-
-    // fail-fast if a specific machine-wide key was asked but is absent from the host manifest
-    if (input.key && slugsForEnv.length === 0)
-      throw new ConstraintError(`machine-wide key not found: ${input.key}`, {
-        env,
-        note: `no @all.${env}.${input.key} key in the host manifest (and no repo keyrack.yml to declare a repo-scoped one)`,
-        fix: `rhx keyrack set --key ${input.key} --env ${env} --org @all --vault ...`,
-      });
-  } else {
-    // derive env via assertion
-    const resolvedEnv = assertKeyrackEnvIsSpecified({
-      manifest: repoManifest,
-      env: env,
-    });
-
-    // get slugs from repoManifest
-    const allSlugsForEnv = getAllKeyrackSlugsForEnv({
-      manifest: repoManifest,
-      env: resolvedEnv,
-    });
-
-    // filter by key: match full slug or key name suffix
-    const repoSlugsForEnv = filterSlugsByKeyAsk({
-      slugs: allSlugsForEnv,
-      keyAsk: input.key ?? null,
-    });
-
-    // ALSO include machine-wide `@all` keys held in the host manifest — an `@all` key is the
-    // box's own namespace, always unlockable for its env regardless of the repo manifest. this
-    // is what makes `--org @all` keys unlock WITH a repo manifest present too, IGNORING the
-    // manifest org (a machine-wide key is never scoped to the tree). dedup by slug.
-    const machineWideSlugsForEnv = getAllMachineWideSlugsForEnv({
-      env: resolvedEnv,
-      keyAsk: input.key ?? null,
-      hostManifest,
-    });
-    slugsForEnv = [...new Set([...repoSlugsForEnv, ...machineWideSlugsForEnv])];
-
-    // fail-fast if a specific key was requested but found in neither the repo manifest nor as
-    // a machine-wide @all key
-    if (input.key && slugsForEnv.length === 0) {
-      throw new ConstraintError(`key not found in manifest: ${input.key}`, {
-        env,
-        note: `key '${input.key}' is not declared in keyrack.yml for env=${env} (nor as a machine-wide @all.${resolvedEnv}.${input.key})`,
-        fix: `rhx keyrack set --key ${input.key} --env ${env}`,
-      });
-    }
-  }
+  // the swept set — sudo, machine-wide-without-a-manifest, or repo ∪ machine-wide
+  // .why = the three scopes and their fail-fast refusals are one decision, so they live in one
+  //        named, PURE operation rather than inline here. inline, they were only reachable
+  //        through a daemon-bound async unlock, which made the branch a human most wants to
+  //        check the branch hardest to test (`rule.prefer.decomposable-architecture`)
+  const slugsForEnv: string[] = getAllKeyrackSlugsForUnlock({
+    env,
+    keyAsk: input.key ?? null,
+    repoManifest: repoManifest ?? null,
+    hostManifest,
+    orgFilter,
+  });
 
   // collect keys to unlock and track omitted
   // .note = omitted includes both "absent" (not in host manifest) and "lost" (in manifest but vault doesn't have it)
@@ -308,9 +257,12 @@ export const unlockKeyrackKeys = async (
 
     // for non-sudo keys, verify key exists in repoManifest — EXCEPT machine-wide `@all` keys,
     // which belong to the box's own namespace and are never declared in a repo manifest (they
-    // unlock manifest-or-not, IGNORING the repo org). a machine-wide slug is prefixed `@all.`.
+    // unlock manifest-or-not, IGNORING the repo org)
+    // .note = via the named predicate rather than a hand-rolled `startsWith('@all.')`. the two
+    //         agree today, but only the predicate reads the ORG SEGMENT, so it cannot drift on
+    //         a slug shape a bare prefix test would misread
     const spec = repoManifest?.keys[slug];
-    const isMachineWideSlug = slug.startsWith('@all.');
+    const isMachineWideSlug = isKeyrackSlugMachineWide({ slug });
     if (env !== 'sudo' && !isMachineWideSlug && !spec) continue;
 
     // get vault adapter
@@ -363,7 +315,9 @@ export const unlockKeyrackKeys = async (
     //    try it is caught and rendered as a per-key `errored 💥` row on stdout — and `💥` is the
     //    MalfunctionError glyph (`rule.require.keyrack-emoji-palette`), so a refusal that is
     //    squarely the caller's to fix would read as "we broke", buried in a batch row rather
-    //    than the `✋ blocked` tree a ConstraintError owes (term=blocked)
+    //    than the `✋ ConstraintError:` tree a caller-fixable fault owes (term=blocked). the
+    //    term is `blocked`; the RENDER names the class, and that name is exactly what says
+    //    the caller owns the fix (`rule.require.unabridged-error-prefix`)
     // .note = there is never a batch to isolate on this path anyway: `--reach` requires `--key`
     //         (q2), so a reach-ask is always ONE key. isolation of a single-key ask protects no
     //         co-batched peer — it only degrades the render

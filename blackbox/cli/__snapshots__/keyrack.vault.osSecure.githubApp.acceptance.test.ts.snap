@@ -84,7 +84,10 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case4] gi
 
 exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case5] os.direct rejects EPHEMERAL_VIA_GITHUB_APP when: [t0] keyrack set with os.direct and EPHEMERAL_VIA_GITHUB_APP then: error output matches snapshot 1`] = `
 "🔐 keyrack set
-   └─ ✋ blocked: os.direct does not support mech: EPHEMERAL_VIA_GITHUB_APP
+   └─ ✋ ConstraintError: os.direct does not support mech: EPHEMERAL_VIA_GITHUB_APP
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      ├─ supported: PERMANENT_VIA_REPLICA
+      ├─ ran: keyrack set --key GITHUB_TOKEN --env test --vault os.direct --mech EPHEMERAL_VIA_GITHUB_APP
       └─ hint:
          ├─ os.direct cannot secure ephemeral source credentials
          └─ try --vault os.secure"
@@ -92,7 +95,10 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case5] os
 
 exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case6] os.secure rejects EPHEMERAL_VIA_AWS_SSO when: [t0] keyrack set with os.secure and EPHEMERAL_VIA_AWS_SSO then: error output matches snapshot 1`] = `
 "🔐 keyrack set
-   └─ ✋ blocked: os.secure does not support mech: EPHEMERAL_VIA_AWS_SSO
+   └─ ✋ ConstraintError: os.secure does not support mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ supported: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --key AWS_PROFILE --env test --vault os.secure --mech EPHEMERAL_VIA_AWS_SSO
       └─ hint: try --vault aws.config for aws sso"
 `;
 
@@ -111,7 +117,10 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case7] in
    │  └─ ✋ could not read pem file
 
 🔐 keyrack set
-   └─ ✋ blocked: could not read pem file
+   └─ ✋ ConstraintError: could not read pem file
+      ├─ pemPath: ./nonexistent.pem
+      ├─ errorCode: ENOENT
+      ├─ ran: keyrack set --key GITHUB_TOKEN --env test --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP
       └─ hint: check the path exists and is readable: ./nonexistent.pem"
 `;
 

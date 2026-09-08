@@ -2,26 +2,24 @@
 
 exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t0] keyrack set with an unsupported --mech for aws.params then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: host manifest not found. run: rhx keyrack init --owner mechanic
-
-{
-  "owner": "mechanic"
-}
-
-[args] keyrack,set,--key,TEST,--vault,aws.params,--mech,EPHEMERAL_VIA_AWS_SSO,--owner,mechanic,--env,test,--org,ehmpathy
+🔐 keyrack set
+   └─ ✋ ConstraintError: aws.params does not support mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ supported: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --mech EPHEMERAL_VIA_AWS_SSO --owner mechanic --env test --org testorg
+      └─ hint: use PERMANENT_VIA_REPLICA or EPHEMERAL_VIA_GITHUB_APP
 
 "
 `;
 
 exports[`keyrack vault aws.params (cli) given: [case1] the aws.params vault is a valid --vault value when: [t1] keyrack set with PERMANENT_VIA_REFERENCE (dropped from aws.params) then: stderr matches snapshot 1`] = `
 "
-✋ ConstraintError: host manifest not found. run: rhx keyrack init --owner mechanic
-
-{
-  "owner": "mechanic"
-}
-
-[args] keyrack,set,--key,TEST,--vault,aws.params,--mech,PERMANENT_VIA_REFERENCE,--owner,mechanic,--env,test,--org,ehmpathy
+🔐 keyrack set
+   └─ ✋ ConstraintError: aws.params does not support mech: PERMANENT_VIA_REFERENCE
+      ├─ mech: PERMANENT_VIA_REFERENCE
+      ├─ supported: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --mech PERMANENT_VIA_REFERENCE --owner mechanic --env test --org testorg
+      └─ hint: use PERMANENT_VIA_REPLICA or EPHEMERAL_VIA_GITHUB_APP
 
 "
 `;
@@ -41,8 +39,7 @@ Options:
   --for <owner>              alias for --owner
   --env <env>                target env: prod, prep, test, all, sudo, or camp
                              (inferred from manifest if unambiguous)
-  --org <org>                target org: @this or @all (default: @this)
-                             (default: "@this")
+  --org <org>                target org: @this or @all (default: "@this")
   --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
                              github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)
@@ -57,7 +54,9 @@ Options:
 exports[`keyrack vault aws.params (cli) given: [case3] set with no --mech on a non-terminal stdin (c40, unattended) when: [t0] keyrack set --vault aws.params with no --mech, stdin not a tty then: stderr matches snapshot 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: a mechanism choice is required but stdin is not a terminal
+   └─ ✋ ConstraintError: a mechanism choice is required but stdin is not a terminal
+      ├─ supported: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --owner mechanic --env test --org testorg
       └─ hint: pass --mech <PERMANENT_VIA_REPLICA|EPHEMERAL_VIA_GITHUB_APP> so no interactive prompt is needed
 
 "
@@ -71,7 +70,7 @@ exports[`keyrack vault aws.params (cli) given: [case5] unlock exits non-zero whe
    │  └─ tip: rhx keyrack set --key XAI_API_KEY --env test
    └─ @all.test.XAI_API_KEY
       ├─ status: errored 💥
-      └─ tip: aws.params SSM read failed — retry: rhx keyrack unlock --env test
+      └─ tip: aws.params ssm read failed — retry: rhx keyrack unlock --env test
 
 "
 `;
@@ -79,7 +78,8 @@ exports[`keyrack vault aws.params (cli) given: [case5] unlock exits non-zero whe
 exports[`keyrack vault aws.params (cli) given: [case7] set fails loud when AWS_REGION is absent (region gate, c19) when: [t0] keyrack set --vault aws.params with no region in the env then: stderr matches snapshot 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: aws.params requires a region
+   └─ ✋ ConstraintError: aws.params requires a region
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --mech PERMANENT_VIA_REPLICA --owner mechanic --env test --org testorg
       └─ hint: set AWS_REGION, or add \`region = ...\` to your aws profile in ~/.aws/config
 
 "
@@ -88,7 +88,11 @@ exports[`keyrack vault aws.params (cli) given: [case7] set fails loud when AWS_R
 exports[`keyrack vault aws.params (cli) given: [case9] set fails loud when --owner is omitted (owner gate, c49) when: [t0] keyrack set --vault aws.params with no --owner then: stderr matches snapshot 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: aws.params requires an owner in the param name
+   └─ ✋ ConstraintError: aws.params requires an owner in the param name
+      ├─ input
+      │  ├─ slug: testorg.test.XAI_API_KEY
+      │  └─ mech: PERMANENT_VIA_REPLICA
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --mech PERMANENT_VIA_REPLICA --env test --org testorg
       └─ hint: pass --owner so the set-flow supplies context.owner
 
 "
@@ -132,7 +136,7 @@ exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the
 "
 🔐 keyrack del
    └─ @all.test.XAI_API_KEY removed
-      └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY was destroyed
+      └─ the ssm secret at /keyrack/infra/vault/aws.params/v1/mechanic/_all_/test/XAI_API_KEY was destroyed
 
 "
 `;
@@ -140,7 +144,9 @@ exports[`keyrack vault aws.params (cli) given: [case10] a replica set WRITES the
 exports[`keyrack vault aws.params (cli) given: [case11] a SPECIFIC-org set fails loud when the org declares no AWS_PROFILE (the hardcut) when: [t0] set --org testorg --mech REPLICA with no AWS_PROFILE declared for testorg then: stderr matches snapshot 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: aws.params: no AWS_PROFILE declared for org "testorg"
+   └─ ✋ ConstraintError: aws.params: no AWS_PROFILE declared for org "testorg"
+      ├─ org: testorg
+      ├─ ran: keyrack set --key XAI_API_KEY --vault aws.params --mech PERMANENT_VIA_REPLICA --owner mechanic --env test --org testorg
       └─ hint: this key is tree-scoped, so it authenticates as org "testorg"'s identity — the AWS_PROFILE this keyrack manages for that org. declare an AWS_PROFILE key for this org (env), or re-set the key with --org @all to use the grove's own identity.
 
 "
