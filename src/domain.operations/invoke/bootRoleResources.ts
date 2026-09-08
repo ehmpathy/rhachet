@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { computeBootPlan } from '@src/domain.operations/boot/computeBootPlan';
 import { parseRoleBootYaml } from '@src/domain.operations/boot/parseRoleBootYaml';
@@ -83,7 +83,7 @@ export const bootRoleResources = async ({
   // validate: --subject requires subject mode
   if (subjects && subjects.length > 0) {
     if (!bootConfig || bootConfig.mode !== 'subject') {
-      throw new BadRequestError('--subject requires boot.yml in subject mode', {
+      throw new ConstraintError('--subject requires boot.yml in subject mode', {
         subjects,
         mode: bootConfig?.mode ?? 'none',
       });

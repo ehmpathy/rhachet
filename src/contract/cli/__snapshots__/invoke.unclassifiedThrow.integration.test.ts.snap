@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invoke — an unclassified throw (integration) given: [case1] a config that raises a PLAIN Error, above the parse when: [t0] the cli renders the failure then: the WHOLE SCREEN holds its shape 1`] = `
+"
+💥 MalfunctionError: ⛈️ duplicate role.slug "echoer" found in registries: "echo" and "echo"
+
+{
+  "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+  "cause": {
+    "class": "Error",
+    "message": "⛈️ duplicate role.slug \\"echoer\\" found in registries: \\"echo\\" and \\"echo\\""
+  },
+  "stack": "Error: ⛈️ duplicate role.slug \\"echoer\\" found in registries: \\"echo\\" and \\"echo\\"\\n    at assureUniqueRoles (/REPO_ROOT/src/domain.operations/invoke/assureUniqueRoles.ts:LINE:COL)\\n    at _invoke (/REPO_ROOT/src/contract/cli/invoke.ts:LINE:COL)\\n    at async withEmojiSpaceShim (/REPO_ROOT/node_modules/.pnpm/emoji-space-shim@0.1.3/node_modules/emoji-space-shim/src/contract/sdk/withEmojiSpaceShim.ts:LINE:COL)"
+}
+
+[args] --config,src/.test/example.use.repo/example.rhachet.use.duplicateRoles.ts,readme,--repo,echo,--role,echoer
+
+"
+`;
+
+exports[`invoke — an unclassified throw (integration) given: [case2] a CLASSIFIED failure, on the same surface when: [t0] the cli renders the failure then: the WHOLE SCREEN holds its shape 1`] = `
+"
+✋ ConstraintError: explicit config required but not found. create rhachet.use.ts or use --config
+
+[args] readme,--repo,nope,--role,nope
+
+"
+`;

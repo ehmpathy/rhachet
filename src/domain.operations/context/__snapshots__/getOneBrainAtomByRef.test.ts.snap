@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`getOneBrainAtomByRef given: [case2] atoms array is empty when: [t0] getOneBrainAtomByRef is called then: it throws BadRequestError with "no atoms available" 1`] = `
-"BadRequestError: no atoms available in context
+exports[`getOneBrainAtomByRef given: [case2] atoms array is empty when: [t0] getOneBrainAtomByRef is called then: it throws ConstraintError with "no atoms available" 1`] = `
+"✋ ConstraintError: no atoms available in context
 
 pass atoms via genContextBrain({ brains: { atoms: [...] } }) or ensure
 brain packages are installed for discovery mode.
@@ -56,8 +56,8 @@ brain packages are installed for discovery mode.
 }"
 `;
 
-exports[`getOneBrainAtomByRef given: [case3] atoms array does not contain matching atom when: [t0] getOneBrainAtomByRef is called with non-matching ref then: it throws BadRequestError with "brain atom not found" 1`] = `
-"BadRequestError: brain atom not found: __mock_repo__/__mock_atom__
+exports[`getOneBrainAtomByRef given: [case3] atoms array does not contain matching atom when: [t0] getOneBrainAtomByRef is called with non-matching ref then: it throws ConstraintError with "brain atom not found" 1`] = `
+"✋ ConstraintError: brain atom not found: __mock_repo__/__mock_atom__
 
 the atom was not registered in this context.
 check that the atom is included in brains.atoms or that the brain

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { ActorRoleSkill } from '@src/domain.objects/ActorRoleSkill';
 import type { Role, RoleSkillSchema } from '@src/domain.objects/Role';
@@ -32,7 +32,7 @@ export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
 
     // fail fast if skill is declared but no executable found
     if (executables.length === 0)
-      throw new BadRequestError(
+      throw new ConstraintError(
         `skill "${input.slug}" declared in role.skills.${input.route} but no executable found in .agent/`,
         {
           slugSkill: input.slug,
@@ -59,7 +59,7 @@ export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
 
   // executable exists but no schema = not usable via actor contracts
   if (executables.length > 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `skill "${input.slug}" found in .agent/ but lacks schema in role.skills.${input.route}`,
       {
         slugSkill: input.slug,
@@ -71,7 +71,7 @@ export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
     );
 
   // skill not found
-  throw new BadRequestError(`skill not found: ${input.slug}`, {
+  throw new ConstraintError(`skill not found: ${input.slug}`, {
     slugSkill: input.slug,
     slugRole: input.role.slug,
     route: input.route,

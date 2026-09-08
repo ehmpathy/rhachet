@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 /**
  * .what = extracts the peer prefix and extension from a chosen file
@@ -25,7 +25,7 @@ export const getPeerQualifiersOfOutputChoice = (
   // grab the last dotted segment as the extension
   const extMatch = choice.match(/^(.+)\.([A-Za-z0-9]+)$/);
   if (!extMatch)
-    BadRequestError.throw(`unrecognized file naming pattern`, { choice });
+    ConstraintError.throw(`unrecognized file naming pattern`, { choice });
 
   // instantiate a mutable base
   let base: string =
@@ -44,13 +44,13 @@ export const getPeerQualifiersOfOutputChoice = (
 
   const prefix =
     base ??
-    BadRequestError.throw('could not extract prefix from output choice', {
+    ConstraintError.throw('could not extract prefix from output choice', {
       choice,
     });
 
   const ext =
     extension ??
-    BadRequestError.throw('could not extract extension from output choice', {
+    ConstraintError.throw('could not extract extension from output choice', {
       choice,
     });
 

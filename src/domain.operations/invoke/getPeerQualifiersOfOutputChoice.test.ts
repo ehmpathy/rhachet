@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { getPeerQualifiersOfOutputChoice } from './getPeerQualifiersOfOutputChoice';
 
@@ -74,9 +74,9 @@ describe('getPeerQualifiersOfOutputChoice', () => {
 
   describe('invalid input cases', () => {
     invalidCases.forEach((input) => {
-      test(`throws BadRequestError for "${input}"`, () => {
+      test(`throws ConstraintError for "${input}"`, () => {
         expect(() => getPeerQualifiersOfOutputChoice(input)).toThrow(
-          BadRequestError,
+          ConstraintError,
         );
       });
     });

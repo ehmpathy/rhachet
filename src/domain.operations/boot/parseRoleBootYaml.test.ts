@@ -248,7 +248,7 @@ briefs:
   this is not valid yaml
 `;
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => parseRoleBootYaml({ content, path: 'boot.yml' })).toThrow(
           'boot.yml has invalid yaml',
         );
@@ -263,7 +263,7 @@ briefs:
   say: not-an-array
 `;
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => parseRoleBootYaml({ content, path: 'boot.yml' })).toThrow(
           'boot.yml has invalid schema',
         );
@@ -275,7 +275,7 @@ briefs:
 subject.test: not-an-object
 `;
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => parseRoleBootYaml({ content, path: 'boot.yml' })).toThrow(
           'boot.yml has invalid schema',
         );
@@ -296,7 +296,7 @@ always:
       - core.md
 `;
 
-      then('throws BadRequestError for mixed mode', () => {
+      then('throws ConstraintError for mixed mode', () => {
         expect(() => parseRoleBootYaml({ content, path: 'boot.yml' })).toThrow(
           'mixed mode not allowed',
         );
@@ -315,7 +315,7 @@ subject.test:
       - test.md
 `;
 
-      then('throws BadRequestError for mixed mode', () => {
+      then('throws ConstraintError for mixed mode', () => {
         expect(() => parseRoleBootYaml({ content, path: 'boot.yml' })).toThrow(
           'mixed mode not allowed',
         );

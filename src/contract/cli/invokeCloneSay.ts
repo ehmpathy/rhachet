@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddressHuman';
 import { asCloneReachError } from '@src/domain.operations/clone/asCloneReachError';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { CLONE_SUBMIT_VERIFY_TIMEOUT_MS } from '@src/domain.operations/clone/constants';
@@ -144,9 +145,10 @@ export const invokeCloneSay = ({ clone }: { clone: Command }): void => {
             // `delivered` is now HONEST — it prints only AFTER the self-verify above
             // confirmed the message left the input buffer (was submitted), never on a
             // bare byte hand-off
-            const addressShown = cloneFound.slug
-              ? `@:${cloneFound.slug}`
-              : `@:${cloneFound.serial}`;
+            // the one owner of the human-faced address (`rule.require.short-serial-for-
+            // unslugged-clones`). the FULL serial stays in `data.serial` below, which is
+            // the machine channel and where the lossy form would be a defect
+            const addressShown = asCloneAddressHuman(cloneFound);
             // the clone talk header (rule.prefer.emoji-language): `😶` the clone face,
             // `🎙️` the say artifact — you speak INTO the clone (the input counterpart to
             // get's `🎧` headphones). `said to <addr>` confirms the message left the input

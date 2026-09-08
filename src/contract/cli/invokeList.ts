@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
@@ -27,7 +27,7 @@ export const invokeList = (
       // list skills for a specific role
       if (opts.role) {
         const role = assureFindRole({ registries, slug: opts.role });
-        if (!role) BadRequestError.throw(`no role named "${opts.role}"`);
+        if (!role) ConstraintError.throw(`no role named "${opts.role}"`);
 
         console.log(``);
         console.log(`📖 ${role.slug}`);
@@ -44,7 +44,7 @@ export const invokeList = (
       // list roles for a specific repo
       if (opts.repo) {
         const registry = registries.find((r) => r.slug === opts.repo);
-        if (!registry) BadRequestError.throw(`no repo named "${opts.repo}"`);
+        if (!registry) ConstraintError.throw(`no repo named "${opts.repo}"`);
 
         console.log(``);
         console.log(`📖 ${registry.slug}`);

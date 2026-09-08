@@ -1,12 +1,19 @@
-import { chmodSync } from 'node:fs';
+import { MalfunctionError } from 'helpful-errors';
+
+import { chmodSync, unlinkSync } from 'node:fs';
 import { createServer, type Server, type Socket } from 'node:net';
 import { asCloneDispatchAckFrame } from './asCloneDispatchAckFrame';
 import { asCloneDispatchFrame } from './asCloneDispatchFrame';
 import { asCloneDispatchFrameSplit } from './asCloneDispatchFrameSplit';
 import { computeCloneSubmitDelay } from './computeCloneSubmitDelay';
 import { CLONE_SUBMIT, CLONE_WIRE_FRAME_MAX_BYTES } from './constants';
+import {
+  CLONE_SOCKET_BIND_TIMEOUT_MARK,
+  CLONE_SOCKET_BIND_TIMEOUT_MS,
+} from './constants.bind';
 import { type CloneWriteQueue, genCloneWriteQueue } from './genCloneWriteQueue';
 import { isCallerSameUser } from './isCallerSameUser';
+import { isCloneSocketBindFaultError } from './isCloneSocketBindFaultError';
 import { isSafeCloneDispatchInput } from './isSafeCloneDispatchInput';
 
 /**
@@ -33,11 +40,48 @@ import { isSafeCloneDispatchInput } from './isSafeCloneDispatchInput';
  * .note = the same-user check is deferred to the FIRST data frame — a bare
  *   liveness probe (connect + close, no bytes) never pays the `ss` lookup
  */
-export const genCloneSocketServer = (input: {
-  socketPath: string;
-  write: (bytes: string) => void;
-  isBrainCliAlive: () => boolean;
-}): { server: Server; queue: CloneWriteQueue; close: () => Promise<void> } => {
+export const genCloneSocketServer = (
+  input: {
+    socketPath: string;
+    write: (bytes: string) => void;
+    isBrainCliAlive: () => boolean;
+  },
+  options?: {
+    /**
+     * .what = override the bind liveness bound, in ms
+     * .why = the DEFAULT is the only value production uses. this exists so a clamp can
+     *   prove the bound's own hazard — that a HEALTHY bind is never stalled by its own
+     *   guard — on a timescale a test can wait through. a bound of ten seconds cannot be
+     *   exercised in a suite, and an unexercised guard is one nobody can show is correct
+     */
+    bindTimeoutMs?: number;
+
+    /**
+     * .what = the sink this module's DIAGNOSTIC trace lines go to
+     * .why = every trace here is a line no caller can observe — an auth fault, a late bind,
+     *   a reap that could not unlink, and above all the `ready.catch` that exists precisely
+     *   for the case where NO caller awaits. so the only way to prove any of them is to read
+     *   the sink, and the only way to read the sink with no mock is to inject it.
+     *
+     * ⚠️ this is NOT `input.write` — that one writes INTO the child's pty and is the
+     *   dispatch path. this one is the operator's stderr and carries no dispatch.
+     *
+     * .note = the DEFAULT is the only value production uses, exactly as `bindTimeoutMs`
+     *   above. a `jest.spyOn(process.stderr, 'write')` would be a mock in an integration
+     *   test, which `rule.forbid.integration.mocks` forbids outright
+     */
+    trace?: (line: string) => void;
+  },
+): {
+  server: Server;
+  queue: CloneWriteQueue;
+  ready: Promise<void>;
+  close: () => Promise<void>;
+} => {
+  // the diagnostic trace sink — real stderr in prod, a capture in a clamp
+  const traceToStderr = process.stderr.write.bind(process.stderr);
+  const trace = options?.trace ?? traceToStderr;
+
   // the queue BULK-writes each accepted message to the child in ONE pty write, then —
   // after a length-scaled submit delay — writes the submit `\r`. a booted claude accepts
   // a bulk content write (proven real-haiku 2026-08-13, lesson.clone-say-bulk-write-works);
@@ -162,9 +206,7 @@ export const genCloneSocketServer = (input: {
       const text = chunk.toString('utf8');
       if (!authGate)
         authGate = isCallerSameUser({ socket }).catch((err: unknown) => {
-          process.stderr.write(
-            `clone socket auth error: ${(err as Error).message}\n`,
-          );
+          trace(`clone socket auth error: ${(err as Error).message}\n`);
           return false;
         });
       authGate
@@ -188,17 +230,254 @@ export const genCloneSocketServer = (input: {
       const isPeerHangup =
         code === 'EPIPE' || code === 'ECONNRESET' || code === 'ECONNABORTED';
       if (!isPeerHangup)
-        process.stderr.write(
-          `clone socket connection error: ${code ?? err.message}\n`,
-        );
+        trace(`clone socket connection error: ${code ?? err.message}\n`);
       socket.destroy();
     });
   });
 
-  server.listen(input.socketPath, () => {
-    // owner-only — the fs perm twin of the same-user gate
-    chmodSync(input.socketPath, 0o600);
+  // 🚨 the bind's two faults take ONE path out, and neither may escape as an uncaught
+  //   event. `net.Server` reports a bind fault (EADDRINUSE, EACCES, ENOENT) on `'error'`
+  //   ASYNCHRONOUSLY, and a throw inside this callback is SYNCHRONOUS inside an event
+  //   handler — so with no listener and no guard, either one kills the process with a
+  //   raw stack, ahead of every classifier this repo owns. the caller races `'error'`
+  //   against the bind's success event, so the guard re-emits rather than throws: one
+  //   fault channel, one owner, and `genCloneSpawn`'s allowlist reports it as OURS
+  //
+  // 🚨 `ready` OWNS the first fault, and the race for it lives HERE rather than in each
+  //   caller. a caller-side race is a contract no signature states and no compiler checks,
+  //   so a caller that does not race turns this guard's consume into a silent hang
+  //   (`rule.forbid.failhide`). one module, one implementation, every caller.
+  //
+  // 🚨 the listener is DURABLE (`.on`, never `.once`) because node REMOVES a `.once` after
+  //   the first fault — so a SECOND fault on the same server would reach no listener and
+  //   die as an uncaught exception. a second fault is real, not hypothetical: a bind can
+  //   fault, settle `ready`, and the deferred lockdown below can then fault too.
+  //
+  //   ⚠️ it does not SWALLOW. the first fault rejects `ready`, which the caller reports
+  //   through the classifier — to print it here too would double every enroll failure.
+  //   every fault PAST the first has no owner by construction, so it is written to stderr
+  //   rather than dropped: a trace, never a vanish (`rule.forbid.failhide`).
+  // .note = deliberate mutation — two bindings local to this closure: whether `ready` has
+  //   settled, and the handle that settles it. neither escapes
+  let readySettled = false;
+  let failReady: (error: Error) => void = () => {};
+  const ready = new Promise<void>((done, fail) => {
+    failReady = fail;
+
+    /**
+     * .what = lock the bound socket down to owner-only, then settle `ready` — or, if the
+     *   lockdown faults, tear the socket down and reject `ready` with that fault
+     *
+     * 🚨 the lockdown runs INSIDE the ready gate, never in `listen(path, cb)`'s callback:
+     *   node registers that callback as one more `'listening'` listener, behind the gate's
+     *   own, so it runs strictly AFTER `readySettled` is true. a lockdown fault there would
+     *   miss `failReady`, fall to the durable listener's bare-stderr branch, and leave the
+     *   caller's `await ready` already resolved — so the enroll emits its `🔌 reach this
+     *   clone` breadcrumb for a server this code had just closed (`rule.forbid.failhide`),
+     *   and `'chmod'`'s entry in `isCloneSocketBindFaultError`'s allowlist becomes a
+     *   classification no path can reach. run here, the fault settles `ready` and the
+     *   caller reports it through the classifier.
+     *
+     * ⚠️ it REJECTS, never throws. this body runs inside an event handler, where a
+     *   synchronous throw has no catch above it and becomes an uncaught exception.
+     */
+    const lockdownThenSettle = (): void => {
+      // 🚨 the bind LANDED LATE — past the bound below, which already rejected `ready` and
+      //   reaped. this listener is still registered, so without this branch a late bind
+      //   runs a full second teardown whose `fail` hits an ALREADY-REJECTED promise and is
+      //   a no-op: node reports naught, the caller hears naught, and the log is identical
+      //   to a bind that never landed at all. those are two different facts about the host
+      //   — one says libuv is slow, the other says it is deaf — and a reader who cannot
+      //   part them cannot act on either (`rule.forbid.failhide`).
+      //
+      // ⚠️ the reap REPEATS rather than trusts the bound's: `server.close()` ran before
+      //   this bind completed, so the listener and its socket file may both be live now.
+      //   an un-reaped late bind costs an ORPHAN — a live listener with no owner — so the
+      //   repeat is the safe side of the trade
+      //
+      // 🚨 `server.close()` is NOT idempotent. node emits `ERR_SERVER_NOT_RUNNING` on a
+      //   close of a server that is not running, which the durable `'error'` listener below
+      //   would absorb into a spurious `clone socket server error` line — noise on the
+      //   failure path, and a process death the day that listener's registration order
+      //   changes. so the close is GATED on the bind being live
+      //
+      // ⚠️ the unlink stays unconditional, because it IS idempotent — it guards ENOENT,
+      //   and the socket file can outlive a closed listener
+      if (readySettled) {
+        trace(
+          `clone socket bind landed AFTER its ${
+            options?.bindTimeoutMs ?? CLONE_SOCKET_BIND_TIMEOUT_MS
+          }ms bound and was reaped: ${input.socketPath}\n`,
+        );
+        if (server.listening) server.close();
+        try {
+          unlinkSync(input.socketPath);
+        } catch (unlinkError) {
+          if ((unlinkError as NodeJS.ErrnoException).code !== 'ENOENT')
+            trace(
+              `clone socket late-bind reap could not unlink ${input.socketPath}: ${
+                (unlinkError as NodeJS.ErrnoException).code ??
+                (unlinkError as Error).message
+              }\n`,
+            );
+        }
+        return;
+      }
+
+      try {
+        // owner-only — the fs perm twin of the same-user gate
+        chmodSync(input.socketPath, 0o600);
+      } catch (error) {
+        // ⚠️ a socket bound but NOT locked down is worse than an absent one — it is
+        //   reachable by any user on the host. so this closes rather than degrades, and
+        //   the close precedes the report so no caller can observe the unlocked window
+        server.close();
+
+        // ⚠️ and the ADDRESS is released too, never left behind. `server.close()` unbinds
+        //   the listener; it does not guarantee the path is unlinked across node versions
+        //   and platforms. a socket file that outlives its server is an ORPHAN — it holds
+        //   an address a later bind must first clear, and this module's own docblock states
+        //   a "no orphan socket" guarantee. so the lockdown failure cleans up after itself
+        //   rather than lean on the next caller's stale-path delete
+        //
+        // ⚠️ ENOENT is the one errno allowed to pass: the file may never have been created,
+        //   and an absent file IS the state this seeks. every other errno is written to
+        //   stderr, so a genuine fs defect is never masked by the cleanup — but it does NOT
+        //   displace the rejection below, because the LOCKDOWN fault is the one the caller
+        //   must act on and a promise settles exactly once (`rule.forbid.failhide`)
+        try {
+          unlinkSync(input.socketPath);
+        } catch (unlinkError) {
+          if ((unlinkError as NodeJS.ErrnoException).code !== 'ENOENT')
+            trace(
+              `clone socket lockdown reap could not unlink ${input.socketPath}: ${
+                (unlinkError as NodeJS.ErrnoException).code ??
+                (unlinkError as Error).message
+              }\n`,
+            );
+        }
+
+        readySettled = true;
+        fail(error as Error);
+        return;
+      }
+
+      readySettled = true;
+      done();
+    };
+
+    if (server.listening) return lockdownThenSettle();
+    server.once('listening', lockdownThenSettle);
+
+    // 🚨 the third outcome: NEITHER event fires. libuv gives one or the other for a unix
+    //   bind under every condition we can name — but "we can name" is the whole caveat, and
+    //   an enroll that hangs forever behind a spawned child is the worst of the three
+    //   shapes: no report, no exit, and a brain-cli that holds the host's pty invisibly
+    //
+    // ⚠️ the bound is generous ON PURPOSE. a unix bind is a filesystem operation measured
+    //   in microseconds, so a threshold in SECONDS cannot kill a healthy-but-slow bind —
+    //   the one hazard a timeout carries
+    //
+    // ⚠️ it fails LOUD and names its own condition, so a human never reads a bare stall.
+    //   the timer is `unref`d — a settled `ready` must never hold the event loop open
+    const bindTimeoutMs =
+      options?.bindTimeoutMs ?? CLONE_SOCKET_BIND_TIMEOUT_MS;
+    const timer = setTimeout(() => {
+      // ⚠️ inert once `ready` has settled — a `fail` on a settled promise is a no-op — but
+      //   kept as the EXPLICIT statement of the invariant, so a later shape that CAN
+      //   re-settle (a deferred, an emitter) does not silently inherit a guarantee it no
+      //   longer provides. it is not a clamp-provable line, and it is not meant to be
+      if (readySettled) return;
+      readySettled = true;
+      // 🚨 the error is STAMPED so `isCloneSocketBindFaultError` recognizes it as one of
+      //   its own. without the mark it carries no `syscall` — node declared no call, which
+      //   is the condition itself — so both allowlists in `genCloneSpawn` miss and it takes
+      //   the `neither → unclassified` row. this fault is OURS by construction: this module
+      //   mints it, above the allowlist that same module closes, so it is anticipated
+      //   rather than unknown
+      //
+      // ⚠️ `MalfunctionError`, never a bare `Error` (`rule.forbid.helpful-error-parents`) —
+      //   a caller that awaits `ready` outside `genCloneSpawn`'s allowlist still receives an
+      //   error that carries an owner and an exit code. the MARK stays an own property, so
+      //   `isCloneSocketBindFaultError`'s realm-independent read is unaffected by the class
+      const error = new MalfunctionError(
+        `clone socket bind neither succeeded nor faulted within ${bindTimeoutMs}ms`,
+        { socketPath: input.socketPath, bindTimeoutMs },
+      );
+      Object.assign(error, { [CLONE_SOCKET_BIND_TIMEOUT_MARK]: true });
+      fail(error);
+
+      // 🚨 the bound REAPS, it does not merely report. node emits the bind's success event
+      //   asynchronously, so a bind slow enough to trip this bound can still land after it
+      //   — and by then the caller has already taken the rejection and torn down, so nobody
+      //   is left to `close()`. the result is a live listener on a unix address with a
+      //   socket file behind it and no owner: the exact orphan this module's own docblock
+      //   guarantees against. so the reap is unconditional here
+      server.close();
+      try {
+        unlinkSync(input.socketPath);
+      } catch (unlinkError) {
+        if ((unlinkError as NodeJS.ErrnoException).code !== 'ENOENT')
+          trace(
+            `clone socket bind-bound reap could not unlink ${input.socketPath}: ${
+              (unlinkError as NodeJS.ErrnoException).code ??
+              (unlinkError as Error).message
+            }\n`,
+          );
+      }
+    }, bindTimeoutMs);
+    timer.unref();
   });
+
+  // ⚠️ a `ready` that NO caller awaits would raise an unhandled rejection on a bind fault
+  //   — the same process death, one layer over. so this module marks the rejection handled
+  //   itself. a caller that DOES await still receives it, because a rejection is delivered
+  //   to every handler, not to the first alone
+  //
+  // 🚨 it TRACES EVERY shape, classified ones included. three can reject this promise — a
+  //   bind fault off the `'error'` channel, the lockdown's `chmod` fault, and the bound's
+  //   marked malfunction — and an allowlist that skipped those would be silent in the exact
+  //   scenario this handler exists for: no caller, so no report (`rule.forbid.failhide`)
+  //
+  // ⚠️ there is NO claim latch, though a latch is the obvious cure. every mechanism that
+  //   can detect "did a caller take this?" is a worse hazard than the doubling it saves:
+  //   - a `get ready()` flips on any plain read — a spread, an `Object.keys`, a debug log —
+  //     so an innocuous line would silently disarm a failhide guard, invisibly, at a site
+  //     that cannot see it (`rule.forbid.hidden-side-effects`)
+  //   - a hand-rolled thenable that latches on `then`/`catch` detects the right act, and
+  //     buys it with a re-implementation of promise delivery in the one module whose job is
+  //     to make a fault impossible to lose
+  //
+  //   ⇒ the COST is one raw stderr line ahead of the rendered frame on a failed enroll,
+  //   which is additive since it carries node's own errno text. the BENEFIT is that no
+  //   fault can be lost by any path, and this handler holds no state a reader can
+  //   accidentally change (`rule.require.fewer-paths-via-idempotency`)
+  ready.catch((error) => {
+    trace(
+      `clone socket ready rejected with ${
+        isCloneSocketBindFaultError(error)
+          ? 'a bind fault'
+          : 'an unclassified fault'
+      }: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+  });
+
+  server.on('error', (error) => {
+    if (!readySettled) {
+      readySettled = true;
+      return failReady(error as Error);
+    }
+    trace(
+      `clone socket server error: ${
+        (error as NodeJS.ErrnoException).code ?? (error as Error).message
+      }\n`,
+    );
+  });
+  // ⚠️ NO callback here, deliberately: node registers it as one more `'listening'`
+  //   listener, behind the ready gate's own, so it would run with `readySettled` already
+  //   true and its fault could never reach the caller. the lockdown lives in
+  //   `lockdownThenSettle` instead (see that function's note)
+  server.listen(input.socketPath);
 
   const close = (): Promise<void> =>
     new Promise((done) => {
@@ -209,5 +488,5 @@ export const genCloneSocketServer = (input: {
       server.close(() => done());
     });
 
-  return { server, queue, close };
+  return { server, queue, ready, close };
 };

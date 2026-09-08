@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { DaemonActivityClock } from '../domain.objects/daemonActivityClock';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
@@ -12,7 +12,7 @@ import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
  *        on its first tick. neither raises an error — the daemon simply stops to
  *        serve, and the operator sees a keyrack that forgets its keys instantly
  *
- * .note = caller-fixable (correct the env var) -> BadRequestError, not a server fault
+ * .note = caller-fixable (correct the env var) -> ConstraintError, not a server fault
  */
 const getOneDurationMs = (input: {
   envVar: string;
@@ -26,7 +26,7 @@ const getOneDurationMs = (input: {
   // silently become a 1ms interval — a busy loop — rather than raise. the shape is
   // verified on the raw string so the leniency cannot reach the duration
   if (!/^\d+$/.test(raw) || parseInt(raw, 10) <= 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `${input.envVar} must be a positive integer of milliseconds`, // e.g. "900000"
       { [input.envVar]: raw },
     );

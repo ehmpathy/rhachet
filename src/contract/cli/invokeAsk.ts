@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type { InvokeOpts } from '@src/contract/sdk';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -77,7 +77,7 @@ const performAskViaActorMode = async (input: {
 }): Promise<void> => {
   // validate brains are available
   if (input.brains.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'no brains available. add getBrainRepls() to your rhachet.use.ts',
     );
 
@@ -88,7 +88,7 @@ const performAskViaActorMode = async (input: {
 
   // validate prompt is provided
   if (!input.opts.ask)
-    throw new BadRequestError(
+    throw new ConstraintError(
       '--ask is required (e.g., --ask "review my code")',
     );
 
@@ -150,7 +150,7 @@ export const invokeAsk = (
     const role = assureFindRole({ registries, slug: opts.role });
     const skill = role?.skills.refs.find((s) => s.slug === opts.skill);
     if (!skill)
-      BadRequestError.throw(
+      ConstraintError.throw(
         `no skill named "${opts.skill}" under role "${opts.role}"`,
         {
           opts,
@@ -206,7 +206,7 @@ export const invokeAsk = (
       if (isActorMode) {
         const role = assureFindRole({ registries, slug: opts.role });
         if (!role)
-          throw new BadRequestError(`role "${opts.role}" not found`, {
+          throw new ConstraintError(`role "${opts.role}" not found`, {
             availableRoles: registries.flatMap((r) => r.roles),
           });
         return await performAskViaActorMode({ opts, role, brains, registries });

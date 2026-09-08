@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 
@@ -113,7 +113,7 @@ export const getRoleRegistryManifest = (input: {
   } catch (error) {
     const nodeError = error as NodeJS.ErrnoException;
     if (nodeError.code === 'ENOENT')
-      throw new BadRequestError('rhachet.repo.yml not found', {
+      throw new ConstraintError('rhachet.repo.yml not found', {
         packageRoot: input.packageRoot,
         manifestPath,
       });
@@ -125,7 +125,7 @@ export const getRoleRegistryManifest = (input: {
   try {
     parsed = parseYaml(content);
   } catch (error) {
-    throw new BadRequestError('rhachet.repo.yml has invalid yaml', {
+    throw new ConstraintError('rhachet.repo.yml has invalid yaml', {
       packageRoot: input.packageRoot,
       manifestPath,
       parseError: (error as Error).message,
@@ -135,7 +135,7 @@ export const getRoleRegistryManifest = (input: {
   // validate against raw schema
   const result = schemaRoleRegistryManifestRaw.safeParse(parsed);
   if (!result.success)
-    throw new BadRequestError('rhachet.repo.yml has invalid schema', {
+    throw new ConstraintError('rhachet.repo.yml has invalid schema', {
       packageRoot: input.packageRoot,
       manifestPath,
       errors: result.error.issues,

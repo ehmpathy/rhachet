@@ -177,7 +177,7 @@ describe('rhx pnpm hoisted compatibility', () => {
       then('error contains helpful message', () => {
         const stderr = result.stderr;
         // verify the error is from rhachet domain logic, not shell
-        expect(stderr).toContain('BadRequestError');
+        expect(stderr).toContain('ConstraintError');
         expect(stderr).toContain('no skill');
         expect(stderr).toContain('available skills');
       });

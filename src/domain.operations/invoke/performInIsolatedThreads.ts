@@ -1,5 +1,5 @@
 import Bottleneck from 'bottleneck';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { asDurationInWords } from 'iso-time';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
@@ -36,18 +36,18 @@ export const performInIsolatedThreads = async (input: {
 }): Promise<void> => {
   // validate that attempts were requested
   if (!input.opts.attempts)
-    BadRequestError.throw('--attempts was not provided', {
+    ConstraintError.throw('--attempts was not provided', {
       argv: input.opts,
     });
 
   // validate that more than one attempt was declared
   const attempts = Number(input.opts.attempts);
   if (!Number.isInteger(attempts))
-    BadRequestError.throw('--attempts must be an integer', {
+    ConstraintError.throw('--attempts must be an integer', {
       attempts: { input: input.opts.attempts, asNum: input.opts.attempts },
     });
   if (attempts < 1)
-    BadRequestError.throw('--attempts must be greater than one', {
+    ConstraintError.throw('--attempts must be greater than one', {
       attempts: { input: input.opts.attempts, asNum: input.opts.attempts },
     });
 
@@ -56,14 +56,14 @@ export const performInIsolatedThreads = async (input: {
     ? Number(input.opts.concurrency)
     : 3;
   if (!Number.isInteger(concurrency))
-    BadRequestError.throw('--concurrency must be an integer', {
+    ConstraintError.throw('--concurrency must be an integer', {
       concurrency: {
         input: input.opts.concurrency,
         asNum: input.opts.concurrency,
       },
     });
   if (concurrency < 1)
-    BadRequestError.throw('--concurrency must be greater than one', {
+    ConstraintError.throw('--concurrency must be greater than one', {
       concurrency: {
         input: input.opts.concurrency,
         asNum: input.opts.concurrency,

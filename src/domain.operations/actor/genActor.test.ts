@@ -70,7 +70,7 @@ describe('genActor', () => {
 
   given('[case1] genActor is called with an empty brains array', () => {
     when('[t0] the actor recipe is baked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           genActor({ roles: [testRole], brains: [] }),
         );
@@ -84,7 +84,7 @@ describe('genActor', () => {
 
   given('[case2] genActor is called with an empty roles array', () => {
     when('[t0] the actor recipe is baked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           genActor({ roles: [], brains: [mockBrainRepl] }),
         );

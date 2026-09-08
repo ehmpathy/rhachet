@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { bootRoleResources } from '@src/domain.operations/invoke/bootRoleResources';
 import { findUniqueRoleDir } from '@src/domain.operations/invoke/findUniqueRoleDir';
@@ -32,7 +32,7 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
       }) => {
         // require --role for all cases
         if (!opts.role)
-          BadRequestError.throw('--role is required (e.g., --role mechanic)');
+          ConstraintError.throw('--role is required (e.g., --role mechanic)');
 
         // discover role dir from .agent/
         const roleDir = findUniqueRoleDir({

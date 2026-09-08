@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
@@ -27,15 +27,15 @@ describe('getOneBrainAtomByRef', () => {
     const atoms: BrainAtom[] = [];
 
     when('[t0] getOneBrainAtomByRef is called', () => {
-      then('it throws BadRequestError with "no atoms available"', () => {
+      then('it throws ConstraintError with "no atoms available"', () => {
         const error = getError(() =>
           getOneBrainAtomByRef({
             atoms,
             ref: mockAtom,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toMatchSnapshot();
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toMatchSnapshot();
       });
     });
   });
@@ -49,15 +49,15 @@ describe('getOneBrainAtomByRef', () => {
     const atoms = [mockAtomInArray];
 
     when('[t0] getOneBrainAtomByRef is called with non-matching ref', () => {
-      then('it throws BadRequestError with "brain atom not found"', () => {
+      then('it throws ConstraintError with "brain atom not found"', () => {
         const error = getError(() =>
           getOneBrainAtomByRef({
             atoms,
             ref: mockAtomToFind,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toMatchSnapshot();
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toMatchSnapshot();
       });
     });
   });

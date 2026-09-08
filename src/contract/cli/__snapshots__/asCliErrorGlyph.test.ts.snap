@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCliErrorGlyph given: [case5] every variant a caller could encounter when: [t0] the whole table is rendered then: the variant table is pinned 1`] = `
+{
+  "ConstraintError": "✋",
+  "Error (unclassified)": "💥",
+  "MalfunctionError": "💥",
+}
+`;

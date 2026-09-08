@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { RoleDelta } from '@src/domain.objects/RoleDelta';
@@ -81,11 +81,11 @@ describe('getRoleDeltas', () => {
 
   given('[case4] mixed absolute + incremental call (e3)', () => {
     when('[t0] a bare token appears alongside a sigiled token', () => {
-      then('throws BadRequestError about mixed calls', async () => {
+      then('throws ConstraintError about mixed calls', async () => {
         const error = await getError(() =>
           getRoleDeltas({ tokens: ['mechanic', '+architect'] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('cannot mix');
       });
     });
@@ -93,11 +93,11 @@ describe('getRoleDeltas', () => {
 
   given('[case5] same slug added and removed (e7)', () => {
     when('[t0] `+architect -architect` in one call', () => {
-      then('throws BadRequestError about contradiction', async () => {
+      then('throws ConstraintError about contradiction', async () => {
         const error = await getError(() =>
           getRoleDeltas({ tokens: ['+architect', '-architect'] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('both add and remove');
       });
     });
@@ -115,7 +115,7 @@ describe('getRoleDeltas', () => {
                 tokens: ['+architect', '-ehmpathy/architect'],
               }),
             );
-            expect(error).toBeInstanceOf(BadRequestError);
+            expect(error).toBeInstanceOf(ConstraintError);
             expect(error.message).toContain('both add and remove');
           },
         );
@@ -130,7 +130,7 @@ describe('getRoleDeltas', () => {
                 tokens: ['+ehmpathy/architect', '-ehmpathy/architect'],
               }),
             );
-            expect(error).toBeInstanceOf(BadRequestError);
+            expect(error).toBeInstanceOf(ConstraintError);
             expect(error.message).toContain('both add and remove');
           },
         );
@@ -160,17 +160,17 @@ describe('getRoleDeltas', () => {
 
   given('[case6] bare sigil with no role name (e9)', () => {
     when('[t0] a lone "+" token', () => {
-      then('throws BadRequestError about empty after "+"', async () => {
+      then('throws ConstraintError about empty after "+"', async () => {
         const error = await getError(() => getRoleDeltas({ tokens: ['+'] }));
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('empty after "+"');
       });
     });
 
     when('[t1] a lone "-" token', () => {
-      then('throws BadRequestError about empty after "-"', async () => {
+      then('throws ConstraintError about empty after "-"', async () => {
         const error = await getError(() => getRoleDeltas({ tokens: ['-'] }));
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('empty after "-"');
       });
     });
@@ -178,9 +178,9 @@ describe('getRoleDeltas', () => {
 
   given('[case7] empty token list', () => {
     when('[t0] called with no tokens', () => {
-      then('throws BadRequestError about no roles', async () => {
+      then('throws ConstraintError about no roles', async () => {
         const error = await getError(() => getRoleDeltas({ tokens: [] }));
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('no roles specified');
       });
     });

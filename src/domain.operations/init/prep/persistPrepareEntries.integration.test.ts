@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, when } from 'test-fns';
 
 import { ContextCli } from '@src/domain.objects/ContextCli';
@@ -238,7 +238,7 @@ describe('persistPrepareEntries', () => {
           caughtError = error;
         }
 
-        expect(caughtError).toBeInstanceOf(BadRequestError);
+        expect(caughtError).toBeInstanceOf(ConstraintError);
         expect((caughtError as Error).message).toContain(
           'no package.json found',
         );
@@ -264,7 +264,7 @@ describe('persistPrepareEntries', () => {
           if (error instanceof Error) thrownError = error;
         }
 
-        expect(thrownError).toBeInstanceOf(BadRequestError);
+        expect(thrownError).toBeInstanceOf(ConstraintError);
         expect(thrownError?.message).toContain('invalid package.json');
       });
     });

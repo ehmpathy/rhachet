@@ -43,11 +43,40 @@ describe('asClonePruneView', () => {
         expect(view.data.mode).toEqual('plan');
         expect(view.data.count).toEqual(2);
         expect(view.tree).toContain('--mode apply');
-        // the named clone shows its @:slug, the bare its @:full-serial
+
+        /**
+         * 🚨 the named clone shows its `@:slug`, the bare its `@:<SHORT serial>` — the
+         *   same form `clone list` and `clone get` render
+         *   (`rule.require.short-serial-for-unslugged-clones`).
+         *
+         * ⚠️ .the claim these rows used to make = *"the bare its @:full-serial"* and
+         *   *"the full serial is always shown (copy-pasteable)"*. both were true of the
+         *   code and false of the CONVENTION — the render's own docblock claimed it
+         *   matched `list`, and `list` had shown 8 hex all along. the abbreviation is
+         *   MORE copy-pasteable, not less: `getOneCloneByRef` resolves any hex body of
+         *   4+ chars, so the short form reaches the clone and costs 28 fewer characters.
+         */
         expect(view.tree).toContain('@:driver');
-        expect(view.tree).toContain(`@:${rowBare.serial}`);
-        // the full serial is always shown (copy-pasteable)
-        expect(view.tree).toContain(`serial=${rowNamed.serial}`);
+        expect(view.tree).toContain('@:11110000');
+        expect(view.tree).toContain('serial=7f3a0000');
+
+        // and the FULL serial stays out of the human tree entirely — it lives on the
+        // machine twin (`view.data.clones`), which this row bounds
+        expect(view.tree).not.toContain(rowBare.serial);
+        expect(view.tree).not.toContain(rowNamed.serial);
+      });
+
+      then('the machine twin keeps the FULL serial, unabbreviated', () => {
+        /**
+         * 🚨 the paired positive to the negative above, and the row that makes the
+         *   abbreviation safe to ship: a short serial written into a machine channel is
+         *   a defect, never a courtesy — it makes the payload ambiguous where the whole
+         *   point of a machine channel is that it is not.
+         */
+        expect(view.data.clones.map((clone) => clone.serial)).toEqual([
+          rowNamed.serial,
+          rowBare.serial,
+        ]);
       });
 
       then('the plan tree matches the snapshot', () => {

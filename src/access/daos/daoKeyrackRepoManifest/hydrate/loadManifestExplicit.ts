@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml } from 'yaml';
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -32,7 +32,7 @@ export const loadManifestExplicit = (input: {
   try {
     parsed = parseYaml(content);
   } catch (error) {
-    throw new BadRequestError('keyrack manifest has invalid yaml', {
+    throw new ConstraintError('keyrack manifest has invalid yaml', {
       path: input.path,
       cause: error instanceof Error ? error : undefined,
     });
@@ -41,7 +41,7 @@ export const loadManifestExplicit = (input: {
   // validate schema
   const result = schemaKeyrackRepoManifest.safeParse(parsed);
   if (!result.success) {
-    throw new BadRequestError('keyrack manifest has invalid schema', {
+    throw new ConstraintError('keyrack manifest has invalid schema', {
       path: input.path,
       issues: result.error.issues,
     });

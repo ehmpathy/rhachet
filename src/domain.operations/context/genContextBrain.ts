@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { createCache } from 'simple-in-memory-cache';
 import { withSimpleCache } from 'with-simple-cache';
 
@@ -37,23 +37,10 @@ import { getOneDuplicateBrainKey } from './getOneDuplicateBrainKey';
  *   - discovery mode (async): `await genContextBrain({ choice })`
  *   - explicit mode (sync): `genContextBrain({ brains: { atoms, repls }, choice })`
  *
- * @throws {BrainChoiceNotFoundError} when choice does not match any available brain.
- *   the error message includes a formatted list of available brains sorted by
- *   similarity to the requested choice. consumers can catch this error to display
- *   the helpful message via stderr:
- *   ```ts
- *   try {
- *     return await genContextBrain({ choice });
- *   } catch (error) {
- *     if (error instanceof BrainChoiceNotFoundError) {
- *       console.error(error.message);
- *       process.exit(1);
- *     }
- *     throw error;
- *   }
- *   ```
- *
- * @throws {BadRequestError} when choice matches multiple brains (ambiguous)
+ * .note = a `choice` that matches no brain raises `BrainChoiceNotFoundError`, whose
+ *   message already carries the available brains sorted by similarity — so a caller
+ *   that prints it needs no list of its own. a `choice` that matches SEVERAL raises a
+ *   `ConstraintError`: both are the caller's to amend, never ours to guess between.
  */
 
 // discovery mode overloads (async)
@@ -160,7 +147,7 @@ const buildContextBrain = (input: {
   // validate no duplicate atoms
   const duplicateAtomKey = getOneDuplicateBrainKey({ brains: atoms });
   if (duplicateAtomKey)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `duplicate atom identifier: ${duplicateAtomKey}
 
 each atom must have a unique {repo, slug} combination.
@@ -171,7 +158,7 @@ remove the duplicate or rename one of the atoms.`,
   // validate no duplicate repls
   const duplicateReplKey = getOneDuplicateBrainKey({ brains: repls });
   if (duplicateReplKey)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `duplicate repl identifier: ${duplicateReplKey}
 
 each repl must have a unique {repo, slug} combination.
@@ -244,7 +231,7 @@ ${getAvailableBrainsInWords({ atoms, repls, choice: input.choice })}`,
 
     // ambiguous
     if (allMatched.length > 1)
-      BadRequestError.throw(
+      ConstraintError.throw(
         `ambiguous brain slug: ${input.choice}
 
 multiple brains match this slug. use a typed choice to disambiguate:

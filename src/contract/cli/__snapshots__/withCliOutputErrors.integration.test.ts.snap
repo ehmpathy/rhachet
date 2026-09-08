@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`withCliOutputErrors given: [case2] a ConstraintError under --output tree when: [t0] wrapped then: the WHOLE rendered screen is locked 1`] = `
+"
+✋ ConstraintError: bad --as value
+
+{
+  "hint": "use --as @:<slug>"
+}
+
+"
+`;

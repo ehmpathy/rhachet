@@ -1,5 +1,5 @@
 import type { RefByUnique } from 'domain-objects';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
@@ -13,7 +13,7 @@ export const getOneBrainReplByRef = (input: {
 }): BrainRepl => {
   // fail fast if no repls available
   if (input.repls.length === 0)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `no repls available in context
 
 pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
@@ -28,7 +28,7 @@ brain packages are installed for discovery mode.`,
 
   // fail if not found
   if (!replFound)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `brain repl not found: ${input.ref.repo}/${input.ref.slug}
 
 the repl was not registered in this context.

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import type { ZodSchema } from 'zod';
 
 /**
@@ -22,7 +22,7 @@ export const assureRigidSkillHasOutputInput = (input: {
   // check for 'output' key in the shape
   const hasOutput = 'output' in shape;
   if (!hasOutput)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `rigid skill "${input.skill.slug}" must declare "output" as input to support --attempts`,
       { skill: input.skill.slug },
     );

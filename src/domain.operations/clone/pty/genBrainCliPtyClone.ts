@@ -66,9 +66,26 @@ export interface PtyCloneHost {
  *   the socket server is closed, and the socket file is unlinked — so a dead clone
  *   leaves no live listener and no orphan socket. `waitForExit` settles with the
  *   child's exit code (exit-code parity), so the caller can forward it
- * .note = a pty-DEVICE allocation failure at spawn propagates to the caller
- *   (genClone), which owns the fallback to a plain spawn — the fallback lives with
- *   the pty-vs-plain decision, in one place, not split across two files
+ * 🚨 .note = a pty-DEVICE allocation failure at spawn PROPAGATES, and is never
+ *   degraded to a plain spawn — not here, and not in the caller either. by the time
+ *   this runs, `genCloneOndisk` has already refused the whole enroll for a socket it
+ *   could not honor (its `computeCloneSocketOmissionReason` gate), so a downgrade at this
+ *   depth would hand back exactly the talk-less clone that gate exists to refuse —
+ *   the same degrade, one branch later, with no report to say so
+ *
+ *   what the caller DOES own is legibility: `withCliOutputErrors` rethrows a
+ *   non-HelpfulError unchanged, so an unwrapped node-pty throw would reach a human as
+ *   a bare stack with no fix named. `genCloneOndisk` reaps the staged dir and
+ *   re-reports the same cause with `--no-socket` named
+ *   (`rule.require.errors-name-the-fix`)
+ *
+ * 🚨 .note = that re-report is ALLOWLISTED to a host-refused DEVICE
+ *   (`isPtyDeviceRefusedError`), and it is never the only allowlist. this operation also
+ *   stands up the socket and wires the host, and a throw from either of those is OURS — so
+ *   it is reported as OURS, never dressed as a host condition the caller must work around
+ *   (`rule.forbid.failhide`). the bind half has its own classifier
+ *   (`isCloneSocketBindFaultError` → `asCloneSocketBindFaultError`, a malfunction); the
+ *   host wires have none yet, and reach a human with their own stack intact
  */
 export const genBrainCliPtyClone = async (
   input: {
@@ -120,9 +137,31 @@ export const genBrainCliPtyClone = async (
     write: (bytes) => child.write(bytes),
     isBrainCliAlive: () => brainCliAlive,
   });
-  await new Promise<void>((done) => {
-    if (socketServer.server.listening) return done();
-    socketServer.server.once('listening', () => done());
+  // 🚨 `ready` settles on the bind's success OR its fault — the race lives inside
+  //   `genCloneSocketServer`, never here. `net.Server` reports a bind fault (EADDRINUSE,
+  //   EACCES, ENAMETOOLONG, an absent parent dir) asynchronously, and node kills the
+  //   process on an unhandled `'error'` event. that death carries a raw stack and reaches
+  //   a human ahead of every classifier this repo owns (`asCloneSocketOmissionReasonError`,
+  //   `asCliErrorFrame`), for a fault `genCloneSpawn`'s own allowlist already says is OURS
+  //
+  // ⚠️ the child is ALREADY spawned by this line, so the fault path KILLS it. to
+  //   rethrow without the kill would leave a brain-cli alive behind a terminal whose
+  //   enroll had failed — invisible, and it holds the host's pty
+  //
+  // ⚠️ `kill`, never `reap` — `reap` is a forbidden synonym of `prune`, and `prune` is
+  //   the wrong concept here twice over: it removes what has gone STALE, from a SET. this
+  //   child is alive and healthy, and it is exactly one. `kill` is the declared narrow
+  //   verb for one process (`term=prune._.choice._`, ".the one word that is NOT a synonym")
+  //
+  // ⚠️ the kill is fire-and-forget, and deliberately so — every OTHER teardown in this
+  //   file (`finalize`, `dispose`) awaits the child's exit first. two reasons it must not
+  //   here: `child.onExit` is not wired until below this gate, so there is no exit promise
+  //   to await; and to add one would reintroduce the exact hang this gate exists to retire
+  //   — a child deaf to the signal would hold the rethrow open forever, and the enroll
+  //   would never settle. the signal is sent; whether it lands is the kernel's business
+  await socketServer.ready.catch((error) => {
+    child.kill();
+    throw error;
   });
 
   // mirror the child's output to the human (the invisible stream)

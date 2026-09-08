@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { getRoleBySpecifier } from '@src/domain.operations/invoke/getRoleBySpecifier';
@@ -24,7 +24,7 @@ export const invokeRolesInit = (
     .option('--role <slug>', 'the role to initialize')
     .action(async (opts: { repo?: string; role?: string }) => {
       if (!opts.role)
-        BadRequestError.throw('--role is required (e.g., --role mechanic)');
+        ConstraintError.throw('--role is required (e.g., --role mechanic)');
 
       // resolve role via unified lookup
       const resolved = await getRoleBySpecifier(

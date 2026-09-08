@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { parseRoleSpecifier } from './parseRoleSpecifier';
@@ -54,21 +54,21 @@ describe('parseRoleSpecifier', () => {
 
   given('[case4] empty specifier', () => {
     when('[t0] parseRoleSpecifier is called with ""', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseRoleSpecifier({ specifier: '' }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('cannot be empty');
       });
     });
 
     when('[t1] parseRoleSpecifier is called with "   "', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseRoleSpecifier({ specifier: '   ' }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('cannot be empty');
       });
     });
@@ -76,11 +76,11 @@ describe('parseRoleSpecifier', () => {
 
   given('[case5] specifier with empty repo', () => {
     when('[t0] parseRoleSpecifier is called with "/mechanic"', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseRoleSpecifier({ specifier: '/mechanic' }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('repo part');
       });
     });
@@ -88,11 +88,11 @@ describe('parseRoleSpecifier', () => {
 
   given('[case6] specifier with empty role', () => {
     when('[t0] parseRoleSpecifier is called with "ehmpathy/"', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseRoleSpecifier({ specifier: 'ehmpathy/' }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('role part');
       });
     });
@@ -100,11 +100,11 @@ describe('parseRoleSpecifier', () => {
 
   given('[case7] specifier with multiple slashes', () => {
     when('[t0] parseRoleSpecifier is called with "ehmpathy/foo/bar"', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseRoleSpecifier({ specifier: 'ehmpathy/foo/bar' }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('multiple slashes');
       });
     });

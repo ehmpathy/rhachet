@@ -9,6 +9,7 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
+import { asCloneReachBreadcrumb } from '@src/domain.operations/clone/asCloneReachBreadcrumb';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { computeCloneAccrualWarn } from '@src/domain.operations/clone/computeCloneAccrualWarn';
 import { genCloneOndisk } from '@src/domain.operations/clone/genCloneOndisk';
@@ -347,11 +348,37 @@ const performEnroll = async (input: {
       }),
     );
 
-  // human breadcrumb (tree output only): a bare enroll (no --as) is not a dead
-  // end — show the clone's own address so the human can reach it later without a
-  // `clone list`, and surface the accrual advisory past the soft threshold
-  if (mode === 'tree' && slug === null)
-    console.error(`🔌 reach this clone: rhx clone say @:${serial} --what "…"`);
+  // human breadcrumb (tree output only): an enroll is not a dead end — confirm the
+  // clone enrolled and show the address that reaches it later, with no `clone list`
+  //
+  // .why the text lives in `asCloneReachBreadcrumb` = one owner for a human-faced
+  //   line, one exact-text clamp against drift, and the invoker stays a narrative
+  //   (rule.require.named-transformers). that file holds the full etymology: why a
+  //   NAMED enroll gets it too, why a treestruct, and why `😶`
+  //
+  // .why BOTH slug and serial are handed over, rather than one resolved address =
+  //   which of the two to show, and how to shorten the serial, are that value's own
+  //   decisions — so they are clamped by its own rows. a `slug ?? shorten(serial)`
+  //   here would be decode-friction in an orchestrator, and would move a real
+  //   guarantee into a line no unit test reads
+  //   (rule.forbid.decode-friction-in-orchestrators)
+  //
+  // .why the blank line each side = the brain's own mirror output follows at once,
+  //   so with no pad the breadcrumb is swallowed by the wall of text under it. the
+  //   pad is the EMIT's, never the value's — see that file's `.note`
+  if (mode === 'tree') {
+    console.error('');
+    console.error(
+      asCloneReachBreadcrumb({
+        slug,
+        serial,
+        // 🚨 the breadcrumb reads the SAME flag the json handoff reports above, so the two
+        //   renders of one enroll cannot disagree about whether the clone can hear
+        reachable: result.clone.socketEligible,
+      }),
+    );
+    console.error('');
+  }
   if (mode === 'tree' && accrual.warn)
     console.error(
       asCloneAccrualWarnLine({ liveCount: accrual.liveCount, actorHash: hash }),

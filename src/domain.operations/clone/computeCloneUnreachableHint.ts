@@ -27,11 +27,17 @@ export const computeCloneUnreachableHint = (input: {
   hostHash: string | null;
 }): { message: string; hint: string } => {
   switch (input.cause) {
+    // .note = the hint names the enroll as the DIAGNOSTIC rather than a checklist
+    //   to satisfy. this selector reads a stored clone record, so it cannot know
+    //   WHICH precondition failed at enroll time — a list stated as complete
+    //   would send a human who already meets every named row away from the real
+    //   cause (a pty addon that will not load is the one that bit on linux). the
+    //   enroll's own error owns the precise cause; this points at it
     case 'DEAF':
       return {
         message:
           'this clone is deaf — it has no dispatch socket, so it cannot hear a `say`',
-        hint: 'observe it with `rhx clone get`, or re-enroll interactively (a socket-capable brain, a POSIX host, no `--no-socket`) to make it reachable',
+        hint: 'observe it with `rhx clone get`, or re-enroll interactively to make it reachable — if the enroll cannot open a socket it names the exact cause (one of several: `--no-socket`, a brain with no socket, a non-POSIX host, a pty addon that will not load)',
       };
     case 'DEAD-same-host':
       return {

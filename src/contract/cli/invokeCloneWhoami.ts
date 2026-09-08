@@ -1,6 +1,8 @@
 import type { Command } from 'commander';
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddressHuman';
+import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
 import { getCloneReachState } from '@src/domain.operations/clone/getCloneReachState';
 import { getOneCloneByRef } from '@src/domain.operations/clone/getOneCloneByRef';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
@@ -53,12 +55,24 @@ export const invokeCloneWhoami = ({ clone }: { clone: Command }): void => {
             );
 
           const reachState = await getCloneReachState({ clone: self });
-          const address = self.slug ? `@:${self.slug}` : `@:${self.serial}`;
+          const address = asCloneAddressHuman(self);
           const actorHash = self.actor.hash;
 
+          /**
+           * 🚨 the tree renders the SHORT serial on both rows, the same form `clone list`
+           *   shows — so a clone that reads its own identity is handed the address a human
+           *   beside it would be handed (`rule.require.short-serial-for-unslugged-clones`).
+           *
+           * ⚠️ .the judgment this row makes, stated rather than assumed = `whoami` reports
+           *   the clone's OWN identity, so a reader could argue identity wants the
+           *   canonical 36-char form. it does not, for one checkable reason: the canonical
+           *   form is ALREADY on the `--output json` twin below, untouched. a machine reads
+           *   that; this tree is read by a human or by a brain that will type what it sees.
+           *   were the json twin absent, this call would go the other way.
+           */
           const tree = [
             `😶 you are ${address}`,
-            `   ├─ serial=${self.serial}`,
+            `   ├─ serial=${asCloneSerialHuman({ serial: self.serial })}`,
             `   ├─ state=${reachState}`,
             `   └─ actor=@${actorHash}`,
           ].join('\n');

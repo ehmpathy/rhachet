@@ -2,8 +2,8 @@
 
 exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + a bare) and one DEAF clone when: [t0] \`clone prune\` runs with no mode (plan is the default) then: the plan tree matches the snapshot 1`] = `
 "🧹 clone prune (plan)
-   ├─ @:doomed  serial=__SERIAL__  since=__TIMESTAMP__
-   └─ @:__SERIAL__  serial=__SERIAL__  since=__TIMESTAMP__
+   ├─ @:doomed  serial=__SERIAL8__  since=__TIMESTAMP__
+   └─ @:__SERIAL8__  serial=__SERIAL8__  since=__TIMESTAMP__
    plan: 2 dead clone(s) would be pruned — re-run with --mode apply to remove
 "
 `;
@@ -30,8 +30,8 @@ exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + 
 
 exports[`rhx clone prune (acceptance) given: [case2] apply reaps the DEAD clones and keeps the DEAF one when: [t0] \`clone prune --mode apply\` commits the reap then: the apply tree matches the snapshot 1`] = `
 "🧹 clone prune (apply)
-   ├─ @:doomed  serial=__SERIAL__  since=__TIMESTAMP__
-   └─ @:__SERIAL__  serial=__SERIAL__  since=__TIMESTAMP__
+   ├─ @:doomed  serial=__SERIAL8__  since=__TIMESTAMP__
+   └─ @:__SERIAL8__  serial=__SERIAL8__  since=__TIMESTAMP__
    pruned: 2 dead clone(s)
 "
 `;
@@ -73,8 +73,11 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
 
 exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t1] a bad \`--older-than\` value fails loud with the fix then: the fail-loud message matches the snapshot 1`] = `
 "
-✋ invalid --older-than "soon"
-   └─ use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h
+✋ ConstraintError: invalid --older-than "soon"
+
+{
+  "hint": "use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h"
+}
 
 "
 `;
@@ -85,15 +88,21 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
   "message": "invalid --older-than \\"soon\\"",
   "hint": "use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h"
+  }
 }
 "
 `;
 
 exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds back a fresh dead clone when: [t2] a bad \`--mode\` value fails loud with the fix then: the fail-loud message matches the snapshot 1`] = `
 "
-✋ invalid --mode "bogus"
-   └─ use --mode plan (default, preview) or --mode apply (remove)
+✋ ConstraintError: invalid --mode "bogus"
+
+{
+  "hint": "use --mode plan (default, preview) or --mode apply (remove)"
+}
 
 "
 `;
@@ -104,15 +113,30 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
   "message": "invalid --mode \\"bogus\\"",
   "hint": "use --mode plan (default, preview) or --mode apply (remove)",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "use --mode plan (default, preview) or --mode apply (remove)"
+  }
 }
 "
 `;
 
 exports[`rhx clone prune (acceptance) given: [case4] a reap that fails mid-batch reaps the rest, then fails loud when: [t0] \`clone prune --mode apply\` hits the stubborn clone first then: the fail-loud message matches the snapshot 1`] = `
 "
-✋ pruned 1 clone(s), but 1 could not be reaped
-   └─ check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`
+💥 MalfunctionError: pruned 1 clone(s), but 1 could not be reaped
+
+{
+  "hint": "check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`",
+  "failed": [
+    {
+      "serial": "__SERIAL__",
+      "message": "ENOTDIR: not a directory, scandir '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/clones/serial=__SERIAL__/history'"
+    }
+  ],
+  "reapedSerials": [
+    "__SERIAL__"
+  ]
+}
 
 "
 `;
@@ -123,7 +147,19 @@ exports[`rhx clone prune (acceptance) given: [case4b] the mid-batch reap failure
   "message": "pruned 1 clone(s), but 1 could not be reaped",
   "hint": "check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "check filesystem permissions on the clone dirs, then re-run \`rhx clone prune\`",
+    "failed": [
+      {
+        "serial": "__SERIAL__",
+        "message": "ENOTDIR: not a directory, scandir '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/clones/serial=__SERIAL__/history'"
+      }
+    ],
+    "reapedSerials": [
+      "__SERIAL__"
+    ]
+  }
 }
 "
 `;
@@ -149,7 +185,7 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t2] \`clone prune --mode plan\` previews the reap then: the prune-plan format is locked (visual spot-check) 1`] = `
 "🧹 clone prune (plan)
-   └─ @:goner  serial=__SERIAL__  since=__TIMESTAMP__
+   └─ @:goner  serial=__SERIAL8__  since=__TIMESTAMP__
    plan: 1 dead clone(s) would be pruned — re-run with --mode apply to remove
 "
 `;
@@ -178,7 +214,7 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t3] \`clone prune --mode apply\` reaps the dead goner then: the prune-apply confirmation format is locked 1`] = `
 "🧹 clone prune (apply)
-   └─ @:goner  serial=__SERIAL__  since=__TIMESTAMP__
+   └─ @:goner  serial=__SERIAL8__  since=__TIMESTAMP__
    pruned: 1 dead clone(s)
 "
 `;

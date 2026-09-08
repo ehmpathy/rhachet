@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
@@ -27,7 +27,7 @@ export const getRemovalTargets = (input: {
 
       // reject explicit native qualification — native roles are not removable
       if (parsed.repo === '.this')
-        throw new BadRequestError(
+        throw new ConstraintError(
           'native roles (repo=.this) cannot be removed',
           { specifier },
         );
@@ -49,7 +49,7 @@ export const getRemovalTargets = (input: {
 
       // ambiguous — same slug linked under multiple repos
       if (candidates.length > 1)
-        throw new BadRequestError(
+        throw new ConstraintError(
           `role "${parsed.role}" is ambiguous — linked under multiple repos`,
           {
             specifier,
@@ -66,7 +66,7 @@ export const getRemovalTargets = (input: {
 
       // no linked match — reject if it names a native role, else no-op
       if (input.nativeRoles.includes(parsed.role))
-        throw new BadRequestError(
+        throw new ConstraintError(
           'native roles (repo=.this) cannot be removed',
           { specifier },
         );

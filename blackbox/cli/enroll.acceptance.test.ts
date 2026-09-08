@@ -251,7 +251,7 @@ describe('rhx enroll --roles (acceptance)', () => {
           message: string;
           hint: string | null;
         };
-        expect(shape.class).toEqual('BadRequestError');
+        expect(shape.class).toEqual('ConstraintError');
         expect(shape.message.toLowerCase()).toContain('ghostrole');
         expect(shape.message.toLowerCase()).toContain('not found');
         // the rolesLinked context survives — it rides the hint field (never dropped)
@@ -864,8 +864,8 @@ describe('rhx enroll --roles (acceptance)', () => {
       // a uuid-shaped --as parses as a SERIAL on every reach path (say/get/list), so
       // a clone named this way would be permanently unreachable by its own address.
       // enroll must reject it at mint time, not let it fail loud only when a caller
-      // tries to reach it (i009 r011 blocker 1). before the fix, isSafeCloneSlug
-      // accepted a lowercase uuid, so the dead end shipped silently
+      // tries to reach it. isSafeCloneSlug once accepted a lowercase uuid, so the
+      // dead end shipped silently
       const run = useThen('exits non-zero', () =>
         invokeRhachetCliBinary({
           args: [
@@ -895,7 +895,7 @@ describe('rhx enroll --roles (acceptance)', () => {
       // a slug with uppercase / space / punctuation is rejected at mint time — a
       // handle must be a safe path segment (lowercase, digits, - . _), so it can
       // never traverse or collide. acceptance parity with the uuid case (t4), so
-      // BOTH `--as` rejection branches are locked at the blackbox grain (i022 r010 #7)
+      // BOTH `--as` rejection branches are locked at the blackbox grain
       const runUnsafe = useThen('exits non-zero', () =>
         invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--as', '@:Bad Slug!'],
@@ -918,7 +918,7 @@ describe('rhx enroll --roles (acceptance)', () => {
     when('[t4c] `enroll claude --as <no-marker>` (a dropped @: sigil)', () => {
       // a handle without the `@:` clone-grain marker is rejected with a did-you-mean
       // that names the correct form — the clone grain is never guessed. the
-      // acceptance twin of the integration-grade did-you-mean coverage (i022 r010 #7)
+      // acceptance twin of the integration-grade did-you-mean coverage
       const runNoMarker = useThen('exits non-zero', () =>
         invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--as', 'driver'],

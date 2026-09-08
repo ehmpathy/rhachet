@@ -5,6 +5,7 @@
 *.tsbuildinfo
 .agent/.cache/
 .agent/.actors/
+.agent/.notes/
 .artifact
 .env
 .review/

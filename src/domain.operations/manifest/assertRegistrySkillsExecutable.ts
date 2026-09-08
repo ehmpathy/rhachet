@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects';
 
@@ -8,7 +8,7 @@ import { findNonExecutableShellSkills } from './findNonExecutableShellSkills';
  * .what = validates that all .sh files in skills directories are executable
  * .why = fail fast at repo introspect to prevent broken skill packages from publish
  *
- * .note = throws BadRequestError if any non-executable .sh files are found
+ * .note = throws ConstraintError if any non-executable .sh files are found
  */
 export const assertRegistrySkillsExecutable = (input: {
   registry: RoleRegistry;
@@ -32,7 +32,7 @@ export const assertRegistrySkillsExecutable = (input: {
     'fix: run `chmod +x <path>` for each file, or ensure git preserves execute bits',
   ].join('\n');
 
-  throw new BadRequestError(message, {
+  throw new ConstraintError(message, {
     nonExecutablePaths,
   });
 };

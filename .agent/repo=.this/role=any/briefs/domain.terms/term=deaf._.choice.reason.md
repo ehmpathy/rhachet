@@ -82,3 +82,22 @@ by the two states never confusable in fix (deaf → observe or re-enroll; dead �
   clone's socket" guarantee.
 - **settled by** — the human wisher (2026-08-13), in the same council that set the brain-cli
   invariant.
+- **the forbidden `silent` held under pressure (2026-08-25)** — the `fix-node-pty-install` wish
+  described a linux enroll as one that "silently degrades". a trace of the two enroll paths showed
+  neither reads that way: an **interactive** enroll fails **LOUD** (`genCloneOndisk` throws the
+  error `asCloneSocketOmissionReasonError` casts, so no clone is made and no reach-state applies), and a
+  **non-interactive** enroll yields a **DEAF** clone — the canonical word — by the extant
+  `isCloneSocketEligible` gate, identically on a healthy macOS host. so `silent` named
+  neither state; the word that was silent was the **install**, not the clone. the vision conformed
+  to `deaf` and corrected the wish rather than adopt the forbidden synonym. a live case of why
+  `silent` is forbidden: it blurs an output property with a reach-state, and here it pointed a
+  reader at the wrong layer entirely.
+- **why the DEAF hint names no complete checklist (2026-08-30)** — the hint once listed
+  brain-capability, POSIX, and `--no-socket` as though they were every condition, and omitted a pty
+  addon that will load. on a linux host with an unbuilt node-pty that pointed a reader **away** from
+  the real cause: they could satisfy all three and still fail. the cure was **not** a fourth row —
+  `computeCloneUnreachableHint` reads a stored clone record, so it cannot know which condition
+  fired, and a longer list that still reads as complete has the identical failure mode. it names the
+  **enroll** as the diagnostic instead, and marks its list `one of several` so it is partial by
+  construction. a durable lesson for any DEAF-adjacent message: **a reach-state selector knows the
+  state, never its cause** — to enumerate causes there is to guess.

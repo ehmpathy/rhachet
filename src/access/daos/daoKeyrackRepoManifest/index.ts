@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
@@ -109,7 +109,7 @@ export const daoKeyrackRepoManifest = {
 
       // if file doesn't exist, we can't add to it (need org declaration first)
       if (!existsSync(path)) {
-        throw new BadRequestError(
+        throw new ConstraintError(
           'cannot add key to keyrack.yml: file does not exist',
           { path, note: 'create keyrack.yml with org declaration first' },
         );
@@ -121,7 +121,7 @@ export const daoKeyrackRepoManifest = {
       try {
         parsed = parseYaml(content) as Record<string, unknown>;
       } catch (error) {
-        throw new BadRequestError('keyrack.yml has invalid yaml', {
+        throw new ConstraintError('keyrack.yml has invalid yaml', {
           path,
           cause: error instanceof Error ? error : undefined,
         });
@@ -129,7 +129,7 @@ export const daoKeyrackRepoManifest = {
 
       // validate org declaration
       if (!parsed.org || typeof parsed.org !== 'string') {
-        throw new BadRequestError(
+        throw new ConstraintError(
           'cannot add key to keyrack.yml: org declaration absent',
           { path, note: 'add org: <your-org> to keyrack.yml first' },
         );
@@ -192,7 +192,7 @@ export const daoKeyrackRepoManifest = {
       try {
         parsed = parseYaml(content) as Record<string, unknown>;
       } catch (error) {
-        throw new BadRequestError('keyrack.yml has invalid yaml', {
+        throw new ConstraintError('keyrack.yml has invalid yaml', {
           path,
           cause: error instanceof Error ? error : undefined,
         });

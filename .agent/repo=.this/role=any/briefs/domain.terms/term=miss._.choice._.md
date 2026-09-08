@@ -3,11 +3,14 @@
 term.chosen   = miss
 term.kind     = noun
 term.synonyms.forbidden:
-- absent
 - notfound
 - empty
 - failure
 - error
+
+⚠️ **`absent` is NOT a forbidden synonym — it is a DISTINCT kin term.** see
+[`term=absent`](./term=absent._.choice._.md), and the `.why not absent` boundary below, which
+already made the argument. to collapse the two would erase the one axis that separates them.
 
 ## .what
 

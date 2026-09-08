@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { assureFindRole } from '@src/domain.operations/invoke/assureFindRole';
@@ -30,14 +30,14 @@ export const invokeReadme = (
 
       // no inputs provided
       if (!opts.repo && !opts.role)
-        BadRequestError.throw('must provide --repo or --role');
+        ConstraintError.throw('must provide --repo or --role');
 
       // resolve registry by repo slug
       const registry = opts.repo
         ? registries.find((r) => r.slug === opts.repo)
         : null;
       if (!opts.role) {
-        if (!registry) BadRequestError.throw(`no repo matches given options`);
+        if (!registry) ConstraintError.throw(`no repo matches given options`);
 
         // repo level readme
         const repoReadmeContent = readFileSync(
@@ -50,7 +50,7 @@ export const invokeReadme = (
       // resolve role
       const role = assureFindRole({ registries, slug: opts.role });
       if (!role)
-        BadRequestError.throw(
+        ConstraintError.throw(
           `no role named "${opts.role}" in configured registries`,
           {
             registries: registries.map((thisRegistry) => thisRegistry.slug),
@@ -69,7 +69,7 @@ export const invokeReadme = (
       // resolve skill
       const skill = role.skills.refs.find((s) => s.slug === opts.skill);
       if (!skill)
-        BadRequestError.throw(
+        ConstraintError.throw(
           `no skill "${opts.skill}" in role "${opts.role}"`,
           { skills: role.skills.refs.map((thisSkill) => thisSkill.slug) },
         );

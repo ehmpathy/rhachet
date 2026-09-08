@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 
@@ -23,10 +23,10 @@ export const execRoleUnlink = (
   context: ContextCli,
 ): { status: 'removed' | 'absent' } => {
   // guard: native roles live under repo=.this and are not removable.
-  // caller error (the user asked to remove a native role) → BadRequestError
+  // caller error (the user asked to remove a native role) → ConstraintError
   // (exit 2), so callers know a retry will not help — per exit-code semantics
   if (input.repo === '.this')
-    throw new BadRequestError('native roles (repo=.this) cannot be removed', {
+    throw new ConstraintError('native roles (repo=.this) cannot be removed', {
       repo: input.repo,
       role: input.role,
     });

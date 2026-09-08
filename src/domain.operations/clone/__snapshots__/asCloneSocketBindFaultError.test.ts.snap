@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneSocketBindFaultError given: [case1] a bind that faulted after the gate had cleared a socket when: [t1] a machine reads the metadata then: the whole payload is locked (visual spot-check) 1`] = `
+{
+  "class": "MalfunctionError",
+  "message": "💥 MalfunctionError: the reach socket is unavailable — its socket could not be bound
+
+{
+  "hostTuple": "linux-x64-glibc",
+  "socketErrno": "EADDRINUSE",
+  "socketSyscall": "listen",
+  "socketError": "listen EADDRINUSE: address already in use /run/x.sock",
+  "hint": "the pty addon loaded and the device was granted, so the socket bind should have succeeded — this is a defect in rhachet, please report it with this errno. pass --no-socket to enroll meanwhile. the bind said: \`listen EADDRINUSE: address already in use /run/x.sock\`"
+}",
+  "metadata": {
+    "hint": "the pty addon loaded and the device was granted, so the socket bind should have succeeded — this is a defect in rhachet, please report it with this errno. pass --no-socket to enroll meanwhile. the bind said: \`listen EADDRINUSE: address already in use /run/x.sock\`",
+    "hostTuple": "linux-x64-glibc",
+    "socketErrno": "EADDRINUSE",
+    "socketError": "listen EADDRINUSE: address already in use /run/x.sock",
+    "socketSyscall": "listen",
+  },
+}
+`;

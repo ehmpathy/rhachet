@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -22,13 +22,13 @@ export const inferRepoByRole = (input: {
   // Handle ambiguous case
   if (matchingRepos.length > 1) {
     const repoList = matchingRepos.map((r) => `  - ${r.slug}`).join('\n');
-    BadRequestError.throw(
+    ConstraintError.throw(
       `Multiple repos have role "${input.slugRole}":\n${repoList}\nPlease specify --repo to disambiguate.`,
     );
   }
 
   // Handle not found case
-  BadRequestError.throw(
+  ConstraintError.throw(
     `No repo has role "${input.slugRole}".\nCheck that the role exists in your registries.`,
   );
 };

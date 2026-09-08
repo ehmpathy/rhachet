@@ -287,8 +287,13 @@ describe('rhachet repo introspect', () => {
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      // 🚨 exit 2, never 1. the orphan sits in the CALLER's brief tree, so it is theirs to
+      //   settle — `assertZeroOrphanMinifiedBriefs` raises a `ConstraintError` to say so.
+      //   a bare `Error` there reaches the cli unclassified, the frame guesses
+      //   `MalfunctionError`, and the human is told OUR install is damaged (exit 1).
+      //   `not.toEqual(0)` was green under that defect, so the exact code is locked here.
+      then('exits with status 2 — the caller settles it, not us', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('stderr names the orphan file', () => {
@@ -451,7 +456,15 @@ exports.getRoleRegistry = () => registry;
       });
 
       then('stderr includes stop hand error header', () => {
-        expect(result.stderr).toContain('✋ roles with bootable content');
+        // 🚨 the glyph and the message are asserted as SEPARATED by the class name, never
+        //   adjacent. this row once demanded `'✋ roles with bootable content'` — which
+        //   passed only because the THROWER baked a `✋ ` into its own message string, so
+        //   the rendered line read `✋ ConstraintError: ✋ roles with…`, a DOUBLED glyph.
+        //   the message no longer owns a glyph (`asCliErrorFrame` prepends the one), so the
+        //   two are no longer adjacent — and that separation is the fix, not a regression
+        expect(result.stderr).toContain('✋ ConstraintError:');
+        expect(result.stderr).toContain('roles with bootable content');
+        expect(result.stderr).not.toContain('✋ roles with bootable content');
       });
 
       then('stderr includes role slug', () => {
@@ -530,7 +543,11 @@ exports.getRoleRegistry = () => registry;
       });
 
       then('stderr includes stop hand error header', () => {
-        expect(result.stderr).toContain('✋ hooks with forbidden npx patterns');
+        // 🚨 the glyph is separated from the message by the class name — see [case9]'s twin
+        //   assertion for why the old adjacent form was a DOUBLED glyph, never a header
+        expect(result.stderr).toContain('✋ ConstraintError:');
+        expect(result.stderr).toContain('hooks with forbidden npx patterns');
+        expect(result.stderr).not.toContain('✋ hooks with forbidden');
       });
 
       then('stderr includes role slug', () => {

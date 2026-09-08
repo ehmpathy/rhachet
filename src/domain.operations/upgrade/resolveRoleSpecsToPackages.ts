@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
@@ -13,7 +13,18 @@ import { discoverRolePackages } from '@src/domain.operations/init/roles/packages
 export const resolveRoleSpecsToPackages = async (
   input: { specs: string[] },
   context: ContextCli,
+  options?: {
+    /**
+     * .what = the package discovery this operation composes
+     * .why = the same seam, for the same reason as `resolveBrainsToPackages`: a real
+     *   discovery reads `package.json` off disk, and a unit row must not cross that
+     *   boundary nor mock the module (`rule.forbid.unit.remote-boundaries`)
+     */
+    discover?: typeof discoverRolePackages;
+  },
 ): Promise<string[]> => {
+  const discover = options?.discover ?? discoverRolePackages;
+
   // handle empty input
   if (input.specs.length === 0) return [];
 
@@ -22,7 +33,7 @@ export const resolveRoleSpecsToPackages = async (
   for (const spec of input.specs) {
     // wildcard: discover all role packages
     if (spec === '*') {
-      const rolePackages = await discoverRolePackages(context);
+      const rolePackages = await discover(context);
       packages.push(...rolePackages);
       continue;
     }
@@ -40,13 +51,20 @@ export const resolveRoleSpecsToPackages = async (
   const unique = [...new Set(packages)];
 
   // validate packages exist in package.json
-  const installedRoles = await discoverRolePackages(context);
+  //
+  // ⚠️ `ConstraintError` — a `--roles` spec that names an uninstalled package is the
+  //   CALLER's to amend, so it owes exit 2 (`rule.require.exit-code-semantics`)
+  //
+  // ⚠️ the hint names NO package-manager command: this row fires on every host, and the
+  //   repo may be on npm, pnpm, yarn, or bun. the datum the caller needs is already in
+  //   `installed`, so the hint points at it (`rule.forbid.host-specific-cures-in-hints`)
+  const installedRoles = await discover(context);
   for (const pkg of unique) {
     if (!installedRoles.includes(pkg)) {
-      throw new BadRequestError(`role package not installed: ${pkg}`, {
+      throw new ConstraintError(`role package not installed: ${pkg}`, {
         requested: pkg,
         installed: installedRoles,
-        suggestion: `npm install ${pkg}`,
+        hint: `add "${pkg}" to this repo's dependencies and re-install, or pass one of the roles named in \`installed\``,
       });
     }
   }

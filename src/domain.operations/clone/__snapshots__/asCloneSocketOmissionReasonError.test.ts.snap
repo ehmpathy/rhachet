@@ -1,0 +1,66 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneSocketOmissionReasonError given: [case1b] the same row, on a host whose realpath could NOT be read when: [t0] the error is cast with a null realpath then: the degraded words a human reads match the snapshot 1`] = `
+{
+  "class": "MalfunctionError",
+  "hint": "the prebuilt addon ships inside the rhachet tarball, so this install is damaged — reinstall rhachet. if a reinstall does not repair it, report it: we could not read where the rhx you ran loaded from, which is itself a sign the install or its filesystem is damaged",
+  "message": "💥 MalfunctionError: the reach socket is unavailable — node-pty failed to load on a supported platform
+
+{
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64",
+  "rhachetRealpath": null,
+  "hint": "the prebuilt addon ships inside the rhachet tarball, so this install is damaged — reinstall rhachet. if a reinstall does not repair it, report it: we could not read where the rhx you ran loaded from, which is itself a sign the install or its filesystem is damaged"
+}",
+}
+`;
+
+exports[`asCloneSocketOmissionReasonError given: [case6] any omission reason at all when: [t0] every row is cast then: the WORDS a human reads match the snapshot 1`] = `
+[
+  {
+    "class": "MalfunctionError",
+    "hint": "the prebuilt addon ships inside the rhachet tarball, so this install is damaged — reinstall rhachet. if a reinstall does not repair it, the rhx you just ran loaded from /home/__HOME__/.local/share/pnpm/.pnpm/rhachet@1.47.2/node_modules/rhachet/dist/index.js — compare that against your package manager global root: a mismatch means it execs from a stale store the installer no longer writes to. report it either way",
+    "message": "💥 MalfunctionError: the reach socket is unavailable — node-pty failed to load on a supported platform
+
+{
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64",
+  "rhachetRealpath": "/home/__HOME__/.local/share/pnpm/.pnpm/rhachet@1.47.2/node_modules/rhachet/dist/index.js",
+  "hint": "the prebuilt addon ships inside the rhachet tarball, so this install is damaged — reinstall rhachet. if a reinstall does not repair it, the rhx you just ran loaded from /home/__HOME__/.local/share/pnpm/.pnpm/rhachet@1.47.2/node_modules/rhachet/dist/index.js — compare that against your package manager global root: a mismatch means it execs from a stale store the installer no longer writes to. report it either way"
+}",
+  },
+  {
+    "class": "ConstraintError",
+    "hint": "pass --no-socket to enroll without one, or run on a glibc linux, macos, or windows host",
+    "message": "✋ ConstraintError: the reach socket is unavailable — node-pty ships no prebuilt addon for this platform
+
+{
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "freebsd-x64",
+  "hint": "pass --no-socket to enroll without one, or run on a glibc linux, macos, or windows host"
+}",
+  },
+  {
+    "class": "ConstraintError",
+    "hint": "we cannot tell whether the addon is absent because your install is damaged or because upstream ships no binary for your libc — run \`ldd --version\` to settle it: a glibc version means the install is damaged, so reinstall rhachet; "musl libc" means no binary exists, so pass --no-socket",
+    "message": "✋ ConstraintError: the reach socket is unavailable — node-pty failed to load, and this host's libc could not be read
+
+{
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64",
+  "hint": "we cannot tell whether the addon is absent because your install is damaged or because upstream ships no binary for your libc — run \`ldd --version\` to settle it: a glibc version means the install is damaged, so reinstall rhachet; \\"musl libc\\" means no binary exists, so pass --no-socket"
+}",
+  },
+  {
+    "class": "ConstraintError",
+    "hint": "run on a POSIX host with a runtime dir, or pass --no-socket to enroll without one",
+    "message": "✋ ConstraintError: the reach socket is unavailable — this host cannot open a unix socket
+
+{
+  "socketOmissionReason": "host-incapable",
+  "hostTuple": "win32-x64",
+  "hint": "run on a POSIX host with a runtime dir, or pass --no-socket to enroll without one"
+}",
+  },
+]
+`;

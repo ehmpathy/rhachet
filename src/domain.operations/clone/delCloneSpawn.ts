@@ -1,6 +1,6 @@
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 
-import { rmSync } from 'node:fs';
+import { delCloneStagedDir } from './delCloneStagedDir';
 
 /**
  * .what = reap one clone's live spawn — kill the child, close+unlink its socket,
@@ -14,7 +14,7 @@ import { rmSync } from 'node:fs';
  *     it rather than a re-derived kill+unlink+rm order
  *
  * .note = idempotent: the socket unlink is ENOENT-safe (the spawn's own dispose
- *   already unlinked it), and rmSync force never throws on an absent dir — so a
+ *   already unlinked it), and the dir reap is ENOENT-safe by construction — so a
  *   double reap is a benign no-op
  * .note = `socketPath` is null for a plain-spawn clone (no socket ever bound), so
  *   the caller passes the real path or null — never a synthesized placeholder
@@ -31,6 +31,9 @@ export const delCloneSpawn = async (input: {
   // spawn bound no socket, so there is no path to unlink
   if (input.socketPath !== null) delFileSync({ path: input.socketPath });
 
-  // remove the loser's clone dir, so no enumerable ghost row survives
-  rmSync(input.dir, { recursive: true, force: true });
+  // remove the loser's clone dir, so no enumerable ghost row survives — through the
+  // ONE owner of that reap, the same one `genCloneOndisk` calls on a spawn failure.
+  // an inline `rmSync` here was a second copy of the idempotence guarantee, in a
+  // `del*` operation, with no `force` flag on the diff to say so
+  delCloneStagedDir({ cloneDir: input.dir });
 };

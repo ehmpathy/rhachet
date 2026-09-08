@@ -372,7 +372,7 @@ describe('brainRepl.tool.coordination', () => {
         });
 
         // genBrainPlugToolDeclaration catches errors and wraps them
-        // errors become error:malfunction by default (or error:constraint if BadRequestError)
+        // errors become error:malfunction by default (or error:constraint if ConstraintError)
         const execution = await searchTool.execute({ invocation }, {});
 
         expect(execution.signal).toEqual('error:malfunction');

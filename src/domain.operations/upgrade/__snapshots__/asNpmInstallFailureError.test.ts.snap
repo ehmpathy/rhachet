@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asNpmInstallFailureError given: [case9] every kind, rendered as one catalog when: [t0] each is composed as a human reads it then: the whole catalog of sentences is visible at a glance 1`] = `
+{
+  "package-absent": "✋ ConstraintError: pnpm install failed with exit code 1 — a requested package does not exist. check how rhachet-roles-bhrian@latest is spelt — the registry has no such package.",
+  "permission-denied": "✋ ConstraintError: pnpm global install failed with exit code 1 — permission denied. retry with elevated permissions, or point pnpm at a prefix you own.",
+  "timed-out.shell-absent": "💥 MalfunctionError: pnpm global install exceeded its 5m bound and was killed. check your network, then retry — or run the pnpm global install by hand to watch where it stalls.",
+  "timed-out.shell-present": "💥 MalfunctionError: pnpm global install exceeded its 5m bound and the shell that wrapped it was killed. pnpm itself may still be live and still hold its store lock — end any stray pnpm process, then retry.",
+  "unclassified.bytes-absent": "💥 MalfunctionError: pnpm global install failed without an exit code (killed, or never started) — cause unclassified. pnpm wrote no output at all — it was killed, or it never started. check it is installed and on your PATH, then confirm whether the packages landed with \`rhx --version\`.",
+  "unclassified.bytes-present": "💥 MalfunctionError: pnpm global install failed with exit code 7 — cause unclassified. read the pnpm output above — its last error line names the cause — then confirm whether the packages landed with \`rhx --version\`.",
+}
+`;

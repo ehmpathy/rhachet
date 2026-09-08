@@ -19,6 +19,43 @@ import {
  * .note = a piped subprocess has no tty, so commander wraps at a fixed 80 cols,
  *   so this block stays deterministic to snapshot
  */
+/**
+ * .what = masks every host-varied span of the ABSOLUTE-form `init` stdout, so the
+ *   whole screen can be locked rather than sampled line by line
+ * .why = `rule.require.contract-snapshot-exhaustiveness` is explicit that a
+ *   non-deterministic output is MASKED and then snapped live — never carved out.
+ *   the absolute form was the one case of the 27 here graded only by `toContain`,
+ *   so a broken treestruct, a lost blank line, or a re-ordered clause passed it
+ *
+ * .note = local by design. `asSummaryBlock` slices at the INCREMENTAL marker,
+ *   which the absolute form never prints, so it would degrade to a bare dir mask
+ *   here and leave every volatile span below unmasked
+ * .note = the spans, each named for why it moves:
+ *     · the temp repo   — a fresh `genTempDir` path per run
+ *     · the repo root   — absolute, so it differs on every host and in ci
+ *     · the `../` climb  — a symlink target's relative prefix, whose depth tracks
+ *       where the temp repo landed on this host
+ *     · a backup stamp  — an iso instant written at the moment of the run
+ *     · the version     — bumps on every release
+ *     · brief/skill/init counts — grow as the linked role packages grow, and this
+ *       case has no stake in the roster (the same re-coupling `[case7]` redacts).
+ *       ⚠️ `role(s)` is deliberately NOT in that set: `2 role(s) linked` is the
+ *       subject under test, so a mask over it would void the case
+ */
+const asAbsoluteInitScreen = (input: {
+  stdout: string;
+  dir: string;
+}): string =>
+  input.stdout
+    .split(input.dir)
+    .join('$TESTDIR')
+    .split(resolve(__dirname, '..', '..'))
+    .join('$REPO_ROOT')
+    .replace(/(?:\.\.\/)*\.\.(?=\$REPO_ROOT)/g, '$RELCLIMB')
+    .replace(/\d{4}-\d{2}-\d{2}T[\d:.-]*\dZ?/g, '$TIMESTAMP')
+    .replace(/@\d+\.\d+\.\d+(?:-[\w.]+)?/g, '@$VERSION')
+    .replace(/\b\d+ (brief|skill|init|hook|rule)\(s\)/g, '$COUNT $1(s)');
+
 const asRolesHelpBlock = (input: { stdout: string }): string => {
   const lines = input.stdout.split('\n');
   const start = lines.findIndex((line) => line.includes('--roles <roles...>'));
@@ -50,10 +87,6 @@ describe('rhx init --roles incremental (acceptance)', () => {
       then(
         'the absolute-form stdout tree reports the linked roles (e16)',
         () => {
-          // the raw absolute-form stdout embeds volatile parts (a timestamped
-          // backup filename, the package's abs node_modules path + version, and
-          // brief/skill counts), so a verbatim snapshot would be flaky. assert on
-          // the stable structural lines instead.
           expect(run.stdout).toContain('🔧 init 2 role(s)');
           expect(run.stdout).toContain('link role repo=ehmpathy/role=mechanic');
           expect(run.stdout).toContain('link role repo=bhuild/role=behaver');
@@ -61,6 +94,28 @@ describe('rhx init --roles incremental (acceptance)', () => {
           expect(run.stdout).toContain('2 role(s) initialized');
         },
       );
+
+      then('the absolute-form WHOLE SCREEN holds its shape', () => {
+        /**
+         * 🚨 every row above samples ONE token, so none of them can see the
+         *   treestruct a human actually reads — a dropped branch, a lost indent,
+         *   a clause that moved above the header. this row is the only one here
+         *   that grades the screen (`rule.forbid.snapshot-visual-blemishes`).
+         *
+         * ⚠️ the volatile spans are MASKED, never carved out — that distinction
+         *   is the whole point of `rule.require.contract-snapshot-exhaustiveness`.
+         *   this case previously reasoned its way OUT of a snapshot on the
+         *   grounds that a verbatim one would be flaky, which left it the single
+         *   unsnapped screen among the 27 cases in this file.
+         *
+         * ⚠️ paired, never alone: the snapshot alone would go green on ANY
+         *   consistent output, a regressed one included, until a human read the
+         *   diff. the rows above carry the guarantees; this row carries the shape.
+         */
+        expect(
+          asAbsoluteInitScreen({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
     });
   });
 
@@ -243,7 +298,13 @@ describe('rhx init --roles incremental (acceptance)', () => {
           .replace(
             /("availableRoles":\s*)\[[\s\S]*?\]/,
             '$1[ "$AVAILABLE_ROLES" ]',
-          );
+          )
+          // 🚨 the `hint` REPEATS that same roster in prose, so it is redacted too.
+          //   redact only the array and the snapshot re-couples to the full linked-role
+          //   inventory through the hint — a new role package would then redden an
+          //   error-SHAPE clamp that has no stake in the roster, which is precisely the
+          //   version-fragility the line above exists to remove
+          .replace(/("hint":\s*"available roles: )[^"]*"/, '$1$AVAILABLE_ROLES"');
         expect(masked).toMatchSnapshot();
       });
     });
@@ -857,7 +918,13 @@ describe('rhx init --roles incremental (acceptance)', () => {
           .replace(
             /("availableRoles":\s*)\[[\s\S]*?\]/,
             '$1[ "$AVAILABLE_ROLES" ]',
-          );
+          )
+          // 🚨 the `hint` REPEATS that same roster in prose, so it is redacted too.
+          //   redact only the array and the snapshot re-couples to the full linked-role
+          //   inventory through the hint — a new role package would then redden an
+          //   error-SHAPE clamp that has no stake in the roster, which is precisely the
+          //   version-fragility the line above exists to remove
+          .replace(/("hint":\s*"available roles: )[^"]*"/, '$1$AVAILABLE_ROLES"');
         expect(masked).toMatchSnapshot();
       });
     });

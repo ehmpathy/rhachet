@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asPtyDeviceRefusedError given: [case3] the report is read by a machine when: [t0] a consumer reads the metadata then: the whole payload is locked (visual spot-check) 1`] = `
+{
+  "class": "ConstraintError",
+  "message": "✋ ConstraintError: the reach socket is unavailable — the pty device could not be allocated
+
+{
+  "hostTuple": "linux-x64-glibc",
+  "ptyError": "forkpty(3) failed.",
+  "hint": "node-pty loaded but could not allocate a pty on this host, so this is a host condition rather than a damaged install — pass --no-socket to enroll without a reach socket. node-pty said: \`forkpty(3) failed.\`"
+}",
+  "metadata": {
+    "hint": "node-pty loaded but could not allocate a pty on this host, so this is a host condition rather than a damaged install — pass --no-socket to enroll without a reach socket. node-pty said: \`forkpty(3) failed.\`",
+    "hostTuple": "linux-x64-glibc",
+    "ptyError": "forkpty(3) failed.",
+  },
+}
+`;

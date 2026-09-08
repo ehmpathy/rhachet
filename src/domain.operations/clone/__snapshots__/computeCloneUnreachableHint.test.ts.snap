@@ -11,7 +11,7 @@ exports[`computeCloneUnreachableHint the whole cause→{message,hint} map matche
     "message": "no live clone for this address — its socket is gone",
   },
   "DEAF": {
-    "hint": "observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable",
+    "hint": "observe it with \`rhx clone get\`, or re-enroll interactively to make it reachable — if the enroll cannot open a socket it names the exact cause (one of several: \`--no-socket\`, a brain with no socket, a non-POSIX host, a pty addon that will not load)",
     "message": "this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`",
   },
   "exited-mid-dispatch": {

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
@@ -99,7 +99,7 @@ export const genContextConfigOfUsage = async (input: {
       registries: RoleRegistry[];
     }> => {
       if (!explicitConfigPath) {
-        throw new BadRequestError(
+        throw new ConstraintError(
           'explicit config required but not found. create rhachet.use.ts or use --config',
         );
       }
@@ -121,7 +121,7 @@ export const genContextConfigOfUsage = async (input: {
 
   const getBrainsExplicit = memoize(async (): Promise<BrainRepl[]> => {
     if (!explicitConfigPath) {
-      throw new BadRequestError(
+      throw new ConstraintError(
         'explicit config required but not found. create rhachet.use.ts or use --config',
       );
     }
@@ -131,7 +131,7 @@ export const genContextConfigOfUsage = async (input: {
   const getHooksExplicit = memoize(
     async (): Promise<RoleHooksOnDispatch | null> => {
       if (!explicitConfigPath) {
-        throw new BadRequestError(
+        throw new ConstraintError(
           'explicit config required but not found. create rhachet.use.ts or use --config',
         );
       }
@@ -147,7 +147,7 @@ export const genContextConfigOfUsage = async (input: {
         isExplicit: () => explicitConfigPath !== null,
         getExplicitPath: () => {
           if (!explicitConfigPath) {
-            throw new BadRequestError(
+            throw new ConstraintError(
               'explicit config required but not found. create rhachet.use.ts or use --config',
             );
           }

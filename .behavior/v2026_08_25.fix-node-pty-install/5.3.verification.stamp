@@ -1,0 +1,298 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 5.3.verification
+   ├─ passage = blocked
+   ├─ reason = reviewer constraint; peer reviewer budget exhausted: mech-test-scope-purity
+   ├─ options
+   │  ├─ overrule the constraint
+   │  │  └─ rhx route.stone.set --stone 5.3.verification --as overruled
+   │  ├─ increase budget
+   │  │  └─ rhx route.guard.budget --for review --add N --peer mech-test-scope-purity --stone 5.3.verification
+   │  └─ approve as-is
+   │     └─ rhx route.stone.set --stone 5.3.verification --as approved
+   └─ guard
+      ├─ artifacts
+      │   ├─ $route/5.3.verification.yield.md
+      │   └─ src/**/*
+      └─ reviews
+          ├─ r1: repo-rules (l1, 0/3)
+          │   ├─ constraint ✋
+          │   ├─ terminal — does not block higher levels
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r001._.given.by_peer.repo-rules.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r001._.taken.by_self.repo-rules.md
+          ├─ r2: ergo-contract-snapshots (l1, 0/3)
+          │   ├─ constraint ✋
+          │   ├─ terminal — does not block higher levels
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r002._.given.by_peer.ergo-contract-snapshots.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r002._.taken.by_self.ergo-contract-snapshots.md
+          ├─ r3: mech-external-contracts (l1, 0/3)
+          │   ├─ constraint ✋
+          │   ├─ terminal — does not block higher levels
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r003._.given.by_peer.mech-external-contracts.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r003._.taken.by_self.mech-external-contracts.md
+          ├─ r4: ergo-acceptance-journey-coverage (l1, 0/3)
+          │   ├─ constraint ✋
+          │   ├─ terminal — does not block higher levels
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r004._.given.by_peer.ergo-acceptance-journey-coverage.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r004._.taken.by_self.ergo-acceptance-journey-coverage.md
+          ├─ r5: ergo-snapshot-visual-blemishes (l1, 0/3)
+          │   ├─ constraint ✋
+          │   ├─ terminal — does not block higher levels
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r005._.given.by_peer.ergo-snapshot-visual-blemishes.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i008.99261c750ab8a25391.r005._.taken.by_self.ergo-snapshot-visual-blemishes.md
+          ├─ r6: mech-given-when-then (l1, 3/3)
+          │   ├─ approved, cached
+          │   ├─ 0 blockers ✓
+          │   ├─ 2 nitpicks 🟠
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r006._.given.by_peer.mech-given-when-then.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r006._.taken.by_self.mech-given-when-then.md
+          ├─ r7: mech-test-intent (l1, 3/3)
+          │   ├─ approved, cached
+          │   ├─ 0 blockers ✓
+          │   ├─ 2 nitpicks 🟠
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r007._.given.by_peer.mech-test-intent.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r007._.taken.by_self.mech-test-intent.md
+          ├─ r8: mech-test-scope-purity (l1, 3/3)
+          │   ├─ exhausted 🌙, cached
+          │   ├─ terminal — does not block higher levels
+          │   ├─ 2 blockers 🔴
+          │   ├─ 1 nitpick 🟠
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r008._.given.by_peer.mech-test-scope-purity.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i004.b5e2a41732d0095c44.r008._.taken.by_self.mech-test-scope-purity.md
+          ├─ r9: enroll-verif-snapshot-coverage (l3, 3/3)
+          │   ├─ approved, cached
+          │   ├─ 0 blockers ✓
+          │   ├─ 0 nitpicks ✓
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i006.3393001e10537249c9.r009._.given.by_peer.enroll-verif-snapshot-coverage.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i006.3393001e10537249c9.r009._.taken.by_self.enroll-verif-snapshot-coverage.md
+          ├─ r10: enroll-verif-snapshot-blemishes (l3, 3/3)
+          │   ├─ approved, cached
+          │   ├─ 0 blockers ✓
+          │   ├─ 0 nitpicks ✓
+          │   ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i006.3393001e10537249c9.r010._.given.by_peer.enroll-verif-snapshot-blemishes.md
+          │   └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i006.3393001e10537249c9.r010._.taken.by_self.enroll-verif-snapshot-blemishes.md
+          └─ r11: enroll-verif-test-intent (l3, 3/3)
+              ├─ approved, cached
+              ├─ 0 blockers ✓
+              ├─ 0 nitpicks ✓
+              ├─ tallied by reviewer@fireworks/deepseek/v4-flash
+              ├─ given: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i005.f0532b1b37fb6dee9f.r011._.given.by_peer.enroll-verif-test-intent.md
+              └─ taken: .behavior/v2026_08_25.fix-node-pty-install/.reviews/peer/5.3.verification._.review.i005.f0532b1b37fb6dee9f.r011._.taken.by_self.enroll-verif-test-intent.md
+
+────────────────────────────────────────────────────────────────
+
+🔎 review 1
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 121.2% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=.this/**/rule.*.md
+   │  │     │  ├─ files: 45
+   │  │     │  └─ tokens: 47.7k
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 325
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 300
+   │  │     │     └─ tokens: 1079.1k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-08T02-57-36-719Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-08T02-57-36-719Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 2
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 117.0% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.contract-snapshot-exhaustiveness.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 732
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 325
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 300
+   │  │     │     └─ tokens: 1079.1k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-08T02-58-04-053Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-08T02-58-04-053Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 3
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 116.5% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.external-contract-integration-tests.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 545
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 325
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 300
+   │  │     │     └─ tokens: 1079.1k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-08T02-58-34-693Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-08T02-58-34-693Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 4
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 117.4% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.require.acceptance-journey-coverage.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 791
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 325
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 300
+   │  │     │     └─ tokens: 1079.1k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-08T02-59-00-163Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-08T02-59-00-163Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🔎 review 5
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=reviewer/skill=review
+   │  │     └─ ✋ blocked by constraints
+   │  │  
+   │  │  🦉 woah there
+   │  │  
+   │  │  ✋ prompt exceeds 75% of context window
+   │  │     ├─ 117.0% of 1000000 tokens
+   │  │     └─ reduce scope or use --focus pull
+   │  │  
+   │  │  🔍 lets see why...
+   │  │     ├─ rules: .agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.forbid.snapshot-visual-blemishes.md
+   │  │     │  ├─ files: 1
+   │  │     │  └─ tokens: 657
+   │  │     ├─ targets
+   │  │     │  ├─ diffs: since-main
+   │  │     │  │  └─ files: 325
+   │  │     │  ├─ paths: (none)
+   │  │     │  │  └─ files: null
+   │  │     │  └─ joined via intersect
+   │  │     │     ├─ files: 300
+   │  │     │     └─ tokens: 1079.1k
+   │  │     └─ hint
+   │  │        ├─ inspect .log/bhrain/review/2026-09-08T02-59-28-693Z/input.scope.debug.json to see what was matched
+   │  │        └─ inspect .log/bhrain/review/2026-09-08T02-59-28-693Z/tokens.expected.md for token breakdown by file
+   │  │  
+   │  │  
+   │  │  ✋ BadRequestError: validation failed
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋

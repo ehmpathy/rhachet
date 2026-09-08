@@ -1,3 +1,6 @@
+import { asCloneAddressHuman } from '../asCloneAddressHuman';
+import { asCloneSerialHuman } from '../asCloneSerialHuman';
+
 /**
  * .what = one clone's row in the `rhx clone prune` view — the facts a human reads
  *   about a clone that was (or would be) reaped
@@ -9,12 +12,10 @@ export interface ClonePruneRow {
 }
 
 /**
- * .what = the address a human reaches this clone by — its `@:<slug>` when named,
- *   else its `@:<full-serial>` (the same address form `list` renders, so a human
- *   can copy it into `get`)
+ * .what = the address a human reaches this clone by — `asCloneAddressHuman`, the one
+ *   owner, so this view renders the SAME form `clone list` and `clone get` do
  */
-const asRowAddress = (row: ClonePruneRow): string =>
-  row.slug !== null ? `@:${row.slug}` : `@:${row.serial}`;
+const asRowAddress = (row: ClonePruneRow): string => asCloneAddressHuman(row);
 
 /**
  * .what = build the `rhx clone prune` view — the human tree AND the machine data —
@@ -52,8 +53,12 @@ export const asClonePruneView = (input: {
   rows.forEach((row, idx) => {
     const last = idx === rows.length - 1;
     const prefix = last ? '   └─' : '   ├─';
+    // the `serial=` field is the human short form, like the address and like
+    // `clone list`'s own row. the FULL serial stays in `data.clones` below
     lines.push(
-      `${prefix} ${asRowAddress(row)}  serial=${row.serial}  since=${row.spawnedAt}`,
+      `${prefix} ${asRowAddress(row)}  serial=${asCloneSerialHuman({
+        serial: row.serial,
+      })}  since=${row.spawnedAt}`,
     );
   });
 

@@ -61,8 +61,32 @@ describe('withCliOutputErrors', () => {
       );
 
       then('the human tree names the symptom and the fix', () => {
-        expect(captured.err).toContain('✋ bad --as value');
+        // 🚨 the glyph and the message are asserted as SEPARATED BY THE CLASS NAME, and
+        //   the adjacency is asserted absent. this row once read `'✋ bad --as value'` —
+        //   which pinned the REDACTED frame, where the glyph was the only class signal a
+        //   human got. a `✋` is a lossy projection (every unbranded class falls back to
+        //   it), so under that form a `ConstraintError` and an unclassified error read
+        //   identically, and no snapshot or assertion could tell them apart
+        expect(captured.err).toContain('✋ ConstraintError: bad --as value');
+        expect(captured.err).not.toContain('✋ bad --as value');
         expect(captured.err).toContain('use --as @:<slug>');
+      });
+
+      then('the WHOLE rendered screen is locked', () => {
+        /**
+         * 🚨 the pointwise rows above check three substrings; a human reads a SCREEN.
+         *   the blank lines, the indent, and the metadata block are all part of what
+         *   lands, and a `toContain` is blind to every one of them — a frame could gain a
+         *   stray line, lose its separator, or render its block unindented and every
+         *   assertion above stays green (`rule.forbid.snapshot-visual-blemishes`).
+         *
+         * ⚠️ `asCliErrorFrame.test.ts` `[case5]` already snaps this shape, and that is a
+         *   different claim: it clamps the TRANSFORMER's output. this clamps what the HOF
+         *   actually wrote to the stream — the two are one call apart, and that call is
+         *   exactly where a render reaches a human or fails to
+         *   (raised by the r009 `behavior-friction-hazards` lane at i076).
+         */
+        expect(captured.err).toMatchSnapshot();
       });
 
       then('exit code is 2 (caller fault)', () => {

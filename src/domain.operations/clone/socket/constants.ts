@@ -91,3 +91,9 @@ export const CLONE_WIRE_FRAME_MAX_BYTES = 1_048_576; // 1 MiB — generous for a
  *   sender is bounded, so a slow brain never grows an unbounded backlog
  */
 export const CLONE_WRITE_QUEUE_MAX_DEPTH = 128;
+
+/**
+ * ⚠️ the BIND-lifecycle constants are not here — they live in `./constants.bind`.
+ *   each const above tunes the WIRE; a bind bound and its fault marker answer a different
+ *   question and share no reader with these.
+ */

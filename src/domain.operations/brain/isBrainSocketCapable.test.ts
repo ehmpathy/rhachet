@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { isBrainSocketCapable } from './isBrainSocketCapable';
@@ -20,7 +20,7 @@ describe('isBrainSocketCapable', () => {
           const error = await getError(() =>
             isBrainSocketCapable({ brain: 'nonesuch' }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
         },
       );
     });

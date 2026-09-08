@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects';
 
@@ -56,7 +56,7 @@ const buildViolationBlock = (
  * .what = validates that all roles with bootable content have valid boot hooks
  * .why = fail fast at repo introspect to prevent footgun where roles forget boot hooks
  *
- * .note = throws BadRequestError with treestruct if violations found
+ * .note = throws ConstraintError with treestruct if violations found
  */
 export const assertRegistryBootHooksDeclared = (input: {
   registry: RoleRegistry;
@@ -74,8 +74,10 @@ export const assertRegistryBootHooksDeclared = (input: {
     buildViolationBlock(v, i === violations.length - 1),
   );
 
+  // .note = the message carries NO glyph. `asCliErrorFrame` prepends one from the error's
+  //   class, so a glyph here renders twice (`✋ ConstraintError: ✋ roles with…`).
   const message = [
-    '✋ roles with bootable content but no valid boot hook',
+    'roles with bootable content but no valid boot hook',
     '   │',
     '   ├─ these roles declare briefs or skills but lack a valid boot hook:',
     '   │',
@@ -88,7 +90,7 @@ export const assertRegistryBootHooksDeclared = (input: {
     "   └─ fix: if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.",
   ].join('\n');
 
-  throw new BadRequestError(message, {
+  throw new ConstraintError(message, {
     violations,
   });
 };

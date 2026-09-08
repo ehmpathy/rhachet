@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
@@ -33,7 +33,7 @@ export const getRoleBySpecifier = async (
           await context.config.usage.get.registries.explicit()
         ).registries;
         if (registries.length === 0) {
-          BadRequestError.throw('No registries found in rhachet.use.ts');
+          ConstraintError.throw('No registries found in rhachet.use.ts');
         }
         return registries;
       } catch (error) {
@@ -61,7 +61,7 @@ export const getRoleBySpecifier = async (
 
     // fail fast if no manifests
     if (implicit.manifests.length === 0) {
-      BadRequestError.throw(
+      ConstraintError.throw(
         'No role packages found. Ensure rhachet-roles-* packages are installed and have rhachet.repo.yml',
       );
     }

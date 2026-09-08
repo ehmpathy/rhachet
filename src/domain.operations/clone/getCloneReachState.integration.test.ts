@@ -5,7 +5,6 @@ import { getUuid } from 'uuid-fns';
 import { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 
-import type { Server } from 'node:net';
 import { getCloneReachState } from './getCloneReachState';
 import { getCloneSocketPath } from './getCloneSocketPath';
 import { genCloneSocketServer } from './socket/genCloneSocketServer';
@@ -31,24 +30,18 @@ const genSampleClone = (input: {
     historyDir: '/repo/history',
   });
 
-const awaitServerReady = (server: Server): Promise<void> =>
-  new Promise((done) => {
-    if (server.listening) return done();
-    server.once('listening', () => done());
-  });
-
 describe('getCloneReachState.integration', () => {
   given('[case1] a socket-eligible clone with a LIVE server', () => {
     when('[t0] the reach-state is probed', () => {
       then('it is LIVE', async () => {
         const serial = getUuid();
         const socketPath = getCloneSocketPath({ serial })!;
-        const { server, close } = genCloneSocketServer({
+        const { ready, close } = genCloneSocketServer({
           socketPath,
           write: () => undefined,
           isBrainCliAlive: () => true,
         });
-        await awaitServerReady(server);
+        await ready;
         try {
           const clone = genSampleClone({ serial, socketEligible: true });
           expect(await getCloneReachState({ clone })).toEqual('LIVE');

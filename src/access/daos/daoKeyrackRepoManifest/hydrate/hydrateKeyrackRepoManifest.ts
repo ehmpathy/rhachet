@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import {
   type KeyrackKeyReach,
@@ -49,7 +49,7 @@ const parseReaches = (input: {
   //         the only answer that sends a human to the line that needs the edit
   //         (rule.prefer.prevent-over-correct)
   if (!Array.isArray(input.declared))
-    throw new BadRequestError('invalid reaches block in keyrack manifest', {
+    throw new ConstraintError('invalid reaches block in keyrack manifest', {
       key: input.key,
       declared: input.declared,
       hint: 'reaches must be a list of plaintext reach exids',
@@ -58,7 +58,7 @@ const parseReaches = (input: {
   const reaches: KeyrackKeyReach[] = [];
   for (const exid of input.declared) {
     if (typeof exid !== 'string')
-      throw new BadRequestError('a reach exid must be a string', {
+      throw new ConstraintError('a reach exid must be a string', {
         key: input.key,
         exid,
       });
@@ -67,7 +67,7 @@ const parseReaches = (input: {
     // manifest is hand-authored, so this is a human's typo and it is cheaper to refuse
     // than to silently collapse (rule.prefer.prevent-over-correct)
     if (reaches.some((prior) => prior.exid === exid))
-      throw new BadRequestError(
+      throw new ConstraintError(
         `reach '${exid}' is declared more than once for one key`,
         { key: input.key, exid, hint: `declare '${exid}' exactly once` },
       );
@@ -128,7 +128,7 @@ const parseKeyEntry = (entry: unknown): KeyEntryParsed => {
     // widened form: { KEY_NAME: { reaches: [ 'beav@ehmpathy.com', ... ] } }
     const [key, declared] = Object.entries(obj)[0] ?? [];
     if (!key)
-      throw new BadRequestError('empty key entry in keyrack manifest', {
+      throw new ConstraintError('empty key entry in keyrack manifest', {
         entry: obj,
         hint: 'each key entry must have a key name',
       });
@@ -158,7 +158,7 @@ const parseKeyEntry = (entry: unknown): KeyEntryParsed => {
     };
   }
 
-  throw new BadRequestError('invalid key entry in keyrack manifest', { entry });
+  throw new ConstraintError('invalid key entry in keyrack manifest', { entry });
 };
 
 /**
@@ -309,7 +309,7 @@ export const hydrateKeyrackRepoManifest = (
 
   // check for circular extends
   if (visited.has(manifestPath)) {
-    throw new BadRequestError('circular extends detected in keyrack chain', {
+    throw new ConstraintError('circular extends detected in keyrack chain', {
       manifestPath,
       visitedPaths: Array.from(visited),
     });
@@ -330,7 +330,7 @@ export const hydrateKeyrackRepoManifest = (
       // load extended manifest
       const extendedExplicit = loadManifestExplicit({ path: absolutePath });
       if (!extendedExplicit) {
-        throw new BadRequestError('extended keyrack not found', {
+        throw new ConstraintError('extended keyrack not found', {
           path: extendPath,
           absolutePath,
           from: manifestPath,

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
@@ -39,14 +39,14 @@ const performActViaIsolatedThreads = async (input: {
     slug: input.opts.role,
   });
   if (!role)
-    BadRequestError.throw(`role "${input.opts.role}" not found`, {
+    ConstraintError.throw(`role "${input.opts.role}" not found`, {
       availableRoles: input.registries.flatMap((r) =>
         r.roles.map((rr) => rr.slug),
       ),
     });
   const skill = role.skills.refs.find((s) => s.slug === input.opts.skill);
   if (!skill)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `unknown skill "${input.opts.skill}" under role "${input.opts.role}"`,
     );
 
@@ -89,7 +89,7 @@ const performActInCurrentThread = async (input: {
 }): Promise<void> => {
   // validate brains are available
   if (input.brains.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'no brains available. add getBrainRepls() to your rhachet.use.ts',
     );
 
@@ -99,7 +99,7 @@ const performActInCurrentThread = async (input: {
     slug: input.opts.role,
   });
   if (!role)
-    throw new BadRequestError(`role "${input.opts.role}" not found`, {
+    throw new ConstraintError(`role "${input.opts.role}" not found`, {
       availableRoles: input.registries.flatMap((r) => r.roles.map((rr) => rr)),
     });
 
@@ -110,7 +110,7 @@ const performActInCurrentThread = async (input: {
   if (input.opts.brain) {
     const firstSlashIndex = input.opts.brain.indexOf('/');
     if (firstSlashIndex === -1)
-      throw new BadRequestError(
+      throw new ConstraintError(
         `invalid brain format "${input.opts.brain}". expected: repo/slug`,
       );
     const repo = input.opts.brain.slice(0, firstSlashIndex);
@@ -213,7 +213,7 @@ export const invokeAct = (
 
       // validate attempts requires output
       if (useIsolatedThreads && !opts.output)
-        throw new BadRequestError('--attempts requires --output path');
+        throw new ConstraintError('--attempts requires --output path');
 
       // 🧵 isolated threads mode: parallel attempts
       if (useIsolatedThreads) {

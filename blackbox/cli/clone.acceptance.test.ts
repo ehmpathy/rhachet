@@ -1,9 +1,11 @@
 import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
+import { getUuid } from 'uuid-fns';
 
 import {
   enrollCloneAndWaitReady,
   pollForAck,
+  pollForCloneListState,
   setupEnrollFixture,
   setupRichStubBrainPath,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
@@ -12,6 +14,10 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
+// the ONE owner of the short-serial projection. its own unit clamp pins the shape with
+// LITERALS (`'49b41f88'`, length 8, a genuine prefix), so a read through it here asserts
+// "the cli renders THAT projection" rather than re-derives the rule a second time
+import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 import { readdirSync } from 'node:fs';
@@ -81,7 +87,9 @@ describe('rhx clone reach (acceptance)', () => {
         expect(listed.stdout).toContain('driver');
         // list shows an ABBREVIATED serial (the 8-char prefix + ellipsis); the
         // FULL-serial reach is proven separately in [t2] (say/get by @:<serial>)
-        expect(listed.stdout).toContain(scene.serial.slice(0, 8));
+        expect(listed.stdout).toContain(
+          asCloneSerialHuman({ serial: scene.serial }),
+        );
         expect(listed.stdout).toContain('LIVE');
       });
 
@@ -121,7 +129,10 @@ describe('rhx clone reach (acceptance)', () => {
     });
 
     when('[t1] say poke <nonce> BY SLUG, then get', () => {
-      const nonce = `slug${Date.now()}`;
+      // 🚨 a UUID, never a clock read. jest runs files in parallel workers, so two runs
+      //   inside one millisecond mint the SAME nonce — and `ack:${nonce}` would then match
+      //   the other clone's reply, a green about a dispatch this row never made
+      const nonce = `slug${getUuid()}`;
       const roundtrip = useThen('the say+get round-trips by slug', async () => {
         const said = invokeRhachetCliBinary({
           args: ['clone', 'say', '@:driver', '--what', `poke ${nonce}`],
@@ -166,7 +177,7 @@ describe('rhx clone reach (acceptance)', () => {
     });
 
     when('[t2] say poke <nonce> BY SERIAL, then get', () => {
-      const nonce = `serial${Date.now()}`;
+      const nonce = `serial${getUuid()}`;
       const roundtrip = useThen(
         'the same clone round-trips by serial (address forms interchangeable)',
         async () => {
@@ -211,12 +222,13 @@ describe('rhx clone reach (acceptance)', () => {
       // the git-style serial-prefix match in getOneCloneByRef lands a say AND a get on the
       // SAME clone the full serial reaches — the ergonomic short form is not lossy in
       // practice (a first-8 collision fails LOUD, never a silent wrong-clone)
-      const nonce = `abbrev${Date.now()}`;
+      const nonce = `abbrev${getUuid()}`;
       const roundtrip = useThen(
         'the clone round-trips by its abbreviated (first-8-hex) serial',
         async () => {
-          // the EXACT short form the list renders — the first uuid segment
-          const address = `@:${scene.serial.slice(0, 8)}`;
+          // the EXACT short form the list renders, read through its one owner — so a
+          // change to the projection moves this address with it rather than strands it
+          const address = `@:${asCloneSerialHuman({ serial: scene.serial })}`;
           const said = invokeRhachetCliBinary({
             args: ['clone', 'say', address, '--what', `poke ${nonce}`],
             cwd: scene.dir,
@@ -263,10 +275,25 @@ describe('rhx clone reach (acceptance)', () => {
         }),
       );
 
-      then('whoami names this clone by its own slug + serial', () => {
+      then('whoami names this clone by its own slug + SHORT serial', () => {
         expect(who.status).toEqual(0);
         expect(who.stdout).toContain('driver');
-        expect(who.stdout).toContain(scene.serial);
+
+        /**
+         * 🚨 the human tree carries the 8-hex form, the same one `clone list` renders
+         *   (`rule.require.short-serial-for-unslugged-clones`, via `asCloneAddressHuman`).
+         *
+         * ⚠️ .the claim this row used to make = `toContain(scene.serial)`, the FULL 36-char
+         *   uuid. it was true of the code and wrong about the boundary: a human tree is read
+         *   by a human or by a brain that will TYPE what it sees, and 36 chars is neither.
+         *   the canonical form is not lost — [t5] below asserts `parsed.serial` equals the
+         *   full serial on the `--output json` twin, which is the machine channel and the
+         *   one place the lossless form is owed.
+         */
+        expect(who.stdout).toContain(
+          asCloneSerialHuman({ serial: scene.serial }),
+        );
+        expect(who.stdout).not.toContain(scene.serial);
       });
 
       then('the whoami tree (human) success format is locked (visual spot-check)', () => {
@@ -397,7 +424,7 @@ describe('rhx clone reach (acceptance)', () => {
     });
 
     when('[t6] `say --what @stdin` (the stdin dispatch path)', () => {
-      const nonce = `stdin${Date.now()}`;
+      const nonce = `stdin${getUuid()}`;
       const roundtrip = useThen(
         'a piped message round-trips like --what <m>',
         async () => {
@@ -436,7 +463,7 @@ describe('rhx clone reach (acceptance)', () => {
     });
 
     when('[t7] the talk verbs under --output json + --tail (machine reads)', () => {
-      const nonce = `json${Date.now()}`;
+      const nonce = `json${getUuid()}`;
       const shapes = useThen(
         'say --output json, then get --output json --tail 1',
         async () => {
@@ -518,8 +545,13 @@ describe('rhx clone reach (acceptance)', () => {
         // pair the field asserts with a snapshot per rule.require.snapshots — the
         // in-test nonce is masked to a stable token, so the json key-set + the bounded
         // `messages` shape lock against drift while the reply text stays run-stable
+        //
+        // 🚨 the nonce is masked BEFORE `asSnapshotSafe`, never after. the nonce is
+        //   `json${getUuid()}`, and `asSnapshotSafe` rewrites a uuid to `__SERIAL__` —
+        //   so a post-mask sees `json__SERIAL__`, which the raw nonce can no longer
+        //   match, and the run-specific text leaks into the snapshot instead
         expect(
-          asSnapshotSafe(shapes.got.stdout).split(nonce).join('__NONCE__'),
+          asSnapshotSafe(shapes.got.stdout.split(nonce).join('__NONCE__')),
         ).toMatchSnapshot();
       });
     });
@@ -744,7 +776,7 @@ describe('rhx clone reach (acceptance)', () => {
       then('the get JSON-error shape is locked (visual spot-check)', () => {
         // the machine counterpart of the say snapshot below — @:ghostclone is a
         // fixed literal, so no token needs a mask; locks the exact structured error
-        // a get consumer parses, so BOTH talk-verb json failures are clamped (i022 r010 #5)
+        // a get consumer parses, so BOTH talk-verb json failures are clamped
         expect(asSnapshotSafe(failures.got.stderr)).toMatchSnapshot();
       });
 
@@ -819,7 +851,7 @@ describe('rhx clone reach (acceptance)', () => {
       // a say + its reply render as a `🎙️` (in) block AND a `🎧` (out) block, so a
       // reader tells inbound from outbound. `--format raw` keeps the pipe-clean
       // reply-only stream a comms relay forwards
-      const nonce = `dir${Date.now()}`;
+      const nonce = `dir${getUuid()}`;
       const convo = useThen(
         'say poke <nonce>, then get --tail 4 as blocks and as raw',
         async () => {
@@ -1470,10 +1502,13 @@ describe('rhx clone reach (acceptance)', () => {
         as: '@:ranger',
       });
 
-      // kill the brain so its socket is gone — the clone now reads DEAD
+      // kill the brain so its socket is gone — the clone now reads DEAD.
+      //
+      // ⚠️ POLLED, never a fixed settle. a 500ms sleep sat here and asserted a latency
+      //   bound as fact; the poll waits on the OBSERVABLE instead, and reports the last
+      //   screen it saw if the bound expires (`pollForCloneListState`)
       await bg.kill();
-      // let the socket close after the child exits
-      await new Promise((r) => setTimeout(r, 500));
+      await pollForCloneListState({ wanted: 'DEAD', dir, env });
 
       return { dir, env };
     });

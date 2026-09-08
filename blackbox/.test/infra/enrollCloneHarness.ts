@@ -9,9 +9,13 @@ import {
 
 import {
   chmodSync,
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
@@ -204,6 +208,81 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
 };
 
 /**
+ * .what = run `mutate` while this process holds an exclusive on-disk lock beside `path`
+ *
+ * 🚨 .why = the mutation below is a READ-MODIFY-WRITE of `~/.claude.json`, which is
+ *   HOST-GLOBAL and shared with the human's own claude. jest runs test files in parallel
+ *   worker PROCESSES, so two real-brain files that each read-then-write it interleave, and
+ *   the later write is built on a snapshot taken before the earlier one landed:
+ *
+ *   | worker A | worker B |
+ *   |---|---|
+ *   | read `{…}` | |
+ *   | | read `{…}` — the SAME snapshot |
+ *   | write `{…, projects: {A}}` | |
+ *   | | write `{…, projects: {B}}` ⇒ **A's trust grant is gone** |
+ *
+ *   ⇒ worker A's enroll then wedges on the folder-trust dialog it already answered, and a
+ *   field the human's own claude expects can be dropped the same way. the merge is
+ *   non-destructive per invocation and NO lever serialized the invocations
+ *   (raised by the r007 `behavior-hazards` lane at i076).
+ *
+ * .why an `O_EXCL` create rather than a flock = `openSync(…, 'wx')` is atomic on posix and
+ *   on win32 and needs no library. the lock is a FILE beside the target, never the target
+ *   itself, so a crash mid-mutate cannot leave the config truncated.
+ *
+ * ⚠️ a stale lock is RECLAIMED by age rather than waited on forever — a worker killed
+ *   mid-mutate would otherwise wedge every later run on this host, which is a worse
+ *   failure than the race it guards. the reclaim window is far longer than the mutation.
+ */
+const withHostFileLock = <T>(input: { path: string; mutate: () => T }): T => {
+  const lockPath = `${input.path}.rhachet-test.lock`;
+  const staleAfterMs = 30_000;
+  const deadline = Date.now() + 15_000;
+
+  // .note = deliberate mutation — the spin must carry its own acquired-flag out of the
+  //   loop, and a lock is by nature a stateful claim. bounded to this call
+  let held = false;
+  while (!held) {
+    try {
+      closeSync(openSync(lockPath, 'wx'));
+      held = true;
+    } catch (error) {
+      // ⚠️ an ALLOWLIST, never a blanket catch — only "someone else holds it" is a
+      //   condition to wait on. every other fault (a read-only home, a bad path) rethrows
+      //   so it is never absorbed into a spin (`rule.forbid.failhide`)
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+
+      const age = Date.now() - statSync(lockPath).mtimeMs;
+      if (age > staleAfterMs) {
+        rmSync(lockPath, { force: true });
+        continue;
+      }
+      if (Date.now() > deadline)
+        throw new ConstraintError(
+          `could not acquire the ${lockPath} lock within 15s`,
+          {
+            lockPath,
+            ageMs: age,
+            hint: 'another jest worker may be wedged mid-mutate; remove the lock file to clear it',
+          },
+        );
+      // a short SYNC pause — this whole path is sync so its callers keep their signature,
+      // and a jest worker has no other work to do while it waits its turn
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+
+  try {
+    return input.mutate();
+  } finally {
+    // ⚠️ released on EVERY exit path. a throw inside `mutate` that leaked the lock would
+    //   wedge this host until the stale window expired
+    rmSync(lockPath, { force: true });
+  }
+};
+
+/**
  * .what = pre-accept EVERY one-time gate claude-code puts between a cold start and a
  *   ready input box — the per-project folder-trust dialog, the account-level first-run
  *   setup, and the "detected a custom API key in your environment" prompt — so a fresh
@@ -228,6 +307,16 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
  *     keys, unions the approved-key list, preserves every other field, writes it back.
  */
 export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
+  const configPath = join(homedir(), '.claude.json');
+  return withHostFileLock({ path: configPath, mutate: () => setAccepted(input) });
+};
+
+/**
+ * .what = the read-modify-write itself, ALWAYS called under the lock above
+ * .why = split out so the lock is not optional at the one call site that matters — a
+ *   caller reaches `setRealClaudeFirstRunAccepted`, which cannot be invoked unlocked
+ */
+const setAccepted = (input: { dir: string }): void => {
   const configPath = join(homedir(), '.claude.json');
   const prior = existsSync(configPath)
     ? (JSON.parse(readFileSync(configPath, 'utf-8')) as {
@@ -268,19 +357,25 @@ export const setRealClaudeFirstRunAccepted = (input: { dir: string }): void => {
 };
 
 /**
- * .what = the marks a real claude draws once its tui is up and its input reader is armed
- * .why = the readiness signal must survive a banner redesign, so it names SEVERAL marks
+ * .what = the readiness MARKERS a real claude prints once its tui is up and its input
+ *   reader is armed — shapes the brain-cli emits, which we match (`term=marker`)
+ * .why = the readiness signal must survive a banner redesign, so it names SEVERAL markers
  *   any one of which proves the tui took over, rather than one word that a release can
  *   retire. claude v1 opened with a "Welcome" box; v2.1.251 opens with a version banner
  *   (`Claude Code` / `Haiku 4.5 · API Usage Billing` / cwd), an input box, and a mode
  *   footer (`⏸ manual mode on · ← for agents`) — and holds no "Welcome" at all.
  *
- *   ⚠️ every alternative here is ONE contiguous token in the pty stream. the tui draws
- *      each word with a `[NNG` cursor-move between, so a multi-word literal like
- *      `Claude Code v` never matches. verify any new mark against a raw capture before
- *      it is added, never against the rendered screen.
+ *   🚨 NO multi-word literal can match. the tui positions each word with its own
+ *      `\u001b[NNG` cursor-move, so `API Usage Billing` reaches the stream as
+ *      `API\u001b[28GUsage\u001b[34GBilling` — the spaces a human reads are never in the
+ *      bytes. a marker is therefore EITHER one word, OR it spans the gaps with
+ *      `[^\r\n]*`, which crosses an escape but not a line.
+ *
+ *   ⚠️ verify every new marker against the RAW BYTES, never against the rendered screen.
+ *      the screen is what the escapes produce; the regex reads what precedes them.
  */
-const CLAUDE_IS_READY = /Welcome|API Usage Billing|manual mode on/;
+const CLAUDE_IS_READY =
+  /Welcome|Usage[^\r\n]*Billing|manual[^\r\n]*mode[^\r\n]*on/;
 
 /**
  * .what = drive claude's folder-trust menu(s) through the outer pty until the brain boots
@@ -312,7 +407,9 @@ const driveTrustMenus = async (input: {
     const output = input.bg.getOutput();
     const at = output.lastIndexOf('❯');
     if (at < 0) return false;
-    return (output.slice(at, at + 200).split(/[\r\n]/)[0] ?? '').includes('Yes,');
+    return (output.slice(at, at + 200).split(/[\r\n]/)[0] ?? '').includes(
+      'Yes,',
+    );
   };
 
   // the menu is ON SCREEN when its cursor, its trust option, and its confirm footer are
@@ -325,7 +422,9 @@ const driveTrustMenus = async (input: {
   //    the escapes with a same-line `[^\r\n]*`.
   const menuIsOnScreen = (): boolean => {
     const tail = input.bg.getOutput().slice(-1500);
-    return /❯/.test(tail) && /confirm/.test(tail) && /Yes,[^\r\n]*folder/.test(tail);
+    return (
+      /❯/.test(tail) && /confirm/.test(tail) && /Yes,[^\r\n]*folder/.test(tail)
+    );
   };
 
   const deadline = Date.now() + (input.timeoutMs ?? 120000);
@@ -350,8 +449,9 @@ const driveTrustMenus = async (input: {
 /**
  * .what = enroll a REAL claude through the outer pty and wait for its serial handoff
  * .why = the real-tier counterpart of enrollCloneAndWaitReady. a real claude prints no
- *   stub `ready serial=` line, and the human F7 breadcrumb (`rhx clone say @:<serial>`)
- *   fires ONLY on a bare, unnamed enroll — so a NAMED (`--as`) enroll has no such line.
+ *   stub `ready serial=` line, and the human breadcrumb (`asCloneReachBreadcrumb`) is a
+ *   TREE-mode emit on stderr, interleaved with the brain's own boot noise on a shared pty
+ *   — so it is a poor sync point even though it now fires on a named enroll too.
  *   `--output json` gives a deterministic handoff for BOTH cases: a compact single-line
  *   `{"outcome":…,"serial":…,"slug":…,"socketEligible":true}` printed to stdout, after
  *   which enroll blocks on the brain's lifetime (invokeEnroll awaits waitForExit), so
@@ -404,17 +504,80 @@ export const enrollRealClaudeAndWaitReach = async (input: {
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
-  // buffers it as literal text; a booted claude discards a burst). so wait for claude's
-  // OWN readiness marks — then a short settle, so the reach `say` types into a ready
-  // reader. a signal, not a fixed delay (claude boot time varies run to run). the stub
-  // draws no such banner, so this is real-claude-only.
+  // buffers it as literal text; a booted claude discards a burst). the stub draws no such
+  // banner, so both waits below are real-claude-only.
+  //
+  // ⚠️ these are TWO waits, and only the first is a signal. an earlier comment said "a
+  //   signal, not a fixed delay" over BOTH lines, which read as a claim about the settle
+  //   too — it was not one, and a reviewer read it exactly that way
+  //   (`rule.require.timeless-comments`).
+  //
+  //   1. the SIGNAL — claude's own readiness banner, however long its boot took
   await bg.waitForOutput({
     pattern: CLAUDE_IS_READY,
     timeoutMs: input.timeoutMs ?? 120000,
   });
+
+  //   2. a FIXED settle, stated as one. the banner marks the RENDER; claude publishes no
+  //      second mark for "the input reader is armed", so there is no signal left to wait
+  //      on and this is a guess at that gap. on a loaded host it can be short.
+  //
+  //   ⇒ the residue is covered DELIBERATELY, never incidentally: `sayAndPollForMarker`
+  //     re-sends a non-landed dispatch up to `maxAttempts`, which is the shipped consumer
+  //     contract (fail loud on exit 2, then retry) rather than a mask over this delay. so
+  //     a settle too short costs a retry, never a red — and ALL attempts wedged still
+  //     fails loud with the brain's own screen attached
   await new Promise<void>((done) => setTimeout(done, 2000));
 
   return { bg, address: `@:${serial}`, serial };
+};
+
+/**
+ * .what = poll `clone list` until the reach-state a caller expects is on screen
+ *
+ * 🚨 .why a POLL and not a settle = the callers each killed a brain and then slept a fixed
+ *   500ms before they read its reach-state. that is a LATENCY BOUND asserted as fact, and
+ *   the two cases it covers do not even share a mechanism:
+ *
+ *   | the read | what it actually waits on |
+ *   |---|---|
+ *   | a socketed clone → DEAD | the listener is gone. `bg.kill()` already awaits the child's exit, so this is settled BEFORE the sleep begins |
+ *   | a socketless clone → DEAF→DEAD | a `kill(pid, 0)` probe, which answers ALIVE for a zombie until its parent reaps it — a genuinely unbounded wait |
+ *
+ *   ⇒ one guess covered a case that needed none and a case no fixed number can bound. a
+ *   poll of the OBSERVABLE is right for both, and it reports the last screen it saw when
+ *   the bound expires, so an expiry names what it found rather than only that it waited
+ *   (`rule.forbid.time-assumptions`, raised by the r007 `behavior-hazards` lane at i076).
+ *
+ * ⚠️ it does NOT throw on expiry. the caller's own `expect` is the verdict, and a throw
+ *   here would replace a legible assertion diff with a harness fault.
+ */
+export const pollForCloneListState = async (input: {
+  /** the text the caller expects on screen, e.g. `'DEAD'` */
+  wanted: string;
+  dir: string;
+  env: Record<string, string | undefined>;
+  timeoutMs?: number;
+}): Promise<ReturnType<typeof invokeRhachetCliBinary>> => {
+  const deadline = Date.now() + (input.timeoutMs ?? 15000);
+  // .note = deliberate mutation — the loop must carry the most recent read out, so the
+  //   caller asserts against a real screen rather than an absent one. bounded to this call
+  let listed = invokeRhachetCliBinary({
+    args: ['clone', 'list'],
+    cwd: input.dir,
+    env: input.env,
+    logOnError: false,
+  });
+  while (!listed.stdout.includes(input.wanted) && Date.now() < deadline) {
+    await new Promise((wake) => setTimeout(wake, 100));
+    listed = invokeRhachetCliBinary({
+      args: ['clone', 'list'],
+      cwd: input.dir,
+      env: input.env,
+      logOnError: false,
+    });
+  }
+  return listed;
 };
 
 /**

@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import type { Threads } from '@src/domain.objects';
@@ -48,14 +48,14 @@ describe('getSkillThreads', () => {
     );
 
     when('called with passin: { bad: true }', () => {
-      then('it should throw BadRequestError', async () => {
+      then('it should throw ConstraintError', async () => {
         const error = await getError(() =>
           getSkillThreads({
             getter,
             from: { passin: { bad: true } as any },
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
 
@@ -84,26 +84,26 @@ describe('getSkillThreads', () => {
     });
 
     when('called with argv: { ask: "missing target" }', () => {
-      then('it should throw BadRequestError for missing target', async () => {
+      then('it should throw ConstraintError for missing target', async () => {
         const error = await getError(() =>
           getSkillThreads({
             getter,
             from: { lookup: { argv: { ask: 'missing target' } } },
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
 
     when('called with argv: { target: "src/x.ts" } (missing ask)', () => {
-      then('it should throw BadRequestError for missing ask', async () => {
+      then('it should throw ConstraintError for missing ask', async () => {
         const error = await getError(() =>
           getSkillThreads({
             getter,
             from: { lookup: { argv: { target: 'src/x.ts' } as any } },
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toMatch(/missing.*ask/i);
       });
     });
@@ -136,14 +136,14 @@ describe('getSkillThreads', () => {
     when(
       'called with passin: { target: "src/any.ts", ask: "bad input" }',
       () => {
-        then('it should throw BadRequestError', async () => {
+        then('it should throw ConstraintError', async () => {
           const error = await getError(() =>
             getSkillThreads({
               getter,
               from: { passin: { target: 'src/any.ts', ask: 'bad input' } },
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
         });
       },
     );

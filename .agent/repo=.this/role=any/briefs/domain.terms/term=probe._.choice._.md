@@ -30,6 +30,7 @@ probe : "is there a value?"      — absent is an answer
 ## .refs
 - `src/domain.operations/keyrack/fill/isKeyrackFillProbeMiss.ts`  # the declared dop
 - `src/domain.operations/keyrack/fill/fillKeyrackKeys.ts`         # the vault probe it guards
+- `src/domain.operations/upgrade/execNpmInstallGlobal.ts`         # `getPnpmPresence`, `PROBE_TIMEOUT_MS`
 
 ## .why it is a noun, not a verb
 
@@ -48,3 +49,5 @@ says which read, `miss` says which outcome.
 ## .reason
 see the ref-level cluster beside this choice:
 - `term=probe._.choice.reason.md` — etymology, the rejected synonyms, evidence
+- `term=probe._.choice.example=pnpm-presence.md` — a second, independent site (the
+  pnpm-presence probe), and the caught attempt to name it with the forbidden synonym `lookup`

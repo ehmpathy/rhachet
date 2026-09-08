@@ -16,7 +16,7 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 🔑 keyrack init
    ├─ org: ehmpathy
@@ -68,9 +68,10 @@ Options:
 
 exports[`rhx given: [case5] rhx init bare-sigil alias when: [t6] \`rhx init +nonesuch\` (x7 unknown-role error path) then: the alias error block matches snapshot 1`] = `
 "
-BadRequestError: role "nonesuch" not found
+✋ ConstraintError: role "nonesuch" not found
 
 {
+  "hint": "available roles: $AVAILABLE_ROLES",
   "specifier": "nonesuch",
   "availableRoles": [ "$AVAILABLE_ROLES" ]
 }
@@ -78,4 +79,12 @@ BadRequestError: role "nonesuch" not found
 [args] init,--keys,--hooks,--roles,+nonesuch
 
 "
+`;
+
+exports[`rhx given: [case7] the \`update\` stub, which exists only to redirect when: [t0] a human types \`update\` rather than \`upgrade\` then: the frame matches snapshot 1`] = `
+"✋ ConstraintError: "update" is not a valid command
+
+{
+  "hint": "run \`rhachet upgrade\` instead"
+}"
 `;

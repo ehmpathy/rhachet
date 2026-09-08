@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import glob from 'fast-glob';
 import * as fs from 'fs';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import * as path from 'path';
 import { genArtifactGitFile } from 'rhachet-artifact-git';
 
@@ -34,14 +34,14 @@ export const invokeChoose = ({ program }: { program: Command }): void => {
 
       // verify choice exists and is valid
       if (!fs.existsSync(choicePath))
-        BadRequestError.throw(`choice file not found: ${choicePath}`, { opts });
+        ConstraintError.throw(`choice file not found: ${choicePath}`, { opts });
       if (choiceFile.endsWith('.src'))
-        BadRequestError.throw(`--choice cannot be a .src file`, { opts });
+        ConstraintError.throw(`--choice cannot be a .src file`, { opts });
 
       // grab the peer qualifiers
       const peerQualifier = getPeerQualifiersOfOutputChoice(choiceFile);
       if (!peerQualifier.prefix)
-        BadRequestError.throw(
+        ConstraintError.throw(
           `unrecognized file naming pattern: ${choiceFile}`,
         );
 

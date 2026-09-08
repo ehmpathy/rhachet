@@ -39,7 +39,7 @@ describe('findActorBrainInAllowlist', () => {
     });
 
     when('brain is not in allowlist', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           findActorBrainInAllowlist({
             brain: { repo: 'google', slug: 'gemini' },
@@ -73,7 +73,7 @@ describe('findActorBrainInAllowlist', () => {
         act: jest.fn(),
       });
 
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           findActorBrainInAllowlist({
             brain: otherBrain,
@@ -88,7 +88,7 @@ describe('findActorBrainInAllowlist', () => {
 
   given('empty allowlist', () => {
     when('brain lookup attempted', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           findActorBrainInAllowlist({
             brain: { repo: 'openai', slug: 'codex' },

@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects';
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
@@ -41,12 +41,12 @@ export const performInCurrentThreadForStitch = async (input: {
         opts: input.opts,
       }),
   });
-  if (!role) BadRequestError.throw(`unknown role "${input.opts.role}"`);
+  if (!role) ConstraintError.throw(`unknown role "${input.opts.role}"`);
 
   // lookup the skill
   const skill = role.skills.refs.find((s) => s.slug === input.opts.skill);
   if (!skill)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `unknown skill "${input.opts.skill}" under role "${input.opts.role}"`,
     );
 

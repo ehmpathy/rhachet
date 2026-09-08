@@ -4,8 +4,8 @@ import { ConstraintError } from 'helpful-errors';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getOneActorOndiskByHash } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByHash';
+import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddressHuman';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
-import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
 import type { CloneConversationFormat } from '@src/domain.operations/clone/cli/asCloneConversationText';
 import { asCloneConversationText } from '@src/domain.operations/clone/cli/asCloneConversationText';
 import { genCloneHistoryLink } from '@src/domain.operations/clone/genCloneHistoryLink';
@@ -151,7 +151,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             });
 
             // advisories are tree-only, gated `mode === 'tree'` exactly like every
-            // invokeEnroll advisory (socketFallback / breadcrumb / accrual) — a
+            // invokeEnroll advisory (socketOmissionReason / breadcrumb / accrual) — a
             // json caller reads the same facts as structured fields on the body
             // (exidsUnreadable / exidsAmbiguous), never unconditional stderr prose
             // it has no contract to parse. for tree, warns go to stderr so the
@@ -172,9 +172,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             // the header echoes the clone's canonical address — its slug if named, else
             // its human serial (the first uuid segment) — so a reader sees WHOSE talk
             // this is, in a form they can reach again
-            const addressShown = cloneFound.slug
-              ? `@:${cloneFound.slug}`
-              : `@:${asCloneSerialHuman({ serial: cloneFound.serial })}`;
+            const addressShown = asCloneAddressHuman(cloneFound);
             console.log(
               renderCliOutput({
                 mode,

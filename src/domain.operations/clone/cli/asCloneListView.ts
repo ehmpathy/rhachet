@@ -1,5 +1,6 @@
 import { abbreviate } from '@src/utils/abbreviate';
 
+import { asCloneAddressHuman } from '../asCloneAddressHuman';
 import { asCloneSerialHuman } from '../asCloneSerialHuman';
 import type { CloneReachState } from '../computeCloneReachState';
 
@@ -41,10 +42,7 @@ export interface CloneListGroup {
  *   never forced on a human keyboard. a first-8-hex collision is vanishingly unlikely,
  *   and reach fails LOUD on the rare ambiguity (never a silent wrong-clone)
  */
-const asRowAddress = (row: CloneListRow): string =>
-  row.slug !== null
-    ? `@:${row.slug}`
-    : `@:${asCloneSerialHuman({ serial: row.serial })}`;
+const asRowAddress = (row: CloneListRow): string => asCloneAddressHuman(row);
 
 /**
  * .what = the `  serial=<short-serial>` field, shown ONLY for a NAMED clone (whose

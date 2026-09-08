@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { parseBrainCliEnrollmentSpec } from './parseBrainCliEnrollmentSpec';
@@ -105,22 +105,22 @@ describe('parseBrainCliEnrollmentSpec', () => {
 
   given('[case7] empty token list', () => {
     when('[t0] tokens = []', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseBrainCliEnrollmentSpec({ tokens: [] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });
 
   given('[case8] add and remove conflict', () => {
     when('[t0] tokens = ["+mechanic","-mechanic"]', () => {
-      then('throws BadRequestError about contradiction', async () => {
+      then('throws ConstraintError about contradiction', async () => {
         const error = await getError(() =>
           parseBrainCliEnrollmentSpec({ tokens: ['+mechanic', '-mechanic'] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('add and remove');
       });
     });
@@ -128,11 +128,11 @@ describe('parseBrainCliEnrollmentSpec', () => {
 
   given('[case9] empty role after a sigil', () => {
     when('[t0] tokens = ["+"]', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           parseBrainCliEnrollmentSpec({ tokens: ['+'] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('empty');
       });
     });
@@ -140,11 +140,11 @@ describe('parseBrainCliEnrollmentSpec', () => {
 
   given('[case10] mixed bare and sigiled tokens', () => {
     when('[t0] tokens = ["mechanic","+architect"]', () => {
-      then('throws BadRequestError about mixed call', async () => {
+      then('throws ConstraintError about mixed call', async () => {
         const error = await getError(() =>
           parseBrainCliEnrollmentSpec({ tokens: ['mechanic', '+architect'] }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('mix');
       });
     });

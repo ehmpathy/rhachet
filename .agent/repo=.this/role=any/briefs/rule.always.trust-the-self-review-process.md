@@ -76,7 +76,24 @@ any earlier note that said "cap attempts, escalate for human `--as overruled`" *
 wrong and superseded by this rule. that guidance may apply to peer-review budgets, never to the
 self-review gate.
 
+## ⚠️ .a bounce is not always about depth — check the clock and the path first
+
+this rule governs **depth**, and depth has no automated check. the guard has two checks that
+DO fire, and both render the same *"pond barely rippled"* text:
+
+1. **the path** — your report must sit at the guard's own `rN` level (it increments on a bounce)
+2. **the clock** — ≥30s of wall time since the report's mtime, restarted by each refusal
+
+so an identical refusal, byte for byte, across attempts where you genuinely deepened the
+review is **not** a depth signal — it is one of those two. to review harder against a clock
+is a loop that cannot converge. read
+`howto.pass-the-selfreview-patience-gate` for the diagnosis, then come back here: once the
+path and the clock are settled, depth is the only condition left, and this rule is the whole
+of it.
+
 ## .see also
 
+- `howto.pass-the-selfreview-patience-gate` — the TIME and PATH conditions; read with this
+  rule, never instead of it
 - `.agent/repo=bhrain/role=driver/briefs/howto.run-self-reviews.[guide].md` — the flow + the level pitfall
 - `.agent/repo=bhrain/role=driver/briefs/howto.drive-routes.[guide].md` — status commands

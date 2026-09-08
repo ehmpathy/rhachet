@@ -91,23 +91,60 @@ throw new ConstraintError('invalid mechanism choice', {
 });
 ```
 
+## 🚨 .any error you TOUCH conforms — the fix-forward half
+
+the two parents are **deprecated**. no new throw may use one, and — this is the half that retires
+the extant 197 without a sweep — **an error site your change already touches converts on the way
+through.**
+
+| you are about to | then |
+|---|---|
+| write a **new** throw | 🔴 `ConstraintError` or `MalfunctionError`. never a parent, never bare `Error` |
+| **edit** a line that throws a parent | 🔴 convert it. you already hold the context to answer *"who fixes this?"* |
+| edit a **file** that throws parents on lines you do not touch | leave them. this is on-contact, not per-file |
+| **read** a parent throw and move on | leave it — a read is not a touch |
+| sweep the repo to convert them all | 🔴 **forbidden** — see the migration hazard below |
+
+⇒ this is `rule.prefer.scouts-honor` bound to one defect class, and the bound is what makes it
+safe: **at contact you have already paid the cost to grasp the site**, which is the exact cost the
+*"who fixes this?"* question demands and the exact cost a bulk rewrite cannot pay.
+
+⚠️ **and the conversion is never free of a clamp.** each move changes an exit code, so a test that
+pins the old one goes red. **that redness is the fix rendered, not a regression** — resnap it and
+say so, or the next reader reads the resnap as a regression waved through.
+
 ## .enforcement
 
 - a thrown `BadRequestError` or `UnexpectedCodePathError` = **blocker**
 - a bare `throw new Error(...)` = **blocker**
 - a type guard widened to admit a parent class, rather than a throw site corrected =
   **blocker**
+- a parent throw left in place **on a line your change already edits** = **blocker**
+- a bulk find-and-replace across untouched sites = **blocker** (each site owes the owner question)
 
 ## .the in-repo inventory — the rule is NOT yet met
 
 this rule was authored the day the defect above shipped, so it states the target, not the
-current state. measured 2026-08-10, in prod code only (`src/`, tests excluded):
+current state.
+
+⚠️ **a count decays, so it is stated with its date and its exact predicate — never as "the"
+number.** re-derive rather than cite; a stale figure quoted as current is the same false-record
+shape this rule's own §*"the trap"* names.
 
 ```
-throw new BadRequestError | throw new UnexpectedCodePathError | .throw
-  → 339 sites across 133 files
-  → 16 of them in src/contract/cli/invokeKeyrack.ts alone
+# the predicate, verbatim, so a re-measure is comparable
+#   throw new (BadRequestError|UnexpectedCodePathError)  |  (…)\.throw
+# scope: src/, prod only (*.test.ts excluded)
+
+2026-09-06  → 197 sites across  81 files
+2026-09-07  → 191 sites across  78 files
 ```
+
+⚠️ **the delta is the on-contact half at work, and it is NOT a sweep.** one file of it is
+attributable — `getRoleFromManifests.ts`, 4 sites, converted because a change already touched it.
+the rest is unattributed and is stated as such rather than claimed. **the migration itself is
+un-taken**, and is queued as `.dream/2026_09_07.forbidden-error-parents-remain-at-191-sites.dream.md`,
+which carries the per-area breakdown a later traveler needs.
 
 so a live example is one command away:
 

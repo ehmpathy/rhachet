@@ -1,5 +1,5 @@
 import { distance } from 'fastest-levenshtein';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
 import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
@@ -118,7 +118,7 @@ const validateRoleExists = (input: {
       ? `linked roles: ${input.rolesLinked.join(', ')}`
       : 'no roles linked yet — run `rhx init --roles <role>` first';
 
-  throw new BadRequestError(`role '${input.role}' not found${suggestionText}`, {
+  throw new ConstraintError(`role '${input.role}' not found${suggestionText}`, {
     role: input.role,
     rolesLinked: input.rolesLinked,
     suggestion,

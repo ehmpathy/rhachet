@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
 
@@ -50,7 +50,7 @@ export const findUniqueSkillExecutable = (input: {
 
     const tip = `\n\ntip: did you \`npx rhachet roles link\` the --role this skill comes from?`;
 
-    BadRequestError.throw(`${hint}${suggestions}${tip}`, { input });
+    ConstraintError.throw(`${hint}${suggestions}${tip}`, { input });
   }
 
   // handle multiple matches
@@ -59,7 +59,7 @@ export const findUniqueSkillExecutable = (input: {
       .map((m) => `  - repo=${m.slugRepo} role=${m.slugRole}`)
       .join('\n');
 
-    BadRequestError.throw(
+    ConstraintError.throw(
       `multiple skills found for "${input.slugSkill}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
       { input, matches },
     );

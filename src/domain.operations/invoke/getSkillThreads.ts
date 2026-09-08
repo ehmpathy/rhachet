@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import type { PickOne } from 'type-fns';
 
 import type { Threads } from '@src/domain.objects';
@@ -24,7 +24,7 @@ export const getSkillThreads = async <
   // support passin mode
   if ('passin' in from) {
     if (!getter.assess(from.passin))
-      BadRequestError.throw(
+      ConstraintError.throw(
         'from.passin was assessed to have incorrect shape',
         { from },
       );
@@ -38,7 +38,7 @@ export const getSkillThreads = async <
     // verify that ask was provided; its always required by default
     const ask: string = argv.ask;
     if (!ask)
-      BadRequestError.throw('missing required argument: --ask', { argv });
+      ConstraintError.throw('missing required argument: --ask', { argv });
 
     // instantiate the collected input set
     const collected: Record<string, string> = { ask };
@@ -48,7 +48,7 @@ export const getSkillThreads = async <
       const val = argv[key] ?? (spec.char ? argv[spec.char] : undefined);
       if (val !== undefined) collected[key] = String(val);
       if (val === undefined && !spec.type.startsWith('?'))
-        BadRequestError.throw(`missing required arg --${key} (-${spec.char})`, {
+        ConstraintError.throw(`missing required arg --${key} (-${spec.char})`, {
           key,
           spec,
         });

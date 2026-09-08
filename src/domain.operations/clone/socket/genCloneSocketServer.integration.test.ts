@@ -1,23 +1,23 @@
 import { ConstraintError } from 'helpful-errors';
-import { getError, given, then, useBeforeAll, when } from 'test-fns';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  useThen,
+  when,
+} from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
-import { rmSync, writeFileSync } from 'node:fs';
-import { connect, createServer, type Server, type Socket } from 'node:net';
+import { realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { connect, createServer, type Socket } from 'node:net';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
 import { asCloneDispatchAckFrame } from './asCloneDispatchAckFrame';
 import { genCloneSocketServer } from './genCloneSocketServer';
+import { isCloneSocketBindFaultError } from './isCloneSocketBindFaultError';
 import { sayClone } from './sayClone';
-
-/**
- * .what = await a net.Server bind, so a connect never races the socket setup
- */
-const awaitServerReady = (server: Server): Promise<void> =>
-  new Promise((done) => {
-    if (server.listening) return done();
-    server.once('listening', () => done());
-  });
 
 /**
  * .what = stand up a real clone socket server with a capture write sink
@@ -36,12 +36,15 @@ const genServerWithCapture = async (input?: {
   // .note = deliberate mutation — a local capture of the bytes the server wrote to the
   //   child; pushed in the injected write, read by assertions; never escapes this scene
   const written: string[] = [];
-  const { server, close } = genCloneSocketServer({
+  const { ready, close } = genCloneSocketServer({
     socketPath,
     write: (bytes) => written.push(bytes),
     isBrainCliAlive: input?.isBrainCliAlive ?? (() => true),
   });
-  await awaitServerReady(server);
+  // ⚠️ `ready` settles on the bind's success OR its fault — a helper that awaited the
+  //   success alone would hang forever on a fault, which is the exact defect the module's
+  //   own guard was written to retire
+  await ready;
   return { socketPath, written, close };
 };
 
@@ -390,7 +393,7 @@ describe('genCloneSocketServer.integration', () => {
     // the fix, close() only drained the write queue + called server.close(), whose
     // callback waits for EVERY open connection to end on its own — so a peer that
     // stays open held close() forever, and finalize()/dispose() gated on it hung too
-    // (i009 r011 blocker 3). the fix destroys tracked open sockets in close()
+    // the fix destroys tracked open sockets in close()
     when('[t0] a peer connects and stays open, then the server closes', () => {
       then('close() settles (never hangs on the still-open peer)', async () => {
         const scene = await genServerWithCapture();
@@ -503,4 +506,377 @@ describe('genCloneSocketServer.integration', () => {
       });
     });
   });
+
+  given(
+    '[case13] a bind that FAULTS, at a caller with no race of its own',
+    () => {
+      // 🚨 the clamp on a regression this module itself introduced. an earlier shape left
+      //   the fault race to the CALLER and kept a counter here that assumed exactly one
+      //   caller performed it — an unstated contract no compiler checked. every caller in
+      //   this suite awaited the bind's SUCCESS alone, so under that shape a fault was
+      //   consumed here as "the caller's" and the await never settled: a LOUD uncaught
+      //   crash became a SILENT hang (`rule.forbid.failhide`, from a guard written to
+      //   retire it). `ready` now owns the fault, so no caller can be wrong about it
+      //
+      // ⚠️ the fault is EADDRINUSE — a second bind on a path a first server holds. it is
+      //   chosen over an absent-parent-dir fault deliberately: an over-long unix path is
+      //   TRUNCATED by libuv rather than refused, so a fixture built on path shape can bind
+      //   successfully and leave the clamp unarmed. a doubled bind cannot
+      const scene = useBeforeAll(async () => {
+        const socketPath = getCloneSocketPath({ serial: getUuid() })!;
+        const holder = genCloneSocketServer({
+          socketPath,
+          write: () => undefined,
+          isBrainCliAlive: () => true,
+        });
+        await holder.ready;
+        const doubled = genCloneSocketServer({
+          socketPath,
+          write: () => undefined,
+          isBrainCliAlive: () => true,
+        });
+        return { holder, doubled };
+      });
+      afterAll(async () => {
+        await scene.doubled.close();
+        await scene.holder.close();
+      });
+
+      when('[t0] its `ready` is awaited', () => {
+        // ⚠️ the await is BOUNDED, and the bound is THIS row's assertion. the defect's
+        //   signature is a promise that never settles, so an unbounded await reds by jest's
+        //   own default timeout — measured at 183s under the mutation, three minutes of
+        //   silence with no line that names the cause. bounded, the hang reds HERE, in one
+        //   second, with a sentence a reader can act on. a slow, mute red gets disabled
+        //
+        // ⚠️ the timer is `unref`d so a settled race never holds the event loop open
+        const error = useThen(
+          'it SETTLES rather than hang',
+          async (): Promise<unknown> =>
+            Promise.race([
+              // resolves to the fault on a reject, to null on a bind that succeeded —
+              // so the NEXT row can tell "rejected with X" from "bound after all"
+              scene.doubled.ready.then(
+                () => null,
+                (fault: unknown) => fault,
+              ),
+              new Promise<never>((_, fail) => {
+                const timer = setTimeout(
+                  () =>
+                    fail(
+                      new Error(
+                        '`ready` never settled on a bind fault — the fault has no owner, so every caller of this module hangs',
+                      ),
+                    ),
+                  1000,
+                );
+                timer.unref();
+              }),
+            ]),
+        );
+
+        then('it rejects with the bind fault, structurally readable', () => {
+          // ⚠️ read the structured fields, never the prose. node mints these inside its own
+          //   `net` module, which under jest shares no realm with the sandbox — so an
+          //   `instanceof` read answers false for exactly the errors this asserts about
+          expect((error as NodeJS.ErrnoException).syscall).toEqual('listen');
+          expect((error as NodeJS.ErrnoException).code).toEqual('EADDRINUSE');
+        });
+
+        then('the FIRST server is untouched — its own bind still holds', () => {
+          expect(scene.holder.server.listening).toEqual(true);
+        });
+      });
+    },
+  );
+
+  given('[case14] a HEALTHY bind, under a bind bound it will outlive', () => {
+    // 🚨 the clamp on the bind bound's OWN hazard, which is the only half of it a test can
+    //   honestly reach. the bound guards a libuv pathology — a bind that neither succeeds
+    //   nor faults — and that condition cannot be provoked hermetically: node emits
+    //   `'listening'` on `process.nextTick`, which runs BEFORE the timers phase, so a timer
+    //   short enough to win would win by luck rather than by construction. a clamp that
+    //   reds by luck is worse than an absent one (`rule.require.clamp-edge-cases`)
+    //
+    // ⇒ what IS deterministic is the risk the bound introduces: **a healthy bind killed
+    //   for impatience**. that is the one hazard the dream named when it deferred this, so
+    //   it is the one this row holds. the bound is set to 25ms and the row waits 150ms —
+    //   six times past it — so a guard that tears down a settled bind reds here
+    //
+    // ⚠️ the dogfood, stated with its LIMIT, because a clamp's reach is a fact about the
+    //   clamp rather than a claim about the code (`rule.require.clamp-edge-cases`):
+    //
+    //   | mutation of the guard          | this row |
+    //   |--------------------------------|----------|
+    //   | it calls `server.close()`      | 🔴 RED in 4s — the real hazard, caught |
+    //   | it drops its `readySettled` early-return | 🟢 green, and CORRECTLY so — a `fail` on a settled promise is inert, so there is no defect there to catch. that line is an explicit invariant for a future shape that CAN re-settle, never a clamp-provable one |
+    const scene = useBeforeAll(async () => {
+      const socketPath = getCloneSocketPath({ serial: getUuid() })!;
+      const server = genCloneSocketServer(
+        {
+          socketPath,
+          write: () => undefined,
+          isBrainCliAlive: () => true,
+        },
+        { bindTimeoutMs: 25 },
+      );
+      await server.ready;
+      await new Promise((done) => setTimeout(done, 150));
+      return { server };
+    });
+    afterAll(async () => scene.server.close());
+
+    when('[t0] the bound has long since elapsed', () => {
+      then('the bind still holds — the guard never fired on it', () => {
+        expect(scene.server.server.listening).toEqual(true);
+      });
+
+      then(
+        '`ready` is still resolved, never retroactively rejected',
+        async () => {
+          // ⚠️ a second await of an ALREADY-settled promise is the assertion: a guard that
+          //   rejected late would surface here rather than pass silently
+          await expect(scene.server.ready).resolves.toBeUndefined();
+        },
+      );
+    });
+  });
+
+  given('[case15] a bind that SUCCEEDS and a lockdown that then faults', () => {
+    // 🚨 the clamp on the one fault the bind gate advertised and could not deliver.
+    //   `isCloneSocketBindFaultError` allowlists `'chmod'` — the owner-only lockdown — but
+    //   that lockdown used to ride `listen(path, cb)`'s callback, which node registers as
+    //   one more listen-success listener BEHIND the ready gate's own. so it always ran with
+    //   `readySettled` already true, every fault fell to the durable listener's bare-stderr
+    //   branch, and the caller's `await ready` had already resolved.
+    //
+    //   ⚠️ measured 2026-09-05 on the real cli: a `chmod ENOENT` printed one stderr line
+    //   and the enroll went on to advertise `🔌 reach this clone` for a server this module
+    //   had just `close()`d. that is `rule.forbid.failhide` produced by the guard written
+    //   to retire it, and it made the `'chmod'` allowlist entry unreachable by construction.
+    //
+    // ✅ the fault is REAL, never stubbed, and it uses the mechanism that surfaced it. a
+    //   unix address is capped at ~107 bytes of `sun_path`; past that node does NOT report
+    //   `ENAMETOOLONG` — it fires its listen-success event, bound at a silently TRUNCATED
+    //   address. so the socket file never exists at the untruncated path, and the lockdown's
+    //   `chmodSync` on that path faults `ENOENT` with a structured `syscall` — a bind that
+    //   succeeded and a lockdown that then failed, which is exactly this row's subject.
+    const scene = useBeforeAll(async () => {
+      // ⚠️ the PHYSICAL temp path, never the in-repo symlink. the two differ by ~50 bytes
+      //   here, and which side of the cap the TRUNCATION lands on is the whole fixture: the
+      //   physical base is short enough that the truncated address stays INSIDE this managed
+      //   dir, so node's own `close()` reaps it and the row litters no file. the symlink base
+      //   would truncate mid-name into a dir that does not exist, which faults at `bind`
+      //   instead — a different row's subject
+      // ⚠️ a TERSE slug, and that is load-bearing rather than style. the base must fit under
+      //   the cap for the truncation to stay inside it, and every slug byte eats that margin
+      //   — a 21-byte slug measured 109 bytes here and tripped the guard below
+      const base = realpathSync(genTempDir({ slug: 'lock' }));
+      const socketPath = `${base}/clone.${getUuid()}.sock`;
+
+      // 🚨 both bounds asserted, never assumed. a host whose temp base is long enough to
+      //   push the truncation OUT of it would litter, and one whose full path fits under
+      //   the cap would bind cleanly and pass this row green over an unexercised path
+      //   (`rule.forbid.faked-or-quarantined-acceptance`)
+      if (Buffer.byteLength(base) >= 107)
+        throw new ConstraintError(
+          '[case15] needs a temp base under the ~107-byte sun_path cap, so the truncated bind stays inside it',
+          { base, baseBytes: Buffer.byteLength(base) },
+        );
+      if (Buffer.byteLength(socketPath) <= 107)
+        throw new ConstraintError(
+          '[case15] needs a socket path OVER the ~107-byte sun_path cap, so the bind truncates and the lockdown then faults',
+          { socketPath, socketBytes: Buffer.byteLength(socketPath) },
+        );
+
+      const server = genCloneSocketServer({
+        socketPath,
+        write: () => undefined,
+        isBrainCliAlive: () => true,
+      });
+      const error = await getError(server.ready);
+      return { server, error };
+    });
+    // ⚠️ the optional chain is deliberate. the scene throws by design when a host breaks the
+    //   cap premise above, and an unguarded teardown would then replace that named
+    //   ConstraintError with a bare `cannot read 'close' of undefined` — a cleanup fault
+    //   masking the real verdict (`rule.forbid.failhide`)
+    afterAll(async () => scene?.server?.close());
+
+    when('[t0] the caller awaits `ready`', () => {
+      then('it REJECTS — the fault is never degraded past the caller', () => {
+        // 🚨 the whole row. a RESOLVED `ready` here is the defect: the caller would go on
+        //   to advertise a reach socket for a server this module has already closed
+        //
+        // 🚨 `toBeDefined()` is NOT the read, and that is measured rather than cautious:
+        //   `getError` resolves to a `NoErrorThrownError` INSTANCE when the promise settles
+        //   clean, so a defined-check passes on the very outcome this row exists to catch.
+        //   dogfooded 2026-09-05 — under the defect this row stayed green while its three
+        //   siblings reddened, i.e. the headline assertion was the one with no teeth.
+        expect((scene.error as Error).message).not.toContain(
+          'no error was thrown',
+        );
+      });
+
+      then(
+        'the rejection carries the structured syscall a classifier reads',
+        () => {
+          // ⚠️ read STRUCTURALLY, never via `instanceof` — the same realm trap
+          //   `isCloneSocketBindFaultError` documents and this file's own cases measured
+          const { syscall, code } = scene.error as NodeJS.ErrnoException;
+          expect(syscall).toEqual('chmod');
+          expect(code).toEqual('ENOENT');
+        },
+      );
+
+      then(
+        'so the bind-gate classifier OWNS it, never an unclassified throw',
+        () => {
+          expect(isCloneSocketBindFaultError(scene.error)).toEqual(true);
+        },
+      );
+
+      then(
+        'the server is torn down — no unlocked socket stays reachable',
+        () => {
+          expect(scene.server.server.listening).toEqual(false);
+        },
+      );
+    });
+  });
+
+  given(
+    '[case16] a bind that faults, and NO caller ever reads `ready` — the exact case the rejection handler exists for',
+    () => {
+      // 🚨 raised by the r002 `mech-failhides` lane at i065, after seven rounds dark. the
+      //   handler's own docblock carried two clauses that cannot both hold of one
+      //   invocation: it exists because "a `ready` that NO caller awaits would raise an
+      //   unhandled rejection", and its allowlist was justified because "BOTH are reported
+      //   by the caller". with no caller there is no report — so a real, named, anticipated
+      //   bind fault was dropped with ZERO trace, while an UNforeseen one left a line. the
+      //   guard was loud about the class it understood least (`rule.forbid.failhide`)
+      //
+      // ⚠️ a socket path under a dir that does not exist. WHICH of the gate's three
+      //   syscalls faults is the host's business — measured `chmod`/`ENOTDIR` on linux
+      //   2026-09-05 — and this row deliberately pins none of them. what it needs is only
+      //   that the fault be CLASSIFIED (an allowlisted syscall), because that is the branch
+      //   the allowlist dropped. `[t1]` asserts the classification rather than assumes it,
+      //   so a host that faults elsewhere reddens here rather than passes vacuously
+      const genPathThatBreaksTheBind = (): string =>
+        `${realpathSync(genTempDir({ slug: 'unclaimed' }))}/absent-dir/c.sock`;
+
+      const scene = useBeforeAll(async () => {
+        // .note = deliberate mutation — a local capture of the trace lines this module
+        //   wrote, appended by the injected sink and read by the assertions; never escapes
+        //   this scene
+        //
+        // 🚨 the sink is INJECTED, never spied. a `jest.spyOn(process.stderr, 'write')` is a
+        //   mock in an `.integration.test.ts`, which `rule.forbid.integration.mocks` forbids
+        //   outright — and it would also swap a process-wide channel out from under every
+        //   other suite that shares the worker. `genCloneSocketServer`'s `options.trace`
+        //   exists for exactly this, as a peer of its `options.bindTimeoutMs`
+        const wrote: string[] = [];
+        const trace = (line: string): void => {
+          wrote.push(line);
+        };
+
+        // the UNAWAITED half — no handler is ever attached to `ready`
+        const unclaimed = genCloneSocketServer(
+          {
+            socketPath: genPathThatBreaksTheBind(),
+            write: () => undefined,
+            isBrainCliAlive: () => true,
+          },
+          { trace },
+        );
+
+        // the AWAITED half, in the SAME scene so both write to one sink — the caller must
+        // still receive the fault, and the trace must still be written
+        const claimed = genCloneSocketServer(
+          {
+            socketPath: genPathThatBreaksTheBind(),
+            write: () => undefined,
+            isBrainCliAlive: () => true,
+          },
+          { trace },
+        );
+        const claimedError = await getError(claimed.ready);
+
+        // `'error'` is async and the `.catch` above lands a microtask later; one macrotask
+        // turn is past both
+        await new Promise((done) => setTimeout(done, 50));
+
+        return { wrote, claimedError, unclaimed, claimed };
+      });
+      afterAll(async () => {
+        await scene?.unclaimed?.close();
+        await scene?.claimed?.close();
+      });
+
+      when('[t0] the fault lands with nobody to report it', () => {
+        then('it is written to stderr rather than dropped', () => {
+          // 🚨 the row the lane's blocker names. under the allowlist this channel was
+          //   SILENT for exactly this shape — a CLASSIFIED fault with no caller — so the
+          //   count here was 0 while an unclassified fault would have logged
+          expect(
+            scene.wrote.filter((line) =>
+              line.includes('clone socket ready rejected with a bind fault'),
+            ),
+          ).toHaveLength(2);
+        });
+
+        then('the line carries the errno a human must act on', () => {
+          // 🚨 SELF-CALIBRATED against the twin's own errno rather than a literal. which
+          //   of the gate's three syscalls faults on an absent dir is the host's business,
+          //   and a pinned `ENOENT` reddened here on the very run that proved the repair —
+          //   the row would have measured the fixture, never the property
+          //
+          //   ⚠️ the code is asserted NON-EMPTY first, else an `undefined` errno would make
+          //   the `toContain` below a check against `''`, which every string satisfies —
+          //   a vacuous green over the exact datum this row exists to hold
+          const { code } = scene.claimedError as NodeJS.ErrnoException;
+          expect(typeof code === 'string' && code.length > 0).toEqual(true);
+
+          const line = scene.wrote.find((each) =>
+            each.includes('clone socket ready rejected with a bind fault'),
+          );
+          expect(line).toContain(code);
+        });
+      });
+
+      when(
+        '[t1] the same fault lands with a caller that DID await `ready`',
+        () => {
+          then(
+            'the caller still receives it — the trace is not a diversion',
+            () => {
+              // ⚠️ never `toBeDefined()`. `getError` resolves to a `NoErrorThrownError`
+              //   INSTANCE on a clean settle, so a defined-check passes on the very outcome
+              //   this row exists to catch — measured at `[case15]`, 2026-09-05
+              expect((scene.claimedError as Error).message).not.toContain(
+                'no error was thrown',
+              );
+              expect(isCloneSocketBindFaultError(scene.claimedError)).toEqual(
+                true,
+              );
+            },
+          );
+
+          then(
+            'the trace is CLASSIFIED, never reported as unclassified',
+            () => {
+              // 🚨 the anti-vacuous half. a handler that dropped the classification and wrote
+              //   one blanket sentence would pass [t0] on the count alone, so the WORD is
+              //   asserted too — the line must name which of the two branches it took
+              expect(
+                scene.wrote.filter((line) =>
+                  line.includes('an unclassified fault'),
+                ),
+              ).toHaveLength(0);
+            },
+          );
+        },
+      );
+    },
+  );
 });

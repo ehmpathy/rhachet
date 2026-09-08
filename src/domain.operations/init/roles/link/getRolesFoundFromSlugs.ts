@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleManifest } from '@src/domain.objects/RoleManifest';
@@ -41,14 +41,14 @@ export const getRolesFoundFromSlugs = async (
 
   // fail fast if no packages are installed at all
   if (manifests.length === 0 && packageErrors.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'no rhachet-roles-* packages found. install a package first.',
       { suggestion: 'npm install rhachet-roles-ehmpathy' },
     );
 
   // fail fast if every installed package lacks a rhachet.repo.yml manifest
   if (manifests.length === 0 && packageErrors.length > 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `all rhachet-roles packages lack rhachet.repo.yml:\n${packageErrors
         .map((e) => `  - ${e.packageName}`)
         .join(

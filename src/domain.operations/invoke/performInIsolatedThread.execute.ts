@@ -1,5 +1,5 @@
 import type { ProcedureInput } from 'as-procedure';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import {
   deSerialBase64,
   deSerialJSON,
@@ -78,7 +78,7 @@ if (require.main === module)
     // decode the payload from env
     const payloadEnvVar: string =
       process.env.RHACHET_INVOKE_OPTS_PAYLOAD ??
-      BadRequestError.throw('RHACHET_INVOKE_OPTS_PAYLOAD was not defined');
+      ConstraintError.throw('RHACHET_INVOKE_OPTS_PAYLOAD was not defined');
     const payloadDecoded = deSerialJSON<
       ProcedureInput<typeof executePerformInIsolatedThread>
     >(
@@ -86,7 +86,7 @@ if (require.main === module)
     );
     if (!payloadDecoded.opts)
       // basic runtime validation
-      throw new BadRequestError('did not find .opts on payload decoded', {
+      throw new ConstraintError('did not find .opts on payload decoded', {
         payloadDecoded,
       });
 

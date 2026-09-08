@@ -1,4 +1,4 @@
-import { BadRequestError, getError } from 'helpful-errors';
+import { ConstraintError, getError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
@@ -76,11 +76,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: scene.packageRoot }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
 
       then('error message contains "not found"', async () => {
@@ -120,11 +120,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: scene.packageRoot }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
 
       then('error message contains "invalid yaml"', async () => {
@@ -164,11 +164,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: scene.packageRoot }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
 
       then('error message contains "invalid schema"', async () => {
