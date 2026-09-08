@@ -649,7 +649,10 @@ describe('getKeyrackBlockedReport', () => {
         });
 
         then('the refusal still carries its context and its fix', () => {
-          expect(report).toContain('repo: @all.camp.GITHUB_TOKEN');
+          // ⚠️ `machine:`, never `repo:` — the label names the key's SCOPE, and this slug
+          //    opens with the reserved `@all` org, which MEANS "not repo-scoped". a `repo:`
+          //    label here would contradict its own value (`rule.forbid.ambiguous-labels`)
+          expect(report).toContain('machine: @all.camp.GITHUB_TOKEN');
           expect(report).toContain(
             'hint: run: rhx keyrack fill --owner ehmpath',
           );
