@@ -1,4 +1,4 @@
-import { BadRequestError, HelpfulError } from 'helpful-errors';
+import { ConstraintError, HelpfulError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
@@ -92,11 +92,11 @@ describe('genContextBrain', () => {
       });
 
       when('[t0] genContextBrain is called', () => {
-        then('it throws BadRequestError with actionable message', async () => {
+        then('it throws ConstraintError with actionable message', async () => {
           const error = await getError(async () =>
             genContextBrain({ brains: { atoms: [atom1, atom2] } }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect((error as Error).message).toContain('duplicate atom');
           expect((error as Error).message).toMatchSnapshot();
         });
@@ -114,11 +114,11 @@ describe('genContextBrain', () => {
       });
 
       when('[t0] genContextBrain is called', () => {
-        then('it throws BadRequestError with actionable message', async () => {
+        then('it throws ConstraintError with actionable message', async () => {
           const error = await getError(async () =>
             genContextBrain({ brains: { repls: [repl1, repl2] } }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect((error as Error).message).toContain('duplicate repl');
           expect((error as Error).message).toMatchSnapshot();
         });
@@ -146,11 +146,11 @@ describe('genContextBrain', () => {
               schema: { output: outputSchema },
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
-          expect((error as BadRequestError).message).toContain(
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect((error as ConstraintError).message).toContain(
             'no atoms available',
           );
-          expect((error as BadRequestError).message).toMatchSnapshot();
+          expect((error as ConstraintError).message).toMatchSnapshot();
         });
       });
     });
@@ -176,11 +176,11 @@ describe('genContextBrain', () => {
               schema: { output: outputSchema },
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
-          expect((error as BadRequestError).message).toContain(
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect((error as ConstraintError).message).toContain(
             'no repls available',
           );
-          expect((error as BadRequestError).message).toMatchSnapshot();
+          expect((error as ConstraintError).message).toMatchSnapshot();
         });
 
         then('brain.repl.act throws actionable error on call', async () => {
@@ -193,11 +193,11 @@ describe('genContextBrain', () => {
               schema: { output: outputSchema },
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
-          expect((error as BadRequestError).message).toContain(
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect((error as ConstraintError).message).toContain(
             'no repls available',
           );
-          expect((error as BadRequestError).message).toMatchSnapshot();
+          expect((error as ConstraintError).message).toMatchSnapshot();
         });
       });
     });
@@ -469,7 +469,7 @@ describe('genContextBrain', () => {
         '[t0] genContextBrain is called with slug that matches multiple',
         () => {
           then(
-            'it throws BadRequestError with actionable message',
+            'it throws ConstraintError with actionable message',
             async () => {
               const error = await getError(async () =>
                 genContextBrain({
@@ -477,9 +477,9 @@ describe('genContextBrain', () => {
                   choice: 'same/brain',
                 }),
               );
-              expect(error).toBeInstanceOf(BadRequestError);
-              expect((error as BadRequestError).message).toContain('ambiguous');
-              expect((error as BadRequestError).message).toMatchSnapshot();
+              expect(error).toBeInstanceOf(ConstraintError);
+              expect((error as ConstraintError).message).toContain('ambiguous');
+              expect((error as ConstraintError).message).toMatchSnapshot();
             },
           );
         },

@@ -400,7 +400,7 @@ describe('invokeInit (integration)', () => {
         );
       });
 
-      then('it should throw BadRequestError', async () => {
+      then('it should throw ConstraintError', async () => {
         let thrownError: Error | null = null;
         try {
           await program.parseAsync(['init', '--prep'], { from: 'user' });

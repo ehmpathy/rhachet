@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { findUniqueRoleDir } from '@src/domain.operations/invoke/findUniqueRoleDir';
 import {
@@ -31,7 +31,7 @@ export const invokeRolesCost = ({ command }: { command: Command }): void => {
     .action((opts: { repo?: string; role?: string; ifPresent?: boolean }) => {
       // validate role is provided
       if (!opts.role)
-        BadRequestError.throw('--role is required (e.g., --role mechanic)');
+        ConstraintError.throw('--role is required (e.g., --role mechanic)');
 
       // discover role dir from .agent/
       const roleFound = findUniqueRoleDir({
@@ -59,7 +59,7 @@ export const invokeRolesCost = ({ command }: { command: Command }): void => {
           console.log(`🫧 role not present, skipped`);
           return;
         }
-        BadRequestError.throw(
+        ConstraintError.throw(
           `Role directory not found: ${roleFound.roleDir}\nRun "rhachet roles link --repo ${roleFound.slugRepo} --role ${roleFound.slugRole}" first`,
         );
       }

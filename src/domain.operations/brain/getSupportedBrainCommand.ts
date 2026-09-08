@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 
@@ -44,7 +44,7 @@ export const getSupportedBrainCommand = (input: {
 
   const command = brainCommands[input.brain];
   if (!command)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `brain '${input.brain}' not supported. supported: ${Object.keys(brainCommands).join(', ')}`,
       { brain: input.brain },
     );

@@ -1,5 +1,5 @@
 import glob from 'fast-glob';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import type { Artifact } from 'rhachet-artifact';
 import { type GitFile, genArtifactGitFile } from 'rhachet-artifact-git';
 
@@ -24,7 +24,7 @@ export const getRoleBriefs = async (input: {
   // resolve agent directory
   const dirAgent = resolve(process.cwd(), '.agent');
   if (!existsSync(dirAgent))
-    throw new BadRequestError(
+    throw new ConstraintError(
       'no .agent directory found. did you forget to `npx rhachet roles link`?',
     );
 
@@ -64,7 +64,7 @@ export const getRoleBriefs = async (input: {
 
   // reject if no matching role found
   if (rolesMatching.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `role "${input.by.role.name}" not found in .agent/ directory. did you forget to \`npx rhachet roles link --role ${input.by.role.name}\`?`,
     );
 
@@ -73,7 +73,7 @@ export const getRoleBriefs = async (input: {
     const locations = rolesMatching
       .map((r) => `  - repo=${r.slugRepo}`)
       .join('\n');
-    throw new BadRequestError(
+    throw new ConstraintError(
       `multiple roles found with name "${input.by.role.name}":\n${locations}\n\nuse by.repo.name to disambiguate`,
     );
   }
@@ -83,7 +83,7 @@ export const getRoleBriefs = async (input: {
 
   // reject if briefs directory doesn't exist
   if (!existsSync(roleLinked.pathBriefs))
-    throw new BadRequestError(
+    throw new ConstraintError(
       `briefs directory not found for role "${roleLinked.slugRole}" in repo="${roleLinked.slugRepo}". ` +
         `did you forget to \`npx rhachet roles link --role ${roleLinked.slugRole}\`? ` +
         `(if you just wrote a brief, run: npm run build && npx rhachet roles link)`,
@@ -100,7 +100,7 @@ export const getRoleBriefs = async (input: {
         onlyFiles: true,
       });
       if (pathsMatching.length === 0)
-        throw new BadRequestError(
+        throw new ConstraintError(
           `brief "${name}" not found in role "${roleLinked.slugRole}" (repo="${roleLinked.slugRepo}")`,
         );
       pathsBrief.push(...pathsMatching);

@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import type { PickOne } from 'type-fns';
 
 import type { GStitcher } from '@src/domain.objects';
@@ -25,7 +25,7 @@ export const getSkillContext = async <
   // support passin mode: directly provided context vars
   if ('passin' in from) {
     if (!getter.assess(from.passin)) {
-      BadRequestError.throw(
+      ConstraintError.throw(
         'from.passin was assessed to have incorrect shape',
         {
           from,
@@ -43,7 +43,7 @@ export const getSkillContext = async <
     for (const [key, spec] of Object.entries(getter.lookup)) {
       const val = env[spec.envar];
       if (val === undefined) {
-        BadRequestError.throw(`missing required env var ${spec.envar}`, {
+        ConstraintError.throw(`missing required env var ${spec.envar}`, {
           key,
           spec,
         });

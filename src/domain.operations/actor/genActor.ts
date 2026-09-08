@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ActorInmem } from '@src/domain.objects/ActorInmem';
@@ -21,11 +21,11 @@ export const genActor = <TRoles extends Role[]>(input: {
 }): ActorInmem<TRoles> => {
   // validate that at least one role is provided
   if (input.roles.length === 0)
-    throw new BadRequestError('genActor requires at least one role', {});
+    throw new ConstraintError('genActor requires at least one role', {});
 
   // validate that at least one brain is provided
   if (input.brains.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'genActor requires at least one brain in allowlist',
       { slugsRoles: input.roles.map((role) => role.slug) },
     );

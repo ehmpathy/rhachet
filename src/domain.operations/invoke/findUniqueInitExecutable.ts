@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleInitExecutable } from '@src/domain.objects/RoleInitExecutable';
 
@@ -50,7 +50,7 @@ export const findUniqueInitExecutable = (input: {
 
     const tip = `\n\ntip: did you \`npx rhachet roles link\` the --role this init comes from?`;
 
-    BadRequestError.throw(`${hint}${suggestions}${tip}`, { input });
+    ConstraintError.throw(`${hint}${suggestions}${tip}`, { input });
   }
 
   // handle multiple matches
@@ -59,7 +59,7 @@ export const findUniqueInitExecutable = (input: {
       .map((m) => `  - repo=${m.slugRepo} role=${m.slugRole}`)
       .join('\n');
 
-    BadRequestError.throw(
+    ConstraintError.throw(
       `multiple inits found for "${input.slugInit}":\n${matchList}\n\nuse --repo and/or --role to disambiguate`,
       { input, matches },
     );

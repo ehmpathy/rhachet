@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ActorInmem } from '@src/domain.objects/ActorInmem';
 import type {
@@ -32,7 +32,7 @@ export const genCloneInmem = <TRoles extends Role[]>(input: {
 
   // validate the actor carries an enrollable brain
   if (brains.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'genClone requires an actor with at least one brain',
       {
         slugsRoles: roles.map((role) => role.slug),
@@ -58,7 +58,7 @@ export const genCloneInmem = <TRoles extends Role[]>(input: {
 
     // fail fast if no role in the actor declares the slug
     if (!roleOwner)
-      throw new BadRequestError(
+      throw new ConstraintError(
         `skill not found across the actor's roles: ${slug}`,
         {
           slug,
@@ -90,7 +90,7 @@ export const genCloneInmem = <TRoles extends Role[]>(input: {
 
     // validate brain supports .act() (BrainRepl only, not BrainAtom)
     if (!('act' in brainDerived))
-      throw new BadRequestError(
+      throw new ConstraintError(
         'clone.act() requires a BrainRepl brain with .act() method',
         { brainSlug: brainDerived.slug },
       );
@@ -98,7 +98,7 @@ export const genCloneInmem = <TRoles extends Role[]>(input: {
     // extract the single skill slug and its args
     const entries = Object.entries(actInput.skill);
     if (entries.length !== 1)
-      throw new BadRequestError('clone.act expects exactly one skill entry', {
+      throw new ConstraintError('clone.act expects exactly one skill entry', {
         entriesCount: entries.length,
       });
     const [slugSkill, skillArgs] = entries[0]!;
@@ -123,7 +123,7 @@ export const genCloneInmem = <TRoles extends Role[]>(input: {
     // extract the single skill slug and its args
     const entries = Object.entries(runInput.skill);
     if (entries.length !== 1)
-      throw new BadRequestError('clone.run expects exactly one skill entry', {
+      throw new ConstraintError('clone.run expects exactly one skill entry', {
         entriesCount: entries.length,
       });
     const [slugSkill, skillArgs] = entries[0]!;

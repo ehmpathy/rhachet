@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
@@ -27,15 +27,15 @@ describe('getOneBrainReplByRef', () => {
     const repls: BrainRepl[] = [];
 
     when('[t0] getOneBrainReplByRef is called', () => {
-      then('it throws BadRequestError with "no repls available"', () => {
+      then('it throws ConstraintError with "no repls available"', () => {
         const error = getError(() =>
           getOneBrainReplByRef({
             repls,
             ref: mockRepl,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toMatchSnapshot();
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toMatchSnapshot();
       });
     });
   });
@@ -49,15 +49,15 @@ describe('getOneBrainReplByRef', () => {
     const repls = [mockReplInArray];
 
     when('[t0] getOneBrainReplByRef is called with non-matched ref', () => {
-      then('it throws BadRequestError with "brain repl not found"', () => {
+      then('it throws ConstraintError with "brain repl not found"', () => {
         const error = getError(() =>
           getOneBrainReplByRef({
             repls,
             ref: mockReplToFind,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toMatchSnapshot();
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toMatchSnapshot();
       });
     });
   });

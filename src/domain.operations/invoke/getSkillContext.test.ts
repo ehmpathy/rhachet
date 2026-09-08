@@ -1,4 +1,4 @@
-import { BadRequestError, UnexpectedCodePathError } from 'helpful-errors';
+import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { type GStitcher, RoleSkillContextGetter } from '@src/domain.objects';
@@ -43,7 +43,7 @@ describe('getSkillContext', () => {
     });
 
     when('called with passin: { wrongKey: "oops" }', () => {
-      then('it should throw BadRequestError', async () => {
+      then('it should throw ConstraintError', async () => {
         const error = await getError(async () =>
           getSkillContext({
             getter,
@@ -51,7 +51,7 @@ describe('getSkillContext', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
 
@@ -67,7 +67,7 @@ describe('getSkillContext', () => {
     });
 
     when('called with env: {} (missing key)', () => {
-      then('it should throw BadRequestError', async () => {
+      then('it should throw ConstraintError', async () => {
         const error = await getError(async () =>
           getSkillContext({
             getter,
@@ -75,7 +75,7 @@ describe('getSkillContext', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });
@@ -99,7 +99,7 @@ describe('getSkillContext', () => {
     });
 
     when('called with passin: { openaiApiKey: "sk-reject" }', () => {
-      then('it should throw BadRequestError', async () => {
+      then('it should throw ConstraintError', async () => {
         const error = await getError(async () =>
           getSkillContext({
             getter,
@@ -107,7 +107,7 @@ describe('getSkillContext', () => {
           }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });

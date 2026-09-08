@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { Role } from '@src/domain.objects/Role';
 import { getAllFilesByGlobs } from '@src/infra/filesystem/getAllFilesByGlobs';
@@ -53,7 +53,7 @@ export const getAllArtifactsForRole = async (input: {
   for (const dir of extractDirUris(input.role.briefs?.dirs)) {
     const fullPath = path.join(input.fromDir, dir);
     if (!existsSync(fullPath)) {
-      throw new BadRequestError('briefs dir not found', {
+      throw new ConstraintError('briefs dir not found', {
         role: input.role.slug,
         dir,
       });
@@ -73,7 +73,7 @@ export const getAllArtifactsForRole = async (input: {
   for (const dir of extractDirUris(input.role.skills?.dirs)) {
     const fullPath = path.join(input.fromDir, dir);
     if (!existsSync(fullPath)) {
-      throw new BadRequestError('skills dir not found', {
+      throw new ConstraintError('skills dir not found', {
         role: input.role.slug,
         dir,
       });
@@ -93,7 +93,7 @@ export const getAllArtifactsForRole = async (input: {
   for (const dir of extractDirUris(input.role.inits?.dirs)) {
     const fullPath = path.join(input.fromDir, dir);
     if (!existsSync(fullPath)) {
-      throw new BadRequestError('inits dir not found', {
+      throw new ConstraintError('inits dir not found', {
         role: input.role.slug,
         dir,
       });

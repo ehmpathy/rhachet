@@ -32,7 +32,7 @@ roles:
 `;
 
 exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t12] skills dir with non-executable .sh file then: command fails with error that includes path: non-executable-error 1`] = `
-"BadRequestError: non-executable skill files detected
+"✋ ConstraintError: non-executable skill files detected
 
 these .sh files in skills directories are not marked executable:
   - <testDir>/src/roles/mechanic/skills/broken-skill.sh
@@ -47,7 +47,7 @@ fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
 `;
 
 exports[`invokeRepoIntrospect (integration) given: a CLI program with invokeRepoIntrospect registered when: [t13] skills dir with multiple non-executable .sh files then: error lists all paths: multiple-non-executable-error 1`] = `
-"BadRequestError: non-executable skill files detected
+"✋ ConstraintError: non-executable skill files detected
 
 these .sh files in skills directories are not marked executable:
   - <testDir>/src/roles/mechanic/skills/broken1.sh

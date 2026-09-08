@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -27,7 +27,7 @@ export const findUniqueRoleDir = (input: {
   // skip if .agent directory does not exist
   if (!existsSync(agentDir)) {
     if (input.ifPresent) return null;
-    BadRequestError.throw(
+    ConstraintError.throw(
       `.agent/ directory not found. run \`npx rhachet roles link\` first`,
     );
   }
@@ -71,14 +71,14 @@ export const findUniqueRoleDir = (input: {
 
     const tip = `\n\ntip: did you \`npx rhachet roles link --role ${input.slugRole}\` first?`;
 
-    BadRequestError.throw(`${hint}${tip}`, { input });
+    ConstraintError.throw(`${hint}${tip}`, { input });
   }
 
   // handle multiple matches
   if (matches.length > 1) {
     const matchList = matches.map((m) => `  - ${m.slugRepo}`).join('\n');
 
-    BadRequestError.throw(
+    ConstraintError.throw(
       `multiple repos have role "${input.slugRole}":\n${matchList}\n\nuse --repo to disambiguate`,
       { input, matches },
     );

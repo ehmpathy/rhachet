@@ -1,5 +1,5 @@
 import { flattie } from 'flattie';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { genArtifactGitFile } from 'rhachet-artifact-git';
 import type { Serializable } from 'serde-fns';
 
@@ -21,7 +21,7 @@ export const useTemplate = async <
   const file = await artifact.get();
   const content =
     file?.content ??
-    BadRequestError.throw('template artifact does not exist', { ref });
+    ConstraintError.throw('template artifact does not exist', { ref });
 
   const flattened = flattie(variables);
 
@@ -29,7 +29,7 @@ export const useTemplate = async <
     /\$\.rhachet\{([a-zA-Z0-9._]+)\}/g,
     (_, key) =>
       flattened[key] ??
-      BadRequestError.throw(
+      ConstraintError.throw(
         `missing variable for $.rhachet{${key}} in template`,
         {
           desired: key,

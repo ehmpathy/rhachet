@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { getBrainSlugFull } from '@src/domain.operations/brains/getBrainSlugFull';
@@ -28,7 +28,7 @@ export const findActorBrainInAllowlist = (input: {
 
   // fail if brain not in allowlist
   if (!brainFound)
-    throw new BadRequestError('brain not in actor allowlist', {
+    throw new ConstraintError('brain not in actor allowlist', {
       brainSlugFull,
       allowlistSlugs: input.allowlist.map(getBrainSlugFull),
     });

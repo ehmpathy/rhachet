@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, useThen, when } from 'test-fns';
 
 import { setMockLinkedRole } from '@src/.test/assets/setMockLinkedRole';
@@ -445,14 +445,14 @@ describe('setIncrementalRoles (integration) — remove-side set-math', () => {
     afterAll(() => testDir.teardown());
 
     when('[t0] the slug is removed without a repo qualifier', () => {
-      then('throws BadRequestError about ambiguity', async () => {
+      then('throws ConstraintError about ambiguity', async () => {
         const error = await getError(() =>
           setIncrementalRoles(
             { additions: [], subtractions: ['reviewer'] },
             context,
           ),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('ambiguous');
       });
     });

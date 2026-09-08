@@ -752,7 +752,22 @@ const genConsumerInstall = (input: {
         hint: 'a global install skips the packageManager check, so `pnpm --version` proves a different invocation; and a nonzero exit withholds the close line. no evidence remains, so this row is void rather than green',
       },
     );
+  // 🚨 the mismatch guard is LOCAL-ONLY, and the asymmetry is pnpm's, not a carve-out:
+  //
+  //   - LOCAL  — pnpm ENFORCES the `packageManager` field, so a version other than the
+  //     pinned one means self-manage broke. and the local report DIFFERS by major
+  //     (`PACKAGE_MANAGER_REPORT_EXPECTED.local`), so an unpinned run voids the row
+  //   - GLOBAL — pnpm SKIPS that check (`Using --global skips the package manager
+  //     check`), so the pin is UNENFORCEABLE here by construction. a host runs whichever
+  //     pnpm it has, which is exactly the wish's condition: a human types
+  //     `pnpm add -g rhachet` with THEIR pnpm
+  //
+  // ⚠️ so a global mismatch voids no row — `PACKAGE_MANAGER_REPORT_EXPECTED.global` is
+  //   identical at both majors, and no CAPABILITY row reads that table at all. to demand
+  //   the pin here made the clamp pass only on a host whose ambient pnpm happened to
+  //   match, which is a property of the host rather than of the cure
   if (
+    target === 'local' &&
     packageManagerVersionRan.kind === 'confirmed' &&
     packageManagerVersionRan.version !== packageManagerWanted
   )
@@ -761,7 +776,7 @@ const genConsumerInstall = (input: {
       ran: packageManagerVersionRan.version,
       target,
       projectDir,
-      hint: 'a global install skips the packageManager check; if pnpm stopped to self-manage from cwd, this row measures a version we never named and its report rows are void',
+      hint: 'pnpm enforces the `packageManager` field on a LOCAL install; if that is disabled (manage-package-manager-versions=false) this row measures a version we never named and its report rows are void',
     });
 
   // .why = the exit code is a SEPARATE user-faced fact from the capability, and the two
@@ -1614,7 +1629,7 @@ describe('getPtyModuleOrNull.consumer.integration', () => {
   );
 
   given(
-    "[case9] 🚨 THE WISH'S LITERAL ENTRYPOINT — `pnpm add -g`, red then green, at both majors",
+    "[case9] 🚨 THE WISH'S LITERAL ENTRYPOINT — `pnpm add -g`, red then green",
     () => {
       // 🚨 the command the wish names by name. cases 1–8 all measure `pnpm install` — a
       //   DIFFERENT command, into a different tree, under a manifest we wrote ourselves.
@@ -1627,6 +1642,17 @@ describe('getPtyModuleOrNull.consumer.integration', () => {
       //
       //   the depth is `transitive` — the wish's actual shape. the parent installs as a
       //   packed TARBALL, never a directory; see `genGlobalSpecifier` for why.
+      //
+      // 🚨 the `packageManager` request is ADVISORY on this path, never a pin — pnpm
+      //   prints `Using --global skips the package manager check` and runs whichever
+      //   pnpm the host has. so a `next-major` cell measures the next major only on a
+      //   host that HAS it; elsewhere it re-measures the ambient one.
+      //
+      //   ⚠️ that costs the case no claim, and the reason is in the table rather than in
+      //   this comment: `PACKAGE_MANAGER_REPORT_EXPECTED.global` is IDENTICAL at both
+      //   majors, and no CAPABILITY row reads that table at all. the cells that follow
+      //   assert the addon and the pty, which the tarball decides and the package
+      //   manager cannot touch
       //
       // .the mutation that reddens this: revert `optionalDependencies.node-pty` to 1.1.0
       const scene = useBeforeAll(async () => ({
@@ -1669,25 +1695,21 @@ describe('getPtyModuleOrNull.consumer.integration', () => {
             expect(result.builtOnDisk).toBe(false);
         });
 
-        then(
-          "and the defect reproduces — on the wish's own command, at BOTH majors",
-          () => {
-            for (const result of [scene.brokenOurs, scene.brokenNextMajor]) {
-              expect(result.prebuiltOnDisk).toBe(
-                PTY_BROKEN_EXPECTED.prebuiltOnDisk,
-              );
-              expect(result.addonLoaded).toBe(PTY_BROKEN_EXPECTED.addonLoaded);
+        then("and the defect reproduces — on the wish's own command", () => {
+          for (const result of [scene.brokenOurs, scene.brokenNextMajor]) {
+            expect(result.prebuiltOnDisk).toBe(
+              PTY_BROKEN_EXPECTED.prebuiltOnDisk,
+            );
+            expect(result.addonLoaded).toBe(PTY_BROKEN_EXPECTED.addonLoaded);
 
-              const { loadErrorContains } = PTY_BROKEN_EXPECTED;
+            const { loadErrorContains } = PTY_BROKEN_EXPECTED;
 
-              if (loadErrorContains !== null)
-                expect(result.loadError).toContain(loadErrorContains);
+            if (loadErrorContains !== null)
+              expect(result.loadError).toContain(loadErrorContains);
 
-              if (loadErrorContains === null)
-                expect(result.loadError).toBeNull();
-            }
-          },
-        );
+            if (loadErrorContains === null) expect(result.loadError).toBeNull();
+          }
+        });
       });
 
       when('[t1] the version WE declare is installed globally', () => {
@@ -1696,61 +1718,47 @@ describe('getPtyModuleOrNull.consumer.integration', () => {
           expect(scene.declaredNextMajor.builtOnDisk).toBe(false);
         });
 
-        then(
-          '🚨 yet the addon LOADS and a REAL pty spawns — at BOTH majors',
-          () => {
-            // acceptance #1, on the command the wish names, at both majors — so it is a
-            // claim about the cure rather than about our package manager
-            for (const result of [
-              scene.declaredOurs,
-              scene.declaredNextMajor,
-            ]) {
-              expect(result.prebuiltOnDisk).toBe(
-                PTY_DECLARED_EXPECTED.prebuiltOnDisk,
-              );
-              expect(result.addonLoaded).toBe(
-                PTY_DECLARED_EXPECTED.addonLoaded,
-              );
+        then('🚨 yet the addon LOADS and a REAL pty spawns', () => {
+          // acceptance #1, on the command the wish names — so it is a
+          // claim about the cure rather than about our package manager
+          for (const result of [scene.declaredOurs, scene.declaredNextMajor]) {
+            expect(result.prebuiltOnDisk).toBe(
+              PTY_DECLARED_EXPECTED.prebuiltOnDisk,
+            );
+            expect(result.addonLoaded).toBe(PTY_DECLARED_EXPECTED.addonLoaded);
 
-              const { spawnBytesContains } = PTY_DECLARED_EXPECTED;
+            const { spawnBytesContains } = PTY_DECLARED_EXPECTED;
 
-              if (spawnBytesContains !== null)
-                expect(result.spawnBytes).toContain(spawnBytesContains);
+            if (spawnBytesContains !== null)
+              expect(result.spawnBytes).toContain(spawnBytesContains);
 
-              if (spawnBytesContains === null)
-                expect(result.spawnBytes).toBeNull();
-            }
-          },
-        );
+            if (spawnBytesContains === null)
+              expect(result.spawnBytes).toBeNull();
+          }
+        });
       });
 
       when('[t2] the package manager reports on what it did', () => {
-        then(
-          '🚨 a global install exits CLEAN at both majors — unlike the local one',
-          () => {
-            // .why = acceptance #2 on the wish's own command. `execNpmInstallGlobal`
-            //   classifies a NONZERO exit; here there is none at either major, so a
-            //   blocked hook cannot read as a failed global install. against [case8]:
-            //   the SAME package, gated the SAME way, exits 1 under `pnpm install`
-            for (const result of [scene.declaredOurs, scene.brokenOurs])
-              expect({
-                buildGateBlocked: result.buildGateBlocked,
-                installExitCode: result.installExitCode,
-              }).toEqual(PACKAGE_MANAGER_REPORT_EXPECTED.global.ours);
+        then('🚨 a global install exits CLEAN — unlike the local one', () => {
+          // .why = acceptance #2 on the wish's own command. `execNpmInstallGlobal`
+          //   classifies a NONZERO exit; here there is none at either major, so a
+          //   blocked hook cannot read as a failed global install. against [case8]:
+          //   the SAME package, gated the SAME way, exits 1 under `pnpm install`
+          for (const result of [scene.declaredOurs, scene.brokenOurs])
+            expect({
+              buildGateBlocked: result.buildGateBlocked,
+              installExitCode: result.installExitCode,
+            }).toEqual(PACKAGE_MANAGER_REPORT_EXPECTED.global.ours);
 
-            // 🚨 the next major, at BOTH versions — the broken one is the worst row: it
-            //   exits 0 with no gate line while the addon does not load. measured rather
-            //   than assumed from the declared row
-            for (const result of [
-              scene.declaredNextMajor,
-              scene.brokenNextMajor,
-            ])
-              expect({
-                buildGateBlocked: result.buildGateBlocked,
-                installExitCode: result.installExitCode,
-              }).toEqual(PACKAGE_MANAGER_REPORT_EXPECTED.global['next-major']);
-          },
-        );
+          // 🚨 the next major, at BOTH versions — the broken one is the worst row: it
+          //   exits 0 with no gate line while the addon does not load. measured rather
+          //   than assumed from the declared row
+          for (const result of [scene.declaredNextMajor, scene.brokenNextMajor])
+            expect({
+              buildGateBlocked: result.buildGateBlocked,
+              installExitCode: result.installExitCode,
+            }).toEqual(PACKAGE_MANAGER_REPORT_EXPECTED.global['next-major']);
+        });
 
         then(
           '🚨 and a build allowlist is INEXPRESSIBLE here — pnpm writes the manifest',

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { Role, RoleRegistry } from '@src/domain.objects';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
@@ -44,7 +44,7 @@ export const resolveRoleSpecifiers = (input: {
         // qualified specifier: find exact registry match
         const found = input.registries.find((r) => r.slug === parsed.repo);
         if (!found)
-          throw new BadRequestError(`registry "${parsed.repo}" not found`, {
+          throw new ConstraintError(`registry "${parsed.repo}" not found`, {
             specifier,
             availableRegistries: input.registries.map((r) => r.slug),
           });
@@ -60,7 +60,7 @@ export const resolveRoleSpecifiers = (input: {
       // find the role within the registry
       const role = registry.roles.find((r) => r.slug === parsed.role);
       if (!role)
-        throw new BadRequestError(
+        throw new ConstraintError(
           `role "${parsed.role}" not found in registry "${registry.slug}"`,
           {
             specifier,

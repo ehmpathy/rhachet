@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { getBrainSlugParts } from './getBrainSlugParts';
@@ -34,26 +34,26 @@ describe('getBrainSlugParts', () => {
 
   given('[case3] invalid slug format', () => {
     when('[t0] slug has no slash', () => {
-      then('throws BadRequestError', () => {
-        expect(() => getBrainSlugParts('grok-3')).toThrow(BadRequestError);
+      then('throws ConstraintError', () => {
+        expect(() => getBrainSlugParts('grok-3')).toThrow(ConstraintError);
       });
     });
 
     when('[t1] slug is empty', () => {
-      then('throws BadRequestError', () => {
-        expect(() => getBrainSlugParts('')).toThrow(BadRequestError);
+      then('throws ConstraintError', () => {
+        expect(() => getBrainSlugParts('')).toThrow(ConstraintError);
       });
     });
 
     when('[t2] slug ends with slash (empty model part)', () => {
-      then('throws BadRequestError', () => {
-        expect(() => getBrainSlugParts('xai/')).toThrow(BadRequestError);
+      then('throws ConstraintError', () => {
+        expect(() => getBrainSlugParts('xai/')).toThrow(ConstraintError);
       });
     });
 
     when('[t3] slug starts with slash (empty repo part)', () => {
-      then('throws BadRequestError', () => {
-        expect(() => getBrainSlugParts('/grok-3')).toThrow(BadRequestError);
+      then('throws ConstraintError', () => {
+        expect(() => getBrainSlugParts('/grok-3')).toThrow(ConstraintError);
       });
     });
   });

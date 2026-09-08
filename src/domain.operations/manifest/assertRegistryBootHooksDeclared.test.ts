@@ -1,4 +1,4 @@
-import { BadRequestError, getError } from 'helpful-errors';
+import { ConstraintError, getError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import {
@@ -77,7 +77,7 @@ describe('assertRegistryBootHooksDeclared', () => {
 
   given('[case2] role with no-hook-declared', () => {
     when('[t0] assert is invoked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = createTestRole({
           slug: 'designer',
           hooks: undefined,
@@ -86,14 +86,14 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });
 
   given('[case3] role with wrong command', () => {
     when('[t0] assert is invoked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = createTestRole({
           slug: 'designer',
           hooks: new RoleHooks({
@@ -106,14 +106,14 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });
 
   given('[case4] role with wrong role name', () => {
     when('[t0] assert is invoked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = createTestRole({
           slug: 'designer',
           hooks: new RoleHooks({
@@ -128,7 +128,7 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
     });
   });
@@ -144,8 +144,8 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toContain('my-custom-role');
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toContain('my-custom-role');
       });
     });
   });
@@ -161,8 +161,8 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toContain(
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toContain(
           'no-hook-declared',
         );
       });
@@ -180,9 +180,9 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        expect((error as BadRequestError).message).toContain('hint:');
-        expect((error as BadRequestError).message).toContain(
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect((error as ConstraintError).message).toContain('hint:');
+        expect((error as ConstraintError).message).toContain(
           'roles boot --role designer',
         );
       });
@@ -208,8 +208,8 @@ describe('assertRegistryBootHooksDeclared', () => {
         const error = await getError(() =>
           assertRegistryBootHooksDeclared({ registry }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
-        const message = (error as BadRequestError).message;
+        expect(error).toBeInstanceOf(ConstraintError);
+        const message = (error as ConstraintError).message;
         expect(message).toContain('no-hook');
         expect(message).toContain('wrong-command');
         expect(message).toContain('no-hook-declared');

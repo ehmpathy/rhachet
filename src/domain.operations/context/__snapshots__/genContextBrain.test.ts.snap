@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`genContextBrain explicit mode given: [case2] atoms with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws BadRequestError with actionable message 1`] = `
-"BadRequestError: duplicate atom identifier: __mock_repo__:__mock_atom__
+exports[`genContextBrain explicit mode given: [case2] atoms with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws ConstraintError with actionable message 1`] = `
+"✋ ConstraintError: duplicate atom identifier: __mock_repo__:__mock_atom__
 
 each atom must have a unique {repo, slug} combination.
 remove the duplicate or rename one of the atoms.
@@ -15,8 +15,8 @@ remove the duplicate or rename one of the atoms.
 }"
 `;
 
-exports[`genContextBrain explicit mode given: [case3] repls with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws BadRequestError with actionable message 1`] = `
-"BadRequestError: duplicate repl identifier: __mock_repo__:__mock_repl__
+exports[`genContextBrain explicit mode given: [case3] repls with duplicate { repo, slug } when: [t0] genContextBrain is called then: it throws ConstraintError with actionable message 1`] = `
+"✋ ConstraintError: duplicate repl identifier: __mock_repo__:__mock_repl__
 
 each repl must have a unique {repo, slug} combination.
 remove the duplicate or rename one of the repls.
@@ -31,7 +31,7 @@ remove the duplicate or rename one of the repls.
 `;
 
 exports[`genContextBrain explicit mode given: [case4] atoms is undefined in brains when: [t0] genContextBrain is called with only repls then: brain.atom.ask throws actionable error on call 1`] = `
-"BadRequestError: no atoms available in context
+"✋ ConstraintError: no atoms available in context
 
 pass atoms via genContextBrain({ brains: { atoms: [...] } }) or ensure
 brain packages are installed for discovery mode.
@@ -87,7 +87,7 @@ brain packages are installed for discovery mode.
 `;
 
 exports[`genContextBrain explicit mode given: [case5] repls is undefined in brains when: [t0] genContextBrain is called with only atoms then: brain.repl.act throws actionable error on call 1`] = `
-"BadRequestError: no repls available in context
+"✋ ConstraintError: no repls available in context
 
 pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
 brain packages are installed for discovery mode.
@@ -143,7 +143,7 @@ brain packages are installed for discovery mode.
 `;
 
 exports[`genContextBrain explicit mode given: [case5] repls is undefined in brains when: [t0] genContextBrain is called with only atoms then: brain.repl.ask throws actionable error on call 1`] = `
-"BadRequestError: no repls available in context
+"✋ ConstraintError: no repls available in context
 
 pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
 brain packages are installed for discovery mode.
@@ -254,8 +254,8 @@ exports[`genContextBrain explicit mode given: [case12] choice is string with no 
 }"
 `;
 
-exports[`genContextBrain explicit mode given: [case13] choice is string (ambiguous) when: [t0] genContextBrain is called with slug that matches multiple then: it throws BadRequestError with actionable message 1`] = `
-"BadRequestError: ambiguous brain slug: same/brain
+exports[`genContextBrain explicit mode given: [case13] choice is string (ambiguous) when: [t0] genContextBrain is called with slug that matches multiple then: it throws ConstraintError with actionable message 1`] = `
+"✋ ConstraintError: ambiguous brain slug: same/brain
 
 multiple brains match this slug. use a typed choice to disambiguate:
   choice: { atom: 'same/brain' }  // for atom brain

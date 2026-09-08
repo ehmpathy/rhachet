@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import {
   executeInit,
@@ -143,7 +143,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
 
         // validate --attempts is not used with run
         if (opts.attempts)
-          BadRequestError.throw(
+          ConstraintError.throw(
             '--attempts is not supported for "run" (solid skills are deterministic). use "ask --skill --attempts" for stitch-mode or "act --skill --attempts" for actor-mode.',
             { attempts: opts.attempts },
           );
@@ -217,7 +217,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
         }
 
         // neither mode specified
-        BadRequestError.throw(
+        ConstraintError.throw(
           '--skill or --init is required (e.g., --skill test.speed or --init setup.claude)',
           { opts },
         );

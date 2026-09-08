@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { RoleDelta } from '@src/domain.objects/RoleDelta';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
@@ -29,7 +29,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
 
   // reject a wholly empty token list — caller must pass at least one role
   if (trimmed.length === 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults',
       { tokens: input.tokens },
     );
@@ -40,7 +40,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
     if (token.startsWith('+')) {
       const role = token.slice(1).trim();
       if (!role)
-        throw new BadRequestError('role specifier cannot be empty after "+"', {
+        throw new ConstraintError('role specifier cannot be empty after "+"', {
           token,
           tokens: input.tokens,
         });
@@ -51,7 +51,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
     if (token.startsWith('-')) {
       const role = token.slice(1).trim();
       if (!role)
-        throw new BadRequestError('role specifier cannot be empty after "-"', {
+        throw new ConstraintError('role specifier cannot be empty after "-"', {
           token,
           tokens: input.tokens,
         });
@@ -60,7 +60,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
 
     // bare token: an absolute member
     if (!token)
-      throw new BadRequestError('role specifier cannot be empty', {
+      throw new ConstraintError('role specifier cannot be empty', {
         token,
         tokens: input.tokens,
       });
@@ -77,7 +77,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
 
   // reject mixed calls — all-absolute OR all-incremental, never both
   if (isIncremental && absolutes.length > 0)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)',
       {
         absolutes: absolutes.map((delta) => delta.role),
@@ -115,7 +115,7 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
     ),
   );
   if (contradiction)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `cannot both add and remove role "${contradiction.role}" in one call`,
       {
         additions: additionsUnique.map((delta) => delta.role),

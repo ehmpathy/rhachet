@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
@@ -138,11 +138,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError with "not found" message', async () => {
+      then('throws ConstraintError with "not found" message', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: tempDir }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('rhachet.repo.yml not found');
       });
     });
@@ -172,11 +172,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError with "invalid yaml" message', async () => {
+      then('throws ConstraintError with "invalid yaml" message', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: tempDir }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('invalid yaml');
       });
     });
@@ -205,11 +205,11 @@ roles:
     });
 
     when('[t0] getRoleRegistryManifest is called', () => {
-      then('throws BadRequestError with "invalid schema" message', async () => {
+      then('throws ConstraintError with "invalid schema" message', async () => {
         const error = await getError(() =>
           getRoleRegistryManifest({ packageRoot: tempDir }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('invalid schema');
       });
     });

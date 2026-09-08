@@ -1,8 +1,4 @@
-import {
-  BadRequestError,
-  ConstraintError,
-  MalfunctionError,
-} from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
@@ -328,7 +324,7 @@ describe('unlockKeyrackKeys', () => {
       });
 
       when('[t2] unlock called with no env and no repo manifest', () => {
-        then('throws BadRequestError naming --env as the fix', async () => {
+        then('throws ConstraintError naming --env as the fix', async () => {
           const context: ContextKeyrack = {
             owner: null,
             identity,
@@ -337,13 +333,13 @@ describe('unlockKeyrackKeys', () => {
             vaultAdapters: vaultAdaptersEmpty,
           };
           const error = await getError(unlockKeyrackKeys({}, context));
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('--env');
         });
       });
 
       when('[t3] a --key is asked but absent from the host manifest', () => {
-        then('throws BadRequestError naming the machine-wide key', async () => {
+        then('throws ConstraintError naming the machine-wide key', async () => {
           const context: ContextKeyrack = {
             owner: null,
             identity,
@@ -354,7 +350,7 @@ describe('unlockKeyrackKeys', () => {
           const error = await getError(
             unlockKeyrackKeys({ env: 'prod', key: 'BOOTSTRAP_TOKEN' }, context),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('machine-wide key not found');
         });
       });

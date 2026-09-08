@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`getOneBrainReplByRef given: [case2] repls array is empty when: [t0] getOneBrainReplByRef is called then: it throws BadRequestError with "no repls available" 1`] = `
-"BadRequestError: no repls available in context
+exports[`getOneBrainReplByRef given: [case2] repls array is empty when: [t0] getOneBrainReplByRef is called then: it throws ConstraintError with "no repls available" 1`] = `
+"✋ ConstraintError: no repls available in context
 
 pass repls via genContextBrain({ brains: { repls: [...] } }) or ensure
 brain packages are installed for discovery mode.
@@ -56,8 +56,8 @@ brain packages are installed for discovery mode.
 }"
 `;
 
-exports[`getOneBrainReplByRef given: [case3] repls array does not contain matching repl when: [t0] getOneBrainReplByRef is called with non-matched ref then: it throws BadRequestError with "brain repl not found" 1`] = `
-"BadRequestError: brain repl not found: __mock_repo__/__mock_repl__
+exports[`getOneBrainReplByRef given: [case3] repls array does not contain matching repl when: [t0] getOneBrainReplByRef is called with non-matched ref then: it throws ConstraintError with "brain repl not found" 1`] = `
+"✋ ConstraintError: brain repl not found: __mock_repo__/__mock_repl__
 
 the repl was not registered in this context.
 check that the repl is included in brains.repls or that the brain

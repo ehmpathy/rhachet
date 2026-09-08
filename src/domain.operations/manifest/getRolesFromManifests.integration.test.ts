@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genTestTempDir } from '@src/.test/infra';
@@ -79,14 +79,14 @@ describe('getRolesFromManifests (integration) — add-path lookup', () => {
 
   given('[case2] an unknown slug absent from all manifests (e5, e14)', () => {
     when('[t0] the unknown slug is looked up on the add path', () => {
-      then('throws BadRequestError with a not-found message', async () => {
+      then('throws ConstraintError with a not-found message', async () => {
         const error = await getError(() =>
           getRolesFromManifests({
             specifiers: ['nonesuch'],
             manifests: loadManifests(),
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message.toLowerCase()).toContain('not found');
       });
     });
@@ -96,14 +96,14 @@ describe('getRolesFromManifests (integration) — add-path lookup', () => {
     when(
       '[t0] the ambiguous slug is looked up without a repo qualifier',
       () => {
-        then('throws BadRequestError about ambiguity', async () => {
+        then('throws ConstraintError about ambiguity', async () => {
           const error = await getError(() =>
             getRolesFromManifests({
               specifiers: ['reviewer'],
               manifests: loadManifests(),
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('ambiguous');
         });
       },

@@ -193,7 +193,7 @@ describe('genCloneInmem', () => {
     });
 
     when('[t4] act is called with a brain not in the allowlist', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           clone.act({
             brain: { repo: 'unknown', slug: 'brain' },
@@ -254,7 +254,7 @@ describe('genCloneInmem', () => {
     const clone = bakeClone([mockBrainAtom, mockBrainRepl1]);
 
     when('[t0] act is called without a brain (default = BrainAtom)', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           clone.act({ skill: { summarize: { content: 'test' } } }),
         );

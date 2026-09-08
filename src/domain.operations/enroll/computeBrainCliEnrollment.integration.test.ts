@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
@@ -121,7 +121,7 @@ describe('computeBrainCliEnrollment', () => {
 
   given('[case6] typo in role name', () => {
     when('[t0] spec has "mechnic" instead of "mechanic"', () => {
-      then('throws BadRequestError with suggestion', async () => {
+      then('throws ConstraintError with suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
           mode: 'absolute',
           deltas: [new RoleDelta({ kind: 'absolute', role: 'mechnic' })],
@@ -134,14 +134,14 @@ describe('computeBrainCliEnrollment', () => {
             rolesLinked,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain("role 'mechnic' not found");
         expect(error.message).toContain("did you mean 'mechanic'?");
       });
     });
 
     when('[t1] spec has "drivr" instead of "driver"', () => {
-      then('throws BadRequestError with suggestion', async () => {
+      then('throws ConstraintError with suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
           mode: 'incremental',
           deltas: [new RoleDelta({ kind: 'subtraction', role: 'drivr' })],
@@ -154,7 +154,7 @@ describe('computeBrainCliEnrollment', () => {
             rolesLinked,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain("role 'drivr' not found");
         expect(error.message).toContain("did you mean 'driver'?");
       });
@@ -163,7 +163,7 @@ describe('computeBrainCliEnrollment', () => {
 
   given('[case7] unknown role with no close match', () => {
     when('[t0] spec has "xyzabc" which has no close match', () => {
-      then('throws BadRequestError without suggestion', async () => {
+      then('throws ConstraintError without suggestion', async () => {
         const spec = new BrainCliEnrollmentSpec({
           mode: 'absolute',
           deltas: [new RoleDelta({ kind: 'absolute', role: 'xyzabc' })],
@@ -176,7 +176,7 @@ describe('computeBrainCliEnrollment', () => {
             rolesLinked,
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain("role 'xyzabc' not found");
         expect(error.message).not.toContain('did you mean');
       });
@@ -242,7 +242,7 @@ describe('computeBrainCliEnrollment', () => {
 
   given('[case11] empty rolesLinked', () => {
     when('[t0] no roles are linked in .agent/', () => {
-      then('throws BadRequestError for any role', async () => {
+      then('throws ConstraintError for any role', async () => {
         const spec = new BrainCliEnrollmentSpec({
           mode: 'absolute',
           deltas: [new RoleDelta({ kind: 'absolute', role: 'mechanic' })],
@@ -255,7 +255,7 @@ describe('computeBrainCliEnrollment', () => {
             rolesLinked: [],
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain("role 'mechanic' not found");
       });
     });

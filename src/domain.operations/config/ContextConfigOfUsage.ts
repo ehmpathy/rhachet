@@ -31,7 +31,7 @@ export interface ContextConfigOfUsage {
        * .what = returns explicit config path if available
        * .why = needed for isolated thread execution which spawns child processes
        *
-       * .note = throws BadRequestError if isExplicit() is false
+       * .note = throws ConstraintError if isExplicit() is false
        */
       getExplicitPath: () => string;
 
@@ -45,7 +45,7 @@ export interface ContextConfigOfUsage {
            * .what = loads RoleRegistry[] from rhachet.use.ts
            * .why = provides full runtime Role objects with capabilities
            *
-           * .note = throws BadRequestError if isExplicit() is false
+           * .note = throws ConstraintError if isExplicit() is false
            */
           explicit: () => Promise<{ registries: RoleRegistry[] }>;
 
@@ -68,7 +68,7 @@ export interface ContextConfigOfUsage {
            * .what = loads BrainRepl[] from rhachet.use.ts
            * .why = provides inference providers for ask/act commands
            *
-           * .note = throws BadRequestError if isExplicit() is false
+           * .note = throws ConstraintError if isExplicit() is false
            */
           explicit: () => Promise<BrainRepl[]>;
         };
@@ -78,7 +78,7 @@ export interface ContextConfigOfUsage {
            * .what = loads RoleHooksOnDispatch from rhachet.use.ts
            * .why = enables input transformation before execution
            *
-           * .note = throws BadRequestError if isExplicit() is false
+           * .note = throws ConstraintError if isExplicit() is false
            * .note = returns null if no hooks configured
            */
           explicit: () => Promise<RoleHooksOnDispatch | null>;

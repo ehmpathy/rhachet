@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { InvokeOpts } from '@src/domain.objects/InvokeOpts';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -32,14 +32,14 @@ export const performInCurrentThreadForActor = async (input: {
   // get brains from config
   const brains = await getBrainsByConfigExplicit({ opts: input.opts }); // todo: support implicit lookup via rhachet-brains-* pattern
   if (brains.length === 0)
-    BadRequestError.throw(
+    ConstraintError.throw(
       'no brains available. add getBrainRepls() to your rhachet.use.ts',
     );
 
   // find role
   const role = assureFindRole({ registries, slug: input.opts.role });
   if (!role)
-    BadRequestError.throw(`role "${input.opts.role}" not found`, {
+    ConstraintError.throw(`role "${input.opts.role}" not found`, {
       availableRoles: registries.flatMap((r) => r.roles.map((rr) => rr.slug)),
     });
 

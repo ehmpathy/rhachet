@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { setMockLinkedRole } from '@src/.test/assets/setMockLinkedRole';
@@ -181,7 +181,7 @@ describe('execRoleUnlink (integration)', () => {
         const error = await getError(() =>
           execRoleUnlink({ repo: '.this', role: 'any' }, context),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('native roles');
       });
     });

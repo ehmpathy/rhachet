@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type {
   ResourceCurationResolved,
@@ -310,7 +310,7 @@ const computeSubjectModePlan = async (input: {
   if (input.subjects) {
     for (const slug of input.subjects) {
       if (!subjectSlugs.includes(slug)) {
-        throw new BadRequestError(`subject not found: ${slug}`, {
+        throw new ConstraintError(`subject not found: ${slug}`, {
           available: subjectSlugs,
           requested: input.subjects,
         });

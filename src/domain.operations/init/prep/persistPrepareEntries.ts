@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 
@@ -27,7 +27,7 @@ export const persistPrepareEntries = (
 
   // check file exists
   if (!existsSync(pkgPath)) {
-    throw new BadRequestError('no package.json found', {
+    throw new ConstraintError('no package.json found', {
       cwd: context.cwd,
       pkgPath,
     });
@@ -42,7 +42,7 @@ export const persistPrepareEntries = (
     pkg = JSON.parse(pkgContent) as Record<string, unknown>;
   } catch (error) {
     if (!(error instanceof Error)) throw error;
-    throw new BadRequestError('invalid package.json', {
+    throw new ConstraintError('invalid package.json', {
       pkgPath,
       parseError: error.message,
     });

@@ -53,7 +53,7 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
     });
 
     when('[t1] getter rejects', () => {
-      then('it throws BadRequestError with actionable context', async () => {
+      then('it throws ConstraintError with actionable context', async () => {
         const error = await getSdkCredsFromBrainSupplies({
           creds: async () => {
             throw new Error('vault connection failed');
@@ -183,7 +183,7 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
 
   given('[case3] invalid creds shape', () => {
     when('[t0] creds is neither function nor keyrack object', () => {
-      then('it throws BadRequestError with actionable message', async () => {
+      then('it throws ConstraintError with actionable message', async () => {
         const error = await getSdkCredsFromBrainSupplies({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           creds: { invalid: 'shape' } as any,
@@ -207,7 +207,7 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
     });
 
     when('[t1] creds is null', () => {
-      then('it throws BadRequestError with actionable message', async () => {
+      then('it throws ConstraintError with actionable message', async () => {
         const error = await getSdkCredsFromBrainSupplies({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           creds: null as any,
@@ -231,7 +231,7 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
 
   given('[case4] incomplete keyrack config', () => {
     when('[t0] keyrack config lacks owner', () => {
-      then('it throws BadRequestError with actionable message', async () => {
+      then('it throws ConstraintError with actionable message', async () => {
         const error = await getSdkCredsFromBrainSupplies({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           creds: { keyrack: { env: 'test' } } as any,
@@ -255,7 +255,7 @@ describe('getSdkCredsFromBrainSupplies.integration', () => {
     });
 
     when('[t1] keyrack config lacks env', () => {
-      then('it throws BadRequestError with actionable message', async () => {
+      then('it throws ConstraintError with actionable message', async () => {
         const error = await getSdkCredsFromBrainSupplies({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           creds: { keyrack: { owner: 'ehmpathy' } } as any,

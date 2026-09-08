@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
@@ -59,7 +59,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // validate: --prep requires --roles
         if (options.prep && (!rolesDecoded || rolesDecoded.length === 0)) {
-          throw new BadRequestError('--prep requires --roles', {
+          throw new ConstraintError('--prep requires --roles', {
             prep: options.prep,
             roles: rolesDecoded,
           });
@@ -67,7 +67,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // validate: --keys requires --roles
         if (options.keys && (!rolesDecoded || rolesDecoded.length === 0)) {
-          throw new BadRequestError(
+          throw new ConstraintError(
             '--keys requires --roles to specify which role keyracks to extend',
             {
               example: 'npx rhachet init --keys --roles mechanic dispatcher',

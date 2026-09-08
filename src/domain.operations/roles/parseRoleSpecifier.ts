@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 
@@ -14,7 +14,7 @@ export const parseRoleSpecifier = (input: {
   // validate specifier is not empty
   const trimmed = input.specifier.trim();
   if (!trimmed)
-    throw new BadRequestError('role specifier cannot be empty', {
+    throw new ConstraintError('role specifier cannot be empty', {
       specifier: input.specifier,
     });
 
@@ -30,18 +30,18 @@ export const parseRoleSpecifier = (input: {
 
   // validate both parts are non-empty
   if (!repo)
-    throw new BadRequestError('repo part of specifier cannot be empty', {
+    throw new ConstraintError('repo part of specifier cannot be empty', {
       specifier: input.specifier,
     });
 
   if (!role)
-    throw new BadRequestError('role part of specifier cannot be empty', {
+    throw new ConstraintError('role part of specifier cannot be empty', {
       specifier: input.specifier,
     });
 
   // validate no additional slashes
   if (role.includes('/'))
-    throw new BadRequestError('role specifier cannot have multiple slashes', {
+    throw new ConstraintError('role specifier cannot have multiple slashes', {
       specifier: input.specifier,
     });
 

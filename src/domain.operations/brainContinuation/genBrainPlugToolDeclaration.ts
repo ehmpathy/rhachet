@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import type { z } from 'zod';
 
 import type { BrainPlugToolDefinition } from '@src/domain.objects/BrainPlugToolDefinition';
@@ -14,7 +14,7 @@ import type { BrainPlugToolInvocation } from '@src/domain.objects/BrainPlugToolI
  * - infers TOutput from schema.output
  * - infers TSlug literal type from slug string
  * - wraps execute to return BrainPlugToolExecution with time and signal
- * - classifies errors: BadRequestError → 'error:constraint', else → 'error:malfunction'
+ * - classifies errors: ConstraintError → 'error:constraint', else → 'error:malfunction'
  *
  * @example
  * const customerLookupTool = genBrainPlugToolDeclaration({
@@ -76,7 +76,7 @@ export const genBrainPlugToolDeclaration = <
           },
         };
       } catch (error) {
-        const isConstraint = error instanceof BadRequestError;
+        const isConstraint = error instanceof ConstraintError;
         return {
           exid: invocation.exid,
           slug: invocation.slug,

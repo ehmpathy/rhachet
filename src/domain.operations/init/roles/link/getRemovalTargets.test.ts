@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { getRemovalTargets } from './getRemovalTargets';
@@ -20,7 +20,7 @@ describe('getRemovalTargets', () => {
   given('[case2] an unqualified slug linked under two repos (e8)', () => {
     when('[t0] the slug is removed without qualification', () => {
       then(
-        'throws BadRequestError about ambiguity with a qualify hint',
+        'throws ConstraintError about ambiguity with a qualify hint',
         async () => {
           const error = await getError(() =>
             getRemovalTargets({
@@ -32,7 +32,7 @@ describe('getRemovalTargets', () => {
               nativeRoles: [],
             }),
           );
-          expect(error).toBeInstanceOf(BadRequestError);
+          expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('ambiguous');
         },
       );
@@ -76,7 +76,7 @@ describe('getRemovalTargets', () => {
             nativeRoles: ['somenative'],
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('native roles');
       });
     });
@@ -90,7 +90,7 @@ describe('getRemovalTargets', () => {
             nativeRoles: ['somenative'],
           }),
         );
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain('native roles');
       });
     });

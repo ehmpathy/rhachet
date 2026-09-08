@@ -428,7 +428,7 @@ describe('getAllArtifactsForRole.integration', () => {
   // === error cases ===
   given('error handling', () => {
     when('[e0] briefs dir not found', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = buildRole({
           slug: 'test-role',
           briefsDirs: ['nonexistent'],
@@ -441,7 +441,7 @@ describe('getAllArtifactsForRole.integration', () => {
     });
 
     when('[e1] skills dir not found', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = buildRole({
           slug: 'test-role',
           skillsDirs: ['nonexistent'],
@@ -454,7 +454,7 @@ describe('getAllArtifactsForRole.integration', () => {
     });
 
     when('[e2] inits dir not found', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const role = buildRole({
           slug: 'test-role',
           initsDirs: ['nonexistent'],

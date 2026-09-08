@@ -49,7 +49,7 @@ describe('assureRigidSkillHasOutputInput', () => {
       executable: exampleExecutable,
     });
 
-    it('should throw BadRequestError', async () => {
+    it('should throw ConstraintError', async () => {
       const error = await getError(() =>
         assureRigidSkillHasOutputInput({ skill }),
       );

@@ -1,4 +1,4 @@
-import { BadRequestError, HelpfulError } from 'helpful-errors';
+import { ConstraintError, HelpfulError } from 'helpful-errors';
 
 import type { BrainSuppliesCreds } from '@src/domain.objects/BrainSuppliesCreds';
 import { getKeyrackKeySecrets } from '@src/domain.operations/keyrack/getKeyrackKeySecrets/getKeyrackKeySecrets';
@@ -27,7 +27,7 @@ export const getSdkCredsFromBrainSupplies = async <
 }): Promise<TKeys> => {
   // guard: validate creds shape
   if (typeof input.creds !== 'function' && !input.creds?.keyrack)
-    throw new BadRequestError(
+    throw new ConstraintError(
       'invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object',
       {
         received: typeof input.creds,
@@ -43,7 +43,7 @@ export const getSdkCredsFromBrainSupplies = async <
       if (error instanceof HelpfulError) throw error;
 
       // wrap an unknown getter failure with actionable context
-      throw new BadRequestError(
+      throw new ConstraintError(
         `brain supplier credential getter failed: ${error instanceof Error ? error.message : String(error)}. check your credential source (vault, kms, db) and ensure it is accessible`,
         {
           cause: error instanceof Error ? error : undefined,
@@ -56,7 +56,7 @@ export const getSdkCredsFromBrainSupplies = async <
   // guard: validate keyrack config has required fields
   const { owner, env } = input.creds.keyrack;
   if (!owner || !env)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `invalid keyrack config: ${!owner ? 'owner' : 'env'} absent. pass { keyrack: { owner, env } }`,
       {
         received: input.creds.keyrack,

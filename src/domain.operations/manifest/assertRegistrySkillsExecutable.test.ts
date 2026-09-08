@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { Role, RoleRegistry } from '@src/domain.objects';
@@ -81,7 +81,7 @@ describe('assertRegistrySkillsExecutable', () => {
 
   given('[case2] registry with one non-executable skill', () => {
     when('assert is invoked', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const skillsDir = resolve(testDir, 'skills-one-broken');
         mkdirSync(skillsDir, { recursive: true });
 
@@ -96,7 +96,7 @@ describe('assertRegistrySkillsExecutable', () => {
           assertRegistrySkillsExecutable({ registry }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
       });
 
       then('error message contains path', async () => {
@@ -132,7 +132,7 @@ describe('assertRegistrySkillsExecutable', () => {
           assertRegistrySkillsExecutable({ registry }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error?.message).toContain('chmod +x');
       });
     });
@@ -159,7 +159,7 @@ describe('assertRegistrySkillsExecutable', () => {
           assertRegistrySkillsExecutable({ registry }),
         );
 
-        expect(error).toBeInstanceOf(BadRequestError);
+        expect(error).toBeInstanceOf(ConstraintError);
         expect(error?.message).toContain(broken1);
         expect(error?.message).toContain(broken2);
         expect(error?.message).toContain(broken3);

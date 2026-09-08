@@ -1,5 +1,5 @@
 import type { RefByUnique } from 'domain-objects';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { BrainAtom } from '@src/domain.objects/BrainAtom';
 
@@ -13,7 +13,7 @@ export const getOneBrainAtomByRef = (input: {
 }): BrainAtom => {
   // fail fast if no atoms available
   if (input.atoms.length === 0)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `no atoms available in context
 
 pass atoms via genContextBrain({ brains: { atoms: [...] } }) or ensure
@@ -28,7 +28,7 @@ brain packages are installed for discovery mode.`,
 
   // fail if not found
   if (!atomFound)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `brain atom not found: ${input.ref.repo}/${input.ref.slug}
 
 the atom was not registered in this context.

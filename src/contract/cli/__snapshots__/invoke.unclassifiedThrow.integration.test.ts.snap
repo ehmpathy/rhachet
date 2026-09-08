@@ -20,7 +20,7 @@ exports[`invoke — an unclassified throw (integration) given: [case1] a config 
 
 exports[`invoke — an unclassified throw (integration) given: [case2] a CLASSIFIED failure, on the same surface when: [t0] the cli renders the failure then: the WHOLE SCREEN holds its shape 1`] = `
 "
-✋ BadRequestError: explicit config required but not found. create rhachet.use.ts or use --config
+✋ ConstraintError: explicit config required but not found. create rhachet.use.ts or use --config
 
 [args] readme,--repo,nope,--role,nope
 

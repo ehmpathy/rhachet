@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistry } from '@src/domain.objects';
@@ -53,7 +53,7 @@ export const invokeRepoIntrospect = ({
 
       // fail fast if not a rhachet-roles-* package
       if (!packageName.startsWith('rhachet-roles-'))
-        throw new BadRequestError(
+        throw new ConstraintError(
           `repo introspect must be run inside a rhachet-roles-* package`,
           { packageName },
         );
@@ -73,7 +73,7 @@ export const invokeRepoIntrospect = ({
 
       // fail fast if getRoleRegistry not exported
       if (!packageExports.getRoleRegistry)
-        throw new BadRequestError(`package does not export getRoleRegistry`, {
+        throw new ConstraintError(`package does not export getRoleRegistry`, {
           packageName,
         });
 

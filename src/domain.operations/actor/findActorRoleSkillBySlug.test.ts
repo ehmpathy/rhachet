@@ -96,7 +96,7 @@ describe('findActorRoleSkillBySlug', () => {
       when(
         '[t0] skill exists in role.skills.solid but no .agent/ executable',
         () => {
-          then('throws BadRequestError with helpful hint', async () => {
+          then('throws ConstraintError with helpful hint', async () => {
             // default mock returns empty array (no executables)
             const error = await getError(() =>
               findActorRoleSkillBySlug({
@@ -120,7 +120,7 @@ describe('findActorRoleSkillBySlug', () => {
       when(
         '[t0] skill exists in role.skills.rigid but no .agent/ executable',
         () => {
-          then('throws BadRequestError with helpful hint', async () => {
+          then('throws ConstraintError with helpful hint', async () => {
             // default mock returns empty array (no executables)
             const error = await getError(() =>
               findActorRoleSkillBySlug({
@@ -140,7 +140,7 @@ describe('findActorRoleSkillBySlug', () => {
 
   given('[case3] skill not in role.skills[route]', () => {
     when('[t0] skill slug does not exist', () => {
-      then('throws BadRequestError', async () => {
+      then('throws ConstraintError', async () => {
         const error = await getError(() =>
           findActorRoleSkillBySlug({
             slug: 'nonexistent',
@@ -155,7 +155,7 @@ describe('findActorRoleSkillBySlug', () => {
 
     when('[t1] skill exists in wrong route', () => {
       then(
-        'throws BadRequestError for solid looking for rigid skill',
+        'throws ConstraintError for solid looking for rigid skill',
         async () => {
           const error = await getError(() =>
             findActorRoleSkillBySlug({
@@ -220,7 +220,7 @@ describe('findActorRoleSkillBySlug', () => {
       '[t0] findActorRoleSkillBySlug is called for skill not in role.skills',
       () => {
         then(
-          'throws BadRequestError requiring schema for actor contracts',
+          'throws ConstraintError requiring schema for actor contracts',
           () => {
             // mock .agent/ discovery to return an executable for unknown skill
             mockDiscoverSkillExecutables.mockReturnValue([

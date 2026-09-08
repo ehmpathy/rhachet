@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
@@ -24,7 +24,7 @@ export const invokeRolesLink = (
     .option('--role <slug>', 'the role to link resources for')
     .action(async (opts: { repo?: string; role?: string }) => {
       if (!opts.role)
-        BadRequestError.throw('--role is required (e.g., --role mechanic)');
+        ConstraintError.throw('--role is required (e.g., --role mechanic)');
 
       // resolve role via unified lookup
       const resolved = await getRoleBySpecifier(

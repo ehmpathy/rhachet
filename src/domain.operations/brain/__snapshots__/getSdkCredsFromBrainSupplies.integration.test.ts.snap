@@ -7,9 +7,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case1] getter mode whe
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case1] getter mode when: [t1] getter rejects then: it throws BadRequestError with actionable context 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case1] getter mode when: [t1] getter rejects then: it throws ConstraintError with actionable context 1`] = `
 {
-  "message": "BadRequestError: brain supplier credential getter failed: vault connection failed. check your credential source (vault, kms, db) and ensure it is accessible
+  "message": "✋ ConstraintError: brain supplier credential getter failed: vault connection failed. check your credential source (vault, kms, db) and ensure it is accessible
 
 {
   "fix": "verify your credential getter function has access to the credential source and that the source is available"
@@ -71,9 +71,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t0] creds is neither function nor keyrack object then: it throws BadRequestError with actionable message 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t0] creds is neither function nor keyrack object then: it throws ConstraintError with actionable message 1`] = `
 {
-  "message": "BadRequestError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
+  "message": "✋ ConstraintError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
 
 {
   "received": "object"
@@ -84,9 +84,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds s
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t1] creds is null then: it throws BadRequestError with actionable message 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds shape when: [t1] creds is null then: it throws ConstraintError with actionable message 1`] = `
 {
-  "message": "BadRequestError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
+  "message": "✋ ConstraintError: invalid creds shape: expected function or { keyrack: { owner, env } }. pass creds as async getter function or keyrack config object
 
 {
   "received": "object"
@@ -97,9 +97,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case3] invalid creds s
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t0] keyrack config lacks owner then: it throws BadRequestError with actionable message 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t0] keyrack config lacks owner then: it throws ConstraintError with actionable message 1`] = `
 {
-  "message": "BadRequestError: invalid keyrack config: owner absent. pass { keyrack: { owner, env } }
+  "message": "✋ ConstraintError: invalid keyrack config: owner absent. pass { keyrack: { owner, env } }
 
 {
   "received": {
@@ -114,9 +114,9 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyr
 }
 `;
 
-exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t1] keyrack config lacks env then: it throws BadRequestError with actionable message 1`] = `
+exports[`getSdkCredsFromBrainSupplies.integration given: [case4] incomplete keyrack config when: [t1] keyrack config lacks env then: it throws ConstraintError with actionable message 1`] = `
 {
-  "message": "BadRequestError: invalid keyrack config: env absent. pass { keyrack: { owner, env } }
+  "message": "✋ ConstraintError: invalid keyrack config: env absent. pass { keyrack: { owner, env } }
 
 {
   "received": {

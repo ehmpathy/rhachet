@@ -24,7 +24,7 @@ export const genBrainCliConfigArtifact = async (input: {
 }): Promise<{ configPath: string }> => {
   const { enrollment, repoPath } = input;
 
-  // validate brain is supported (shared transformer — throws BadRequestError if not)
+  // validate brain is supported (shared transformer — throws ConstraintError if not)
   getSupportedBrainCommand({ brain: enrollment.brain });
 
   // read current settings.json (has all synced hooks and permissions)

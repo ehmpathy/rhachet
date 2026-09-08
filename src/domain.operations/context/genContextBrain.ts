@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { createCache } from 'simple-in-memory-cache';
 import { withSimpleCache } from 'with-simple-cache';
 
@@ -53,7 +53,7 @@ import { getOneDuplicateBrainKey } from './getOneDuplicateBrainKey';
  *   }
  *   ```
  *
- * @throws {BadRequestError} when choice matches multiple brains (ambiguous)
+ * @throws {ConstraintError} when choice matches multiple brains (ambiguous)
  */
 
 // discovery mode overloads (async)
@@ -160,7 +160,7 @@ const buildContextBrain = (input: {
   // validate no duplicate atoms
   const duplicateAtomKey = getOneDuplicateBrainKey({ brains: atoms });
   if (duplicateAtomKey)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `duplicate atom identifier: ${duplicateAtomKey}
 
 each atom must have a unique {repo, slug} combination.
@@ -171,7 +171,7 @@ remove the duplicate or rename one of the atoms.`,
   // validate no duplicate repls
   const duplicateReplKey = getOneDuplicateBrainKey({ brains: repls });
   if (duplicateReplKey)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `duplicate repl identifier: ${duplicateReplKey}
 
 each repl must have a unique {repo, slug} combination.
@@ -244,7 +244,7 @@ ${getAvailableBrainsInWords({ atoms, repls, choice: input.choice })}`,
 
     // ambiguous
     if (allMatched.length > 1)
-      BadRequestError.throw(
+      ConstraintError.throw(
         `ambiguous brain slug: ${input.choice}
 
 multiple brains match this slug. use a typed choice to disambiguate:

@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 /**
  * .what = parses a full brain slug into repo and slug parts
@@ -23,7 +23,7 @@ export const getBrainSlugParts = (
 
   // require at least one slash
   if (firstSlashIndex === -1)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `invalid brain slug format "${fullSlug}". expected: repo/slug`,
       { fullSlug },
     );
@@ -33,7 +33,7 @@ export const getBrainSlugParts = (
 
   // require non-empty repo
   if (!repo)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `invalid brain slug format "${fullSlug}". expected: repo/slug`,
       { fullSlug },
     );
@@ -41,7 +41,7 @@ export const getBrainSlugParts = (
   // require non-empty slug after repo
   const slugRemainder = fullSlug.slice(firstSlashIndex + 1);
   if (!slugRemainder)
-    throw new BadRequestError(
+    throw new ConstraintError(
       `invalid brain slug format "${fullSlug}". expected: repo/slug`,
       { fullSlug },
     );

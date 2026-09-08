@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml } from 'yaml';
 
 import {
@@ -68,7 +68,7 @@ export const parseRoleBootYaml = (input: {
   try {
     raw = parseYaml(input.content);
   } catch (error) {
-    throw new BadRequestError('boot.yml has invalid yaml', {
+    throw new ConstraintError('boot.yml has invalid yaml', {
       path: input.path,
       error: (error as Error).message,
     });
@@ -89,7 +89,7 @@ export const parseRoleBootYaml = (input: {
   if (mode === 'simple') {
     const result = schemaRoleBootSpecSimplified.safeParse(rawObject);
     if (!result.success) {
-      throw new BadRequestError('boot.yml has invalid schema for simple mode', {
+      throw new ConstraintError('boot.yml has invalid schema for simple mode', {
         path: input.path,
         errors: result.error.issues,
       });
@@ -105,7 +105,7 @@ export const parseRoleBootYaml = (input: {
   // subject mode
   const result = schemaRoleBootSpecSubjected.safeParse(rawObject);
   if (!result.success) {
-    throw new BadRequestError('boot.yml has invalid schema for subject mode', {
+    throw new ConstraintError('boot.yml has invalid schema for subject mode', {
       path: input.path,
       errors: result.error.issues,
     });

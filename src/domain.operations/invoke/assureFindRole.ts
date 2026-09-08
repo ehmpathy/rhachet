@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -18,11 +18,11 @@ export const assureFindRole = ({
     .flatMap((r) => r.roles)
     .filter((r) => r.slug === slug);
   if (matches.length === 0)
-    BadRequestError.throw(`no role named "${slug}" found in any registry`, {
+    ConstraintError.throw(`no role named "${slug}" found in any registry`, {
       slug,
     });
   if (matches.length > 1)
-    BadRequestError.throw(
+    ConstraintError.throw(
       `multiple roles named "${slug}" found across registries`,
       { slug },
     );

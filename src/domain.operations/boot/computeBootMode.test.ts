@@ -123,7 +123,7 @@ describe('computeBootMode', () => {
         always: { briefs: { say: ['core.md'] } },
       };
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => computeBootMode({ raw })).toThrow(
           'mixed mode not allowed',
         );
@@ -136,7 +136,7 @@ describe('computeBootMode', () => {
         'subject.test': { briefs: { say: ['test/*.md'] } },
       };
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => computeBootMode({ raw })).toThrow(
           'mixed mode not allowed',
         );
@@ -151,7 +151,7 @@ describe('computeBootMode', () => {
         'subject.test': { briefs: { say: ['test/*.md'] } },
       };
 
-      then('throws BadRequestError', () => {
+      then('throws ConstraintError', () => {
         expect(() => computeBootMode({ raw })).toThrow(
           'mixed mode not allowed',
         );

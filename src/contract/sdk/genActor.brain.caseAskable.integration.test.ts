@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 import * as path from 'path';
 import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
 import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
@@ -15,9 +15,9 @@ import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
 // fail fast if api keys not available
 if (!process.env.XAI_API_KEY)
-  throw new BadRequestError('XAI_API_KEY is required for integration tests');
+  throw new ConstraintError('XAI_API_KEY is required for integration tests');
 if (!process.env.OPENAI_API_KEY)
-  throw new BadRequestError('OPENAI_API_KEY is required for integration tests');
+  throw new ConstraintError('OPENAI_API_KEY is required for integration tests');
 
 /**
  * .what = integration test for actor.ask() with BrainAtom support

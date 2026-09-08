@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 /**
  * .what = detects boot.yml mode from raw parsed object
@@ -25,7 +25,7 @@ export const computeBootMode = (input: {
 
   // fail fast on mixed mode
   if (hasSimpleKeys && hasSubjectKeys) {
-    throw new BadRequestError(
+    throw new ConstraintError(
       'mixed mode not allowed — use either top-level briefs/skills OR always/subject, not both',
       { keys },
     );
