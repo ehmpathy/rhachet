@@ -52,7 +52,7 @@ exports[`rhx enroll --reason (acceptance) given: [case1] a linked repo, \`--reas
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t0] \`enroll claude --roles -ghostrole\` (the regression path) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: role 'ghostrole' not found
+✋ ConstraintError: role 'ghostrole' not found
 
 {
   "hint": "linked roles: driver, architect, mechanic",
@@ -70,7 +70,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t0b] \`enroll claude --roles -ghostrole --output json\` (the machine channel) then: the structured error is locked to a snapshot 1`] = `
 "{
-  "class": "BadRequestError",
+  "class": "ConstraintError",
   "message": "role 'ghostrole' not found",
   "hint": "linked roles: driver, architect, mechanic",
   "reachState": null,
@@ -91,7 +91,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t1] \`enroll claude --roles -ghostrole,+architect\` (comma form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: role 'ghostrole' not found
+✋ ConstraintError: role 'ghostrole' not found
 
 {
   "hint": "linked roles: driver, architect, mechanic",
@@ -109,7 +109,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t2] \`enroll claude --roles "-ghostrole +architect"\` (quoted space form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: role 'ghostrole' not found
+✋ ConstraintError: role 'ghostrole' not found
 
 {
   "hint": "linked roles: driver, architect, mechanic",
@@ -127,7 +127,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t3] \`enroll claude --roles +mechanic,-mechanic\` (contradiction) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: cannot both add and remove role "mechanic" in one call
+✋ ConstraintError: cannot both add and remove role "mechanic" in one call
 
 {
   "additions": [
@@ -147,7 +147,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t4] \`enroll claude --roles mechanic,+architect\` (mixed call) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
+✋ ConstraintError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
 
 {
   "absolutes": [
@@ -168,7 +168,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t5] \`enroll claude --roles +\` (empty role after sigil) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: role specifier cannot be empty after "+"
+✋ ConstraintError: role specifier cannot be empty after "+"
 
 {
   "token": "+",
@@ -182,7 +182,7 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t6] \`enroll claude --roles ""\` (empty spec) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults
+✋ ConstraintError: no roles specified — pass at least one role (e.g. mechanic, or +architect -reviewer), or omit --roles to use defaults
 
 {
   "tokens": []
@@ -458,7 +458,7 @@ exports[`rhx enroll --roles (acceptance) given: [case9] a repo with an empty .ag
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t0] \`enroll claude --roles mechnic\` (replace-mode typo) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: role 'mechnic' not found, did you mean 'mechanic'?
+✋ ConstraintError: role 'mechnic' not found, did you mean 'mechanic'?
 
 {
   "hint": "linked roles: driver, architect, mechanic",
@@ -476,7 +476,7 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t1] \`enroll openai --roles mechanic\` (unsupported brain) then: the error output is locked to a snapshot 1`] = `
 "
-✋ BadRequestError: brain 'openai' not supported. supported: claude, claude-code
+✋ ConstraintError: brain 'openai' not supported. supported: claude, claude-code
 
 {
   "brain": "openai"

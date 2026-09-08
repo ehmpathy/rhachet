@@ -357,19 +357,25 @@ const setAccepted = (input: { dir: string }): void => {
 };
 
 /**
- * .what = the marks a real claude draws once its tui is up and its input reader is armed
- * .why = the readiness signal must survive a banner redesign, so it names SEVERAL marks
+ * .what = the readiness MARKERS a real claude prints once its tui is up and its input
+ *   reader is armed — shapes the brain-cli emits, which we match (`term=marker`)
+ * .why = the readiness signal must survive a banner redesign, so it names SEVERAL markers
  *   any one of which proves the tui took over, rather than one word that a release can
  *   retire. claude v1 opened with a "Welcome" box; v2.1.251 opens with a version banner
  *   (`Claude Code` / `Haiku 4.5 · API Usage Billing` / cwd), an input box, and a mode
  *   footer (`⏸ manual mode on · ← for agents`) — and holds no "Welcome" at all.
  *
- *   ⚠️ every alternative here is ONE contiguous token in the pty stream. the tui draws
- *      each word with a `[NNG` cursor-move between, so a multi-word literal like
- *      `Claude Code v` never matches. verify any new mark against a raw capture before
- *      it is added, never against the rendered screen.
+ *   🚨 NO multi-word literal can match. the tui positions each word with its own
+ *      `\u001b[NNG` cursor-move, so `API Usage Billing` reaches the stream as
+ *      `API\u001b[28GUsage\u001b[34GBilling` — the spaces a human reads are never in the
+ *      bytes. a marker is therefore EITHER one word, OR it spans the gaps with
+ *      `[^\r\n]*`, which crosses an escape but not a line.
+ *
+ *   ⚠️ verify every new marker against the RAW BYTES, never against the rendered screen.
+ *      the screen is what the escapes produce; the regex reads what precedes them.
  */
-const CLAUDE_IS_READY = /Welcome|API Usage Billing|manual mode on/;
+const CLAUDE_IS_READY =
+  /Welcome|Usage[^\r\n]*Billing|manual[^\r\n]*mode[^\r\n]*on/;
 
 /**
  * .what = drive claude's folder-trust menu(s) through the outer pty until the brain boots

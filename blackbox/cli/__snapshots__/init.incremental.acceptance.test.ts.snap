@@ -117,7 +117,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
 
 exports[`rhx init --roles incremental (acceptance) given: [case5] mixed absolute + incremental call (e3) when: [t0] \`init --roles mechanic +architect\` then: is rejected with a mixed-call message 1`] = `
 "
-✋ BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
+✋ ConstraintError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
 
 {
   "absolutes": [
@@ -140,7 +140,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case5] mixed absolute
 
 exports[`rhx init --roles incremental (acceptance) given: [case6] contradictory \`+x -x\` (e7) when: [t0] \`init --roles +architect -architect\` then: is rejected as contradictory 1`] = `
 "
-✋ BadRequestError: cannot both add and remove role "architect" in one call
+✋ ConstraintError: cannot both add and remove role "architect" in one call
 
 {
   "additions": [
@@ -198,7 +198,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
 
 exports[`rhx init --roles incremental (acceptance) given: [case9] bare remove sigil with no role (e9) when: [t0] \`init --roles -\` then: is rejected as empty specifier 1`] = `
 "
-✋ BadRequestError: role specifier cannot be empty after "-"
+✋ ConstraintError: role specifier cannot be empty after "-"
 
 {
   "token": "-",
@@ -230,7 +230,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case11] remove the la
 
 exports[`rhx init --roles incremental (acceptance) given: [case12] remove a native repo=.this role (e11) when: [t0] \`init --roles -homegrown\` then: is rejected — native roles cannot be removed 1`] = `
 "
-✋ BadRequestError: native roles (repo=.this) cannot be removed
+✋ ConstraintError: native roles (repo=.this) cannot be removed
 
 {
   "specifier": "homegrown"
@@ -264,7 +264,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
 
 exports[`rhx init --roles incremental (acceptance) given: [case14] unqualified remove of a slug under 2 repos (e8) when: [t0] \`init --roles -architect\` without a repo qualifier then: is rejected as ambiguous with a qualify hint 1`] = `
 "
-✋ BadRequestError: role "architect" is ambiguous — linked under multiple repos
+✋ ConstraintError: role "architect" is ambiguous — linked under multiple repos
 
 {
   "hint": "qualify the removal: -bhuild/architect or -ehmpathy/architect",
@@ -315,7 +315,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` do
 
 exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `
 "
-✋ BadRequestError: role specifier cannot be empty after "+"
+✋ ConstraintError: role specifier cannot be empty after "+"
 
 {
   "token": "+",
@@ -448,7 +448,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
 
 exports[`rhx init --roles incremental (acceptance) given: [case25] comma-form conflict (+a,-a) is rejected when: [t0] \`init --roles +architect,-architect\` then: the conflict error output matches snapshot 1`] = `
 "
-✋ BadRequestError: cannot both add and remove role "architect" in one call
+✋ ConstraintError: cannot both add and remove role "architect" in one call
 
 {
   "additions": [
@@ -485,7 +485,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case26] comma-form un
 
 exports[`rhx init --roles incremental (acceptance) given: [case27] comma-form empty sigil (+,) is rejected when: [t0] \`init --roles +architect,+\` (bare sigil after comma) then: the empty-sigil error output matches snapshot 1`] = `
 "
-✋ BadRequestError: role specifier cannot be empty after "+"
+✋ ConstraintError: role specifier cannot be empty after "+"
 
 {
   "token": "+",

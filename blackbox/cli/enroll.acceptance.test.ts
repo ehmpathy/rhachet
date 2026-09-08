@@ -251,7 +251,7 @@ describe('rhx enroll --roles (acceptance)', () => {
           message: string;
           hint: string | null;
         };
-        expect(shape.class).toEqual('BadRequestError');
+        expect(shape.class).toEqual('ConstraintError');
         expect(shape.message.toLowerCase()).toContain('ghostrole');
         expect(shape.message.toLowerCase()).toContain('not found');
         // the rolesLinked context survives — it rides the hint field (never dropped)

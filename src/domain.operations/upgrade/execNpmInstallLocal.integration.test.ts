@@ -1,5 +1,5 @@
 import { ConstraintError } from 'helpful-errors';
-import { given, then, when } from 'test-fns';
+import { given, then, useThen, when } from 'test-fns';
 
 import { genTestTempDir } from '@src/.test/infra/genTestTempDir';
 import { ContextCli } from '@src/domain.objects/ContextCli';
@@ -87,50 +87,86 @@ describe('execNpmInstallLocal', () => {
     when('execNpmInstallLocal is called with nonexistent package', () => {
       // 🚨 the strongest clamp on `package-absent` there is: a REAL install against
       //   the REAL registry, which answers a real 404. no fixture, no simulated log
-      const error = (() => {
+      //
+      // 🚨 `useThen`, never a bare IIFE at this scope. an IIFE here runs in jest's
+      //   DESCRIBE-COLLECTION phase — ahead of the `beforeAll` above that creates the
+      //   temp dir — so `spawnSync` is handed a `cwd` that does not exist, fails ENOENT
+      //   with zero bytes written, and the run classifies as `unclassified` rather than
+      //   `package-absent`. `useThen` runs inside a real `then`, so the setup has run.
+      //
+      // ⚠️ it passed locally under the IIFE, and that is the sharp part: `teardown()`
+      //   only restores the cwd, so the dir a PRIOR run created is still on disk and the
+      //   spawn finds one. green on a second local run, red on every fresh checkout —
+      //   the ambient-state dependency `rule.require.hermetic-tests` names.
+      // ⚠️ it yields PLAIN DATA, never the error itself. `useThen` hands siblings a proxy
+      //   whose target carries only the OWN ENUMERABLE properties of the returned value —
+      //   so a class instance loses both its prototype chain (`toBeInstanceOf` reads
+      //   `Object`) and its methods (`.redact` is not a function). the reads that need the
+      //   real instance are therefore performed HERE, where it is in hand, and only their
+      //   results cross the boundary.
+      const report = useThen('the install fails', () => {
         const context = new ContextCli({
           cwd: testDir.path,
           gitroot: testDir.path,
         });
-        try {
-          execNpmInstallLocal(
-            {
-              packages: ['@rhachet/this-package-does-not-exist-12345'],
-              lifecycleHooks: 'skip',
-            },
-            context,
+        // ⚠️ the catch yields the error or `undefined`, and the guard below is what
+        //   turns `undefined` into a LOUD throw. the guard sits OUTSIDE the try on
+        //   purpose — inside it, its own throw would be caught by its own catch and
+        //   read back as the very error it exists to report absent
+        const caught = ((): unknown => {
+          try {
+            execNpmInstallLocal(
+              {
+                packages: ['@rhachet/this-package-does-not-exist-12345'],
+                lifecycleHooks: 'skip',
+              },
+              context,
+            );
+            return undefined;
+          } catch (thrown) {
+            return thrown;
+          }
+        })();
+
+        // ⚠️ fail LOUD, never `return null`. a silent null would reach the sibling
+        //   `then`s as an absent report and redden them on a property read of an empty
+        //   value — a symptom three frames from its cause (`rule.forbid.failhide`)
+        if (caught === undefined)
+          throw new Error(
+            'execNpmInstallLocal SUCCEEDED on a package the registry does not carry — the 404 path was never exercised',
           );
-          return null;
-        } catch (caught) {
-          return caught as ConstraintError;
-        }
-      })();
+
+        const error = caught as ConstraintError;
+        return {
+          isConstraint: error instanceof ConstraintError,
+          // ⚠️ carried BESIDE the boolean, never in place of it. the boolean is the
+          //   real prototype-chain check; the name is what makes a red row
+          //   diagnosable — `MalfunctionError` names a cause where `false` names none
+          className: error.constructor.name,
+          exitCode: (error as unknown as { code: { exit: number } }).code.exit,
+          // ⚠️ the REDACTED sentence, never the raw `.message`. `HelpfulError`
+          //   serializes its metadata into `.message`, so a `toContain` over the raw
+          //   form matches the metadata blob rather than the sentence — an assertion
+          //   that cannot fail. `redact` yields the sentence alone
+          sentence: error.redact(['metadata', 'cause']).message,
+          hint: (error as unknown as { metadata: { hint: string } }).metadata
+            .hint,
+        };
+      });
 
       then('it throws a CONSTRAINT, and it exits 2', () => {
         // .why = a registry 404 is the CALLER's to fix — a retry with the same slug
         //   fails identically forever, so exit 1 ("may be transient, retry might
         //   help") would invite a pointless loop (`rule.require.exit-code-semantics`)
-        expect(error).toBeInstanceOf(ConstraintError);
-        expect(
-          (error as unknown as { code: { exit: number } }).code.exit,
-        ).toEqual(2);
+        expect(report.className).toEqual('ConstraintError');
+        expect(report.isConstraint).toEqual(true);
+        expect(report.exitCode).toEqual(2);
       });
 
       then('the sentence names the cause, and the hint names the fix', () => {
-        // ⚠️ the subject is the REDACTED sentence, never the raw `.message`.
-        //   `HelpfulError` serializes its metadata into `.message`, so a `toContain`
-        //   over the raw form matches the metadata blob rather than the sentence —
-        //   an assertion that cannot fail. `redact` yields the sentence alone
-        const sentence = (error as ConstraintError).redact([
-          'metadata',
-          'cause',
-        ]).message;
-        const hint = (error as unknown as { metadata: { hint: string } })
-          .metadata.hint;
-
-        expect(sentence).toContain('a requested package does not exist');
-        expect(sentence).not.toContain('cause unclassified');
-        expect(hint).toContain('the registry has no such package');
+        expect(report.sentence).toContain('a requested package does not exist');
+        expect(report.sentence).not.toContain('cause unclassified');
+        expect(report.hint).toContain('the registry has no such package');
       });
 
       then(
@@ -145,13 +181,7 @@ describe('execNpmInstallLocal', () => {
           //   frame — a render count is a second owner of the same fact, and it belongs
           //   to the renderer's own clamp (`asCliErrorFrame.test.ts`), never to a domain
           //   suite that would have to reach across the layer boundary to read it
-          const sentence = (error as ConstraintError).redact([
-            'metadata',
-            'cause',
-          ]).message;
-          const hint = (error as unknown as { metadata: { hint: string } })
-            .metadata.hint;
-          expect(sentence).not.toContain(hint);
+          expect(report.sentence).not.toContain(report.hint);
         },
       );
     });

@@ -46,7 +46,7 @@ roles:
 
 exports[`rhachet repo introspect given: [case2] rhachet-roles package without getRoleRegistry export when: [t0] repo introspect then: error output matches snapshot 1`] = `
 "
-✋ BadRequestError: package does not export getRoleRegistry
+✋ ConstraintError: package does not export getRoleRegistry
 
 {
   "packageName": "rhachet-roles-test"
@@ -72,7 +72,7 @@ roles:
 
 exports[`rhachet repo introspect given: [case4] rhachet-roles package with non-executable .sh skill when: [t0] repo introspect then: error output matches snapshot 1`] = `
 "
-✋ BadRequestError: non-executable skill files detected
+✋ ConstraintError: non-executable skill files detected
 
 these .sh files in skills directories are not marked executable:
   - <testDir>/roles/mechanic/skills/broken-skill.sh
@@ -92,7 +92,7 @@ fix: run \`chmod +x <path>\` for each file, or ensure git preserves execute bits
 
 exports[`rhachet repo introspect given: [case5] rhachet-roles package with multiple non-executable .sh skills when: [t0] repo introspect then: error output matches snapshot 1`] = `
 "
-✋ BadRequestError: non-executable skill files detected
+✋ ConstraintError: non-executable skill files detected
 
 these .sh files in skills directories are not marked executable:
   - <testDir>/roles/mechanic/skills/broken1.sh
