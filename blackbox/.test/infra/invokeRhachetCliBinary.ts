@@ -15,13 +15,54 @@ export const asSnapshotSafe = (output: string): string => {
       .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
       // strip daemon spawn messages (pids vary)
       .replace(/\[keyrack-daemon\] spawned background daemon \(pid: \d+\)\n?/g, '')
-      // strip absolute file paths in stack traces (vary by machine)
+      // strip absolute file paths (vary by machine)
+      //
+      // ⚠️ the tail class is the whole contract here: it decides where the path ENDS, and
+      //   a mask that over-consumes silently eats the delimiter that proved the value
+      //   closed. the three terminators are one per context the mask actually meets:
+      //
+      //   | context | how the path ends | terminator |
+      //   |---|---|---|
+      //   | a stack frame | `at fn (/home/u/f.ts:1:2)` | `)` |
+      //   | prose | `loaded from /home/u/rhx — compare` | whitespace |
+      //   | a JSON value | `"realpath": "/home/u/rhx",` | `"` |
+      //
+      // 🚨 .why `"` is in the class = it was NOT, and the docblock said so — this mask read
+      //   *"strip absolute file paths in stack traces"*, and `)` + whitespace are complete
+      //   for a stack trace. then a path arrived as a whole METADATA VALUE, where the
+      //   terminator is a quote, so the mask consumed `rhx",` and rendered
+      //   `"rhachetRealpath": "/PATH_STRIPPED` — an unclosed string, in a block a reader
+      //   scans as json. the producer emitted valid json; the MASK broke it, and the
+      //   snapshot blamed the producer (`rule.forbid.snapshot-visual-blemishes`).
+      //
+      // ⚠️ `,` is deliberately NOT a terminator — a comma is legal in a path, and the `"`
+      //   already bounds every json value. to add it would trade a real defect for a
+      //   speculative one
       .replace(
-        /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s]+/g,
+        /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
       // strip temp test repo paths (vary by run)
       .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip a `genTempDir` root. its shape is fixed by test-fns —
+      // `/tmp/test-fns/<repo-dirname>/.temp/<stamp>.<slug>.<8hex>` — and BOTH of its
+      // variable segments move: the repo-dirname differs per checkout (a worktree
+      // carries its own basename), and the run segment carries a fresh stamp plus a
+      // fresh uuid prefix on every single spawn.
+      //
+      // ⚠️ the peer masks above cannot reach it. the home/Users/runner-work pattern is
+      //   anchored elsewhere in the filesystem, and the iso-stamp mask demands COLONS —
+      //   test-fns writes the stamp with dashes so the name is filesystem-safe. so this
+      //   root went unmasked, and stayed invisible only while the render redacted the
+      //   metadata that carries it. with the payload rendered, it reaches the snapshots
+      //
+      // the mask is anchored on both literal segments and bounded by the 8-hex tail, so
+      // it cannot over-consume into the RELATIVE path that follows — and that path is the
+      // part a reader is owed, since it names which file the report is about
+      .replace(
+        /\/tmp\/test-fns\/[^/\s]+\/\.temp\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[^/\s]*\.[0-9a-f]{8}/gi,
+        '/TMP_TEST_DIR',
+      )
       // strip ISO timestamps (vary by run). the millis are OPTIONAL: iso-time's
       // now() omits `.000` when the instant lands on a whole second, so a spawn on
       // an exact second renders `…30Z` (no millis) — the mask must catch both forms

@@ -2,8 +2,12 @@
 
 exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t2] a process slips on the address grain, then recovers then: the grain-confusion error format is locked (visual spot-check) 1`] = `
 "
-✋ '@pilot' is an ACTOR address; a clone is addressed with '@:'. did you mean '@:pilot'?
-   └─ use '@:pilot'
+✋ ConstraintError: '@pilot' is an ACTOR address; a clone is addressed with '@:'. did you mean '@:pilot'?
+
+{
+  "hint": "use '@:pilot'",
+  "raw": "@pilot"
+}
 
 "
 `;
@@ -14,7 +18,11 @@ exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pi
   "message": "'@pilot' is an ACTOR address; a clone is addressed with '@:'. did you mean '@:pilot'?",
   "hint": "use '@:pilot'",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "raw": "@pilot",
+    "hint": "use '@:pilot'"
+  }
 }
 "
 `;

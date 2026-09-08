@@ -1,4 +1,4 @@
-import { ConstraintError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import {
   genTempDir,
   getError,
@@ -8,17 +8,21 @@ import {
   when,
 } from 'test-fns';
 
+import { HOST_SPECIFIC_SHELL_TOKENS } from '@src/.test/assets/hostSpecificShellTokens';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { genEnrollmentHash } from '../actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
-import { type CloneSpawnHandle, genCloneOndisk } from './genCloneOndisk';
+import { genCloneOndisk } from './genCloneOndisk';
+import type { CloneSpawnHandle } from './genCloneSpawn';
 import { getCloneSocketPath } from './getCloneSocketPath';
 import { isCloneLive } from './isCloneLive';
 import type { PtyCloneHost } from './pty/genBrainCliPtyClone';
+import { getPtyHostTupleFromProcess } from './pty/getPtyHostTupleFromProcess';
 import { getPtyModuleOrNull } from './pty/getPtyModuleOrNull';
+import { getPtyPlatformSupportFromProcess } from './pty/getPtyPlatformSupportFromProcess';
 
 /**
  * .what = prove genCloneOndisk's findsert lifecycle against a REAL pty + on-disk tree —
@@ -232,26 +236,171 @@ describe('genCloneOndisk.integration', () => {
 
   given('[case6] a bake with a wanted socket but no pty available', () => {
     const repoPath = genTempDir({
-      slug: `genclone-fallback-${Date.now()}`,
+      slug: `genclone-socket-omitted-${Date.now()}`,
     });
 
     when('[t0] genCloneOndisk runs without a pty module', () => {
+      // .note = this asserts the REAL host verdict — no seam is cut into
+      //   genCloneOndisk's contract to force a platform. the class-by-platform
+      //   table is owned by asCloneSocketOmissionReasonError.test.ts, which is pure and
+      //   can reach every row; here we prove the throw actually fires end to end
+      // .note = the error is held on a SCENE object, never returned bare from a
+      //   use* helper — those hand back a deferred proxy, which would erase both
+      //   `instanceof` and the error's own message
+      const scene = useBeforeAll(async () => ({
+        error: await getError(() =>
+          genCloneVia(repoPath, { slug: null, pty: null }),
+        ),
+      }));
+
+      then('it reports the socket as unavailable, on any host', () => {
+        expect(scene.error.message).toContain('reach socket is unavailable');
+        const meta = scene.error as unknown as {
+          metadata?: { socketOmissionReason?: string; hint?: string };
+        };
+        expect(meta.metadata?.socketOmissionReason).toBe('pty-absent');
+        // a hint must be PRESENT before its content can be judged. `.not.toContain`
+        // alone passes on an empty string, so a hint that VANISHED would read here
+        // as a hint that was merely cured — the two must not look alike
+        expect(typeof meta.metadata?.hint).toBe('string');
+        expect(meta.metadata?.hint?.length).toBeGreaterThan(0);
+        // the dead-end cure is gone for good — `pnpm rebuild` has no --global flag,
+        // so it could never repair the global install it was written for
+        expect(meta.metadata?.hint).not.toContain('pnpm rebuild');
+      });
+
       then(
-        'it fails loud BEFORE any dir/spawn exists — a wanted socket is a critical baseline requirement, never a silent talk-less fallback',
-        async () => {
-          const error = await getError(() =>
-            genCloneVia(repoPath, { slug: null, pty: null }),
-          );
-          expect(error).toBeInstanceOf(ConstraintError);
-          expect(error.message).toContain('reach socket is unavailable');
-          const meta = error as unknown as {
-            metadata?: { socketFallback?: string; hint?: string };
+        "the reported hostTuple is the CANONICAL owner's output, at the right grain",
+        () => {
+          // 🚨 the drift clamp. `hostTuple` carries `platform-arch` (`linux-x64`),
+          //   while `getPtyPlatformSupport` takes a bare `platform` (`linux`) — two
+          //   grains, one dir, both plain `string`, so no type stops a future edit
+          //   from it passing `process.platform` into this field. it would compile,
+          //   every extant test would pass, and the diagnostic would silently degrade.
+          //
+          //   so the field is pinned to the canonical owner's own output rather than
+          //   to a hand-written literal. the mutation that reddens it: pass
+          //   `process.platform` at the call site in genCloneOndisk.
+          const meta = scene.error as unknown as {
+            metadata?: { hostTuple?: string };
           };
-          expect(meta.metadata?.socketFallback).toBe('pty-absent');
-          expect(meta.metadata?.hint).toContain('--no-socket');
-          // the actor dir/manifest IS findserted (it precedes the socket check),
-          // but no CLONE dir was ever created under it — the throw fires BEFORE
-          // any spawn/tempDir, so `clones/` stays absent or empty
+          expect(meta.metadata?.hostTuple).toEqual(
+            getPtyHostTupleFromProcess(),
+          );
+
+          // and the grain itself is asserted, so a tuple that collapsed to a bare
+          // platform is caught even if both sides collapsed together
+          expect(meta.metadata?.hostTuple).toContain('-');
+          expect(meta.metadata?.hostTuple).toContain(process.arch);
+        },
+      );
+
+      then(
+        'the class matches whether THIS host is one upstream ships a prebuild for',
+        () => {
+          // supported → the addon ships in our tarball, so its absence is OUR
+          // broken artifact (malfunction). unsupported → no binary exists, so the
+          // caller can only amend the request (constraint). unknown → we could not
+          // read the libc, so the caller runs one diagnostic (constraint)
+          expect(scene.error).toBeInstanceOf(
+            getPtyPlatformSupportFromProcess() === 'supported'
+              ? MalfunctionError
+              : ConstraintError,
+          );
+        },
+      );
+
+      then('no clone dir was ever created', () => {
+        // the actor dir/manifest IS findserted (it precedes the socket check),
+        // but no CLONE dir was ever created under it — the throw fires BEFORE
+        // any spawn/tempDir, so `clones/` stays absent or empty
+        const hash = genEnrollmentHash({
+          brain: 'claude',
+          roles: ['mechanic'] as RoleSlug[],
+        });
+        const clonesDir = join(getActorOndiskDir({ repoPath, hash }), 'clones');
+        expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual([]);
+      });
+    });
+  });
+
+  given(
+    '[case7] a bake whose pty LOADS but is refused a device at spawn',
+    () => {
+      // 🚨 the distinct failure `[case6]` cannot reach. there, the addon never loads,
+      //   so the pre-spawn gate refuses the enroll and no spawn is ever attempted.
+      //   here the module is present and its `spawn` throws — the real host condition
+      //   node-pty raises when the kernel has no pty to give (a restricted container,
+      //   an exhausted pty limit, a denied openpty).
+      //
+      //   two properties are clamped, and the SILENT-DEGRADE one needs no row of its
+      //   own: a fall-through to `genBrainCliPlainClone` would RETURN a plain clone and
+      //   promote its dir, so it reddens BOTH rows below at once — the class row (no
+      //   error to read) and the reap row (a promoted dir survives). a third assertion
+      //   for it would restate the first
+      //
+      //   the LEGIBILITY property is the one that needs its own rows:
+      //   `withCliOutputErrors` rethrows a non-HelpfulError unchanged, so an unwrapped
+      //   node-pty throw reaches a human as a bare stack with no fix named
+      const repoPath = genTempDir({ slug: `genclone-ptyspawn-${Date.now()}` });
+      const PTY_DEVICE_ERROR = 'posix_openpt failed: EAGAIN';
+
+      when('[t0] the pty module refuses to spawn', () => {
+        // .note = the error is held on a SCENE object, never returned bare from a
+        //   use* helper — a deferred proxy would erase both `instanceof` and `.message`
+        const scene = useBeforeAll(async () => ({
+          error: await getError(() =>
+            genCloneVia(repoPath, {
+              slug: null,
+              pty: {
+                spawn: () => {
+                  throw new Error(PTY_DEVICE_ERROR);
+                },
+              },
+            }),
+          ),
+        }));
+
+        then('it is a CLASSIFIED report, never a bare throw', () => {
+          // the mutation that reddens this: drop the try/catch in genCloneOndisk and
+          // let node-pty's own Error propagate — it is not a HelpfulError, so
+          // withCliOutputErrors would rethrow it unrendered
+          expect(scene.error).toBeInstanceOf(ConstraintError);
+          expect(scene.error.message).toContain('reach socket is unavailable');
+          expect(scene.error.message).toContain(
+            'pty device could not be allocated',
+          );
+        });
+
+        then(
+          "the hint carries node-pty's own words INLINE, and names a portable fix",
+          () => {
+            const meta = scene.error as unknown as {
+              metadata?: {
+                hint?: string;
+                ptyError?: string;
+                hostTuple?: string;
+              };
+            };
+            // INLINE, never metadata-only: asCliErrorJson strips the metadata tail from
+            // the human frame, so a datum that lives only there reaches no reader
+            expect(meta.metadata?.hint).toContain(PTY_DEVICE_ERROR);
+            expect(meta.metadata?.hint).toContain('--no-socket');
+            // this row fires on linux, darwin, AND win32, so its cure must run on all
+            // three — no host-specific shell token may appear
+            // (rule.forbid.host-specific-cures-in-hints)
+            for (const token of HOST_SPECIFIC_SHELL_TOKENS)
+              expect(meta.metadata?.hint).not.toContain(token);
+            expect(meta.metadata?.ptyError).toEqual(PTY_DEVICE_ERROR);
+            expect(meta.metadata?.hostTuple).toEqual(
+              getPtyHostTupleFromProcess(),
+            );
+          },
+        );
+
+        then('the staged clone dir was reaped', () => {
+          // the temp dir is created BEFORE the spawn, so a refused spawn must not
+          // leave it behind. the mutation that reddens this: drop the rmSync
           const hash = genEnrollmentHash({
             brain: 'claude',
             roles: ['mechanic'] as RoleSlug[],
@@ -263,8 +412,89 @@ describe('genCloneOndisk.integration', () => {
           expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual(
             [],
           );
-        },
-      );
-    });
-  });
+        });
+      });
+    },
+  );
+
+  given(
+    "[case8] a bake whose pty.spawn throws SYNCHRONOUSLY with a fault that is OURS — the allowlist's own seam, never a real bind",
+    () => {
+      // 🚨 the peer of `[case7]`, and the row that keeps its ConstraintError honest.
+      //   the guarded block runs our own code too — the socket bind, the host wires,
+      //   the raw-mode enter — so a catch-all there would dress OUR defect as a host
+      //   condition and tell the human `pass --no-socket`, a cure for a fault they do
+      //   not own. that is loud about the wrong party (`rule.forbid.failhide`)
+      //
+      //   the mutation that reddens this: drop the `isPtyDeviceRefusedError` gate in
+      //   `genCloneOndisk` and let the catch classify every throw again
+      //
+      // 🚨 THE TITLE NAMES ITS SEAM, and this row's history is why. it once read only
+      //   "throws a fault that is OURS" and used the literal string below — so a reader
+      //   who grepped `EADDRINUSE` landed here and concluded the real bind path was
+      //   clamped. it is NOT: the fault is a SYNCHRONOUS throw from a STUBBED `pty.spawn`,
+      //   so the real `genCloneSocketServer` and its async bind are never reached. a test
+      //   that names a fault it does not exercise is worse than an absent one
+      //
+      //   ⇒ what this row DOES clamp is the allowlist in `genCloneOndisk`'s catch. the
+      //   REAL async bind is clamped by `genBrainCliPtyClone.integration.test.ts`
+      //   `[case4]`/`[case5]` and `genCloneSocketServer.integration.test.ts` `[case13]`
+      const repoPath = genTempDir({ slug: `genclone-ptyours-${Date.now()}` });
+
+      // ⚠️ a real node bind message, chosen so the allowlist is exercised against the prose
+      //   a real fault carries — never a claim that a real bind produced it here
+      const OUR_DEFECT = 'listen EADDRINUSE: address already in use';
+
+      when('[t0] the spawn block throws a socket-bind error', () => {
+        const scene = useBeforeAll(async () => ({
+          error: await getError(() =>
+            genCloneVia(repoPath, {
+              slug: null,
+              pty: {
+                spawn: () => {
+                  throw new Error(OUR_DEFECT);
+                },
+              },
+            }),
+          ),
+        }));
+
+        then(
+          'it propagates UNCHANGED, never as a caller-side constraint',
+          () => {
+            // the identity check is the whole point: not merely "a different class",
+            // but the very error node-pty's caller threw, with its own stack intact
+            expect(scene.error).not.toBeInstanceOf(ConstraintError);
+            expect(scene.error).not.toBeInstanceOf(MalfunctionError);
+            expect(scene.error.message).toEqual(OUR_DEFECT);
+          },
+        );
+
+        then('it names no cure the human cannot act on', () => {
+          // `--no-socket` would be a false cure here — the human cannot free a port
+          // we bound wrong. the absence of that token IS the party claim
+          expect(scene.error.message).not.toContain('--no-socket');
+          expect(scene.error.message).not.toContain(
+            'reach socket is unavailable',
+          );
+        });
+
+        then('the staged clone dir was reaped all the same', () => {
+          // the reap is unconditional and precedes the classification, so a
+          // propagated malfunction leaves no orphan dir either
+          const hash = genEnrollmentHash({
+            brain: 'claude',
+            roles: ['mechanic'] as RoleSlug[],
+          });
+          const clonesDir = join(
+            getActorOndiskDir({ repoPath, hash }),
+            'clones',
+          );
+          expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual(
+            [],
+          );
+        });
+      });
+    },
+  );
 });

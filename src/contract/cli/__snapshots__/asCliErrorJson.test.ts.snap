@@ -1,0 +1,185 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCliErrorJson given: [case11] every variant a machine consumer could parse when: [t0] each variant is serialized whole then: the complete shape of each is pinned 1`] = `
+{
+  "BigInt in metadata.cause": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the offset is out of range",
+    "metadata": {
+      "cause": {
+        "nested": {
+          "also": "42n",
+        },
+        "offset": "9007199254740993n",
+      },
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "a DAG — two references to ONE object": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "a reach moved hosts",
+    "metadata": {
+      "move": {
+        "after": {
+          "host": "grove-1",
+        },
+        "before": {
+          "host": "grove-1",
+        },
+      },
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "a value with its own toJSON (Date)": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the lease expired",
+    "metadata": {
+      "expiredAt": "$ISO_INSTANT",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "constraint, with hint": {
+    "class": "ConstraintError",
+    "hint": "use --as @:<slug>",
+    "message": "bad --as value",
+    "metadata": {
+      "hint": "use --as @:<slug>",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "cyclic metadata.cause": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the clone graph is corrupt",
+    "metadata": {
+      "cause": {
+        "parent": "[circular]",
+        "slug": "clone-a",
+      },
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "malfunction, no metadata": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the socket server crashed",
+    "metadata": {},
+    "reachCause": null,
+    "reachState": null,
+  },
+  "nested Error in metadata.cause": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the parse failed",
+    "metadata": {
+      "cause": {
+        "class": "SyntaxError",
+        "message": "bad token",
+      },
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "nested Error inside an array": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the batch had a failure",
+    "metadata": {
+      "results": [
+        {
+          "cause": {
+            "class": "SyntaxError",
+            "message": "bad token",
+          },
+        },
+      ],
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "nested past the walk bound": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "the payload is nested",
+    "metadata": {
+      "deep": {
+        "inner": {
+          "inner": {
+            "inner": {
+              "inner": {
+                "inner": {
+                  "inner": {
+                    "inner": {
+                      "inner": {
+                        "inner": {
+                          "inner": {
+                            "inner": {
+                              "inner": "[too deep]",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "reach, coarse state AND finer cause": {
+    "class": "ConstraintError",
+    "hint": "re-enroll to spawn a fresh clone",
+    "message": "no live clone for this address",
+    "metadata": {
+      "hint": "re-enroll to spawn a fresh clone",
+      "reachCause": "DEAD-same-host",
+      "reachState": "DEAD",
+    },
+    "reachCause": "DEAD-same-host",
+    "reachState": "DEAD",
+  },
+  "reach, exited-mid-dispatch": {
+    "class": "ConstraintError",
+    "hint": "re-enroll to spawn a fresh clone, then re-send",
+    "message": "the clone exited while the message was in flight",
+    "metadata": {
+      "hint": "re-enroll to spawn a fresh clone, then re-send",
+      "reachCause": "exited-mid-dispatch",
+    },
+    "reachCause": "exited-mid-dispatch",
+    "reachState": null,
+  },
+  "reach, wedged — a cause with NO state": {
+    "class": "ConstraintError",
+    "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+    "message": "the clone accepted the connection but did not answer in time",
+    "metadata": {
+      "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+      "reachCause": "wedged",
+    },
+    "reachCause": "wedged",
+    "reachState": null,
+  },
+  "unclassified plain Error": {
+    "class": "Error",
+    "hint": null,
+    "message": "bare",
+    "metadata": {},
+    "reachCause": null,
+    "reachState": null,
+  },
+}
+`;

@@ -238,12 +238,12 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t10] fi
 ✋ ConstraintError: malformed secrets JSON
 
 {
+  "hint": "ensure the input is valid JSON object",
   "source": {
     "type": "env",
     "format": "json",
     "envVar": "SECRETS_JSON"
-  },
-  "hint": "ensure the input is valid JSON object"
+  }
 }
 
 [args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,json
@@ -256,8 +256,8 @@ exports[`keyrack firewall given: [case1] keyrack firewall command when: [t11] fi
 ✋ ConstraintError: env var not set
 
 {
-  "envVar": "SECRETS_JSON",
-  "hint": "set SECRETS_JSON or use --from 'json(stdin://*)'"
+  "hint": "set SECRETS_JSON or use --from 'json(stdin://*)'",
+  "envVar": "SECRETS_JSON"
 }
 
 [args] keyrack,firewall,--env,test,--from,json(env://SECRETS_JSON),--into,json

@@ -1,0 +1,68 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCliErrorFrame given: [case1] an error whose fix lives ONLY in metadata.hint when: [t0] the frame is composed then: the BYTES a human reads are pinned 1`] = `
+[
+  "",
+  "✋ ConstraintError: keyrack.yml not found",
+  "",
+  "{
+  "hint": "run \`rhx keyrack init\` to create keyrack.yml"
+}",
+  "",
+]
+`;
+
+exports[`asCliErrorFrame given: [case2] an error whose metadata carries several diagnostic fields when: [t0] the frame is composed then: the BYTES a human reads are pinned 1`] = `
+[
+  "",
+  "✋ ConstraintError: keyrack.yml not found",
+  "",
+  "{
+  "path": ".agent/does-not-exist/keyrack.yml",
+  "absolutePath": "/TMP_REPO/.agent/does-not-exist/keyrack.yml",
+  "from": "/TMP_REPO/.agent/keyrack.yml"
+}",
+  "",
+]
+`;
+
+exports[`asCliErrorFrame given: [case3] an error with no metadata at all when: [t0] the frame is composed then: the BYTES a human reads are pinned 1`] = `
+[
+  "",
+  "✋ ConstraintError: a plain refusal",
+  "",
+]
+`;
+
+exports[`asCliErrorFrame given: [case4] the two classes side by side when: [t0] both frames are composed then: the BYTES of BOTH are pinned, side by side 1`] = `
+{
+  "constraint": [
+    "",
+    "✋ ConstraintError: yours to amend",
+    "",
+  ],
+  "malfunction": [
+    "",
+    "💥 MalfunctionError: ours to repair",
+    "",
+  ],
+}
+`;
+
+exports[`asCliErrorFrame given: [case5] an error that writes BULK before its hint when: [t0] the frame is composed then: the whole frame reads as a human reads it 1`] = `
+[
+  "",
+  "✋ ConstraintError: pnpm install failed — permission denied",
+  "",
+  "{
+  "hint": "retry with elevated permissions, or point pnpm at a prefix you own",
+  "kind": "permission-denied",
+  "installExitCode": 243,
+  "packages": [
+    "rhachet"
+  ],
+  "output": "line-a\\nline-b\\nline-c"
+}",
+  "",
+]
+`;

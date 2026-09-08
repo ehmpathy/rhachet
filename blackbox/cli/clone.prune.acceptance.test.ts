@@ -4,6 +4,7 @@ import { getUuid } from 'uuid-fns';
 
 import {
   enrollCloneAndWaitReady,
+  pollForCloneListState,
   setupEnrollFixture,
   setupRichStubBrainPath,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
@@ -102,13 +103,13 @@ describe('rhx clone prune + reach-state lifecycle (acceptance)', () => {
           // the socketless clone flips DEAF → DEAD (its process finished)
           scene.goner.bg.write('exit 0\r');
           await scene.goner.bg.kill(); // await the child`s exit
-          // a short settle so the pid reads un-probeable on the next reach check
-          await new Promise((r) => setTimeout(r, 500));
-          return invokeRhachetCliBinary({
-            args: ['clone', 'list'],
-            cwd: scene.dir,
+          // ⚠️ this is the case NO fixed settle can bound: the DEAF→DEAD flip reads a
+          //   `kill(pid, 0)` probe, and a zombie answers ALIVE until its parent reaps it.
+          //   so poll the observable rather than guess a reap latency
+          return pollForCloneListState({
+            wanted: 'DEAD',
+            dir: scene.dir,
             env: scene.env,
-            logOnError: false,
           });
         },
       );

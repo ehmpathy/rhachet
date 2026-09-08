@@ -1,4 +1,5 @@
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
+import { getUuid } from 'uuid-fns';
 
 import {
   enrollRealClaudeAndWaitReach,
@@ -11,6 +12,9 @@ import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+// the ONE owner of the short-serial projection — same read as its `clone.acceptance`
+// twin, so the two suites cannot drift apart on the form they each assert
+import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
 
 import { delimiter } from 'node:path';
 
@@ -47,7 +51,7 @@ jest.setTimeout(300000);
 // each turn asks the brain to append this marker as its final line, so `get` can match
 // the reply deterministically despite nondeterministic joke prose. one nonce per run so
 // a stale transcript can never satisfy a later turn.
-const NONCE = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+const NONCE = getUuid();
 const markerFor = (turn: number): string => `JOKER-TURN-${turn}-${NONCE}`;
 
 // a request that asks for a joke (or an answer) AND the deterministic trailing marker
@@ -281,10 +285,19 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
         }),
       );
 
-      then('whoami names this clone by its own @:joker slug + serial', () => {
+      then('whoami names this clone by its own @:joker slug + SHORT serial', () => {
         expect(who.status).toEqual(0);
         expect(who.stdout).toContain('joker');
-        expect(who.stdout).toContain(scene.serial);
+
+        // the human tree carries the 8-hex form, the same one `clone list` renders
+        // (`rule.require.short-serial-for-unslugged-clones`, via `asCloneAddressHuman`).
+        // the canonical 36-char form is not lost — it stays on the `--output json` twin,
+        // which `clone.acceptance` [t5] clamps; a lossy serial in a MACHINE channel would
+        // be a defect, so the two channels are asserted apart rather than together
+        expect(who.stdout).toContain(
+          asCloneSerialHuman({ serial: scene.serial }),
+        );
+        expect(who.stdout).not.toContain(scene.serial);
       });
     });
   });

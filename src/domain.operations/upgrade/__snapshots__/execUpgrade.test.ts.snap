@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`execUpgrade given: global upgrade fails with permission error when: execUpgrade is called with --which both then: the printed lines still NAME THE FIX 1`] = `
+[
+  "",
+  "✗ rhachet upgrade globally failed",
+  "   └─ ✋ ConstraintError: pnpm global install failed with exit code 1 — permission denied. retry with elevated permissions, or point pnpm at a prefix you own.",
+  "",
+]
+`;

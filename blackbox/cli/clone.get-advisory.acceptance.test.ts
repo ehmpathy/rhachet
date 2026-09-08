@@ -19,7 +19,7 @@ import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
  * .why =
  *   - every invokeEnroll advisory (breadcrumb / accrual) is
  *     `mode === 'tree' &&` gated; `clone get`'s two advisories broke that
- *     documented convention (i026 r011 blocker) — this clamps the fix
+ *     documented convention — this clamps the fix
  *   - an orphan `history/<exid>.jsonl` symlink (a moved/reclaimed transcript)
  *     populates `exidsUnreadable`, the one advisory condition provokable on disk
  *     without the deferred two-clone same-cwd race

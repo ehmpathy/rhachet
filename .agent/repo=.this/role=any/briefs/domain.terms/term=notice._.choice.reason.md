@@ -81,6 +81,34 @@ that the third ttl bound is **not** announced, because *"a caution a reader lear
 this one down with it"*. the same discipline governs the notice: it renders only when a reach
 was truly omitted, so it never fires on the normal path.
 
+**a near-drift caught outside keyrack (2026-08-27).** the `fix-node-pty-install` wish names the
+pty-absent message *"the degraded notice"*, and the vision inherited that word. a read of this file
+shows the fit is wrong: what `genCloneOndisk` emits is an **error that throws** — the enroll
+**fails** and no clone is made. that contradicts the `.what` (a render a **successful** command
+leaves behind) and invariants 1 and 2 below.
+
+⚠️ **and which error it is depends on the row**, so no single class name belongs in this note.
+`asCloneSocketOmissionReasonError` casts four rows on `(fallback, platform support)`, plus a guard for a
+fifth that the sealed union makes unreachable today. some rows are a `ConstraintError` and at least
+one is a `MalfunctionError` — **that variance is the entire point here, and it is all this note
+needs.**
+
+> 🚨 **the row-by-row table is deliberately NOT reproduced here.** its owner is
+> `src/domain.operations/clone/asCloneSocketOmissionReasonError.ts`, whose docblock states it and whose
+> snapshot (`asCloneSocketOmissionReasonError.test.ts.snap`) turns red on drift. a copy in this file
+> would have neither a compiler nor a test behind it, so it could only ever rot into a confident
+> wrong answer — the exact defect class this glossary keeps catching out. **read the owner.**
+
+the argument above holds across every row, and the split sharpens it: an artifact that may report
+**our own** defect is even further from a `notice` than a constraint was.
+
+the word was **not** renamed in the wish or the vision: `rule.forbid.domain-term-synonyms` governs
+**contracts**, and both are prose that quotes the wisher. the bite is downstream — **the blueprint
+must not declare an artifact named `*Notice` for this message.** an error is an error; the render
+nouns (`report` / `notice` / `warn`) are all success-path words. recorded here so the next traveler
+finds the boundary rather than re-derives it, or worse, ships `asPtyAbsentNotice` and breaks three
+invariants at once.
+
 ## .invariants
 
 1. **a notice is nullable.** any render named `*Notice` that cannot return `null` is misnamed — it

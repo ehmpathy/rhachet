@@ -1,4 +1,4 @@
-import { BadRequestError } from 'helpful-errors';
+import { ConstraintError } from 'helpful-errors';
 
 import type { RoleRegistry } from '@src/domain.objects';
 
@@ -29,7 +29,7 @@ const buildViolationBlock = (
  * .what = validates that no hooks use forbidden npx patterns
  * .why = fail fast at repo introspect to prevent latency footgun
  *
- * .note = throws BadRequestError with treestruct if violations found
+ * .note = throws ConstraintError with treestruct if violations found
  */
 export const assertRegistryHooksNoNpx = (input: {
   registry: RoleRegistry;
@@ -45,8 +45,10 @@ export const assertRegistryHooksNoNpx = (input: {
   // build treestruct error message
   const violationBlocks = violations.flatMap((v) => buildViolationBlock(v));
 
+  // .note = the message carries NO glyph. `asCliErrorFrame` prepends one from the error's
+  //   class, so a glyph here renders twice (`✋ ConstraintError: ✋ hooks with…`).
   const message = [
-    '✋ hooks with forbidden npx patterns',
+    'hooks with forbidden npx patterns',
     '   │',
     '   ├─ these hooks use npx which adds 500ms-2s latency per invocation:',
     '   │',
@@ -55,7 +57,7 @@ export const assertRegistryHooksNoNpx = (input: {
     "   └─ fix: replace 'npx rhachet' with './node_modules/.bin/rhachet' or 'rhachet' (global)",
   ].join('\n');
 
-  throw new BadRequestError(message, {
+  throw new ConstraintError(message, {
     violations,
   });
 };

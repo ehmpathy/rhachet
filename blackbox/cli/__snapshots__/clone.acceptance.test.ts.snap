@@ -39,7 +39,7 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t3] a process runs \`clone whoami\` FROM WITHIN the clone then: the whoami tree (human) success format is locked (visual spot-check) 1`] = `
 "😶 you are @:driver
-   ├─ serial=__SERIAL__
+   ├─ serial=__SERIAL8__
    ├─ state=LIVE
    └─ actor=@ee65f291
 "
@@ -47,8 +47,11 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t4] a process says to an UNKNOWN address then: the unknown-address error format is locked (visual spot-check) 1`] = `
 "
-✋ no clone answers to '@:ghostclone'
-   └─ list clones with \`rhx clone list\`
+✋ ConstraintError: no clone answers to '@:ghostclone'
+
+{
+  "hint": "list clones with \`rhx clone list\`"
+}
 
 "
 `;
@@ -65,8 +68,11 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t5b] \`clone whoami\` run OUTSIDE any enrolled clone then: the not-a-clone error format is locked (visual spot-check) 1`] = `
 "
-✋ not run inside an enrolled clone
-   └─ whoami works from within a clone spawned by \`rhx enroll\`
+✋ ConstraintError: not run inside an enrolled clone
+
+{
+  "hint": "whoami works from within a clone spawned by \`rhx enroll\`"
+}
 
 "
 `;
@@ -77,7 +83,10 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "message": "not run inside an enrolled clone",
   "hint": "whoami works from within a clone spawned by \`rhx enroll\`",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "whoami works from within a clone spawned by \`rhx enroll\`"
+  }
 }
 "
 `;
@@ -110,8 +119,11 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8] \`get --tail <bad>\` (the tail-bound guard) then: the bad-tail error format is locked (visual spot-check) 1`] = `
 "
-✋ invalid --tail "notanumber"
-   └─ use a non-negative integer (e.g. --tail 20) or --tail all
+✋ ConstraintError: invalid --tail "notanumber"
+
+{
+  "hint": "use a non-negative integer (e.g. --tail 20) or --tail all"
+}
 
 "
 `;
@@ -122,15 +134,21 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "message": "invalid --tail \\"notanumber\\"",
   "hint": "use a non-negative integer (e.g. --tail 20) or --tail all",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "use a non-negative integer (e.g. --tail 20) or --tail all"
+  }
 }
 "
 `;
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t8c] \`get --format <bad>\` (the render-mode guard) then: the bad-format error format is locked (visual spot-check) 1`] = `
 "
-✋ invalid --format "bogus"
-   └─ use --format blocks (default, directioned) or --format raw (verbatim replies)
+✋ ConstraintError: invalid --format "bogus"
+
+{
+  "hint": "use --format blocks (default, directioned) or --format raw (verbatim replies)"
+}
 
 "
 `;
@@ -141,7 +159,10 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "message": "invalid --format \\"bogus\\"",
   "hint": "use --format blocks (default, directioned) or --format raw (verbatim replies)",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "use --format blocks (default, directioned) or --format raw (verbatim replies)"
+  }
 }
 "
 `;
@@ -152,7 +173,10 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "message": "no clone answers to '@:ghostclone'",
   "hint": "list clones with \`rhx clone list\`",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "list clones with \`rhx clone list\`"
+  }
 }
 "
 `;
@@ -163,15 +187,21 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "message": "no clone answers to '@:ghostclone'",
   "hint": "list clones with \`rhx clone list\`",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hint": "list clones with \`rhx clone list\`"
+  }
 }
 "
 `;
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t10b] a process GETs an UNKNOWN address (the human tree) then: the unknown-address get tree format is locked (visual spot-check) 1`] = `
 "
-✋ no clone answers to '@:ghostclone'
-   └─ list clones with \`rhx clone list\`
+✋ ConstraintError: no clone answers to '@:ghostclone'
+
+{
+  "hint": "list clones with \`rhx clone list\`"
+}
 
 "
 `;
@@ -229,8 +259,13 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t0] a process says to the dead clone then: the dead-clone error format is locked (visual spot-check) 1`] = `
 "
-✋ no live clone for this address — its socket is gone
-   └─ re-enroll to spawn a fresh clone
+✋ ConstraintError: no live clone for this address — its socket is gone
+
+{
+  "hint": "re-enroll to spawn a fresh clone",
+  "reachState": "DEAD",
+  "reachCause": "DEAD-same-host"
+}
 
 "
 `;
@@ -241,7 +276,12 @@ exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXI
   "message": "no live clone for this address — its socket is gone",
   "hint": "re-enroll to spawn a fresh clone",
   "reachState": "DEAD",
-  "reachCause": "DEAD-same-host"
+  "reachCause": "DEAD-same-host",
+  "metadata": {
+    "hint": "re-enroll to spawn a fresh clone",
+    "reachState": "DEAD",
+    "reachCause": "DEAD-same-host"
+  }
 }
 "
 `;
@@ -290,8 +330,12 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
 
 exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t1] \`clone list @<unknown-actor>\` (an invalid actor scope) then: the unknown-actor error format is locked (visual spot-check) 1`] = `
 "
-✋ no enrolled actor matches '@deadbeef'
-   └─ list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`
+✋ ConstraintError: no enrolled actor matches '@deadbeef'
+
+{
+  "hint": "list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`",
+  "hashPrefix": "deadbeef"
+}
 
 "
 `;
@@ -302,14 +346,22 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
   "message": "no enrolled actor matches '@deadbeef'",
   "hint": "list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`",
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "hashPrefix": "deadbeef",
+    "hint": "list actors with \`rhx actor list\`, or enroll one with \`rhx enroll <brain>\`"
+  }
 }
 "
 `;
 
 exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clones enrolled when: [t2] \`clone whoami\` with a STALE clone-serial env (names no on-disk clone) then: the stale-serial whoami error format is locked (visual spot-check) 1`] = `
 "
-✋ the clone env serial names no on-disk clone
+💥 MalfunctionError: the clone env serial names no on-disk clone
+
+{
+  "serial": "__SERIAL__"
+}
 
 "
 `;
@@ -320,7 +372,10 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
   "message": "the clone env serial names no on-disk clone",
   "hint": null,
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "serial": "__SERIAL__"
+  }
 }
 "
 `;

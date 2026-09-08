@@ -15,8 +15,16 @@ import { isBrainSocketCapable } from '../../brain/isBrainSocketCapable';
  *
  * .note = this is the DESIGN-TIME gate (brain + intent). a SECOND runtime gate —
  *   whether the pty addon actually loads on this host (getPtyModuleOrNull) — is
- *   distinct: this one true yet the addon absent is the LOUD fallback, vs
- *   `--no-socket`/headless which is the QUIET expected fallback
+ *   distinct, and the two produce OPPOSITE outcomes:
+ *
+ *   | this gate | the addon loads | outcome |
+ *   |---|---|---|
+ *   | false (`--no-socket`, headless, non-capable brain) | — | a QUIET plain-spawn **fallback** — a real second path |
+ *   | true | ❌ | a LOUD **omission** — no clone is made at all |
+ *
+ * ⚠️ only the first row is a `fallback`; the second takes no second path, which is why
+ *   its value is a `CloneSocketOmissionReason` rather than a fallback
+ *   (`term=fallback._.choice.reason.md`, the RESOLVED dispute)
  */
 export const isCloneSocketEligible = (input: {
   brain: BrainSlug;

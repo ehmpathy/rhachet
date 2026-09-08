@@ -1,5 +1,6 @@
 import { HelpfulError } from 'helpful-errors';
 
+import { asCliErrorFrame } from './asCliErrorFrame';
 import { asCliErrorJson } from './asCliErrorJson';
 import { getExitCodeFromError } from './getExitCodeFromError';
 
@@ -39,10 +40,20 @@ export const withCliOutputErrors = async (input: {
       return;
     }
 
-    // human channel: name the symptom then the fix
-    console.error('');
-    console.error(`✋ ${shape.message}`);
-    if (shape.hint) console.error(`   └─ ${shape.hint}`);
-    console.error('');
+    // human channel: name WHOSE it is, then the symptom, then the fix
+    //
+    // 🚨 the glyph is read off the error's class, never hardcoded. it once was — one
+    //   `✋` for every class — so a `MalfunctionError` (ours to repair) and a
+    //   `ConstraintError` (yours to amend) rendered identically, and the party was
+    //   legible only to a reader who parsed the whole hint. the exit code carried the
+    //   distinction for a machine while the screen dropped it for a human
+    //   (`rule.forbid.ambiguous-labels`). now both channels read the same class
+    //
+    // ⚠️ the frame itself is composed by `asCliErrorFrame`, which this file used to own
+    //   inline. it moved because a SECOND caller appeared — `invoke.ts`'s top-level catch,
+    //   the fallback for every verb that does not wrap — and that caller had drifted into
+    //   a third, defective answer to the same question. the extraction is what makes the
+    //   two agree by construction rather than by audit
+    for (const line of asCliErrorFrame({ error })) console.error(line);
   }
 };

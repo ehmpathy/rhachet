@@ -1,0 +1,71 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCliErrorClassified given: [case4] every variant a caller could be handed when: [t0] each variant is classified and rendered then: the complete shape of each is pinned 1`] = `
+{
+  "a bare Error": {
+    "class": "MalfunctionError",
+    "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+    "message": "bare",
+    "metadata": {
+      "cause": {
+        "class": "Error",
+        "message": "bare",
+      },
+      "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+      "stack": "<stack>",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "a thrown null": {
+    "class": "MalfunctionError",
+    "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+    "message": "a non-error value was thrown",
+    "metadata": {
+      "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+      "thrownType": "object",
+      "thrownValue": "null",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "a thrown string": {
+    "class": "MalfunctionError",
+    "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+    "message": "a non-error value was thrown",
+    "metadata": {
+      "hint": "this error reached the cli UNCLASSIFIED, so \`MalfunctionError\` is this layer's verdict rather than its thrower's — read \`cause\` for the class actually raised and \`stack\` for where. the repair is at the THROW SITE: raise a \`ConstraintError\` (exit 2, the caller amends) or a \`MalfunctionError\` (exit 1, we repair) there, so no layer has to guess",
+      "thrownType": "string",
+      "thrownValue": "just a string",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "classified — ConstraintError": {
+    "class": "ConstraintError",
+    "hint": "pass --as",
+    "message": "yours to amend",
+    "metadata": {
+      "hint": "pass --as",
+    },
+    "reachCause": null,
+    "reachState": null,
+  },
+  "classified — MalfunctionError": {
+    "class": "MalfunctionError",
+    "hint": null,
+    "message": "ours to repair",
+    "metadata": {},
+    "reachCause": null,
+    "reachState": null,
+  },
+  "parent class, passed through by design — BadRequestError": {
+    "class": "BadRequestError",
+    "hint": null,
+    "message": "a parent class",
+    "metadata": {},
+    "reachCause": null,
+    "reachState": null,
+  },
+}
+`;

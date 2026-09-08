@@ -1284,8 +1284,16 @@ describe('keyrack sudo', () => {
 
       then('keyrack.yml does not contain the sudo key', () => {
         const keyrackYmlPath = join(repo.path, 'keyrack.yml');
-        if (!existsSync(keyrackYmlPath)) return; // no keyrack.yml = no leak
-        const content = readFileSync(keyrackYmlPath, 'utf8');
+
+        // 🚨 an absent file is a REAL pass — naught can leak from a file that is not there.
+        //   but it must be ASSERTED, never early-returned. a bare `return` reports green on
+        //   every path, so it cannot part "absent by design" from "the whole `set` wrote
+        //   nowhere", and jest counts the vacuous case as coverage
+        //   (`rule.forbid.failhide`, the silent-skip row)
+        const content = existsSync(keyrackYmlPath)
+          ? readFileSync(keyrackYmlPath, 'utf8')
+          : '';
+
         expect(content).not.toContain('HIDDEN_SUDO_KEY');
       });
 
@@ -1350,10 +1358,27 @@ describe('keyrack sudo', () => {
   });
 
   /**
-   * [gap.3] --prikey fallback for unlock
+   * [gap.3] --prikey fallback for unlock — 🔴 A GAP NOTE, never a test
    *
-   * .what = test that `keyrack unlock --env sudo --key X --prikey ~/.ssh/id_ed25519`
-   *         works when the ssh-agent has no keys loaded
+   * 🚨 .why there is no `given` below = there was one, `given.skip`ped, with six rows whose
+   *   bodies were EMPTY. that shape is a trap rather than a placeholder: drop the `.skip` and
+   *   all six turn green at once, and the case reads to the next maintainer as coverage that
+   *   exists (`rule.forbid.failhide` names the empty body outright, and
+   *   `philosophy.verification-strictness` names the skip: *"hidden lies that pass ci"*).
+   *
+   *   ⇒ so the block is DELETED and this note keeps the expensive half — the two measured
+   *   attempts below, and the four preconditions they proved are all needed at once. that is
+   *   the repo's own precedent, recorded in
+   *   `src/domain.operations/invoke/addAttemptQualifierToOutputPath.test.ts`: *"a skipped
+   *   aspiration clamps no boundary at all, and reads to the next maintainer as coverage that
+   *   exists."*
+   *
+   *   ⚠️ there, the repair was to assert what the code ACTUALLY does. that is unavailable
+   *   here — the `--prikey` path is unreachable without a fixture that does not exist — so the
+   *   repair is a note, and the note says so plainly rather than wears a test's shape.
+   *
+   * .what a real test would assert = that `keyrack unlock --env sudo --key X --prikey
+   *         ~/.ssh/id_ed25519` works when the ssh-agent has no keys loaded
    *
    * .why = the --prikey flag is the escape hatch for environments where ssh-agent
    *        is unavailable or empty (e.g., minimal CI containers, recovery scenarios).
@@ -1400,24 +1425,13 @@ describe('keyrack sudo', () => {
    *      test could fail for a reason unrelated to the behavior.
    *
    *   unit tests already cover `sshPrikeyToAgeIdentity` — this gap is blackbox-only.
+   *
+   * ✅ .the credential gate is NOT the obstacle, and that was re-measured 2026-09-07 rather
+   *   than carried forward. this suite runs green at the acceptance tier
+   *   (`--what acceptance --against local --env test --scope path://keyrack.sudo` → 89
+   *   passed). so what blocks `[gap.3]` is the FIXTURE alone, plus the `age` bound above —
+   *   never the ability to run the tier.
    */
-  given.skip('[case16] --prikey fallback for unlock (gap.3: deferred)', () => {
-    when('[t0] unlock --env sudo --key X --prikey <path> (agent empty)', () => {
-      then('exits with status 0', () => {});
-      then('credential is available via get', () => {});
-    });
-
-    when('[t1] unlock --prikey <nonexistent path>', () => {
-      then('exits with non-zero status', () => {});
-      then('error mentions file not found', () => {});
-    });
-
-    when('[t2] unlock without --prikey and no agent keys', () => {
-      then('exits with non-zero status', () => {});
-      then('error mentions --prikey as recovery', () => {});
-    });
-  });
-
   /**
    * [gap.i1] get never requires manifest decryption
    *

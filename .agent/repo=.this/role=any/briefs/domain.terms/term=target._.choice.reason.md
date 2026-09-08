@@ -2,19 +2,56 @@
 
 ## .etymology
 
-`target` is what an operation **aims at**. `fill` aims at a set of credentials and drives each to
-present; one member of that set is a target. the word carries the sense of *"what this loop is
-for"* without a claim about how it is reached — which matters, because a target may be
-provisioned by a `set`, found already vaulted and skipped, or refused.
+`target` is what an operation **aims at**. the word carries the sense of *"what this operation is
+for"* without a claim about how it is reached — which is what lets it serve two operations in this
+repo, neither of which borrows the other's mechanism.
 
-it was born 2026-08-03, when `fill` grew a second dimension. the reach axis turned `fill`'s inner
+### sense A — the fill target (born 2026-08-03)
+
+`fill` aims at a set of credentials and drives each to present; one member of that set is a
+target. a target may be provisioned by a `set`, found already vaulted and skipped, or refused —
+and `target` names what is aimed at without a claim about which of those happens.
+
+it was born when `fill` grew a second dimension. the reach axis turned `fill`'s inner
 subject from *a key* into *a key at a reach*, and an unnamed set of those is what let the
 progress denominator drift from the loop it counts.
+
+### sense B — the install target (born 2026-08-30)
+
+`execNpmInstall` aims at a tree: the project's, or the global store's. the same *"what this is
+aimed at"* sense, one level up — the operand is a location rather than a credential.
+
+it was born with `execNpmInstall` itself, when the global and local install paths were pulled into
+one communicator and needed a word for the axis that distinguishes them.
+
+⚠️ **the second sense was declared before the first was consulted.** nobody weighed the overload
+at the time; it was noticed a round later, when a synonym (`ConsumerScope`) appeared for the same
+axis and forced the question. that sequence is the honest record: the ambiguity was inherited,
+never chosen.
+
+## .disputes
+
+### dispute: scope  —  raised 2026-08-31  —  status: RESOLVED (keep `target`)
+
+- raised.by  = mechanic, mid-`v2026_08_25.fix-node-pty-install`
+- claim      = the local/global install axis reads more naturally as `scope`; `pnpm add -g` is
+               commonly described as a "global scope" install, and `target` is already spent on
+               the keyrack fill sense
+- counter    = `scope` is worse on both axes it was meant to fix. **on synonym:** the axis was
+               ALREADY named `NpmInstallTarget` in `execNpmInstall`, so `scope` would be a second
+               word for one concept (`rule.forbid.domain-term-synonyms`). **on ambiguity:** `scope`
+               is not free either — it already names npm's `@org/pkg` package scope,
+               `rhx git.repo.test --scope`, and `rhx review --scope`. so the swap would trade a
+               two-sense overload for a four-sense one, and keep the synonym besides
+- resolution = keep `target`, carried with two declared senses and a compound-it guard (see
+               `term=target._.choice._.md`). `ConsumerScope` renamed to `ConsumerInstallTarget`;
+               `scope` recorded as a forbidden synonym of sense B. dispute closed.
 
 ## .rejected alternatives
 
 | word | why not |
 |------|---------|
+| `scope` | see the resolved dispute above — a synonym of sense B, and a four-way overload of its own |
 | `job` | implies a queue and a worker. `fill` has neither — it is a synchronous walk, and `job` would import scheduler vocabulary the domain does not hold |
 | `unit` | carries no sense at all. a unit **of what**? the word would need a gloss every time |
 | `item` / `entry` | both are collection words, not domain words — they name a *position in a list*, and the reachless target's leading position is an invariant, not its identity |

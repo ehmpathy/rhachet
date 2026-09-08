@@ -412,10 +412,27 @@ describe('keyrack recipient', () => {
   });
 
   /**
-   * [gap.4] --stanza ssh prevention flow (full CLI round-trip)
+   * [gap.4] --stanza ssh prevention flow (full CLI round-trip) — 🔴 A GAP NOTE, never a test
    *
-   * .what = test the full prevention path for users who plan to add a passphrase
-   *         to a key that was passwordless at init time.
+   * 🚨 .why there is no `given` below = there was one, `given.skip`ped, with ten rows whose
+   *   bodies were EMPTY. that shape is a trap rather than a placeholder: drop the `.skip` and
+   *   all ten turn green at once, and the case reads to the next maintainer as coverage that
+   *   exists (`rule.forbid.failhide` names the empty body outright, and
+   *   `philosophy.verification-strictness` names the skip: *"hidden lies that pass ci"*).
+   *
+   *   ⇒ so the block is DELETED and this note keeps the expensive half — the four-step
+   *   prevention flow, the four `t*` assertions a real test would make, and the four
+   *   environmental costs measured below. that is the repo's own precedent, recorded in
+   *   `src/domain.operations/invoke/addAttemptQualifierToOutputPath.test.ts`: *"a skipped
+   *   aspiration clamps no boundary at all, and reads to the next maintainer as coverage that
+   *   exists."*
+   *
+   *   ⚠️ there, the repair was to assert what the code ACTUALLY does. that is unavailable
+   *   here — the flow needs a passphrase-protected key generated mid-test — so the repair is a
+   *   note, and the note says so plainly rather than wears a test's shape.
+   *
+   * .what a real test would assert = the full prevention path for users who plan to add a
+   *         passphrase to a key that was passwordless at init time.
    *
    *         at init, a passwordless key gets `mech: 'age'` with an `age1...` pubkey.
    *         if the user later runs `ssh-keygen -p` to add a passphrase, the manifest
@@ -453,28 +470,10 @@ describe('keyrack recipient', () => {
    *   - age CLI must be installed in the test env (not guaranteed in CI)
    *   unit tests cover `sshPubkeyToAgeRecipient` and `sshPrikeyToAgeIdentity` — this gap
    *   is the full CLI round-trip only.
+   *
+   * ✅ .the credential gate is NOT the obstacle, and that was re-measured 2026-09-07 rather
+   *   than carried forward. this repo's acceptance tier runs green against a real binary
+   *   (`--what acceptance --against local --env test`). so what blocks `[gap.4]` is the
+   *   FIXTURE and the `age` bound alone — never the ability to run the tier.
    */
-  given.skip('[case5] --stanza ssh prevention flow (gap.4: deferred)', () => {
-    when('[t0] init with passwordless key', () => {
-      then('recipient mech is age', () => {});
-      then('recipient pubkey starts with age1', () => {});
-    });
-
-    when('[t1] recipient set --stanza ssh (add ssh-ed25519 recipient)', () => {
-      then('exits with status 0', () => {});
-      then('manifest now has two recipients', () => {});
-      then('one recipient is age, one is ssh', () => {});
-    });
-
-    when('[t2] unlock after passphrase added to key', () => {
-      then('exits with status 0 (ssh-ed25519 stanza matches)', () => {});
-      then('credential is accessible via get', () => {});
-    });
-
-    when('[t3] recipient del removes stale age1... recipient', () => {
-      then('exits with status 0', () => {});
-      then('manifest has one recipient (ssh only)', () => {});
-      then('unlock still works', () => {});
-    });
-  });
 });

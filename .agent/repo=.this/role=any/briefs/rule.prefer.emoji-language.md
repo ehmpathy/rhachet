@@ -31,7 +31,7 @@ every glyph fills exactly one slot:
 | slot | role | glyphs |
 |------|------|--------|
 | **role-mascot** | a ROLE's own voice — never rhachet's | (supplier-role only — see below) |
-| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune |
+| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade |
 | **verb-artifact** | names the OPERATION, inline after the `😶` clone face | `🎙️` clone say (speak in) · `🎧` clone get (listen out) |
 | **error-class** | names the fault owner — one of exactly two | `✋` caller-must-fix · `💥` server-must-fix |
 | **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse |
@@ -69,6 +69,7 @@ root; a rhachet tree roots on its domain glyph.
 | `🎙️` | verb-artifact | **clone say** — you speak INTO the clone (the dispatch/input side); inline after `😶`, no space (`😶🎙️ said to @:bert`) |
 | `🎧` | verb-artifact | **clone get** — you LISTEN to the clone (the observe/output side); the in/out counterpart to `🎙️` |
 | `🧹` | domain-root | `🧹 clone prune` (the reap / sweep surface) |
+| `📦` | domain-root | **upgrade** (`📦 upgrade (pnpm -g)`) — the package-install surface. a shipped box is what a package manager moves, so the glyph names the domain rather than a mood; registered here on purpose because no extant root covers `rhx upgrade`, and because the neutral slots cannot root a tree (`⚠️`/`💡` are callouts, `✨`/`🫧` are leaves) |
 | `🔌` | connection | a literal socket / port (`🔌 reach this clone`) |
 | `💡` | callout | an actionable tip (`💡 tip` header — see below) |
 | `⚠️` | callout | a caution |

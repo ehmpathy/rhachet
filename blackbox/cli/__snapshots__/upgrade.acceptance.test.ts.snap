@@ -1,28 +1,21 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet upgrade given: [case2b] upgrade --roles -ghostrole (lead-dash sentinel decode) when: [t0] rhachet upgrade --roles -ghostrole then: the decoded error output is locked to a snapshot 1`] = `
-"/PATH_STRIPPED
-    throw new UpgradeExecutionError(\`\${pm} install failed\`, {
-          ^
-
-UpgradeExecutionError: UpgradeExecutionError: pnpm install failed
+"
+✋ ConstraintError: pnpm install failed with exit code 1 — a requested package does not exist
 
 {
+  "hint": "check how rhachet-roles--ghostrole is spelt — the registry has no such package",
+  "kind": "package-absent",
+  "installExitCode": 1,
   "packages": [
     "rhachet-roles--ghostrole"
   ],
-  "exitCode": 1
-}
-    at execNpmInstallLocal (/PATH_STRIPPED)
-    at execUpgrade (/PATH_STRIPPED)
-    at async Command.<anonymous> (/PATH_STRIPPED)
-    at async Command.parseAsync (/PATH_STRIPPED)
-    at async _invoke (/PATH_STRIPPED)
-    at async withEmojiSpaceShim (/PATH_STRIPPED) {
-  exitCode: 1
+  "output": "$OUTPUT_MASKED"
 }
 
-Node.js $NODE_VERSION
+[args] upgrade,--roles,-ghostrole
+
 "
 `;
 
@@ -78,3 +71,11 @@ exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked r
 `;
 
 exports[`rhachet upgrade given: [case13] --roles ehmpathy/designer with unlinked role (mechanic is linked) when: [t1] rhachet upgrade --roles ehmpathy/designer then: stdout.summary matches snapshot 1`] = `"✨ 1 role(s) upgraded: ehmpathy/designer"`;
+
+exports[`rhachet upgrade given: [case15] the pnpm-presence probe never answers when: [t0] rhachet upgrade --which global, with the probe wedged then: the WHOLE rendered frame is pinned, not merely its tokens 1`] = `
+"⚠️ heads up — could not tell whether pnpm is installed
+   ├── the pnpm-presence probe did not answer within 10s
+   ├── so this upgrade proceeds with npm, which may not be your usual
+   ├── likely an unresponsive mount named in your PATH environment variable
+   └── once that mount answers again, re-run this upgrade — it re-probes each time"
+`;

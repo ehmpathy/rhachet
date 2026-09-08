@@ -4,6 +4,7 @@ import { getUuid } from 'uuid-fns';
 import {
   enrollCloneAndWaitReady,
   pollForAck,
+  pollForCloneListState,
   setupEnrollFixture,
   setupRichStubBrainPath,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
@@ -171,14 +172,13 @@ describe('enroll → reach journey (acceptance)', () => {
 
     when('[t3] the brain exits — the clone is watched to go DEAD in `clone list`', () => {
       const listed = useThen('after the brain exits, clone list reads DEAD', async () => {
-        // exit the brain, then let its socket close before the read
+        // exit the brain, then read its reach-state — POLLED, never a fixed settle. see
+        // `pollForCloneListState` for why a latency guess was wrong on both its cases
         await scene.bg.kill();
-        await new Promise((r) => setTimeout(r, 500));
-        return invokeRhachetCliBinary({
-          args: ['clone', 'list'],
-          cwd: scene.dir,
+        return pollForCloneListState({
+          wanted: 'DEAD',
+          dir: scene.dir,
           env: scene.env,
-          logOnError: false,
         });
       });
 

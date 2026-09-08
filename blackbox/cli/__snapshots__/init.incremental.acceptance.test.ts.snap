@@ -1,5 +1,67 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo, absolute form (e16 no regression) when: [t0] \`init --roles mechanic behaver\` then: the absolute-form WHOLE SCREEN holds its shape 1`] = `
+"
+🔧 init 2 role(s)...
+
+📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/boot.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/briefs
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/skills
+   │  └─ + .agent/repo=ehmpathy/role=mechanic/inits
+   └─ stats
+      ├─ $COUNT brief(s)
+      ├─ $COUNT skill(s)
+      └─ $COUNT init(s)
+
+💪 init role repo=ehmpathy/role=mechanic
+   └─ $RELCLIMB$REPO_ROOT/node_modules/.pnpm/rhachet-roles-ehmpathy@$VERSION_@huggingface+transformers@$VERSION_@tensorflow+tfjs@$VERSION_seedrandom@$VERSION_/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/inits/init.claude.sh
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │ 🔐 mechanic permissions configured successfully!
+      │    .claude/settings.json
+      │    .claude/settings.$TIMESTAMP.bak.json
+      │
+      │ ✨ permissions applied:
+      │    • allow: replaced entirely
+      │    • deny: extended (no duplicates)
+      │    • ask: extended (no duplicates)
+      │
+      │ 👌 claude config ready
+      │
+      └─
+
+📚 link role repo=bhuild/role=behaver
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=bhuild/readme.md
+   │  ├─ + .agent/repo=bhuild/.gitignore
+   │  ├─ + .agent/repo=bhuild/role=behaver/readme.md
+   │  ├─ + .agent/repo=bhuild/role=behaver/boot.yml
+   │  ├─ + .agent/repo=bhuild/role=behaver/briefs
+   │  ├─ + .agent/repo=bhuild/role=behaver/skills
+   │  └─ + .agent/repo=bhuild/role=behaver/inits
+   └─ stats
+      ├─ $COUNT brief(s)
+      ├─ $COUNT skill(s)
+      └─ $COUNT init(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+"
+`;
+
 exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with mechanic linked when: [t0] \`init --roles +architect\` (e1 add, keep rest) then: the incremental summary tree matches snapshot 1`] = `
 "🔧 init roles (incremental)
    ├─ additions
@@ -16,7 +78,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -48,14 +110,14 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case5] mixed absolute + incremental call (e3) when: [t0] \`init --roles mechanic +architect\` then: is rejected with a mixed-call message 1`] = `
 "
-BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
+✋ BadRequestError: cannot mix absolute and incremental roles — use all-absolute (mechanic behaver) OR all-incremental (+architect -reviewer)
 
 {
   "absolutes": [
@@ -78,7 +140,7 @@ BadRequestError: cannot mix absolute and incremental roles — use all-absolute 
 
 exports[`rhx init --roles incremental (acceptance) given: [case6] contradictory \`+x -x\` (e7) when: [t0] \`init --roles +architect -architect\` then: is rejected as contradictory 1`] = `
 "
-BadRequestError: cannot both add and remove role "architect" in one call
+✋ BadRequestError: cannot both add and remove role "architect" in one call
 
 {
   "additions": [
@@ -100,9 +162,10 @@ BadRequestError: cannot both add and remove role "architect" in one call
 
 exports[`rhx init --roles incremental (acceptance) given: [case7] unknown role add (e5) when: [t0] \`init --roles +nonesuch\` then: the not-found error message matches snapshot 1`] = `
 "
-BadRequestError: role "nonesuch" not found
+✋ ConstraintError: role "nonesuch" not found
 
 {
+  "hint": "available roles: $AVAILABLE_ROLES",
   "specifier": "nonesuch",
   "availableRoles": [ "$AVAILABLE_ROLES" ]
 }
@@ -128,14 +191,14 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case9] bare remove sigil with no role (e9) when: [t0] \`init --roles -\` then: is rejected as empty specifier 1`] = `
 "
-BadRequestError: role specifier cannot be empty after "-"
+✋ BadRequestError: role specifier cannot be empty after "-"
 
 {
   "token": "-",
@@ -167,7 +230,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case11] remove the la
 
 exports[`rhx init --roles incremental (acceptance) given: [case12] remove a native repo=.this role (e11) when: [t0] \`init --roles -homegrown\` then: is rejected — native roles cannot be removed 1`] = `
 "
-BadRequestError: native roles (repo=.this) cannot be removed
+✋ BadRequestError: native roles (repo=.this) cannot be removed
 
 {
   "specifier": "homegrown"
@@ -194,22 +257,22 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case14] unqualified remove of a slug under 2 repos (e8) when: [t0] \`init --roles -architect\` without a repo qualifier then: is rejected as ambiguous with a qualify hint 1`] = `
 "
-BadRequestError: role "architect" is ambiguous — linked under multiple repos
+✋ BadRequestError: role "architect" is ambiguous — linked under multiple repos
 
 {
+  "hint": "qualify the removal: -bhuild/architect or -ehmpathy/architect",
   "specifier": "architect",
   "foundIn": [
     "bhuild",
     "ehmpathy"
-  ],
-  "hint": "qualify the removal: -bhuild/architect or -ehmpathy/architect"
+  ]
 }
 
 [args] init,--roles,-architect
@@ -240,7 +303,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
    │  ├─ ↻ .agent/repo=ehmpathy/role=architect/boot.yml (updated)
    │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -252,7 +315,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` do
 
 exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `
 "
-BadRequestError: role specifier cannot be empty after "+"
+✋ BadRequestError: role specifier cannot be empty after "+"
 
 {
   "token": "+",
@@ -283,7 +346,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -297,7 +360,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 16 brief(s)
+      ├─ 18 brief(s)
       └─ 3 skill(s)
 
 "
@@ -330,7 +393,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -344,7 +407,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 16 brief(s)
+      ├─ 18 brief(s)
       └─ 3 skill(s)
 
 "
@@ -378,14 +441,14 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 36 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case25] comma-form conflict (+a,-a) is rejected when: [t0] \`init --roles +architect,-architect\` then: the conflict error output matches snapshot 1`] = `
 "
-BadRequestError: cannot both add and remove role "architect" in one call
+✋ BadRequestError: cannot both add and remove role "architect" in one call
 
 {
   "additions": [
@@ -407,9 +470,10 @@ BadRequestError: cannot both add and remove role "architect" in one call
 
 exports[`rhx init --roles incremental (acceptance) given: [case26] comma-form unknown role add (+ghostrole) is rejected when: [t0] \`init --roles +architect,+ghostrole\` (unknown add via comma) then: the not-found error output matches snapshot 1`] = `
 "
-BadRequestError: role "ghostrole" not found
+✋ ConstraintError: role "ghostrole" not found
 
 {
+  "hint": "available roles: $AVAILABLE_ROLES",
   "specifier": "ghostrole",
   "availableRoles": [ "$AVAILABLE_ROLES" ]
 }
@@ -421,7 +485,7 @@ BadRequestError: role "ghostrole" not found
 
 exports[`rhx init --roles incremental (acceptance) given: [case27] comma-form empty sigil (+,) is rejected when: [t0] \`init --roles +architect,+\` (bare sigil after comma) then: the empty-sigil error output matches snapshot 1`] = `
 "
-BadRequestError: role specifier cannot be empty after "+"
+✋ BadRequestError: role specifier cannot be empty after "+"
 
 {
   "token": "+",

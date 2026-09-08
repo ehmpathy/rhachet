@@ -1,5 +1,6 @@
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
+import { asCliErrorFrameFromOutput } from '@/blackbox/.test/infra/asCliErrorReadouts';
 import { asSummaryBlock } from '@/blackbox/.test/infra/asSummaryBlock';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -532,7 +533,12 @@ describe('rhx', () => {
           .replace(
             /("availableRoles":\s*)\[[\s\S]*?\]/,
             '$1[ "$AVAILABLE_ROLES" ]',
-          );
+          )
+          // 🚨 the `hint` REPEATS that same roster in prose, so it is redacted too.
+          //   redact only the array and the snapshot re-couples to the full linked-role
+          //   inventory through the hint — a new role package would then redden an
+          //   error-SHAPE clamp that has no stake in the roster
+          .replace(/("hint":\s*"available roles: )[^"]*"/, '$1$AVAILABLE_ROLES"');
         expect(masked).toMatchSnapshot();
       });
     });
@@ -616,6 +622,63 @@ describe('rhx', () => {
 
       then('rhx output matches the routed rhachet actor output', () => {
         expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+      });
+    });
+  });
+
+  /**
+   * 🚨 THE CLAMP for a caller typo reported as a SERVER fault.
+   *
+   *   `update` is a stub that exists to redirect a human to `upgrade`. it used to render
+   *   its own line with the `⛈️` mood glyph and `process.exit(1)` — so a typo, which only
+   *   the caller can amend, exited with the code that means "ours to repair", through a
+   *   render no other cli error uses.
+   *
+   *   the stub had NO coverage at all, at any tier, before this case.
+   *
+   * .the mutation that reddens this = restore the hand-rolled `console.error('⛈️ …')` +
+   *   `process.exit(1)`. `[t0]` goes red on the exit code, `[t1]` on the glyph.
+   */
+  given('[case7] the `update` stub, which exists only to redirect', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'minimal' }),
+    );
+
+    when('[t0] a human types `update` rather than `upgrade`', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['update'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2 — the CALLER amends a typo, never us', () => {
+        // 🚨 `toEqual(2)`, never `not.toEqual(0)`: exit 1 would pass a
+        //   `not.toEqual(0)` while it reported the wrong owner, which is the
+        //   whole defect (`rule.require.exit-code-semantics`)
+        expect(result.status).toEqual(2);
+      });
+
+      then('it renders the ✋ frame, never the forbidden ⛈️ mood glyph', () => {
+        // `rule.prefer.emoji-language` forbids ⛈️ outright — a fault is caller-owned
+        // or server-owned, never a mood
+        expect(result.stderr).not.toContain('⛈️');
+        expect(result.stderr).toContain('✋ ConstraintError');
+      });
+
+      then('the hint names the command that WORKS', () => {
+        // `rule.require.errors-name-the-fix` — the whole point of the stub
+        expect(result.stderr).toContain('rhachet upgrade');
+      });
+
+      then('the frame matches snapshot', () => {
+        // ⚠️ the shared frame READOUT, never the raw stderr — a raw snapshot would pin
+        //   the `[args]` trailer and any chrome around it, and the subject here is the
+        //   frame `asCliErrorFrame` renders (`rule.require.shared-test-fixtures`)
+        expect(
+          asCliErrorFrameFromOutput({ output: result.stderr }),
+        ).toMatchSnapshot();
       });
     });
   });

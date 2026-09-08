@@ -3,17 +3,10 @@ import { genTempDir, given, then, when } from 'test-fns';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
 
-import type { Server } from 'node:net';
 import { computeCloneAccrualWarn } from './computeCloneAccrualWarn';
 import { getCloneSocketPath } from './getCloneSocketPath';
 import { getOneCloneLiveCountForActor } from './getOneCloneLiveCountForActor';
 import { genCloneSocketServer } from './socket/genCloneSocketServer';
-
-const awaitServerReady = (server: Server): Promise<void> =>
-  new Promise((done) => {
-    if (server.listening) return done();
-    server.once('listening', () => done());
-  });
 
 describe('getOneCloneLiveCountForActor.integration', () => {
   given('[case1] one actor with two clones, only ONE has a live socket', () => {
@@ -33,12 +26,12 @@ describe('getOneCloneLiveCountForActor.integration', () => {
         });
 
         // stand up a server only for ser-live
-        const { server, close } = genCloneSocketServer({
+        const { ready, close } = genCloneSocketServer({
           socketPath: getCloneSocketPath({ serial: 'ser-live' })!,
           write: () => undefined,
           isBrainCliAlive: () => true,
         });
-        await awaitServerReady(server);
+        await ready;
 
         try {
           const count = await getOneCloneLiveCountForActor({
@@ -82,7 +75,7 @@ describe('getOneCloneLiveCountForActor.integration', () => {
                 isBrainCliAlive: () => true,
               }),
             );
-            await Promise.all(servers.map((s) => awaitServerReady(s.server)));
+            await Promise.all(servers.map((s) => s.ready));
 
             try {
               const anchor = seeded[0]!;

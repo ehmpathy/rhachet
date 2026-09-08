@@ -47,6 +47,22 @@ describe('computeCloneUnreachableHint', () => {
     }),
   );
 
+  test('DEAF points at the enroll as the diagnostic, never a complete checklist', () => {
+    const output = computeCloneUnreachableHint({
+      cause: 'DEAF',
+      hostHash: null,
+    });
+
+    // the prior hint listed three preconditions as though they were all of them,
+    // so a linux human who met every one still failed — and the real culprit,
+    // an addon that will not load, went unnamed
+    expect(output.hint).toContain('pty addon');
+
+    // and the list must read as partial: this selector reads a stored record, so
+    // only the enroll knows which row actually fired
+    expect(output.hint).toContain('one of several');
+  });
+
   test('DEAD-cross-host falls back to "unknown" when hostHash is null', () => {
     const output = computeCloneUnreachableHint({
       cause: 'DEAD-cross-host',

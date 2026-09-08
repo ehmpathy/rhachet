@@ -994,7 +994,9 @@ describe('keyrack daemon integration', () => {
   });
 
   given('[case11] two daemons that raced onto one socket path', () => {
-    jest.setTimeout(40000);
+    // .why = worst case is 5000ms reach poll + 5000ms handover poll + 18000ms demand
+    //   loop, so the ceiling must clear ~28s with room for two real daemon spawns
+    jest.setTimeout(60000);
 
     const racedSocketPath = `/tmp/keyrack-raced-${process.pid}.sock`;
     const racedPidPath = racedSocketPath.replace(/\.sock$/, '.pid');
@@ -1039,8 +1041,13 @@ describe('keyrack daemon integration', () => {
         // hence the ownership check — and hence this clamp on it.
         // the window must outlast the handover below, so the earlier daemon is
         // still alive when the later one takes its path — that overlap IS the case
+        //
+        // ⚠️ the idle window must exceed the handover poll's OWN budget (50 x 100ms),
+        //   or the premise inverts: on a loaded host the successor's spawn outruns
+        //   4000ms, the predecessor idle-exits mid-handover, and it correctly deletes
+        //   the pid file it still owns — so the case reddens on its own subject
         process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'] = '100';
-        process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'] = '4000';
+        process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'] = '15000';
 
         // the earlier daemon takes the path
         spawnKeyrackDaemonBackground({ socketPath: racedSocketPath });
@@ -1061,9 +1068,26 @@ describe('keyrack daemon integration', () => {
         let pidLater = pidEarlier;
         for (let i = 0; i < 50 && pidLater === pidEarlier; i++) {
           await sleep(100);
-          pidLater = parseInt(readFileSync(racedPidPath, 'utf-8').trim(), 10);
+          // ⚠️ the read is ENOENT-guarded, exactly as `unlinkOwnFiles` guards the
+          //   identical read in startKeyrackDaemon: mid-handover the file is legitimately
+          //   absent for an instant, and an absence is a retry, never a fault
+          pidLater = (() => {
+            try {
+              return parseInt(readFileSync(racedPidPath, 'utf-8').trim(), 10);
+            } catch (error) {
+              // allow expected errors: ENOENT = the successor has yet to write its own
+              if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+                throw error;
+              return pidEarlier;
+            }
+          })();
         }
         expect(pidLater).not.toEqual(pidEarlier);
+
+        // ⚠️ the overlap is the case's PREMISE, so it is asserted rather than assumed —
+        //   a load-induced miss must name the premise it broke, never surface as an
+        //   opaque read fault three lines earlier
+        expect(isProcessAlive(pidEarlier)).toBe(true);
         pidsSpawned.push(pidLater);
 
         // keep the successor in demand past the point where the earlier one exits
@@ -1071,7 +1095,11 @@ describe('keyrack daemon integration', () => {
         // deliberately NOT demand (e10), so a reachability poll would renew no
         // lease and both daemons would idle out together — the overlap this case
         // needs would never exist
-        for (let i = 0; i < 20; i++) {
+        //
+        // ⚠️ 60 x 300ms = 18000ms, which MUST exceed the 15000ms idle window above —
+        //   the predecessor gets no demand, so its clock runs from spawn, and this loop
+        //   is what carries the clock past it. raise one bound, raise both
+        for (let i = 0; i < 60; i++) {
           await sleep(300);
           await daemonAccessStatus({ socketPath: racedSocketPath });
         }

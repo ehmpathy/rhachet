@@ -1,5 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 import { genTempDir } from 'test-fns';
+import { getUuid } from 'uuid-fns';
 
 import {
   enrollRealClaudeAndWaitReach,
@@ -58,7 +59,7 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
 
     when('[t0] a SHORT message is bulk-dispatched', () => {
       const roundtrip = useBeforeAll(async () => {
-        const nonce = `${Date.now().toString(36)}-short`;
+        const nonce = `${getUuid()}-short`;
         const wanted = `${REACH_SENTINEL} ${nonce}`;
         return sayAndPollForMarker({
           address: scene.address,
@@ -87,7 +88,7 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
 
     when('[t1] a LONG (~3760-char) message is bulk-dispatched', () => {
       const roundtrip = useBeforeAll(async () => {
-        const nonce = `${Date.now().toString(36)}-long`;
+        const nonce = `${getUuid()}-long`;
         const wanted = `${REACH_SENTINEL} ${nonce}`;
         const prompt = buildLongPrompt(wanted);
         // surface the true probe size in the run log

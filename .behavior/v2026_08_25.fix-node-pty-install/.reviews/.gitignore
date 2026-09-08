@@ -1,0 +1,11 @@
+# ignore every review artifact — peer/, archive/, scoped/, and any dir added later
+#
+# .why = the harness ROTATES finished reviews out of peer/ into archive/. an ignore
+#   scoped to peer/ alone is therefore correct at write time and DEFEATED the moment a
+#   review is archived — the file moves from an ignored path to an unignored one, and
+#   ~800 llm transcripts become sweepable by `git add -A`.
+#
+# .note = this sits at the .reviews/ ROOT on purpose, so every subdir inherits it and no
+#   new dir the harness invents can reopen the same gap.
+*
+!.gitignore

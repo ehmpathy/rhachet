@@ -1,8 +1,9 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the bare-enroll breadcrumb tree line is locked (human variant) 1`] = `
-"🔌 reach this clone: rhx clone say @:__SERIAL__ --what "…"
-"
+exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the bare-enroll breadcrumb tree is locked (human variant) 1`] = `
+"😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50"
 `;
 
 exports[`rhx enroll reach surfaces (acceptance) given: [case2] an enroll with --output json (the machine handoff) when: [t0] the machine reads stdout then: the json handoff shape is locked (machine contract) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":"super","socketEligible":true}"`;
@@ -27,17 +28,82 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --
 "{
   "class": "ConstraintError",
   "message": "this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`",
-  "hint": "observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable",
+  "hint": "observe it with \`rhx clone get\`, or re-enroll interactively to make it reachable — if the enroll cannot open a socket it names the exact cause (one of several: \`--no-socket\`, a brain with no socket, a non-POSIX host, a pty addon that will not load)",
   "reachState": "DEAF",
-  "reachCause": "DEAF"
+  "reachCause": "DEAF",
+  "metadata": {
+    "hint": "observe it with \`rhx clone get\`, or re-enroll interactively to make it reachable — if the enroll cannot open a socket it names the exact cause (one of several: \`--no-socket\`, a brain with no socket, a non-POSIX host, a pty addon that will not load)",
+    "reachState": "DEAF",
+    "reachCause": "DEAF"
+  }
 }
 "
 `;
 
 exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t1] the DEAF clone is addressed by say vs get then: the DEAF-say human error format is locked (visual spot-check) 1`] = `
 "
-✋ this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`
-   └─ observe it with \`rhx clone get\`, or re-enroll interactively (a socket-capable brain, a POSIX host, no \`--no-socket\`) to make it reachable
+✋ ConstraintError: this clone is deaf — it has no dispatch socket, so it cannot hear a \`say\`
+
+{
+  "hint": "observe it with \`rhx clone get\`, or re-enroll interactively to make it reachable — if the enroll cannot open a socket it names the exact cause (one of several: \`--no-socket\`, a brain with no socket, a non-POSIX host, a pty addon that will not load)",
+  "reachState": "DEAF",
+  "reachCause": "DEAF"
+}
 
 "
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case4] an interactive enroll on a host whose pty addon will NOT load when: [t0] the human reads their terminal then: the pty-absent enroll frame is locked (visual spot-check) 1`] = `
+"💥 MalfunctionError: the reach socket is unavailable — node-pty failed to load on a supported platform
+
+{
+  "hint": "the prebuilt addon ships inside the rhachet tarball, so this install is damaged — reinstall rhachet. if a reinstall does not repair it, the rhx you just ran loaded from /PATH_STRIPPED — compare that against your package manager global root: a mismatch means it execs from a stale store the installer no longer writes to. report it either way",
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64",
+  "rhachetRealpath": "/PATH_STRIPPED"
+}"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case5] the SAME fault on a host whose libc ships no upstream binary when: [t0] the human reads their terminal then: the unsupported-host frame is locked (visual spot-check) 1`] = `
+"✋ ConstraintError: the reach socket is unavailable — node-pty ships no prebuilt addon for this platform
+
+{
+  "hint": "pass --no-socket to enroll without one, or run on a glibc linux, macos, or windows host",
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64"
+}"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case6] the SAME fault on a host whose libc could not be read at all when: [t0] the human reads their terminal then: the unreadable-libc frame is locked (visual spot-check) 1`] = `
+"✋ ConstraintError: the reach socket is unavailable — node-pty failed to load, and this host's libc could not be read
+
+{
+  "hint": "we cannot tell whether the addon is absent because your install is damaged or because upstream ships no binary for your libc — run \`ldd --version\` to settle it: a glibc version means the install is damaged, so reinstall rhachet; \\"musl libc\\" means no binary exists, so pass --no-socket",
+  "socketOmissionReason": "pty-absent",
+  "hostTuple": "linux-x64"
+}"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case7] an interactive enroll where the addon LOADS and the host refuses a device when: [t0] the human reads their terminal then: the device-refused frame is locked (visual spot-check) 1`] = `
+"✋ ConstraintError: the reach socket is unavailable — the pty device could not be allocated
+
+{
+  "hint": "node-pty loaded but could not allocate a pty on this host, so this is a host condition rather than a damaged install — pass --no-socket to enroll without a reach socket. node-pty said: \`forkpty(3) failed.\`",
+  "hostTuple": "linux-x64",
+  "ptyError": "forkpty(3) failed."
+}"
+`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive enroll where the addon loads, the device is granted, and the BIND faults when: [t0] the human reads their terminal then: the RAW trace line above the frame is locked too 1`] = `"clone socket ready rejected with a bind fault: listen EACCES: permission denied __SOCKET__"`;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive enroll where the addon loads, the device is granted, and the BIND faults when: [t0] the human reads their terminal then: the bind-fault frame is locked (visual spot-check) 1`] = `
+"💥 MalfunctionError: the reach socket is unavailable — its socket could not be bound
+
+{
+  "hint": "the pty addon loaded and the device was granted, so the socket bind should have succeeded — this is a defect in rhachet, please report it with this errno. pass --no-socket to enroll meanwhile. the bind said: \`listen EACCES: permission denied __SOCKET__\`",
+  "hostTuple": "linux-x64",
+  "socketErrno": "EACCES",
+  "socketSyscall": "listen",
+  "socketError": "listen EACCES: permission denied __SOCKET__"
+}"
 `;

@@ -40,8 +40,11 @@ exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor
 
 exports[`rhx actor list (acceptance) given: [case3] an invalid --output mode when: [t0] \`actor list --output xml\` (an unsupported mode) then: the edge-case error output is locked to a snapshot 1`] = `
 "
-✋ unknown --output mode "xml"
-   └─ use --output tree (default) or --output json
+✋ ConstraintError: unknown --output mode "xml"
+
+{
+  "hint": "use --output tree (default) or --output json"
+}
 
 "
 `;
@@ -62,7 +65,16 @@ exports[`rhx actor list (acceptance) given: [case4] a repo with NO .agent/ direc
 
 exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on disk (server fault) when: [t0] \`actor list\` on the corrupt repo (tree) then: the corrupt-manifest tree error is locked to a snapshot 1`] = `
 "
-✋ enrolled actor manifest is corrupt — actor.json is not valid JSON
+💥 MalfunctionError: enrolled actor manifest is corrupt — actor.json is not valid JSON
+
+{
+  "manifestPath": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=deadbeefdeadbeef/actor.json",
+  "hash": "deadbeefdeadbeef",
+  "cause": {
+    "class": "SyntaxError",
+    "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+  }
+}
 
 "
 `;
@@ -73,7 +85,15 @@ exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on 
   "message": "enrolled actor manifest is corrupt — actor.json is not valid JSON",
   "hint": null,
   "reachState": null,
-  "reachCause": null
+  "reachCause": null,
+  "metadata": {
+    "manifestPath": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=deadbeefdeadbeef/actor.json",
+    "hash": "deadbeefdeadbeef",
+    "cause": {
+      "class": "SyntaxError",
+      "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+    }
+  }
 }
 "
 `;

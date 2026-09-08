@@ -15,41 +15,33 @@ import { genEnrollmentHash } from '../actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '../actor/enrolled/getActorsRootDir';
 import { asCloneDirName } from './asCloneDirName';
+import { asCloneSocketOmissionReasonError } from './asCloneSocketOmissionReasonError';
 import {
   type CloneSlugClaimState,
   computeCloneSlugDecision,
 } from './computeCloneSlugDecision';
-import { computeCloneSocketFallback } from './computeCloneSocketFallback';
+import { computeCloneSocketOmissionReason } from './computeCloneSocketOmissionReason';
 import { delCloneSpawn } from './delCloneSpawn';
+import { delCloneStagedDir } from './delCloneStagedDir';
 import { genCloneHistoryLink } from './genCloneHistoryLink';
 import { genCloneSerial } from './genCloneSerial';
+import { type CloneSpawnHandle, genCloneSpawn } from './genCloneSpawn';
 import { getCloneDir } from './getCloneDir';
 import { getCloneReachState } from './getCloneReachState';
 import { getCloneSocketPath } from './getCloneSocketPath';
 import { getOneCloneByRef } from './getOneCloneByRef';
 import { getOneCloneHydrated } from './getOneCloneHydrated';
-import { genBrainCliPlainClone } from './pty/genBrainCliPlainClone';
-import {
-  genBrainCliPtyClone,
-  type PtyCloneHost,
-} from './pty/genBrainCliPtyClone';
+import { getRhachetRealpathFromProcess } from './getRhachetRealpathFromProcess';
+import type { PtyCloneHost } from './pty/genBrainCliPtyClone';
 import { genPtyCloneHostFromProcess } from './pty/genPtyCloneHostFromProcess';
+import { getPtyHostTupleFromProcess } from './pty/getPtyHostTupleFromProcess';
 import { getPtyModuleOrNull, type PtyModule } from './pty/getPtyModuleOrNull';
+import { getPtyPlatformSupportFromProcess } from './pty/getPtyPlatformSupportFromProcess';
 import { isCloneSocketAvailable } from './pty/isCloneSocketAvailable';
 import { isCloneSocketEligible } from './pty/isCloneSocketEligible';
 import { setCloneIdentity } from './setCloneIdentity';
 import { setCloneSerialIndex } from './setCloneSerialIndex';
 import { setCloneSlugIndex } from './setCloneSlugIndex';
-
-/**
- * .what = a handle to a live spawn — the caller forwards its exit and can dispose
- */
-export interface CloneSpawnHandle {
-  socketPath: string | null;
-  pid: number;
-  waitForExit: Promise<number>;
-  dispose: () => Promise<void>;
-}
 
 /**
  * .what = findsert one clone of an enrolled actor — the enroll-time orchestrator
@@ -178,24 +170,21 @@ export const genCloneOndisk = async (
   // each with the concrete fix named (rule.require.errors-name-the-fix). a caller
   // who explicitly does not want a socket (`--no-socket`, or a non-interactive,
   // non-json run) never reaches here: wantsSocket is false, so this check is skipped
-  const socketFallback = computeCloneSocketFallback({
+  const socketOmissionReason = computeCloneSocketOmissionReason({
     wantsSocket,
     socketEligible,
     ptyModule,
   });
-  if (socketFallback !== null)
-    return ConstraintError.throw(
-      socketFallback === 'pty-absent'
-        ? 'the reach socket is unavailable — node-pty failed to load'
-        : 'the reach socket is unavailable — this host cannot open a unix socket',
-      {
-        socketFallback,
-        hint:
-          socketFallback === 'pty-absent'
-            ? 'run `pnpm rebuild node-pty` to enable it, or pass --no-socket to enroll without one'
-            : 'run on a POSIX host with a runtime dir, or pass --no-socket to enroll without one',
-      },
-    );
+  // ⚠️ all three diagnostics are read EAGERLY even though only two of the four rows render
+  //   `rhachetRealpath` — do NOT gate the read on the row, which would put a second owner
+  //   on a predicate `asCloneSocketOmissionReasonError` already holds
+  if (socketOmissionReason !== null)
+    throw asCloneSocketOmissionReasonError({
+      socketOmissionReason,
+      ptyPlatformSupport: getPtyPlatformSupportFromProcess(),
+      hostTuple: getPtyHostTupleFromProcess(),
+      rhachetRealpath: getRhachetRealpathFromProcess(),
+    });
 
   // stage the clone dir under a temp name, so a loser reaps before it is enumerable.
   // compose asCloneDirName so the `serial=` token has ONE owner (never a hand-rebuilt
@@ -216,27 +205,26 @@ export const genCloneOndisk = async (
   const spawnedAt = now();
 
   // spawn the brain — through the pty (socket) or plain (fallback)
-  const spawn: CloneSpawnHandle =
-    socketEligible && ptyModule !== null && socketPath !== null
-      ? await genBrainCliPtyClone(
-          {
-            command: input.command,
-            args: input.args,
-            cwd: input.cwd,
-            serial,
-            socketPath,
-          },
-          {
-            pty: ptyModule,
-            host: context?.host ?? genPtyCloneHostFromProcess(),
-          },
-        )
-      : genBrainCliPlainClone({
-          command: input.command,
-          args: input.args,
-          cwd: input.cwd,
-          serial,
-        });
+  //
+  // ⚠️ the reap is the CALLER's, and it is unconditional. the staged dir was created
+  //   before the spawn, so it must not survive a failure of any party — the same reap
+  //   the slug-race loser below performs, minus the spawn it never got. `genCloneSpawn`
+  //   deliberately reaps naught, so this dir's lifecycle has ONE owner
+  const spawn: CloneSpawnHandle = await genCloneSpawn(
+    {
+      command: input.command,
+      args: input.args,
+      cwd: input.cwd,
+      serial,
+      socketPath,
+      socketEligible,
+      pty: ptyModule,
+    },
+    { host: context?.host ?? genPtyCloneHostFromProcess() },
+  ).catch((error: unknown) => {
+    delCloneStagedDir({ cloneDir: tempDir });
+    throw error;
+  });
 
   // persist the identity AFTER the spawn, so hostPid names the SPAWNED CHILD
   // (spawn.pid) — never the enroll wrapper (process.pid). the orphan-verdict

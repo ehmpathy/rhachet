@@ -92,7 +92,7 @@ exports[`keyrack extends given: [case4] repo with deep extends chain (A extends 
 
 exports[`keyrack extends given: [case5] repo with extends that points to non-existent file when: [t0] keyrack.yml modified to extend non-existent file then: stderr matches snapshot 1`] = `
 "
-BadRequestError: extended keyrack not found
+✋ BadRequestError: extended keyrack not found
 
 {
   "path": ".agent/does-not-exist/keyrack.yml",
@@ -107,7 +107,7 @@ BadRequestError: extended keyrack not found
 
 exports[`keyrack extends given: [case6] repo with circular extends chain when: [t0] keyrack.yml modified to have self-referential extends then: stderr matches snapshot 1`] = `
 "
-BadRequestError: circular extends detected in keyrack chain
+✋ BadRequestError: circular extends detected in keyrack chain
 
 {
   "manifestPath": "/TMP_REPO/.agent/pathA/keyrack.yml",

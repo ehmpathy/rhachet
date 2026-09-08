@@ -53,7 +53,7 @@ describe('assertRegistryHooksNoNpx', () => {
 
   given('[case3] registry with forbidden npx rhachet hook', () => {
     when('[t0] assertion is called', () => {
-      then('throws BadRequestError with treestruct message', async () => {
+      then('throws ConstraintError with treestruct message', async () => {
         const error = await getError(async () =>
           assertRegistryHooksNoNpx({
             registry: {
@@ -77,7 +77,14 @@ describe('assertRegistryHooksNoNpx', () => {
           }),
         );
         expect(error).toBeInstanceOf(Error);
-        expect(error.message).toContain('✋ hooks with forbidden npx patterns');
+        expect(error.message).toContain('hooks with forbidden npx patterns');
+
+        // the THROW SITE's sentence owns no glyph of its own. `ConstraintError` carries
+        // `emoji = '✋'`, so `HelpfulError` prepends exactly one — and `asCliErrorFrame`
+        // renders `<glyph> <class>: <undecorated>` off `.original.message`, so a glyph
+        // written at the throw site would surface as a SECOND one, right after the colon
+        expect(error.message).not.toContain('✋ ConstraintError: ✋');
+        expect(error.message.startsWith('✋ ConstraintError: ')).toBe(true);
         expect(error.message).toContain('mechanic');
         expect(error.message).toContain('onBrain.onBoot[0]');
         expect(error.message).toContain(

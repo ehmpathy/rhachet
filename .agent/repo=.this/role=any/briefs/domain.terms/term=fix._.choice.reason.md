@@ -134,6 +134,40 @@ rename-in-flight, in new code, in the exact shape this dispute exists to stop.
 > it feeds** — never to a fourth word, and never to the canonical word if that manufactures a new
 > rename boundary. the migration is settled once, wholesale, or not at all.
 
+## 🚨 .2026-09-03 — the node-pty round grew the footprint AND strengthened the case
+
+a second, unrelated wish (`v2026_08_25.fix-node-pty-install`) reached the same word from the
+`upgrade` and `clone` surfaces, and left two facts on the record.
+
+**1. the footprint grew, outside keyrack.** the dispute's census was keyrack-scoped; `hint` is now
+a load-carrier in two more subsystems:
+
+| new site | what it carries |
+|---|---|
+| `upgrade/asNpmInstallFailureError.ts` | beat 3, on four failure kinds |
+| `clone/asCloneSocketOmissionReasonError.ts` | beat 3, on both the malfunction and the constraint branch |
+| `clone/genCloneOndisk.ts` | beat 3, on the pty-spawn `ConstraintError` |
+
+so the migration this dispute defers gets dearer each round it is deferred, and it no longer prices
+as a keyrack change.
+
+**2. the opposite of the two-key read — and it argues the same verdict.** where
+`getKeyrackBlockedReport` had to try `hint` **then** `fix`, this round deliberately made
+`metadata.hint` the **single** owner of beat 3, and gave it two renderers that read it **by name**:
+`asCliErrorFrame` and `asUpgradeFailureMessage`. the inline copy of the fix inside the sentence was
+removed, so there is exactly one home for the value.
+
+⇒ 🚨 **that is the same argument, one level up.** *"one home for the fix, so a renderer never guesses
+which field holds it"* is the claim this round proved worth the work. *"one WORD for the fix, so a
+reader never guesses which name holds it"* is the identical claim about the vocabulary. a repo that
+took the first and declines the second holds two standards for one reason.
+
+**3. and the reason it still did not conform.** every new site above feeds `helpful-errors`'
+metadata key, so per this file's own rule — *new code conforms to the word of the contract it
+feeds* — `hint` was correct at each one. to have written `fix` would have manufactured three fresh
+`tip: attempt.fix` boundaries in new code. **the deferral is honored, and its price is now
+measured across three subsystems rather than one.**
+
 ## .evidence
 
 - discovery: census by `grepsafe` over `src`, 2026-08-06, plus a direct read of

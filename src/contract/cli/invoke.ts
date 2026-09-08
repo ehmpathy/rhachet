@@ -1,11 +1,12 @@
 import { Command } from 'commander';
 import { withEmojiSpaceShim } from 'emoji-space-shim';
-import { BadRequestError } from 'helpful-errors';
 
 import { genContextConfigOfUsage } from '@src/domain.operations/config/genContextConfigOfUsage';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
 import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
 
+import { asCliErrorClassified } from './asCliErrorClassified';
+import { asCliErrorFrame } from './asCliErrorFrame';
 import { defineGlobalOptions } from './defineGlobalOptions';
 import { getExitCodeFromError } from './getExitCodeFromError';
 import { invokeAct } from './invokeAct';
@@ -87,28 +88,48 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
   }
 
   // invoke it (parse the preprocessed argv so `-role` tokens survive commander)
-  await program.parseAsync(args, { from: 'user' }).catch((error) => {
-    // the init `--roles` incremental path throws BadRequestError on invalid
-    // calls; this shared handler (already present pre-feature) prints a clean
-    // message + `[args]` line for those. it echoes `input.args` (the user's
-    // original argv), so the sentinel-encoded `-role` never leaks a null byte.
-    // keyrack's guided flows also fail loud via ConstraintError (a BadRequestError
-    // subclass), so this same handler renders their clean message + exit code
-    if (error instanceof BadRequestError) {
-      // HelpfulError already includes emoji + class name in message (e.g., "✋ ConstraintError: ...")
-      console.error(``);
-      console.error(error.message);
-      console.error(``);
-      console.error(`[args] ${input.args}`);
-      console.error(``);
-      // use error's exit code if available (e.g., ConstraintError = 2)
-      const exitCode = getExitCodeFromError({ error });
-      process.exit(exitCode);
-    }
-    throw error;
-  });
+  await program.parseAsync(args, { from: 'user' });
+};
+
+/**
+ * .what = render a failed cli run for the human, then exit with its semantic code
+ *
+ * ⚠️ it catches EVERY throw, classified or not — this is the LAST handler, and past it sits
+ *   node's uncaught-exception dump. an `instanceof HelpfulError` gate here would hand that
+ *   dump to a human for every error our contract has not classified yet.
+ *
+ * ⚠️ it wraps the WHOLE of `_invoke`, never `parseAsync` alone: the config load, the command
+ *   registration, and `assureUniqueRoles` all throw ABOVE that call.
+ *
+ * .note = the `[args]` trailer stays HERE rather than inside `asCliErrorFrame`. it is this
+ *   handler's own context — the wrapped path (`withCliOutputErrors`) knows its args from
+ *   its own invoker and does not want the line (`rule.require.single-responsibility`)
+ *
+ * .note = the render sits INSIDE the emoji shim, so the frame's `💥`/`✋` keep the terminal
+ *   width the shim exists to hold
+ */
+const emitCliErrorAndExit = (input: {
+  error: unknown;
+  args: string[];
+}): never => {
+  const error = asCliErrorClassified({ error: input.error });
+
+  // ⚠️ the SHARED frame, never `.message` — a `HelpfulError`'s `.message` appends its
+  //   serialized metadata. `asCliErrorFrame` is the one owner of what a human reads off a
+  //   cli error, so this path and `withCliOutputErrors` cannot disagree
+  for (const line of asCliErrorFrame({ error })) console.error(line);
+  console.error(`[args] ${input.args}`);
+  console.error(``);
+
+  // the class's own code (ConstraintError = 2, MalfunctionError = 1)
+  return process.exit(getExitCodeFromError({ error }));
 };
 
 // wrap with emoji space shim for correct terminal render
 export const invoke = (input: { args: string[] }): Promise<void> =>
-  withEmojiSpaceShim({ logic: () => _invoke(input) });
+  withEmojiSpaceShim({
+    logic: () =>
+      _invoke(input).catch((error: unknown) =>
+        emitCliErrorAndExit({ error, args: input.args }),
+      ),
+  });
