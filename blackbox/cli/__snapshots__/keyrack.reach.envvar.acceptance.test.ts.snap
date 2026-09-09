@@ -3,7 +3,11 @@
 exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key whose ambient variable is set when: [t0] unlock names a reach then: the reply is snapped: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: --reach does not apply to os.envvar: its storage address carries no reach, so a reach-ask would be answered with the reachless value — a live credential for the wrong reach
+   └─ ✋ ConstraintError: --reach does not apply to os.envvar: its storage address carries no reach, so a reach-ask would be answered with the reachless value — a live credential for the wrong reach
+      ├─ reach: beav@ehmpathy.com
+      ├─ vault: os.envvar
+      ├─ direction: read
+      ├─ ran: keyrack unlock --env test --key API_KEY --reach beav@ehmpathy.com
       └─ hint: ci holds blobs, never reaches — supply the target reach's credential under its own name, then ask for it without --reach
 
 "

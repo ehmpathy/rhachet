@@ -15,6 +15,6 @@ exports[`asKeyrackDelReport given: [case2] the key was already absent (not_found
 exports[`asKeyrackDelReport given: [case3] a removal that destroyed a keyrack-managed SSM secret (owned mech) when: [t0] rendered then: it matches snapshot 1`] = `
 "🔐 keyrack del
    └─ ehmpathy.prod.EHMPATHY_SEATURTLE_GITHUB_TOKEN removed
-      └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/ehmpathy/prod/EHMPATHY_SEATURTLE_GITHUB_TOKEN was destroyed
+      └─ the ssm secret at /keyrack/infra/vault/aws.params/v1/mechanic/ehmpathy/prod/EHMPATHY_SEATURTLE_GITHUB_TOKEN was destroyed
 "
 `;

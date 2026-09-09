@@ -56,9 +56,12 @@ describe('asKeyrackDelReport', () => {
           },
         });
 
-        then('it reports the removal AND the destroyed SSM secret', () => {
+        then('it reports the removal AND the destroyed ssm secret', () => {
           expect(report).toContain('removed');
-          expect(report).toContain('the SSM secret at');
+          // .note = lowercase `ssm`, deliberately. every keyrack render a human reads is
+          //         lowercase, acronyms included — an all-caps acronym SHOUTS in a tree whose
+          //         every other leaf is calm (`rule.forbid.shouts`, `rule.prefer.lowercase`)
+          expect(report).toContain('the ssm secret at');
           expect(report).toContain('was destroyed');
         });
 

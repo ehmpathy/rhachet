@@ -1,3 +1,5 @@
+import { MalfunctionError } from 'helpful-errors';
+
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
@@ -131,8 +133,13 @@ export const formatKeyrackKeyBranch = (input: {
   }
 
   // exhaustive check
+  // .why = an entry outside the union means a branch was added to KeyrackKeyBranchEntry
+  // without a render arm here; that is a server-side invariant break, not a caller fault
   const _exhaustive: never = entry;
-  throw new Error(`unexpected entry type: ${JSON.stringify(_exhaustive)}`);
+  throw new MalfunctionError(
+    `unexpected entry type: ${JSON.stringify(_exhaustive)}`,
+    { entry: _exhaustive },
+  );
 };
 
 /**

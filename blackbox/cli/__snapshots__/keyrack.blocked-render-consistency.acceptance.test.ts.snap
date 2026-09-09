@@ -1,0 +1,125 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack blocked-render consistency given: [case1] a repo, and every flag-validation refusal in the verb family when: [t0] each refusal is triggered then: the render each human sees is snapped 1`] = `
+{
+  "del — invalid --env": "
+🔐 keyrack del
+   └─ ✋ ConstraintError: invalid --env: must be one of sudo, prod, prep, test, all, camp
+      ├─ envGiven: not-an-env
+      └─ ran: keyrack del --key FOO --env not-an-env
+
+",
+  "fill — --org (declined by design)": "
+🔐 keyrack fill
+   └─ ✋ ConstraintError: fill takes no --org
+      ├─ why: fill writes the keys THIS repo declares; a machine-wide key lives in the host manifest, which no repo manifest can name
+      ├─ ran: keyrack fill --env test --org @all
+      └─ hint: write a machine-wide key with: rhx keyrack set --org @all --env <env> --key <name>
+
+",
+  "firewall — --org (declined by design)": "
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: firewall takes no --org
+      ├─ why: a firewall sweep is exactly the set THIS repo declares, and no repo manifest can name a machine-wide key — so an org filter would select an empty set
+      ├─ ran: keyrack firewall --env test --from json(stdin://*) --into json --org @all
+      └─ hint:
+         ├─ drop --org
+         └─ to check one machine-wide key instead, use: rhx keyrack get --key @all.<env>.<name>
+
+",
+  "firewall — invalid --env": "
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: invalid --env: must be one of sudo, prod, prep, test, all, camp
+      ├─ envGiven: not-an-env
+      └─ ran: keyrack firewall --env not-an-env --from json(stdin://*) --into json
+
+",
+  "firewall — invalid --into": "
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: invalid --into: must be one of github.actions, json
+      ├─ intoGiven: not-a-target
+      └─ ran: keyrack firewall --env test --from json(stdin://*) --into not-a-target
+
+",
+  "recipient set — invalid --stanza (a NESTED subcommand)": "
+🔐 keyrack recipient set
+   └─ ✋ ConstraintError: --stanza must be "ssh" if specified
+      ├─ stanzaGiven: not-ssh
+      ├─ ran: keyrack recipient set --pubkey age1notarealkey --label test --stanza not-ssh
+      └─ hint: drop --stanza, or pass --stanza ssh
+
+",
+  "relock — --org (declined by design)": "
+🔐 keyrack relock
+   └─ ✋ ConstraintError: relock takes no --org
+      ├─ why: a relock REVOKES, and to revoke is wide — an org filter would narrow a purge set inside the daemon, which is its own decision
+      ├─ ran: keyrack relock --org @all
+      └─ hint: relock one machine-wide key by its full slug: rhx keyrack relock --key @all.<env>.<name>
+
+",
+  "set — invalid --mech": "
+🔐 keyrack set
+   └─ ✋ ConstraintError: invalid --mech: must be one of PERMANENT_VIA_REPLICA, PERMANENT_VIA_REFERENCE, EPHEMERAL_VIA_SESSION, EPHEMERAL_VIA_GITHUB_APP, EPHEMERAL_VIA_AWS_SSO, EPHEMERAL_VIA_GITHUB_OIDC
+      ├─ mechGiven: NOT_A_MECH
+      └─ ran: keyrack set --key FOO --env test --vault os.direct --mech NOT_A_MECH
+
+",
+  "set — invalid --vault": "
+🔐 keyrack set
+   └─ ✋ ConstraintError: invalid --vault: must be one of os.direct, os.secure, os.daemon, os.envvar, 1password, aws.config, aws.params, github.secrets
+      ├─ vaultGiven: not.a.vault
+      └─ ran: keyrack set --key FOO --env test --vault not.a.vault --mech PERMANENT_VIA_REPLICA
+
+",
+  "source — --strict and --lenient together": "
+🔐 keyrack source
+   └─ ✋ ConstraintError: --strict and --lenient are mutually exclusive
+      ├─ ran: keyrack source --env test --strict --lenient
+      └─ hint: drop one — strict is the default, so pass --lenient alone to skip absent keys
+
+",
+  "source — sudo requires --key": "
+🔐 keyrack source
+   └─ ✋ ConstraintError: sudo credentials require --key. sudo keys are not stored in keyrack.yml.
+      ├─ ran: keyrack source --env sudo
+      └─ hint: use: rhx keyrack source --env sudo --key <keyname>
+
+",
+  "unlock — invalid --env": "
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: invalid --env: must be one of sudo, prod, prep, test, all, camp
+      ├─ envGiven: not-an-env
+      └─ ran: keyrack unlock --env not-an-env
+
+",
+  "unlock — sudo requires --key": "
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: sudo credentials require --key. sudo keys are not stored in keyrack.yml.
+      ├─ ran: keyrack unlock --env sudo
+      └─ hint: use: rhx keyrack unlock --env sudo --key <keyname>
+
+",
+}
+`;
+
+exports[`keyrack blocked-render consistency given: [case2] a flag the family never teaches, on a verb that declines --org when: [t0] an undeclared flag is handed to relock then: the render commander keeps is snapped 1`] = `"[commander error] error: unknown option '--bogus'"`;
+
+exports[`keyrack blocked-render consistency given: [case3] refusals that turn on the STATE of the world when: [t0] set --at names a path that does not exist then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: keyrack not found at: .agent/keyrack.absent.yml
+      ├─ ran: keyrack set --key FOO --env test --vault os.direct --mech PERMANENT_VIA_REPLICA --at .agent/keyrack.absent.yml
+      └─ hint: run 'npx rhachet keyrack init --at <path>' first
+
+"
+`;
+
+exports[`keyrack blocked-render consistency given: [case3] refusals that turn on the STATE of the world when: [t1] firewall runs in a repo that holds no keyrack.yml then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: keyrack.yml not found
+      ├─ ran: keyrack firewall --env test --from json(stdin://*) --into json
+      └─ hint: run \`rhx keyrack init\` to create keyrack.yml
+
+"
+`;

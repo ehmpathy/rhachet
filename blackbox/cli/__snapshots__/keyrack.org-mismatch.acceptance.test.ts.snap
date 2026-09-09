@@ -1,6 +1,28 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t0] set --key AWS_PROFILE --org foreign-org --json then: stdout matches snapshot 1`] = `""`;
+exports[`keyrack org-mismatch given: [case1] get with org mismatch when: [t0] get --key API_KEY --org foreign-org then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: --org 'foreign-org' does not match manifest org 'testorg'
+      ├─ orgGiven: foreign-org
+      ├─ orgOfManifest: testorg
+      ├─ ran: keyrack get --key API_KEY --env test --org foreign-org
+      └─ hint: use an org under 'testorg', or pass --org @all
+
+"
+`;
+
+exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t0] set --key AWS_PROFILE --org foreign-org --json then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: --org 'foreign-org' does not match manifest org 'testorg'
+      ├─ orgGiven: foreign-org
+      ├─ orgOfManifest: testorg
+      ├─ ran: keyrack set --key AWS_PROFILE --env prep --org foreign-org --mech PERMANENT_VIA_REPLICA --vault os.direct --json
+      └─ hint: use an org under 'testorg', or pass --org @all
+
+"
+`;
 
 exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t1] set --key AWS_PROFILE --org @this (valid match) then: stdout matches snapshot 1`] = `
 {
@@ -15,4 +37,30 @@ exports[`keyrack org-mismatch given: [case2] set with org mismatch when: [t1] se
   "updatedAt": "__TIMESTAMP__",
   "vault": "os.direct",
 }
+`;
+
+exports[`keyrack org-mismatch given: [case3] a full slug that clashes on BOTH org and env when: [t0] set is given that slug with a clashing --env then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: slug org 'foreign-org' does not match manifest org 'testorg'
+      ├─ key: foreign-org.prod.AWS_PROFILE
+      ├─ orgOfSlug: foreign-org
+      ├─ orgOfManifest: testorg
+      ├─ ran: keyrack set --key foreign-org.prod.AWS_PROFILE --env test --mech PERMANENT_VIA_REPLICA --vault os.direct
+      └─ hint: use an org under 'testorg', or pass --org @all
+
+"
+`;
+
+exports[`keyrack org-mismatch given: [case3] a full slug that clashes on BOTH org and env when: [t1] del is given the same slug with the same clashing --env then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack del
+   └─ ✋ ConstraintError: slug org 'foreign-org' does not match manifest org 'testorg'
+      ├─ key: foreign-org.prod.AWS_PROFILE
+      ├─ orgOfSlug: foreign-org
+      ├─ orgOfManifest: testorg
+      ├─ ran: keyrack del --key foreign-org.prod.AWS_PROFILE --env test
+      └─ hint: use an org under 'testorg', or pass --org @all
+
+"
 `;

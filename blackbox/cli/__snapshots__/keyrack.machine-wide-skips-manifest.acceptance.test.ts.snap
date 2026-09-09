@@ -1,0 +1,546 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t1] that key is unlocked by --org @all then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+{
+  "unlocked": [
+    {
+      "slug": "@all.camp.MACHINE_KEY",
+      "key": {
+        "secret": "$SECRET",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "camp",
+      "org": "@all",
+      "expiresAt": "__TIMESTAMP__"
+    }
+  ],
+  "omitted": []
+}
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t2] that key is read by an @all slug — THE REPRO then: both streams match snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "machine-secret-value",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t3] that key is read by --org @all then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "machine-secret-value",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t3a] a STILL-LOCKED machine-wide key is read with --unlock then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "locked-secret-value",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t3b] that key is SOURCED by --org @all then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "export MACHINE_KEY='machine-secret-value'
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t4] a REPO-scoped key is read from the same repo — THE GUARD then: the refusal render matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: extended keyrack not found
+      ├─ path: .agent/does-not-exist/keyrack.yml
+      ├─ absolutePath: /TMP_REPO/.agent/does-not-exist/keyrack.yml
+      ├─ from: /TMP_REPO/.agent/keyrack.yml
+      └─ ran: keyrack get --key REPO_KEY --env test
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t5] a repo SWEEP is asked from the same repo — THE GUARD then: the refusal render matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: extended keyrack not found
+      ├─ path: .agent/does-not-exist/keyrack.yml
+      ├─ absolutePath: /TMP_REPO/.agent/does-not-exist/keyrack.yml
+      ├─ from: /TMP_REPO/.agent/keyrack.yml
+      └─ ran: keyrack get --for repo --env test
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t6] the rack is LISTED by --org @all then: each listed entry keeps its declared field shape 1`] = `
+{
+  "@all.camp.MACHINE_KEY": [
+    "createdAt",
+    "env",
+    "exid",
+    "maxDuration",
+    "mech",
+    "meta",
+    "org",
+    "slug",
+    "updatedAt",
+    "vault",
+  ],
+  "@all.prep.LOCKED_KEY": [
+    "createdAt",
+    "env",
+    "exid",
+    "maxDuration",
+    "mech",
+    "meta",
+    "org",
+    "slug",
+    "updatedAt",
+    "vault",
+  ],
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t7] the session is STATUSED by --org @all then: each reported key keeps its declared field shape 1`] = `
+[
+  [
+    "env",
+    "expiresAt",
+    "org",
+    "slug",
+    "ttlLeftMs",
+  ],
+  [
+    "env",
+    "expiresAt",
+    "org",
+    "slug",
+    "ttlLeftMs",
+  ],
+]
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t8] a machine-wide key is DELETED by --org @all then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+{
+  "slug": "@all.camp.MACHINE_KEY",
+  "effect": "deleted"
+}
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t9] a MACHINE-WIDE set is asked with --at, from INSIDE the repo then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "
+🔐 keyrack set
+   └─ ✋ ConstraintError: --at and a machine-wide key are contradictory
+      ├─ why: a machine-wide key is declared in the host manifest, so it consults no repo keyrack.yml — and --at names one to consult
+      ├─ ran: keyrack set --key FOO --env camp --org @all --at .agent/keyrack.yml --mech PERMANENT_VIA_REPLICA --vault os.direct
+      └─ hint: drop --at to set the machine-wide key, or name a repo key instead (drop --org @all, and use a bare key name rather than an @all.<env>.<name> slug)
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t10] a machine-wide key is set by a BARE @all slug — no --org flag then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "{
+  "slug": "@all.camp.SLUG_KEY",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "vault": "os.direct",
+  "exid": null,
+  "env": "camp",
+  "org": "@all",
+  "meta": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack.yml extends an absent file when: [t11] that same key is deleted by a BARE @all slug — no --org flag then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+{
+  "slug": "@all.camp.SLUG_KEY",
+  "effect": "deleted"
+}
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t2a] the rack is STATUSED by --org, as a HUMAN reads it then: the filtered rack each human reads is snapped 1`] = `
+{
+  "all": "
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   ├─ daemon: active ✨
+   └─ @all.camp.MACHINE_KEY
+      ├─ env: camp
+      ├─ org: @all
+      └─ expires in: <TTL>
+
+",
+  "this": "
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.REPO_KEY
+      ├─ env: test
+      ├─ org: testorg
+      └─ expires in: <TTL>
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t2b] the SAME warm rack is narrowed to an org that holds none then: the empty render each human reads is snapped 1`] = `
+{
+  "list": "
+🔐 keyrack list
+   └─ no keys matched this filter
+      ├─ filter: --org someorg
+      ├─ of: <N> keys held on this host
+      └─ fix: check the filter — \`--org @all\` for machine-wide keys, \`--org @this\` for this repo, or drop it to see every key
+",
+  "status": "
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   └─ daemon: active ✨
+      └─ (no keys in --org someorg, try --org testorg or --org @all)
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t3] a FULL repo slug is sourced with --org @all — THE GUARD then: the render a human sees is snapped 1`] = `
+{
+  "stderr": "",
+  "stdout": "export REPO_KEY='repo-secret'
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t4] a BARE repo key is read by --org @this on both keyed verbs then: the render each human sees is snapped 1`] = `
+{
+  "get": {
+    "stderr": "",
+    "stdout": "repo-secret",
+  },
+  "source": {
+    "stderr": "",
+    "stdout": "export REPO_KEY='repo-secret'
+",
+  },
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t5] a repo sweep is filtered to --org @all then: the note a human reads is snapped 1`] = `
+"
+💡 heads up — a repo sweep holds no machine-wide keys
+   ├─ why: a repo keyrack.yml declares keys under its OWN org, so a sweep of it
+   │       can never yield an \`@all.*\` key — the filter is empty by construction
+   └─ fix: name the key outright, which needs no repo keyrack at all —
+           rhx keyrack source --key @all.test.<name>
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t5b] the SAME narrow is asked of get --for repo — the fifth sweep then: the notice a human reads is snapped 1`] = `
+"
+💡 heads up — a repo sweep holds no machine-wide keys
+   ├─ why: a repo keyrack.yml declares keys under its OWN org, so a sweep of it
+   │       can never yield an \`@all.*\` key — the filter is empty by construction
+   └─ fix: name the key outright, which needs no repo keyrack at all —
+           rhx keyrack get --key @all.test.<name>
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t6] the rack is listed by each provenance — the SUCCESS renders then: the filtered rack each human reads is snapped 1`] = `
+{
+  "all": "
+🔐 keyrack list
+   └─ @all.camp.MACHINE_KEY
+      ├─ env: camp
+      ├─ org: @all
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+",
+  "this": "
+🔐 keyrack list
+   ├─ testorg.test.GITHUB_APP_CREDS
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   ├─ testorg.test.REPO_KEY
+   │  ├─ env: test
+   │  ├─ org: testorg
+   │  ├─ mech: PERMANENT_VIA_REPLICA
+   │  └─ vault: os.direct
+   └─ testorg.test.XAI_API_KEY
+      ├─ env: test
+      ├─ org: testorg
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t7] the rack is narrowed by --env, and by both axes at once then: the render each human sees is snapped 1`] = `
+{
+  "both": {
+    "stderr": "",
+    "stdout": "{
+  "@all.camp.MACHINE_KEY": {
+    "slug": "@all.camp.MACHINE_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "camp",
+    "org": "@all",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  }
+}
+",
+  },
+  "camp": {
+    "stderr": "",
+    "stdout": "{
+  "@all.camp.MACHINE_KEY": {
+    "slug": "@all.camp.MACHINE_KEY",
+    "exid": null,
+    "vault": "os.direct",
+    "mech": "PERMANENT_VIA_REPLICA",
+    "env": "camp",
+    "org": "@all",
+    "meta": null,
+    "maxDuration": null,
+    "createdAt": "__TIMESTAMP__",
+    "updatedAt": "__TIMESTAMP__"
+  }
+}
+",
+  },
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case2] a HEALTHY repo whose rack holds both provenances when: [t7] the rack is narrowed by --env, and by both axes at once then: the test narrow's per-entry field shape is snapped 1`] = `
+[
+  "createdAt,env,exid,maxDuration,mech,meta,org,slug,updatedAt,vault",
+]
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t0] the rack is listed by --org @this then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack list
+   └─ ✋ ConstraintError: no host manifest found
+      ├─ ran: keyrack list --org @this
+      └─ hint: run: rhx keyrack init
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t1] a REPO-scoped set is asked — THE CRASH GUARD then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: this keyrack ask names a repo key, but the cwd is not a git repo
+      ├─ why: a repo key is declared by the repo keyrack.yml, so it can be named only from inside that repo
+      ├─ cwd: $TESTCWD
+      ├─ ran: keyrack set --key FOO --env test --at .agent/keyrack.yml --mech PERMANENT_VIA_REPLICA --vault os.direct
+      └─ hint: run from inside the repo, or name a machine-wide key with --org @all (it needs no repo at all)
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t2] a MACHINE-WIDE set is asked with --at — the contradiction then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: --at and a machine-wide key are contradictory
+      ├─ why: a machine-wide key is declared in the host manifest, so it consults no repo keyrack.yml — and --at names one to consult
+      ├─ ran: keyrack set --key FOO --env camp --org @all --at .agent/keyrack.yml --mech PERMANENT_VIA_REPLICA --vault os.direct
+      └─ hint: drop --at to set the machine-wide key, or name a repo key instead (drop --org @all, and use a bare key name rather than an @all.<env>.<name> slug)
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t3] the OTHER three sweep verbs are asked by --org @this then: the render each human sees is snapped 1`] = `
+{
+  "source": "
+🔐 keyrack source
+   └─ ✋ ConstraintError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      ├─ ran: keyrack source --env test --org @this
+      └─ hint: run: rhx keyrack init --org <your-org>
+
+",
+  "status": "
+🔐 keyrack status
+   └─ ✋ ConstraintError: --org @this names this repo, but no repo keyrack.yml was found
+      ├─ why: @this expands to the org declared in .agent/keyrack.yml, and there is none to read
+      ├─ ran: keyrack status --org @this
+      └─ hint: run: rhx keyrack init --org <your-org> (or filter by --org @all for machine-wide keys)
+
+",
+  "unlock": "
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: --org @this names this repo, but no repo keyrack.yml was found
+      ├─ why: @this expands to the org declared in .agent/keyrack.yml, and there is none to read
+      ├─ ran: keyrack unlock --env test --org @this
+      └─ hint: run: rhx keyrack init --org <your-org> (or filter by --org @all for machine-wide keys)
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t4] the last two repo-scoped verbs are asked — fill and firewall then: the render each human sees is snapped 1`] = `
+{
+  "fill": "
+🔐 keyrack fill
+   └─ ✋ ConstraintError: this keyrack ask names a repo key, but the cwd is not a git repo
+      ├─ why: a repo key is declared by the repo keyrack.yml, so it can be named only from inside that repo
+      ├─ cwd: $TESTCWD
+      ├─ ran: keyrack fill --env test --owner ehmpath
+      └─ hint: run from inside the repo, or name a machine-wide key with --org @all (it needs no repo at all)
+
+",
+  "firewall": "
+🔐 keyrack firewall
+   └─ ✋ ConstraintError: this keyrack ask names a repo key, but the cwd is not a git repo
+      ├─ why: a repo key is declared by the repo keyrack.yml, so it can be named only from inside that repo
+      ├─ cwd: $TESTCWD
+      ├─ ran: keyrack firewall --env test --from json(stdin://*) --into json
+      └─ hint: run from inside the repo, or name a machine-wide key with --org @all (it needs no repo at all)
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case3] a cwd that is not a git repo at all when: [t5] the LAST keyed mutation is asked — del then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack del
+   └─ ✋ ConstraintError: this keyrack ask names a repo key, but the cwd is not a git repo
+      ├─ why: a repo key is declared by the repo keyrack.yml, so it can be named only from inside that repo
+      ├─ cwd: $TESTCWD
+      ├─ ran: keyrack del --key FOO --env test
+      └─ hint: run from inside the repo, or name a machine-wide key with --org @all (it needs no repo at all)
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t0] a bare key is sourced — one only a manifest could name then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ ConstraintError: cannot construct slug for key 'MY_KEY' without keyrack.yml. use full slug format (org.env.KEY) or add keyrack.yml to repo.
+      └─ ran: keyrack source --key MY_KEY --env test
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t1] the SAME repo is asked for a machine-wide key then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack
+   └─ @all.camp.ABSENT_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key ABSENT_KEY --env camp --org @all
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t2] the two keyed MUTATIONS are asked for a repo key then: the render each human sees is snapped 1`] = `
+{
+  "del": "
+🔐 keyrack del
+   └─ ✋ ConstraintError: no keyrack.yml found in this repo
+      ├─ ran: keyrack del --key MY_KEY --env test
+      └─ hint: run 'npx rhachet keyrack init --org <your-org>' to create one
+
+",
+  "set": "
+🔐 keyrack set
+   └─ ✋ ConstraintError: no keyrack.yml found
+      ├─ ran: keyrack set --key MY_KEY --env test --vault os.direct
+      └─ hint: run 'npx rhachet keyrack init --org <your-org>' to create one
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t3] the two SWEEPS are asked by --org @this — the expansion RENDER then: the render each human sees is snapped 1`] = `
+{
+  "list": "
+🔐 keyrack list
+   └─ ✋ ConstraintError: --org @this names this repo, but no repo keyrack.yml was found
+      ├─ why: @this expands to the org declared in .agent/keyrack.yml, and there is none to read
+      ├─ ran: keyrack list --org @this
+      └─ hint: run: rhx keyrack init --org <your-org> (or filter by --org @all for machine-wide keys)
+
+",
+  "unlock": "
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: --org @this names this repo, but no repo keyrack.yml was found
+      ├─ why: @this expands to the org declared in .agent/keyrack.yml, and there is none to read
+      ├─ ran: keyrack unlock --env test --org @this
+      └─ hint: run: rhx keyrack init --org <your-org> (or filter by --org @all for machine-wide keys)
+
+",
+}
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t4] a BARE source is asked — the SWEEP refusal then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ ConstraintError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      ├─ ran: keyrack source --env test
+      └─ hint: run: rhx keyrack init --org <your-org>
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t5] a KEYED source names a real org — this wish's own branch then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ ConstraintError: keyrack.yml not found
+      ├─ ran: keyrack source --key MY_KEY --env test --org someorg
+      └─ hint: run \`rhx keyrack init --org <your-org>\` to create one
+
+"
+`;
+
+exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyrack.yml at all when: [t6] source is filtered by --org @this — the UNREACHABLE guard then: the render a human sees is snapped 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ ConstraintError: no keyrack.yml found in repo. --for repo requires keyrack.yml
+      ├─ ran: keyrack source --env test --org @this
+      └─ hint: run: rhx keyrack init --org <your-org>
+
+"
+`;

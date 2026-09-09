@@ -473,4 +473,65 @@ describe('getKeyrackKeyGrant', () => {
       });
     });
   });
+
+  /**
+   * .what = a not-granted fix line must carry the ORG through, exactly as it carries the reach
+   * .why = `set` defaults its org to the REPO's, so a fix line for `@all.prep.FOO` that says
+   *        `--key FOO --env prep` names `<repoOrg>.prep.FOO` — a DIFFERENT key than the one
+   *        the human asked for. to follow it would cut a repo key and leave the machine-wide
+   *        ask still absent, so the human lands on a second dead end and distrusts the tool
+   *        (`rule.require.errors-name-the-fix`, `term=peer`)
+   *
+   * ⚠️ .note.why-here = this axis is reachable from inside a repo only because the manifest load
+   *         is now skipped for a machine-wide ask. a guard that widens a path owes a clamp on
+   *         what that path newly reaches — otherwise the branch ships untested precisely because
+   *         it used to be unreachable
+   *
+   * .note = BOTH directions carry weight, so both are rowed. a fix that spelled `--org @all`
+   *         on a repo-bound slug is the mirror defect: noise on the common path, and a
+   *         command that reads as though the repo key lived on the machine-wide rack
+   */
+  given('[case8] a not-granted ask whose slug names an org', () => {
+    const context: ContextKeyrackGrantGet = {
+      owner: null,
+      repoManifest: null,
+      envvarAdapter: vaultAdapterOsEnvvar,
+      mechAdapters,
+    };
+
+    when('[t0] the slug is machine-wide', () => {
+      then(
+        'the fix names --org @all, so it reaches the key asked for',
+        async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: '@all.prep.NOSUCHKEY' } },
+            context,
+          );
+          expect(result.status).toEqual('absent');
+          if (result.status === 'absent') {
+            expect(result.fix).toContain('--org @all');
+            expect(result.fix).toContain('--key NOSUCHKEY');
+            expect(result.fix).toContain('--env prep');
+          }
+        },
+      );
+    });
+
+    when('[t1] the slug is repo-bound', () => {
+      then(
+        'the fix omits --org, since set already defaults to the repo org',
+        async () => {
+          const result = await getKeyrackKeyGrant(
+            { for: { key: 'testorg.prep.NOSUCHKEY' } },
+            context,
+          );
+          expect(result.status).toEqual('absent');
+          if (result.status === 'absent') {
+            expect(result.fix).not.toContain('--org');
+            expect(result.fix).toContain('--key NOSUCHKEY');
+          }
+        },
+      );
+    });
+  });
 });

@@ -276,21 +276,77 @@ iteration filed *"add `--brain anthropic/claude/code` to the pull lanes"* as a w
 carried it across rounds. it was a driver lever the whole time; once passed, all five lanes ran,
 and one returned **four real blockers** that had been dark since the stone opened.
 
-## ⚠️ .then check attribution per file
+## .what `--diffs since-main` actually selects
 
-on a branch that carries **zero commits** and trails `origin/main`, a `--diffs since-main` scope
-renders **main's newer code as this branch's deletions**. so an item raised by any since-main lane
-may belong to main rather than to the work under review.
+read this before you diagnose an overflow, because two plausible-sounding theories about it are
+both **false**, and each one talks a driver out of the scoped re-run.
 
-confirm each before you accept or fix it:
+from `rhachet-roles-bhrain/dist/domain.operations/review/getAllFileDiffsFromRange.js`:
+
+| step | what it does | line |
+|---|---|---|
+| pick the main ref | **prefers `origin/main`**, then `origin/master`, then local `main`/`master` | `:29-37` |
+| pick the base | `git merge-base <thatRef> HEAD` | `:50-53` |
+| select tracked | `git diff <base> --name-status -M` — base vs the **working tree** | `:137` |
+| select untracked | **unions `git ls-files --others --exclude-standard`** for `since-main` / `since-commit` | `:167-178` |
+
+⇒ the selected set is **your whole uncommitted working tree**: tracked modifications ∪ untracked
+files.
+
+### ⛔ two theories that are wrong
+
+- **"a stale local `main` inflates the diff."** it cannot. `origin/main` is preferred, so the local
+  ref is never consulted when a remote one exists. a `git fetch origin main:main` buys **naught**.
+- **"untracked files are absent from every `--diffs` scope."** false for `since-main` and
+  `since-commit` — both union them explicitly (`:167`). it is true only of `since-staged`.
+
+verify rather than assume, with two commands whose sum you can check against the lane's own count:
 
 ```sh
-git diff origin/main --stat -- <the flagged file>   # empty  => the file is untouched here
-git diff origin/main -- <the flagged file>          # inspect => is the flagged line in a hunk?
+git diff HEAD --name-status -M | wc -l          # tracked modifications
+git ls-files --others --exclude-standard | wc -l  # untracked, unioned in
 ```
 
-an item whose line sits outside every hunk is **not yours**. record it as a follow-on that
-predates the branch (`rule.forbid.scope-leaks`) rather than fix it inside a bounded wish.
+on the keyrack `@all` drive these read 89 and 123 — and the lane reported **212**. so the overflow
+was **scope**, never staleness, and a rebase would have cured none of it.
+
+## ⚠️ `--paths-with` takes ONE glob, and a list fails SILENTLY
+
+a comma-joined list does not parse. it matches zero files and the run dies with *"combined scope
+resolves to zero files"* — or, worse under `--join union`, yields a scope you did not intend:
+
+| invocation | targets |
+|---|---|
+| `--paths-with 'a/**/*.ts,b/**/*.ts'` | ⛔ `paths: (none)` — the whole string is one failed glob |
+| `--paths-with 'src/domain.operations/keyrack/**/*.ts'` | ✅ the keyrack subsystem |
+
+⚠️ **`--paths-with` also clears the `--diffs` default.** pass `--diffs since-main --join intersect`
+explicitly, or you review the entire subsystem rather than your change — and every item you get
+back will be pre-existing debt you must then attribute by hand.
+
+## ⚠️ .then check attribution per file
+
+an item may cite a file the branch never touched — that is the ordinary failure mode of a
+path-scoped run with the intersect dropped. confirm each before you accept or fix it:
+
+```sh
+git diff HEAD --stat -- <the flagged file>   # empty  => the file is untouched here
+git diff HEAD -- <the flagged file>          # inspect => is the flagged line in a `+` hunk?
+```
+
+`HEAD` is the right base to check against, because it **is** the merge-base whenever the branch
+carries no commits of its own.
+
+an item whose line sits outside every `+` hunk is **not yours**. record it as a follow-on that
+predates the branch (`rule.forbid.scope-leaks`) rather than fix it inside a bounded wish. an item
+whose line IS a `+` hunk is yours, and the scoped run just handed you a defect the guard could not
+reach.
+
+## .audit the scope before you trust a clean verdict
+
+a lane that received no code has no item it could report, so a vacuous run renders as
+`✨ all clear`. read `tokens.expected.md` in the run's log dir — it lists every target by path —
+and confirm the subsystem you changed is actually in the tree before you believe a `0 / 0`.
 
 ## .enforcement
 
@@ -311,6 +367,7 @@ predates the branch (`rule.forbid.scope-leaks`) rather than fix it inside a boun
   manual re-run would have produced one = **blocker** (a driver lever, filed under another owner)
 - 🚨 an overflowed lane answered by a **narrowed** re-run where `--focus pull` was available =
   **nitpick** (it drops files, and the exclusion is a judgment no later reader can check)
+- a diff-scoped verdict trusted while untracked files sit in the wish's surface = **blocker**
 
 ## .see also
 

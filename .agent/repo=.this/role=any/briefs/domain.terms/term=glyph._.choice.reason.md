@@ -7,6 +7,9 @@ distinct from the **codepoint** that identifies it. that split is the whole reas
 reached for here: this repo needs a noun for *the mark as it appears to a reader*, separate from
 *the character it happens to be*.
 
+put plainly: `glyph` is the typographic word for *a mark that carries sense*, and it names the
+**role a character plays in a render** — exactly the property this repo cares about.
+
 the word was already in use in this repo's prose (`choice.clone-glyph`,
 `rule.prefer.emoji-language`) long before it entered a contract. it is adopted, never coined.
 
@@ -43,6 +46,8 @@ value, every future caller inherits it, and the glossary must say which sense th
 word stretched over two concepts; here two words genuinely name two concepts, and the hazard was a
 premature merge that would have erased a real distinction.
 
+⇒ no other dispute is open on this term.
+
 ## .evidence — two contracts, one round, and they disagree about the KEY
 
 the pair is what proves `glyph` names a concept rather than a preferred spelt form. both return a
@@ -60,17 +65,29 @@ their difference legible — same concept, two selectors.
 that is the discovery test a term passes: **two independent sites needed the word, and each needed
 it for a different reason.**
 
-## .why not icon / symbol / badge / mark
+## .why not emoji / icon / symbol / badge / mark / sigil
 
-- `icon` — implies a pictorial stand-in for an OBJECT (a file, an app). our glyphs stand for a
-  VERDICT or a domain-root, never for an object
-- `symbol` — the widest word in the set, and already load-bearing elsewhere in software (a symbol
-  table, a `Symbol` primitive). it would collide the day this repo touches either
+- `emoji` — names the *character set*, never the role. `✓` and `├─` are glyphs in our palette and
+  are not emoji at all, so `emoji` cannot name the category. ⚠️ it is still not a forbidden synonym
+  outright — see the dispute above; what is forbidden is `emoji` used where the ROLE is meant
+- `icon` — ui vocabulary. it implies a pictorial stand-in for an OBJECT (a file, an app) and a
+  clickable affordance in a graphical surface. our glyphs stand for a VERDICT or a domain-root,
+  never for an object, and they are bytes in a terminal stream
+- `symbol` — the widest word in the set, and already in service elsewhere in software and in this
+  codebase: a symbol table, javascript's `Symbol` primitive, the `MARK_AS_HELPFUL_ERROR` registered
+  symbol key. it would collide the day this repo touches any of them, so it is an ambiguous overload
+  (`rule.forbid.domain-term-ambiguity`)
 - `badge` — implies an award or a count attached to another element. a glyph is the first word of
   a line, not an ornament on one
 - `mark` — too generic to survive a grep, and it is the stem of `marker`, which this repo already
   declares for the opposite direction (a shape an emitter prints, which we match). one stem for
   both would collapse an inbound concept into an outbound one
+- `sigil` — already taken by `define.address-sigils` for the `@` in `@all` / `@this`. one word, one
+  concept
+
+`mascot` was never a candidate — it is a **separate concept** already in use for role voices, and
+the boundary between them carries enough weight that `rule.require.keyrack-emoji-palette` devotes
+a whole table to it.
 
 ## 🔴 .evidence — a glyph has exactly ONE owner, and the round that proved it
 
@@ -115,6 +132,40 @@ two marks.
 **the durable lesson: a term whose ownership is unstated will be claimed twice, and a render that
 elides structure hides the second claim.**
 
+## .evidence — the word was already canon, and the palette is declared
+
+**the word is already canon.** `rule.require.keyrack-emoji-palette` uses `glyph` throughout and
+never `emoji` in its own prose — *"keyrack's own root glyph"*, *"the blocked leaf glyph"*,
+*"`💥` … the shared `MalfunctionError` glyph"*. this itemization records a choice the repo had
+already made in practice.
+
+**the palette is declared, not ad hoc** — nine entries with one slot and one sense each
+(`rule.require.keyrack-emoji-palette` `.the palette`).
+
+## .evidence — the pair law was settled by an incident, 2026-09-05
+
+a render change kept the class name but left the glyph hardcoded to `✋`, so
+`getKeyrackInfraInitErrorReport` emitted `✋ MalfunctionError: gh repo create failed` — the
+caller-fixable glyph on a server-fixable class. neither half was wrong alone; the **pair** was.
+the repair was to stop the two independent reads:
+
+```ts
+// before — the class read off the message, the glyph hardcoded ⇒ they can disagree
+const errorClass = redactedMessage.match(/^[^A-Za-z]*([A-Z][A-Za-z]*Error):\s*/)?.[1] ?? …;
+`   └─ ✋ ${errorClass}: ${bareMessage}`
+
+// after — one read, off the constructor ⇒ they cannot
+const ctor = input.error.constructor as { name: string; emoji?: string };
+`   └─ ${ctor.emoji ?? '✋'} ${ctor.name}: ${bareMessage}`
+```
+
+⇒ the invariant this term now carries: **a glyph and the word it pairs with are read from one
+source, or they will drift.**
+
+**a corollary settled the same day**: `.name` is not that source. `HelpfulError` never assigns
+`this.name`, so it reads `'Error'` for every subclass — a fallback that looked correct and was
+silently wrong for every error whose message had been hand-composed.
+
 ## .the neighbors this cluster keeps apart
 
 `glyph` sits between two extant declared terms, and all three are short tokens that carry a sense:
@@ -127,3 +178,8 @@ glyph   →  WE print it          (✋ 💥 😶)    → a human reads
 
 ⇒ the axis is **who authors the token, and who consumes it**. stated once here so no later round
 has to re-derive it from three separate files.
+## .see also
+
+- `term=chrome._.choice._.md` — the content-vs-chrome axis a glyph sits on (a glyph is content)
+- `term=blocked._.choice._.md` — the term whose *render* is a glyph + a class, never the word
+- `rule.require.unabridged-error-prefix` — the class half of the pair

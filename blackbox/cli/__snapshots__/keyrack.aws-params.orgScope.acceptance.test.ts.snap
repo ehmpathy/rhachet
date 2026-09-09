@@ -83,7 +83,9 @@ exports[`keyrack vault aws.params org-scope matrix (cli) given: [case2] --org @a
 exports[`keyrack vault aws.params org-scope matrix (cli) given: [case3] no --org @all (specific org testorg) → the identity hardcut surfaces at SET when: [t0] set --org testorg with no AWS_PROFILE declared for the org then: set failure stderr matches snapshot 1`] = `
 "
 🔐 keyrack set
-   └─ ✋ blocked: aws.params: no AWS_PROFILE declared for org "testorg"
+   └─ ✋ ConstraintError: aws.params: no AWS_PROFILE declared for org "testorg"
+      ├─ org: testorg
+      ├─ ran: keyrack set --key ORGSCOPE_REPO --vault aws.params --mech PERMANENT_VIA_REPLICA --owner mechanic --env test --org testorg
       └─ hint: this key is tree-scoped, so it authenticates as org "testorg"'s identity — the AWS_PROFILE this keyrack manages for that org. declare an AWS_PROFILE key for this org (env), or re-set the key with --org @all to use the grove's own identity.
 
 "

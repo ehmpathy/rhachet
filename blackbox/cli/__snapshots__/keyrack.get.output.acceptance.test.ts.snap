@@ -78,3 +78,50 @@ exports[`keyrack get --output modes given: [case7] key granted via env passthrou
 }
 "
 `;
+
+exports[`keyrack get --output modes given: [case8] --output names a mode that does not exist when: [t0] --output is misspelled then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: invalid --output: must be one of value, json, vibes
+      ├─ outputGiven: josn
+      └─ ran: keyrack get --key SOME_KEY --env test --output josn
+
+"
+`;
+
+exports[`keyrack get --output modes given: [case8] --output names a mode that does not exist when: [t1] --output names a REAL mode then: the accepted render matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.test.SOME_KEY",
+    "key": {
+      "secret": "$SECRET",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.envvar",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "test",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack get --output modes given: [case9] --value is piped to a consumer that closes early when: [t0] the reader closes the pipe before the secret is read then: both streams match snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`keyrack get --output modes given: [case9] --value is piped to a consumer that closes early when: [t1] the reader takes the whole value — the guard row then: both streams match snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "$SECRET",
+}
+`;

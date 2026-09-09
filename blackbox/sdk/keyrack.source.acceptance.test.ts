@@ -10,6 +10,18 @@ import {
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
+/**
+ * ⚠️ .note.name = the file and its describe both say `source`, and not one invocation below runs
+ *        `keyrack source` — every row is `keyrack get --for repo`. the two verbs share the
+ *        repo-sweep SHAPE, which is what the name reaches for, but they are separate commands
+ *        with separate renders and separate refusal paths
+ * .why.it.matters = a reader who asks "is `source` covered?" reads this filename and stops. the
+ *        name alone is enough to conclude that `source`'s own refusal branch is covered here.
+ *        it is not — that coverage lives with the `source` command's own suites
+ * .note.left = the name is NOT changed here: it predates this wish, and a rename moves every
+ *         snapshot key in this file for a gain unrelated to the wish (`rule.forbid.scope-leaks`).
+ *         the trap is recorded instead, so the next reader is not misled by it
+ */
 describe('keyrack.source', () => {
   // kill any stale daemon to ensure fresh daemon with current code
   beforeAll(() => killKeyrackDaemonForTests());
@@ -1022,7 +1034,66 @@ console.log('sourced:', process.env.${envKey} || 'undefined');
         status: spawnResult.status,
         stdout: spawnResult.stdout,
         stderr: spawnResult.stderr,
+        // .why.returned = the caller needs it to MASK it. a refusal on this path throws, and
+        //        node bakes the module's absolute path into the `file://` frames of the stack —
+        //        a per-run temp dir with a timestamp and a random hash. without this handle a
+        //        snapshot is green exactly once, on the run that wrote it
+        testDir,
       };
+    };
+
+    /**
+     * .what = the sdk's OWN error render — its name, message and metadata — with node's
+     *         uncaught-handler chrome cut away and the per-run temp dir masked
+     * .why = `rule.require.acceptance-journey-coverage` asks a negative path to be SNAPPED, and
+     *        its mask-then-snap doctrine answers the volatility objection directly: a journey
+     *        whose bytes move is not exempt, it is masked. so each volatile source is neutralized
+     *        rather than used as grounds to skip
+     * .the boundary this draws = the module under test does NOT catch, so node's uncaught handler
+     *        wraps the sdk's error in chrome of its own — a code frame at the head, `at` frames
+     *        below it, a `Node.js vX.Y.Z` footer at the foot. none of that is the sdk's contract:
+     *        a consumer catches the error and acts on its message and metadata, never on node's
+     *        pretty-printer. and every piece of it churns — on an edit above the throw, on a
+     *        recompile that moves the dist line, on a runtime upgrade. so the chrome is CUT, and
+     *        what is left is exactly what a caller can act on
+     * .why cut, and not masked = a mask is for a volatile value the contract still HOLDS (a temp
+     *        dir, a secret, a version a human wants spelled). node's chrome holds no fact this
+     *        surface promises — it is the harness, not the subject — so a `$NODE_VERSION` token
+     *        would pin harness shape in a contract snapshot and invite a later reader to defend
+     *        it as though the sdk emitted it
+     * .the pieces, and how each is recognized:
+     *   - the CODE FRAME is node's three-line block — `path:line`, the source line, a bare caret
+     *     — so it is found by the caret line and cut with the two lines above it. a bare-caret
+     *     line cannot occur inside a refusal message, so this cannot swallow contract bytes
+     *   - the STACK FRAMES each begin `    at `
+     *   - the FOOTER is node's `Node.js vX.Y.Z` line
+     *   - the NAME ECHO is node's `<Name>: ` prefix on the head line. `helpful-errors` already
+     *     spells the class inside its own message (`✋ ConstraintError: …`), so node's prefix
+     *     says it twice — `ConstraintError: ✋ ConstraintError: …`. the echo is cut ONLY when
+     *     the two names MATCH, so a class name that carries a fact a consumer would not
+     *     otherwise see stays put (`rule.forbid.snapshot-visual-blemishes`)
+     *   - the temp dir can still appear in the message body, so it is masked on the EXACT path
+     *     this run used, never a `/tmp/...` pattern that could swallow a real path
+     */
+    const asSdkRefusalMasked = (input: {
+      output: string;
+      testDir: string;
+    }): string => {
+      const lines = asSnapshotSafe(input.output).split('\n');
+      const caretAt = lines.findIndex((line) => /^\s*\^\s*$/.test(line));
+      const withoutCodeFrame =
+        caretAt >= 2
+          ? [...lines.slice(0, caretAt - 2), ...lines.slice(caretAt + 1)]
+          : lines;
+      return withoutCodeFrame
+        .filter(
+          (line) => !/^\s+at\s/.test(line) && !/^Node\.js v[\d.]+$/.test(line),
+        )
+        .join('\n')
+        .split(input.testDir)
+        .join('$TESTDIR')
+        .trim()
+        .replace(/^(\w+): (✋ \1:)/, '$2');
     };
 
     when('[t0] a reach rides a BULK source, with no key named', () => {
@@ -1055,19 +1126,33 @@ console.log('sourced:', process.env.${envKey} || 'undefined');
         expect(output).toContain('sourceAllKeysIntoEnv({ key, reach })');
       });
 
-      // .note = NO stderr snapshot here, deliberately, and the reason is worth a record: this
-      //         path throws, so its stderr is a raw node stack trace that embeds the temp
-      //         dir's own timestamp and random hash
-      //         (`.temp/2026-08-06T13-11-11.018Z.keyrack-sdk-reach-bulk.fde1c8c6/`).
-      //         `asSnapshotSafe` strips the paths jest reports, never the one baked into a
-      //         `file://` frame — so such a snapshot goes red on EVERY run after the one that
-      //         wrote it, and red again on any edit that moves a line above the throw
-      // .note = a first-run green on a new snapshot proves only that it was written. this one
-      //         passed once, then failed on the very next sweep — which is how it was caught
-      // .note = the three assertions above lose no coverage to its removal. they name the
-      //         message, the axis, and the hint EXPLICITLY, which is stricter than a snapshot
-      //         a human would skim — and a stack trace is not the reviewable artifact
-      //         snapshots exist to diff (rule.require.snapshots)
+      // ⚠️ .why.snapped = the three rows above each pin ONE phrase. together they cannot detect
+      //        a refusal that still holds all three and has otherwise degraded — an extra frame
+      //        leaked to the surface, a second sentence appended, a reordered body. the render
+      //        is the contract a consumer catches and shows a human, so it is snapped, per
+      //        `rule.require.acceptance-journey-coverage`
+      // .note = masked, never skipped. see `asSdkRefusalMasked` for why node's uncaught-handler
+      //         chrome — code frame, `at` frames, version footer, name echo — is CUT (it is the
+      //         harness, not the subject) while the temp dir inside the message is MASKED
+      // ⚠️ .why.two rows, never `stdout + stderr` = the CHANNEL is part of the contract, and a
+      //        joined string cannot say which stream carried which bytes. a regression that
+      //        moved the refusal onto stdout — or let the positive render leak onto stderr —
+      //        would leave a joined snapshot untouched. so stdout is pinned RAW (it proves the
+      //        refusal did not ride the success channel, and it pins surface whitespace the
+      //        stderr row's trim cannot), and stderr carries the render. `[t1]` beside this row
+      //        already snaps the two apart for the same reason
+      then('stdout matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+
+      then('the refusal render on stderr matches snapshot', () => {
+        expect(
+          asSdkRefusalMasked({
+            output: result.stderr,
+            testDir: result.testDir,
+          }),
+        ).toMatchSnapshot();
+      });
     });
 
     when('[t1] the same bulk source omits the reach', () => {

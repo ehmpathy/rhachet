@@ -1,6 +1,6 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { genTestTempDirNonRepo } from '@/blackbox/.test/infra/genTestTempDirNonRepo';
+import { genTestTempDirNonRepo } from '@src/.test/infra/genTestTempDirNonRepo';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';

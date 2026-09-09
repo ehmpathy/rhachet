@@ -324,35 +324,54 @@ describe('unlockKeyrackKeys', () => {
       });
 
       when('[t2] unlock called with no env and no repo manifest', () => {
-        then('throws ConstraintError naming --env as the fix', async () => {
-          const context: ContextKeyrack = {
-            owner: null,
-            identity,
-            hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-            repoManifest: null,
-            vaultAdapters: vaultAdaptersEmpty,
-          };
-          const error = await getError(unlockKeyrackKeys({}, context));
-          expect(error).toBeInstanceOf(ConstraintError);
-          expect(error.message).toContain('--env');
-        });
+        then(
+          'throws ConstraintError which names --env as the fix',
+          async () => {
+            const context: ContextKeyrack = {
+              owner: null,
+              identity,
+              hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+              repoManifest: null,
+              vaultAdapters: vaultAdaptersEmpty,
+            };
+            const error = await getError(unlockKeyrackKeys({}, context));
+            // ⚠️ assert the exact LEAF, never the parent. `ConstraintError extends
+            //    BadRequestError`, so `toBeInstanceOf(BadRequestError)` holds for BOTH — and
+            //    the parent is forbidden by rule.forbid.helpful-error-parents (it names no
+            //    owner, so it decides neither exit code nor remedy). the loose form therefore
+            //    admits the one class the rule bans and can never red on a regression to it
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain('--env');
+          },
+        );
       });
 
       when('[t3] a --key is asked but absent from the host manifest', () => {
-        then('throws ConstraintError naming the machine-wide key', async () => {
-          const context: ContextKeyrack = {
-            owner: null,
-            identity,
-            hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
-            repoManifest: null,
-            vaultAdapters: vaultAdaptersEmpty,
-          };
-          const error = await getError(
-            unlockKeyrackKeys({ env: 'prod', key: 'BOOTSTRAP_TOKEN' }, context),
-          );
-          expect(error).toBeInstanceOf(ConstraintError);
-          expect(error.message).toContain('machine-wide key not found');
-        });
+        then(
+          'throws ConstraintError which names the machine-wide key',
+          async () => {
+            const context: ContextKeyrack = {
+              owner: null,
+              identity,
+              hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+              repoManifest: null,
+              vaultAdapters: vaultAdaptersEmpty,
+            };
+            const error = await getError(
+              unlockKeyrackKeys(
+                { env: 'prod', key: 'BOOTSTRAP_TOKEN' },
+                context,
+              ),
+            );
+            // ⚠️ assert the exact LEAF, never the parent. `ConstraintError extends
+            //    BadRequestError`, so `toBeInstanceOf(BadRequestError)` holds for BOTH — and
+            //    the parent is forbidden by rule.forbid.helpful-error-parents (it names no
+            //    owner, so it decides neither exit code nor remedy). the loose form therefore
+            //    admits the one class the rule bans and can never red on a regression to it
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain('machine-wide key not found');
+          },
+        );
       });
     },
   );
@@ -899,7 +918,7 @@ describe('unlockKeyrackKeys', () => {
     },
   );
 
-  given('[case9] a reach asked for with no --key', () => {
+  given('[case13] a reach asked for with no --key', () => {
     // .note = never read — the guard under test fires before any context access
     const context = {} as ContextKeyrack;
 
@@ -938,7 +957,7 @@ describe('unlockKeyrackKeys', () => {
     });
   });
 
-  given('[case10] a reachless key is set, and a reach is asked for', () => {
+  given('[case14] a reachless key is set, and a reach is asked for', () => {
     const vaultAdapter = genMockVaultAdapter({
       storage: { 'testorg.test.API_KEY': 'the-reachless-secret' },
     });
@@ -1064,6 +1083,214 @@ describe('unlockKeyrackKeys', () => {
           expect(result.unlocked[0]!.reach).toBeUndefined();
         },
       );
+    });
+  });
+
+  /**
+   * .what = the clamp for `--org` as a SWEEP FILTER on unlock
+   * .why = unlock's bare scope is a UNION — repo ∪ machine-wide. `--org` narrows that set;
+   *        it does not SELECT a slug segment the way it does on a keyed ask.
+   *
+   * .note = [t0] is the row that matters most and the easiest to skip: it asserts that a NEW
+   *         flag changed NO extant behavior. a filter's default must be "no filter" — the
+   *         verb's own scope. an `@this` default here would silently drop every machine-wide
+   *         key from the swept set, a regression no other row would catch
+   */
+  given('[case11] a repo key and a machine-wide key share one env', () => {
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'testorg.camp.REPO_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'camp',
+            org: 'testorg',
+          },
+          '@all.camp.MACHINE_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'camp',
+            org: '@all',
+          },
+        },
+      }),
+      repoManifest: genMockKeyrackRepoManifest({
+        org: 'testorg',
+        envs: ['camp'],
+        keys: {
+          'testorg.camp.REPO_KEY': { env: 'camp', name: 'REPO_KEY' },
+        },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter({
+          storage: {
+            'testorg.camp.REPO_KEY': 'repo-secret',
+            '@all.camp.MACHINE_KEY': 'machine-secret',
+          },
+        }),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] the sweep names no org — THE GUARD', () => {
+      then('both unlock, byte-identical to the union default', async () => {
+        const result = await unlockKeyrackKeys({ env: 'camp' }, context);
+        expect(result.unlocked.map((k) => k.slug).sort()).toEqual([
+          '@all.camp.MACHINE_KEY',
+          'testorg.camp.REPO_KEY',
+        ]);
+      });
+    });
+
+    when('[t1] the sweep names --org @all', () => {
+      then('only the machine-wide key unlocks', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: '@all' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          '@all.camp.MACHINE_KEY',
+        ]);
+      });
+    });
+
+    when('[t2] the sweep names --org @this', () => {
+      then('only the repo key unlocks', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: '@this' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          'testorg.camp.REPO_KEY',
+        ]);
+      });
+    });
+
+    when('[t3] the sweep names a literal org that IS this repo', () => {
+      then('it agrees with @this, since @this MEANS that org', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: 'testorg' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          'testorg.camp.REPO_KEY',
+        ]);
+      });
+    });
+
+    when('[t4] the sweep names a literal org that is NOT this repo', () => {
+      // .why = the honest answer to "unlock otherorg's keys" from a testorg repo is an empty
+      //        set. a per-sigil branch could not say this — every non-@all org fell to the
+      //        repo side, so a human who named the wrong org got THIS repo's keys under it
+      then('none unlock — the filter does not mis-serve', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: 'otherorg' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([]);
+      });
+    });
+  });
+
+  /**
+   * .what = the clamp for `--org` on the NO-MANIFEST branch
+   * .why = the filter was computed inside the has-manifest branch alone, so on this path it was
+   *        never consulted. that is not a failure but a WRONG ANSWER: a caller who asked for
+   *        "this repo's keys" silently received every machine-wide key — the opposite
+   *        provenance — and only from a cwd that is not a repo. cwd-dependent, silent, on a
+   *        credential path (`rule.require.org-scope-grain-hardcut`)
+   *
+   * .note = case11 could not catch this. every row there holds a manifest, so the branch that
+   *         dropped the filter is the one no row entered — a suite proves the shape it checks
+   *         and is silent on every other
+   */
+  given('[case12] a machine-wide key, and NO repo manifest', () => {
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          '@all.camp.MACHINE_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'camp',
+            org: '@all',
+          },
+        },
+      }),
+      repoManifest: null,
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter({
+          storage: { '@all.camp.MACHINE_KEY': 'machine-secret' },
+        }),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] the sweep names no org — THE GUARD', () => {
+      then('the machine-wide key unlocks, exactly as before', async () => {
+        const result = await unlockKeyrackKeys({ env: 'camp' }, context);
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          '@all.camp.MACHINE_KEY',
+        ]);
+      });
+    });
+
+    when('[t1] the sweep names --org @all', () => {
+      then('the machine-wide key unlocks', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: '@all' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          '@all.camp.MACHINE_KEY',
+        ]);
+      });
+    });
+
+    when('[t2] the sweep names --org @this — THE DEFECT', () => {
+      // ⚠️ .why = THE ROW THIS CASE EXISTS FOR. `@this` names a repo, and there is none to
+      //         name. the answer must be a LOUD refusal — the same one `status` and `list`
+      //         give for the same ask — never a silent yield of every machine-wide key
+      then('it refuses loud, and names the fix', async () => {
+        const error = await getError(
+          unlockKeyrackKeys({ env: 'camp', org: '@this' }, context),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('--org @this');
+      });
+    });
+
+    when('[t3] the sweep names a literal org', () => {
+      // .why = the second half of the defect. a real org is not `@all`, so the honest answer is
+      //        an empty set — never the machine-wide keys served under that org's name
+      then('none unlock — the filter is honored here too', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: 'otherorg' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([]);
+      });
     });
   });
 });

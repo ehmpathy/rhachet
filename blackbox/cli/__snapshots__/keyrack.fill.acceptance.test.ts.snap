@@ -205,7 +205,10 @@ exports[`keyrack fill cli given: [case10] the LAST declared reach cannot be prov
          │  └─
 
 🔐 keyrack fill
-   └─ ✋ blocked: invalid mechanism choice
+   └─ ✋ ConstraintError: invalid mechanism choice
+      ├─ answer: 9
+      ├─ expected: 1-2
+      ├─ ran: keyrack fill --env test
       └─ hint: enter a number between 1 and 2"
 `;
 
@@ -258,6 +261,9 @@ exports[`keyrack fill cli given: [case11] the FIRST declared reach cannot be pro
       │  │  └─
 
 🔐 keyrack fill
-   └─ ✋ blocked: invalid mechanism choice
+   └─ ✋ ConstraintError: invalid mechanism choice
+      ├─ answer: 9
+      ├─ expected: 1-2
+      ├─ ran: keyrack fill --env test
       └─ hint: enter a number between 1 and 2"
 `;

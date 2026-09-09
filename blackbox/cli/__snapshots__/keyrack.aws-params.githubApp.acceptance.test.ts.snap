@@ -54,7 +54,10 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case2] g
    │  └─ ✋ could not read pem file
 
 🔐 keyrack set
-   └─ ✋ blocked: could not read pem file
+   └─ ✋ ConstraintError: could not read pem file
+      ├─ pemPath: ./no-such-file.pem
+      ├─ errorCode: ENOENT
+      ├─ ran: keyrack set --key GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP --owner mechanic --env test --org testorg
       └─ hint: check the path exists and is readable: ./no-such-file.pem"
 `;
 
@@ -62,7 +65,7 @@ exports[`keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP given: [case3] d
 "
 🔐 keyrack del
    └─ testorg.test.GITHUB_TOKEN removed
-      └─ the SSM secret at /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN was destroyed
+      └─ the ssm secret at /keyrack/infra/vault/aws.params/v1/mechanic/testorg/test/GITHUB_TOKEN was destroyed
 
 "
 `;

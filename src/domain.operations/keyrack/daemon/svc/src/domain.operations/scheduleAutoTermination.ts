@@ -28,7 +28,10 @@ const getOneDurationMs = (input: {
   if (!/^\d+$/.test(raw) || parseInt(raw, 10) <= 0)
     throw new ConstraintError(
       `${input.envVar} must be a positive integer of milliseconds`, // e.g. "900000"
-      { [input.envVar]: raw },
+      {
+        [input.envVar]: raw,
+        hint: `set ${input.envVar} to a positive integer of milliseconds, digits only, e.g. "900000" — or unset it to fall back to ${input.fallbackMs}ms`,
+      },
     );
 
   return parseInt(raw, 10);

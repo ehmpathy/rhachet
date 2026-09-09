@@ -103,6 +103,36 @@ checkable rules a reviewer can hold the term to:
 4. **the vault sense is boundary-only** — `adapter.unlock` may name a decrypt inside an adapter; no
    domain operation outside an adapter may use `unlock` for a read
 
+## .the bound — settled 2026-09-06: an unlock cures a LOCKED key, never an ABSENT one
+
+`unlock` presupposes a key that **exists and is sealed**. it has no answer for a key the rack does
+not hold. the two states are disjoint, and their remedies do not overlap:
+
+| state | what it means | the remedy |
+|---|---|---|
+| **locked** | the rack holds the key; this session cannot read it | `unlock` |
+| **absent** | the rack does not hold the key at all | `set` / `fill` — a **provision** |
+
+⚠️ **the evidence is an error i repeated four times.** `ehmpathy.test.AWS_PROFILE` had never been
+provisioned onto the rack. i read the tier's `status: errored 💥` and its `aws sso login timed out`
+as *locked*, and re-ran `unlock` on four separate occasions — the last time even after a status
+read had shown the key absent from the daemon. an unlock cannot conjure a key it was never given.
+
+⇒ the surfaced fault must name **which** state it is in, because the two cost a human different
+acts: one is a browser prompt, the other a one-time provision. a message that says only "could not
+get the key" leaves the reader to guess, and i guessed wrong four times with the evidence in hand.
+
+**this is the same distinction `getPemContent.ts` carries in code** — `ENOENT` (the path is absent)
+versus `EACCES` (it exists, you may not read it) — kept there precisely because "could not read"
+collapses two faults with two different fixes (`rule.require.refusals-carry-context`). i wrote that
+note this round and then failed to apply its shape when i read the rack.
+
+⏳ **the term `absent` is NOT paved, and this round does not pave it.** it sits in an unresolved
+cluster with `miss` and `omitted` (both paved), and which of the three names *"the rack does not
+hold it"* versus *"the sweep did not return it"* versus *"the caller did not ask for it"* is a
+discovery pass, not a keyboard. flagged so the next traveler finds the question rather than a
+guess.
+
 ## .see also
 
 - `term=reach._.choice._.md` — the axis the proposed operation name carried

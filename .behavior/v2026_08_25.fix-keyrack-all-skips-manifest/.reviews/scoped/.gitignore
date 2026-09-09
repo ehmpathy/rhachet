@@ -1,0 +1,8 @@
+# ignore all scoped-review files
+#
+# .why = these are review OUTPUT, the same kind the neighbor `peer/` dir already ignores. left
+#        tracked, they join `--diffs since-main` and are reviewed as TARGETS on the next round —
+#        so each scoped re-run written to work around a context overflow makes that overflow
+#        deeper. the artifacts are the record a human reads, never a deliverable to grade.
+*
+!.gitignore

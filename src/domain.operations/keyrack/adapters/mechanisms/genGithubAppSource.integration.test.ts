@@ -171,9 +171,9 @@ describe('genGithubAppSource', () => {
    *
    * .what = a key declared by `ahbode`, cut for the `ehmpathy` reach. the lookup must
    *         follow the REACH, not the slug's own org
-   * .why = `genGithubAppSource.ts:49-51` is the single line this feature adds. it is
-   *        "dispatch from `ahbode/svc-quotes` into `ehmpathy/rhachet`" — the vision's very
-   *        first example, and its headline demo
+   * .why = the reach-over-slug lookup in `genGithubAppSource.ts` is the single line this
+   *        feature adds. it is "dispatch from `ahbode/svc-quotes` into `ehmpathy/rhachet`"
+   *        — the vision's very first example, and its headline demo
    *
    * .note = the registry is seeded under `ehmpathy` and left ABSENT under `ahbode`. that
    *         asymmetry is the whole test: if the lookup ever fell back to the slug's org it

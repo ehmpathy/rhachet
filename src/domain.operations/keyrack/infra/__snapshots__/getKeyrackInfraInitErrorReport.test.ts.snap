@@ -3,9 +3,10 @@
 exports[`getKeyrackInfraInitErrorReport given: [case1] a helpful error with slug + stderr + hint metadata when: [t0] the blocked report is built then: the blocked treestruct stays locked 1`] = `
 "
 🔐 keyrack infra init
-   └─ ✋ blocked: gh repo create failed
+   └─ 💥 MalfunctionError: gh repo create failed
       ├─ repo: ehmpathy/keyrack-infra
       ├─ stderr: HTTP 403: forbidden
+      ├─ status: 1
       └─ hint:
          ├─ if unauthenticated, run \`gh auth status\`
          └─ if authenticated but forbidden (403), ask an org owner to grant you repo-create access
@@ -15,6 +16,6 @@ exports[`getKeyrackInfraInitErrorReport given: [case1] a helpful error with slug
 exports[`getKeyrackInfraInitErrorReport given: [case2] a plain error with no metadata when: [t0] the blocked report is built then: the minimal blocked treestruct stays locked 1`] = `
 "
 🔐 keyrack infra init
-   └─ ✋ blocked: the wave wiped out
+   └─ 💥 Error: the wave wiped out
 "
 `;

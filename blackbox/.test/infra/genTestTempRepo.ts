@@ -69,6 +69,19 @@ export const genTestTempRepo = async (input: {
   suffix?: string;
   /** run pnpm install after copy (for fixtures with package.json) */
   install?: boolean;
+  /**
+   * .what = a legacy host-manifest body to write into the temp repo, in place of one
+   *         vendored under the fixture dir
+   * .why = `KeyrackKeyHost` requires `createdAt`/`updatedAt`, and a committed `.json` that
+   *        carries them trips `.husky/check.timestamps.sh` — which exempts `.ts` and `.sh`
+   *        because code legitimately carries time logic. so a rack that needs host rows is
+   *        BUILT by a `.ts` generator and handed in here
+   * .note = it must land BEFORE `convertLegacyManifest` runs, which is why this is an input
+   *         rather than a write the caller makes on the returned path. a post-write is never
+   *         converted to the encrypted `.age` the cli actually reads, so the repo reads as
+   *         `no host manifest found` while the json sits right there
+   */
+  hostManifestJson?: string;
 }): Promise<{
   /** absolute path to the test repo */
   path: string;
@@ -91,6 +104,16 @@ export const genTestTempRepo = async (input: {
 
   // setup .ssh directory with test key so findDefaultSshKey() works
   setupTestSshKey({ repoPath });
+
+  // write a generated host manifest, if one was supplied — BEFORE the conversion below
+  if (input.hostManifestJson) {
+    mkdirSync(join(repoPath, '.rhachet'), { recursive: true });
+    writeFileSync(
+      join(repoPath, '.rhachet', 'keyrack.manifest.json'),
+      input.hostManifestJson,
+      'utf8',
+    );
+  }
 
   // convert old manifest format to encrypted format if needed
   await convertLegacyManifest({ repoPath });

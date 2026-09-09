@@ -1,3 +1,5 @@
+import { MalfunctionError } from 'helpful-errors';
+
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { isDaemonReachable } from '@src/domain.operations/keyrack/daemon/sdk/src/infra/connectToKeyrackDaemon';
 import { spawnKeyrackDaemonBackground } from '@src/domain.operations/keyrack/daemon/svc';
@@ -37,8 +39,17 @@ export const findsertKeyrackDaemon = async (input?: {
   }
 
   // daemon did not become reachable in time
-  throw new Error(
+  // .why = a spawned daemon that never answers is a server-side operational failure; the
+  // caller passed no input that could cause it, so no caller edit can fix it
+  throw new MalfunctionError(
     `keyrack daemon did not become reachable within ${maxWaitMs}ms`,
+    {
+      socketPath,
+      maxWaitMs,
+      pollIntervalMs,
+      waitedMs: Date.now() - startTime,
+      hint: `check the daemon: \`ls -l ${socketPath}\` for the socket, then \`rhx keyrack status\` to re-probe. if the socket is absent, run the daemon in the foreground to read its startup logs`,
+    },
   );
 };
 

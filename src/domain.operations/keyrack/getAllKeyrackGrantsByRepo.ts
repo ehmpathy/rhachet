@@ -42,9 +42,20 @@ export const getAllKeyrackGrantsByRepo = async (
 ): Promise<KeyrackGrantAttempt[]> => {
   // validate manifest exists
   if (!context.repoManifest) {
+    // ⚠️ the fix names the COMMAND that makes the manifest, never the file to hand-author.
+    //    this is the one remedy every "no repo keyrack.yml" refusal offers, and it must read the
+    //    same everywhere — `asKeyrackFilterOrg.ts` already spells it this way for the sweep
+    //    verbs, so a human who meets it twice reads one instruction, not two
+    //    (`rule.require.errors-name-the-fix`). the prior text — "create keyrack.yml in repo root
+    //    with env and key definitions" — named a file and left its schema to guesswork, which is
+    //    a description of the goal rather than a step toward it.
+    // .why.no-parenthetical = the sweep-verb twin appends "(or filter by --org @all for
+    //    machine-wide keys)", and that escape is real THERE because a sweep can be re-scoped.
+    //    this throw serves a REPO-scoped ask by definition, so no `--org @all` re-scope exists
+    //    to offer — to append it here would name a fix that does not fix.
     throw new ConstraintError(
       'no keyrack.yml found in repo. --for repo requires keyrack.yml',
-      { hint: 'create keyrack.yml in repo root with env and key definitions' },
+      { hint: 'run: rhx keyrack init --org <your-org>' },
     );
   }
 

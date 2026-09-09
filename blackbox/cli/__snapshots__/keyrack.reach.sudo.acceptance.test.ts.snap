@@ -21,8 +21,10 @@ exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reache
 exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t2] the sudo key is asked at a reach it was NOT cut for then: the refusal render is snapped: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
+   └─ ✋ ConstraintError: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
       ├─ machine: @all.sudo.SUDO_AT_REACH
+      ├─ reach: github://org=nowhere
+      ├─ ran: keyrack unlock --env sudo --key SUDO_AT_REACH --reach github://org=nowhere
       └─ hint: cut the key — rhx keyrack set --key SUDO_AT_REACH --env sudo --org @all --reach github://org=nowhere
 
 "
@@ -57,8 +59,10 @@ exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reache
 exports[`keyrack reach on a sudo key given: [case1] a sudo key cut at two reaches, and no reachless twin when: [t5] an uncut reach is asked for in robot mode (--json) then: the refused robot stderr is snapped: stderr 1`] = `
 "
 🔐 keyrack unlock
-   └─ ✋ blocked: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
+   └─ ✋ ConstraintError: credential at reach 'github://org=nowhere' does not exist — each reach needs its own key
       ├─ machine: @all.sudo.SUDO_AT_REACH
+      ├─ reach: github://org=nowhere
+      ├─ ran: keyrack unlock --env sudo --key SUDO_AT_REACH --reach github://org=nowhere --json
       └─ hint: cut the key — rhx keyrack set --key SUDO_AT_REACH --env sudo --org @all --reach github://org=nowhere
 
 "

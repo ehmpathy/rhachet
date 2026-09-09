@@ -144,7 +144,7 @@ describe('mechAdapterGithubApp', () => {
       // NO endpoint-override seam, unlike the SSM read path). but the mint's caller-fixable ERROR path
       // IS creds-free: a malformed .pem fails at the LOCAL jwt sign step (node crypto), BEFORE any
       // network call, so this proves deliverForGet converts that crypto fault into a ConstraintError
-      // that names the fix — the one slice of the mint provable without GitHub (mechAdapterGithubApp.ts:236)
+      // that names the fix — the one slice of the mint provable without GitHub (`deliverForGet`)
       when(
         '[t0] deliverForGet called with a syntactically-valid-json but non-rsa private key',
         () => {
@@ -179,9 +179,10 @@ describe('mechAdapterGithubApp', () => {
       // acquireForSet with no injected question; stdin is not a terminal, so the guided pem
       // prompt can never be answered — it MUST fail loud, never open a readline that hangs.
       //
-      // the no-TTY guard is deferred to the actual pem-read point (mechAdapterGithubApp.ts:150):
-      // discovery runs first, so a mock gh runner seeds ONE registered app for the org, which
-      // auto-selects (no choice prompt). the flow then reaches getPemPath, whose first prompt
+      // the no-TTY guard is deferred to the actual pem-read point — `getPemPath`, in
+      // mechAdapterGithubApp.ts. discovery runs first, so a mock gh runner seeds ONE registered
+      // app for the org, which auto-selects (no choice prompt). the flow then reaches
+      // getPemPath, whose first prompt
       // trips the guard on the forced non-TTY stdin. the injected runner also keeps the unit
       // test hermetic — it never touches the real gh cli (rule.forbid.unit.remote-boundaries).
       const ghRun = genMockGhRun({

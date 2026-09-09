@@ -3,29 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import { asKeyrackKeyName } from './asKeyrackKeyName';
-import { isValidKeyrackEnv } from './constants';
-
-/**
- * .what = detect if a string is a full slug (org.env.key) or raw key name
- * .why = cli accepts both formats; need to know which to extract
- *
- * .note = returns parsed parts if full slug, null if raw key
- */
-const parseFullSlug = (input: {
-  key: string;
-}): { org: string; env: string; keyName: string } | null => {
-  const parts = input.key.split('.');
-  if (parts.length < 3) return null;
-
-  const org = parts[0]!;
-  const env = parts[1]!;
-  const keyName = parts.slice(2).join('.');
-
-  // must have valid env to be a full slug
-  if (!isValidKeyrackEnv(env)) return null;
-
-  return { org, env, keyName };
-};
+import { asKeyrackOrgMismatchRefusal } from './asKeyrackOrgMismatchRefusal';
+import { asKeyrackSlugFullOrNull } from './asKeyrackSlugFullOrNull';
 
 /**
  * .what = find all envs that contain a given raw key name
@@ -67,7 +46,7 @@ export const asKeyrackKeySlug = (input: {
   const org = input.manifest.org;
 
   // check if full slug format
-  const parsed = parseFullSlug({ key: input.key });
+  const parsed = asKeyrackSlugFullOrNull({ key: input.key });
 
   if (parsed) {
     // @all is a MACHINE-WIDE sigil — it belongs to no org, so it is never compared
@@ -78,10 +57,12 @@ export const asKeyrackKeySlug = (input: {
 
     // validate org matches manifest (the machine-wide @all sigil is exempt)
     if (!isMachineWide && slugOrg !== org) {
-      throw new ConstraintError(
-        `slug org '${parsed.org}' does not match manifest org '${org}'`,
-        { code: 'ORG_MISMATCH', slugOrg: parsed.org, manifestOrg: org },
-      );
+      throw asKeyrackOrgMismatchRefusal({
+        givenBy: 'slug',
+        orgRejected: parsed.org,
+        orgOfManifest: org,
+        key: input.key,
+      });
     }
 
     // validate --env matches slug env (if both provided)

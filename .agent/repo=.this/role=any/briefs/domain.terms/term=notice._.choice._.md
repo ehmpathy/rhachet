@@ -61,10 +61,32 @@ that is `rule.forbid.domain-term-synonyms` at a published surface.
 every omitted row names the one-at-a-time fix that reaches it
 (`rule.require.errors-name-the-fix`, applied to a success path).
 
+## ⚠️ .two shapes, one noun — `as*` vs `emit*`
+
+a notice is absent in the normal case, and there are two ways to spell that absence. both are
+the same noun; the prefix says who decides:
+
+| shape | absence spelled as | when to reach for it |
+|-------|--------------------|----------------------|
+| `as$Noun` | returns `null`, and the caller decides what to do with a string | the caller composes the render into a larger tree it already owns |
+| `emit$Noun` | the caller guards the call, and the emitter always renders | the render is a whole, self-contained block on its own stream |
+
+`asKeyrackReachOmittedNotice` takes the first shape — its rows nest under the `🔐 keyrack source`
+tree the caller already prints. `emitKeyrackEmptyMachineWideSweepNotice` takes the second — it owns
+a standalone block on **stderr**, because `source`'s stdout is `eval`'d by the shell.
+
+the noun is the same either way: both name work a successful command did not carry, and both are
+absent whenever there is none.
+
 ## .refs
-- `src/domain.operations/keyrack/cli/asKeyrackReachOmittedNotice.ts`  # the sole notice today
+- `src/domain.operations/keyrack/cli/asKeyrackReachOmittedNotice.ts`  # the `as*` shape
+- `src/domain.operations/keyrack/cli/emitKeyrackEmptyMachineWideSweepNotice.ts`  # the `emit*` shape
 - `src/domain.operations/keyrack/cli/emitKeyrackDurationCapWarn.ts`  # the `warn` it is not
 - `src/domain.operations/keyrack/getKeyrackBlockedReport.ts`  # the `report` it is not
+
+## .see also
+- `term=report._.choice._.md` — the peer noun this file's table contrasts against, and the
+  authority on what a report leaf may hold
 
 ## .reason
 see the ref-level cluster beside this choice:

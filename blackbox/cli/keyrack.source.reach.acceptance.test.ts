@@ -505,15 +505,20 @@ describe('keyrack source reach', () => {
         expect(result.stderr).toContain('beav@ehmpathy.com');
       });
 
-      // ⚠️ THE clamp. a bare throw prints `✋ ConstraintError:` with no `🔐` root and trails
-      //    an `[args]` echo of the raw argv — both are asserted against here, so a revert of
-      //    the catch turns this red on two independent lines
+      // ⚠️ THE clamp. a bare throw prints `✋ ConstraintError:` FLUSH-LEFT with no `🔐` root and
+      //    trails an `[args]` echo of the raw argv — both are asserted against here, so a revert
+      //    of the catch turns this red on two independent lines
+      // ⚠️ .note = the tell is the ROOT and the TRAILER, never the class token. the tree prints
+      //    `✋ ConstraintError:` too — indented, under `🔐` — and that is REQUIRED
+      //    (`rule.require.unabridged-error-prefix`). this row read `not.toContain('ConstraintError:')`
+      //    until 2026-09-05, which forbade the class outright and so held the regression in place
       then('it renders the blocked treestruct, not a raw error dump', () => {
         expect(result.stderr).toContain('🔐 keyrack source');
         expect(result.stderr).not.toContain('bummer dude');
         expect(result.stderr).not.toContain('🐢');
         expect(result.stderr).not.toContain('[args]');
-        expect(result.stderr).not.toContain('ConstraintError:');
+        expect(result.stderr).toContain('✋ ConstraintError: ');
+        expect(result.stderr).not.toMatch(/^✋ ConstraintError:/m);
       });
 
       // .note = the hint must name `source`, never `get` or `unlock`. that is precisely why

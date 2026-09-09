@@ -2,7 +2,7 @@
 
 exports[`keyrack status: locked vs absent given: [case1] key was never set (truly absent) when: [t0] get --key NONEXISTENT_KEY --env sudo --json then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env sudo",
+  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env sudo --org @all",
   "message": "credential '@all.sudo.NONEXISTENT_KEY' does not exist. set it first.",
   "slug": "@all.sudo.NONEXISTENT_KEY",
   "status": "absent",
@@ -26,7 +26,7 @@ exports[`keyrack status: locked vs absent given: [case2] key was set but not unl
 
 exports[`keyrack status: locked vs absent given: [case2] key was set but not unlocked (locked) when: [t1] get --key LOCKED_KEY --env sudo --json (after set, before unlock) then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack unlock --env sudo --key LOCKED_KEY",
+  "fix": "rhx keyrack unlock --env sudo --key LOCKED_KEY --org @all",
   "message": "credential '@all.sudo.LOCKED_KEY' is locked. unlock it first.",
   "slug": "@all.sudo.LOCKED_KEY",
   "status": "locked",
@@ -90,7 +90,7 @@ exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon 
 
 exports[`keyrack status: locked vs absent given: [case3] set invalidates daemon cache (relock) when: [t2] get after set returns locked (not stale value) then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack unlock --env sudo --key RELOCK_TEST_KEY",
+  "fix": "rhx keyrack unlock --env sudo --key RELOCK_TEST_KEY --org @all",
   "message": "credential '@all.sudo.RELOCK_TEST_KEY' is locked. unlock it first.",
   "slug": "@all.sudo.RELOCK_TEST_KEY",
   "status": "locked",

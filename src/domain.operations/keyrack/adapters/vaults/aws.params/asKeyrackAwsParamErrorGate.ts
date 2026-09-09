@@ -208,7 +208,7 @@ export const asKeyrackAwsParamErrorGate = (
     /throttl|rate exceeded|InternalServerError/i.test(message)
   )
     return new MalfunctionError(
-      `aws.params SSM ${op} hit a transient throttle or 5xx`,
+      `aws.params ssm ${op} hit a transient throttle or 5xx`,
       {
         exid: input.exid,
         region,
@@ -221,11 +221,11 @@ export const asKeyrackAwsParamErrorGate = (
     );
 
   // unknown → a real malfunction, surfaced with context + the raw line, never masked
-  return new MalfunctionError(`aws.params SSM ${op} failed`, {
+  return new MalfunctionError(`aws.params ssm ${op} failed`, {
     exid: input.exid,
     region,
     hint: [
-      'an unexpected SSM error — inspect the cause; this was never mapped to a known gate',
+      'an unexpected ssm error — inspect the cause; this was never mapped to a known gate',
       rawLine,
     ].join('; '),
     cause: causeError,

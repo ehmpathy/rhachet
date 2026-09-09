@@ -37,7 +37,7 @@ export const asKeyrackDelReport = (input: {
     return [
       ...header,
       `   └─ ${input.address} removed`,
-      `      └─ the SSM secret at ${input.destroyed.exid} was destroyed`,
+      `      └─ the ssm secret at ${input.destroyed.exid} was destroyed`,
       '',
     ].join('\n');
 

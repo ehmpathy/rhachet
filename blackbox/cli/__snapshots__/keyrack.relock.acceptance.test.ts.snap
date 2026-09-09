@@ -9,7 +9,7 @@ Options:
   --owner <owner>  owner identity (e.g., mechanic, foreman)
   --for <owner>    alias for --owner
   --env <env>      filter by env (test, prod, prep, all, sudo, camp)
-  --key <slug>     relock specific key
+  --key <slug>     relock specific key (machine-wide: @all.<env>.<name>)
   --json           output as json (robot mode)
   -h, --help       display help for command
 "

@@ -19,19 +19,25 @@ across every output mode.
 | mode | root | example |
 |------|------|---------|
 | **success / operation** | `🔐 {command}` (keyrack signature — no vibe header) | `🔐 keyrack set …`, `🔐 keyrack list`, `🔐 keyrack firewall`, `🔐 keyrack infra init` |
-| **blocked / error** | `🔐 {command}` + `└─ ✋ blocked: …` (keyrack signature — no seaturtle header) | `getKeyrackBlockedReport`, `getKeyrackInfraInitErrorReport` |
+| **blocked / error** | `🔐 {command}` + `└─ ✋ ConstraintError: …` / `└─ 💥 MalfunctionError: …` (keyrack signature — no seaturtle header) | `getKeyrackBlockedReport`, `getKeyrackInfraInitErrorReport` |
 
 **every** keyrack output roots directly on `🔐 {command}` — no `🐢 cowabunga!`/`🐢 righteous!`
 success vibe header, and no `🐢 bummer dude…` blocked vibe header. a keyrack line that opens
 with any `🐢` mascot header **diverges** from this convention and is a defect. keyrack is a
 credential **domain**, not a rhachet **role**, so no role mascot belongs in its output — the
 fresh-vs-found / blocked signal belongs in the leaf phrases (`✨ created` / `👌 already found`
-/ `✋ blocked`), not a mascot at the root.
+/ the blocked node), not a mascot at the root.
 
-the blocked path keeps the shared **`✋ blocked: {message}`** node and the fix-naming **`hint`**
-leaves (the repo-wide ergonomist recovery grammar, `rule.require.errors-name-the-fix`) — only
-the **root** is keyrack's own `🔐`, in place of the shared `🐢 bummer dude…`/`🐚` header. so
-`🐢` never appears in keyrack output at all.
+the blocked path keeps the shared **`{glyph} {ClassName}: {message}`** node and the **`hint`**
+leaves that name the fix (the repo-wide ergonomist recovery grammar,
+`rule.require.errors-name-the-fix`) — only the **root** is keyrack's own `🔐`, in place of the
+shared `🐢 bummer dude…`/`🐚` header. so `🐢` never appears in keyrack output at all.
+
+⚠️ **the node names the ERROR CLASS, never the term `blocked`.** the glyph and the class are a
+PAIR — `✋ ConstraintError` (the caller fixes it, exit 2) and `💥 MalfunctionError` (the server
+fixes it, exit 1) — and both are read off the error's own constructor, so they cannot drift.
+a node that reads `✋ blocked:` has dropped the one token that names the owner
+(`rule.require.unabridged-error-prefix`).
 
 ## .why
 
@@ -56,11 +62,11 @@ the **root** is keyrack's own `🔐`, in place of the shared `🐢 bummer dude�
 | glyph | slot | denotes |
 |-------|------|---------|
 | `🔐` | **root** (keyrack's own, in place of `🐚` / a `🐢` mascot header) | a keyrack credential operation OR a keyrack failure (`keyrack set`, `keyrack firewall`, a blocked report, …) |
-| `✋` | blocked leaf | the blocked node under the `🔐` root on a failure (`✋ blocked: {message}`) |
+| `✋` | blocked leaf | the blocked node under the `🔐` root on a CALLER-fixable failure (`✋ ConstraintError: {message}`) — the shared `ConstraintError` glyph, exit 2 |
 | `🔑` | status leaf | a granted key / access confirmed |
 | `🔗` | value leaf | an auth url the human must visit |
 | `🚫` | status leaf | access blocked |
-| `💥` | status leaf | a per-key **malfunction** in a batch unlock — a live fault (throttle, network, decrypt-denied, no-identity) that was isolated so the batch continued (the shared `MalfunctionError` glyph; distinct from `🚫` access-blocked and `🫧` absent) |
+| `💥` | blocked leaf **and** status leaf | (a) the blocked node under the `🔐` root on a SERVER-fixable failure (`💥 MalfunctionError: {message}`) — the shared `MalfunctionError` glyph, exit 1; (b) a per-key **malfunction** in a batch unlock — a live fault (throttle, network, decrypt-denied, no-identity) that was isolated so the batch continued. one glyph, one sense: *the server broke*. distinct from `🚫` access-blocked and `🫧` absent |
 | `🫧` | status leaf | credential absent / not yet filled — the rack does not hold it at the shape asked for (omission reason `absent`) |
 | `👻` | status leaf | credential **lost** — the rack holds a record, but the vault no longer serves the value (omission reason `lost`). distinct from `🫧`: the record is present, the value is gone, so the remedy is to re-cut rather than to first register |
 | `🌐` | status leaf | credential **remote** — a write-only vault, whose `get` is null by construction (omission reason `remote`). not a fault at all: the value lives somewhere this host cannot read, so no local remedy applies |

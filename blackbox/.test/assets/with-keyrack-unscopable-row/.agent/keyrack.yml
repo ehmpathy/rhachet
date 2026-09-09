@@ -1,0 +1,7 @@
+org: testorg
+
+env.prep:
+  - API_KEY
+
+env.test:
+  - API_KEY

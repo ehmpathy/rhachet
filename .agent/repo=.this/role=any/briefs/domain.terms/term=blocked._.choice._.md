@@ -61,6 +61,32 @@ its render agree:
 `refused` also collides with the reach vocabulary, where REFUSED is a mech's reach policy
 (`KeyrackMechReachPolicy`) — one word, two senses.
 
+## ⚠️ .`blocked` is the TERM, never the rendered word
+
+the term names the **state**. the render names the **class**:
+
+```
+🔐 keyrack fill
+   └─ ✋ ConstraintError: invalid mechanism choice
+      └─ hint: enter a number between 1 and 2
+```
+
+⇒ the node reads `✋ ConstraintError:`, **not** `✋ blocked:`. that is not a drift away from this
+term — it is the term's own admission rule, rendered. exactly one error word may render blocked
+(the table above), so the class name at the node **is** the statement that the fault is blocked,
+and it carries the owner and the exit code besides
+(`rule.require.unabridged-error-prefix`).
+
+⚠️ a node that reads `✋ blocked:` is a **regression**, not a synonym: `✋` says *refused* and
+`blocked` restates it, so the pair spends two tokens on one fact and drops the owner. the render
+this cluster is about is the one place the class must appear verbatim.
+
+| where | the word |
+|---|---|
+| this glossary, briefs, prose | `blocked` — the state |
+| the operation names | `getKeyrackBlockedReport`, `emitKeyrackBlockedReport` |
+| **the rendered node** | **`ConstraintError`** — the class, verbatim |
+
 ## .the invariant
 
 > a keyrack command that refuses an input owes a human THREE: the blocked tree, on **stderr**,
@@ -128,10 +154,11 @@ would satisfy the type and still fail `rule.require.errors-name-the-fix`.
 
 ## .refs
 - `src/domain.operations/keyrack/cli/emitKeyrackBlockedReport.ts`  # the emit + the exit, paired
-- `src/domain.operations/keyrack/getKeyrackBlockedReport.ts`  # the render itself
+- `src/domain.operations/keyrack/getKeyrackBlockedReport.ts`  # the render, which names the CLASS at the node
 - `src/domain.operations/keyrack/inferKeyrackMechForSet.ts`  # the throw that must be a leaf
 - `src/access/daos/daoKeyrackHostManifest/index.ts`  # ⚠️ four violation sites — see above
-- `.agent/repo=.this/role=any/briefs/rule.forbid.helpful-error-parents.md`  # the rule this term rests on
+- `.agent/repo=.this/role=any/briefs/rule.forbid.helpful-error-parents.md`  # the class must be a LEAF
+- `.agent/repo=.this/role=any/briefs/rule.require.unabridged-error-prefix.md`  # that leaf must SURVIVE the render
 
 ## .reason
 see the ref-level cluster beside this choice:

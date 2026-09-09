@@ -35,3 +35,14 @@ exports[`asKeyrackListTreestruct given: [case2] one slug held at three reaches w
   "      └─ vault: os.secure",
 ]
 `;
+
+exports[`asKeyrackListTreestruct given: [case3] the narrowed rack is EMPTY when: [t0] the host held keys, and a filter ate them all then: the render a human reads is snapped 1`] = `
+[
+  "",
+  "🔐 keyrack list",
+  "   └─ no keys matched this filter",
+  "      ├─ filter: --org @al",
+  "      ├─ of: 29 keys held on this host",
+  "      └─ fix: check the filter — \`--org @all\` for machine-wide keys, \`--org @this\` for this repo, or drop it to see every key",
+]
+`;
