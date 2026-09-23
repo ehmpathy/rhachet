@@ -53,6 +53,22 @@ const TEST_CASES: TestCase[] = [
     expect: ['tail'],
   },
   {
+    description: 'drops the boolean --async with no value',
+    given: {
+      args: ['claude', '--async', '--print'],
+      positionalBrain: 'claude',
+    },
+    expect: ['--print'],
+  },
+  {
+    description: 'drops the boolean --watch with no value',
+    given: {
+      args: ['claude', '--watch', '--print'],
+      positionalBrain: 'claude',
+    },
+    expect: ['--print'],
+  },
+  {
     description: 'drops the inline --flag=value forms',
     given: {
       args: ['claude', '--as=@:x', '--reason=y', '--print'],

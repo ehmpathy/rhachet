@@ -14,23 +14,34 @@ import { spawn } from 'node:child_process';
  *     process, so genClone stays composable and the CALLER forwards the exit code —
  *     one owner of process lifecycle, not a spawn buried in a leaf
  *
- * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial), so even a
- *   socket-less clone can name itself via `clone whoami`. the env-injection shape is
- *   WET across this + genBrainCliPtyClone by design; a THIRD spawn branch (the
- *   dream's `wake`) is the rule-of-three trigger to extract a shared genCloneChildEnv
+ * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial) and its own
+ *   depth, so even a socket-less clone can name itself via `clone whoami` and is bound
+ *   by the same enroll-depth budget. the env-injection shape is WET across this +
+ *   genBrainCliPtyClone by design; a THIRD spawn branch (the dream's `wake`) is the
+ *   rule-of-three trigger to extract a shared genCloneChildEnv
  */
 export const genBrainCliPlainClone = (input: {
   command: string;
   args: string[];
   cwd: string;
   serial: string;
+  /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
+  depth: number;
 }): {
   socketPath: null;
   pid: number;
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 } => {
-  const env = { ...process.env, [CLONE_ENV_KEYS.serial]: input.serial };
+  const env = {
+    ...process.env,
+    [CLONE_ENV_KEYS.serial]: input.serial,
+    [CLONE_ENV_KEYS.depth]: String(input.depth),
+    // a socket-less clone owns no socket, so the key is ABSENT rather than the parent's path.
+    // `spawn` omits an `undefined` value from the child env, which leaves the child in the same
+    // state a non-clone shell is in — the state a future reader branches on correctly
+    [CLONE_ENV_KEYS.socket]: undefined,
+  };
 
   const child = spawn(input.command, input.args, {
     cwd: input.cwd,

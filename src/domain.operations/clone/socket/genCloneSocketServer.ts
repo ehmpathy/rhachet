@@ -2,11 +2,32 @@ import { MalfunctionError } from 'helpful-errors';
 
 import { chmodSync, unlinkSync } from 'node:fs';
 import { createServer, type Server, type Socket } from 'node:net';
+import { genCloneLoopLagWatch } from '../genCloneLoopLagWatch';
+import { getCloneTraceSink } from '../getCloneTraceSink';
+import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
+import { writeCloneTraceLine } from '../writeCloneTraceLine';
 import { asCloneDispatchAckFrame } from './asCloneDispatchAckFrame';
 import { asCloneDispatchFrame } from './asCloneDispatchFrame';
 import { asCloneDispatchFrameSplit } from './asCloneDispatchFrameSplit';
-import { computeCloneSubmitDelay } from './computeCloneSubmitDelay';
-import { CLONE_SUBMIT, CLONE_WIRE_FRAME_MAX_BYTES } from './constants';
+import { asCloneGetReplyFrame } from './asCloneGetReplyFrame';
+import { asCloneGetReplyFromScreen } from './asCloneGetReplyFromScreen';
+import {
+  awaitCloneAuthGate,
+  type CloneAuthGateOutcome,
+} from './awaitCloneAuthGate';
+import {
+  awaitCloneSubmitReady,
+  getCloneSubmitBaseline,
+} from './awaitCloneSubmitReady';
+import { computeCloneAcceptRoute } from './computeCloneAcceptRoute';
+import { computeCloneScreenDispatchGate } from './computeCloneScreenDispatchGate';
+import {
+  CLONE_AUTH_GATE_TIMEOUT_MS,
+  CLONE_LOOP_LAG_THRESHOLD_MS,
+  CLONE_LOOP_LAG_TICK_MS,
+  CLONE_SUBMIT,
+  CLONE_WIRE_FRAME_MAX_BYTES,
+} from './constants';
 import {
   CLONE_SOCKET_BIND_TIMEOUT_MARK,
   CLONE_SOCKET_BIND_TIMEOUT_MS,
@@ -14,7 +35,6 @@ import {
 import { type CloneWriteQueue, genCloneWriteQueue } from './genCloneWriteQueue';
 import { isCallerSameUser } from './isCallerSameUser';
 import { isCloneSocketBindFaultError } from './isCloneSocketBindFaultError';
-import { isSafeCloneDispatchInput } from './isSafeCloneDispatchInput';
 
 /**
  * .what = stand up one clone's dispatch socket server — accepts same-user `say`
@@ -45,6 +65,29 @@ export const genCloneSocketServer = (
     socketPath: string;
     write: (bytes: string) => void;
     isBrainCliAlive: () => boolean;
+    /**
+     * .what = read the currently-rendered screen, for a `probe` read
+     * .why = a `probe` reads the clone's input state off this rendered grid — never the pty
+     *   byte stream (define.pty-stream-vs-screen). REQUIRED (V18): when no emulator is live
+     *   the daemon injects a `() => feed-not-live`, so a `probe` degrades honestly (V7) rather
+     *   than reads a false state off a blank grid
+     */
+    read: () => CloneScreenRead;
+
+    /**
+     * .what = await the emulator's in-flight parse, so the NEXT `read` reflects every byte
+     *   the child has emitted so far
+     * .why = the emulator parses ASYNC off the child's stream, so a bare `read` is
+     *   point-in-time and the point may PRECEDE a human's latest keystrokes. the dequeue gate
+     *   below reads the grid to decide whether the input box is `clear` — so a stale read can
+     *   miss a mid-type, call the box clear, and let the write clobber it, which is the exact
+     *   case=2 hazard that gate exists to prevent
+     * .note = REQUIRED, exactly as `read` is (V18) — when no emulator is live the daemon
+     *   injects a no-op, so every construction site states what it models rather than inherits
+     *   a default (`rule.forbid.undefined-inputs`)
+     * .note = the feed's own settle is BOUNDED, so this await can never wedge the dequeue loop
+     */
+    settle: () => Promise<void>;
   },
   options?: {
     /**
@@ -79,27 +122,60 @@ export const genCloneSocketServer = (
   close: () => Promise<void>;
 } => {
   // the diagnostic trace sink — real stderr in prod, a capture in a clamp
-  const traceToStderr = process.stderr.write.bind(process.stderr);
+  const traceToStderr = getCloneTraceSink();
   const trace = options?.trace ?? traceToStderr;
 
-  // the queue BULK-writes each accepted message to the child in ONE pty write, then —
-  // after a length-scaled submit delay — writes the submit `\r`. a booted claude accepts
-  // a bulk content write (proven real-haiku 2026-08-13, lesson.clone-say-bulk-write-works);
-  // the OLD char-at-a-time cadence was unnecessary and made a long `say` ~30s. the submit
-  // delay lets claude commit the pasted buffer before the Enter (a `\r` in the SAME read as
-  // the content submits an empty line), and it SCALES with length because a larger paste
-  // takes longer to commit (computeCloneSubmitDelay). the queue AWAITS this whole sequence,
-  // so the next message never overlaps this submit.
+  // the queue BULK-writes each accepted message to the child in ONE pty write, then — once
+  // it OBSERVES the content committed into the input box — writes the submit `\r`. a booted
+  // claude accepts a bulk content write (proven real-haiku 2026-08-13,
+  // lesson.clone-say-bulk-write-works); the OLD char-at-a-time cadence was unnecessary and
+  // made a long `say` ~30s. the Enter must land in a LATER pty read than the content (a `\r`
+  // in the SAME read submits an empty line), and the commit interval is the brain's, not
+  // ours to predict — so the daemon watches its own live screen for the content rather than
+  // sleeps a guessed delay (awaitCloneSubmitReady). the queue AWAITS this whole sequence, so
+  // the next message never overlaps this submit.
   const queue = genCloneWriteQueue({
-    write: async (message) => {
+    write: async ({ message, force }) => {
+      // the DEQUEUE gate — the read is current at the write now (the queue serialized this
+      // write, so a client-side probe taken before enqueue may be stale by up to the queue
+      // depth). the gate reads the rendered screen, classifies the input region, and withholds
+      // rather than paste blind (V3, case=2, case=6). the three-way decision is extracted so it
+      // is unit-testable apart from this socket + queue harness (computeCloneScreenDispatchGate)
+      // ⚠️ SETTLE before the read. the queue makes this read CURRENT WITH THE WRITE, which is
+      //   not the same as current with the CHILD: the emulator parses async off the child's
+      //   stream, so a read taken mid-parse sees a STALE grid. it can miss a human's
+      //   just-typed chars, classify the box `clear`, and let this write clobber the mid-type
+      //   — the exact case=2 hazard this gate exists to prevent. the settle awaits the
+      //   in-flight parse, so the classification reflects every byte received (fulcrum F10;
+      //   the drain semantics are MEASURED, `.agent/.notes/tool.probe-xterm-write-drain.js`)
+      await input.settle();
+
+      const gate = computeCloneScreenDispatchGate({
+        screen: input.read(),
+        message,
+        force,
+      });
+      if (!gate.proceed)
+        return { delivered: false as const, reason: gate.reason };
+
+      // the baseline count BEFORE the write — the submit waits for a RISE above it, never
+      // a presence, so a `--force` write into a box that already holds this text cannot
+      // submit early (the repo's rise rule, applied to the write path)
+      const countBefore = getCloneSubmitBaseline({
+        read: input.read,
+        message,
+      });
+
       input.write(asCloneDispatchFrame({ message }));
-      await new Promise<void>((done) =>
-        setTimeout(
-          done,
-          computeCloneSubmitDelay({ messageLength: message.length }),
-        ),
-      );
+
+      // hold the Enter until the content is OBSERVED committed into the box. the retired
+      // blind sleep guessed that interval and lost a bracketed paste outright; the daemon
+      // already holds the live screen, so the commit is watched rather than predicted. an
+      // unreadable feed degrades to that proven sleep (awaitCloneSubmitReady)
+      await awaitCloneSubmitReady({ read: input.read, message, countBefore });
+
       input.write(CLONE_SUBMIT);
+      return { delivered: true as const };
     },
   });
 
@@ -108,8 +184,21 @@ export const genCloneSocketServer = (
     phase: 'queued' | 'delivered' | 'rejected',
     reason: string | null,
   ): void => {
-    if (socket.writable)
-      socket.write(asCloneDispatchAckFrame({ ack: { phase, reason } }));
+    // 🔴 an unwritable socket DROPS the ack, and the drop is traced rather than swallowed.
+    // .why = the client's whole verdict rests on which acks arrived (`acksSeen`), so a
+    //   dropped ack is INDISTINGUISHABLE at the client from a server that never acked —
+    //   the exact shape of the measured 30s wedge (`acksSeen: []`, `silentMs: 30013`). the
+    //   guard itself is right (a write to a closed socket throws), so the repair is to give
+    //   the drop a voice, never to write anyway (`rule.forbid.failhide`)
+    if (!socket.writable) {
+      trace(
+        `clone socket ack dropped — peer no longer writable: ${phase}${
+          reason ? ` (${reason})` : ''
+        }\n`,
+      );
+      return;
+    }
+    socket.write(asCloneDispatchAckFrame({ ack: { phase, reason } }));
   };
 
   // track accepted connections so close() can destroy any still-open one. node's
@@ -142,50 +231,61 @@ export const genCloneSocketServer = (
 
       // an unbounded tail past the cap — refuse and hang up
       if (split.overflow) {
-        reply(socket, 'rejected', 'message exceeds the frame cap');
+        reply(socket, 'rejected', 'frame-cap-exceeded');
         socket.destroy();
         return;
       }
 
       for (const frame of split.frames) {
-        // parse the request; a malformed one is rejected, not crashed on
-        // .note = deliberate mutation — assigned once inside the try (a JSON.parse
-        //   that may throw); bounded to this loop iteration, never escapes
-        let request: { kind?: unknown; message?: unknown };
-        try {
-          request = JSON.parse(frame);
-        } catch {
-          reply(socket, 'rejected', 'request is not valid json');
+        // classify the frame — parse, kind, content gate, force — with no effect. the pure
+        // decision lives in computeCloneAcceptRoute, so the route decision is unit-tested apart
+        // from this socket (r011-i007-n3); this loop performs the one effect each route needs
+        const routed = computeCloneAcceptRoute({ frame });
+
+        // a malformed / not-a-say / disallowed-control frame is NACK'd, never crashed on. the
+        // reason slug is decided by the classifier, in the same order the old inline gates ran
+        if (routed.route === 'reject') {
+          reply(socket, 'rejected', routed.reason);
           continue;
         }
 
-        if (request.kind !== 'say' || typeof request.message !== 'string') {
-          reply(socket, 'rejected', 'request is not a say { message }');
+        // a `probe` is a READ, not a write: it never touches the child's pty, so it bypasses
+        // the liveness gate and the write queue. the same-user gate above still applies (a
+        // probe is authed like any frame), but a dead brain-cli can still be probed — the read
+        // reports feed-not-live or the last screen, never a write to a dead pty
+        if (routed.route === 'probe') {
+          const getReply = asCloneGetReplyFromScreen({
+            screen: input.read(),
+            needle: routed.needle,
+            debug: routed.debug,
+            content: routed.content,
+          });
+          // the same traced drop as `reply` above — a probe read that is answered into a
+          // closed socket reads to the client as `clone get read timed out`, which is one of
+          // the two measured symptoms of the wedge under investigation
+          if (!socket.writable) {
+            trace(
+              'clone socket probe reply dropped — peer no longer writable\n',
+            );
+            continue;
+          }
+          socket.write(asCloneGetReplyFrame({ reply: getReply }));
           continue;
         }
 
-        // the content gate — only plain text + SGR color may reach the child
-        if (!isSafeCloneDispatchInput({ message: request.message })) {
-          reply(
-            socket,
-            'rejected',
-            'message carries disallowed terminal control',
-          );
-          continue;
-        }
-
-        // the brain-cli-liveness gate — refuse unless a brain-cli is verifiably
-        // the live peer. a socket whose brain-cli has exited must NEVER carry a
-        // dispatch (a write to a defunct pty, or worse a stray process), so a say
-        // here is NACK'd, never written (define.invariant.clone-socket-brain-cli-only)
+        // a well-formed `say` — the brain-cli-liveness gate is the one effect the classifier
+        // could not own. refuse unless a brain-cli is verifiably the live peer: a socket whose
+        // brain-cli has exited must NEVER carry a dispatch (a write to a defunct pty, or worse
+        // a stray process), so a say here is NACK'd, never written
+        // (define.invariant.clone-socket-brain-cli-only)
         if (!input.isBrainCliAlive()) {
-          reply(socket, 'rejected', 'no live brain-cli behind this socket');
+          reply(socket, 'rejected', 'no-live-brain-cli');
           continue;
         }
 
-        const { message } = request;
         queue.enqueue({
-          message,
+          message: routed.message,
+          force: routed.force,
           onQueued: () => reply(socket, 'queued', null),
           onDelivered: () => reply(socket, 'delivered', null),
           onRejected: (reason) => reply(socket, 'rejected', reason),
@@ -199,25 +299,71 @@ export const genCloneSocketServer = (
     // and every other clone connection. each chunk chains behind this one promise in
     // arrival order, so frames never process before the peer is authed, and the
     // event loop is never blocked. a lookup fault fails CLOSED (deny), surfaced once
+    //
+    // 🔴 the gate is BOUNDED, and every non-pass exit NACKs with a named reason.
+    // .why = the accept path writes NO frame until this gate settles, so before the
+    //   bound there were two ways for a connection to go permanently silent, and
+    //   neither named itself: an `ss` lookup that never settled, and a deny that
+    //   destroyed the socket with no reply. the client saw a connected peer that never
+    //   answered and fell to its 30s wedge timer with `acksSeen: []` — a report two
+    //   hops from its cause (measured 2026-09-18; see CLONE_AUTH_GATE_TIMEOUT_MS). now
+    //   a timeout is `auth-gate-timeout` and a deny is `auth-denied`, each a classed
+    //   reject the caller reads and acts on (`rule.forbid.failhide`, `rule.require.failfast`)
+    // .note = `end()`, never `destroy()`, on each refusal — destroy discards a pending
+    //   write, so the NACK just queued would never reach the peer and the fix would
+    //   report as the same silence it replaces
     // .note = deliberate mutation — a per-connection latch local to this handler; it
     //   holds the single in-flight auth promise so chunks chain in order, never escapes
-    let authGate: Promise<boolean> | null = null;
+    let authGate: Promise<CloneAuthGateOutcome> | null = null;
     socket.on('data', (chunk) => {
       const text = chunk.toString('utf8');
       if (!authGate)
-        authGate = isCallerSameUser({ socket }).catch((err: unknown) => {
-          trace(`clone socket auth error: ${(err as Error).message}\n`);
-          return false;
+        authGate = awaitCloneAuthGate({
+          check: () => isCallerSameUser({ socket }),
+          timeoutMs: CLONE_AUTH_GATE_TIMEOUT_MS,
         });
       authGate
-        .then((ok) => {
-          if (!ok) {
-            socket.destroy();
+        .then((outcome) => {
+          if (outcome.fault)
+            trace(`clone socket auth error: ${outcome.fault.message}\n`);
+
+          if (outcome.verdict === 'timeout') {
+            trace(
+              `clone socket auth gate timed out after ${CLONE_AUTH_GATE_TIMEOUT_MS}ms\n`,
+            );
+            reply(socket, 'rejected', 'auth-gate-timeout');
+            socket.end();
+            return;
+          }
+          if (outcome.verdict === 'deny') {
+            reply(socket, 'rejected', 'auth-denied');
+            socket.end();
             return;
           }
           processChunk(text);
         })
-        .catch(() => socket.destroy());
+        .catch((error: unknown) => {
+          // 🔴 the ONE path in this handler that used to end a connection with no reply and no
+          //   trace — `.catch(() => socket.destroy())`. every other exit above either ACKs with a
+          //   classed reason or traces, so a connection that went silent had to have come through
+          //   here, and here said naught about why (`rule.forbid.failhide`).
+          // .why = `processChunk` calls `input.read()`, `asCloneGetReplyFromScreen`,
+          //   `computeCloneAcceptRoute`, and `queue.enqueue`. a throw from ANY of them landed
+          //   here, so the client saw a peer that accepted its bytes and never answered — and
+          //   fell to its 30s wedge timer with `acksSeen: []`. that is the exact measured
+          //   signature (2026-09-19: a `get` probe at `replyMs: 5000` and a `say` at
+          //   `wedgedMs: 30000` against ONE clone whose loop-lag watch proved the event loop
+          //   healthy the whole time — so the silence was never a stalled loop, it was this catch)
+          // .note = the NACK goes out BEFORE the teardown, and by `end()` rather than `destroy()`,
+          //   because destroy discards a queued write — the same clamp every refusal above carries
+          trace(
+            `clone socket frame handler threw: ${
+              error instanceof Error ? error.message : String(error)
+            }\n`,
+          );
+          reply(socket, 'rejected', 'server-fault');
+          socket.end();
+        });
     });
 
     // a peer that hangs up mid-stream is NORMAL (EPIPE/ECONNRESET/ECONNABORTED) —
@@ -439,19 +585,9 @@ export const genCloneSocketServer = (
   //   marked malfunction — and an allowlist that skipped those would be silent in the exact
   //   scenario this handler exists for: no caller, so no report (`rule.forbid.failhide`)
   //
-  // ⚠️ there is NO claim latch, though a latch is the obvious cure. every mechanism that
-  //   can detect "did a caller take this?" is a worse hazard than the doubling it saves:
-  //   - a `get ready()` flips on any plain read — a spread, an `Object.keys`, a debug log —
-  //     so an innocuous line would silently disarm a failhide guard, invisibly, at a site
-  //     that cannot see it (`rule.forbid.hidden-side-effects`)
-  //   - a hand-rolled thenable that latches on `then`/`catch` detects the right act, and
-  //     buys it with a re-implementation of promise delivery in the one module whose job is
-  //     to make a fault impossible to lose
-  //
-  //   ⇒ the COST is one raw stderr line ahead of the rendered frame on a failed enroll,
-  //   which is additive since it carries node's own errno text. the BENEFIT is that no
-  //   fault can be lost by any path, and this handler holds no state a reader can
-  //   accidentally change (`rule.require.fewer-paths-via-idempotency`)
+  // ⚠️ it traces UNCONDITIONALLY, so an awaited fault is reported twice — one raw stderr line
+  //   ahead of the rendered frame. that second report is deliberate: do NOT add a claim latch
+  //   here (`rule.forbid.hidden-side-effects`)
   ready.catch((error) => {
     trace(
       `clone socket ready rejected with ${
@@ -479,9 +615,49 @@ export const genCloneSocketServer = (
   //   `lockdownThenSettle` instead (see that function's note)
   server.listen(input.socketPath);
 
+  // 🔴 the loop-lag watch — the one channel that names a daemon gone deaf because its event
+  // loop never ran. every other silence on this socket names itself (an auth refusal, a
+  // content gate, a dead brain-cli, a frame past the cap, and now a dropped ack above), so
+  // the residual class is the one where NO handler ran — and at the client that is
+  // indistinguishable from a server that chose not to answer (`rule.forbid.failhide`)
+  const loopLagWatch = genCloneLoopLagWatch({
+    trace,
+    tickMs: CLONE_LOOP_LAG_TICK_MS,
+    lagThresholdMs: CLONE_LOOP_LAG_THRESHOLD_MS,
+  });
+
+  // 🔴 ONE liveness line per clone lifetime, to the DURABLE LOG ONLY — never stderr.
+  // .why = the line exists to make the watch's SILENCE legible: an absent stall line and a
+  //   watch that never ran produce the identical log, so a reader who concludes "the loop was
+  //   healthy" from silence has inferred a mechanism from an outcome
+  //   (`rule.forbid.mechanism-inferred-from-outcome`). that reader reads the LOG
+  // .why = stderr is the HUMAN'S TERMINAL, so a `trace` here was the wrong channel. a daemon
+  //   inherits the enroller's stderr (`genCloneEnrollDetached`: `stdio: ['ignore','pipe',
+  //   'inherit']`), so this line printed ABOVE the `😶 clone enrolled` header on every enroll —
+  //   diagnostic prose in the one line a human reads to learn the enroll worked
+  //   (`rule.forbid.surprises`). the operator channel and the human's screen are one fd here,
+  //   which is the claim `getCloneTraceSink`'s own docblock gets wrong
+  // .note = a fault of the durable write IS named on stderr, and that is no failhide of this
+  //   line — it reports that the line's ONLY copy was lost, which is the case a reader of the
+  //   log must know about before they read its silence as health
+  try {
+    writeCloneTraceLine({
+      repoPath: process.cwd(),
+      at: new Date(),
+      line: `clone daemon loop watch live (tick ${CLONE_LOOP_LAG_TICK_MS}ms, stall past ${CLONE_LOOP_LAG_THRESHOLD_MS}ms)\n`,
+    });
+  } catch (error) {
+    trace(
+      `clone daemon loop watch liveness line could not reach its durable log: ${
+        error instanceof Error ? error.message : String(error)
+      }\n`,
+    );
+  }
+
   const close = (): Promise<void> =>
     new Promise((done) => {
-      queue.drain('clone socket server closed');
+      loopLagWatch.stop();
+      queue.drain('clone-drained');
       // destroy any still-open connection so server.close() can actually settle — a
       // peer that never disconnects would otherwise hold the close callback forever
       for (const socket of openSockets) socket.destroy();

@@ -1,0 +1,120 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeCloneSayReport absent → failure, malfunction class (exit 1) 1`] = `
+{
+  "channel": "failure",
+  "hint": "do NOT blind re-send (a prompt-consumed message would double) — verify the clone, then retry with --await release",
+  "klass": "malfunction",
+  "message": "the message reached the pty and is on neither the input line nor the turn queue — a prompt may have consumed it; inspect the clone",
+}
+`;
+
+exports[`computeCloneSayReport buffered → failure, malfunction class (exit 1) 1`] = `
+{
+  "channel": "failure",
+  "hint": "do NOT re-send (it would append) — verify the clone accepts a submit, or retry with --await release",
+  "klass": "malfunction",
+  "message": "the message sits in the clone input box but the submit did not take",
+}
+`;
+
+exports[`computeCloneSayReport enqueued + a /… client command → success, and the advisory does NOT claim a turn hold (r029) 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ enqueued for @:x — a /… client command; the client takes it at submit
+   └─ 🟡 a client command is consumed by the brain-cli itself, never queued as a model turn — so it is not held behind the active turn, and an aborted turn cannot drop it",
+}
+`;
+
+exports[`computeCloneSayReport enqueued → success, a distinct tree line 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ enqueued for @:x — mid-turn; lands next
+   └─ 🟡 held behind the active turn, not yet taken — if that turn is aborted (ctrl-C, crash, prune) the hold dies with it, unsent",
+}
+`;
+
+exports[`computeCloneSayReport released + feed-faulted → success, transcript-only degrade names re-enroll, NOT self-heal (the faulted emulator never heals on a wait) 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ said to @:x
+   └─ 🟡 feed faulted — verified by transcript; re-enroll to rebuild",
+}
+`;
+
+exports[`computeCloneSayReport released + feed-not-live → success, transcript-only degrade self-heals, NO re-enroll (r008-i004-b1) 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ said to @:x
+   └─ 🟡 feed not live — verified by transcript; self-heals as the feed attaches, else re-enroll (F24)",
+}
+`;
+
+exports[`computeCloneSayReport released + peer-probe-blind → success, transcript-only degrade names re-enroll (r008-i004-b1) 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ said to @:x
+   └─ 🟡 probe-blind (older clone) — verified by transcript; re-enroll for the full read",
+}
+`;
+
+exports[`computeCloneSayReport released → success, the extant tree line byte-for-byte (V13) 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ said to @:x",
+}
+`;
+
+exports[`computeCloneSayReport unreadable feed-faulted → failure, malfunction, names re-enroll (NOT a wait — the emulator threw) 1`] = `
+{
+  "channel": "failure",
+  "hint": "re-enroll the clone to rebuild the screen feed; a wait never clears a faulted emulator",
+  "klass": "malfunction",
+  "message": "the clone screen feed faulted (its emulator threw) — the read is in doubt and the transcript did not rise within the bound",
+}
+`;
+
+exports[`computeCloneSayReport unreadable feed-not-live → failure, malfunction, names the wait (r9.n1) 1`] = `
+{
+  "channel": "failure",
+  "hint": "wait a moment and retry — a brand-new clone attaches its feed on its first output, so the message may have landed; if it recurs across retries the clone has no emulator to read its screen, so re-enroll on a build that carries one (a feed that faulted mid-run reports \`feed-faulted\`, not this)",
+  "klass": "malfunction",
+  "message": "the clone screen feed is not live (a brand-new clone before its first chunk, or a clone with no screen emulator) and the transcript did not rise within the bound",
+}
+`;
+
+exports[`computeCloneSayReport unreadable peer-probe-blind → failure, malfunction, names re-enroll (r9.n1) 1`] = `
+{
+  "channel": "failure",
+  "hint": "re-enroll the clone on a current version to read its screen state, or retry with a longer --await release bound",
+  "klass": "malfunction",
+  "message": "this clone predates the screen read channel, so it cannot answer a probe; the transcript did not rise within the bound",
+}
+`;
+
+exports[`computeCloneSayReport withheld dirty → failure, constraint, names --force 1`] = `
+{
+  "channel": "failure",
+  "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+  "klass": "constraint",
+  "message": "the clone input box holds uncommitted text (a human mid-type) — the say was withheld",
+}
+`;
+
+exports[`computeCloneSayReport withheld modal → failure, constraint class (exit 2) 1`] = `
+{
+  "channel": "failure",
+  "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+  "klass": "constraint",
+  "message": "the clone has a modal open (a prompt or menu) — a say would answer it, so it was withheld",
+}
+`;
+
+exports[`computeCloneSayReport withheld unrecognized → failure, constraint, names the unrecognized screen (the third withheld reason — a peer of modal + dirty) 1`] = `
+{
+  "channel": "failure",
+  "hint": "an unrecognized screen is never force-able. read it with --debug; the measured causes are permanent (a 0x0 pty geometry, or a detached host with no tty), so a wait never clears them — tear the clone down and re-enroll it",
+  "klass": "constraint",
+  "message": "the clone screen is unrecognized — the say was withheld rather than pasted blind",
+}
+`;

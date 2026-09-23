@@ -69,8 +69,9 @@ const genCloneVia = (
       args: [STUB_BRAIN],
       cwd: repoPath,
       slug: opts.slug,
-      interactive: true,
+      mode: 'watch',
       noSocket: false,
+      depth: 0,
     },
     {
       pty: opts.pty !== undefined ? opts.pty : getPtyModuleOrNull(),

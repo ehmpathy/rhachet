@@ -7,6 +7,7 @@
 .agent/.actors/
 .agent/.notes/
 .artifact
+.claude/scheduled_tasks.lock
 .env
 .review/
 .serverless

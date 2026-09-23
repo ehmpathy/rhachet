@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import { createConnection, type Socket } from 'node:net';
+import { CLONE_CONNECT_TIMEOUT_MS } from './constants';
 
 /**
  * .what = connect to one clone's dispatch socket, or fail loud if it does not
@@ -20,7 +21,7 @@ export const connectToClone = (input: {
   socketPath: string;
   timeoutMs?: number;
 }): Promise<Socket> => {
-  const timeoutMs = input.timeoutMs ?? 2000;
+  const timeoutMs = input.timeoutMs ?? CLONE_CONNECT_TIMEOUT_MS;
 
   return new Promise((done, fail) => {
     const socket = createConnection(input.socketPath);

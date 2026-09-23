@@ -34,8 +34,8 @@ every glyph fills exactly one slot:
 | **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade |
 | **verb-artifact** | names the OPERATION, inline after the `😶` clone face | `🎙️` clone say (speak in) · `🎧` clone get (listen out) |
 | **error-class** | names the fault owner — one of exactly two | `✋` caller-must-fix · `💥` server-must-fix |
-| **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse |
-| **callout** | an actionable advisory | `💡` tip · `⚠️` caution |
+| **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse · `🟡` degraded |
+| **callout** | an actionable advisory | `💡` tip · `🟡` caution |
 | **connection** | a literal socket / port / connection | `🔌` reach a clone |
 | **lookup** | a discover/read operation | `🔭` |
 | **tree-branch** | structure | `├─` `└─` `│` |
@@ -72,14 +72,16 @@ root; a rhachet tree roots on its domain glyph.
 | `📦` | domain-root | **upgrade** (`📦 upgrade (pnpm -g)`) — the package-install surface. a shipped box is what a package manager moves, so the glyph names the domain rather than a mood; registered here on purpose because no extant root covers `rhx upgrade`, and because the neutral slots cannot root a tree (`⚠️`/`💡` are callouts, `✨`/`🫧` are leaves) |
 | `🔌` | connection | a literal socket / port (`🔌 reach this clone`) |
 | `💡` | callout | an actionable tip (`💡 tip` header — see below) |
-| `⚠️` | callout | a caution |
+| `🟡` | callout · status-leaf | a caution, and a **degraded** leaf — a step that succeeded on a weaker basis than the full one (`🟡 probe-blind (older clone) — verified by transcript`). registered here on purpose: it is the width-safe caution glyph, and `✨`/`🫧`/`♻️` cover only success, absence, and reuse, so a partial success had no leaf of its own |
+| `⚠️` | callout | a caution — **superseded by `🟡` for new output**, see `.forbidden` |
 
 ## .forbidden
 
 | glyph | why | use instead |
 |-------|-----|-------------|
 | `⛈️` | obscures the fault owner and the exit code — a fault is caller-owned or server-owned, never a mood | `✋` (caller) or `💥` (server) |
-| bare `⚠` / `♻` (no U+FE0F selector) | render monochrome on some terminals — a cross-terminal drift | the colorful `⚠️` / `♻️` |
+| `⚠️` in NEW output | its base `U+26A0` is `East_Asian_Width=Ambiguous` per UAX #11, so a terminal reserves one cell where an emoji font paints two and every column to its right shifts — with no error to report it. `rule.forbid.width-ambiguous-glyphs` (bhrain/telepath) measures the palette: 25 of 26 glyphs are `W`, and this is the one exception. extant occurrences stay until disturbed | `🟡` |
+| bare `⚠` / `♻` (no U+FE0F selector) | render monochrome on some terminals — a cross-terminal drift | `🟡` / the colorful `♻️` |
 | `🐚` as a rhachet root | a supplier-role (seaturtle) glyph, not this repo's | the domain glyph (`🎭`, `😶`, `🧹`, …) |
 | a role-mascot on a rhachet-generic line | the framework has no voice | a neutral slot |
 
@@ -140,6 +142,7 @@ mouthless face whose **voice comes from its roles**. full etymology: `choice.clo
 ## .see also
 
 - `choice.clone-glyph` — the etymology behind `😶` (an exact replica of the actor's DNA; its voice comes from its roles)
+- `rule.forbid.width-ambiguous-glyphs` (bhrain/telepath) — the UAX #11 width class that supersedes `⚠️` here
 - `rule.require.keyrack-emoji-palette` — the domain-palette precedent
 - `ergonomist/briefs/cli/rule.require.treestruct-output.md` — the generic tree grammar (`├─`/`└─`)
 - `mechanic/briefs/practices/lang.tones/rule.prefer.chill-nature-emojis.md` — the tone (chill, nature, ≤5–7 per callout)

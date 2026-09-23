@@ -1,4 +1,4 @@
-import { ConstraintError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import {
   genTempDir,
   getError,
@@ -14,8 +14,10 @@ import { realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
+import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
 import { asCloneDispatchAckFrame } from './asCloneDispatchAckFrame';
 import { genCloneSocketServer } from './genCloneSocketServer';
+import { getCloneInputState } from './getCloneInputState';
 import { isCloneSocketBindFaultError } from './isCloneSocketBindFaultError';
 import { sayClone } from './sayClone';
 
@@ -27,25 +29,48 @@ import { sayClone } from './sayClone';
  */
 const genServerWithCapture = async (input?: {
   isBrainCliAlive?: () => boolean;
+  read?: () => CloneScreenRead;
+  /**
+   * .what = the emulator-parse drain the dequeue gate awaits before it reads
+   * .why = a scene that proves the gate READS A SETTLED GRID needs to observe the await —
+   *   so it injects a settle that records its own call, or one that mutates the screen a
+   *   later `read` returns. the default is a no-op, since most scenes hand back a fixed screen
+   */
+  settle?: () => Promise<void>;
 }): Promise<{
   socketPath: string;
   written: string[];
+  /**
+   * .what = every diagnostic line the server traced within this scene
+   * .why = a scene that proves a fault NAMED ITSELF has to read the trace — the line is the
+   *   whole deliverable, and it reaches no caller by any other channel. captured rather than
+   *   left to stderr so the assertion can be made in-process
+   */
+  traced: string[];
   close: () => Promise<void>;
 }> => {
   const socketPath = getCloneSocketPath({ serial: getUuid() })!;
   // .note = deliberate mutation — a local capture of the bytes the server wrote to the
   //   child; pushed in the injected write, read by assertions; never escapes this scene
   const written: string[] = [];
-  const { ready, close } = genCloneSocketServer({
-    socketPath,
-    write: (bytes) => written.push(bytes),
-    isBrainCliAlive: input?.isBrainCliAlive ?? (() => true),
-  });
+  // .note = deliberate mutation — a local capture of the server's diagnostic trace lines;
+  //   pushed by the injected sink, read by assertions; never escapes this scene
+  const traced: string[] = [];
+  const { ready, close } = genCloneSocketServer(
+    {
+      socketPath,
+      write: (bytes) => written.push(bytes),
+      isBrainCliAlive: input?.isBrainCliAlive ?? (() => true),
+      read: input?.read ?? (() => ({ live: false, reason: 'feed-not-live' })),
+      settle: input?.settle ?? (async () => {}),
+    },
+    { trace: (line) => traced.push(line) },
+  );
   // ⚠️ `ready` settles on the bind's success OR its fault — a helper that awaited the
   //   success alone would hang forever on a fault, which is the exact defect the module's
   //   own guard was written to retire
   await ready;
-  return { socketPath, written, close };
+  return { socketPath, written, traced, close };
 };
 
 describe('genCloneSocketServer.integration', () => {
@@ -149,8 +174,10 @@ describe('genCloneSocketServer.integration', () => {
             );
 
             // before this fix the wedged throw carried no hint — a machine consumer
-            // saw a null hint for the most common dispatch fault; now it is threaded
-            expect(error).toBeInstanceOf(ConstraintError);
+            // saw a null hint for the most common dispatch fault; now it is threaded.
+            // wedged is a MalfunctionError (server-must-fix, exit 1) per i010-r001-n3 —
+            // the peer went silent mid-dispatch, a fault the caller cannot fix
+            expect(error).toBeInstanceOf(MalfunctionError);
             expect(error).toMatchObject({
               metadata: { reachCause: 'wedged', hint: expect.any(String) },
             });
@@ -211,7 +238,8 @@ describe('genCloneSocketServer.integration', () => {
           );
           const elapsedMs = Date.now() - startedAt;
 
-          expect(error).toBeInstanceOf(ConstraintError);
+          // wedged is a MalfunctionError (server-must-fix, exit 1) per i010-r001-n3
+          expect(error).toBeInstanceOf(MalfunctionError);
           expect(error).toMatchObject({
             metadata: { reachCause: 'wedged' },
           });
@@ -262,7 +290,9 @@ describe('genCloneSocketServer.integration', () => {
             sayClone({ socketPath, message: 'poke', wedgedTimeoutMs: 5000 }),
           );
 
-          expect(error).toBeInstanceOf(ConstraintError);
+          // exited-mid-dispatch is a MalfunctionError (server-must-fix, exit 1) per
+          // i010-r001-n3 — the clone died in flight, a fault the caller cannot fix
+          expect(error).toBeInstanceOf(MalfunctionError);
           // the fault is named exited-mid-dispatch (the clone died in flight), and
           // the hint is threaded so a machine consumer (--output json) reads a fix,
           // never a null hint — the same one-owner hint selector the wedge uses
@@ -466,8 +496,11 @@ describe('genCloneSocketServer.integration', () => {
               sayClone({ socketPath: scene.socketPath, message: 'poke abc' }),
             );
 
-            // fail loud — a caller always learns the say did not land
-            expect(error).toBeInstanceOf(ConstraintError);
+            // fail loud — a caller always learns the say did not land. a dead
+            // brain-cli is a SERVER fault (the clone is defunct, not the caller`s
+            // input), so the reject classifies as MalfunctionError (exit 1), never
+            // a caller-amendable ConstraintError — rule.require.exit-code-semantics
+            expect(error).toBeInstanceOf(MalfunctionError);
             expect((error as Error).message).toContain('brain-cli');
 
             // the invariant`s teeth: not one byte reached the write sink. revert the
@@ -528,12 +561,16 @@ describe('genCloneSocketServer.integration', () => {
           socketPath,
           write: () => undefined,
           isBrainCliAlive: () => true,
+          read: () => ({ live: false, reason: 'feed-not-live' }),
+          settle: async () => {},
         });
         await holder.ready;
         const doubled = genCloneSocketServer({
           socketPath,
           write: () => undefined,
           isBrainCliAlive: () => true,
+          read: () => ({ live: false, reason: 'feed-not-live' }),
+          settle: async () => {},
         });
         return { holder, doubled };
       });
@@ -617,6 +654,8 @@ describe('genCloneSocketServer.integration', () => {
           socketPath,
           write: () => undefined,
           isBrainCliAlive: () => true,
+          read: () => ({ live: false, reason: 'feed-not-live' }),
+          settle: async () => {},
         },
         { bindTimeoutMs: 25 },
       );
@@ -693,6 +732,8 @@ describe('genCloneSocketServer.integration', () => {
         socketPath,
         write: () => undefined,
         isBrainCliAlive: () => true,
+        read: () => ({ live: false, reason: 'feed-not-live' }),
+        settle: async () => {},
       });
       const error = await getError(server.ready);
       return { server, error };
@@ -786,6 +827,8 @@ describe('genCloneSocketServer.integration', () => {
             socketPath: genPathThatBreaksTheBind(),
             write: () => undefined,
             isBrainCliAlive: () => true,
+            read: () => ({ live: false, reason: 'feed-not-live' }),
+            settle: async () => {},
           },
           { trace },
         );
@@ -797,6 +840,8 @@ describe('genCloneSocketServer.integration', () => {
             socketPath: genPathThatBreaksTheBind(),
             write: () => undefined,
             isBrainCliAlive: () => true,
+            read: () => ({ live: false, reason: 'feed-not-live' }),
+            settle: async () => {},
           },
           { trace },
         );
@@ -877,6 +922,463 @@ describe('genCloneSocketServer.integration', () => {
           );
         },
       );
+    },
+  );
+
+  given('[case9] a get read against a LIVE screen', () => {
+    // a `❯` box band fenced by two full-width rules, with our sentinel held in the box
+    // while a prior turn scrolls above — the `enqueued`-shape grid, so the classifier reports
+    // focus input, region dirty, and the needle counted once in-band and once on screen
+    const RULE = '─'.repeat(80);
+    const GET9_LINES = [
+      '❯ Print each integer from 1 to 60',
+      '● 1',
+      '  2',
+      RULE,
+      '❯ SENTINEL-get9',
+      RULE,
+    ];
+    const liveScreen: CloneScreenRead = {
+      live: true,
+      lines: GET9_LINES,
+      // every row BRIGHT — the box content is a human's uncommitted work, so `dirty` must be
+      // reached on the text itself, never lost to a dim-ghost blank
+      linesBright: GET9_LINES,
+      cursorX: 0,
+      cursorY: 0,
+      cols: 80,
+      rows: 40,
+    };
+    const scene = useBeforeAll(async () =>
+      genServerWithCapture({ read: () => liveScreen }),
+    );
+    afterAll(async () => scene.close());
+
+    when('[t0] the input state is read with the sentinel as the needle', () => {
+      const reply = useThen('the get reply arrives', async () =>
+        getCloneInputState({
+          socketPath: scene.socketPath,
+          message: 'SENTINEL-get9',
+        }),
+      );
+
+      then('the probe is capable', () => {
+        expect(reply.probe).toEqual('capable');
+      });
+
+      then('the classified state matches the rendered grid', () => {
+        // the probe is a READ — never a write to the pty, so the capture sink stays empty
+        expect(scene.written).toEqual([]);
+        if (reply.probe !== 'capable')
+          throw new Error('expected a capable reply');
+        expect(reply.state).toEqual({
+          focus: 'input',
+          input: 'dirty',
+          countInInput: 1,
+          countOnScreen: 1,
+          // `false` — this grid carries no queue hint row. asserted rather than omitted because
+          // the `toEqual` is the WIRE shape clamp: a `queued` that failed to cross the socket
+          // would arrive `undefined`, and prod would then read every busy peer's hold as a take
+          queued: false,
+        });
+      });
+
+      then('a DEFAULT read carries NO box bytes — the opt-in is real', () => {
+        // 🔴 the F02/F03 clamp. every routine `say` probe takes this path, so if `content` rode
+        //   the reply unasked, the socket would hand a human's uncommitted work across the wire
+        //   on every dispatch. the field must be ABSENT here, and `[t1]` proves it is reachable —
+        //   the pair is what parts a real opt-in from a flag the server ignores
+        if (reply.probe !== 'capable')
+          throw new Error('expected a capable reply');
+        expect(reply.content).toEqual(undefined);
+      });
+    });
+
+    when('[t1] the same read OPTS IN to the content', () => {
+      const reply = useThen('the get reply arrives', async () =>
+        getCloneInputState({
+          socketPath: scene.socketPath,
+          message: 'SENTINEL-get9',
+          content: true,
+        }),
+      );
+
+      then('the two INPUT surfaces cross the wire', () => {
+        if (reply.probe !== 'capable')
+          throw new Error('expected a capable reply');
+        // the box holds our sentinel, chrome stripped. the queue is `[]` because `queued` is
+        // false on this grid — a gate, never an emptiness: the rows above the band hold a queued
+        // message and a released turn alike, so an ungated read would report the prior turn
+        expect(reply.content).toEqual({
+          buffer: ['SENTINEL-get9'],
+          queue: [],
+        });
+      });
+
+      then('the turn output ABOVE the band never crosses', () => {
+        if (reply.probe !== 'capable')
+          throw new Error('expected a capable reply');
+        // 🔴 the scope clamp. the grid renders a prior turn (`Print each integer…`, `● 1`, `  2`)
+        //   above the band, and `--what buffer` promises the INPUT surfaces alone. a read that
+        //   reached to the whole viewport would ship the brain's rendered session, which is the
+        //   exact widened read F03's amendment was bounded against
+        const crossed = JSON.stringify(reply.content ?? {});
+        expect(crossed).not.toContain('Print each integer');
+        expect(crossed).not.toContain('● 1');
+      });
+
+      then('a content read is still a READ — no bytes reached the pty', () => {
+        expect(scene.written).toEqual([]);
+      });
+    });
+  });
+
+  given('[case18] a screen read that THROWS inside the frame handler', () => {
+    // 🔴 the clamp on the accept path's last silent exit. `processChunk` calls `input.read()`,
+    //   so an emulator that throws lands in the handler's `.catch` — and that catch used to be
+    //   `() => socket.destroy()`: no ack, no trace, connection gone. the client then saw a peer
+    //   that accepted its bytes and never answered, and fell to its 30s wedge timer with
+    //   `acksSeen: []` — the exact measured signature (2026-09-19), reported two hops from cause.
+    // .why THIS injection = `read` is the one `processChunk` dependency a scene can make throw
+    //   without a mock, and it is also the REAL prod risk: the emulator is third-party
+    //   (`@xterm/headless`) and its `write`/buffer walk can throw (Q25, unsettled).
+    const scene = useBeforeAll(async () =>
+      genServerWithCapture({
+        read: () => {
+          throw new Error('the emulator buffer walk faulted');
+        },
+      }),
+    );
+    afterAll(async () => scene.close());
+
+    when('[t0] a get probe is read against that server', () => {
+      const outcome = useThen(
+        'the probe returns rather than hangs',
+        async () => {
+          const error = await getError(
+            getCloneInputState({
+              socketPath: scene.socketPath,
+              message: 'never-read',
+            }),
+          );
+          // reported as PRIMITIVES — `useThen` hands back a lazy proxy, and a proxy over an
+          // array answers neither a deep equality nor `.length`
+          return {
+            threw: error !== undefined,
+            tracedTheThrow: scene.traced.some((line) =>
+              line.includes('frame handler threw'),
+            ),
+            tracedTheCause: scene.traced.some((line) =>
+              line.includes('the emulator buffer walk faulted'),
+            ),
+            wroteToThePty: scene.written.length,
+          };
+        },
+      );
+
+      then(
+        'the caller gets an ANSWER rather than a 30s silence — the fault NACKs',
+        () => {
+          // the whole point: the connection ends with a reply the client can read, so the
+          // client's own reach timer never fires. it still throws (the probe failed), and the
+          // difference is that it throws AT ONCE with a named reason
+          expect(outcome.threw).toEqual(true);
+        },
+      );
+
+      then(
+        'the daemon NAMES the throw on its own trace — the cause, not just the class',
+        () => {
+          // 🔴 the `server-fault` slug tells the caller the CLASS; only this line carries the
+          //   CAUSE, and a class with no cause is what cost four rounds of diagnosis here.
+          //   asserted as one object so a failure names which half is absent
+          expect({
+            tracedTheThrow: outcome.tracedTheThrow,
+            tracedTheCause: outcome.tracedTheCause,
+          }).toEqual({ tracedTheThrow: true, tracedTheCause: true });
+        },
+      );
+
+      then(
+        'a probe that faulted wrote NO bytes to the pty — a get is a read',
+        () => {
+          expect(outcome.wroteToThePty).toEqual(0);
+        },
+      );
+    });
+  });
+
+  given('[case10] a get read against a NOT-LIVE screen', () => {
+    // the default read reports `feed-not-live` — the honest degrade before the feed
+    // attaches, so the probe returns `unsupported` rather than a FALSE classification (V7)
+    const scene = useBeforeAll(async () => genServerWithCapture());
+    afterAll(async () => scene.close());
+
+    when('[t0] the input state is read', () => {
+      const reply = useThen('the get reply arrives', async () =>
+        getCloneInputState({
+          socketPath: scene.socketPath,
+          message: 'never-on-screen',
+        }),
+      );
+
+      then('the probe is unsupported for a feed that is not live', () => {
+        expect(reply.probe).toEqual('unsupported');
+        if (reply.probe !== 'unsupported')
+          throw new Error('expected an unsupported reply');
+        expect(reply.reason).toEqual('feed-not-live');
+      });
+
+      then('no bytes were written to the pty — a get is a read', () => {
+        expect(scene.written).toEqual([]);
+      });
+    });
+  });
+
+  given(
+    '[case17] the dequeue pre-check gates the write on the live screen',
+    () => {
+      // the withheld determination happens SERVER-SIDE at dequeue — the read is current at the
+      // write, where a client probe taken before enqueue may be stale by up to 128 dispatches.
+      // a dirty region or a modal refuses; `--force` overrides ONLY a dirty region, never a
+      // modal, so a say never answers a permission prompt (V3, case=6)
+      const RULE = '─'.repeat(80);
+
+      // a live screen whose input box holds a human's uncommitted text — focus input, dirty.
+      // BRIGHT, which is what makes it a human's work rather than a brain-drawn ghost: the
+      // same rows rendered dim would read `clear`, and rightly so
+      const DIRTY_LINES = [RULE, '❯ half a sentence a human left', RULE];
+      const dirtyScreen: CloneScreenRead = {
+        live: true,
+        lines: DIRTY_LINES,
+        linesBright: DIRTY_LINES,
+        cursorX: 0,
+        cursorY: 0,
+        cols: 80,
+        rows: 24,
+      };
+
+      // a live screen whose focus sits on a permission modal — an option menu with a confirm
+      const MODAL_LINES = [
+        'Do you want to proceed?',
+        '❯ 1. Yes',
+        '  2. No',
+        RULE,
+        RULE,
+      ];
+      const modalScreen: CloneScreenRead = {
+        live: true,
+        lines: MODAL_LINES,
+        linesBright: MODAL_LINES,
+        cursorX: 0,
+        cursorY: 0,
+        cols: 80,
+        rows: 24,
+      };
+
+      when('[t0] a say lands in a dirty region, no --force', () => {
+        const scene = useBeforeAll(async () =>
+          genServerWithCapture({ read: () => dirtyScreen }),
+        );
+        afterAll(async () => scene.close());
+        const result = useThen(
+          'sayClone resolves a verdict rather than throws',
+          async () =>
+            sayClone({
+              socketPath: scene.socketPath,
+              message: 'a dispatched nudge',
+            }),
+        );
+
+        then('it is withheld for a dirty input region', () => {
+          expect(result.delivered).toEqual(false);
+          if (result.delivered) throw new Error('expected a withheld verdict');
+          expect(result.refusal).toEqual('input-region-dirty');
+        });
+
+        then('not one byte reached the pty — refused at dequeue', () => {
+          expect(scene.written).toEqual([]);
+        });
+      });
+
+      when('[t1] the SAME dirty region, dispatched WITH --force', () => {
+        const scene = useBeforeAll(async () =>
+          genServerWithCapture({ read: () => dirtyScreen }),
+        );
+        afterAll(async () => scene.close());
+        const result = useThen('sayClone resolves', async () =>
+          sayClone({
+            socketPath: scene.socketPath,
+            message: 'a forced nudge',
+            force: true,
+          }),
+        );
+
+        then(
+          '--force overrides the dirty region — the message is delivered',
+          () => {
+            expect(result.delivered).toEqual(true);
+          },
+        );
+
+        then('the message then its submit `\\r` reached the pty', () => {
+          expect(scene.written.join('')).toEqual('a forced nudge\r');
+        });
+      });
+
+      when('[t2] a modal holds focus, dispatched WITH --force', () => {
+        const scene = useBeforeAll(async () =>
+          genServerWithCapture({ read: () => modalScreen }),
+        );
+        afterAll(async () => scene.close());
+        const result = useThen('sayClone resolves', async () =>
+          sayClone({
+            socketPath: scene.socketPath,
+            message: 'answer the prompt',
+            force: true,
+          }),
+        );
+
+        then(
+          'a modal is withheld EVEN under --force (never answer a prompt, V3)',
+          () => {
+            expect(result.delivered).toEqual(false);
+            if (result.delivered)
+              throw new Error('expected a withheld verdict');
+            expect(result.refusal).toEqual('modal-holds-focus');
+          },
+        );
+
+        then('not one byte reached the pty', () => {
+          expect(scene.written).toEqual([]);
+        });
+      });
+
+      when('[t3] the feed FAULTED — the grid is in doubt, WITH --force', () => {
+        // a same-version clone whose emulator write/resize threw: the read channel EXISTS
+        // but the grid's parse integrity is gone, so a human's just-typed keystrokes may be
+        // invisible. the pre-check must withhold (invariant 1, case=2) rather than paste blind
+        // — and --force does NOT override it (a faulted grid is not a knowable dirty region).
+        // a faulted feed is a SERVER fault (re-enroll), so sayClone throws a MalfunctionError
+        const faultedScreen: CloneScreenRead = {
+          live: false,
+          reason: 'feed-faulted',
+        };
+        const scene = useBeforeAll(async () =>
+          genServerWithCapture({ read: () => faultedScreen }),
+        );
+        afterAll(async () => scene.close());
+
+        then(
+          'the say is withheld as a feed-faulted server fault — not one byte reaches the pty',
+          async () => {
+            const before = scene.written.length;
+            const error = await getError(() =>
+              sayClone({
+                socketPath: scene.socketPath,
+                message: 'a nudge onto a doubted grid',
+                force: true,
+              }),
+            );
+
+            // a faulted feed cannot be classified, so it is a server fault (exit 1), never a
+            // caller-amendable withheld — re-enroll, not re-send/force
+            expect(error).toBeInstanceOf(MalfunctionError);
+            expect((error as Error).message).toContain('feed');
+
+            // invariant 1's teeth: the human's unsubmitted work is never pasted over. revert
+            // the feed-faulted branch in genCloneSocketServer and this say proceeds blind →
+            // bytes reach the sink → written.length grows → this goes red
+            expect(scene.written.length).toEqual(before);
+          },
+        );
+      });
+    },
+  );
+
+  /**
+   * 🚨 .what = the dequeue pre-check AWAITS the emulator's parse drain before it reads the grid
+   *
+   * .why = the queue makes the gate's read current with the WRITE, which is not the same as
+   *   current with the CHILD. the emulator parses async off the child's output, so a read taken
+   *   mid-parse sees a STALE grid — it can miss a human's just-typed chars, classify the input
+   *   box `clear`, and let the write clobber the mid-type. that is the exact case=2 hazard the
+   *   gate exists to prevent, and a gate that reads an un-drained grid does not prevent it
+   *
+   * ⚠️ .how it has TEETH = the injected pair MODELS the async parse rather than describes it.
+   *   the human's keystrokes sit "in the parse pipeline" — invisible to the grid — until the
+   *   settle brings them onto it. so the gate's verdict is decided entirely by WHEN it reads:
+   *     - it awaits the settle  → it reads DIRTY  → withheld, zero bytes  (this clamp, green)
+   *     - it reads first        → it reads CLEAR  → delivered, bytes flow (this clamp, RED)
+   *   ⇒ drop the `await input.settle()` in genCloneSocketServer and both `then`s below redden.
+   *   verified by mutation 2026-09-18
+   */
+  given(
+    '[case18] a human types mid-dispatch, and the chars are still in the emulator parse',
+    () => {
+      // ⚠️ the same shapes [case17] uses — an 80-wide rule and the `❯` prompt glyph the
+      //   classifier strips. a fake that guessed either (a 40-wide rule, a plain `>`) reads
+      //   DIRTY in BOTH states, so the clamp would pass whether or not the gate settles and
+      //   prove naught. measured 2026-09-18: the first draft of this scene did exactly that
+      const RULE = '─'.repeat(80);
+      // the box BEFORE the parse drains — the human's chars have not reached the grid yet, so
+      // it renders as an EMPTY box and classifies `clear`
+      const PENDING_LINES = [RULE, '❯ ', RULE];
+      // the box AFTER it drains — the same box, and the human's uncommitted work is on it
+      const DRAINED_LINES = [RULE, '❯ half a thought', RULE];
+
+      const asScreen = (lines: string[]): CloneScreenRead => ({
+        live: true,
+        lines,
+        linesBright: lines,
+        cursorX: 0,
+        cursorY: 0,
+        cols: 80,
+        rows: 24,
+      });
+
+      when('[t0] a say dequeues against the un-drained grid', () => {
+        const scene = useBeforeAll(async () => {
+          // .note = deliberate mutation — a one-flag model of the async parse, local to this
+          //   scene: the grid does not hold the human's chars until the settle drains them
+          let drained = false;
+          return {
+            ...(await genServerWithCapture({
+              read: () => asScreen(drained ? DRAINED_LINES : PENDING_LINES),
+              settle: async () => {
+                drained = true;
+              },
+            })),
+          };
+        });
+        afterAll(async () => scene.close());
+
+        const result = useThen('sayClone resolves a verdict', async () =>
+          sayClone({
+            socketPath: scene.socketPath,
+            message: 'a dispatched nudge',
+          }),
+        );
+
+        then(
+          'the gate saw the DRAINED grid — withheld for a dirty input region',
+          () => {
+            expect(result.delivered).toEqual(false);
+            if (result.delivered)
+              throw new Error(
+                'expected a withheld verdict — the gate read an un-drained grid',
+              );
+            expect(result.refusal).toEqual('input-region-dirty');
+          },
+        );
+
+        then(
+          "not one byte reached the pty — the human's half-typed line survives",
+          () => {
+            expect(scene.written).toEqual([]);
+          },
+        );
+      });
     },
   );
 });

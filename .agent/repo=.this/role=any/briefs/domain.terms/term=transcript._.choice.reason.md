@@ -13,8 +13,32 @@ chosen over the forbidden synonyms:
 - `record`  — vague; overloaded with domain-object records elsewhere.
 
 ## .disputes
-none. `transcript` is the brain-cli's own term for the artifact; rhachet adopts it rather than
-coin a synonym.
+
+### dispute: story — raised 2026-09-21 — status: OPEN (contracts keep `transcript`)
+
+- raised.by  = the wisher, as the `--what` default on `rhx clone get --what buffer|queue|story`
+- claim      = `--what` names one of three READ SURFACES, and its three values should be one kind of
+               word. `buffer` and `queue` each name a surface a reader looks at; `transcript` names a
+               storage artifact. `story` keeps the set on one axis, and it is what a human asks for —
+               *"show me the story"*, where *"show me the transcript"* asks for a file.
+- counter    = `conversation` is ALREADY forbidden here, for the reason `story` inherits: it is the
+               human-side label rather than the on-disk artifact. so `--what story` puts a synonym of
+               a declared term into a published CLI contract, which `rule.forbid.domain-term-synonyms`
+               forbids outright. `--what transcript` collides with no extant term and names exactly
+               what the read opens.
+- resolution = unsettled. the wisher's message carried a `?`, so the word was proposed rather than
+               decreed. the shipped surface takes `story` (their word; the rework is one line of
+               `CLONE_GET_WHAT_VALUES` plus a hint string), and the collision is recorded here rather
+               than absorbed in silence. ⇒ itemized as fulcrum **F39**.
+
+🟡 **the live surface therefore disagrees with this cluster, on purpose and on record.** that is the
+one state a dispute is for: `rule.forbid.domain-term-synonyms` offers *adhere or dispute*, and a
+wisher-coined word in a contract they asked a question about is the case the valve exists to hold.
+
+⇒ two outcomes, per `howto.domain-term-disputes`:
+- the canonical term holds → `--what transcript`, and `story` joins the forbidden list above
+- `story` prevails → it earns its OWN cluster as a distinct concept (the read SURFACE, over the
+  on-disk artifact), and this entry closes with the seam stated in both files
 
 ## .evidence
 - rhachet stores NO transcript of its own — `genBrainSeries` builds a series in memory that carries

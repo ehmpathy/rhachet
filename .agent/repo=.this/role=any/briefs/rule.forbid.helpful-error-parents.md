@@ -2,7 +2,8 @@
 
 ## .what
 
-throw exactly **two** error words: `ConstraintError` and `MalfunctionError`.
+throw exactly **two** error **families**: `ConstraintError` and `MalfunctionError` — either
+leaf itself, **or a subclass that extends one of them**.
 
 never throw their `helpful-errors` parents — `BadRequestError`, `UnexpectedCodePathError` —
 and never a bare `Error`.
@@ -11,9 +12,18 @@ and never a bare `Error`.
 HelpfulError
 ├── BadRequestError          ← parent. names no owner. DO NOT THROW
 │   └── ConstraintError      ← caller fixes it, exit 2
+│       └── <YourError>      ← a subclass. inherits owner + exit 2. OK to throw
 └── UnexpectedCodePathError  ← parent. names no owner. DO NOT THROW
     └── MalfunctionError     ← server fixes it, exit 1
+        └── <YourError>      ← a subclass. inherits owner + exit 1. OK to throw
 ```
+
+⇒ the forbidden move is a DIRECTION, never a depth: never reach **up** to a parent that names
+no owner. a subclass that extends a leaf reaches **down** — it inherits the leaf's owner and
+exit code, so it decides both exactly as the leaf does. what a subclass adds is a
+distinguishable type a catch site can branch on (`instanceof CloneWireCorruptionError`) with the
+owner/exit-code guarantee held intact — the same reason `asCliErrorJson` reads
+`error.constructor.name`, which a subclass sharpens rather than breaks.
 
 ## .why
 
@@ -121,6 +131,9 @@ say so, or the next reader reads the resnap as a regression waved through.
   **blocker**
 - a parent throw left in place **on a line your change already edits** = **blocker**
 - a bulk find-and-replace across untouched sites = **blocker** (each site owes the owner question)
+- a subclass that extends `ConstraintError` or `MalfunctionError` = **false positive** — it
+  reaches down, so it inherits the leaf's owner and exit code; the direction, never the depth,
+  is what this rule forbids
 
 ## .the in-repo inventory — the rule is NOT yet met
 

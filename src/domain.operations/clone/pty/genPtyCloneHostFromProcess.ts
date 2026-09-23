@@ -1,3 +1,4 @@
+import { asPtyGeometry } from './asPtyGeometry';
 import type { PtyCloneHost } from './genBrainCliPtyClone';
 
 /**
@@ -26,10 +27,16 @@ export const genPtyCloneHostFromProcess = (): PtyCloneHost => ({
     };
   },
 
-  size: () => ({
-    cols: process.stdout.columns ?? 80,
-    rows: process.stdout.rows ?? 24,
-  }),
+  // 🔴 clamped, never `?? 80`. a pipe reports `undefined`, which a nullish-coalesce catches —
+  // but a tty whose winsize was never set reports `0`, which it does NOT. a `0` reaches the
+  // pty and the emulator as a real number, xterm clamps to its own 2x1 minimum, and the clone
+  // is then unreadable for its whole life: every probe classifies `focus-unrecognized` and
+  // every say is `withheld`. measured 2026-09-16; the clamp is `asPtyGeometry`
+  size: () =>
+    asPtyGeometry({
+      cols: process.stdout.columns,
+      rows: process.stdout.rows,
+    }),
 
   onResize: (fn) => {
     process.stdout.on('resize', fn);

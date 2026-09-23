@@ -28,12 +28,13 @@ was seriously contended.
   submitted an EMPTY line. fix: bulk-write the whole message content, wait a length-scaled
   `computeCloneSubmitDelay({ messageLength })` (long enough for a large paste to commit), then write
   `\r` as a SEPARATE pty read (`genCloneSocketServer`), so the submit lands in its own read.
-- the self-verify: `invokeCloneSay` now proves the submit — it baselines `getCloneSubmittedCount`
+- the self-verify: `invokeCloneSay` proves the submit — it baselines `getCloneSubmittedCount`
   (occurrences of the message in the brain's own transcript), dispatches, then
-  `getCloneSubmitLanded` polls until the count rises. the brain records each user turn to its
-  transcript ON submit (before the slow reply), so a risen count is deterministic proof the
-  message left the input buffer. a submit that never lands fails LOUD (`MalfunctionError`), never
-  a false `delivered`.
-- related state word: **landed** — the verified-submitted outcome (`getCloneSubmitLanded`
-  returns whether the submit landed). it is the adjective form of a confirmed `submit`, not a
-  distinct term.
+  `getCloneSayObservation` polls until the count rises (the `released` verdict) or the screen
+  reports `enqueued`/`buffered`. the brain records each user turn to its transcript ON submit
+  (before the slow reply), so a risen count is deterministic proof the message left the input
+  buffer.
+- related state word: **landed** — the verified-submitted outcome a prior boolean carried
+  (`getCloneSubmitLanded`, superseded by the observe path and deleted in this round). it is the
+  adjective form of a confirmed `submit`, not a distinct term; the verdict word for the same
+  outcome is now `released`.

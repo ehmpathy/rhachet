@@ -46,6 +46,28 @@ the tell: the reach for `--thorough` almost always follows a change you have *al
 read the diff, you ran the scoped suites, they were green. the full run adds no fact. it adds
 delay.
 
+## 🔴 .the second trap — "the lever is mine, so the sweep is mine"
+
+a credential unlocks a tier's **reachability**. it does not unlock a tier-wide **sweep**. two
+permissions, two owners, and only the first is the credential's:
+
+| the question | who answers it |
+|---|---|
+| *may I reach this tier at all?* | the **credential** — while it is live, yes, and that take is a driver lever (`rule.always.spend-own-levers-before-escalation`) |
+| *may I run it UNSCOPED?* | 🔴 **no one.** this rule refuses it at **any** credential state |
+
+⚠️ the two read as one because they arrive together: you measure `rhx keyrack status`, find the
+credential live, spend it correctly on three or four **scoped** takes — and the fourth success
+generalizes into *"and the tier figure too."* the scoped takes were right. the sweep is a blocker.
+
+🔴 **measured 2026-09-20**, `ehmpathy/rhachet` @ `vlad/fix-clone-say`: a live
+`ehmpathy.test.AWS_PROFILE` was spent on four scoped runs that closed four stale claims — all
+correct — and then on `--what integration --mode apply --thorough`. **163s, and the count was
+withdrawn**, because a forbidden invocation's figure is inadmissible. the rule was read *after* the
+invocation.
+
+⇒ *"the lever is mine"* licenses a scoped take. it licenses no sweep.
+
 ## .enforcement
 
 - `--thorough` on a local run = **blocker**

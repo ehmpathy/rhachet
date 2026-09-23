@@ -23,20 +23,29 @@ export const getAllEligibleTranscriptCandidates = (input: {
   transcriptDir: string;
   exidsDir: string;
   spawnedAt: IsoTimeStamp;
-}): { exid: string; transcriptPath: string; mtimeMs: number }[] =>
+}): {
+  exid: string;
+  transcriptPath: string;
+  mtimeMs: number;
+  birthtimeMs: number | null;
+}[] =>
   readdirSync(input.transcriptDir)
     .filter((name) => name.endsWith('.jsonl'))
     .map((name) => {
       const exid = name.slice(0, -'.jsonl'.length);
       const transcriptPath = join(input.transcriptDir, name);
+      const stat = statSync(transcriptPath);
       return {
         exid,
         transcriptPath,
-        mtimeMs: statSync(transcriptPath).mtimeMs,
+        mtimeMs: stat.mtimeMs,
+        // a filesystem with no creation time yields 0; null names that absence
+        birthtimeMs: stat.birthtimeMs > 0 ? stat.birthtimeMs : null,
       };
     })
     .filter((candidate) =>
       isTranscriptWithinSpawnWindow({
+        transcriptBirthtimeMs: candidate.birthtimeMs,
         transcriptMtimeMs: candidate.mtimeMs,
         spawnedAt: input.spawnedAt,
       }),

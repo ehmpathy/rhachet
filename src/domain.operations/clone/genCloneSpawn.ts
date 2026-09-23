@@ -8,6 +8,8 @@ import {
 import { getPtyHostTupleFromProcess } from './pty/getPtyHostTupleFromProcess';
 import type { PtyModule } from './pty/getPtyModuleOrNull';
 import { isPtyDeviceRefusedError } from './pty/isPtyDeviceRefusedError';
+import type { CloneScreenRead } from './screen/genCloneScreenFeed';
+import type { EmulatorModule } from './screen/getEmulatorModuleOrNull';
 import { isCloneSocketBindFaultError } from './socket/isCloneSocketBindFaultError';
 
 /**
@@ -16,6 +18,8 @@ import { isCloneSocketBindFaultError } from './socket/isCloneSocketBindFaultErro
 export interface CloneSpawnHandle {
   socketPath: string | null;
   pid: number;
+  /** read the currently-rendered screen; feed-not-live when this spawn has no live feed (V18) */
+  read: () => CloneScreenRead;
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 }
@@ -69,19 +73,36 @@ export const genCloneSpawn = async (
     socketEligible: boolean;
     /** the loaded addon, or null when the host could not load it */
     pty: PtyModule | null;
+    /** the loaded emulator, or null when the host could not load it */
+    emulator: EmulatorModule | null;
+    /**
+     * how deep in the enroll chain this clone is born (`asCloneEnrollDepth`)
+     *
+     * .why it reaches BOTH branches = the depth a clone carries is a fact about the
+     *   clone, never about its socket. a plain-spawn clone still has a place in the
+     *   chain, so its own enroll must be bounded by the same budget
+     */
+    depth: number;
   },
   context: { host: PtyCloneHost },
 ): Promise<CloneSpawnHandle> => {
-  // all three must hold; any one absent means this enroll gets a plain spawn
+  // all three must hold; any one absent means this enroll gets a plain spawn. a plain spawn
+  // has no managed pty, so no screen feed — its read reports feed-not-live honestly (V18)
   if (
     !(input.socketEligible && input.pty !== null && input.socketPath !== null)
-  )
-    return genBrainCliPlainClone({
+  ) {
+    const plain = genBrainCliPlainClone({
       command: input.command,
       args: input.args,
       cwd: input.cwd,
       serial: input.serial,
+      depth: input.depth,
     });
+    return {
+      ...plain,
+      read: () => ({ live: false, reason: 'feed-not-live' }),
+    };
+  }
 
   try {
     return await genBrainCliPtyClone(
@@ -91,8 +112,9 @@ export const genCloneSpawn = async (
         cwd: input.cwd,
         serial: input.serial,
         socketPath: input.socketPath,
+        depth: input.depth,
       },
-      { pty: input.pty, host: context.host },
+      { pty: input.pty, host: context.host, emulator: input.emulator },
     );
   } catch (error) {
     // the socket gate's own fault — OURS, and classified rather than left a bare stack.

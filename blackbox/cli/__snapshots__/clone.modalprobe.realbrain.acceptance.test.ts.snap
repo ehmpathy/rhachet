@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone say modal-over-match probe vs a REAL claude (real acceptance) given: [case1] a real claude that just rendered a numbered-list reply when: [t1] a second benign say is dispatched into the idle box then: the LIVE json envelope renders as snapped (masked vibecheck) 1`] = `
+"{
+  "delivered": true,
+  "verdict": "<verdict>",
+  "reason": null,
+  "probe": "capable",
+  "serial": "<serial>",
+  "slug": "<slug>"
+}"
+`;

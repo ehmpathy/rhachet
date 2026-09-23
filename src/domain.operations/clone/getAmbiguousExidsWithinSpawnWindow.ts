@@ -58,8 +58,11 @@ export const getAmbiguousExidsWithinSpawnWindow = (input: {
         // scope to THIS clone's transcript dir: a marker whose transcript lives in a
         // DIFFERENT brain/cwd dir belongs to another clone, never ours
         if (dirname(transcriptPath) !== input.transcriptDir) return false;
+        const stat = statSync(transcriptPath);
         return isTranscriptWithinSpawnWindow({
-          transcriptMtimeMs: statSync(transcriptPath).mtimeMs,
+          // a filesystem with no creation time yields 0; null names that absence
+          transcriptBirthtimeMs: stat.birthtimeMs > 0 ? stat.birthtimeMs : null,
+          transcriptMtimeMs: stat.mtimeMs,
           spawnedAt: input.spawnedAt,
         });
       } catch (error) {

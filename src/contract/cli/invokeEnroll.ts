@@ -9,23 +9,37 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
+import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
+import { asCloneDetachHostArgv } from '@src/domain.operations/clone/asCloneDetachHostArgv';
+import {
+  asCloneEnrollDepth,
+  CLONE_ENROLL_DEPTH_MAX,
+} from '@src/domain.operations/clone/asCloneEnrollDepth';
 import { asCloneReachBreadcrumb } from '@src/domain.operations/clone/asCloneReachBreadcrumb';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { computeCloneAccrualWarn } from '@src/domain.operations/clone/computeCloneAccrualWarn';
+import {
+  CLONE_ENROLL_DETACH_TIMEOUT_MS,
+  genCloneEnrollDetached,
+} from '@src/domain.operations/clone/genCloneEnrollDetached';
 import { genCloneOndisk } from '@src/domain.operations/clone/genCloneOndisk';
 import { getOneCloneLiveCountForActor } from '@src/domain.operations/clone/getOneCloneLiveCountForActor';
 import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
+import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
+import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { computeBrainCliInput } from '@src/domain.operations/enroll/computeBrainCliInput';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
 import { getBrainCliPassthroughArgs } from '@src/domain.operations/enroll/getBrainCliPassthroughArgs';
 import { getRolesSpaceFormCollision } from '@src/domain.operations/enroll/getRolesSpaceFormCollision';
+import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPrintMode';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -194,6 +208,12 @@ const performEnroll = async (input: {
   as: string | undefined;
   reason: string | undefined;
   noSocket: boolean;
+  /** hold the clone in the foreground, mirrored into this terminal */
+  watch: boolean;
+  /** hand back the clone's address and exit; the clone stays reachable */
+  async: boolean;
+  /** hold until the child answers its prompt and exits; forward its exit code */
+  await: boolean;
   outputRaw: string | undefined;
   gitroot: string;
 }): Promise<void> => {
@@ -258,13 +278,116 @@ const performEnroll = async (input: {
     repoPath,
   });
   const { command } = getSupportedBrainCommand({ brain: enrollment.brain });
-  const args = asBrainCliSpawnArgs({
-    configPath,
-    passthrough: getBrainCliPassthroughArgs({
-      args: rawArgs,
-      positionalBrain: input.positionalBrain,
-    }),
+
+  // 🔴 the passthrough is bound to a name rather than inlined, because the enroll MODE
+  //   reads it too: a print flag in here means the invocation owes its caller an answer
+  //   (`isBrainCliPrintMode`). one derivation, one source — a second read of `rawArgs` at
+  //   the mode site could disagree with the tokens the child actually received
+  const passthrough = getBrainCliPassthroughArgs({
+    args: rawArgs,
+    positionalBrain: input.positionalBrain,
   });
+  const args = asBrainCliSpawnArgs({ configPath, passthrough });
+
+  // where in the enroll chain the clone this call mints would sit — 0 for a human's
+  // own clone, 1 for a peer that clone enrolls. an over-budget enroll is refused
+  // BEFORE any dir or child exists, so a chain never half-forms
+  const depth = asCloneEnrollDepth({ env: process.env });
+  if (depth > CLONE_ENROLL_DEPTH_MAX)
+    throw new ConstraintError('clone enroll depth budget spent', {
+      depthRequested: depth,
+      depthMax: CLONE_ENROLL_DEPTH_MAX,
+      hint: `a clone at depth ${depth - 1} may not enroll another — ask the clone that enrolled you, or a human, to stand this one up`,
+    });
+
+  // what this enroll DOES with the child — derived from nature, and narrowed by whichever
+  // of the three modes the caller stated. a `watch` enroll mirrors the brain into this
+  // terminal and holds it in the foreground; an `async` enroll hands back the address and
+  // exits; an `await` enroll awaits the one answer a print-mode child owes, then forwards
+  // its exit code.
+  //
+  // 🔴 .why the ask is read by a transformer = the cli carries the axis as three
+  //   booleans, and a ternary chain over them resolves a clash by precedence — so
+  //   `--watch --async` returned `watch` and dropped the other flag with no signal.
+  //   `asCloneEnrollModeAsked` refuses the clash by name instead
+  //
+  // 🔴 .why this is derived BEFORE the spawn and forwarded rather than re-read = a
+  //   second `process.stdout.isTTY` read at the exit branch could disagree with the
+  //   one that picked the host, and the pair would then mirror to a terminal it did
+  //   not await, or await a child it never mirrored
+  //   (`define.invariant.clone-attendance-is-a-mode-never-a-reach`)
+  const watchMode = computeCloneEnrollMode({
+    tty: !!process.stdout.isTTY,
+    asked: asCloneEnrollModeAsked({
+      watch: input.watch,
+      async: input.async,
+      await: input.await,
+    }),
+    printMode: isBrainCliPrintMode({ passthrough }),
+  });
+
+  // are WE the detached host, or the caller that must stand one up?
+  const isDetachedHost = process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
+
+  // 🔴 the caller's half of an `--async` enroll: stand up a host, report the address
+  //   it gives back, and exit. a mere `return` here would NOT detach — the pty master
+  //   and the reach socket are live handles, so node would hold this process open on
+  //   a session nobody watches (`genCloneEnrollDetached` carries the full why)
+  if (watchMode === 'async' && !isDetachedHost) {
+    const detached = await genCloneEnrollDetached({
+      execPath: process.argv[0]!,
+      // 🔴 the argv is replayed with the motive RESOLVED, never as `@stdin`. this
+      //   caller already drained the pipe above, and the host is spawned with
+      //   `stdin: 'ignore'` — so a verbatim replay hands the host a flag it can only
+      //   answer with an empty read, and the audit records no motive at all. the pipe
+      //   is the one input the host cannot re-derive, so the caller must hand it over
+      argv: asCloneDetachHostArgv({ argv: process.argv.slice(1), reason }),
+      cwd: repoPath,
+      timeoutMs: CLONE_ENROLL_DETACH_TIMEOUT_MS,
+    });
+
+    // 🔴 the host REFUSED, and its own report is already on this process's stderr —
+    //   it inherited the stream, so a human read the tree frame and a machine read the
+    //   json, in the exact shape an attended enroll prints. the caller's one duty left
+    //   is to wear the host's exit code. to add a line here would double-report a
+    //   failure that was rendered once, correctly
+    if (detached.outcome === 'spoke') {
+      process.exitCode = detached.code;
+      return;
+    }
+
+    // the host's handoff is already the machine shape, so a json caller gets it
+    // verbatim — one owner of that line's contents, never a re-render that could
+    // disagree with what the host actually stood up
+    if (mode === 'json') console.log(detached.handoff);
+    if (mode === 'tree') {
+      const address = asCloneAddressFromHandoff({ handoff: detached.handoff });
+
+      // 🔴 a REUSE renders as a reuse, never as an enroll. this branch sits ABOVE the
+      //   live-slug check (the host runs that), so the caller only learns what happened
+      //   from the outcome the host reported — and a reuse spawned no billed brain, so
+      //   a breadcrumb that read "clone enrolled" would misreport the one fact a human
+      //   watches this command for. the line is the SAME one the attended path prints
+      //   (below), so the two modes agree word for word
+      if (address.outcome === 'reused') {
+        console.error(
+          `♻ reused the live clone that already answers to @:${address.slug ?? slug} (no new brain spawned)`,
+        );
+        return;
+      }
+
+      console.error('');
+      console.error(
+        asCloneReachBreadcrumb({
+          slug: address.slug,
+          serial: address.serial,
+          reachable: address.socketEligible,
+        }),
+      );
+      console.error('');
+    }
+    return;
+  }
 
   // findsert the clone: reuse a live slug, rebind a dead one, or bake fresh
   const result = await genCloneOndisk({
@@ -277,8 +400,9 @@ const performEnroll = async (input: {
     args,
     cwd: repoPath,
     slug,
-    interactive: !!process.stdout.isTTY,
+    mode: watchMode,
     noSocket: input.noSocket,
+    depth,
   });
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
@@ -292,7 +416,10 @@ const performEnroll = async (input: {
     // open, so a supervisor reads this handoff off the live stream by a
     // single-line marker (`/{"outcome":…}/`). a pretty-printed multi-line object
     // would break that line-oriented read — so enroll's handoff stays one line
-    if (mode === 'json') {
+    // a detached HOST emits the handoff whatever the caller's output mode — that
+    // line is how its caller learns the address, so it is the host's obligation
+    // rather than a render preference
+    if (mode === 'json' || isDetachedHost) {
       console.log(
         JSON.stringify({
           outcome: result.outcome,
@@ -337,7 +464,7 @@ const performEnroll = async (input: {
   // COMPACT single-line BY DESIGN — see the reuse-branch note above: the child's
   // stdout stream stays open, so the supervisor greps this handoff off the live
   // stream by a single-line marker; a multi-line pretty-print would break it
-  if (mode === 'json')
+  if (mode === 'json' || isDetachedHost)
     console.log(
       JSON.stringify({
         outcome: result.outcome,
@@ -366,7 +493,9 @@ const performEnroll = async (input: {
   // .why the blank line each side = the brain's own mirror output follows at once,
   //   so with no pad the breadcrumb is swallowed by the wall of text under it. the
   //   pad is the EMIT's, never the value's — see that file's `.note`
-  if (mode === 'tree') {
+  // a detached host renders no human line — nobody reads its stdout but its caller,
+  // which renders the breadcrumb itself off the handoff
+  if (mode === 'tree' && !isDetachedHost) {
     console.error('');
     console.error(
       asCloneReachBreadcrumb({
@@ -379,12 +508,28 @@ const performEnroll = async (input: {
     );
     console.error('');
   }
-  if (mode === 'tree' && accrual.warn)
+  if (mode === 'tree' && !isDetachedHost && accrual.warn)
     console.error(
       asCloneAccrualWarnLine({ liveCount: accrual.liveCount, actorHash: hash }),
     );
 
-  // forward the child's exit code — one owner of process lifecycle
+  // 🔴 a detached HOST must not await the child either — a brain-cli does not exit,
+  //   so `waitForExit` would never settle (the third failure of the 2026-09-16
+  //   incident, `define.invariant.clone-attendance-is-a-mode-never-a-reach`). the
+  //   host simply RETURNS and stays alive: the pty master and the reach socket are
+  //   live handles, so node holds its loop open for exactly as long as the clone
+  //   lives. that hold is the host's whole job
+  if (watchMode === 'async') return;
+
+  // a `watch` or `await` enroll holds the child and forwards its exit code — one
+  // owner of process lifecycle.
+  //
+  // 🔴 .why an `await` lands here and not in the branch above = the comment above is
+  //   true of a SESSION and false of a print-mode child. *"a brain-cli does not exit"*
+  //   holds only while it has no prompt to finish; `-p` gives it one, so it answers and
+  //   exits, and that exit is the whole point of the invocation. to detach from it
+  //   returns a banner where the answer was owed — the measured defect that broke this
+  //   route's own l3 review lanes (`isBrainCliPrintMode`)
   const code = await result.spawn.waitForExit;
   process.exit(code);
 };
@@ -408,6 +553,25 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .option('--as <address>', 'name the clone with a stable handle (@:<slug>)')
     .option('--no-socket', 'enroll without a managed reach socket')
     .option('--reason <text>', 'why this enrollment happened (or @stdin)')
+    // how the clone is WATCHED, never whether it can be REACHED — both modes take a
+    // pty, a socket, and answer a `say`
+    // (`define.invariant.clone-attendance-is-a-mode-never-a-reach`)
+    .option(
+      '--watch',
+      'hold the clone in the foreground (default at a terminal)',
+    )
+    .option(
+      '--async',
+      'report the clone address and exit (default with no terminal)',
+    )
+    // the third value of the mode triple. it was DERIVABLE from a print flag and not
+    // statable for a release, which taught the surface rather than the vocabulary —
+    // a caller who wanted "hand it this prompt and wait" had to know that `-p` implies
+    // the mode (`term=enroll.mode`, `computeCloneEnrollMode`)
+    .option(
+      '--await',
+      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>")',
+    )
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     // built-in --help is off so `rhx enroll <brain> --help` forwards to the brain
     // (the wish's passthrough mandate). but a bare `rhx enroll --help` (no brain)
@@ -426,6 +590,9 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
           as?: string;
           socket?: boolean;
           reason?: string;
+          watch?: boolean;
+          async?: boolean;
+          await?: boolean;
           output?: string;
         },
         command: Command,
@@ -460,6 +627,9 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
               reason: opts.reason,
               // commander maps --no-socket to opts.socket === false
               noSocket: opts.socket === false,
+              watch: opts.watch === true,
+              async: opts.async === true,
+              await: opts.await === true,
               outputRaw: opts.output,
               gitroot,
             });

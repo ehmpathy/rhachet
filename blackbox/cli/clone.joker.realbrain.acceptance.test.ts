@@ -2,16 +2,15 @@ import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
 import {
+  asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
+  expectCloneSaySuccessTree,
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import {
-  asSnapshotSafe,
-  invokeRhachetCliBinary,
-} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 // the ONE owner of the short-serial projection — same read as its `clone.acceptance`
 // twin, so the two suites cannot drift apart on the form they each assert
 import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
@@ -122,6 +121,25 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
       });
     });
 
+    // .note = 🔴 every conversation turn dispatches UNFORCED, and that is the point of this
+    //   suite. a real claude (v2.1.87) draws a CONTEXTUAL greyed placeholder suggestion into
+    //   the empty box between turns (e.g. `Another joke?`), and until 2026-09-18 every turn
+    //   here had to pass `force: true` to get past it: the feed rendered with
+    //   `translateToString`, which drops SGR, so the classifier could not part that DIM
+    //   suggestion from a human's typed text and — by its documented fail-safe (unsure →
+    //   dirty, forceable) — withheld with `input-region-dirty`
+    //
+    //   the feed is now attribute-aware (genCloneScreenFeed.asBrightOnlyRow): an all-dim band
+    //   reads `clear`, so the brain's own hint no longer presents as a human's work and the
+    //   write proceeds on its own. a multi-turn conversation with a real claude therefore needs
+    //   NO force at all
+    //
+    //   ⇒ so the absent `force` carries the proof here, and is never a tidy-up. it is step 3 of
+    //   .dream/2026_09_16.classifier-greyed-placeholder-whitelist-color-blind.dream.md —
+    //   "re-run the joker conversation WITHOUT force and assert it round-trips green" — and it
+    //   is the only clamp that proves the cure against a REAL brain's own placeholder rather
+    //   than an author-written fixture. re-add `force: true` here and this suite would pass
+    //   whether or not the cure holds, which is exactly the blindness it used to have
     when('[t1] turn 1 — ask for a joke BY SLUG', () => {
       const turn = useThen('the joke request round-trips by slug', () =>
         sayAndPollForMarker({
@@ -134,9 +152,8 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
         }),
       );
 
-      then('the say reports delivered (exit 0)', () => {
+      then('the say reports a success verdict (exit 0)', () => {
         expect(turn.said.status).toEqual(0);
-        expect(turn.said.stdout).toContain('said to');
       });
 
       then('the joker`s reply lands, carrying turn-1`s marker', () => {
@@ -144,10 +161,28 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
         expect(turn.lastRead).toContain(markerFor(1));
       });
 
-      then('the say-delivered tree (human) is locked — brain-independent, so snapshot-safe', () => {
-        // the say output is a plain `delivered` tree with NO brain prose in it, so it is
-        // fully deterministic — unlike the joke reply, which is never snapshotted
-        expect(asSnapshotSafe(turn.said.stdout)).toMatchSnapshot();
+      then('the say tree names a SUCCESS verdict, addressed to this clone', () => {
+        // ⚠️ a FULL-stdout snapshot was tried here and is wrong: the verdict READS brain
+        // state, so a dispatch that races the brain's own turn renders `enqueued for` where
+        // an idle one renders `said to` — both exit 0, both correct, and the two differ in
+        // LINE COUNT. ⇒ the shapes are locked deterministically at the unit grain
+        // (computeCloneSayReport.test.ts); this asserts the live branch-invariant properties
+        expectCloneSaySuccessTree({
+          stdout: turn.said.stdout,
+          serial: scene.serial,
+          // ⚠️ this turn dispatches BY SLUG, and `say` echoes the address the caller
+          //   used — so the tree renders `@:joker`, never the serial
+          slug: 'joker',
+        });
+      });
+
+      then('the LIVE say head renders as snapped (masked vibecheck)', () => {
+        // the complement to the assertion above: a human who reviews this PR sees the shape
+        // a live pty + socket + subprocess actually put on stdout. the masker's own guard is
+        // what FAILS on a broken envelope; this diff is what shows a reviewer WHAT changed
+        expect(
+          asCloneSayHeadSnapshotSafe({ stdout: turn.said.stdout }),
+        ).toMatchSnapshot();
       });
     });
 
@@ -210,9 +245,27 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
 
       then('the piped request is delivered and answered', () => {
         expect(turn.said.status).toEqual(0);
-        expect(turn.said.stdout).toContain('said to');
+        // a success verdict, never `said to` alone — a live dispatch may race the brain's
+        // own turn and land `enqueued for` (see [t1] above for the full rationale)
+        expectCloneSaySuccessTree({
+          stdout: turn.said.stdout,
+          serial: scene.serial,
+          // ⚠️ this turn dispatches BY SLUG, and `say` echoes the address the caller
+          //   used — so the tree renders `@:joker`, never the serial
+          slug: 'joker',
+        });
         expect(turn.landed).toBe(true);
         expect(turn.lastRead).toContain(markerFor(4));
+      });
+
+      then('the LIVE say head renders as snapped (masked vibecheck)', () => {
+        // `--what @stdin` is its own CALLER variant, so it owes its own masked snapshot —
+        // the input channel must not reach the rendered envelope. this snapshot is the only
+        // artifact that would catch a stdin-path-specific head (a dropped address echo, an
+        // extra prefix); the [t1] snapshot proves naught about a path it never walks
+        expect(
+          asCloneSayHeadSnapshotSafe({ stdout: turn.said.stdout }),
+        ).toMatchSnapshot();
       });
     });
 

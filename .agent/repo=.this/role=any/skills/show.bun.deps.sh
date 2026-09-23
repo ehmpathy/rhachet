@@ -12,7 +12,12 @@
 set -euo pipefail
 
 # defaults
-ENTRY="./src/contract/cli/invoke.bun.entry.ts"
+# the bun entry was split in two — `run` and `roles` — per bin.dispatcher.pattern, so the
+# single `invoke.bun.entry.ts` this default named no longer exists. `run` is the default
+# because it is the dispatcher whose bundle size this skill exists to measure; pass `--entry`
+# for the roles half. the stale path survived because the skill was unreachable via `rhx`
+# at all (see the dispatcher-flag arm below), so nobody ever ran it to find out
+ENTRY="./src/contract/cli/invoke.bun.entry.run.ts"
 TOP=30
 OUTDIR="/tmp/rhachet-bundle"
 
@@ -22,7 +27,12 @@ while [[ $# -gt 0 ]]; do
     --entry) ENTRY="$2"; shift 2 ;;
     --top) TOP="$2"; shift 2 ;;
     --outdir) OUTDIR="$2"; shift 2 ;;
-    *) echo "unknown arg: $1"; exit 1 ;;
+    # the dispatcher's own flags — `rhx show.bun.deps` rewrites to
+    # `rhachet run --skill show.bun.deps`, and `getRawArgsAfterRun` hands each arg after `run`
+    # to the skill. without this arm the refusal below fires on `--skill` and the skill is
+    # unreachable via `rhx` at all, which is how it stood until 2026-09-20
+    --repo|--role|--skill) shift 2 ;;
+    *) echo "show.bun.deps: unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 

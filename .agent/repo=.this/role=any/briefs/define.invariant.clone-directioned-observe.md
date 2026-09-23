@@ -86,8 +86,23 @@ is a second adapter here, not a scatter of ad-hoc json across the observe path.
 - a `--tail N` that counts raw jsonl lines rather than logical messages = **blocker** (a tail of 1
   could return an empty tool-result line, never a whole reply)
 
+## ⚠️ .the precondition this invariant does NOT supply
+
+🔴 **it fixes how a record resolves to a direction, and says naught about WHOSE transcript it is.**
+the map `type:'assistant' → out` is correct *given* the clone's own transcript, and a foreign one
+renders with the identical `🎧`, at full authority.
+
+⇒ provenance is `define.invariant.clone-history-holds-only-its-own-session`'s, and it was **violated
+in prod** (measured 2026-09-16): a clone linked its enroller's live session and `get` rendered the
+enroller's own messages as *heard from the clone*.
+
+🟡 **a residual stands even with that invariant held**: no check tests that the clone **authored** a
+record in a transcript it linked. so `🎧` asserts provenance the observe path never verifies.
+
 ## .see also
 
+- `define.invariant.clone-history-holds-only-its-own-session.md` — which transcript may be linked at
+  all; the precondition every claim here rests on
 - `define.clone-reach-states.md` — `get` observes across LIVE / DEAF / DEAD (a transcript pull needs
   no live socket, so even a DEAD clone with a retained transcript is observable)
 - `define.invariant.clone-say-delivery.md` — the dispatch half (`in` turns originate as `say`s)

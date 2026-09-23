@@ -3,13 +3,14 @@ import { genTempDir } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
 import {
+  asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
+  expectCloneSaySuccessTree,
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the real-brain clamp for the BULK-write `say` path. the socket server writes
@@ -78,11 +79,26 @@ describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', ()
         expect(roundtrip.landed).toBe(true);
       });
 
-      then('the say-delivered tree (human) is locked — brain-independent, so snapshot-safe', () => {
-        // the say output is a plain `delivered` tree with NO brain prose in it, so it is
-        // fully deterministic — the shape is identical for a short or long bulk write, so
-        // one snapshot locks the bulk-path output against a dropped `delivered` line
-        expect(asSnapshotSafe(roundtrip.said.stdout)).toMatchSnapshot();
+      then('the say tree names a SUCCESS verdict, addressed to this clone', () => {
+        // ⚠️ a FULL-stdout snapshot was tried here and went red on the enqueued branch: the
+        // verdict READS brain state, so a dispatch that races the brain's own turn renders
+        // `enqueued for` where an idle one renders `said to` — both exit 0, both correct, and
+        // the two differ in LINE COUNT. ⇒ the 13 render shapes are locked deterministically
+        // at the unit grain (computeCloneSayReport.test.ts); this asserts the live
+        // branch-invariant properties
+        expectCloneSaySuccessTree({
+          stdout: roundtrip.said.stdout,
+          serial: scene.serial,
+        });
+      });
+
+      then('the LIVE say head renders as snapped (masked vibecheck)', () => {
+        // the complement to the assertion above: a human who reviews this PR sees the shape
+        // a live pty + socket + subprocess actually put on stdout. the masker's own guard is
+        // what FAILS on a broken envelope; this diff is what shows a reviewer WHAT changed
+        expect(
+          asCloneSayHeadSnapshotSafe({ stdout: roundtrip.said.stdout }),
+        ).toMatchSnapshot();
       });
     });
 

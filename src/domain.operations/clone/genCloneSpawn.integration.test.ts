@@ -9,6 +9,9 @@ import {
 } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
+
+import { readFileSync } from 'node:fs';
 import { genCloneSpawn } from './genCloneSpawn';
 import { getCloneSocketPath } from './getCloneSocketPath';
 import type { PtyCloneHost } from './pty/genBrainCliPtyClone';
@@ -80,6 +83,8 @@ describe('genCloneSpawn', () => {
       socketPath: getCloneSocketPath({ serial })!,
       socketEligible: true,
       pty: input.pty,
+      emulator: null,
+      depth: 0,
     };
   };
 
@@ -234,4 +239,55 @@ describe('genCloneSpawn', () => {
       });
     },
   );
+
+  /**
+   * .what = the socket env key a PLAIN (socket-less) child carries
+   * .why = a plain clone owns no socket, so `RHACHET_CLONE_SOCKET` must be ABSENT from its
+   *   env rather than inherited from the parent that spawned it. an inherited value names a
+   *   channel the holder cannot be reached on, and the first reader added would get a wrong
+   *   answer with no signal that it is wrong
+   * .note = the child reports its own env, because a spawned child's env is unobservable
+   *   from outside. the parent's value is set for this case only, so the inheritance it
+   *   guards against is real rather than hypothetical
+   * .note = DOGFOOD: drop the `[CLONE_ENV_KEYS.socket]: undefined` line from
+   *   `genBrainCliPlainClone` and this reddens — the child reads the parent's path
+   */
+  given('[case6] a PLAIN spawn, with a socket path in the PARENT env', () => {
+    const scene = useBeforeAll(async () => {
+      const reportPath = `${genTempDir({ slug: 'plain-env-report' })}/env.json`;
+      return { reportPath, parentSocket: '/tmp/parent-owns-this.sock' };
+    });
+
+    when('[t0] the child reports its own clone-socket env', () => {
+      then('the key is ABSENT — never the parent\u2019s path', async () => {
+        const socketBefore = process.env[CLONE_ENV_KEYS.socket];
+        process.env[CLONE_ENV_KEYS.socket] = scene.parentSocket;
+        try {
+          const clone = await genCloneSpawn(
+            {
+              ...genSpawnInput({ pty: null }),
+              command: process.execPath,
+              args: [
+                '-e',
+                `require('fs').writeFileSync(${JSON.stringify(scene.reportPath)}, JSON.stringify({ socket: process.env[${JSON.stringify(CLONE_ENV_KEYS.socket)}] ?? null }))`,
+              ],
+            },
+            { host },
+          );
+          await clone.waitForExit;
+          await clone.dispose();
+        } finally {
+          if (socketBefore === undefined)
+            delete process.env[CLONE_ENV_KEYS.socket];
+          else process.env[CLONE_ENV_KEYS.socket] = socketBefore;
+        }
+
+        const reported = JSON.parse(readFileSync(scene.reportPath, 'utf8')) as {
+          socket: string | null;
+        };
+        expect(reported.socket).toBeNull();
+        expect(reported.socket).not.toEqual(scene.parentSocket);
+      });
+    });
+  });
 });

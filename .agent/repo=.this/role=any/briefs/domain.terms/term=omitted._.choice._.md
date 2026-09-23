@@ -105,11 +105,12 @@ each implies a **choice the command made**, and that is the wrong agency:
 
 ## .refs
 
-⚠️ **two rows below are PHANTOM** — no such file exists at this head (globbed 2026-09-05, and
-`asKeyrackReachOmittedNotice` survives only inside a comment in `getKeyrackKeySecrets.ts`). the
-render they name is real and lives under some other name on the keyrack surface. that surface is
-out of the `v2026_08_25.fix-node-pty-install` round's scope, so the audit is filed rather than
-swept: `.dream/2026_09_05.omitted-notice-refs-are-phantom-across-six-briefs.dream.md`.
+⚠️ **the two 👻 rows below are PHANTOM — do not follow them.** no such file exists at this head;
+`asKeyrackReachOmittedNotice` survives only inside a comment in `getKeyrackKeySecrets.ts`. the render
+they name is real and lives under another name on the keyrack surface, which is out of this term
+cluster's scope. the audit that names the real files is
+`.dream/2026_09_18.omitted-notice-phantom-refs-span-four-term-clusters.dream.md` — it carries the
+full span across every term cluster these rows reach into.
 
 - `src/domain.operations/keyrack/session/unlockKeyrackKeys.ts`  # the `{ unlocked, omitted }` contract
 - 👻 `src/domain.operations/keyrack/cli/asKeyrackReachOmittedNotice.ts`  # the render — PHANTOM

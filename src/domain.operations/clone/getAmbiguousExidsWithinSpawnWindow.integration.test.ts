@@ -53,7 +53,9 @@ describe('getAmbiguousExidsWithinSpawnWindow.integration', () => {
         const transcriptsDir = join(root, 'transcripts');
         const exid = getUuid();
         genAmbiguousMarker({ actorsRoot, transcriptsDir, exid });
-        // shove the transcript mtime far before the spawn window
+        // shove the transcript mtime far before the spawn window. this also lands
+        // mtime BEFORE birthtime, which no real file does — so it exercises the
+        // untrustworthy-birthtime fallback to mtime alongside the stale case
         utimesSync(join(transcriptsDir, `${exid}.jsonl`), 1_000_000, 1_000_000);
 
         const out = getAmbiguousExidsWithinSpawnWindow({
@@ -65,6 +67,48 @@ describe('getAmbiguousExidsWithinSpawnWindow.integration', () => {
       });
     });
   });
+
+  given(
+    '[case7] a LIVE PEER marker — born before spawn, written after it',
+    () => {
+      when('[t0] the ambiguous exids are read', () => {
+        then(
+          'the live peer is EXCLUDED — a fresh write buys no candidacy',
+          () => {
+            // 🔴 the clamp. measured 2026-09-16: a peer clone adopted its live
+            // parent's transcript. a parent writes every turn, so a mtime-only
+            // window can never exclude it — only creation can
+            const root = genTempDir({ slug: 'ambigLivePeer' });
+            const actorsRoot = join(root, 'actors');
+            const transcriptsDir = join(root, 'transcripts');
+            const exid = getUuid();
+            genAmbiguousMarker({ actorsRoot, transcriptsDir, exid });
+
+            // born now, spawn an hour out, written two hours out — so mtime sits
+            // INSIDE the window and creation sits outside it
+            const spawnedAnHourLater = asIsoTimeStamp(
+              new Date(Date.now() + 60 * 60 * 1_000).toISOString(),
+            );
+            const writtenTwoHoursLaterSec = Math.floor(
+              (Date.now() + 2 * 60 * 60 * 1_000) / 1_000,
+            );
+            utimesSync(
+              join(transcriptsDir, `${exid}.jsonl`),
+              writtenTwoHoursLaterSec,
+              writtenTwoHoursLaterSec,
+            );
+
+            const out = getAmbiguousExidsWithinSpawnWindow({
+              actorsRoot,
+              transcriptDir: transcriptsDir,
+              spawnedAt: spawnedAnHourLater,
+            });
+            expect(out).toEqual([]);
+          },
+        );
+      });
+    },
+  );
 
   given('[case3] a marker whose symlink target vanished', () => {
     when('[t0] the ambiguous exids are read', () => {

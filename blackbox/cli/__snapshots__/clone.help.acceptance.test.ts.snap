@@ -66,6 +66,20 @@ dispatch a message into a live clone (by @:<slug|serial>)
 Options:
   --what <message>  the message to dispatch (or @stdin)
   --output <mode>   output mode: tree (default) or json (default: "tree")
+  --force           override a dirty input box — DESTRUCTIVE: the write inserts
+                    at the cursor and the submit commits the WHOLE box, so the
+                    human's uncommitted text rides along as one fused turn. only
+                    a dirty region is forceable (never a modal, never an
+                    unrecognized screen), and only genuinely TYPED text reads
+                    dirty — a brain-drawn ghost suggestion reads clear, so it
+                    never needs this flag
+  --await <target>  wait until the message reaches enqueue (default; a release
+                    satisfies it too, since release is downstream) or release —
+                    bounded by a 15s poll, after which it reports the last state
+                    observed (never a hang) (default: "enqueue")
+  --debug           capture the whole decision record — the baseline, every poll
+                    cycle, and the exact screen rows the classifier read — even
+                    when the say SUCCEEDS (a failure always captures)
   -h, --help        display help for command
 "
 `;
@@ -76,11 +90,14 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
 observe a clone's recent output (by @:<slug|serial>)
 
 Options:
-  --tail <n>       how many recent messages to show (or all) (default: "20")
-  --format <fmt>   tree render: blocks (default, directioned) or raw (verbatim
-                   replies) (default: "blocks")
-  --output <mode>  output mode: tree (default) or json (default: "tree")
-  -h, --help       display help for command
+  --what <surface>  which surface to read: story (default, the transcript —
+                    works on a dead clone) | buffer (the live input box) | queue
+                    (submitted but unreleased) (default: "story")
+  --tail <n>        how many recent messages to show (or all) (default: "20")
+  --format <fmt>    tree render: blocks (default, directioned) or raw (verbatim
+                    replies) (default: "blocks")
+  --output <mode>   output mode: tree (default) or json (default: "tree")
+  -h, --help        display help for command
 "
 `;
 

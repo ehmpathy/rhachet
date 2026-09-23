@@ -41,6 +41,12 @@ Options:
   --as <address>      name the clone with a stable handle (@:<slug>)
   --no-socket         enroll without a managed reach socket
   --reason <text>     why this enrollment happened (or @stdin)
+  --watch             hold the clone in the foreground (default at a terminal)
+  --async             report the clone address and exit (default with no
+                      terminal)
+  --await             hold until the clone answers its prompt and exits, then
+                      forward its exit code (default with a prompt, e.g. -p
+                      "<prompt>")
   --output <mode>     output mode: tree (default) or json (default: "tree")
 "
 `;
@@ -223,7 +229,8 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
 
 exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `
 "
-😶 clone enrolled — deaf, so it cannot hear a \`say\`
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
    └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
@@ -271,14 +278,15 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
 
 exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t0] \`enroll claude\` (no --roles → the default roleset) then: the success output is locked to a snapshot 1`] = `
 "
-😶 clone enrolled — deaf, so it cannot hear a \`say\`
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
    └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
 
-exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t1] the same bare enroll with --output json (the machine handoff) then: the socketless machine handoff shape is locked (machine contract) 1`] = `
-"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":false}
+exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t1] the same bare enroll with --output json (the machine handoff) then: the detached machine handoff shape is locked (machine contract) 1`] = `
+"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}
 "
 `;
 
@@ -561,3 +569,36 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 }
 "
 `;
+
+exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "clone enroll depth budget spent",
+  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "depthRequested": 2,
+    "depthMax": 1,
+    "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up"
+  }
+}
+"
+`;
+
+exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: clone enroll depth budget spent
+
+{
+  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
+  "depthRequested": 2,
+  "depthMax": 1
+}
+
+"
+`;
+
+exports[`rhx enroll with no tty (acceptance) given: [case1] a linked repo + a live stub brain, enrolled with NO tty when: [t0] \`enroll claude --output json\` runs through a piped stdio spawn then: 🔴 the clone ANSWERS a say — reach is proven, never asserted 1`] = `"😶🎙️ <verdict> @:<address>"`;
+
+exports[`rhx enroll with no tty (acceptance) given: [case1] a linked repo + a live stub brain, enrolled with NO tty when: [t1] \`enroll claude --async\` with the mode named EXPLICITLY then: 🔴 the clone ANSWERS — the explicit flag never reached the brain 1`] = `"😶🎙️ <verdict> @:<address>"`;

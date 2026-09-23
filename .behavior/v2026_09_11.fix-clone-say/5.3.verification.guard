@@ -1,0 +1,348 @@
+# provenance = self-referential source template; enables `rhx route.guard.upgrade` idempotency
+provenance:
+  uri: node_modules/rhachet-roles-bhuild/dist/domain.operations/behavior/init/templates/5.3.verification.guard
+
+artifacts:
+  # track verification progress
+  - "$route/5.3.verification.yield.md"
+  # track actual implementation in src/
+  - "src/**/*"
+
+reviews:
+  self:
+    - slug: has-behavior-coverage
+      say: |
+        double-check: does the verification checklist show every behavior from wish/vision has a test?
+
+        - is every behavior in 0.wish.md covered?
+        - is every behavior in 1.vision.md covered?
+        - can you point to each test file in the checklist?
+
+        **if any behavior lacks a test, write the test NOW.** do not pass this gate with gaps.
+
+    - slug: has-zero-test-skips
+      say: |
+        double-check: did you verify zero skips — and REMOVE any you found?
+
+        - no .skip() or .only() found?
+        - no silent credential bypasses?
+        - no prior failures carried forward?
+
+        **if you found skips, did you remove them and make those tests pass?**
+
+        this is buttonup. skips are gaps. gaps get fixed, not noted.
+
+    - slug: has-all-tests-passed
+      say: |
+        double-check: did all tests pass? prove it with a VERBATIM terminal block.
+
+        **zero unproven claims. a claim is not proof — only pasted output is.**
+
+        for EACH test suite you must paste, verbatim from your terminal:
+        - the exact command you ran
+        - the final summary line (counts)
+        - the exit code
+
+        required proof shape — paste your real run, not this template:
+        ```
+        $ npm run test:unit
+        > 47 passed, 0 failed, 0 skipped
+        > exit 0
+        ```
+
+        the articulation is REJECTED if it:
+        - says "all tests pass" without a pasted block
+        - paraphrases the result instead of a verbatim paste
+        - pastes a partial run (one suite) and claims the rest
+        - shows any non-zero exit, any failure, or any skip
+
+        if you did not paste the command AND its output AND the exit code, you did
+        not prove it — and an unproven pass is a feigned review.
+
+        zero tolerance for extant failures:
+        - "it was already broken" is not an excuse — fix it
+        - "it's unrelated to my changes" is not an excuse — fix it
+        - flaky tests must be stabilized, not tolerated
+        - every failure is your responsibility now
+
+        zero tolerance for flakes — when a test flakes, deflake it:
+        - a test that passes on re-run is not "fine" — it is a live defect
+        - do NOT retry until green and move on; that hides the flake for the next run
+        - run the structured deflake workflow: rhx cicd.deflake init
+        - diagnose the root cause (race, shared state, clock, unmasked volatile output),
+          repair it, and prove the fix holds across re-runs
+        - a masked volatile output (see the snapshot rules) is the usual fix for an
+          output-driven flake
+
+        zero tolerance for fake tests:
+        - tests that always pass are fraud
+        - tests that mock the system under test prove no behavior
+        - tests must verify real behavior
+
+        zero tolerance for credential excuses:
+        - "i don't have creds" means get them or mock them
+        - silent bypasses are forbidden
+        - if creds block tests, that is a BLOCKER — not a deferral
+
+    - slug: has-preserved-test-intentions
+      say: |
+        double-check: did you preserve test intentions?
+
+        for every test you touched:
+        - what did this test verify before?
+        - does it still verify the same behavior after?
+        - did you change what the test asserts, or fix why it failed?
+
+        forbidden:
+        - weaken assertions to make tests pass
+        - remove test cases that "no longer apply"
+        - change expected values to match broken output
+        - delete tests that fail instead of fix code
+
+        the test knew a truth. if it failed, either:
+        - the code is wrong — fix the code
+        - the test has a bug — fix the bug, keep the intention
+        - requirements changed — document why, get approval
+
+        to "fix tests" via changed intent is not a fix — it is at worst
+        malicious deception, at best reckless negligence. unacceptable.
+
+    - slug: has-snap-changes-rationalized
+      say: |
+        double-check: is every `.snap` file change intentional and justified?
+
+        for each `.snap` file in git diff:
+        1. what changed? (added, modified, deleted)
+        2. was this change intended or accidental?
+        3. if intended: what is the rationale?
+        4. if accidental: revert it or explain why the new output is an improvement
+
+        common regressions caught here:
+        - output format degraded (lost alignment, lost structure)
+        - error messages became less helpful
+        - timestamps or ids leaked into snapshots (flaky)
+        - extra output added unintentionally
+
+        forbidden:
+        - "updated snapshots" without per-file rationale
+        - bulk snapshot updates without review
+        - regressions accepted without justification
+
+        every snap change tells a story. make sure the story is intentional.
+
+    - slug: has-critical-paths-frictionless
+      say: |
+        double-check: are the critical paths frictionless in practice? prove it with a
+        pasted runthrough, not a claim of "smooth".
+
+        "frictionless" is not a vibe — it is a concrete rubric. read the ergonomist
+        brief `def.frictionless` (in your booted ergonomist briefs) and score against it.
+
+        find the critical paths. if a repros artifact exists, take them from it:
+        - .behavior/v2026_09_11.fix-clone-say/3.2.distill.repros.experience.*.md
+        if no repros artifact exists, take the critical paths straight from the
+        wish + vision (the primary usecases a human runs) — absence of repros is
+        NOT an excuse to skip this review.
+
+        for EACH critical path, paste verbatim from your terminal:
+        - the exact command(s) you ran to walk the path
+        - the real output they produced
+
+        then score that pasted output against every criterion in def.frictionless,
+        one line each.
+
+        the articulation is REJECTED if it:
+        - claims "smooth" or "frictionless" without a pasted runthrough
+        - paraphrases the outcome instead of a verbatim paste
+        - walks only one path and claims the rest
+        - skips the review because repros is absent
+
+        a claim of frictionless is not proof — a pasted session scored against
+        def.frictionless is. if the paste shows friction, fix it NOW; do not note it.
+
+    - slug: has-ergonomics-validated
+      say: |
+        double-check: is the actual input/output ergonomic? prove it with a pasted
+        capture of the real i/o, not a claim of "matches".
+
+        "ergonomics" is not a vibe — it is a concrete rubric. read the ergonomist
+        brief `def.ergonomic` (in your booted ergonomist briefs) and score against it.
+
+        for EACH critical path, capture the real i/o verbatim from the built
+        artifact's run and paste it.
+
+        then choose ONE frame:
+        - if a repros artifact exists (.behavior/v2026_09_11.fix-clone-say/3.2.distill.repros.experience.*.md),
+          paste a two-column comparison — planned i/o (from repros) vs actual i/o
+          (captured) — and flag any drift between them.
+        - if no repros artifact exists, score the captured i/o directly against every
+          criterion in def.ergonomic, one line each. absence of repros is NOT an
+          excuse to skip this review.
+
+        the articulation is REJECTED if it:
+        - claims "matches" or "ergonomic" without the pasted capture
+        - fills the actual/captured column with a paraphrase instead of real output
+        - skips the review because repros is absent
+
+        if the ergonomics fall short, either:
+        - update repros to reflect the better design (when repros exists), or
+        - fix the implementation to meet the def.ergonomic rubric
+
+        drift you cannot see in a paste is drift you did not check.
+
+    - slug: has-fixed-all-gaps
+      say: |
+        final buttonup check: did you FIX every gap you found, or just detect it?
+
+        **this is the buttonup phase. detection is not enough — you must fix.**
+
+        look back at all the reviews above. for every gap you identified:
+        - absent test coverage → did you WRITE the test?
+        - absent prod coverage → did you IMPLEMENT the behavior?
+        - failed test → did you FIX the code or test?
+        - skipped test → did you REMOVE the skip and make it pass?
+
+        **zero omissions.** if any review above surfaced a gap, that gap must be fixed before you pass this gate.
+
+        ask yourself:
+        - did i just note the gap, or did i actually fix it?
+        - is there any item marked "todo" or "later"? (forbidden)
+        - is there any coverage marked incomplete? (forbidden)
+
+        **if you detected it, you fixed it.** prove it — a bare "all fixed" is a feigned review.
+
+        this review is the closer. the articulation must ENUMERATE, not summarize.
+        for EACH gap any review above surfaced, write one line:
+
+        - the gap (which review found it, what it was)
+        - the fix (the exact file + what changed, or the commit/diff reference)
+
+        if a review above found no gap, say so per review — do not skip it silently.
+
+        the articulation is REJECTED if it:
+        - says "all gaps fixed" without the per-gap enumeration
+        - references a fix with no file/diff pointer
+        - leaves any surfaced gap unaddressed
+
+        this is the final self-review. you are about to hand off to peer review.
+        prove every item above was addressed — with a pointer — not deferred.
+
+  peer:
+    # --- level 1: cheap reviewers (run first, in parallel) ---
+
+    # .note = the repo rules grade two disjoint corpora — the CODE this stone produced and the
+    #         ARTIFACTS it wrote — so they run as two lanes. one lane cannot hold both: measured
+    #         2026-09-18, the unbound corpus was 912.5k tokens and all five level-1 lanes returned
+    #         NO verdict (see 5.3.verification.yield.md). the split loses no coverage; a shrink
+    #         would. this lane keeps the `repo-rules` slug, so its .given/.taken chain stays whole.
+    #
+    #         🔴 the bind is POSITIVE-only, deliberately. a subtractive bind rests on every
+    #         --paths-wout to apply, and a dropped exclude reads as applied while the lane runs
+    #         unbounded. an include set cannot fail that way — it either matches or it does not.
+    #
+    #         ⚠️ and never a brace in the EXTENSION slot: '**/*.{ts,md}' matches ZERO files and is
+    #         dropped in silence, so the lane runs on the whole diff. that is the exact defect that
+    #         darkened all five lanes on 2026-09-18 — the recorded pathsWith in
+    #         .log/bhrain/review/2026-09-18T02-14-53-807Z.*/input.scope.debug.json proves it.
+    #         repeat the flag instead.
+    #
+    #         sized from that run's tokens.expected.md: src/ 329.1k + blackbox/ 149.1k
+    #         + rules 72.8k = ~551k, 52.6% of the window — under the 60% warn.
+    - slug: repo-rules
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'src/**/*.cjs' --paths-with 'src/**/*.snap' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    # .note = the ARTIFACT half of the repo-rules split above. it grades THIS stone's route
+    #         artifact, the dreams this round caught, and the repo's own .this briefs — the
+    #         corpora that carry the deferral, dream, and narration rules. absent this lane, the
+    #         narrow bind above would drop that coverage in silence.
+    #
+    #         the PRIOR-stone route artifacts (1.vision.*, 5.1.*, .fulcrums/, .seeds/, blocker/,
+    #         refs/) stay out: each already passed its own stone's guard with its own reviewers.
+    #         the dreams/ symlinks stay out too — they double-count .dream/, which IS in scope.
+    #
+    #         sized from the same run: .dream/ 43.2k + .agent/repo=.this 65.6k + the yield
+    #         + rules 72.8k = ~206k, 19.7% of the window.
+    - slug: repo-rules-artifacts
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with '.dream/**/*.md' --paths-with '.agent/repo=.this/**/*.md' --paths-with '.behavior/**/5.3.verification.yield.md' --join intersect --conversation $conversation --output "$output"
+      budget: 5
+      level: 1
+
+    # .note = snapshot exhaustiveness on CONTRACTS, so the corpus is the snapshots plus the
+    #         two surfaces that produce them: the cli contract and the blackbox suites.
+    #         it grades no domain.operation, so src/domain.operations/** is out of scope.
+    - slug: ergo-contract-snapshots
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.contract-snapshot-exhaustiveness.md' --refs '.agent/repo=ehmpathy/role=ergonomist/briefs/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/*.md' --diffs since-main --paths-with '**/*.snap' --paths-with 'blackbox/**/*.ts' --paths-with 'src/contract/**/*.ts' --join intersect --conversation $conversation --output "$output"
+      budget: 5
+      level: 1
+
+    # .note = external-contract INTEGRATION tests, so the corpus is the integration tier plus
+    #         the two surfaces an external caller reaches: the cli contract and the blackbox suites.
+    - slug: mech-external-contracts
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.external-contract-integration-tests.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.unit/rule.forbid.remote-boundaries.md' --diffs since-main --paths-with '**/*.integration.test.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'src/contract/**/*.ts' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    # .note = ACCEPTANCE journey coverage, so the corpus is the blackbox tier and the
+    #         snapshots its journeys pin. it grades no unit or integration test.
+    - slug: ergo-acceptance-journey-coverage
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.require.acceptance-journey-coverage.md' --refs '.agent/repo=ehmpathy/role=ergonomist/briefs/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/frames.behavior/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/*.md' --diffs since-main --paths-with 'blackbox/**/*.ts' --paths-with '**/*.snap' --join intersect --conversation $conversation --output "$output"
+      budget: 5
+      level: 1
+
+    - slug: behavior-experience-coverage
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.vision/rule.require.experience-{coverage,catalog-evolution}.md' --refs '$route/1.vision.experience.case=*.md' --refs '$route/1.vision.experience.dimensions.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.vision/define.experience.md' --diffs since-main --paths-with '**/*.test.ts' --paths-with '**/*.snap' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    # .note = VISUAL blemishes in snapshots, so the corpus is the snapshots themselves plus the
+    #         blackbox suites that render them. a visual blemish cannot live in a non-snapped file.
+    - slug: ergo-snapshot-visual-blemishes
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/ergonomist/rule.forbid.snapshot-visual-blemishes.md' --refs '.agent/repo=ehmpathy/role=ergonomist/briefs/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/lang.tones/*.md.min' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.require.contract-snapshot-exhaustiveness.md' --diffs since-main --paths-with '**/*.snap' --paths-with 'blackbox/**/*.ts' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    - slug: mech-given-when-then
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/frames.behavior/rule.require.given-when-then.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/criteria.given_when_then.[seed].v3.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/frames.behavior/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/lessons.howto/*.md.min' --diffs since-main --paths-with '**/*.test.ts' --paths-with '**/*.snap' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    - slug: mech-test-intent
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/rule.forbid.test-intent-violations.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/work.flow/refactor/rule.require.review-test-changes.md.min' --diffs since-main --paths-with '**/*.test.ts' --paths-with '**/*.snap' --join intersect --conversation $conversation --output "$output"
+      budget: 3
+      level: 1
+
+    - slug: mech-test-scope-purity
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.*/rule.*.md' --diffs since-main --paths-with '{src,blackbox}/**/*.test.ts' --join intersect --conversation $conversation --output "$output"
+      budget: 5
+      level: 1
+
+    # --- level 3: expensive reviewers (run after level 1 is terminal) ---
+
+    # 🔴 .note = each `enroll` lane MUST state the stdout contract in its own prompt.
+    #   a `$rhx review` lane emits the two numeric lines itself (genReviewOutputStdout);
+    #   a raw `enroll` lane does not, so a clone that answers in prose ("## Verdict: 0
+    #   blockers") misses the deterministic regex and cascades to the sub-brain tallier.
+    #   measured 2026-09-20: that cascade is a hard wall — the tally brain
+    #   (fireworks/deepseek/v4-flash) returns 412, account suspended — so a prose verdict
+    #   malfunctions the lane no matter how clean the review was. the cure is to satisfy
+    #   `contract.reviewer-output` at the source and never reach the fallback at all.
+    - slug: enroll-verif-snapshot-coverage
+      run: $rhx enroll claude --model 'claude-sonnet-5[1m]' --roles reviewer,behaver,ergonomist,mechanic -p 'review the diff for snapshot coverage on contract endpoints and acceptance test user journey coverage. read the prior peer-review conversation at $conversation to catch up on context. REQUIRED OUTPUT CONTRACT: end your review with BOTH of these numeric lines, each on its own line, as the last two lines of stdout — "N blockers" and "N nitpicks". a clean review states its zeros explicitly: "0 blockers" then "0 nitpicks". prose alone (for example "Verdict: no blockers") is UNREADABLE to the guard and malfunctions the lane. see .agent/repo=bhrain/role=reviewer/briefs/contract.reviewer-output.md. you are a ONE-SHOT reviewer and no human will read a reply, so do NOT ask any question and do NOT offer to do the work — render the verdict instead. the two count lines must be the FINAL two lines of your output, with no text after them.'
+      budget: 3
+      level: 3
+
+    - slug: enroll-verif-snapshot-blemishes
+      run: $rhx enroll claude --model 'claude-sonnet-5[1m]' --roles reviewer,behaver,ergonomist,mechanic -p 'review the diff for experiential and visual blemishes in snapshotted acceptance test journeys. read the prior peer-review conversation at $conversation to catch up on context. REQUIRED OUTPUT CONTRACT: end your review with BOTH of these numeric lines, each on its own line, as the last two lines of stdout — "N blockers" and "N nitpicks". a clean review states its zeros explicitly: "0 blockers" then "0 nitpicks". prose alone (for example "Verdict: no blockers") is UNREADABLE to the guard and malfunctions the lane. see .agent/repo=bhrain/role=reviewer/briefs/contract.reviewer-output.md. you are a ONE-SHOT reviewer and no human will read a reply, so do NOT ask any question and do NOT offer to do the work — render the verdict instead. the two count lines must be the FINAL two lines of your output, with no text after them.'
+      budget: 3
+      level: 3
+
+    - slug: enroll-verif-test-intent
+      run: $rhx enroll claude --model 'claude-sonnet-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'review the current implementation for test intent violation diffs. if any of the diffs related to tests loosened assertions or changed the criteria, this is a blocker. tests were added for a reason. we have to maintain the behavior they locked in. read the prior peer-review conversation at $conversation to catch up on context. REQUIRED OUTPUT CONTRACT: end your review with BOTH of these numeric lines, each on its own line, as the last two lines of stdout — "N blockers" and "N nitpicks". a clean review states its zeros explicitly: "0 blockers" then "0 nitpicks". prose alone (for example "Verdict: no blockers") is UNREADABLE to the guard and malfunctions the lane. see .agent/repo=bhrain/role=reviewer/briefs/contract.reviewer-output.md. you are a ONE-SHOT reviewer and no human will read a reply, so do NOT ask any question and do NOT offer to do the work — render the verdict instead. the two count lines must be the FINAL two lines of your output, with no text after them.'
+      budget: 3
+      level: 3
+
+judges:
+  # enforce peer reviews pass with zero blockers
+  - $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7

@@ -1,0 +1,28 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 1.vision
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: dimensional-decomposition (l1, 2/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_11.fix-clone-say/.reviews/peer/1.vision._.review.i002.f4d1e1363532df889d.r001._.given.by_peer.dimensional-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_09_11.fix-clone-say/.reviews/peer/1.vision._.review.i002.f4d1e1363532df889d.r001._.taken.by_self.dimensional-decomposition.md
+   │  │   └─ r2: experience-coverage (l1, 2/3)
+   │  │       ├─ approved 79.3s
+   │  │       ├─ 0 blockers ✓
+   │  │       ├─ 4 nitpicks 🟠
+   │  │       ├─ given: .behavior/v2026_09_11.fix-clone-say/.reviews/peer/1.vision._.review.i003.f4d1e1363532df889d.r002._.given.by_peer.experience-coverage.md
+   │  │       └─ taken: .behavior/v2026_09_11.fix-clone-say/.reviews/peer/1.vision._.review.i003.f4d1e1363532df889d.r002._.taken.by_self.experience-coverage.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │      │   └─ finished 0.7s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 0.5s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

@@ -17,3 +17,14 @@ briefs:
     # test patterns (frequently referenced)
     - briefs/code.test.accept.blackbox.md
     - briefs/rule.require.shared-test-fixtures.md
+    # clone safety — the cue fires BEFORE the enroll command is typed, by an
+    # agent who has not read the brief, so a ref tier would never fire
+    - briefs/rule.forbid.peer-clones-that-carry-the-driver-role.md
+    # test-sweep cost — same shape: the `--thorough` reach happens at the keyboard,
+    # so a ref tier fires only AFTER the minutes are spent. measured 2026-09-20 —
+    # a 163s sweep whose figure was then withdrawn as inadmissible
+    - briefs/rule.forbid.local-full-test-sweeps.md
+    # tool choice — the third of the same shape: a `node -e` one-liner is typed as a
+    # reflex, so a ref tier fires only after the unreviewable read already ran.
+    # measured 2026-09-21 — the human halted one mid-flight
+    - briefs/rule.forbid.inline-interpreter-reads.md

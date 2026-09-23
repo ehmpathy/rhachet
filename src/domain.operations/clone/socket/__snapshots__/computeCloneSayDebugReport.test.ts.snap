@@ -1,0 +1,90 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeCloneSayDebugReport given: [case1] the MEASURED residual — an \`absent\` on a dispatch whose bytes were delivered, read by a CAPABLE probe (2026-09-16) when: [t0] the report is rendered then: it locks the whole rendered shape 1`] = `
+"═══ clone say — absent ═══
+at            __STAMP__
+address       @:joker
+serial        aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+slug          joker
+message       "plainascii probe alpha"
+force         false
+await target  enqueue
+poll bound    15000ms
+
+── the verdict ──
+verdict       absent
+reason        no-rise-observed
+probe         capable
+delivered     true
+
+── the inputs the verdict was computed from ──
+refusal                   (none — the bytes reached the pty)
+transcriptRose            false
+probeReason               (none — the read was capable)
+screen.focus              input
+screen.input              dirty
+screen.countInInputRose   false
+screen.countOnScreenRose  false
+screen.queued             false
+
+── the pre-dispatch baseline (every rise above is measured against THIS) ──
+transcriptCount  4
+countInInput     0
+countOnScreen    0
+baseline reply   probe=capable focus=input input=clear countInInput=0 countOnScreen=0 queued=false
+
+── the observe trail (2 cycles) ──
+  #  0 +    12ms transcriptRose=false probe=capable focus=input input=clear countInInput=0 countOnScreen=0 queued=false
+  #  1 +   271ms transcriptRose=false probe=capable focus=input input=dirty countInInput=0 countOnScreen=0 queued=false
+
+── the rendered screens, verbatim (the LIVE VIEWPORT — the rows the classifier read) ──
+
+   BEFORE the dispatch (the baseline probe)
+   cols=40 rows=8 cursor=(x:2,y:5) viewportRows=7
+   ┌─────
+      0 │> tell me a joke│
+      1 ││
+      2 │⏺ why did the wave break? it saw the surfboard.│
+      3 ││
+      4 │────────────────────────────────────────│
+      5 │❯ │
+      6 │────────────────────────────────────────│
+   └─────
+
+   BEFORE the dispatch (the baseline probe) — BRIGHT ONLY (dim cells blanked; this is what the dirty/clear read sees)
+   ┌─────
+      0 │> tell me a joke│
+      1 ││
+      2 │⏺ why did the wave break? it saw the surfboard.│
+      3 ││
+      4 │────────────────────────────────────────│
+      5 │❯ │
+      6 │────────────────────────────────────────│
+   └─────
+
+   AFTER the dispatch (cycle #1 — the read the verdict was decided on)
+   cols=40 rows=8 cursor=(x:2,y:5) viewportRows=7
+   ┌─────
+      0 │> tell me a joke│
+      1 ││
+      2 │⏺ why did the wave break? it saw the surfboard.│
+      3 ││
+      4 │────────────────────────────────────────│
+      5 │❯ Another joke?│
+      6 │────────────────────────────────────────│
+   └─────
+
+   AFTER the dispatch (cycle #1 — the read the verdict was decided on) — BRIGHT ONLY (dim cells blanked; this is what the dirty/clear read sees)
+   ┌─────
+      0 │> tell me a joke│
+      1 ││
+      2 │⏺ why did the wave break? it saw the surfboard.│
+      3 ││
+      4 │────────────────────────────────────────│
+      5 │❯ Another joke?│
+      6 │────────────────────────────────────────│
+   └─────
+
+═══ end ═══
+"
+`;

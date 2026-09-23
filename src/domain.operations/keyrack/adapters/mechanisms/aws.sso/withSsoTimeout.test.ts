@@ -89,5 +89,57 @@ describe('withSsoTimeout', () => {
         }
       });
     });
+
+    /**
+     * .what = the aws cli's exit code reaches a human on the RENDERED MESSAGE, under the name
+     *   `exitCode`
+     *
+     * 🚨 .why the message and not `.metadata` = `helpful-errors` reserves `code`, and strips it in
+     *   TWO separate calls — `omit(metadata, ['cause', 'code'])` in the constructor, before
+     *   `fullMessage` is built, and `omit(raw, ['code'])` in the `.metadata` getter. so a metadata
+     *   assertion alone passes while the message silently omits the field, and a future reserved-key
+     *   addition could drop one strip without the other. the message is the channel a human reads,
+     *   and `asCliErrorJson` projects the same `.metadata` a machine reads
+     *
+     * ⚠️ .note = DOGFOOD: rename `exitCode` back to `code` at either `setupAwsSsoProfile.ts` throw
+     *   site (or here) and `[t2]` reddens — the number vanishes from the message entirely
+     */
+    when('[t2] called with an exit code', () => {
+      then('the RENDERED MESSAGE carries it under `exitCode`', () => {
+        const originalStderr = console.error;
+        console.error = () => undefined;
+
+        try {
+          const error = createSsoTimeoutError({
+            profileName: 'test-profile',
+            exitCode: 255,
+          });
+
+          expect(error.message).toContain('exitCode');
+          expect(error.message).toContain('255');
+        } finally {
+          console.error = originalStderr;
+        }
+      });
+
+      then('`code` would NOT survive — the reserved-key footgun', () => {
+        const originalStderr = console.error;
+        console.error = () => undefined;
+
+        try {
+          const error = createSsoTimeoutError({ code: 255 });
+
+          // neither channel carries it: the constructor strips it before `fullMessage`, and the
+          // getter strips it again. this asserts the LIBRARY behavior the rename exists to dodge
+          expect(error.message).not.toContain('255');
+          expect(
+            (error as unknown as { metadata: Record<string, unknown> }).metadata
+              .code,
+          ).toBeUndefined();
+        } finally {
+          console.error = originalStderr;
+        }
+      });
+    });
   });
 });

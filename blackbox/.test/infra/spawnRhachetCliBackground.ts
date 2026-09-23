@@ -2,6 +2,8 @@ import { ConstraintError } from 'helpful-errors';
 
 import { join } from 'node:path';
 
+import { asEnvWithoutCloneIdentity } from './invokeRhachetCliBinary';
+
 /**
  * .what = the own-property `waitForExit` stamps on the error it raises when its bound expires
  *
@@ -81,8 +83,12 @@ export const spawnRhachetCliBackground = (input: {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const pty = require('node-pty') as typeof import('node-pty');
 
-  // merge env, dropping undefined so a test can unset an inherited var
-  const mergedEnv = { ...process.env, ...input.env };
+  // merge env; an undefined value drops out below, so a test can unset an inherited var.
+  // the runner's OWN clone identity is stripped first — a depth inherited from a
+  // depth-1 runner spends the enroll budget before this spawn starts, so the same
+  // suite would pass on ci and fail in a clone's shell. a test that wants the axis
+  // sets it back through `input.env`, which merges after the strip
+  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
   const envFiltered = Object.fromEntries(
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
   ) as { [key: string]: string };

@@ -63,6 +63,7 @@ partition of an identity grain (`CloneOndisk`), never the subsystem.
 
 ## .refs
 - `src/domain.operations/clone/getRhachetRealpathFromProcess.ts`  # `isFsFault`, the allowlist
+- `src/domain.operations/clone/screen/genCloneScreenFeed.ts`  # `feed-faulted` — an emulator write/resize fault, retained + reported as its own probe-blind cause (distinct from `feed-not-live`, so the report names re-enroll, never a wait)
 
 ## .reason
 see the ref-level cluster beside this choice:

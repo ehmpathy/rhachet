@@ -6,26 +6,26 @@ exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance give
 🔭 available brains
    ├── ↻ openai/codex
    ├── ○ openai/gpt/4o
-   ├── ○ fireworks/qwen/3.7-plus
+   ├── ○ fireworks/glm/5.3
    ├── ○ fireworks/glm/5.2
    ├── ○ fireworks/minimax/m3
-   ├── ○ fireworks/minimax/2.7
    ├── ○ xai/grok/code-fast-1
    ├── ○ xai/grok/3-mini
    ├── ○ anthropic/claude/haiku
    ├── ○ anthropic/claude/sonnet
    ├── ○ anthropic/claude/opus
+   ├── ○ fireworks/kimi/k3
    ├── ○ fireworks/kimi/k2.7-code
    ├── ○ fireworks/kimi/k2.6
+   ├── ○ fireworks/glm/5.3-flash
    ├── ○ fireworks/gpt-oss/120b
-   ├── ○ fireworks/gpt-oss/20b
    ├── ○ xai/grok/3
    ├── ○ xai/grok/4
    ├── ↻ anthropic/claude/code
    ├── ○ fireworks/deepseek/v4-pro
    ├── ○ xai/grok/4-fast-wout-reason
    ├── ○ fireworks/deepseek/v4-flash
-   └── (and 6 more)
+   └── (and 8 more)
 
 {
   "choice": "nonexistent/brain-slug-xyz",
@@ -35,15 +35,17 @@ exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance give
       "anthropic/claude/sonnet",
       "anthropic/claude/opus",
       "fireworks/deepseek/v4-pro",
+      "fireworks/deepseek/v4.1-flash",
       "fireworks/deepseek/v4-flash",
+      "fireworks/kimi/k3",
       "fireworks/kimi/k2.7-code",
       "fireworks/kimi/k2.6",
-      "fireworks/qwen/3.7-plus",
+      "fireworks/glm/5.3",
+      "fireworks/glm/5.3-flash",
       "fireworks/glm/5.2",
       "fireworks/minimax/m3",
-      "fireworks/minimax/2.7",
       "fireworks/gpt-oss/120b",
-      "fireworks/gpt-oss/20b",
+      "fireworks/nemotron/3.5-lightning",
       "openai/gpt/4o",
       "xai/grok/code-fast-1",
       "xai/grok/3",
@@ -96,27 +98,27 @@ exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance give
 
 🔭 available brains
    ├── ○ openai/gpt/4o
+   ├── ○ fireworks/kimi/k3
+   ├── ○ fireworks/glm/5.3
    ├── ○ fireworks/glm/5.2
    ├── ○ xai/grok/3
    ├── ○ xai/grok/3-mini
    ├── ○ xai/grok/4
    ├── ○ fireworks/minimax/m3
    ├── ○ fireworks/kimi/k2.6
-   ├── ○ fireworks/qwen/3.7-plus
-   ├── ○ fireworks/minimax/2.7
    ├── ○ fireworks/gpt-oss/120b
-   ├── ○ fireworks/gpt-oss/20b
    ├── ○ anthropic/claude/haiku
    ├── ○ anthropic/claude/opus
    ├── ○ fireworks/kimi/k2.7-code
+   ├── ○ fireworks/glm/5.3-flash
    ├── ○ xai/grok/code-fast-1
    ├── ○ anthropic/claude/sonnet
    ├── ○ fireworks/deepseek/v4-pro
    ├── ○ fireworks/deepseek/v4-flash
    ├── ○ xai/grok/4-fast-wout-reason
+   ├── ○ fireworks/deepseek/v4.1-flash
    ├── ○ xai/grok/4-fast-with-reason
-   ├── ○ xai/grok/4.1-fast-wout-reason
-   └── (and 1 more)
+   └── (and 3 more)
 
 {
   "choice": {
@@ -128,15 +130,17 @@ exports[`genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance give
       "anthropic/claude/sonnet",
       "anthropic/claude/opus",
       "fireworks/deepseek/v4-pro",
+      "fireworks/deepseek/v4.1-flash",
       "fireworks/deepseek/v4-flash",
+      "fireworks/kimi/k3",
       "fireworks/kimi/k2.7-code",
       "fireworks/kimi/k2.6",
-      "fireworks/qwen/3.7-plus",
+      "fireworks/glm/5.3",
+      "fireworks/glm/5.3-flash",
       "fireworks/glm/5.2",
       "fireworks/minimax/m3",
-      "fireworks/minimax/2.7",
       "fireworks/gpt-oss/120b",
-      "fireworks/gpt-oss/20b",
+      "fireworks/nemotron/3.5-lightning",
       "openai/gpt/4o",
       "xai/grok/code-fast-1",
       "xai/grok/3",

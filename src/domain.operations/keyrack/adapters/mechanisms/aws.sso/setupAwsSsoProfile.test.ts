@@ -723,6 +723,12 @@ sso_registration_scopes = sso:account:access`);
             }),
           ).rejects.toThrow();
         });
+
+        // .note = the exit-code RENDERING clamp is NOT here. it once drove this mocked
+        //   `spawn` to reach the throw, which crossed a remote boundary in a unit test
+        //   (`rule.forbid.unit.remote-boundaries`). the throw is now owned by a named
+        //   factory, so the clamp is pure and lives beside it — with a negative half
+        //   the mocked shape never had: `createSsoLoginFailureError.test.ts`
       });
     });
   });

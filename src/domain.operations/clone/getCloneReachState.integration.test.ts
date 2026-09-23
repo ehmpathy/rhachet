@@ -40,6 +40,8 @@ describe('getCloneReachState.integration', () => {
           socketPath,
           write: () => undefined,
           isBrainCliAlive: () => true,
+          read: () => ({ live: false, reason: 'feed-not-live' }),
+          settle: async () => {},
         });
         await ready;
         try {

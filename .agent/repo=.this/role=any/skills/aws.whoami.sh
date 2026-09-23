@@ -25,8 +25,21 @@ while [[ $# -gt 0 ]]; do
       ENV="$2"
       shift 2
       ;;
+    # the dispatcher's own flags. `rhx aws.whoami --env test` rewrites to
+    # `rhachet run --skill aws.whoami --env test`, and `getRawArgsAfterRun` hands each arg
+    # after `run` to the skill — so `--skill` arrives in this argv. it is RECOGNIZED here
+    # rather than dropped, which is what keeps the default arm below a true refusal
+    --repo|--role|--skill)
+      shift 2
+      ;;
+    # an unrecognized flag is REFUSED by name, never consumed in silence. this skill declares
+    # no passthrough, so `refused` is its only legal fate for an unknown token
+    # (define.invariant.an-unknown-flag-is-refused-never-dropped)
     *)
-      shift
+      echo "aws.whoami: unknown arg: $1" >&2
+      echo "usage: aws.whoami --env <test|prep|prod>" >&2
+      # a caller-fixable constraint (correct the flag) → exit 2, per rule.require.exit-code-semantics
+      exit 2
       ;;
   esac
 done

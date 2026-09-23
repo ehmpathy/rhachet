@@ -86,8 +86,24 @@ while [[ $# -gt 0 ]]; do
       JSON_OUTPUT=true
       shift
       ;;
+    # the dispatcher's own flags. `rhx perf.test --runs 5` rewrites to
+    # `rhachet run --skill perf.test --runs 5`, and `getRawArgsAfterRun` hands each arg after
+    # `run` to the skill — so these arrive in this argv and are RECOGNIZED rather than dropped.
+    # `--skill` is absent from this list deliberately: the arm above already owns it (it sets
+    # SKILL_NAME, whose default is this skill's own slug), and a second pattern would be dead
+    --repo|--role)
+      shift 2
+      ;;
+    # an unrecognized flag is REFUSED by name, never consumed in silence. a dropped
+    # `--treshold 150` would leave the 350ms default live and report a pass that means
+    # naught — the one input defect a caller cannot detect from the output
+    # (define.invariant.an-unknown-flag-is-refused-never-dropped)
     *)
-      shift
+      echo "perf.test: unknown arg: $1" >&2
+      echo "usage: perf.test [--measure] [--runs N] [--warmup N] [--threshold MS]" >&2
+      echo "                 [--cmd CMD] [--baseline CMD] [--binary PATH] [--skill NAME] [--json]" >&2
+      # a caller-fixable constraint (correct the flag) → exit 2, per rule.require.exit-code-semantics
+      exit 2
       ;;
   esac
 done

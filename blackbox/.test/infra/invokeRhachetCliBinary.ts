@@ -63,6 +63,11 @@ export const asSnapshotSafe = (output: string): string => {
         /\/tmp\/test-fns\/[^/\s]+\/\.temp\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[^/\s]*\.[0-9a-f]{8}/gi,
         '/TMP_TEST_DIR',
       )
+      // strip the say debug log's calendar day (`debug.2026-09-16.log`). the ISO mask
+      // below cannot reach it — that one demands COLONS, and a filename-safe day carries
+      // dashes only. the mask keeps the `debug.` / `.log` literals, so the snapshot still
+      // proves WHICH artifact the envelope names, and only the day floats
+      .replace(/debug\.\d{4}-\d{2}-\d{2}\.log/g, 'debug.__DATE__.log')
       // strip ISO timestamps (vary by run). the millis are OPTIONAL: iso-time's
       // now() omits `.000` when the instant lands on a whole second, so a spawn on
       // an exact second renders `…30Z` (no millis) — the mask must catch both forms
@@ -176,6 +181,42 @@ export const asKeyrackStatusSnapshotSafe = (input: {
 };
 
 /**
+ * .what = the inherited env, with every trace of the RUNNER's own clone membership
+ *   stripped out
+ *
+ * .why =
+ *   - a blackbox test declares its own axes. whether the CLI is invoked BY A CLONE is
+ *     one of them, and `{...process.env}` silently answers it from whoever happened to
+ *     run the suite — so the same file returns a different verdict on ci (a human's
+ *     shell, no clone vars) than in a clone's shell, which is the exact divergence
+ *     `rule.require.hermetic-tests` forbids
+ *   - `isCloneEnrollAttended` reads `CLONE_ENV_KEYS.serial` to decide whether a socket
+ *     stands up, so a leaked serial flips `socketEligible` on four extant enroll
+ *     assertions whose own comments read "no tty under spawnSync → no socket"
+ *
+ * .note = a test that WANTS the clone axis sets it back through the `env` option,
+ *   which merges after this strip. `[case1]`/`[case2]` of the depth budget do exactly
+ *   that, which is what makes the axis explicit instead of ambient
+ *
+ * .note = exported because the OUTER-pty spawner needs the identical strip. that one
+ *   runs `rhx enroll` on a real tty, so `attended` is true by its tty leg and the
+ *   serial leak is inert there — but `RHACHET_CLONE_DEPTH` is not: inherited from a
+ *   depth-1 runner it spends the budget before the enroll starts, and every pty-backed
+ *   reach test fails with `depth budget spent`. same divergence, a different var
+ */
+export const asEnvWithoutCloneIdentity = (
+  env: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv => {
+  const {
+    RHACHET_CLONE_SERIAL: _serial,
+    RHACHET_CLONE_SOCKET: _socket,
+    RHACHET_CLONE_DEPTH: _depth,
+    ...rest
+  } = env;
+  return rest;
+};
+
+/**
  * .what = paths to CLI binaries
  * .why = acceptance tests invoke compiled binaries for black-box test
  */
@@ -206,7 +247,7 @@ export const invokeRhachetCliBinary = (input: {
   const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
 
   // merge env vars, filter out undefined to unset inherited vars
-  const mergedEnv = { ...process.env, ...input.env };
+  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
   // .note = deliberate cast: the filter above removes every undefined value, so the
   //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
   //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.
@@ -268,7 +309,7 @@ export const invokeRhachetCliBinaryChain = (input: {
   const chainedCommand = commands.join(' && ');
 
   // merge env vars, filter out undefined to unset inherited vars
-  const mergedEnv = { ...process.env, ...input.env };
+  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
   // .note = deliberate cast: the filter above removes every undefined value, so the
   //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
   //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.

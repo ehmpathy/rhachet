@@ -91,6 +91,8 @@ export type PnpmPresenceRead = 'present' | 'absent' | 'unreadable';
 - `src/domain.operations/upgrade/printPnpmPresenceUnreadableNotice.ts`  # what the human is told
 - `src/domain.operations/clone/pty/asLibcFromReport.ts`  # `Libc`'s third member
 - `src/domain.operations/clone/pty/getPtyPlatformSupport.ts`  # the `unknown` side, one line apart
+- `src/domain.operations/clone/socket/computeCloneSayVerdict.ts`  # `verdict: 'unreadable'` — a say against a probe-blind peer
+- `src/domain.operations/clone/socket/computeCloneSayReport.ts`   # the `feed-not-live` (wait) + `feed-faulted` (re-enroll) degrade copies (exit 1)
 
 ## .reason
 see the ref-level cluster beside this choice:

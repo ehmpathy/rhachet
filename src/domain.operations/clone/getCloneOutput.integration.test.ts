@@ -141,19 +141,23 @@ describe('getCloneOutput.integration', () => {
         const root = genTempDir({ slug: 'outMerge' });
         const cloneDir = join(root, 'clone');
         const transcriptsDir = join(root, 'transcripts');
+        // .note = the two mtimes are stale RELATIVE TO EACH OTHER (what this case
+        //   tests) yet both sit after `spawnedAt`, so neither trips the provenance
+        //   gate this case has no stake in — the order assertion is what is clamped
+        const nowSec = Math.floor(Date.now() / 1_000);
         genEpisode({
           transcriptsDir,
           cloneDir,
           exid: getUuid(),
           content: assistantLine('older') + '\n',
-          mtimeSec: 1_000_000,
+          mtimeSec: nowSec + 1,
         });
         genEpisode({
           transcriptsDir,
           cloneDir,
           exid: getUuid(),
           content: assistantLine('newer') + '\n',
-          mtimeSec: 2_000_000,
+          mtimeSec: nowSec + 2,
         });
 
         const out = getCloneOutput({
@@ -307,6 +311,86 @@ describe('getCloneOutput.integration', () => {
           expect(out.exidsAmbiguous).toEqual([]);
         },
       );
+    });
+  });
+
+  given('[case6] a LINKED transcript from a LIVE PEER', () => {
+    // 🔴 the clamp. measured 2026-09-16: a clone linked its enroller's LIVE session
+    // and `get` rendered the enroller's own messages under `🎧` — heard from the
+    // clone. the link-time gate now refuses the adoption; this gate refuses a link
+    // that is ALREADY on disk, so a clone mis-linked before the cure stops to lie
+    // the moment it is read.
+    //
+    // .note = `utimesSync` moves atime+mtime and CANNOT move birthtime, so the
+    //   before/after relation is expressed through the SPAWN stamp instead: the
+    //   file is born now, and the clone spawns an hour later. its mtime is pushed
+    //   two hours out, which is what a live peer's continuous writes do — so a
+    //   mtime-only read admits it forever, and only a creation read excludes it
+    const genScene = (input: { spawnedAt: string }) => {
+      const root = genTempDir({ slug: 'outLivePeerLink' });
+      const cloneDir = join(root, 'clone');
+      const transcriptsDir = join(root, 'transcripts');
+      const exid = getUuid();
+      genEpisode({
+        transcriptsDir,
+        cloneDir,
+        exid,
+        content: assistantLine('theirs') + '\n',
+      });
+      const writtenTwoHoursOutSec = Math.floor(
+        (Date.now() + 2 * 60 * 60 * 1_000) / 1_000,
+      );
+      utimesSync(
+        join(transcriptsDir, `${exid}.jsonl`),
+        writtenTwoHoursOutSec,
+        writtenTwoHoursOutSec,
+      );
+      return {
+        out: getCloneOutput({
+          cloneDir,
+          actorsRoot: join(root, 'actors'),
+          transcriptDir: null,
+          spawnedAt: asIsoTimeStamp(input.spawnedAt),
+          tail: 'all',
+        }),
+        exid,
+      };
+    };
+
+    when('[t0] the clone spawned AFTER the transcript was created', () => {
+      const scene = useThen('the output is read', () =>
+        genScene({
+          spawnedAt: new Date(Date.now() + 60 * 60 * 1_000).toISOString(),
+        }),
+      );
+
+      then('the peer`s talk is NOT rendered as this clone`s', () => {
+        expect(scene.out.messages).toEqual([]);
+      });
+
+      then('the exclusion is REPORTED, never a silent narrow', () => {
+        expect(scene.out.exidsForeign).toEqual([scene.exid]);
+      });
+    });
+
+    when('[t1] the clone spawned BEFORE the transcript was created', () => {
+      // the same file, the same future mtime — only the spawn stamp moves. so this
+      // proves the gate turns on CREATION vs SPAWN, never on the file alone
+      const scene = useThen('the output is read', () =>
+        genScene({
+          spawnedAt: new Date(Date.now() - 60 * 60 * 1_000).toISOString(),
+        }),
+      );
+
+      then('it IS rendered — the clone could have authored it', () => {
+        expect(scene.out.messages).toEqual([
+          { direction: 'out', text: 'theirs', at: null },
+        ]);
+      });
+
+      then('not one exid is reported foreign', () => {
+        expect(scene.out.exidsForeign).toEqual([]);
+      });
     });
   });
 });

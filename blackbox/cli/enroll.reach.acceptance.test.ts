@@ -526,9 +526,10 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
 
     when('[t2] a MULTI-LINE message is dispatched via say', () => {
       then('a multi-line say is ACCEPTED at the input layer — no longer refused for its newlines', () => {
-        // multi-line `say` is SUPPORTED: asCloneDispatchFrame maps each interior `\n`
-        // to the soft-newline escape (Shift/Option-Enter), so the whole block lands as
-        // ONE turn. `@:plain` is DEAF, so this lands on the reach-state refusal (exit
+        // multi-line `say` is SUPPORTED: asCloneDispatchFrame wraps the message in the
+        // bracketed-paste markers, so each interior `\n` enters the input box as a real
+        // line and the whole block commits as ONE turn. `@:plain` is DEAF, so this lands
+        // on the reach-state refusal (exit
         // 2, DEAF) — the SAME path a single-line say takes, which is what proves the
         // newlines are not what stopped it
         const said = invokeRhachetCliBinary({
@@ -1332,4 +1333,81 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
       });
     },
   );
+});
+
+/**
+ * .what = the OUTER-pty spawner must not inherit the RUNNER's own clone identity
+ *
+ * .why = `rule.require.hermetic-tests`. a blackbox suite declares its own axes; whether
+ *   the caller is a clone — and at what depth — is one of them. `{...process.env}` at a
+ *   spawn seam answers it from whoever happened to run the suite, so the SAME file
+ *   returns a different verdict on ci (a human's shell) than in a clone's shell.
+ *
+ * 🚨 the var that bites here is `RHACHET_CLONE_DEPTH`, not the serial. every pty-backed
+ *   enroll is attended by its TTY leg, so a leaked serial changes no verdict — but a
+ *   depth of 1 mints the peer at 2, and `CLONE_ENROLL_DEPTH_MAX` refuses it BEFORE the
+ *   spawn. so the suite would fail ahead of its first assertion, with an error that
+ *   names a budget rather than a harness.
+ *
+ * ⚠️ the runner env is mutated ON PURPOSE and restored in `afterAll` — that mutation IS
+ *   the instrument. no other surface can express "the process that runs jest is itself a
+ *   depth-1 clone", which is the one condition the defect needs.
+ *
+ * ⚠️ the dogfood, with its reach stated (`rule.require.clamp-edge-cases`):
+ *
+ *   | mutation                                          | this case |
+ *   |---------------------------------------------------|-----------|
+ *   | `spawnRhachetCliBackground` merges raw process.env | 🔴 red — the enroll is refused, `depth budget spent` |
+ *   | the strip drops its `RHACHET_CLONE_DEPTH` key      | 🔴 red — same refusal |
+ *   | restored                                          | 🟢 green |
+ */
+describe('the pty spawner strips the runner clone identity (acceptance)', () => {
+  given('[case1] the process that runs the suite is a depth-1 clone', () => {
+    const depthBefore = process.env.RHACHET_CLONE_DEPTH;
+    beforeAll(() => {
+      process.env.RHACHET_CLONE_DEPTH = '1';
+    });
+    afterAll(() => {
+      if (depthBefore === undefined) delete process.env.RHACHET_CLONE_DEPTH;
+      else process.env.RHACHET_CLONE_DEPTH = depthBefore;
+    });
+
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'enroll-runner-depth' });
+      const configDir = genTempDir({ slug: 'enroll-runner-depth-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+
+      const bg = spawnRhachetCliBackground({
+        args: ['enroll', 'claude'],
+        cwd: dir,
+        env: { PATH: stubPath, CLAUDE_CONFIG_DIR: configDir },
+      });
+
+      // a REFUSED enroll exits in milliseconds and emits no ready line, so this wait is
+      // the assertion's instrument: it resolves on the green path and rejects on the red
+      const outcome = await bg
+        .waitForOutput({
+          pattern: /ready serial=([0-9a-f-]{36})/,
+          timeoutMs: 20000,
+        })
+        .then(() => ({ ready: true }))
+        .catch(() => ({ ready: false }));
+
+      return { bg, ready: outcome.ready, output: bg.getOutput() };
+    });
+    afterAll(async () => {
+      await scene.bg.kill();
+    });
+
+    when('[t0] it enrolls a peer through the outer pty', () => {
+      then('the depth budget does NOT refuse it', () => {
+        expect(scene.output).not.toContain('depth budget spent');
+      });
+
+      then('the clone stands up — the runner depth never reached the child', () => {
+        expect(scene.ready).toEqual(true);
+      });
+    });
+  });
 });

@@ -51,6 +51,20 @@ while [[ $# -gt 0 ]]; do
       GREP_PATTERN="$2"
       shift 2
       ;;
+    --repo|--role|--skill)
+      # rhachet passthrough args - ignore
+      shift 2
+      ;;
+    --help|-h)
+      echo "usage: show.claude.task.output.sh --id <task_id> [options]"
+      echo ""
+      echo "options:"
+      echo "  --id ID            background task id (required)"
+      echo "  --lines N          show last N lines (default: 100)"
+      echo "  --all              show entire output"
+      echo "  --grep PATTERN     search output for PATTERN"
+      exit 0
+      ;;
     *)
       echo "unknown arg: $1"
       exit 1
@@ -65,17 +79,25 @@ if [[ -z "$TASK_ID" ]]; then
   exit 1
 fi
 
-# construct path based on current workspace
-# claude stores outputs in /tmp/claude/<workspace-path>/tasks/<id>.output
-WORKSPACE_PATH=$(pwd | sed 's|/|-|g')
-OUTPUT_FILE="/tmp/claude/$WORKSPACE_PATH/tasks/${TASK_ID}.output"
+# find the task output, never compute its path
+#
+# .why = claude's layout drifts in three places a computed path cannot track:
+#        the root is uid-suffixed (/tmp/claude-1000), the workspace slug
+#        sanitizes '.' and '_' to '-', and a per-session uuid dir sits between
+#        the workspace and tasks/. a find matches whatever shape is on disk.
+OUTPUT_FILE=$(find /tmp/claude* -path "*/tasks/${TASK_ID}.output" -type f -printf '%T@ %p\n' 2>/dev/null \
+  | sort -rn | head -n 1 | cut -d' ' -f2-)
 
 # check file exists
-if [[ ! -f "$OUTPUT_FILE" ]]; then
-  echo "error: task output not found at $OUTPUT_FILE"
+if [[ -z "$OUTPUT_FILE" ]]; then
+  echo "error: no task output found for id '${TASK_ID}'"
+  echo ""
+  echo "  looked under: /tmp/claude*/**/tasks/${TASK_ID}.output"
+  echo "  hint: the id is the one the background tool printed at launch"
   echo ""
   echo "available tasks:"
-  ls -la "/tmp/claude/$WORKSPACE_PATH/tasks/" 2>/dev/null || echo "  (no tasks directory)"
+  find /tmp/claude* -path '*/tasks/*.output' -type f -printf '  %f\n' 2>/dev/null \
+    | sort -u | head -n 20 || echo "  (none found)"
   exit 1
 fi
 

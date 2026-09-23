@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path';
 import { genCloneSpawn } from '../genCloneSpawn';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
+import { getEmulatorModuleOrNull } from '../screen/getEmulatorModuleOrNull';
 import { sayClone } from '../socket/sayClone';
 import { genBrainCliPtyClone, type PtyCloneHost } from './genBrainCliPtyClone';
 import { getPtyHostTupleFromProcess } from './getPtyHostTupleFromProcess';
@@ -258,8 +259,13 @@ const spawnStubClone = async (): Promise<{
       cwd,
       serial,
       socketPath,
+      depth: 0,
     },
-    { pty: pty!, host: genCaptureHost(output) },
+    {
+      pty: pty!,
+      host: genCaptureHost(output),
+      emulator: getEmulatorModuleOrNull(),
+    },
   );
   return { serial, socketPath, output, clone };
 };
@@ -305,6 +311,35 @@ describe('genBrainCliPtyClone.integration', () => {
           });
           await waitForOutput(scene.output, (o) => o.includes(`ack:${nonce}`));
           expect(scene.output.join('')).toContain(`ack:${nonce}`);
+        },
+      );
+    });
+
+    when('[t2] the screen feed is read', () => {
+      then(
+        'read reports a LIVE grid that renders the mirrored output (V6)',
+        async () => {
+          // the emulator parses async (~28ms measured), so poll the rendered grid until
+          // the ready line lands — bounded, so a dead feed reddens rather than hangs
+          const deadline = Date.now() + 5000;
+          // .note = deliberate mutation — a bounded render poll, local to this read
+          let read = scene.clone.read();
+          while (Date.now() < deadline) {
+            read = scene.clone.read();
+            if (
+              read.live &&
+              read.lines.some((line) => line.includes('ready serial='))
+            )
+              break;
+            await new Promise((wake) => setTimeout(wake, 50));
+          }
+          expect(read.live).toBe(true);
+          if (read.live)
+            expect(
+              read.lines.some((line) =>
+                line.includes(`ready serial=${scene.serial}`),
+              ),
+            ).toBe(true);
         },
       );
     });
@@ -361,8 +396,8 @@ describe('genBrainCliPtyClone.integration', () => {
         const socketPath = getCloneSocketPath({ serial })!;
         const cwd = genTempDir({ slug: `ptyclone-resize-${serial}` });
         const clone = await genBrainCliPtyClone(
-          { command: 'noop', args: [], cwd, serial, socketPath },
-          { pty: fakePty, host },
+          { command: 'noop', args: [], cwd, serial, socketPath, depth: 0 },
+          { pty: fakePty, host, emulator: null },
         );
 
         // before any resize, the child was never re-flowed
@@ -438,8 +473,8 @@ describe('genBrainCliPtyClone.integration', () => {
 
         const error = await getError(
           genBrainCliPtyClone(
-            { command: 'noop', args: [], cwd, serial, socketPath },
-            { pty: fakePty, host: genCaptureHost([]) },
+            { command: 'noop', args: [], cwd, serial, socketPath, depth: 0 },
+            { pty: fakePty, host: genCaptureHost([]), emulator: null },
           ),
         );
 
@@ -563,6 +598,8 @@ describe('genBrainCliPtyClone.integration', () => {
                 // the bind fault that follows is ours rather than the caller's
                 socketEligible: true,
                 pty: fakePty,
+                emulator: null,
+                depth: 0,
               },
               { host: genCaptureHost([]) },
             ),
