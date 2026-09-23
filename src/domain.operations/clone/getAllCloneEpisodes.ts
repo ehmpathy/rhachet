@@ -22,7 +22,12 @@ import { getCloneHistoryDir } from './getCloneHistoryDir';
 export const getAllCloneEpisodes = (input: {
   cloneDir: string;
 }): {
-  episodes: { exid: string; mtimeMs: number; content: string }[];
+  episodes: {
+    exid: string;
+    mtimeMs: number;
+    birthtimeMs: number | null;
+    content: string;
+  }[];
   exidsUnreadable: string[];
 } => {
   const historyDir = getCloneHistoryDir({ cloneDir: input.cloneDir });
@@ -36,9 +41,13 @@ export const getAllCloneEpisodes = (input: {
       const exid = name.slice(0, -'.jsonl'.length);
       const linkPath = join(historyDir, name);
       try {
+        // statSync follows the symlink, so both stamps are the TARGET transcript's
+        const stat = statSync(linkPath);
         return {
           exid,
-          mtimeMs: statSync(linkPath).mtimeMs,
+          mtimeMs: stat.mtimeMs,
+          // a filesystem with no creation time yields 0; null names that absence
+          birthtimeMs: stat.birthtimeMs > 0 ? stat.birthtimeMs : null,
           content: readFileSync(linkPath, 'utf8'),
         };
       } catch (error) {

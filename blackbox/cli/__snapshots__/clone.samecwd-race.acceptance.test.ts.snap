@@ -7,10 +7,11 @@ exports[`rhx clone get same-cwd-race degradation (acceptance) given: [case1] a c
   "exidsAmbiguous": [
     "__SERIAL__"
   ],
+  "exidsForeign": [],
   "total": 0,
   "truncated": false
 }
 "
 `;
 
-exports[`rhx clone get same-cwd-race degradation (acceptance) given: [case1] a clone whose only in-window transcript was quarantined as ambiguous when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"⚠ history is empty because this clone shared a cwd with another at spawn — enroll each in its own worktree to separate their transcripts"`;
+exports[`rhx clone get same-cwd-race degradation (acceptance) given: [case1] a clone whose only in-window transcript was quarantined as ambiguous when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"🟡 history is empty because this clone shared a cwd with another at spawn — enroll each in its own worktree to separate their transcripts"`;

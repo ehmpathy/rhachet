@@ -1,6 +1,10 @@
 import { ConstraintError } from 'helpful-errors';
 
-import { invokeRhachetCliBinary } from './invokeRhachetCliBinary';
+import { genRealBrainSlot } from './genRealBrainSlot';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from './invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from './roleFixtureRepo';
 import {
   spawnRhachetCliBackground,
@@ -466,6 +470,14 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   model?: string;
   timeoutMs?: number;
 }): Promise<{ bg: RhachetBackgroundHandle; address: string; serial: string }> => {
+  // 🔴 take a host-wide slot BEFORE the spawn. every realbrain suite passes through this
+  // one door, so the bound applies by construction rather than by each suite's diligence —
+  // and a suite added next year inherits it with no edit. the measured defect it closes:
+  // 11 concurrent live brains starved the daemons' own event loops and reddened 8 rows in
+  // three suites, where the same three passed 35/35 at a concurrency of 3
+  // (genRealBrainSlot carries both log paths)
+  const slot = await genRealBrainSlot();
+
   // default the real brain to haiku — the reach proof needs a LIVE brain that submits
   // + replies, not a smart one. haiku answers fastest + cheapest, so the round-trip is
   // quick and the token spend is minimal (rule.require.test-claude-cli-against-haiku).
@@ -483,24 +495,36 @@ export const enrollRealClaudeAndWaitReach = async (input: {
     cwd: input.dir,
     env: input.env,
   });
-  const reach = await bg.waitForOutput({
-    pattern: /"serial":\s*"(?<serial>[0-9a-f-]{36})"/,
-    timeoutMs: input.timeoutMs ?? 120000,
-  });
-  const serial = reach.groups!.serial!;
+  // 🔴 every step from here to the return may throw, and each throw must release the slot.
+  // an enroll that fails its trust menu or its readiness bound would otherwise hold a slot
+  // until the stale sweep reclaims it — and starve every peer suite meanwhile for a brain
+  // that is already dead. on SUCCESS the slot stays held, and its release rides the wrapped
+  // `kill` below
+  const serial = await (async (): Promise<string> => {
+    const reach = await bg.waitForOutput({
+      pattern: /"serial":\s*"(?<serial>[0-9a-f-]{36})"/,
+      timeoutMs: input.timeoutMs ?? 120000,
+    });
 
-  // claude shows a one-time folder-trust menu for a fresh dir before it boots ("Is this
-  // a project you created or one you trust?"). race that menu against the ready marks —
-  // whichever lands first says whether the menu must be driven at all. the menu text is
-  // drawn word-by-word with `[NNG` cursor-move escapes between words, so
-  // "trust this folder" is NOT contiguous; the header "you trust?" gives a reliable
-  // contiguous literal to match.
-  const gate = await bg.waitForOutput({
-    pattern: new RegExp(`trust\\?|${CLAUDE_IS_READY.source}`),
-    timeoutMs: input.timeoutMs ?? 120000,
+    // claude shows a one-time folder-trust menu for a fresh dir before it boots ("Is this
+    // a project you created or one you trust?"). race that menu against the ready marks —
+    // whichever lands first says whether the menu must be driven at all. the menu text is
+    // drawn word-by-word with `[NNG` cursor-move escapes between words, so
+    // "trust this folder" is NOT contiguous; the header "you trust?" gives a reliable
+    // contiguous literal to match.
+    const gate = await bg.waitForOutput({
+      pattern: new RegExp(`trust\\?|${CLAUDE_IS_READY.source}`),
+      timeoutMs: input.timeoutMs ?? 120000,
+    });
+    if (gate[0].includes('trust?'))
+      await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
+
+    return reach.groups!.serial!;
+  })().catch(async (error: unknown) => {
+    slot.release();
+    await bg.kill();
+    throw error;
   });
-  if (gate[0].includes('trust?'))
-    await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
@@ -513,10 +537,18 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   //   (`rule.require.timeless-comments`).
   //
   //   1. the SIGNAL — claude's own readiness banner, however long its boot took
-  await bg.waitForOutput({
-    pattern: CLAUDE_IS_READY,
-    timeoutMs: input.timeoutMs ?? 120000,
-  });
+  await bg
+    .waitForOutput({
+      pattern: CLAUDE_IS_READY,
+      timeoutMs: input.timeoutMs ?? 120000,
+    })
+    .catch(async (error: unknown) => {
+      // same contract as the block above: a brain that never announced itself is dead
+      // weight, and its slot belongs to a peer
+      slot.release();
+      await bg.kill();
+      throw error;
+    });
 
   //   2. a FIXED settle, stated as one. the banner marks the RENDER; claude publishes no
   //      second mark for "the input reader is armed", so there is no signal left to wait
@@ -529,7 +561,26 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   //     fails loud with the brain's own screen attached
   await new Promise<void>((done) => setTimeout(done, 2000));
 
-  return { bg, address: `@:${serial}`, serial };
+  // 🔴 the slot's release rides `kill`, so a caller frees host capacity by the SAME act it
+  // already performs in its `afterAll` — no second call to forget. every realbrain suite
+  // already kills its brain (the brain outlives the test otherwise), so the release is
+  // carried by a habit the suites have, rather than by one this cure would have to teach
+  // them.
+  // .note = idempotent on both halves: `release` tolerates an already-swept slot, and the
+  //   underlying `kill` is the same handle the caller held before
+  const killAndRelease = async (): Promise<{ exited: boolean }> => {
+    try {
+      return await bg.kill();
+    } finally {
+      slot.release();
+    }
+  };
+
+  return {
+    bg: { ...bg, kill: killAndRelease },
+    address: `@:${serial}`,
+    serial,
+  };
 };
 
 /**
@@ -597,6 +648,24 @@ export const sayAndPollForMarker = async (input: {
   timeoutMs?: number;
   maxAttempts?: number;
   /**
+   * force the say past a `dirty` input-region pre-check — the one refusal `--force`
+   * overrides.
+   * .why = a box reads `dirty` only where it holds genuinely BRIGHT text, which is what
+   *   a human types. so a force claims: the text in that box is expendable. the write
+   *   inserts at the cursor and the submit commits the WHOLE box, so whatever sat there
+   *   rides along as one fused turn — by construction, never by the brain's discretion.
+   *   left OFF by default: a probe that asserts an un-forced verdict must never be
+   *   handed a flag that changes it.
+   * .note = a real claude (v2.1.87) draws a CONTEXTUAL greyed placeholder into the empty
+   *   box between turns (e.g. `Another joke?`). that is DIM, so the attribute-aware feed
+   *   (genCloneScreenFeed.asBrightOnlyRow) reads the band `clear` and a conversation
+   *   needs no force at all — see the joker suite, which drives five turns unforced.
+   *   a force reached for to get past a placeholder is a signal the feed regressed.
+   * .note = --force can override a dirty region but NEVER a modal (no force path), so
+   *   this never masks a modal refusal (define.brain-cli-input-states, case=6).
+   */
+  force?: boolean;
+  /**
    * the clone's pty mirror, so an exhausted dispatch can report the brain's OWN
    * screen. without it a failure reads only `exit 1` — with it, the screen names
    * the cause (a first-run setup prompt, a trust dialog, a crashed tui)
@@ -616,6 +685,7 @@ export const sayAndPollForMarker = async (input: {
         input.address,
         '--what',
         input.stdin !== undefined ? '@stdin' : input.what,
+        ...(input.force ? ['--force'] : []),
       ],
       cwd: input.dir,
       env: input.env,
@@ -638,9 +708,63 @@ export const sayAndPollForMarker = async (input: {
   //   the most-recent `get` read; both reassigned across attempts, neither escapes
   let said = sendSay();
   let lastRead = '';
+
+  // 🚨 the SAY TRAIL, one row per attempt — the instrument this harness lacked
+  // .why = measured 2026-09-18, the joker t3 by-serial dispatch: the marker LANDED and the
+  //   say still exited 1. the caller asserts `said.status === 0`, so the red reads
+  //   `Expected 0 / Received 1` and no more than that — the verdict, the reason slug, the
+  //   stderr, and the brain's screen were every one of them swallowed, because the
+  //   diagnostic block below fires only on `landed: false`.
+  //   ⇒ that is the exact failure class this wish exists to name (a dispatch the brain took,
+  //   reported as a failure), so an instrument blind to it cannot verify the fix
+  //   (`rule.require.read-the-record-not-the-correlate`). the trail is recorded per attempt
+  //   rather than latched, because a retry overwrites `said` and the FIRST attempt's verdict
+  //   is usually the load-bearing one.
+  const trail: {
+    attempt: number;
+    status: number | null;
+    stdout: string;
+    stderr: string;
+  }[] = [];
+  const recordSay = (attempt: number): void =>
+    void trail.push({
+      attempt,
+      status: said.status,
+      stdout: said.stdout,
+      stderr: said.stderr,
+    });
+
+  /**
+   * .what = print every attempt's say verdict, the last `get` read, and the brain's own screen
+   * .why = one reporter for BOTH exits. each say ran with `logOnError: false` (a retried say is
+   *   expected to fail, so per-attempt logs are noise), so the WHY is otherwise swallowed —
+   *   and it is swallowed identically whether the marker landed or never did. the two exits
+   *   differ only in their headline, so a second copy of this block would drift from the first
+   */
+  const reportSayTrail = (report: { headline: string }): void => {
+    const screen = input.getScreen?.() ?? '(no screen supplied)';
+    console.error(
+      [
+        report.headline,
+        `   address = ${input.address}`,
+        `   marker  = ${input.marker}`,
+        ...trail.flatMap((row) => [
+          `--- attempt ${row.attempt} of ${maxAttempts} — exit ${String(row.status)} ---`,
+          `   stdout: ${row.stdout.trim()}`,
+          `   stderr: ${row.stderr.trim()}`,
+        ]),
+        `--- last get read ---`,
+        lastRead,
+        `--- brain screen (last 4000 chars) ---`,
+        screen.slice(-4000),
+      ].join('\n'),
+    );
+  };
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     // a retry (attempt 2+) re-sends before its poll; attempt 1 was sent above
     if (attempt > 1) said = sendSay();
+    recordSay(attempt);
 
     // a TIGHT per-attempt deadline — claude replies + writes its transcript within
     // seconds, so a marker absent after this cap means THIS attempt did not land; the
@@ -654,8 +778,18 @@ export const sayAndPollForMarker = async (input: {
         logOnError: false,
       });
       lastRead = got.stdout;
-      if (got.stdout.includes(input.marker))
+      if (got.stdout.includes(input.marker)) {
+        // 🚨 LANDED, and a say on the way here reported a failure verdict — report it.
+        // .why = this is the wish's own primary defect shape: the brain TOOK the message and
+        //   `say` called it a failure. the caller's `expect(said.status).toEqual(0)` renders
+        //   that as `Expected 0 / Received 1`, which names no verdict and no cause. so the
+        //   one moment the record is load-bearing is the one moment it was absent
+        if (trail.some((row) => row.status !== 0))
+          reportSayTrail({
+            headline: '💥 dispatch LANDED, yet a say reported a failure',
+          });
         return { said, lastRead, landed: true };
+      }
       await new Promise((r) => setTimeout(r, 1500));
     }
 
@@ -665,30 +799,189 @@ export const sayAndPollForMarker = async (input: {
       await new Promise((r) => setTimeout(r, 2000));
   }
 
-  // every attempt is spent and the marker never landed — the caller's `landed` assert
-  // will fail, but on its own it reads as a bare `false`. each say ran with
-  // logOnError:false (a retried say is expected to fail, so per-attempt logs are noise),
-  // so the WHY is otherwise swallowed. print it once, here, at the only moment it is
-  // load-bearing: the last say's exit + stderr, the last `get` read, and — when the
-  // caller supplies it — the brain's own screen, which names a cause no rhachet-side
-  // error can (a first-run setup prompt, a trust dialog, a crashed tui)
-  const screen = input.getScreen?.() ?? '(no screen supplied)';
-  console.error(
-    [
-      `⛈️ dispatch NEVER landed after ${maxAttempts} attempts`,
-      `   address = ${input.address}`,
-      `   marker  = ${input.marker}`,
-      `   say.status = ${String(said.status)}`,
-      `--- say.stderr ---`,
-      said.stderr,
-      `--- say.stdout ---`,
-      said.stdout,
-      `--- last get read ---`,
-      lastRead,
-      `--- brain screen (last 4000 chars) ---`,
-      screen.slice(-4000),
-    ].join('\n'),
-  );
+  // every attempt is spent and the marker never landed — the caller's `landed` assert will
+  // fail, but on its own it reads as a bare `false`. the trail names each attempt's verdict
+  // and the brain's own screen, which reports a cause no rhachet-side error can (a first-run
+  // setup prompt, a trust dialog, a crashed tui)
+  reportSayTrail({
+    headline: `💥 dispatch NEVER landed after ${maxAttempts} attempts`,
+  });
 
   return { said, lastRead, landed: false };
+};
+
+/**
+ * .what = assert a successful `clone say` against a LIVE brain rendered one of its two
+ *   success trees, addressed to the clone that was dispatched to
+ * .why =
+ *   - ⚠️ measured 2026-09-16: a real-brain say stdout is NOT deterministic, and three
+ *     realbrain suites asserted that it was. each snapshotted `said.stdout` under a comment
+ *     that called it "a plain `delivered` tree with NO brain prose in it, so it is fully
+ *     deterministic". that held before the read channel shipped; it does not hold now
+ *   - the verdict is a READ OF BRAIN STATE. a say dispatched while the brain is mid-turn
+ *     renders `enqueued for`; one dispatched while it is idle renders `said to`. both are
+ *     exit 0, both are correct, and WHICH one a real brain produces is a race against its
+ *     own turn — so a full-stdout snapshot passes or fails by the clock. the saybulk probe
+ *     caught the enqueued branch and went red against a snapshot pinned to the released one
+ *   - a resnap would be the wrong repair TWICE over: it pins one side of a coin flip, and
+ *     the next run flips it back (`rule.require.snapshot-verified-on-independent-run`)
+ *   - ⇒ the render SHAPES are already locked exhaustively and deterministically at the unit
+ *     grain — `computeCloneSayReport.test.ts` snapshots all 13 verdict renders off fixed
+ *     input. so the realbrain snapshot added no shape coverage the unit grain lacks; it
+ *     added only a flake. what a real brain uniquely proves is that a LIVE dispatch reaches
+ *     one of the success branches at all, which is what this asserts
+ * .note = it stays STRICT on each property that is genuinely brain-independent: the tree
+ *   must name one of the two SUCCESS verdicts, and the address it names must belong to the
+ *   clone that was dispatched to — a `buffered`, `withheld`, `absent`, or `unreadable`
+ *   render fails here, as it must, and so does a tree addressed to some other clone
+ * .note = the address is matched as a PREFIX of the serial, never as an equality. the human
+ *   surface abbreviates an unslugged clone to a short serial
+ *   (`rule.require.short-serial-for-unslugged-clones`), so the rendered `@:1a2b3c4d` is a
+ *   prefix of the `@:1a2b3c4d-....` the caller dispatched to
+ *
+ * ⚠️ .note = `clone say` echoes THE ADDRESS THE CALLER USED, never a canonical one. so a
+ *   clone dispatched to by slug renders `@:joker`, and a serial-only matcher reads its own
+ *   success tree as "neither success verdict". pass `slug` whenever the clone carries one —
+ *   the check then admits either form, and admits no third
+ */
+export const expectCloneSaySuccessTree = (input: {
+  stdout: string;
+  serial: string;
+  /** the clone's slug, when it has one — a say addressed by slug renders the slug */
+  slug?: string;
+}): void => {
+  // ⚠️ the charset spans a SLUG as well as a serial. a hex-only class silently refuses
+  //   `@:joker` at the match step, which reports as an absent verdict rather than as
+  //   the address mismatch it actually is — a diagnosis one layer off the defect
+  const matched = /😶🎙️ (said to|enqueued for) @:([0-9a-z-]+)/.exec(
+    input.stdout,
+  );
+  if (!matched)
+    throw new ConstraintError(
+      'clone say stdout named neither success verdict tree',
+      {
+        serial: input.serial,
+        slug: input.slug ?? null,
+        expectedOneOf: [
+          '😶🎙️ said to @:<serial|slug>',
+          '😶🎙️ enqueued for @:<serial|slug>',
+        ],
+        stdout: input.stdout,
+      },
+    );
+  const addressShown = matched[2] ?? '';
+  const namesThisClone =
+    input.serial.startsWith(addressShown) || addressShown === input.slug;
+  if (!namesThisClone)
+    throw new ConstraintError(
+      'clone say success tree named a DIFFERENT clone than the one dispatched to',
+      {
+        serial: input.serial,
+        slug: input.slug ?? null,
+        addressShown,
+        stdout: input.stdout,
+      },
+    );
+
+  // the TAIL, asserted structurally because the masked snapshot below cannot carry it: a success
+  // render is a head plus AT MOST ONE leaf, and whether the leaf is present is brain/peer state
+  // (a probe-blind or feed-not-live peer earns a degrade leaf; a healthy one earns none). so a
+  // single snapshot key holds only the head, and the shape of what may follow it is checked here
+  //
+  // ⚠️ .why NOT a line count = `said to` has FOUR renders, three of which carry a degrade leaf
+  //   (`feed faulted`, `feed not live`, `probe-blind`). an `=== 1` check would redden against a
+  //   legitimate degrade — a false failure on a peer that is merely older than the read channel
+  const verdict = matched[1];
+  const lines = asSnapshotSafe(input.stdout).trimEnd().split('\n');
+  const tail = lines.slice(1);
+  const strays = tail.filter((line) => !/^ {3}└─ 🟡 /.test(line));
+  if (strays.length)
+    throw new ConstraintError(
+      'a clone say success tree carried a tail line that is not a `└─ 🟡` leaf',
+      { verdict, strays, stdout: input.stdout },
+    );
+  if (tail.length > 1)
+    throw new ConstraintError(
+      'a clone say success tree carried more than one leaf',
+      { verdict, tail, stdout: input.stdout },
+    );
+  // the one branch whose leaf is MANDATORY: a hold must state why it is held and what voids it,
+  // which is the caution the retry contract rests on (an aborted turn drops the hold, unsent)
+  if (verdict === 'enqueued for') {
+    if (!/ — /.test(lines[0] ?? ''))
+      throw new ConstraintError(
+        'an `enqueued for` head line carried no detail suffix; a hold must state why',
+        { stdout: input.stdout },
+      );
+    if (!tail.length)
+      throw new ConstraintError(
+        'an `enqueued for` tree carried no hold-caution leaf',
+        { stdout: input.stdout },
+      );
+  }
+};
+
+/**
+ * .what = the COMMON head of a `clone say` success tree, masked for a snapshot — the glyph
+ *   pair, the verdict slot, and the address slot, with both volatile values replaced
+ *
+ * .why a live snapshot at all = the render SHAPES are locked deterministically at the unit
+ *   grain (`computeCloneSayReport.test.ts`, all 13 verdicts off fixed input), and that proves
+ *   the renderer. it does NOT prove the LIVE pipeline: a pty, a socket, a subprocess, and a
+ *   stdout write sit between that string and a human's terminal. so this is COMPLEMENTARY to
+ *   the unit-grain snapshot, never a substitute for it
+ *
+ * ⚠️ .what it does and does NOT catch — stated plainly, because the guard below catches most
+ *   shape breaks and the snapshot diff carries the rest:
+ *
+ *   | change | who catches it |
+ *   |---|---|
+ *   | a glyph swap, a lost space, an absent `@:` sigil, a blank first line | the GUARD throws |
+ *   | a third verdict word, or a success render that reaches stdout malformed | the GUARD throws |
+ *   | 🟡 an ANSI escape that reached stdout | NEITHER — `asSnapshotSafe` strips ANSI by design |
+ *   | any change to the invariant envelope, made VISIBLE to a human in the PR diff | the SNAPSHOT |
+ *
+ *   ⇒ so its value is the one `rule.require.snapshots` names first: a reviewer reads the shape a
+ *   live pty + socket + subprocess actually put on a terminal, with no run of their own. the
+ *   guard is what FAILS; the snapshot is what a human READS when it changes
+ *
+ * 🚨 .why only the HEAD = FIVE success renders exist, and their line count and detail suffix are
+ *   both a read of brain/peer state, so no two of them share a full-render key:
+ *
+ *     😶🎙️ said to @:driver
+ *     😶🎙️ said to @:oldpeer
+ *        └─ 🟡 probe-blind (older clone) — verified by transcript; re-enroll for the full read
+ *     😶🎙️ enqueued for @:busybrain — mid-turn; lands next
+ *        └─ 🟡 held behind the active turn, not yet taken — …
+ *
+ *   ⚠️ and a per-branch key is NOT the escape: the acceptance runner passes no `--ci`, so an
+ *   unwritten key is WRITTEN on first encounter rather than failed. a branch that ran once in
+ *   ci would mint its own snapshot and pass — a clamp that certifies whatever it happened to
+ *   see (`rule.require.snapshot-verified-on-independent-run`). so the key must be single, and
+ *   the content must be the render-invariant head
+ *
+ * .note = the tail the mask drops is not lost — `expectCloneSaySuccessTree` asserts its SHAPE:
+ *   at most one leaf, every tail line a `   └─ 🟡 ` leaf, and for `enqueued for` that leaf plus
+ *   a detail suffix are both mandatory
+ * .note = it THROWS on a non-success stdout rather than mask it. a masker that quietly returned
+ *   a garbled string would snap a lie and read as a pass (`rule.forbid.failhide`)
+ */
+export const asCloneSayHeadSnapshotSafe = (input: {
+  stdout: string;
+}): string => {
+  // ⚠️ the address class is `\S+`, NOT a hex/slug charset. `asSnapshotSafe` runs FIRST, and it
+  //   has already rewritten a serial address to `@:__SERIAL__` or `@:__SERIAL8__` — forms a
+  //   `[0-9a-z-]+` class refuses on its underscores and caps. so a charset guard threw against
+  //   every SERIAL-addressed dispatch (clone.realbrain, clone.saybulk-probe), while the
+  //   slug-addressed sites passed — a defect visible only once both address forms are exercised
+  //   (`expectCloneSaySuccessTree.test.ts [case1]` is the clamp that caught it)
+  const head = asSnapshotSafe(input.stdout).split('\n')[0] ?? '';
+  if (!/^😶🎙️ (said to|enqueued for) @:\S+/.test(head))
+    throw new ConstraintError(
+      'clone say stdout head is not a success tree — no safe mask applies',
+      { head, stdout: input.stdout },
+    );
+  return head
+    .replace(/(said to|enqueued for)/, '<verdict>')
+    .replace(/@:\S+.*$/, '@:<address>');
 };

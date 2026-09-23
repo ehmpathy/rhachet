@@ -3,7 +3,11 @@ import type { IPty } from 'node-pty';
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
+import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
+import { genCloneScreenFeed } from '../screen/genCloneScreenFeed';
+import type { EmulatorModule } from '../screen/getEmulatorModuleOrNull';
 import { genCloneSocketServer } from '../socket/genCloneSocketServer';
+import { asPtyGeometry } from './asPtyGeometry';
 import type { PtyModule } from './getPtyModuleOrNull';
 
 /**
@@ -94,11 +98,18 @@ export const genBrainCliPtyClone = async (
     cwd: string;
     serial: string;
     socketPath: string;
+    /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
+    depth: number;
   },
-  context: { pty: PtyModule; host: PtyCloneHost },
+  context: {
+    pty: PtyModule;
+    host: PtyCloneHost;
+    emulator: EmulatorModule | null;
+  },
 ): Promise<{
   socketPath: string;
   pid: number;
+  read: () => CloneScreenRead;
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 }> => {
@@ -107,13 +118,19 @@ export const genBrainCliPtyClone = async (
     ...process.env,
     [CLONE_ENV_KEYS.serial]: input.serial,
     [CLONE_ENV_KEYS.socket]: input.socketPath,
+    // its place in the enroll chain, so its OWN `rhx enroll` is bounded by the budget
+    [CLONE_ENV_KEYS.depth]: String(input.depth),
   };
 
   // a stale socket from a prior crash must go before the server binds this path
   delFileSync({ path: input.socketPath });
 
-  // spawn the brain through the pty at the host's current geometry
-  const { cols, rows } = context.host.size();
+  // spawn the brain through the pty at the host's current geometry, CLAMPED to a readable
+  // floor. the host is a seam, so the clamp lives here too rather than only in the prod
+  // factory — a degenerate geometry from ANY host makes this clone permanently deaf to `say`
+  // (xterm floors at 2x1, which renders no input box, so every probe reads
+  // `focus-unrecognized`). measured 2026-09-16 — see `asPtyGeometry`
+  const { cols, rows } = asPtyGeometry(context.host.size());
   const child: IPty = context.pty.spawn(input.command, input.args, {
     name: 'xterm-color',
     cols,
@@ -121,6 +138,35 @@ export const genBrainCliPtyClone = async (
     cwd: input.cwd,
     env,
   });
+
+  // a screen feed emulates the child's pty stream into a rendered grid, so a probe reads
+  // what SITS on screen rather than what bytes were emitted (define.pty-stream-vs-screen).
+  // built at the pty's geometry (V14). null when the emulator dep is absent — a capability
+  // gap the read path degrades on, never a fault
+  const screenFeed = context.emulator
+    ? genCloneScreenFeed({ cols, rows }, { emulator: context.emulator })
+    : null;
+
+  // the read the socket's `get` serves. always present (V18): the feed's read, or an honest
+  // feed-not-live when no emulator, so a probe never reads a false `absent` off a blank grid (V7)
+  const read: () => CloneScreenRead = screenFeed
+    ? screenFeed.read
+    : () => ({ live: false, reason: 'feed-not-live' });
+
+  // the dequeue gate awaits this before it reads, so its classification reflects every byte
+  // the child has emitted rather than whatever the async parse had reached. a no-op when no
+  // emulator is live — there is no grid to drain, and the read already degrades to
+  // `feed-not-live`, so the gate withholds on capability rather than on a stale read
+  const settle: () => Promise<void> = screenFeed
+    ? screenFeed.settle
+    : async () => {};
+
+  // tap the child's output into the feed BEFORE the socket accepts (V6), so a probe never
+  // reads an unfed screen. registered ahead of the human's mirror on node-pty's emitter, and
+  // fault-isolated inside the feed (V16), so a malformed-ansi throw never suppresses the mirror
+  const screenTap = screenFeed
+    ? child.onData((data) => screenFeed.feed(data))
+    : null;
 
   // the brain-cli's liveness — the ONE fact the socket's dispatch-gate consults.
   // set false the instant the child exits, so a `say` that lands as the exit
@@ -136,6 +182,8 @@ export const genBrainCliPtyClone = async (
     socketPath: input.socketPath,
     write: (bytes) => child.write(bytes),
     isBrainCliAlive: () => brainCliAlive,
+    read,
+    settle,
   });
   // 🚨 `ready` settles on the bind's success OR its fault — the race lives inside
   //   `genCloneSocketServer`, never here. `net.Server` reports a bind fault (EADDRINUSE,
@@ -170,10 +218,15 @@ export const genBrainCliPtyClone = async (
   // forward the human's keystrokes into the child
   const offInput = context.host.onInput((data) => child.write(data));
 
-  // re-flow the child on a host resize (fidelity under a mid-run resize)
+  // re-flow the child on a host resize (fidelity under a mid-run resize). the feed re-flows
+  // on the SAME handler (V17), so the emulator geometry tracks the pty and a wrapped row never
+  // lands on the wrong grid line — never a second resize listener
   const offResize = context.host.onResize(() => {
-    const next = context.host.size();
+    // clamped on the resize path too — a host that shrinks to `0` mid-run would otherwise
+    // convert a healthy clone into a permanently-withheld one, with no signal at all
+    const next = asPtyGeometry(context.host.size());
     child.resize(next.cols, next.rows);
+    screenFeed?.resize(next);
   });
 
   // forward an interrupt/terminate to the child, not the wrapper
@@ -185,6 +238,7 @@ export const genBrainCliPtyClone = async (
   // tear every host wire down — run on exit AND on an explicit dispose
   const unwire = (): void => {
     mirror.dispose();
+    screenTap?.dispose();
     offInput();
     offResize();
     offSignal();
@@ -195,6 +249,7 @@ export const genBrainCliPtyClone = async (
   const finalize = async (): Promise<void> => {
     unwire();
     await socketServer.close();
+    screenFeed?.dispose();
     delFileSync({ path: input.socketPath });
   };
 
@@ -219,5 +274,11 @@ export const genBrainCliPtyClone = async (
     await waitForExit;
   };
 
-  return { socketPath: input.socketPath, pid: child.pid, waitForExit, dispose };
+  return {
+    socketPath: input.socketPath,
+    pid: child.pid,
+    read,
+    waitForExit,
+    dispose,
+  };
 };

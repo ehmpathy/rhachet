@@ -18,12 +18,15 @@ export const CLONE_IDENTITY_SCHEMA_VERSION = 1;
 export const CLONE_SPAWN_WINDOW_TOLERANCE_MS = 2_000;
 
 /**
- * .what = how long `say` waits for its dispatched message to appear in the brain's
- *   transcript — the proof the message left the input buffer and was submitted
- * .why = the brain writes the user turn to its transcript ON submit (before the
- *   assistant reply), so this only bounds the brief lag between the pty submit and
- *   the on-disk write, NOT the slow reply. generous enough (15s) to absorb a busy
- *   brain's write lag + a cold history re-link, short enough to fail loud fast when a
- *   submit genuinely did not land (the dogfood defect this verify exists to catch)
+ * .what = the poll-loop deadline for `getCloneSayObservation` — how long `say` polls the
+ *   input triple before it hands back a residual verdict
+ * .why = it bounds a poll that reads BOTH bases each cycle: the transcript (the `released`
+ *   proof — the brain writes the user turn ON submit, before the assistant reply) and the
+ *   rendered screen (the `enqueued` / `buffered` state), toward whichever target the caller
+ *   named. so it is no longer only "how long we wait for the transcript" — it is the overall
+ *   bound on the observe loop, after which a `buffered` / `absent` / `unreadable` residual is
+ *   reported rather than an endless wait on a turn the message may sit behind. generous
+ *   enough (15s) to absorb a busy brain's write lag + a cold history re-link, short enough to
+ *   report fast when a submit genuinely did not land (the dogfood defect this verify catches)
  */
 export const CLONE_SUBMIT_VERIFY_TIMEOUT_MS = 15_000;

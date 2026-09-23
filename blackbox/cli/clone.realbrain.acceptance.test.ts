@@ -2,13 +2,14 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import { genTempDir } from 'test-fns';
 
 import {
+  asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
+  expectCloneSaySuccessTree,
   getRealClaudeOrThrow,
   sayAndPollForMarker,
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the real-brain tier of the socket proof — the reach round-trip (enroll →
@@ -96,11 +97,25 @@ describe('rhx clone reach vs a REAL claude (real acceptance)', () => {
         expect(roundtrip.landed).toBe(true);
       });
 
-      then('the say-delivered tree (human) is locked — brain-independent, so snapshot-safe', () => {
-        // the say output is a plain `delivered` tree with NO brain prose in it, so it is
-        // fully deterministic (unlike the reply, which a real brain never repeats) — the
-        // joker suite locks the same shape; this pins it for the bare-enroll reach too
-        expect(asSnapshotSafe(roundtrip.said.stdout)).toMatchSnapshot();
+      then('the say tree names a SUCCESS verdict, addressed to this clone', () => {
+        // ⚠️ a FULL-stdout snapshot was tried here and is wrong: the verdict READS brain
+        // state, so a dispatch that races the brain's own turn renders `enqueued for` where
+        // an idle one renders `said to` — both exit 0, both correct, and the two differ in
+        // LINE COUNT. ⇒ the shapes are locked deterministically at the unit grain
+        // (computeCloneSayReport.test.ts); this asserts the live branch-invariant properties
+        expectCloneSaySuccessTree({
+          stdout: roundtrip.said.stdout,
+          serial: scene.serial,
+        });
+      });
+
+      then('the LIVE say head renders as snapped (masked vibecheck)', () => {
+        // the complement to the assertion above: a human who reviews this PR sees the shape
+        // a live pty + socket + subprocess actually put on stdout. the masker's own guard is
+        // what FAILS on a broken envelope; this diff is what shows a reviewer WHAT changed
+        expect(
+          asCloneSayHeadSnapshotSafe({ stdout: roundtrip.said.stdout }),
+        ).toMatchSnapshot();
       });
     });
   });

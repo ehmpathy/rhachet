@@ -6,6 +6,7 @@ import path from 'path';
 
 import { getTempDir } from '@src/infra/getTempDir';
 
+import { createSsoLoginFailureError } from './createSsoLoginFailureError';
 import { createSsoTimeoutError, isSsoTimeout } from './withSsoTimeout';
 
 // re-export extracted operations
@@ -112,10 +113,7 @@ sso_registration_scopes = sso:account:access
       throw createSsoTimeoutError({ profileName: input.profileName });
     }
 
-    throw new MalfunctionError('aws sso login failed', {
-      profileName: input.profileName,
-      hint: 'check network connectivity or aws cli configuration',
-    });
+    throw createSsoLoginFailureError({ profileName: input.profileName });
   }
 
   // validate the profile works
@@ -436,13 +434,17 @@ sso_registration_scopes = sso:account:access
         if (code === 0) {
           resolve();
         } else if (timedOut || isSsoTimeout(outputBuffer)) {
-          reject(createSsoTimeoutError({ code, output: outputBuffer }));
+          // .note = the key is `exitCode`, never `code` — `helpful-errors` reserves `code` and
+          //   strips it from BOTH the rendered message and the `.metadata` getter, so an exit code
+          //   written under that name reaches no reader on either channel
+          reject(
+            createSsoTimeoutError({ exitCode: code, output: outputBuffer }),
+          );
         } else {
           reject(
-            new MalfunctionError('aws sso login failed', {
-              code,
+            createSsoLoginFailureError({
+              exitCode: code,
               output: outputBuffer,
-              hint: 'check network connectivity or aws cli configuration',
             }),
           );
         }

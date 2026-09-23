@@ -75,9 +75,9 @@ for autocomplete (`rule.require.order.noun_adj`) and sorts every member of a fam
 
 🔴 **note which half of that first sample is the domain term.** `'pty-absent'` is a **value** of
 `CloneSocketOmissionReason`, and the two words answer different questions: `absent` says *what is
-not there*, and `omission reason` says *why the caller did not get what they asked for*. the type
-was called `CloneSocketFallback` until 2026-09-05 and the rename touched only the type — the
-`'pty-absent'` value is unmoved, because it was right all along.
+not there*, and `omission reason` says *why the caller did not get what they asked for*. the
+domain term is the `'pty-absent'` **value**, never the type name that holds it — a type name may
+change without a change to the value, because the value word was chosen on its own merits.
 
 ⚠️ **one extant value breaks that order:** `'absent-roles-boot-command'`
 (`findRolesWithBootableButNoHook.ts`) puts the adj first. it is a **known inconsistency**, left
@@ -135,6 +135,8 @@ each smuggles in a claim the bare fact does not support:
 - `src/domain.operations/clone/computeCloneSocketOmissionReason.ts`    # `'pty-absent'` — the compound
 - `src/domain.operations/upgrade/asNpmInstallFailureKind.ts`     # `'package-absent'` — conforms
 - `src/domain.operations/manifest/findRolesWithBootableButNoHook.ts`  # the inverted-order outlier
+- `src/domain.operations/clone/socket/computeCloneSayVerdict.ts`  # `verdict: 'absent'` — the say residual verdict
+- `src/domain.operations/clone/socket/computeCloneSayReport.ts`   # the `no-rise-observed` failure copy (exit 1)
 
 ## .reason
 see the ref-level cluster beside this choice:

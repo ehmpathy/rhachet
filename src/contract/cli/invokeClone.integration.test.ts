@@ -6,6 +6,7 @@ import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,11 +22,27 @@ import { invokeClone } from './invokeClone';
 const driveClone = async (input: {
   cwd: string;
   argv: string[];
+  /**
+   * env overrides for the span of the drive; `undefined` UNSETS a key.
+   *
+   * ⚠️ this drive runs IN-PROCESS, so a verb that reads an env var reads whatever the
+   *   jest worker itself carries. `clone whoami` reads `RHACHET_CLONE_SERIAL` — so when
+   *   the runner IS an enrolled clone, a case that means "outside a clone" silently drives
+   *   the inside-a-clone branch instead. measured 2026-09-16: case4 passes for a human and
+   *   fails for a clone, with the clone's own serial in the error (`rule.require.hermetic-tests`)
+   */
+  env?: Record<string, string | undefined>;
 }): Promise<{ out: string; err: string; exitCode: number | undefined }> => {
-  // .note = deliberate mutation — swap cwd + reset exitCode for the span of the
-  //   drive, restore both in the finally; neither escapes driveClone
+  // .note = deliberate mutation — swap cwd + reset exitCode + apply the env overrides for
+  //   the span of the drive, restore all three in the finally; none escapes driveClone
   const cwdBefore = process.cwd();
   const exitBefore = process.exitCode;
+  const envBefore = Object.keys(input.env ?? {}).map(
+    (key) => [key, process.env[key]] as const,
+  );
+  for (const [key, value] of Object.entries(input.env ?? {}))
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
   process.chdir(input.cwd);
   process.exitCode = 0;
   try {
@@ -41,7 +58,21 @@ const driveClone = async (input: {
   } finally {
     process.chdir(cwdBefore);
     process.exitCode = exitBefore;
+    for (const [key, value] of envBefore)
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
   }
+};
+
+/**
+ * .what = the clone env-var keys, each set to `undefined`, so an in-process drive reads as
+ *   "outside a clone" — spread into `driveClone`'s `env`
+ * .why = both keys, never only the serial: `whoami` reads a PAIR (`cloneEnvKeys.ts`), so to
+ *   unset one and inherit the other leaves a half-identity the verb can still act on
+ */
+const CLONE_ENV_UNSET: Record<string, undefined> = {
+  [CLONE_ENV_KEYS.serial]: undefined,
+  [CLONE_ENV_KEYS.socket]: undefined,
 };
 
 describe('invokeClone (integration)', () => {
@@ -255,7 +286,7 @@ describe('invokeClone (integration)', () => {
   given('[case4] whoami run OUTSIDE any enrolled clone', () => {
     when('[t0] `clone whoami` runs with no clone env', () => {
       const result = useBeforeAll(async () =>
-        driveClone({ cwd, argv: ['clone', 'whoami'] }),
+        driveClone({ cwd, argv: ['clone', 'whoami'], env: CLONE_ENV_UNSET }),
       );
 
       then('it fails loud — never a fabricated self-identity', () => {

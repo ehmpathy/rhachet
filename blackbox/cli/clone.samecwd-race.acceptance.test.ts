@@ -118,7 +118,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
           then('no advisory prose leaks to a machine caller on stderr', () => {
             // the mode-gate: a json caller reads exidsAmbiguous off the body, so the
             // ⚠ english advisory must NOT appear on stderr (ungate the guard → red)
-            expect(run.stderr).not.toContain('⚠');
+            expect(run.stderr).not.toContain('🟡');
             expect(run.stderr).not.toContain('shared a cwd');
           });
 
@@ -147,7 +147,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
           // the better-get promise. the tree keeps the advisory (a SPLIT, not a
           // removal — the json arm above proves the machine gets a field instead)
           expect(run.status).toEqual(0);
-          expect(run.stderr).toContain('⚠');
+          expect(run.stderr).toContain('🟡');
           expect(run.stderr).toContain('shared a cwd');
         });
 
@@ -157,7 +157,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
           // text surfaces in review (rule.require.snapshots)
           const advisoryLine = run.stderr
             .split('\n')
-            .find((line) => line.includes('⚠'));
+            .find((line) => line.includes('🟡'));
           expect(advisoryLine).toMatchSnapshot();
         });
       });

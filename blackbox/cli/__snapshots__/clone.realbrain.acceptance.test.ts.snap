@@ -1,6 +1,3 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`rhx clone reach vs a REAL claude (real acceptance) given: [case1] a real, authenticated claude on PATH when: [t0] a real prompt is dispatched, then observed then: the say-delivered tree (human) is locked — brain-independent, so snapshot-safe 1`] = `
-"😶🎙️ said to @:__SERIAL8__
-"
-`;
+exports[`rhx clone reach vs a REAL claude (real acceptance) given: [case1] a real, authenticated claude on PATH when: [t0] a real prompt is dispatched, then observed then: the LIVE say head renders as snapped (masked vibecheck) 1`] = `"😶🎙️ <verdict> @:<address>"`;

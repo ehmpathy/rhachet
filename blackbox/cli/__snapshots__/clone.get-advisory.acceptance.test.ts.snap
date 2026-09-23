@@ -7,10 +7,33 @@ exports[`rhx clone get advisory mode-gate (acceptance) given: [case1] a clone wh
     "gone-exid"
   ],
   "exidsAmbiguous": [],
+  "exidsForeign": [],
   "total": 0,
   "truncated": false
 }
 "
 `;
 
-exports[`rhx clone get advisory mode-gate (acceptance) given: [case1] a clone whose only linked episode is a vanished transcript when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"⚠ 1 episode(s) could not be read (a moved transcript)"`;
+exports[`rhx clone get advisory mode-gate (acceptance) given: [case1] a clone whose only linked episode is a vanished transcript when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"🟡 1 episode(s) could not be read (a moved transcript)"`;
+
+exports[`rhx clone get advisory mode-gate (acceptance) given: [case2] a clone whose linked transcript PREDATES its own spawn when: [t0] \`clone get --output json\` reads the narrowed history then: the foreign-episode json body shape is locked 1`] = `
+"{
+  "messages": [
+    {
+      "direction": "out",
+      "text": "A TURN THIS CLONE DID SPEAK",
+      "at": null
+    }
+  ],
+  "exidsUnreadable": [],
+  "exidsAmbiguous": [],
+  "exidsForeign": [
+    "foreign-exid"
+  ],
+  "total": 1,
+  "truncated": false
+}
+"
+`;
+
+exports[`rhx clone get advisory mode-gate (acceptance) given: [case2] a clone whose linked transcript PREDATES its own spawn when: [t1] \`clone get\` (tree, the default) reads the same history then: the exact advisory text matches the snapshot 1`] = `"🟡 1 linked transcript(s) predate this clone's spawn, so they are NOT shown — they cannot hold its output"`;

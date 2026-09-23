@@ -30,12 +30,6 @@
           },
           {
             "type": "command",
-            "command": "./node_modules/.bin/rhachet run --repo bhuild --role behaver --init claude.hooks/sessionstart.boot-behavior",
-            "timeout": 10,
-            "author": "repo=bhuild/role=behaver"
-          },
-          {
-            "type": "command",
             "command": "./node_modules/.bin/rhachet roles boot --role dispatcher",
             "timeout": 10,
             "author": "repo=bhuild/role=dispatcher"
@@ -117,6 +111,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --role telepath",
             "timeout": 30,
             "author": "repo=bhrain/role=telepath"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo bhuild --role behaver --init claude.hooks/sessionstart.boot-behavior",
+            "timeout": 10,
+            "author": "repo=bhuild/role=behaver"
           }
         ]
       },
@@ -581,18 +581,14 @@
       "Bash(rhx git.commit.uses set:*)",
       "Bash(sed:*)",
       "Bash(tee:*)",
-      "Edit(**/.route/**)",
       "Edit(*/**/.route/**)",
       "Edit(.branch/.bind/*)",
       "Edit(.meter/*)",
-      "Edit(.route/**)",
       "EnterPlanMode",
       "Read(.quarantine/*)",
-      "Write(**/.route/**)",
       "Write(*/**/.route/**)",
       "Write(.branch/.bind/*)",
-      "Write(.meter/*)",
-      "Write(.route/**)"
+      "Write(.meter/*)"
     ],
     "ask": [
       "Bash(bash:*)",

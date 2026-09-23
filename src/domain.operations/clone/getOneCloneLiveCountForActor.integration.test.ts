@@ -30,6 +30,8 @@ describe('getOneCloneLiveCountForActor.integration', () => {
           socketPath: getCloneSocketPath({ serial: 'ser-live' })!,
           write: () => undefined,
           isBrainCliAlive: () => true,
+          read: () => ({ live: false, reason: 'feed-not-live' }),
+          settle: async () => {},
         });
         await ready;
 
@@ -73,6 +75,8 @@ describe('getOneCloneLiveCountForActor.integration', () => {
                 socketPath: getCloneSocketPath({ serial })!,
                 write: () => undefined,
                 isBrainCliAlive: () => true,
+                read: () => ({ live: false, reason: 'feed-not-live' }),
+                settle: async () => {},
               }),
             );
             await Promise.all(servers.map((s) => s.ready));

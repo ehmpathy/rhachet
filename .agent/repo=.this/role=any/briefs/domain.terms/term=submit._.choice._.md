@@ -17,7 +17,6 @@ pty read as the paste-close and the TUI commits an empty line.
 ## .refs
 where the term is declared / used:
 - src/domain.operations/clone/getCloneSubmittedCount.ts
-- src/domain.operations/clone/getCloneSubmitLanded.ts
 - src/domain.operations/clone/socket/constants.ts             # CLONE_SUBMIT + the submit-delay trio
 - src/domain.operations/clone/socket/computeCloneSubmitDelay.ts # the length-scaled pre-submit delay
 - src/domain.operations/clone/constants.ts                     # CLONE_SUBMIT_VERIFY_TIMEOUT_MS

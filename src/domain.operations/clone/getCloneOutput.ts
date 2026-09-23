@@ -3,6 +3,7 @@ import type { IsoTimeStamp } from 'iso-time';
 import { computeCloneMessages } from './computeCloneMessages';
 import { getAllCloneEpisodes } from './getAllCloneEpisodes';
 import { getAmbiguousExidsWithinSpawnWindow } from './getAmbiguousExidsWithinSpawnWindow';
+import { isTranscriptWithinSpawnWindow } from './isTranscriptWithinSpawnWindow';
 import type { CloneMessage } from './socket/asCloneMessage';
 
 /**
@@ -21,6 +22,11 @@ import type { CloneMessage } from './socket/asCloneMessage';
  *     REFUSED to guess between two co-located clones (and quarantined the candidates),
  *     this reads those `.exids/*.ambiguous` markers so `get` warns "empty because the
  *     cwd was shared", never a silent unexplained empty
+ *   - `exidsForeign` is the second half of that honesty, at the PROVENANCE grain: a
+ *     linked transcript CREATED before this clone spawned cannot hold this clone's
+ *     output, so it is refused here and REPORTED. measured 2026-09-16: a clone linked
+ *     its enroller's live session and `get` rendered the enroller's own messages under
+ *     `🎧` — heard from the clone
  *
  * .note = a torn final line (the brain mid-write, no final newline) is HELD BACK,
  *   not parsed — only complete lines reach asCloneMessage, so a completeness lag
@@ -41,13 +47,32 @@ export const getCloneOutput = (input: {
   messages: CloneMessage[];
   exidsUnreadable: string[];
   exidsAmbiguous: string[];
+  exidsForeign: string[];
   total: number;
   truncated: boolean;
 } => {
   // read each linked episode, plus the exids whose symlink target vanished
-  const { episodes: episodesUnsorted, exidsUnreadable } = getAllCloneEpisodes({
+  const { episodes: episodesAll, exidsUnreadable } = getAllCloneEpisodes({
     cloneDir: input.cloneDir,
   });
+
+  // a transcript CREATED before this clone spawned cannot hold this clone's output,
+  // so it is refused at READ time as well as at link time. the link-time gate keeps a
+  // foreign transcript out of `history/`; this gate refuses one that is ALREADY linked
+  // — a link written before the gate existed, or by hand — so it never renders as 🎧
+  const exidsForeign = episodesAll
+    .filter(
+      (episode) =>
+        !isTranscriptWithinSpawnWindow({
+          transcriptBirthtimeMs: episode.birthtimeMs,
+          transcriptMtimeMs: episode.mtimeMs,
+          spawnedAt: input.spawnedAt,
+        }),
+    )
+    .map((episode) => episode.exid);
+  const episodesUnsorted = episodesAll.filter(
+    (episode) => !exidsForeign.includes(episode.exid),
+  );
 
   // stable order: transcript mtime asc, exid as a deterministic same-mtime tiebreak
   // (spread-copy so the sort never mutates the array in place)
@@ -82,5 +107,12 @@ export const getCloneOutput = (input: {
     spawnedAt: input.spawnedAt,
   });
 
-  return { messages, exidsUnreadable, exidsAmbiguous, total, truncated };
+  return {
+    messages,
+    exidsUnreadable,
+    exidsAmbiguous,
+    exidsForeign,
+    total,
+    truncated,
+  };
 };

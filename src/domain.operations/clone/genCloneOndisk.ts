@@ -33,12 +33,17 @@ import { getOneCloneByRef } from './getOneCloneByRef';
 import { getOneCloneHydrated } from './getOneCloneHydrated';
 import { getRhachetRealpathFromProcess } from './getRhachetRealpathFromProcess';
 import type { PtyCloneHost } from './pty/genBrainCliPtyClone';
+import { genPtyCloneHostDetached } from './pty/genPtyCloneHostDetached';
 import { genPtyCloneHostFromProcess } from './pty/genPtyCloneHostFromProcess';
 import { getPtyHostTupleFromProcess } from './pty/getPtyHostTupleFromProcess';
 import { getPtyModuleOrNull, type PtyModule } from './pty/getPtyModuleOrNull';
 import { getPtyPlatformSupportFromProcess } from './pty/getPtyPlatformSupportFromProcess';
 import { isCloneSocketAvailable } from './pty/isCloneSocketAvailable';
 import { isCloneSocketEligible } from './pty/isCloneSocketEligible';
+import {
+  type EmulatorModule,
+  getEmulatorModuleOrNull,
+} from './screen/getEmulatorModuleOrNull';
 import { setCloneIdentity } from './setCloneIdentity';
 import { setCloneSerialIndex } from './setCloneSerialIndex';
 import { setCloneSlugIndex } from './setCloneSlugIndex';
@@ -74,11 +79,24 @@ export const genCloneOndisk = async (
     args: string[];
     cwd: string;
     slug: string | null;
-    interactive: boolean;
+    /**
+     * what the ENROLLER does with the child — never whether it can be REACHED
+     * (`computeCloneEnrollMode`, `define.invariant.clone-attendance-is-a-mode-never-a-reach`)
+     *
+     * 🔴 .note = only `async` changes what this operation does, and that is on purpose.
+     *   `watch` and `await` both mirror into the caller's streams — one so a human
+     *   reads the session, one so a caller reads the answer a print-mode child owes —
+     *   and the wire they need is identical. so the branch below tests `async` alone,
+     *   and a fourth mode that mirrors needs no edit here
+     */
+    mode: 'watch' | 'async' | 'await';
     noSocket: boolean;
+    /** how deep in the enroll chain this clone is born (`asCloneEnrollDepth`) */
+    depth: number;
   },
   context?: {
     pty?: PtyModule | null;
+    emulator?: EmulatorModule | null;
     host?: PtyCloneHost;
   },
 ): Promise<{
@@ -150,13 +168,21 @@ export const genCloneOndisk = async (
   const cloneDir = getCloneDir({ actorDir, serial });
 
   // does a socket make sense here, and can the pty carry one on this host?
+  // 🔴 the mode is NOT a term here. a clone is reachable in either mode — that is
+  //   `define.invariant.clone-attendance-is-a-mode-never-a-reach`, and an attendance
+  //   read in this gate is the defect it was written from
   const wantsSocket = isCloneSocketEligible({
     brain: input.brain,
-    interactive: input.interactive,
     noSocket: input.noSocket,
   });
   const ptyModule =
     context?.pty !== undefined ? context.pty : getPtyModuleOrNull();
+  // the emulator is lazy-loaded like the pty addon (V19) — a null degrades the read channel
+  // to feed-not-live, never the whole enroll. a socket-less spawn ignores it
+  const emulatorModule =
+    context?.emulator !== undefined
+      ? context.emulator
+      : getEmulatorModuleOrNull();
   const socketEligible = isCloneSocketAvailable({
     wantsSocket,
     ptyModule,
@@ -219,8 +245,34 @@ export const genCloneOndisk = async (
       socketPath,
       socketEligible,
       pty: ptyModule,
+      emulator: emulatorModule,
+      depth: input.depth,
     },
-    { host: context?.host ?? genPtyCloneHostFromProcess() },
+    {
+      // the mode's ONE consequence — which host wires the child to the world. a
+      // `watch` or `await` host mirrors into the enroller's streams and pumps its
+      // stdin; an `async` host has no reader for those streams, so every such wire is
+      // dropped and the trace sink takes the output. all three take the same pty and
+      // the same socket (`define.invariant.clone-attendance-is-a-mode-never-a-reach`)
+      //
+      // 🔴 .why `await` MUST land on the mirrored side = its child prints one answer
+      //   and exits, and that answer is owed to the caller's stdout. a detached host
+      //   discards the mirror, so the answer would reach the trace sink and nobody else
+      //   (`isBrainCliPrintMode`)
+      host:
+        context?.host ??
+        (input.mode === 'async'
+          ? genPtyCloneHostDetached({
+              // 🔴 the mirror is DISCARDED, never sent to stderr. a detached host has
+              //   no live reader for the clone's screen — `get` reads it off the screen
+              //   feed, which taps the same pty data independently. to write it to
+              //   stderr instead floods whatever inherited that fd: measured
+              //   2026-09-16, the clone's whole TUI redraw poured into the caller that
+              //   had merely asked for an address
+              writeOut: () => undefined,
+            })
+          : genPtyCloneHostFromProcess()),
+    },
   ).catch((error: unknown) => {
     delCloneStagedDir({ cloneDir: tempDir });
     throw error;

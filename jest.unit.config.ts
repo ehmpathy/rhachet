@@ -47,6 +47,13 @@ const config: Config = {
   testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
   setupFilesAfterEnv: ['./jest.unit.env.ts'],
 
+  // reclaim the temp dirs `genTempDir` mints. both keys are required: the setup mints
+  // this run's id BEFORE jest forks its workers (a worker inherits only a copy of the
+  // env that existed at fork), and the teardown reclaims exactly the dirs that id
+  // stamped. wire one alone and every dir is stamped and never reclaimed
+  globalSetup: 'test-fns/autoprune.setup.jest',
+  globalTeardown: 'test-fns/autoprune.teardown.jest',
+
   // use 50% of threads to leave headroom for other processes
   maxWorkers: '50%', // https://stackoverflow.com/questions/71287710/why-does-jest-run-faster-with-maxworkers-50
 };

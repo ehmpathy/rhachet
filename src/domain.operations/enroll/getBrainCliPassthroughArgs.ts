@@ -4,7 +4,27 @@ import { isRolesFlag } from '../roles/deltas/isRolesFlag';
 const VALUE_FLAGS = new Set(['--brain', '--as', '--output', '--reason']);
 
 // the enroll-consumed flags that are BOOLEAN (just the flag drops)
-const BOOLEAN_FLAGS = new Set(['--no-socket']);
+//
+// 🔴 `--watch`, `--async`, and `--await` sit here, and the absence of the first two was a
+//   live defect. all three are
+//   registered `.option(...)`s on enroll, so commander reads them into `opts` — but this
+//   stripper reads the RAW argv rather than commander's parse, so a flag registered
+//   there and unlisted here is read by enroll AND forwarded to the brain. the brain-cli
+//   answers `error: unknown option '--async'` and EXITS, and that cascades: the pty child
+//   dies, `finalize` closes the socket and unlinks it, the detached host's loop drains,
+//   and the host exits. so the enroll hands back an address, and seconds later every
+//   `say` to it reads DEAD (measured 2026-09-17, four clones, one per flag form)
+//
+// ⚠️ ⇒ a flag added to `.option(...)` in `invokeEnroll` MUST be added here too. the two
+//   lists are one contract with no compiler tie between them, so the clamp at
+//   `./getBrainCliPassthroughArgs.integration.test.ts` reads every registered option out of
+//   `invokeEnroll.ts` and asserts each one is stripped. its teeth are on record: with
+//   `--async` removed from the set below it names `--async` and goes red
+//   (`.log/…/what=integration/2026-09-20T19-52-42Z.stderr.log`)
+//
+// ⚠️ ⇒ the silent-drop class this whole file guards is declared as an invariant at
+//   `.agent/repo=.this/role=any/briefs/define.invariant.an-unknown-flag-is-refused-never-dropped.md`
+const BOOLEAN_FLAGS = new Set(['--no-socket', '--watch', '--async', '--await']);
 
 /**
  * .what = strip every token `rhx enroll` consumes from the raw args, so ONLY the
@@ -12,8 +32,10 @@ const BOOLEAN_FLAGS = new Set(['--no-socket']);
  * .why =
  *   - enroll reads its args off the raw argv (the passthrough goes verbatim to the
  *     brain), so it must remove each flag it owns — the brain (positional), and the
- *     `--brain` / `-r`|`--roles` / `--as` / `--no-socket` / `--output` / `--reason`
- *     flags — or they leak into the child argv and confuse the brain
+ *     `--brain` / `-r`|`--roles` / `--as` / `--no-socket` / `--watch` / `--async` /
+ *     `--await` / `--output` / `--reason` flags — or they leak into the child argv, and a
+ *     brain-cli
+ *     does not merely get confused by an unknown option: it REFUSES and exits
  *   - both flag forms are handled: the spaced form (`--as @:x`, drop the value too)
  *     and the inline form (`--as=@:x`, one combined token)
  *
