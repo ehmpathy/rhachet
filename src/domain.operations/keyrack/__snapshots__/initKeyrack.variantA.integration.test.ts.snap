@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`initKeyrack (Variant A, passphrased ed25519) given: [case2] init with a passphrased ed25519 key but no askpass dialog when: [t0] no gnome askpass candidate exists (q2 fail-fast) then: init fails fast with a ConstraintError that names the apt fix 1`] = `
+"✋ ConstraintError: keyrack needs a graphical passphrase dialog, and none is installed
+   ├─ why: the dialog keeps your passphrase off the terminal,
+   │       where a keylogger or compromised shell could capture it
+   ├─ fix: install ssh-askpass-gnome with your package manager, then retry —
+   │       ├─ apt (debian/ubuntu):  sudo apt install ssh-askpass-gnome
+   │       ├─ dnf (fedora/rhel):    sudo dnf install ssh-askpass-gnome
+   │       └─ pacman (arch):        sudo pacman -S ssh-askpass-gnome
+   └─ or: point KEYRACK_ASKPASS at your dialog if it is installed elsewhere
+
+{
+  "candidates": [
+    "/nonexistent/gnome-ssh-askpass"
+  ],
+  "platform": "linux",
+  "fix": "install ssh-askpass-gnome with your package manager — e.g. apt: sudo apt install ssh-askpass-gnome · dnf: sudo dnf install ssh-askpass-gnome · pacman: sudo pacman -S ssh-askpass-gnome"
+}"
+`;

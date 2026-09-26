@@ -8,7 +8,22 @@ import { resolve } from 'node:path';
 const RHACHET_BIN = resolve(__dirname, 'runRhachetCli.ts');
 
 /**
- * .what = invokes the rhachet CLI via npx tsx
+ * .what = the local tsx binary that runs the TS entrypoint
+ * .why = the CLI discovers `.agent` from `process.cwd()`, so the spawned child's
+ *        cwd MUST be exactly the passed `cwd`. spawning `tsx` DIRECTLY (an absolute
+ *        binary path, shell: false) keeps that guarantee. the prior `npx` +
+ *        `shell: '/bin/bash'` path did NOT: a non-interactive bash sources
+ *        `$BASH_ENV`, which in some dev setups defines an `npx` shell function that
+ *        falls back to `pnpm exec` when the cwd has no local `node_modules` (true
+ *        for a temp dir) — and that wrapper re-derives the workspace, so the child
+ *        discovered the WORKTREE-root `.agent` instead of the temp dir's. a direct
+ *        binary spawn cannot be hijacked by an ambient shell wrapper, so the test
+ *        is hermetic (rule.require.hermetic-tests) and cwd-deterministic
+ */
+const TSX_BIN = resolve(__dirname, '../../../node_modules/.bin/tsx');
+
+/**
+ * .what = invokes the rhachet CLI via the local tsx binary
  * .why = standardizes CLI invocation for integration tests
  */
 export const invokeRhachetCli = (input: {
@@ -21,12 +36,16 @@ export const invokeRhachetCli = (input: {
   /** whether to log output on failure (default: true) */
   logOnError?: boolean;
 }): SpawnSyncReturns<string> => {
-  const result = spawnSync('npx', ['tsx', RHACHET_BIN, ...input.args], {
+  // spawn tsx directly (no shell) so the child's cwd is exactly `input.cwd` — see
+  // TSX_BIN note on why the prior `npx` + bash-shell path leaked a foreign cwd
+  const result = spawnSync(TSX_BIN, [RHACHET_BIN, ...input.args], {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
-    shell: '/bin/bash',
     env: process.env, // explicitly pass current env (includes modified HOME)
+    // bound the child so a hung tsx/CLI can never wedge the suite forever; matches the
+    // blackbox invokeRhachetCliBinary (120s) + the prod spawn-site convention
+    timeout: 120_000,
   });
 
   // log output for debug on failure
@@ -37,26 +56,4 @@ export const invokeRhachetCli = (input: {
   }
 
   return result;
-};
-
-/**
- * .what = invokes rhachet run --skill
- * .why = common pattern for skill execution tests
- */
-export const invokeRhachetRun = (input: {
-  skill: string;
-  cwd: string;
-  stdin?: string;
-  repo?: string;
-  role?: string;
-}): SpawnSyncReturns<string> => {
-  const args = ['run', '--skill', input.skill];
-  if (input.repo) args.push('--repo', input.repo);
-  if (input.role) args.push('--role', input.role);
-
-  return invokeRhachetCli({
-    args,
-    cwd: input.cwd,
-    stdin: input.stdin,
-  });
 };

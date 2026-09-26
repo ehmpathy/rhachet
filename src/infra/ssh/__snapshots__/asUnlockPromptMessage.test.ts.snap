@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asUnlockPromptMessage given: [case1] a full scope with reach and key set when: [t0] the message is rendered then: it matches the approved layout 1`] = `
+"🔐 keyrack unlock
+   ├─ owner:  ehmpath
+   ├─ org:    ehmpathy
+   ├─ tree:   rhachet.vlad.keyrack-identity-unlock
+   ├─ branch: vlad/keyrack-identity-unlock
+   ├─ env:    test
+   ├─ reach:  @this
+   ├─ key:    ~/.ssh/ehmpath
+   └─ code:   7Q2F"
+`;

@@ -1,0 +1,224 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack --prikey given: [case2] set --prikey enables custom owner flow when: [t1] set --prikey with wrong key (error) then: error mentions decryption failure: case2-t1-wrong-key 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "/TMP_REPO/.ssh-wrong/wrong_key",
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "/TMP_REPO/.ssh-wrong/wrong_key",
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,set,--key,WRONG_KEY_TEST,--env,all,--org,@all,--mech,PERMANENT_VIA_REPLICA,--vault,os.secure,--owner,robot,--prikey,/TMP_REPO/.ssh-wrong/wrong_key
+
+"
+`;
+
+exports[`keyrack --prikey given: [case2] set --prikey enables custom owner flow when: [t2] set without --prikey when discovery fails (error + tip) then: error suggests --prikey: case2-t2-discovery-fail-tip 1`] = `
+"🔐 unlock custom identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.custom.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.custom.age",
+  "owner": "custom",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,set,--key,CUSTOM_KEY,--env,all,--org,@all,--mech,PERMANENT_VIA_REPLICA,--vault,os.secure,--owner,custom
+
+"
+`;
+
+exports[`keyrack --prikey given: [case4] list --prikey with custom owner when: [t0] list without --prikey (discovery fails) then: error mentions prikey or no match: case4-t0-list-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,list,--owner,robot
+
+"
+`;
+
+exports[`keyrack --prikey given: [case5] del --prikey with custom owner when: [t0] del without --prikey (discovery fails) then: error mentions prikey or no match: case5-t0-del-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,del,--owner,robot,--key,DEL_TEST_KEY,--env,all,--org,@all
+
+"
+`;
+
+exports[`keyrack --prikey given: [case6] recipient get --prikey with custom owner when: [t0] recipient get without --prikey (discovery fails) then: error mentions prikey or no match: case6-t0-recipient-get-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,recipient,get,--owner,robot
+
+"
+`;
+
+exports[`keyrack --prikey given: [case7] recipient set --prikey with custom owner when: [t0] recipient set without --prikey (discovery fails) then: error mentions prikey or no match: case7-t0-recipient-set-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,recipient,set,--owner,robot,--pubkey,ssh-ed25519 __SSH_PUBKEY__,--label,backup
+
+"
+`;
+
+exports[`keyrack --prikey given: [case8] recipient del --prikey with custom owner when: [t0] recipient del without --prikey (discovery fails) then: error mentions prikey or no match: case8-t0-recipient-del-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,recipient,del,--owner,robot,--label,backup
+
+"
+`;
+
+exports[`keyrack --prikey given: [case9] set --vault os.secure --prikey with non-standard key when: [t0] set --vault os.secure without --prikey (discovery fails) then: error mentions prikey or no match: case9-t0-ossecure-discovery-fail 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,set,--key,SECURE_NO_PRIKEY,--env,sudo,--org,@all,--mech,PERMANENT_VIA_REPLICA,--vault,os.secure,--owner,robot
+
+"
+`;

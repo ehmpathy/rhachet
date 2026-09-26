@@ -195,8 +195,7 @@ exports[`keyrack extends given: [case9] cross-org extends uses root org for set,
 `;
 
 exports[`keyrack extends given: [case9] cross-org extends uses root org for set, unlock, get when: [t0] root org=rootorg extends keyrack with org=extendorg then: unlock finds key with rootorg slug 1`] = `
-"
-{
+"{
   "unlocked": [
     {
       "slug": "rootorg.test.CROSS_ORG_KEY",

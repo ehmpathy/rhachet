@@ -19,6 +19,28 @@ import { genContextBrain } from './genContextBrain';
 
 const outputSchema = z.object({ content: z.string() });
 
+/**
+ * .what = mask the network-discovered brain catalog out of a BrainChoiceNotFoundError
+ *         message before it is snapped
+ * .why  = the available atoms/repls set is a live, provider-advertised value — it drifts
+ *         every time a brain package publishes a model, so a raw snap of it flakes and
+ *         forces a blind re-snap on each catalog shift (rule.require.contract-snapshot-
+ *         exhaustiveness: a network-dependent value is masked, then snapped live). the
+ *         DETERMINISTIC contract — the error class, the echoed `choice`, and the
+ *         `available brains` header — stays snapped; only the volatile list + the json
+ *         `available` block collapse to a stable placeholder
+ */
+const asMaskedBrainCatalog = (message: string): string =>
+  message
+    .replace(
+      /(🔭 available brains\n)[\s\S]*?(\n\n\{)/,
+      '$1   <available-brains-masked>$2',
+    )
+    .replace(
+      /("available": )\{[\s\S]*?\n {2}\}/,
+      '$1"<available-brains-masked>"',
+    );
+
 describe('genContextBrain.integration', () => {
   given('[case1] combined atoms and repls from both plugins', () => {
     when('[t0] context is created from combined plugin brains', () => {
@@ -232,7 +254,9 @@ describe('genContextBrain.integration', () => {
             expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
             expect((error as Error).message).toContain('brain not found');
             expect((error as Error).message).toContain('available brains');
-            expect((error as Error).message).toMatchSnapshot();
+            expect(
+              asMaskedBrainCatalog((error as Error).message),
+            ).toMatchSnapshot();
           },
         );
       });
@@ -246,7 +270,9 @@ describe('genContextBrain.integration', () => {
             );
             expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
             expect((error as Error).message).toContain('repl brain not found');
-            expect((error as Error).message).toMatchSnapshot();
+            expect(
+              asMaskedBrainCatalog((error as Error).message),
+            ).toMatchSnapshot();
           },
         );
       });
@@ -260,7 +286,9 @@ describe('genContextBrain.integration', () => {
             );
             expect(error).toBeInstanceOf(BrainChoiceNotFoundError);
             expect((error as Error).message).toContain('atom brain not found');
-            expect((error as Error).message).toMatchSnapshot();
+            expect(
+              asMaskedBrainCatalog((error as Error).message),
+            ).toMatchSnapshot();
           },
         );
       });

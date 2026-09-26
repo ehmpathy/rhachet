@@ -49,8 +49,7 @@ exports[`keyrack vault os.daemon given: [case3] daemon restart clears ephemeral 
 `;
 
 exports[`keyrack vault os.daemon given: [case4] unlock reports lost for cleared daemon keys when: [t0] set key then relock then unlock then: stdout matches snapshot 1`] = `
-"
-🔓 keyrack unlock
+"🔓 keyrack unlock
    └─ testorg.test.DAEMON_LOST_KEY
       ├─ status: lost 👻
       └─ [2mtip: rhx keyrack set --key DAEMON_LOST_KEY --env test[0m

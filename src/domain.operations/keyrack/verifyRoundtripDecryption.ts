@@ -1,14 +1,16 @@
-import { decryptWithIdentity } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
-import { discoverIdentities } from '@src/domain.operations/keyrack/discoverIdentities';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
-import { sshPrikeyToAgeIdentity } from '@src/infra/ssh';
+import { getOneIdentityThatDecrypts } from '@src/domain.operations/keyrack/getOneIdentityThatDecrypts';
+import { asAgeIdentityOrNull } from '@src/infra/ssh/asAgeIdentityOrNull';
 
 /**
  * .what = verify roundtrip decryption of encrypted content
  * .why = ensures credential can be decrypted by at least one available identity
  *
- * .note = tries all identities from context (prescribed + discovered)
+ * .note = tries the manifest identity first, then prescribed + discovered
  * .note = returns true if any identity successfully decrypts to expected plaintext
+ * .note = the pool comes ONLY from the shared context identity resolution — there
+ *         is no bespoke re-discovery fallback, which would bypass the Variant A
+ *         agent recovery (the only way to reach K) and thus never help
  */
 export const verifyRoundtripDecryption = async (
   input: {
@@ -17,37 +19,42 @@ export const verifyRoundtripDecryption = async (
   },
   context?: ContextKeyrack,
 ): Promise<{ verified: boolean }> => {
-  // build identity pool from context (prescribed + discovered)
+  // the manifest identity decrypts credentials too — os.secure encrypts each
+  // credential to the SAME recipients as the host manifest. for a Variant A
+  // (passphrased-ed25519) manifest it is the ONLY identity that can, since K is
+  // recovered via the ephemeral agent, never converted in-process from the ssh
+  // key. getOne is cached on the context (already resolved when the manifest was
+  // read this invocation), so this reuses K without a second passphrase prompt
+  const manifestIdentity =
+    (await context?.identity?.getOne?.({ for: 'manifest' })) ?? null;
+
+  // prescribed key paths convert via the shared transformer — it allowlists ONLY
+  // the expected "not in-process-convertible" BadRequestError and rethrows genuine
+  // faults, so no I/O error or bug is masked as "not this key" (rule.forbid.failhide)
   const prescribedIdentities = (context?.identity?.getAll.prescribed ?? [])
-    .map((keyPath) => {
-      try {
-        return sshPrikeyToAgeIdentity({ keyPath });
-      } catch {
-        return null;
-      }
-    })
+    .map((keyPath) => asAgeIdentityOrNull({ keyPath }))
     .filter((id): id is string => id !== null);
 
+  // discovered identities come from the context pool only; when absent there are
+  // simply none to add (the sole production caller always supplies a full context)
   const discoveredIdentities = context?.identity?.getAll.discovered
     ? await context.identity.getAll.discovered()
-    : discoverIdentities({ owner: input.owner });
+    : [];
 
-  const identityPool = [...prescribedIdentities, ...discoveredIdentities];
+  const identityPool = [
+    ...(manifestIdentity ? [manifestIdentity] : []),
+    ...prescribedIdentities,
+    ...discoveredIdentities,
+  ];
 
-  // try each identity until one decrypts successfully
-  for (const identity of identityPool) {
-    try {
-      const decrypted = await decryptWithIdentity({
-        ciphertext: input.expected.ciphertext,
-        identity,
-      });
-      if (decrypted === input.expected.plaintext) {
-        return { verified: true };
-      }
-    } catch {
-      // continue to next identity
-    }
-  }
-
-  return { verified: false };
+  // try the pool via the ONE shared trial-decrypt loop (its allowlist swallows only
+  // the expected wrong-identity miss and fails loud on any genuine fault). a
+  // ciphertext has exactly one plaintext, so the first identity that decrypts gives
+  // the definitive plaintext — verified iff it matches what we wrote
+  const found = await getOneIdentityThatDecrypts({
+    ciphertext: input.expected.ciphertext,
+    pool: identityPool,
+    owner: input.owner,
+  });
+  return { verified: found?.plaintext === input.expected.plaintext };
 };

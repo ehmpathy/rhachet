@@ -13,6 +13,7 @@ import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
+import { generateAgeKeyPair } from '@src/infra/ssh/ageRecipientCrypto';
 
 import {
   existsSync,
@@ -23,7 +24,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
 import { type ContextKeyrack, genContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';

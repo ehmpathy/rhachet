@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asAgeRecipientFromSshPubkey given: [case3] an invalid key type when: [t0] asAgeRecipientFromSshPubkey is called then: it throws, and the user-visible text is pinned: wrong-key-type-message 1`] = `
+"BadRequestError: only ed25519 keys supported (found: ssh-rsa)
+
+{
+  "keyType": "ssh-rsa"
+}"
+`;
+
+exports[`asAgeRecipientFromSshPubkey given: [case4] malformed pubkey when: [t0] asAgeRecipientFromSshPubkey is called then: it throws, and the user-visible text is pinned: malformed-pubkey-message 1`] = `
+"BadRequestError: invalid ssh pubkey format: expected "type base64 [comment]"
+
+{
+  "pubkey": "not-a-valid-key"
+}"
+`;

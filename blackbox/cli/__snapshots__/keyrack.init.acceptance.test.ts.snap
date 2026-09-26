@@ -1,8 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`keyrack init given: [case5] keyrack init human-readable output when: [t0] init (human readable, first time) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack init
+"🔐 keyrack init
    ├─ host manifest: freshly minted ✨
    │   ├─ path: ~/.rhachet/keyrack/keyrack.host.age
    │   ├─ owner: default
@@ -14,8 +13,7 @@ exports[`keyrack init given: [case5] keyrack init human-readable output when: [t
 `;
 
 exports[`keyrack init given: [case5] keyrack init human-readable output when: [t1] init again (human readable, idempotent) then: stdout matches snapshot 1`] = `
-"
-🔐 keyrack init
+"🔐 keyrack init
    ├─ host manifest: already active 👌
    │   ├─ path: ~/.rhachet/keyrack/keyrack.host.age
    │   ├─ owner: default

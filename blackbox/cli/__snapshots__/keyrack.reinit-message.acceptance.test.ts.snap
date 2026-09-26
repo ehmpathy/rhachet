@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack re-init message (manifest sealed to an unheld recipient) given: [case1] a manifest no available identity can decrypt when: [t0] rhx keyrack unlock --owner reinitprobe --env test then: the surfaced CLI error shape stays pinned (contract-grain snapshot): reinit-message 1`] = `
+"🔐 unlock reinitprobe identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.reinitprobe.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.reinitprobe.age",
+  "owner": "reinitprobe",
+  "identities": {
+    "available": [
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,unlock,--owner,reinitprobe,--env,test
+
+"
+`;

@@ -2,10 +2,8 @@ import { execSync, spawn } from 'node:child_process';
 import { chmodSync, existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  sshPrikeyToAgeIdentity,
-  sshPubkeyToAgeRecipient,
-} from '@src/infra/ssh';
+import { sshPrikeyToAgeIdentity } from '@src/infra/ssh/sshPrikeyToAgeIdentity';
+import { asAgeRecipientFromSshPubkey } from '@src/infra/ssh/asAgeRecipientFromSshPubkey';
 
 /**
  * .what = path to the committed test ssh key
@@ -28,7 +26,7 @@ export const TEST_SSH_PUBKEY_PATH = `${TEST_SSH_KEY_PATH}.pub`;
  *
  * .note = computed at module load from the committed pubkey
  */
-export const TEST_SSH_AGE_RECIPIENT = sshPubkeyToAgeRecipient({
+export const TEST_SSH_AGE_RECIPIENT = asAgeRecipientFromSshPubkey({
   pubkey: readFileSync(TEST_SSH_PUBKEY_PATH, 'utf8'),
 });
 
@@ -50,7 +48,7 @@ export const withTestSshAgent = async <T>(
   fn: (agentEnv: { SSH_AUTH_SOCK: string; SSH_AGENT_PID: string }) => Promise<T>,
 ): Promise<T> => {
   // spawn ssh-agent and capture its output
-  const agentOutput = execSync('ssh-agent -s').toString();
+  const agentOutput = execSync('ssh-agent -s', { timeout: 30_000 }).toString();
 
   // parse the agent output to get env vars
   const sockMatch = agentOutput.match(/SSH_AUTH_SOCK=([^;]+)/);
@@ -78,6 +76,7 @@ export const withTestSshAgent = async <T>(
 
     // add the test key to the agent
     execSync(`ssh-add ${TEST_SSH_KEY_PATH}`, {
+      timeout: 30_000,
       env: { ...process.env, ...agentEnv },
     });
 

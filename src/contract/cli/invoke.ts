@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { withEmojiSpaceShim } from 'emoji-space-shim';
-import { BadRequestError } from 'helpful-errors';
+import { HelpfulError } from 'helpful-errors';
 
 import { genContextConfigOfUsage } from '@src/domain.operations/config/genContextConfigOfUsage';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
@@ -84,18 +84,22 @@ const _invoke = async (input: { args: string[] }): Promise<void> => {
 
   // invoke it (parse the preprocessed argv so `-role` tokens survive commander)
   await program.parseAsync(args, { from: 'user' }).catch((error) => {
-    // the init `--roles` incremental path throws BadRequestError on invalid
-    // calls; this shared handler (already present pre-feature) prints a clean
-    // message + `[args]` line for those. it echoes `input.args` (the user's
-    // original argv), so the sentinel-encoded `-role` never leaks a null byte
-    if (error instanceof BadRequestError) {
+    // any HelpfulError gets a clean message + `[args]` line, not a raw stack
+    // trace. this covers the init `--roles` BadRequestError path (present
+    // pre-feature) AND the keyrack unlock MalfunctionError class (empty agent
+    // signature, spawn timeout, unparseable SSH_AGENT_PID) — every HelpfulError
+    // carries emoji + class + context and a sensible exit code, so the vision's
+    // "clean tree + named fix" holds for the whole HelpfulError family, not just
+    // BadRequestError. it echoes `input.args` (the user's original argv), so the
+    // sentinel-encoded `-role` never leaks a null byte
+    if (error instanceof HelpfulError) {
       // HelpfulError already includes emoji + class name in message (e.g., "✋ ConstraintError: ...")
       console.error(``);
       console.error(error.message);
       console.error(``);
       console.error(`[args] ${input.args}`);
       console.error(``);
-      // use error's exit code if available (e.g., ConstraintError = 2)
+      // use error's exit code if available (ConstraintError = 2, else 1)
       const exitCode = getExitCodeFromError({ error });
       process.exit(exitCode);
     }

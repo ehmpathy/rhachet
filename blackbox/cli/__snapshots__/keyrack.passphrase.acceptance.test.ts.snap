@@ -1,0 +1,251 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: a pre-prompt banner is printed before the dialog can pop: init-banner 1`] = `"🔐 initialize robot identity"`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: a pre-prompt banner is printed before the dialog can pop: unlock-banner 1`] = `"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)"`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: set — a read command that is NOT init/unlock — also gets the banner: set-banner 1`] = `"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)"`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: the human-visible init + set + unlock output stays stable: init 1`] = `
+"🔐 keyrack init
+   ├─ host manifest: freshly minted ✨
+   │   ├─ path: ~/.rhachet/keyrack/keyrack.host.robot.age
+   │   ├─ owner: robot
+   │   └─ recipient: default
+   └─ repo manifest: not in repo
+       └─ run 'rhachet keyrack init --org <org>' to init one
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: the human-visible init + set + unlock output stays stable: set 1`] = `
+"🔐 keyrack set (org: testorg, env: sudo)
+   └─ testorg.sudo.PASSPHRASE_ROUNDTRIP
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.secure
+
+   note: sudo credentials are stored in encrypted host manifest only.
+         they will NOT appear in keyrack.yml.
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case1] passphrased ed25519 key, correct passphrase via fake dialog when: [t0] the full passphrased roundtrip runs then: the human-visible init + set + unlock output stays stable: unlock 1`] = `
+"🔓 keyrack unlock
+   └─ testorg.sudo.PASSPHRASE_ROUNDTRIP
+      ├─ env: sudo
+      ├─ org: testorg
+      ├─ vault: os.secure
+      └─ expires in: 30m
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case2] passphrased ed25519 key, dialog cancelled (exits non-zero) when: [t0] init runs with the cancelled dialog then: the error names the key-load failure, not a tty fallback: cancelled-dialog 1`] = `
+"🔐 initialize robot identity
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: ssh-add could not load the key — the passphrase was wrong or cancelled, or there is no graphical session for the dialog
+
+{
+  "keyPath": "/TMP_REPO/custom-keys/passphrased_key",
+  "sock": "/TMP_AGENT_SOCK",
+  "hint": "retry and enter the correct passphrase on a local desktop session; the passphrase dialog is a local-desktop feature"
+}
+
+[args] keyrack,init,--owner,robot,--prikey,/TMP_REPO/custom-keys/passphrased_key
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case3] a second ed25519 key signs, but it is the wrong key when: [t0] unlock runs with the wrong ed25519 key then: the error names the wrong-key fix, not a bare unwrap failure: wrong-key 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: cannot unlock this keyrack manifest — no identity could decrypt it.
+   ├─ fix: make its ssh key available, or name it with --prikey <path>
+   └─ or:  if sealed to a passphrased key's pubkey recipient, --prikey cannot help —
+           re-init instead (re-adds its credentials): rm /TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age && rhx keyrack init
+
+{
+  "path": "/TMP_REPO/.rhachet/keyrack/keyrack.host.robot.age",
+  "owner": "robot",
+  "identities": {
+    "available": [
+      "/TMP_REPO/custom-keys/other_key",
+      "AGE-SECRET-KEY-<redacted>"
+    ],
+    "attempted": [
+      "/TMP_REPO/custom-keys/other_key",
+      "AGE-SECRET-KEY-<redacted>"
+    ]
+  },
+  "note": "if this key unlocked before, an openssh upgrade may have changed its signature serialization (a known cross-version risk)"
+}
+
+[args] keyrack,unlock,--owner,robot,--prikey,/TMP_REPO/custom-keys/other_key,--env,sudo,--key,testorg.sudo.ANY_KEY
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case4] passphrased key, headless session (no DISPLAY, no dialog) when: [t0] init runs headless with a passphrased key then: the error names the no-display cause + the fixes, distinctly: headless 1`] = `
+"🔐 initialize robot identity
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: this keyrack manifest needs a graphical passphrase dialog, but this session has no display
+   ├─ why: your ssh key has a passphrase, so unlock pops a desktop dialog to
+   │       enter it — and this looks like a headless session (ci, or ssh with
+   │       no display), where no dialog can appear
+   └─ fix: run this on your local desktop session, or use a passphrase-less key —
+           e.g. rhx keyrack unlock --owner robot --prikey ~/.ssh/id_ed25519
+
+{
+  "keyPath": "/TMP_REPO/custom-keys/passphrased_key"
+}
+
+[args] keyrack,init,--owner,robot,--prikey,/TMP_REPO/custom-keys/passphrased_key
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case5] KEYRACK_ASKPASS names an absent dialog (blackbox, hermetic) when: [t0] init runs with an absent askpass override then: the error names the override path + the fix, not a host dialog: askpass-absent 1`] = `
+"🔐 initialize robot identity
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: KEYRACK_ASKPASS points at a passphrase dialog that does not exist
+   ├─ set to: /TMP_REPO/no-such-dialog
+   ├─ why: KEYRACK_ASKPASS overrides dialog auto-detection, so keyrack uses
+   │       only that path — and nothing is there
+   └─ fix: point KEYRACK_ASKPASS at a real askpass dialog, or unset it to
+           auto-detect ssh-askpass-gnome
+
+{
+  "override": "/TMP_REPO/no-such-dialog",
+  "fix": "point KEYRACK_ASKPASS at a present askpass dialog, or unset it to auto-detect ssh-askpass-gnome"
+}
+
+[args] keyrack,init,--owner,robot,--prikey,/TMP_REPO/custom-keys/passphrased_key
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case7] passphrased rsa key, unlock via the age-CLI dialog-strip fallback when: [t0] the full passphrased-rsa roundtrip runs then: the age-cli posture banner is pinned on the SUCCESS path too: rsa-unlock-posture-banner 1`] = `"🔓 unlock via age-cli · passphrase stripped via the dialog — this path does NOT carry the ed25519 zero-reuse guarantee"`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case7] passphrased rsa key, unlock via the age-CLI dialog-strip fallback when: [t0] the full passphrased-rsa roundtrip runs then: the human-visible rsa init + set + unlock output stays stable: rsa-init 1`] = `
+"🔐 keyrack init
+   ├─ host manifest: freshly minted ✨
+   │   ├─ path: ~/.rhachet/keyrack/keyrack.host.robot.age
+   │   ├─ owner: robot
+   │   └─ recipient: default
+   └─ repo manifest: not in repo
+       └─ run 'rhachet keyrack init --org <org>' to init one
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case7] passphrased rsa key, unlock via the age-CLI dialog-strip fallback when: [t0] the full passphrased-rsa roundtrip runs then: the human-visible rsa init + set + unlock output stays stable: rsa-set 1`] = `
+"🔐 keyrack set (org: testorg, env: sudo)
+   └─ testorg.sudo.RSA_ROUNDTRIP
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.secure
+
+   note: sudo credentials are stored in encrypted host manifest only.
+         they will NOT appear in keyrack.yml.
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case7] passphrased rsa key, unlock via the age-CLI dialog-strip fallback when: [t0] the full passphrased-rsa roundtrip runs then: the human-visible rsa init + set + unlock output stays stable: rsa-unlock 1`] = `
+"🔓 keyrack unlock
+   └─ testorg.sudo.RSA_ROUNDTRIP
+      ├─ env: sudo
+      ├─ org: testorg
+      ├─ vault: os.secure
+      └─ expires in: 30m
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case8] passphrased rsa key, headless unlock (no DISPLAY, no dialog) when: [t0] unlock runs headless with a passphrased rsa key then: the error names the no-display cause + fixes, distinctly: rsa-headless 1`] = `
+"🔓 unlock via age-cli · passphrase stripped via the dialog — this path does NOT carry the ed25519 zero-reuse guarantee
+
+✋ ConstraintError: this keyrack manifest needs a graphical passphrase dialog, but this session has no display
+   ├─ why: your ssh key has a passphrase, so unlock pops a desktop dialog to
+   │       enter it — and this looks like a headless session (ci, or ssh with
+   │       no display), where no dialog can appear
+   └─ fix: run this on your local desktop session, or use a passphrase-less key —
+           e.g. rhx keyrack unlock --owner robot --prikey ~/.ssh/id_ed25519
+
+{
+  "keyPath": "/TMP_REPO/custom-keys/passphrased_rsa"
+}
+
+[args] keyrack,unlock,--owner,robot,--prikey,/TMP_REPO/custom-keys/passphrased_rsa,--env,sudo,--key,testorg.sudo.ANY_KEY
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case9] passphrased rsa key, dialog gives the WRONG passphrase when: [t0] unlock runs with the wrong-passphrase dialog then: the error names the wrong/cancelled cause, not a raw ssh-keygen crash: rsa-wrong-passphrase 1`] = `
+"🔓 unlock via age-cli · passphrase stripped via the dialog — this path does NOT carry the ed25519 zero-reuse guarantee
+
+✋ ConstraintError: ssh-keygen could not decrypt the key — the passphrase was wrong or cancelled, or there is no graphical session for the dialog
+
+{
+  "keyPath": "/TMP_REPO/custom-keys/passphrased_rsa",
+  "hint": "retry and enter the correct passphrase on a local desktop session; the passphrase dialog is a local-desktop feature"
+}
+
+[args] keyrack,unlock,--owner,robot,--prikey,/TMP_REPO/custom-keys/passphrased_rsa,--env,sudo,--key,testorg.sudo.ANY_KEY
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case10] passphrased FIDO/sk- key, explicit --prikey fails fast when: [t0] unlock runs with an explicit FIDO --prikey then: the error names the FIDO limit + the swap-key fix, not a generic miss: fido-unsupported 1`] = `
+"🔐 unlock robot identity · ephemeral agent, zero reuse (fresh prompt each unlock — by design)
+🔐 unlock code: __CODE__   (confirm this matches the dialog before you type)
+
+✋ ConstraintError: 🔐 passphrase-protected FIDO/hardware-token key (sk-ssh-ed25519@openssh.com) — not supported for keyrack unlock in v1.
+   ├─ why: its private half stays on the security key, so it cannot back the
+   │       ssh-agent unlock
+   └─ fix: init the keyrack with a key keyrack can unlock — an ed25519 key
+           (passphrased is fine — the native dialog unlocks it), or a
+           passphrase-less key. then retry:
+           rhx keyrack init --prikey <path-to-that-key>
+
+{
+  "owner": "robot",
+  "prescribed": [
+    "/TMP_REPO/custom-keys/id_ed25519_sk"
+  ]
+}
+
+[args] keyrack,unlock,--owner,robot,--prikey,/TMP_REPO/custom-keys/id_ed25519_sk,--env,sudo,--key,testorg.sudo.ANY_KEY
+
+"
+`;
+
+exports[`keyrack passphrased-ed25519 unlock (Variant A) given: [case13] keyrack unlock --help documents the KEYRACK_ASKPASS seam when: [t0] the human asks for unlock help then: the help output stays pinned (contract-grain snapshot): unlock-help 1`] = `
+"Usage: rhachet keyrack unlock [options]
+
+unlock keys and send them to daemon for session access
+
+Options:
+  --owner <owner>        owner identity (e.g., mechanic, foreman)
+  --for <owner>          alias for --owner
+  --env <env>            target env: prod, prep, test, all, or sudo
+  --key <key>            specific key to unlock (required for --env sudo)
+  --duration <duration>  TTL for unlocked keys (default: 30m for sudo, 9h for
+                         others)
+  --prikey <path>        explicit ssh private key path (fallback when discovery
+                         fails)
+  --json                 output as json (robot mode)
+  -h, --help             display help for command
+
+env:
+  KEYRACK_ASKPASS   absolute path to a gnome-compatible ssh-askpass dialog.
+                    keyrack auto-detects ssh-askpass-gnome by default; set this
+                    to override that when your dialog lives elsewhere, or on a
+                    non-gnome desktop. the passphrase is typed into this dialog,
+                    never the terminal (keylogger mitigation).
+"
+`;

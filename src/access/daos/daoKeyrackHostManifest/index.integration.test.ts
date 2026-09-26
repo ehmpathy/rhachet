@@ -7,15 +7,13 @@ import {
   KeyrackKeyHost,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
-import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import {
   type ContextKeyrack,
   genContextKeyrack,
 } from '@src/domain.operations/keyrack/genContextKeyrack';
-import {
-  ed25519SeedToAgeIdentity,
-  extractEd25519Seed,
-} from '@src/infra/ssh/sshPrikeyToAgeIdentity';
+import { generateAgeKeyPair } from '@src/infra/ssh/ageRecipientCrypto';
+import { asAgeIdentityFromEd25519Seed } from '@src/infra/ssh/asAgeIdentityFromEd25519Seed';
+import { asEd25519Seed } from '@src/infra/ssh/asEd25519Seed';
 
 import {
   chmodSync,
@@ -63,8 +61,8 @@ n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
  * .why = used to create manifests encrypted to the ssh key
  */
 const getTestSshKeyAgeIdentity = (): string => {
-  const seed = extractEd25519Seed({ keyContent: TEST_SSH_KEY });
-  return ed25519SeedToAgeIdentity({ seed });
+  const seed = asEd25519Seed({ keyContent: TEST_SSH_KEY });
+  return asAgeIdentityFromEd25519Seed({ seed });
 };
 
 /**
@@ -775,6 +773,172 @@ describe('daoKeyrackHostManifest', () => {
 
             expect(result).not.toBeNull();
             expect(result?.manifest?.owner).toEqual('priorityowner');
+          },
+        );
+      });
+    },
+  );
+
+  // clamp (rule.require.clamp-edge-cases): a LEGACY (v0) manifest sealed to a raw ssh
+  // recipient — the shape main's init produced for a passphrase-protected key — must
+  // NOT dead-end at the generic "no identity … use --prikey" (the key cannot help once
+  // the Variant A gate routes it off the age-cli path). the no-identity path must name
+  // the ACTUAL fix: re-init to upgrade. this reproduces what r11 caught: a real lockout
+  given('[case13] legacy manifest sealed to a raw ssh recipient (v0)', () => {
+    // a legacy manifest's age header carries a cleartext `-> ssh-ed25519` stanza. we do
+    // NOT need a real decryptable blob to prove the no-identity path names the right fix —
+    // only an armored ciphertext whose de-armored header shows the raw ssh stanza. craft
+    // one via age.armor round-trip (no age-cli, no real seal needed)
+    useBeforeAll(async () => {
+      const legacyHeader = new TextEncoder().encode(
+        'age-encryption.org/v1\n-> ssh-ed25519 Xy1Ab2 c3D4e5F6g7\nh8I9j0KlMn\n--- Op1Qr2St\nu3v4w5',
+      );
+      const legacyCiphertext = age.armor.encode(legacyHeader);
+
+      const keyrackDir = join(tempHome.path, '.rhachet', 'keyrack');
+      if (!existsSync(keyrackDir)) mkdirSync(keyrackDir, { recursive: true });
+      writeFileSync(
+        join(keyrackDir, 'keyrack.host.legacyssh.age'),
+        legacyCiphertext,
+        'utf8',
+      );
+      return {};
+    });
+
+    when('[t0] get called and no identity can decrypt it', () => {
+      then(
+        'throws an actionable re-init upgrade error, not the generic hint',
+        async () => {
+          const error = await getError(
+            daoKeyrackHostManifest.get(
+              { owner: 'legacyssh' },
+              createTestContext(null),
+            ),
+          );
+
+          expect(error).toBeDefined();
+          // names the ACTUAL fix (re-init), NOT the useless "--prikey" hint
+          expect(error?.message).toContain('re-initialize');
+          expect(error?.message).toContain('rhx keyrack init');
+          expect(error?.message.includes('--prikey')).toBe(false);
+          // pin the FULL user-faced message so its wording + tree shape cannot drift
+          // silently — the same snapshot treatment every sibling first-contact
+          // fail-fast message got (r10 i057). the embedded manifest path is per-run
+          // (temp HOME), so swap it for a stable placeholder → a deterministic snap
+          expect(
+            error!.message.split(tempHome.path).join('<HOME>'),
+          ).toMatchSnapshot('legacy-ssh-reinit-message');
+        },
+      );
+    });
+  });
+
+  // clamp (rule.require.clamp-edge-cases): findsert's contract is "never overwrite". the
+  // extant-check reads (decrypts) the extant manifest, which needs context — so an absent
+  // context must FAIL LOUD, never silently fall through to upsert semantics and clobber an
+  // extant manifest. this reproduces what r11 caught: findsert + extant file + no context
+  given('[case14] findsert with an extant manifest but no context', () => {
+    const keyPair = useBeforeAll(async () => generateAgeKeyPair());
+
+    // setup: seed an extant manifest on disk via upsert (upsert needs no context)
+    useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: keyPair.recipient,
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+      await daoKeyrackHostManifest.set({
+        upsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.nocontext.age',
+          owner: 'nocontext',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+      return {};
+    });
+
+    when('[t0] findsert called with no context', () => {
+      then('throws a fail-loud error, never a silent overwrite', async () => {
+        const recipient = new KeyrackKeyRecipient({
+          mech: 'age',
+          pubkey: keyPair.recipient,
+          label: 'clobber-attempt',
+          addedAt: new Date().toISOString(),
+        });
+
+        const error = await getError(
+          daoKeyrackHostManifest.set({
+            findsert: new KeyrackHostManifest({
+              uri: '~/.rhachet/keyrack/keyrack.host.nocontext.age',
+              owner: 'nocontext',
+              recipients: [recipient],
+              hosts: {},
+            }),
+          }),
+          // no context passed — findsert cannot prove absence
+        );
+
+        expect(error).toBeDefined();
+        expect(error?.message).toContain('findsert requires context');
+      });
+    });
+  });
+
+  // clamp (rule.require.clamp-edge-cases): a manifest sealed to a pubkey-derived age1
+  // (X25519) recipient — the niche shape a manual `keyrack recipient set` of a passphrased
+  // ed25519 pubkey produces — is NOT ssh-stanza-sealed, so isAgeCiphertextSshSealed is
+  // false and the generic no-identity branch fires. a passphrased key cannot open that seal
+  // in-process and --prikey cannot help, so the message MUST also name re-init as the fix,
+  // not the --prikey-only misdirect. reproduces the L3 i054 reachability report; goes red
+  // if the generic branch drops the re-init fix
+  given(
+    '[case15] manifest sealed to a pubkey-age1 recipient, no identity',
+    () => {
+      // an armored ciphertext whose de-armored header shows an `-> X25519` stanza (NOT a raw
+      // ssh stanza), so the sniff routes it to the generic branch. no real seal needed — only
+      // the cleartext header type matters to the classifier
+      useBeforeAll(async () => {
+        const age1Header = new TextEncoder().encode(
+          'age-encryption.org/v1\n-> X25519 Xy1Ab2c3D4e5F6g7\nh8I9j0KlMn\n--- Op1Qr2St\nu3v4w5',
+        );
+        const age1Ciphertext = age.armor.encode(age1Header);
+
+        const keyrackDir = join(tempHome.path, '.rhachet', 'keyrack');
+        if (!existsSync(keyrackDir)) mkdirSync(keyrackDir, { recursive: true });
+        writeFileSync(
+          join(keyrackDir, 'keyrack.host.age1niche.age'),
+          age1Ciphertext,
+          'utf8',
+        );
+        return {};
+      });
+
+      when('[t0] get called and no identity can decrypt it', () => {
+        then(
+          'names re-init as a fix, not the --prikey-only misdirect',
+          async () => {
+            const error = await getError(
+              daoKeyrackHostManifest.get(
+                { owner: 'age1niche' },
+                createTestContext(null),
+              ),
+            );
+
+            expect(error).toBeDefined();
+            // the generic branch still offers --prikey (right for the wrong-key case)...
+            expect(error?.message).toContain('--prikey');
+            // ...AND now names re-init (the fix for this pubkey-age1 seal mismatch)
+            expect(error?.message).toContain('re-init');
+            expect(error?.message).toContain('rhx keyrack init');
+            // pin the FULL user-faced message so its wording + tree shape cannot drift
+            // silently — the sibling first-contact snapshot treatment (r10 i057). the
+            // embedded manifest path is per-run (temp HOME), so swap it for a stable
+            // placeholder → a deterministic snap
+            expect(
+              error!.message.split(tempHome.path).join('<HOME>'),
+            ).toMatchSnapshot('pubkey-age1-reinit-message');
           },
         );
       });

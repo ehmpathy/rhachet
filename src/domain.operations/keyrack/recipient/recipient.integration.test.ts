@@ -2,10 +2,22 @@ import { getError, given, then, when } from 'test-fns';
 
 import { assertDepAgeIsInstalled } from '@src/.test/infra/assertDepAgeIsInstalled';
 import { withTempHome } from '@src/.test/infra/withTempHome';
-import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import {
+  KeyrackHostManifest,
+  KeyrackKeyHost,
+} from '@src/domain.objects/keyrack';
+import { getOsSecureCredentialPath } from '@src/domain.operations/keyrack/adapters/vaults/os.secure/vaultAdapterOsSecure';
+import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
+import {
+  decryptWithIdentity,
+  encryptToRecipients,
+  generateAgeKeyPair,
+} from '@src/infra/ssh/ageRecipientCrypto';
 
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { delKeyrackRecipient } from './delKeyrackRecipient';
 import { getKeyrackRecipients } from './getKeyrackRecipients';
 import { setKeyrackRecipient } from './setKeyrackRecipient';
@@ -231,6 +243,106 @@ describe('recipient operations', () => {
         });
       });
     });
+
+    /**
+     * .what = the grant-completeness regression: after a recipient is added,
+     *         every os.secure blob is re-keyed to include it, so the new
+     *         recipient CAN open the credentials beside the manifest
+     * .why  = an earlier add re-sealed the manifest but left os.secure blobs on
+     *         the old recipient set, so the new recipient could open the manifest
+     *         but NOT the credentials — an incomplete grant
+     *         (rule.require.os-secure-seals-to-host-manifest). this pins that an add
+     *         drives the shared re-key, not just the manifest re-seal
+     */
+    given(
+      '[case3] keyrack has an os.secure credential and a recipient is added',
+      () => {
+        when('[t0] a new recipient is added', () => {
+          then(
+            'the new recipient can open the extant os.secure blob',
+            async () => {
+              const owner = 'set-rekey-test';
+              const slug = 'testorg.test.API_KEY';
+
+              // init sealed to the ssh key (recipient A)
+              await initKeyrack({
+                owner,
+                label: 'primary',
+                pubkey: TEST_SSH_PUBKEY_PATH,
+              });
+
+              // register an os.secure host in the manifest, sealed to [A]
+              const context = genContextKeyrack({
+                owner,
+                prikeys: [TEST_SSH_PRIKEY_PATH],
+              });
+              const result = await daoKeyrackHostManifest.get(
+                { owner },
+                context,
+              );
+              const stamp = new Date().toISOString();
+              const manifestWithHost = new KeyrackHostManifest({
+                ...result!.manifest,
+                hosts: {
+                  ...result!.manifest.hosts,
+                  [slug]: new KeyrackKeyHost({
+                    slug,
+                    mech: 'PERMANENT_VIA_REPLICA',
+                    vault: 'os.secure',
+                    exid: null,
+                    env: 'test',
+                    org: 'testorg',
+                    meta: null,
+                    maxDuration: null,
+                    createdAt: stamp,
+                    updatedAt: stamp,
+                  }),
+                },
+              });
+              await daoKeyrackHostManifest.set({ upsert: manifestWithHost });
+
+              // seed the os.secure blob, sealed to the manifest recipients [A]
+              const secret = 'super-secret-cred-value';
+              const blobPath = getOsSecureCredentialPath({ slug, owner });
+              mkdirSync(dirname(blobPath), { recursive: true });
+              const ciphertext = await encryptToRecipients({
+                plaintext: secret,
+                recipients: manifestWithHost.recipients,
+              });
+              writeFileSync(blobPath, ciphertext, 'utf8');
+
+              // add recipient B (a fresh age identity we hold)
+              const { identity: identityB, recipient: pubkeyB } =
+                await generateAgeKeyPair();
+
+              // precondition: B cannot open the blob yet (sealed to A only)
+              const errorBefore = await getError(
+                decryptWithIdentity({
+                  ciphertext: readFileSync(blobPath, 'utf8'),
+                  identity: identityB,
+                }),
+              );
+              expect(errorBefore).not.toBeNull();
+
+              await setKeyrackRecipient({
+                owner,
+                pubkey: pubkeyB,
+                label: 'backup',
+                stanza: null,
+                prikeys: [TEST_SSH_PRIKEY_PATH],
+              });
+
+              // after: B CAN open the blob (grant complete — re-keyed to [A, B])
+              const opensAfter = await decryptWithIdentity({
+                ciphertext: readFileSync(blobPath, 'utf8'),
+                identity: identityB,
+              });
+              expect(opensAfter).toEqual(secret);
+            },
+          );
+        });
+      },
+    );
   });
 
   describe('getKeyrackRecipients', () => {
@@ -411,5 +523,111 @@ describe('recipient operations', () => {
         });
       });
     });
+
+    /**
+     * .what = the revocation-completeness regression: after a recipient is
+     *         dropped, every os.secure blob is re-keyed to the rest of the set,
+     *         so the dropped recipient can NO LONGER open the credentials
+     * .why  = an earlier del re-sealed the manifest but left os.secure blobs on
+     *         the old recipient set, so a dropped recipient could still open the
+     *         credentials — an incomplete revocation
+     *         (rule.require.os-secure-seals-to-host-manifest). this pins that del
+     *         drives the shared re-key, not just the manifest re-seal
+     */
+    given(
+      '[case4] keyrack has an os.secure credential sealed to two recipients',
+      () => {
+        when('[t0] a recipient is deleted', () => {
+          then(
+            'the os.secure blob no longer opens with the dropped recipient',
+            async () => {
+              const owner = 'del-rekey-test';
+              const slug = 'testorg.test.API_KEY';
+
+              // init sealed to the ssh key (recipient A)
+              await initKeyrack({
+                owner,
+                label: 'primary',
+                pubkey: TEST_SSH_PUBKEY_PATH,
+              });
+
+              // add recipient B (a fresh age identity we hold, the drop target)
+              const { identity: identityB, recipient: pubkeyB } =
+                await generateAgeKeyPair();
+              await setKeyrackRecipient({
+                owner,
+                pubkey: pubkeyB,
+                label: 'backup',
+                stanza: null,
+                prikeys: [TEST_SSH_PRIKEY_PATH],
+              });
+
+              // register an os.secure host in the manifest, sealed to [A, B]
+              const context = genContextKeyrack({
+                owner,
+                prikeys: [TEST_SSH_PRIKEY_PATH],
+              });
+              const result = await daoKeyrackHostManifest.get(
+                { owner },
+                context,
+              );
+              const stamp = new Date().toISOString();
+              const manifestWithHost = new KeyrackHostManifest({
+                ...result!.manifest,
+                hosts: {
+                  ...result!.manifest.hosts,
+                  [slug]: new KeyrackKeyHost({
+                    slug,
+                    mech: 'PERMANENT_VIA_REPLICA',
+                    vault: 'os.secure',
+                    exid: null,
+                    env: 'test',
+                    org: 'testorg',
+                    meta: null,
+                    maxDuration: null,
+                    createdAt: stamp,
+                    updatedAt: stamp,
+                  }),
+                },
+              });
+              await daoKeyrackHostManifest.set({ upsert: manifestWithHost });
+
+              // seed the os.secure blob, sealed to the manifest recipients [A, B]
+              const secret = 'super-secret-cred-value';
+              const blobPath = getOsSecureCredentialPath({ slug, owner });
+              mkdirSync(dirname(blobPath), { recursive: true });
+              const ciphertext = await encryptToRecipients({
+                plaintext: secret,
+                recipients: manifestWithHost.recipients,
+              });
+              writeFileSync(blobPath, ciphertext, 'utf8');
+
+              // precondition: the blob opens with recipient B
+              const opensBefore = await decryptWithIdentity({
+                ciphertext: readFileSync(blobPath, 'utf8'),
+                identity: identityB,
+              });
+              expect(opensBefore).toEqual(secret);
+
+              // drop recipient B
+              await delKeyrackRecipient({
+                owner,
+                label: 'backup',
+                prikeys: [TEST_SSH_PRIKEY_PATH],
+              });
+
+              // after: B can no longer open the blob (revocation complete)
+              const error = await getError(
+                decryptWithIdentity({
+                  ciphertext: readFileSync(blobPath, 'utf8'),
+                  identity: identityB,
+                }),
+              );
+              expect(error).not.toBeNull();
+            },
+          );
+        });
+      },
+    );
   });
 });

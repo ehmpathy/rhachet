@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genKeyrackManifestIdentityViaAgent given: [case1] the owner ssh key on disk + a manifest sealed to derived K when: [t1] no askpass dialog is available then: it fails fast with the install fix (never a tty prompt) 1`] = `
+"✋ ConstraintError: keyrack needs a graphical passphrase dialog, and none is installed
+   ├─ why: the dialog keeps your passphrase off the terminal,
+   │       where a keylogger or compromised shell could capture it
+   ├─ fix: install ssh-askpass-gnome with your package manager, then retry —
+   │       ├─ apt (debian/ubuntu):  sudo apt install ssh-askpass-gnome
+   │       ├─ dnf (fedora/rhel):    sudo dnf install ssh-askpass-gnome
+   │       └─ pacman (arch):        sudo pacman -S ssh-askpass-gnome
+   └─ or: point KEYRACK_ASKPASS at your dialog if it is installed elsewhere
+
+{
+  "candidates": [
+    "/nonexistent/gnome-ssh-askpass"
+  ],
+  "platform": "linux",
+  "fix": "install ssh-askpass-gnome with your package manager — e.g. apt: sudo apt install ssh-askpass-gnome · dnf: sudo dnf install ssh-askpass-gnome · pacman: sudo pacman -S ssh-askpass-gnome"
+}"
+`;

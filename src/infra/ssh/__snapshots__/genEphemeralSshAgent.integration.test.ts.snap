@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genEphemeralSshAgent given: [case4] ssh-agent is not installed (the binary cannot be found) when: [t0] the agent spawn cannot find the ssh-agent binary then: the full user-visible message shape is stable (snapshot) 1`] = `
+"✋ ConstraintError: keyrack needs ssh-agent to hold your key for the unlock, and it is not installed
+   ├─ why: keyrack loads your ssh key into a throwaway agent, asks it to
+   │       sign once, then tears it down — so the key never lingers
+   └─ fix: install openssh-client (it provides ssh-agent), then retry
+
+{
+  "owner": "absent",
+  "sock": "<sock>",
+  "fix": "install openssh-client (it provides ssh-agent), then retry"
+}"
+`;

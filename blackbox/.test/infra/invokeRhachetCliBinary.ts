@@ -17,8 +17,14 @@ export const asSnapshotSafe = (output: string): string => {
       )
       // strip temp test repo paths (vary by run)
       .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip ephemeral ssh-agent socket paths (mkdtemp suffix varies per run)
+      .replace(/\/tmp\/kr-agent-[^/"\s]+\/agent\.sock/g, '/TMP_AGENT_SOCK')
       // strip ISO timestamps (vary by run)
       .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '__TIMESTAMP__')
+      // strip freshly-generated ssh-ed25519 pubkey material (varies per keygen)
+      .replace(/ssh-ed25519 AAAA[A-Za-z0-9+/=]+/g, 'ssh-ed25519 __SSH_PUBKEY__')
+      // strip the per-invocation visual-match unlock code (a fresh nonce each run)
+      .replace(/unlock code: [A-Z0-9]+/g, 'unlock code: __CODE__')
   );
 };
 
@@ -59,9 +65,12 @@ export const invokeRhachetCliBinary = (input: {
     cwd: input.cwd,
     input: input.stdin,
     encoding: 'utf-8',
-    // shell mode removed: args with spaces (like pubkeys) were being split by bash
-    // absolute binPath doesn't need shell for PATH resolution
+    // shell mode removed: args with spaces (like pubkeys) were split by bash;
+    // absolute binPath does not need shell for PATH resolution
     env: envFiltered,
+    // 120s bounds a hung binary so it cannot block CI forever — the same limit
+    // the prod loadSshKeyIntoAgent spawn uses; a real CLI call finishes far sooner
+    timeout: 120_000,
   });
 
   // log output for debug on failure
@@ -112,6 +121,9 @@ export const invokeRhachetCliBinaryChain = (input: {
     cwd: input.cwd,
     encoding: 'utf-8',
     env: envFiltered,
+    // 120s bounds a hung chain so it cannot block CI forever (matches the single
+    // -command invoke above); a real chained CLI call finishes far sooner
+    timeout: 120_000,
   });
 
   // log output for debug on failure

@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genContextKeyrack given: [case3] a prescribed passphrased rsa --prikey, age absent when: [t0] getOne is called with the passphrased rsa key as an explicit --prikey then: it surfaces the install-age hint, never a swallowed generic null 1`] = `
+"✋ ConstraintError: 🔐 your ssh key is passphrase-protected (cipher: aes256-ctr).
+   ├─ why: keyrack shells to the \`age\` cli to decrypt with it; age prompts
+   │       for the passphrase on each invocation (age does not use ssh-agent)
+   ├─ fix: install age, then retry with \`rhx keyrack init\` —
+   │       ├─ brew install age  # macos
+   │       └─ apt install age   # ubuntu/debian
+   └─ note: passphrase-less keys (-N "") do not need age installed
+
+{
+  "owner": "ehmpath",
+  "prescribed": [
+    "<keyPath>"
+  ]
+}"
+`;

@@ -4,20 +4,17 @@ import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest'
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   KeyrackHostManifest,
-  KeyrackKeyRecipient,
+  type KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
-import {
-  extractSshKeyCipher,
-  findDefaultSshKey,
-  isAgeCLIAvailable,
-  readSshPubkey,
-  sshPubkeyToAgeRecipient,
-} from '@src/infra/ssh';
+import { getKeyrackHostManifestPath } from '@src/infra/getKeyrackHostManifestPath';
+import { asSshKeyCipher } from '@src/infra/ssh/asSshKeyCipher';
+import type { KeyrackUnlockAttribution } from '@src/infra/ssh/asUnlockPromptMessage';
+import { getOneSshPubkey } from '@src/infra/ssh/getOneSshPubkey';
 
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { asInitKeyPaths } from './asInitKeyPaths';
 import { genContextKeyrack } from './genContextKeyrack';
-import { getKeyrackHostManifestPath } from './getKeyrackHostManifestPath';
+import { genKeyrackRecipientSealed } from './genKeyrackRecipientSealed';
 
 /**
  * .what = initialize keyrack with a recipient key
@@ -37,6 +34,20 @@ export const initKeyrack = async (input: {
   gitroot?: string | null;
   org?: string | null;
   at?: string | null;
+  /**
+   * .what = override the gnome askpass dialog candidate paths
+   * .why = Variant A prompts for a passphrased key via the dialog; tests inject a
+   *        scripted stand-in here, and a custom install location can be pointed at
+   */
+  askpassCandidates?: string[];
+  /**
+   * .what = the CLI-computed prompt attribution (org/tree/env/reach/code), or null
+   * .why = the passphrased-ed25519 init dialog renders it (owner/org/tree + code) so
+   *        the human authorizes with full knowledge, never a bare passphrase prompt
+   *        (rule.forbid.contextless-unlock-prompt); also threaded onto the idempotent
+   *        re-init read, whose legacy-manifest strip pops the same dialog
+   */
+  attribution?: KeyrackUnlockAttribution | null;
 }): Promise<{
   host: {
     owner: string | null;
@@ -53,40 +64,10 @@ export const initKeyrack = async (input: {
   const owner = input.owner ?? null;
   const manifestPath = getKeyrackHostManifestPath({ owner });
 
-  // resolve key paths from pubkey input
-  const keyPaths = (() => {
-    if (input.pubkey) {
-      // pubkey input can be: value, .pub file path, or private key path
-      if (input.pubkey.startsWith('ssh-') || input.pubkey.startsWith('age')) {
-        // looks like a pubkey value — cannot derive private key
-        throw new BadRequestError(
-          'pubkey value provided but private key path required for init; pass path instead',
-          { pubkey: input.pubkey.slice(0, 30) + '...' },
-        );
-      }
-      // treat as path — normalize to private key path
-      const prikeyPath = input.pubkey.endsWith('.pub')
-        ? input.pubkey.replace(/\.pub$/, '')
-        : input.pubkey;
-      return {
-        prikeyPath,
-        pubkeyPath: `${prikeyPath}.pub`,
-        mech: 'ssh' as const,
-      };
-    }
-    // find default key
-    const found = findDefaultSshKey();
-    if (!found)
-      throw new BadRequestError(
-        'no ed25519 key found; create one with: ssh-keygen -t ed25519',
-        { searched: '~/.ssh/id_ed25519, id_rsa, id_ecdsa' },
-      );
-    return {
-      prikeyPath: found.path,
-      pubkeyPath: found.pubkeyPath,
-      mech: 'ssh' as const,
-    };
-  })();
+  // derive key paths from --pubkey input, or the default ssh key (narrative).
+  // owner is passed so the default-key lookup is owner-first — the SAME precedence
+  // unlock's Variant A uses, so init seals with the key unlock re-derives K from
+  const keyPaths = asInitKeyPaths({ pubkey: input.pubkey, owner });
 
   // validate key files present
   if (!existsSync(keyPaths.prikeyPath))
@@ -104,6 +85,7 @@ export const initKeyrack = async (input: {
     const context = genContextKeyrack({
       owner,
       prikeys: [keyPaths.prikeyPath],
+      promptAttribution: input.attribution,
     });
     const result = await daoKeyrackHostManifest.get({ owner }, context);
     if (!result)
@@ -139,59 +121,31 @@ export const initKeyrack = async (input: {
   }
 
   // read pubkey content for recipient
-  const pubkeyContent = readSshPubkey({ keyPath: keyPaths.prikeyPath });
+  const pubkeyContent = getOneSshPubkey({ keyPath: keyPaths.prikeyPath });
 
-  // detect cipher to determine recipient format (cipher-aware init)
+  // detect cipher to determine recipient format (cipher- + type-aware init)
   // - passwordless keys (cipher: none) → convert to age1... (npm library path)
-  // - passphrase-protected keys → keep ssh-ed25519... (age CLI path)
+  // - passphrased ed25519 keys → Variant A: encrypt to a minted age identity K,
+  //   whose secret is sealed under the sign-as-KDF wrap key (npm library path)
+  // - passphrased non-ed25519 keys → the extant ssh-recipient age CLI fallback
   const keyContent = readFileSync(keyPaths.prikeyPath, 'utf8');
-  const cipher = extractSshKeyCipher({ keyContent });
+  const cipher = asSshKeyCipher({ keyContent });
 
-  // create recipient with cipher-aware format
-  const recipient = (() => {
-    // passwordless key: convert to native age recipient (npm library path)
-    if (cipher === 'none') {
-      const ageRecipient = sshPubkeyToAgeRecipient({ pubkey: pubkeyContent });
-      return new KeyrackKeyRecipient({
-        mech: 'age',
-        pubkey: ageRecipient,
-        label: input.label ?? 'default',
-        addedAt: new Date().toISOString(),
-      });
-    }
+  // create recipient (+ optional sealed K to persist) with cipher-/type-aware
+  // format — the three-way dispatch lives behind one named call (narrative)
+  const sealed = await genKeyrackRecipientSealed({
+    owner,
+    cipher,
+    pubkeyContent,
+    keyPath: keyPaths.prikeyPath,
+    pubkeyPath: keyPaths.pubkeyPath,
+    label: input.label,
+    askpassCandidates: input.askpassCandidates,
+    attribution: input.attribution,
+  });
+  const recipient = sealed.recipient;
 
-    // passphrase-protected key: keep raw ssh pubkey (age CLI path)
-    // requires age CLI for encrypt AND decrypt
-    if (!isAgeCLIAvailable())
-      throw new BadRequestError(
-        `🔐 your ssh key is passphrase-protected (cipher: ${cipher}).
-keyrack uses the \`age\` cli to encrypt/decrypt via ssh-agent — no passphrase prompt needed.
-
-install age:
-  ├─ brew install age          # macos
-  └─ apt install age           # ubuntu/debian
-
-then retry: rhx keyrack init
-
-note: passphrase-less keys (-N "") do not need age installed.`,
-        { cipher, keyPath: keyPaths.prikeyPath },
-      );
-
-    return new KeyrackKeyRecipient({
-      mech: 'ssh',
-      pubkey: pubkeyContent,
-      label: input.label ?? 'default',
-      addedAt: new Date().toISOString(),
-    });
-  })();
-
-  // ensure directory present
-  const dir = dirname(manifestPath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  // create manifest
+  // create manifest — daoKeyrackHostManifest.set creates its own parent dir
   const manifest = new KeyrackHostManifest({
     uri: manifestPath.replace(process.env.HOME ?? '', '~'),
     owner,
@@ -199,7 +153,10 @@ note: passphrase-less keys (-N "") do not need age installed.`,
     hosts: {},
   });
 
-  // save manifest (encrypted to pubkey recipient)
+  // derive-not-store: there is NO secret to persist. K is re-derived from the ssh
+  // signature at unlock, so init writes ONLY the manifest (encrypted to K's derived
+  // recipient). the manifest is the single completion marker the idempotent
+  // early-return keys on
   await daoKeyrackHostManifest.set({ findsert: manifest });
 
   // handle repo manifest if gitroot provided

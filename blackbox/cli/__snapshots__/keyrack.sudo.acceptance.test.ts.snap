@@ -156,8 +156,7 @@ exports[`keyrack sudo given: [case6] list shows env and org fields when: [t1] ke
 `;
 
 exports[`keyrack sudo given: [case9] unlock with --key for regular env when: [t0] unlock --env prod --key testorg.prod.AWS_PROFILE then: stdout matches snapshot 1`] = `
-"
-🔓 keyrack unlock
+"🔓 keyrack unlock
    └─ testorg.prod.AWS_PROFILE
       ├─ env: prod
       ├─ org: testorg

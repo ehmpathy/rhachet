@@ -35,6 +35,7 @@ describe('withTestSshAgent', () => {
 
           // verify the agent is responsive
           const result = spawnSync('ssh-add', ['-l'], {
+            timeout: 30_000,
             env: { ...process.env, ...agentEnv },
           });
           expect(result.status).toBe(0);
@@ -45,6 +46,7 @@ describe('withTestSshAgent', () => {
       then('test key is loaded in agent', async () => {
         await withTestSshAgent(async (agentEnv) => {
           const result = spawnSync('ssh-add', ['-l'], {
+            timeout: 30_000,
             env: { ...process.env, ...agentEnv },
           });
           const output = result.stdout.toString();

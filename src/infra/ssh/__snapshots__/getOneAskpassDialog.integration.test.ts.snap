@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneAskpassDialog given: [case2] no candidate exists, on Linux when: [t0] detection runs then: it throws a ConstraintError with the apt fix 1`] = `
+"✋ ConstraintError: keyrack needs a graphical passphrase dialog, and none is installed
+   ├─ why: the dialog keeps your passphrase off the terminal,
+   │       where a keylogger or compromised shell could capture it
+   ├─ fix: install ssh-askpass-gnome with your package manager, then retry —
+   │       ├─ apt (debian/ubuntu):  sudo apt install ssh-askpass-gnome
+   │       ├─ dnf (fedora/rhel):    sudo dnf install ssh-askpass-gnome
+   │       └─ pacman (arch):        sudo pacman -S ssh-askpass-gnome
+   └─ or: point KEYRACK_ASKPASS at your dialog if it is installed elsewhere
+
+{
+  "candidates": [
+    "/nonexistent/gnome-ssh-askpass"
+  ],
+  "platform": "linux",
+  "fix": "install ssh-askpass-gnome with your package manager — e.g. apt: sudo apt install ssh-askpass-gnome · dnf: sudo dnf install ssh-askpass-gnome · pacman: sudo pacman -S ssh-askpass-gnome"
+}"
+`;
+
+exports[`getOneAskpassDialog given: [case4] no candidate exists, off Linux (macOS) when: [t0] detection runs on darwin then: it fails fast with a platform-aware fix, NOT the apt command 1`] = `
+"✋ ConstraintError: keyrack's graphical passphrase dialog is a Linux-desktop feature in v1, and this is macOS
+   ├─ why: the dialog keeps your passphrase off the terminal, where a
+   │       keylogger could capture it — only the gnome dialog is wired
+   │       up for v1 (a Linux/Wayland target)
+   └─ fix: point KEYRACK_ASKPASS at a gnome-compatible askpass dialog on
+           your system, then retry (v1 ships no macOS/Windows-native dialog)
+
+{
+  "candidates": [
+    "/nonexistent/gnome-ssh-askpass"
+  ],
+  "platform": "darwin",
+  "fix": "set KEYRACK_ASKPASS to a gnome-compatible askpass dialog on your system"
+}"
+`;
+
+exports[`getOneAskpassDialog given: [case5] KEYRACK_ASKPASS override names an ABSENT dialog when: [t0] detection runs with NO explicit candidates then: it fails fast at the override, NOT a host dialog 1`] = `
+"✋ ConstraintError: KEYRACK_ASKPASS points at a passphrase dialog that does not exist
+   ├─ set to: /nonexistent/operator-chose-this
+   ├─ why: KEYRACK_ASKPASS overrides dialog auto-detection, so keyrack uses
+   │       only that path — and nothing is there
+   └─ fix: point KEYRACK_ASKPASS at a real askpass dialog, or unset it to
+           auto-detect ssh-askpass-gnome
+
+{
+  "override": "/nonexistent/operator-chose-this",
+  "fix": "point KEYRACK_ASKPASS at a present askpass dialog, or unset it to auto-detect ssh-askpass-gnome"
+}"
+`;

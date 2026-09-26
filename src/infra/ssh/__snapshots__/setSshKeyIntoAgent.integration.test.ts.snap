@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setSshKeyIntoAgent given: [case2] a passphrased key and an askpass that yields no passphrase when: [t0] the load is attempted and the dialog yields no passphrase then: it fails loud with a ConstraintError and loads no identity 1`] = `"✋ ConstraintError: ssh-add could not load the key — the passphrase was wrong or cancelled, or there is no graphical session for the dialog"`;
+
+exports[`setSshKeyIntoAgent given: [case3] a passphrased key on a headless box (no DISPLAY / WAYLAND_DISPLAY) when: [t0] the load is attempted with no graphical session then: it fails loud with a ConstraintError (never a tty prompt, never a hang) 1`] = `
+"✋ ConstraintError: ssh-add could not load the key — the passphrase was wrong or cancelled, or there is no graphical session for the dialog
+
+{
+  "keyPath": "<keyPath>",
+  "sock": "<sock>",
+  "hint": "retry and enter the correct passphrase on a local desktop session; the passphrase dialog is a local-desktop feature"
+}"
+`;

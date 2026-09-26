@@ -12,9 +12,9 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { encryptToRecipients } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { encryptToRecipients } from '@src/infra/ssh/ageRecipientCrypto';
 import { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
-import { sshPubkeyToAgeRecipient } from '@src/infra/ssh/sshPubkeyToAgeRecipient';
+import { asAgeRecipientFromSshPubkey } from '@src/infra/ssh/asAgeRecipientFromSshPubkey';
 
 /**
  * .what = path to test SSH key assets
@@ -31,7 +31,7 @@ const TEST_SSH_PUBKEY = readFileSync(
   join(TEST_SSH_KEY_DIR, 'test_key_ed25519.pub'),
   'utf8',
 ).trim();
-export const TEST_SSH_AGE_RECIPIENT = sshPubkeyToAgeRecipient({
+export const TEST_SSH_AGE_RECIPIENT = asAgeRecipientFromSshPubkey({
   pubkey: TEST_SSH_PUBKEY,
 });
 

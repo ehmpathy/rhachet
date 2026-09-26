@@ -2,7 +2,6 @@ import type { Command } from 'commander';
 import { BadRequestError, ConstraintError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
-import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import { loadManifestHydrated } from '@src/access/daos/daoKeyrackRepoManifest/hydrate/loadManifestHydrated';
 import type {
@@ -11,7 +10,6 @@ import type {
 } from '@src/domain.objects/keyrack';
 import {
   delKeyrackKey,
-  genContextKeyrack,
   genContextKeyrackGrantGet,
   getAllKeyrackGrantsByRepo,
   getOneKeyrackGrantByKey,
@@ -44,12 +42,15 @@ import { pruneKeyrackDaemon } from '@src/domain.operations/keyrack/daemon/sdk';
 import { decideIsKeyStrictlyRequired } from '@src/domain.operations/keyrack/decideIsKeyStrictlyRequired';
 import { fillKeyrackKeys } from '@src/domain.operations/keyrack/fillKeyrackKeys';
 import { findSlugByEnvAndKeyName } from '@src/domain.operations/keyrack/findSlugByEnvAndKeyName';
+import { genContextKeyrackFromCliOpts } from '@src/domain.operations/keyrack/genContextKeyrackFromCliOpts';
+import { genKeyrackUnlockAttribution } from '@src/domain.operations/keyrack/genKeyrackUnlockAttribution';
 import { getAllKeyrackSlugsForEnv } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForEnv';
 import { getKeyrackFirewallOutput } from '@src/domain.operations/keyrack/getKeyrackFirewallOutput';
 import { getKeyrackKeyGrant } from '@src/domain.operations/keyrack/getKeyrackKeyGrant';
 import { getKeyrackKeyGrants } from '@src/domain.operations/keyrack/getKeyrackKeyGrants/getKeyrackKeyGrants';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 import { isKeyrackSlugFormat } from '@src/domain.operations/keyrack/isKeyrackSlugFormat';
+import { migrateKeyrackManifestToVariantA } from '@src/domain.operations/keyrack/migrateKeyrackManifestToVariantA';
 import { delKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/delKeyrackRecipient';
 import { getKeyrackRecipients } from '@src/domain.operations/keyrack/recipient/getKeyrackRecipients';
 import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/setKeyrackRecipient';
@@ -137,6 +138,22 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // --prikey takes precedence over --pubkey (both accept private key paths)
         const keyPath = opts.prikey ?? opts.pubkey;
 
+        // note: the pre-prompt banner is NOT printed here. it lives at the init
+        // choke point (genKeyrackRecipientSealed's ed25519 branch), which runs ONLY
+        // on the passphrased-ed25519 path where the native dialog actually pops — so
+        // the banner never prints for a passwordless init where no dialog appears
+        // build the attributed-prompt scope (org/tree + a fresh visual-match code) so
+        // the passphrased-ed25519 init dialog names WHO/WHAT it seals and the human can
+        // confirm it belongs to THIS command (rule.forbid.contextless-unlock-prompt).
+        // init has no --env (it seals the whole manifest) and no --reach, so both are
+        // omitted; org falls back when none was named
+        const attribution = genKeyrackUnlockAttribution({
+          org: opts.org ?? '(unknown)',
+          env: 'all',
+          reach: null,
+          gitroot,
+        });
+
         const result = await initKeyrack({
           owner,
           pubkey: keyPath,
@@ -144,6 +161,7 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           gitroot,
           org: opts.org ?? null,
           at: opts.at ?? null,
+          attribution,
         });
 
         // display paths with ~/ instead of $HOME
@@ -177,7 +195,9 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
             result.host.effect === 'created'
               ? 'freshly minted ✨'
               : 'already active 👌';
-          console.log('');
+          // no up-front stdout blank — the tree opens directly with its header, the
+          // same cadence as `set` (rule.forbid.snapshot-visual-blemishes: init/set/unlock
+          // stay uniform; no command output opens with a lone blank line)
           console.log('🔐 keyrack init');
           console.log(`   ├─ host manifest: ${hostStatus}`);
           console.log(
@@ -738,20 +758,13 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           return opts.mech as KeyrackGrantMechanism;
         })();
 
-        // get gitroot to derive org from manifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const repoManifestFound = await daoKeyrackRepoManifest.get({ gitroot });
-
-        // create context with lazy identity discovery
-        const context = genContextKeyrack({
-          owner,
-          prikeys: opts.prikey ? [opts.prikey] : undefined,
-          repoManifest: repoManifestFound ?? null,
-          gitroot,
-        });
-
-        // load host manifest (triggers identity discovery)
-        const hostResult = await daoKeyrackHostManifest.get({ owner }, context);
+        // build keyrack context: gitroot + repo manifest + host-manifest load
+        const { context, gitroot, hostResult } =
+          await genContextKeyrackFromCliOpts({
+            owner,
+            prikey: opts.prikey,
+            env: opts.env ?? null,
+          });
         if (!hostResult) {
           const initTip = owner
             ? `run: rhx keyrack init --owner ${owner}`
@@ -908,21 +921,15 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           );
         }
 
-        // blank line before passphrase prompt (matches `set` output cadence)
-        console.log('');
-
-        // get gitroot and repoManifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
-
-        // generate context and load host manifest
-        const context = genContextKeyrack({
+        // build keyrack context: gitroot + repo manifest + host-manifest load.
+        // NO stdout spacer up front — `set` (the cadence reference) prints none
+        // before its context build, so the unlock banner comes first, uniform
+        // across the error family. the del SUCCESS output has its own spacer below
+        const { context, repoManifest } = await genContextKeyrackFromCliOpts({
           owner,
-          prikeys: opts.prikey ? [opts.prikey] : undefined,
-          repoManifest: repoManifest ?? null,
-          gitroot,
+          prikey: opts.prikey,
+          env: opts.env ?? null,
         });
-        await daoKeyrackHostManifest.get({ owner }, context);
 
         // derive org from manifest
         let derivedOrg: string;
@@ -1040,6 +1047,18 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
       'explicit ssh private key path (fallback when discovery fails)',
     )
     .option('--json', 'output as json (robot mode)')
+    .addHelpText(
+      'after',
+      [
+        '',
+        'env:',
+        '  KEYRACK_ASKPASS   absolute path to a gnome-compatible ssh-askpass dialog.',
+        '                    keyrack auto-detects ssh-askpass-gnome by default; set this',
+        '                    to override that when your dialog lives elsewhere, or on a',
+        '                    non-gnome desktop. the passphrase is typed into this dialog,',
+        '                    never the terminal (keylogger mitigation).',
+      ].join('\n'),
+    )
     .action(
       async (opts: {
         owner?: string;
@@ -1069,23 +1088,45 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
           });
         }
 
-        // get gitroot and repoManifest
-        const gitroot = await getGitRepoRoot({ from: process.cwd() });
-        const repoManifest = await daoKeyrackRepoManifest.get({ gitroot });
+        // the pre-prompt banner (vision day-in-the-life) is NOT emitted here —
+        // it lives at the single choke point every manifest-read command shares
+        // (genManifestIdentityViaVariantA, just before the native dialog pops), so
+        // unlock/set/del/list/recipient/fill all get it without a per-command site.
+        // the banner prints to stderr, a stream apart from the stdout spacer below
 
-        // blank line before passphrase prompt (matches `set` output cadence)
-        console.log('');
-
-        // generate context and load host manifest (decrypts — may prompt for passphrase)
-        const context = genContextKeyrack({
+        // build keyrack context: gitroot + repo manifest + host-manifest load
+        // (decrypts — may prompt for passphrase). runs BEFORE the stdout spacer so
+        // an early throw (e.g. a legacy flat-keys repo whose read fails) emits no
+        // lone blank line — stdout stays empty, the error goes to stderr, to match
+        // the pre-extraction cadence
+        const { context } = await genContextKeyrackFromCliOpts({
           owner,
-          prikeys: opts.prikey ? [opts.prikey] : undefined,
-          repoManifest: repoManifest ?? null,
-          gitroot,
+          prikey: opts.prikey,
+          env: opts.env ?? null,
         });
-        await daoKeyrackHostManifest.get({ owner }, context);
 
-        // unlock keys and send to daemon
+        // fix-forward a legacy manifest to Variant A (the ssh-agent unlock UX),
+        // seamlessly — no separate command. a no-op when already Variant A or when
+        // the key is not the migratable passphrased-ed25519 shape. runs after the
+        // manifest is decrypted (it re-encrypts the same plaintext hosts) and before
+        // unlock proceeds with the still-valid in-memory manifest. on stderr it emits
+        // the ⛵ upgrade line; the current unlock is unaffected either way
+        if (context.hostManifest)
+          await migrateKeyrackManifestToVariantA(
+            {
+              owner,
+              manifest: context.hostManifest,
+              prikey: opts.prikey,
+            },
+            context,
+          );
+
+        // no up-front stdout blank — the unlock output opens directly with its
+        // header, the same cadence as `set`/`init` (rule.forbid.snapshot-visual-blemishes:
+        // no command output opens with a lone blank line). a vault that emits a
+        // progress tree as it unlocks (e.g. aws.config sso re-auth) owns its OWN
+        // separator after the tree, so the progress → summary gap survives with no
+        // handler spacer
         const { unlocked, omitted } = await unlockKeyrackKeys(
           {
             owner,
@@ -1310,12 +1351,11 @@ export const invokeKeyrack = ({ program }: { program: Command }): void => {
         // --owner takes precedence; --for is alias
         const owner = deriveOwner(opts);
 
-        // generate context and load host manifest
-        const context = genContextKeyrack({
+        // generate context and load host manifest (shared cli prelude)
+        const { context } = await genContextKeyrackFromCliOpts({
           owner,
-          prikeys: opts.prikey ? [opts.prikey] : undefined,
+          prikey: opts.prikey,
         });
-        await daoKeyrackHostManifest.get({ owner }, context);
 
         // guard for absent host manifest
         if (!context.hostManifest) {

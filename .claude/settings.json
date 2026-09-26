@@ -75,6 +75,12 @@
             "command": "./node_modules/.bin/rhachet roles boot --role dreamer",
             "timeout": 10,
             "author": "repo=bhuild/role=dreamer"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet roles boot --role telepath",
+            "timeout": 30,
+            "author": "repo=bhrain/role=telepath"
           }
         ]
       },
@@ -198,6 +204,28 @@
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-shouted-readme",
+            "timeout": 5,
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|Read|NotebookEdit|Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhachet run --repo ehmpathy --role mechanic --init claude.hooks/pretooluse.forbid-cross-repo-access",
+            "timeout": 5,
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -209,6 +237,12 @@
             "command": "./node_modules/.bin/rhx route.drive --when hook.onStop",
             "timeout": 5,
             "author": "repo=bhrain/role=driver"
+          },
+          {
+            "type": "command",
+            "command": "./node_modules/.bin/rhx elucidate.summary --when hook.onStop",
+            "timeout": 5,
+            "author": "repo=bhrain/role=telepath"
           }
         ]
       }
@@ -305,13 +339,18 @@
       "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --mode apply --push)",
       "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --unstaged ignore)",
       "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --unstaged include)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --mode apply --push --auth as-human)",
+      "Bash(echo $MESSAGE | npx rhachet run --skill git.commit.set -m @stdin --mode apply --push --auth as-ehmpath)",
       "Bash(rhx git.commit.set:*)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply --push)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged ignore)",
       "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --unstaged include)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply --push --auth as-human)",
+      "Bash(echo $MESSAGE | rhx git.commit.set -m @stdin --mode apply --push --auth as-ehmpath)",
       "Bash(npx rhachet run --skill git.commit.push:*)",
+      "Bash(rhx git.commit.push:*)",
       "Bash(npx rhachet run --skill git.stage.add:*)",
       "Bash(npx rhachet run --skill git.stage.add src/file1.ts src/file2.ts)",
       "Bash(npx rhachet run --skill git.stage.add --glob 'src/**/*.ts')",
@@ -477,8 +516,22 @@
       "Bash(npx jest:*)",
       "Bash(npx rhachet run --skill git.commit.bind del:*)",
       "Bash(npx rhachet run --skill git.commit.bind set:*)",
+      "Bash(npx rhachet run --skill git.commit.uses -- allow:*)",
       "Bash(npx rhachet run --skill git.commit.uses -- set:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --global allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --org * allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --org * del:*)",
+      "Bash(npx rhachet run --skill git.commit.uses allow:*)",
       "Bash(npx rhachet run --skill git.commit.uses set:*)",
+      "Bash(rhx git.commit.bind del:*)",
+      "Bash(rhx git.commit.bind set:*)",
+      "Bash(rhx git.commit.uses -- allow:*)",
+      "Bash(rhx git.commit.uses -- set:*)",
+      "Bash(rhx git.commit.uses --global allow:*)",
+      "Bash(rhx git.commit.uses --org * allow:*)",
+      "Bash(rhx git.commit.uses --org * del:*)",
+      "Bash(rhx git.commit.uses allow:*)",
+      "Bash(rhx git.commit.uses set:*)",
       "Bash(sed:*)",
       "Bash(tee:*)",
       "Edit(**/.route/**)",

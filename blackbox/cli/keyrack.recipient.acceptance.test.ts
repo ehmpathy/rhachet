@@ -451,7 +451,7 @@ describe('keyrack recipient', () => {
    *   - must invoke ssh-keygen non-interactively to add passphrase
    *   - must verify age CLI can decrypt the ssh-ed25519 stanza with the now-protected key
    *   - age CLI must be installed in the test env (not guaranteed in CI)
-   *   unit tests cover `sshPubkeyToAgeRecipient` and `sshPrikeyToAgeIdentity` — this gap
+   *   unit tests cover `asAgeRecipientFromSshPubkey` and `sshPrikeyToAgeIdentity` — this gap
    *   is the full CLI round-trip only.
    */
   given.skip('[case5] --stanza ssh prevention flow (gap.4: deferred)', () => {

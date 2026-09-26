@@ -1,6 +1,7 @@
 export { genTestTempDir } from './genTestTempDir';
 export { setTestTempAsset } from './setTestTempAsset';
-export { invokeRhachetCli, invokeRhachetRun } from './invokeRhachetCli';
+export { invokeRhachetCli } from './invokeRhachetCli';
+export { invokeRhachetRun } from './invokeRhachetRun';
 export { withTempHome } from './withTempHome';
 export {
   TEST_SSH_KEY_PATH,

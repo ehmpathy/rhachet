@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`sshPrikeyToAgeIdentity.integration given: [case1] a passphrase-protected ed25519 key when: [t1] age CLI is NOT on PATH then: the native-dialog message matches snapshot 1`] = `
+"BadRequestError: 🔐 passphrase-protected ed25519 key — unlocked via the native dialog, not the tty
+
+{
+  "cipher": "aes256-ctr",
+  "keyPath": "<redacted>"
+}"
+`;

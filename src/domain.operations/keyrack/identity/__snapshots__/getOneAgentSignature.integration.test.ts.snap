@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneAgentSignature given: [case1] a key held only by the ephemeral agent when: [t2] the agent is torn down then: a later sign fails loud with the ssh-agent message 1`] = `"💥 MalfunctionError: ssh-agent sign failed"`;

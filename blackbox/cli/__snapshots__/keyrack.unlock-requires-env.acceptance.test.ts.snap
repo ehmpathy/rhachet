@@ -1,17 +1,13 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack unlock-requires-env given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t0] unlock without --env then: stdout matches snapshot 1`] = `
-"
-"
-`;
+exports[`keyrack unlock-requires-env given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t0] unlock without --env then: stdout matches snapshot 1`] = `""`;
 
 exports[`keyrack unlock-requires-env given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t1] get --for repo without --env then: stdout matches snapshot 1`] = `""`;
 
 exports[`keyrack unlock-requires-env given: [case1] repo with multi-env keyrack.yml (prod + prep) when: [t2] get --for repo --json without --env then: stdout matches snapshot 1`] = `""`;
 
 exports[`keyrack unlock-requires-env given: [case5] unlock with env filter when: [t0] unlock --env prep then: stdout matches snapshot 1`] = `
-"
-🔓 keyrack unlock
+"🔓 keyrack unlock
    ├─ testorg.prep.SHARED_API_KEY
    │  ├─ env: prep
    │  ├─ org: testorg
@@ -42,8 +38,7 @@ exports[`keyrack unlock-requires-env given: [case5] unlock with env filter when:
 `;
 
 exports[`keyrack unlock-requires-env given: [case5] unlock with env filter when: [t1] unlock --env all then: stdout matches snapshot 1`] = `
-"
-🔓 keyrack unlock
+"🔓 keyrack unlock
    ├─ testorg.prod.SHARED_API_KEY
    │  ├─ env: prod
    │  ├─ org: testorg

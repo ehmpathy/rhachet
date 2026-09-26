@@ -16,7 +16,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -48,7 +48,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -128,7 +128,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -194,7 +194,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -240,7 +240,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
    │  ├─ ↻ .agent/repo=ehmpathy/role=architect/boot.yml (updated)
    │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;
@@ -283,7 +283,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -297,8 +297,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 13 brief(s)
-      └─ 2 skill(s)
+      ├─ 20 brief(s)
+      └─ 3 skill(s)
 
 "
 `;
@@ -330,7 +330,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -344,8 +344,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 13 brief(s)
-      └─ 2 skill(s)
+      ├─ 20 brief(s)
+      └─ 3 skill(s)
 
 "
 `;
@@ -378,7 +378,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 17 brief(s)
+      └─ 45 brief(s)
 
 "
 `;

@@ -8,10 +8,10 @@ import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
-import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessGet } from '@src/domain.operations/keyrack/daemon/sdk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+import { generateAgeKeyPair } from '@src/infra/ssh/ageRecipientCrypto';
 
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
@@ -173,9 +173,14 @@ describe('unlockKeyrackKeys.integration', () => {
         addedAt: new Date().toISOString(),
       });
 
-      // host manifest has sudo keys for two different orgs
+      // host manifest has sudo keys for two different orgs. upsert (not findsert):
+      // case1 already seeded a manifest at this same owner=null path, so a findsert
+      // would RETURN case1's single-org manifest instead of this 2-org one — and the
+      // DAO now (correctly) rejects a context-less findsert over an extant file.
+      // upsert is the right verb for a test seed: write this exact desired manifest
+      // state, overwrite any prior
       return daoKeyrackHostManifest.set({
-        findsert: new KeyrackHostManifest({
+        upsert: new KeyrackHostManifest({
           uri: '~/.rhachet/keyrack/keyrack.host.age',
           owner: null,
           recipients: [recipient],

@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`migrateKeyrackManifestToVariantA (legacy → derive-not-store fix-forward) given: [case1] a legacy manifest sealed to the ssh-pubkey age1 recipient when: [t0] migration runs against the decrypted legacy manifest then: the ⛵ upgrade banner is announced before the re-seal: migrate-banner 1`] = `"⛵ upgrade ehmpath-legacy identity to the ssh-agent unlock"`;
+
+exports[`migrateKeyrackManifestToVariantA (legacy → derive-not-store fix-forward) given: [case5] a legacy manifest that ALSO carries a teammate/backup recipient when: [t0] migration runs against the 2-recipient legacy manifest then: the upgrade NAMES the dropped recipients — never a silent drop: migrate-dropped-recipients 1`] = `
+"⛵ upgrade ehmpath-legacy-multi identity to the ssh-agent unlock
+⚠️ this upgrade seals to the ssh-agent identity ONLY and drops 2 prior recipient(s):
+   ├─ default (age1<REDACTED>…)
+   ├─ teammate-backup (age1<REDACTED>…)
+   └─ re-add any you still need after unlock: rhx keyrack recipient set --owner ehmpath-legacy-multi ..."
+`;

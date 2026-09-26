@@ -1,13 +1,17 @@
-import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { ConstraintError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genSampleSshKey } from '@/blackbox/.test/assets/genSampleSshKey';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { isAgeCliAvailable } from '@/blackbox/.test/infra/isAgeCliAvailable';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
-import { isAgeCLIAvailable } from '@src/infra/ssh';
 
 describe('keyrack --prikey', () => {
   // kill daemons from prior test runs to prevent state leakage
@@ -142,7 +146,7 @@ describe('keyrack --prikey', () => {
       const keyDir = join(repo.path, '.keys');
       mkdirSync(keyDir, { recursive: true });
       const keyPath = join(keyDir, 'robot_key');
-      execSync(`ssh-keygen -t ed25519 -f ${keyPath} -N "" -q`);
+      genSampleSshKey({ keyPath });
       return { path: keyPath };
     });
 
@@ -222,9 +226,7 @@ describe('keyrack --prikey', () => {
       const result = useBeforeAll(async () => {
         const wrongKeyDir = join(repo.path, '.ssh-wrong');
         mkdirSync(wrongKeyDir, { recursive: true });
-        execSync(
-          `ssh-keygen -t ed25519 -f ${join(wrongKeyDir, 'wrong_key')} -N "" -q`,
-        );
+        genSampleSshKey({ keyPath: join(wrongKeyDir, 'wrong_key') });
 
         return invokeRhachetCliBinary({
           args: [
@@ -258,7 +260,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions decryption failure', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/decrypt|no match/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards).
+        // NAMED so the pinned contract surface is immune to positional drift —
+        // a `then` added earlier in the file cannot silently renumber it
+        expect(asSnapshotSafe(output)).toMatchSnapshot('case2-t1-wrong-key');
       });
     });
 
@@ -275,9 +281,7 @@ describe('keyrack --prikey', () => {
         // generate a non-standard keypair outside .ssh/
         const customKeyDir = join(repo2.path, 'custom-keys');
         mkdirSync(customKeyDir, { recursive: true });
-        execSync(
-          `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-        );
+        genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
         // init with custom key path (not in .ssh/)
         await invokeRhachetCliBinary({
@@ -326,7 +330,11 @@ describe('keyrack --prikey', () => {
 
       then('error suggests --prikey', () => {
         const output = scene.result.stdout + scene.result.stderr;
-        expect(output).toMatch(/prikey|no match/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case2-t2-discovery-fail-tip',
+        );
       });
     });
   });
@@ -450,9 +458,7 @@ describe('keyrack --prikey', () => {
         // generate keypair outside ~/.ssh/
         const customKeyDir = join(repo2.path, 'opt', 'robot', 'keys');
         mkdirSync(customKeyDir, { recursive: true });
-        execSync(
-          `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'robot_key')} -N "" -q`,
-        );
+        genSampleSshKey({ keyPath: join(customKeyDir, 'robot_key') });
 
         const prikeyPath = join(customKeyDir, 'robot_key');
 
@@ -551,9 +557,7 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
 
@@ -608,7 +612,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case4-t0-list-discovery-fail',
+        );
       });
     });
 
@@ -657,9 +665,7 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
 
@@ -725,7 +731,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case5-t0-del-discovery-fail',
+        );
       });
     });
 
@@ -778,9 +788,7 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
 
@@ -810,7 +818,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case6-t0-recipient-get-discovery-fail',
+        );
       });
     });
 
@@ -859,14 +871,10 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       // generate a second keypair to add as recipient
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'backup_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'backup_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
       const backupPubkeyPath = join(customKeyDir, 'backup_key.pub');
@@ -914,7 +922,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case7-t0-recipient-set-discovery-fail',
+        );
       });
     });
 
@@ -941,20 +953,24 @@ describe('keyrack --prikey', () => {
       );
 
       then('exits with status 0', () => {
-        // skip test if age CLI not available (required for ssh key recipients)
-        if (!isAgeCLIAvailable()) {
-          console.log('test skipped: age CLI not installed');
-          return;
-        }
+        // age CLI is required for ssh key recipients — fail loud if absent, never
+        // a silent skip (rule.forbid.failhide / rule.require.failfast)
+        if (!isAgeCliAvailable())
+          throw new ConstraintError(
+            'age CLI required to verify ssh-key recipient decryption',
+            { hint: 'install age: `brew install age` or `apt install age`' },
+          );
         expect(result.status).toEqual(0);
       });
 
       then('recipient added', () => {
-        // skip test if age CLI not available (required for ssh key recipients)
-        if (!isAgeCLIAvailable()) {
-          console.log('test skipped: age CLI not installed');
-          return;
-        }
+        // age CLI is required for ssh key recipients — fail loud if absent, never
+        // a silent skip (rule.forbid.failhide / rule.require.failfast)
+        if (!isAgeCliAvailable())
+          throw new ConstraintError(
+            'age CLI required to verify ssh-key recipient decryption',
+            { hint: 'install age: `brew install age` or `apt install age`' },
+          );
         // keyrack recipient set --json returns the added recipient object
         const parsed = JSON.parse(result.stdout);
         expect(parsed.label).toEqual('backup');
@@ -976,14 +992,10 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       // generate a second keypair to add then delete as recipient
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'backup_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'backup_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
       const backupPubkeyPath = join(customKeyDir, 'backup_key.pub');
@@ -1047,7 +1059,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case8-t0-recipient-del-discovery-fail',
+        );
       });
     });
 
@@ -1072,20 +1088,24 @@ describe('keyrack --prikey', () => {
       );
 
       then('exits with status 0', () => {
-        // skip test if age CLI not available (required for ssh key recipients)
-        if (!isAgeCLIAvailable()) {
-          console.log('test skipped: age CLI not installed');
-          return;
-        }
+        // age CLI is required for ssh key recipients — fail loud if absent, never
+        // a silent skip (rule.forbid.failhide / rule.require.failfast)
+        if (!isAgeCliAvailable())
+          throw new ConstraintError(
+            'age CLI required to verify ssh-key recipient decryption',
+            { hint: 'install age: `brew install age` or `apt install age`' },
+          );
         expect(result.status).toEqual(0);
       });
 
       then('recipient removed', () => {
-        // skip test if age CLI not available (required for ssh key recipients)
-        if (!isAgeCLIAvailable()) {
-          console.log('test skipped: age CLI not installed');
-          return;
-        }
+        // age CLI is required for ssh key recipients — fail loud if absent, never
+        // a silent skip (rule.forbid.failhide / rule.require.failfast)
+        if (!isAgeCliAvailable())
+          throw new ConstraintError(
+            'age CLI required to verify ssh-key recipient decryption',
+            { hint: 'install age: `brew install age` or `apt install age`' },
+          );
         // keyrack recipient del --json returns { deleted: label }
         const parsed = JSON.parse(result.stdout);
         expect(parsed.deleted).toEqual('backup');
@@ -1107,9 +1127,7 @@ describe('keyrack --prikey', () => {
       // generate keypair outside ~/.ssh/ (non-standard location)
       const customKeyDir = join(repo.path, 'custom-keys');
       mkdirSync(customKeyDir, { recursive: true });
-      execSync(
-        `ssh-keygen -t ed25519 -f ${join(customKeyDir, 'custom_key')} -N "" -q`,
-      );
+      genSampleSshKey({ keyPath: join(customKeyDir, 'custom_key') });
 
       const prikeyPath = join(customKeyDir, 'custom_key');
 
@@ -1155,7 +1173,11 @@ describe('keyrack --prikey', () => {
 
       then('error mentions prikey or no match', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/prikey|no match|decrypt/i);
+        // snapshot the sanitized human-visible output so the exact error text
+        // cannot drift without detection (rule.forbid.friction-hazards)
+        expect(asSnapshotSafe(output)).toMatchSnapshot(
+          'case9-t0-ossecure-discovery-fail',
+        );
       });
     });
 

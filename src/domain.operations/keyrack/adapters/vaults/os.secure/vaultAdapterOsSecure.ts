@@ -6,10 +6,6 @@ import type {
   KeyrackHostVaultAdapter,
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
-import {
-  decryptWithIdentity,
-  encryptToRecipients,
-} from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
 import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
@@ -20,15 +16,14 @@ import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGra
 import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
+import { setFileAtomic } from '@src/infra/filesystem/setFileAtomic';
 import { getHomeDir } from '@src/infra/getHomeDir';
-
 import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+  decryptWithIdentity,
+  encryptToRecipients,
+} from '@src/infra/ssh/ageRecipientCrypto';
+
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -46,8 +41,13 @@ const getSecureVaultDir = (input: { owner: string | null }): string => {
 /**
  * .what = path for a specific credential file
  * .why = each credential is stored as a separate .age file
+ *
+ * .note = exported so a re-key (migration) can operate on the raw ciphertext of a
+ *         credential without a get/set round-trip — get runs the mech's deliverForGet
+ *         which transforms the source into a usable secret, so it cannot round-trip
+ *         the stored blob. one path helper keeps the re-key in lockstep with storage
  */
-const getCredentialPath = (input: {
+export const getOsSecureCredentialPath = (input: {
   slug: string;
   owner: string | null;
 }): string => {
@@ -120,7 +120,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
   get: async (input) => {
     // return null if file does not exist
     const owner = input.owner ?? null;
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getOsSecureCredentialPath({ slug: input.slug, owner });
     if (!existsSync(path)) return null;
 
     // identity required for decryption
@@ -137,6 +137,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     const source = await decryptWithIdentity({
       ciphertext: ciphertextArmored,
       identity,
+      owner,
     });
 
     // detect mech from value (JSON blob or plain string)
@@ -230,7 +231,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       mkdirSync(dir, { recursive: true });
     }
 
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getOsSecureCredentialPath({ slug: input.slug, owner });
 
     // encrypt with recipients from context.hostManifest
     const recipients = context?.hostManifest?.recipients;
@@ -248,8 +249,12 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       recipients,
     });
 
-    // write encrypted credential
-    writeFileSync(path, ciphertext, 'utf8');
+    // write the encrypted credential ATOMICALLY at 0o600 — the same crash-safe write the
+    // migration re-key uses (setFileAtomic). a plain writeFileSync truncates-then-writes,
+    // so a crash mid-write leaves a torn ciphertext no identity can open — a bricked
+    // credential beside a whole manifest (rule.require.os-secure-seals-to-host-manifest).
+    // 0o600 also hardens perms — a secret blob must never be world-readable
+    setFileAtomic({ path, content: ciphertext, mode: 0o600 });
 
     // roundtrip verification
     const { verified } = await verifyRoundtripDecryption(
@@ -288,7 +293,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
    */
   del: async (input) => {
     const owner = input.owner ?? null;
-    const path = getCredentialPath({ slug: input.slug, owner });
+    const path = getOsSecureCredentialPath({ slug: input.slug, owner });
     if (existsSync(path)) {
       unlinkSync(path);
     }

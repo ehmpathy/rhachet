@@ -5,6 +5,7 @@
   "dependencies": {
     "rhachet": "^1.19.0",
     "rhachet-roles-ehmpathy": "^1.17.0",
-    "rhachet-brains-xai": "^0.3.3"
+    "rhachet-brains-xai": "^0.3.3",
+    "rhachet-brains-fireworksai": "^0.1.6"
   }
 }

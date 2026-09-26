@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asHeadlessSessionMessage owner null → no --owner in the fix 1`] = `
+"this keyrack manifest needs a graphical passphrase dialog, but this session has no display
+   ├─ why: your ssh key has a passphrase, so unlock pops a desktop dialog to
+   │       enter it — and this looks like a headless session (ci, or ssh with
+   │       no display), where no dialog can appear
+   └─ fix: run this on your local desktop session, or use a passphrase-less key —
+           e.g. rhx keyrack unlock --prikey ~/.ssh/id_ed25519"
+`;
+
+exports[`asHeadlessSessionMessage with an owner → the fix carries --owner 1`] = `
+"this keyrack manifest needs a graphical passphrase dialog, but this session has no display
+   ├─ why: your ssh key has a passphrase, so unlock pops a desktop dialog to
+   │       enter it — and this looks like a headless session (ci, or ssh with
+   │       no display), where no dialog can appear
+   └─ fix: run this on your local desktop session, or use a passphrase-less key —
+           e.g. rhx keyrack unlock --owner ehmpath --prikey ~/.ssh/id_ed25519"
+`;

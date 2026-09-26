@@ -6,20 +6,27 @@ import {
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
-import { sshPubkeyToAgeRecipient } from '@src/infra/ssh/sshPubkeyToAgeRecipient';
+import { setKeyrackManifestRecipientsSealed } from '@src/domain.operations/keyrack/setKeyrackManifestRecipientsSealed';
+import { asAgeRecipientFromSshPubkey } from '@src/infra/ssh/asAgeRecipientFromSshPubkey';
 
 /**
  * .what = add a recipient to the host manifest
  * .why = enables multi-recipient support for backup keys and multi-machine access
  *
  * .note = decrypts manifest via identity discovery (ssh-agent, standard paths)
- * .note = re-encrypts to all recipients (plus the new one)
+ * .note = re-encrypts the manifest AND every os.secure blob to all recipients (plus the new one)
  * .note = throws if duplicate label
  *
  * .note = stanza option forces ssh-ed25519 format for ssh-keygen -p prevention flow:
  *         when user plans to add passphrase to a currently-passwordless key,
  *         they add an ssh recipient FIRST (--stanza ssh) so the manifest has
  *         both X25519 and ssh-ed25519 stanzas; either key format can then decrypt
+ * .note = os.secure invariant (rule.require.os-secure-seals-to-host-manifest): os.secure
+ *         blobs seal to the SAME recipients as the manifest, so a recipient add MUST
+ *         re-key every blob to the new set — else the new recipient could open the manifest
+ *         but NOT the credentials beside it (an incomplete grant). the re-key + re-seal run
+ *         under the shared snapshot-then-rollback HOF, so a mid-flow failure never desyncs
+ *         the manifest and its credentials (mirrors delKeyrackRecipient)
  */
 export const setKeyrackRecipient = async (input: {
   owner: string | null;
@@ -73,7 +80,7 @@ export const setKeyrackRecipient = async (input: {
   } else if (pubkeyRaw.startsWith('ssh-')) {
     // convert ssh pubkey to age format (enables npm library encryption path)
     mech = 'age';
-    pubkey = sshPubkeyToAgeRecipient({ pubkey: pubkeyRaw });
+    pubkey = asAgeRecipientFromSshPubkey({ pubkey: pubkeyRaw });
   } else {
     throw new BadRequestError(
       'pubkey must be age (age1...) or ssh (ssh-ed25519, ssh-rsa, etc.)',
@@ -90,13 +97,19 @@ export const setKeyrackRecipient = async (input: {
   });
 
   // add to manifest
+  const recipientsUpdated = [...manifestFound.recipients, recipient];
   const manifestUpdated = new KeyrackHostManifest({
     ...manifestFound,
-    recipients: [...manifestFound.recipients, recipient],
+    recipients: recipientsUpdated,
   });
 
-  // re-encrypt to all recipients
-  await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
+  // persist the recipient add as one atomic, no-desync operation — re-key every os.secure
+  // blob to the new recipient set, then re-seal the manifest last as the completion marker
+  // (rule.require.os-secure-seals-to-host-manifest; the shared choke point mirrors del + migrate)
+  await setKeyrackManifestRecipientsSealed(
+    { owner, manifestBefore: manifestFound, manifestAfter: manifestUpdated },
+    context,
+  );
 
   return recipient;
 };
