@@ -26,6 +26,12 @@ const unrefPipe = (pipe: Readable | null | undefined): void => {
 };
 
 /**
+ * .what = how long the caller keeps forward of the host's stderr after the handoff lands
+ * .why = the host's pre-handoff notices ride a separate pipe that can be read a beat late
+ */
+const HANDOFF_STDERR_DRAIN_MS = 50;
+
+/**
  * .what = how long a caller awaits the detached host's address before it calls the
  *   detach failed
  * .why = the host prints its handoff the instant the socket binds, which follows a
@@ -194,8 +200,21 @@ export const genCloneEnrollDetached = async (input: {
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';
       const handoff = lines.find((line) => line.trimStart().startsWith('{'));
-      if (handoff !== undefined)
+      if (handoff === undefined) return;
+
+      // 🔴 hold the settle one short beat. the host writes its notices to stderr BEFORE
+      //   the handoff, but the two pipes are read by separate callbacks, so the stdout
+      //   one can win — and a settle inside it drops the stderr listener before the
+      //   notice is forwarded. measured 2026-09-26: ci lost the host's credential notice
+      //   while a dev box kept it. the bytes already sit in the pipe, so a beat drains them
+      child.stdout?.removeAllListeners('data');
+      const settleAsAddressed = (): void =>
         settle(() => done({ outcome: 'addressed', handoff, pid }));
+      setTimeout(settleAsAddressed, HANDOFF_STDERR_DRAIN_MS);
+
+      // a host that exits inside the beat still reported its address, so the handoff wins
+      child.removeAllListeners('exit');
+      child.once('exit', () => afterStderrDrains(settleAsAddressed));
     });
 
     // the host ended before it reported an address — the caller must hear that,

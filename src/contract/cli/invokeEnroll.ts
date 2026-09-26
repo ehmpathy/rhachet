@@ -408,11 +408,6 @@ const performEnroll = async (input: {
     brainDir,
     home: getHomeDir(),
   });
-  //
-  // .note = a human hint only. a `--output json` caller parses stderr as its error
-  //   contract, so a prose line there would break the parse on a host with no login
-  if (credential.status === 'absent' && mode !== 'json')
-    console.error(asBrainCredentialAbsentLine({ brainDir }));
 
   // settle first-run state before any spawn, so no clone meets a prompt (D11)
   findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
@@ -439,6 +434,14 @@ const performEnroll = async (input: {
     noSocket: input.noSocket,
     depth,
   });
+
+  // say there is no login to share only once a brain was actually spawned
+  //
+  // .note = a refused enroll (a slug collision) and a live-slug reuse spawn no brain, so
+  //   a "run /login inside the clone" hint there names a clone that never started — and
+  //   on a refusal it would land ahead of the json error a machine parses off stderr
+  if (credential.status === 'absent' && result.spawn !== null)
+    console.error(asBrainCredentialAbsentLine({ brainDir }));
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
   // a `--output json` caller (the idempotent-cron-retry path) still gets the

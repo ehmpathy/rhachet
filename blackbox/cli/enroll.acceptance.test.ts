@@ -2071,7 +2071,7 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
       });
 
       then('the collision error is locked to a snapshot', () => {
-        expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });
     });
 
