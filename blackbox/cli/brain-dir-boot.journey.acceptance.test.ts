@@ -61,6 +61,15 @@ const sentinelOf = (of: string): string => asSentinel({ of, nonce: NONCE });
 const DEFAULT_DIR = join('.agent', '.actors', 'actor.via.slug=.default');
 const DEFAULT_BRAIN_DIR = join(DEFAULT_DIR, 'brain', '.claude');
 
+// end a process by pid; one already gone is the goal met, never a fault
+const killQuietly = (pid: number): void => {
+  try {
+    process.kill(pid, 'SIGTERM');
+  } catch (error) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ESRCH')) throw error;
+  }
+};
+
 /**
  * .what = the most each kind of step may cost
  * .why = a step past its budget fails at once and names itself, and every later step
@@ -669,6 +678,8 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           env: scene.env,
           getScreen: () => clone.bg.getOutput(),
         });
+        // free its host slot now: a later step's enroll waits on a slot inside its budget
+        await clone.bg.kill();
         const filesAfter = asBrainDirFileContents({ dir: actorBrainDir });
         return { ask, filesBefore, filesAfter, repoBrainDir, settingsPath };
       });
@@ -704,6 +715,20 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
     });
 
     when('[t3.2] an unattended enroll of sander under a HOME with no credential', () => {
+      // the detached brain outlives the caller, so reap it by the pid its identity records
+      afterAll(() => {
+        const serial = result.stdout.match(/"serial":"([0-9a-f-]{36})"/)?.[1];
+        if (!serial) return;
+        const actorsDir = join(scene.dir, '.agent', '.actors');
+        for (const actor of readdirSync(actorsDir)) {
+          const identityPath = join(actorsDir, actor, 'clones', `serial=${serial}`, 'identity.json');
+          if (!existsSync(identityPath)) continue;
+          const { hostPid } = JSON.parse(readFileSync(identityPath, 'utf-8')) as {
+            hostPid: number | null;
+          };
+          if (hostPid) killQuietly(hostPid);
+        }
+      });
       const result = useThen('enroll returns', () => {
         const homeBare = genTempDir({ slug: 'brain-dir-boot-home-bare' });
         return invokeRhachetCliBinary({
@@ -729,9 +754,9 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       });
 
       then('an absent credential is no refusal — enroll spawns the brain (D13)', () => {
-        // .note = enroll's exit forwards the child brain's exit, and an unauthed brain with
-        //   no tty exits nonzero on its own. rhachet's contract is that it never refuses:
-        //   no constraint exit, and the spawn handoff prints
+        // .note = with no tty the enroll detaches: a host stands the brain up and the
+        //   caller exits once it holds the address. rhachet's contract is that it never
+        //   refuses: no constraint exit, and the spawn handoff prints
         // .note = the handoff is locked as a SNAPSHOT, the same way `[t3]` locks it. a
         //   loose substring check for `"serial"` would pass on any json that merely
         //   carries the word, so it proved the line printed and proved naught about its
@@ -852,6 +877,8 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           env: scene.env,
           getScreen: () => clone.bg.getOutput(),
         });
+        // free its host slot now: [t5] enrolls next, and waits on a slot inside its budget
+        await clone.bg.kill();
         return {
           ask,
           actorsAfter: getAllActorHashDirNames({ dir: scene.dir }),
@@ -1008,6 +1035,8 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
             env: scene.env,
             getScreen: () => clone.bg.getOutput(),
           });
+          // free its host slot now: [t7.1] enrolls next, and waits on a slot inside its budget
+          await clone.bg.kill();
           return { actorsNew, askNew };
         };
 

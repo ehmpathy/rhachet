@@ -14,6 +14,7 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from '@/blackbox/.test/infra/roleFixtureRepo';
+import { waitForFile } from '@/blackbox/.test/infra/waitForFile';
 
 import {
   chmodSync,
@@ -163,12 +164,17 @@ const setupArgvRecorderBrainPath = (input: {
  * .why = a NUL closes every element, the last one included, so the final empty split is
  *   dropped; every other empty entry is a real `''` the spawn passed
  */
-const readRecordedBrainArgv = (input: { recordPath: string }): string[] => {
-  if (!existsSync(input.recordPath))
+const readRecordedBrainArgv = async (input: {
+  recordPath: string;
+}): Promise<string[]> => {
+  // an async enroll returns at handoff, before the child it spawned has written its record
+  await waitForFile({ path: input.recordPath }).catch((cause: Error) => {
     throw new UnexpectedCodePathError('the recorder stub captured no spawn', {
       recordPath: input.recordPath,
       hint: 'check enroll reached the spawn and that the stub brain was first on PATH',
+      cause,
     });
+  });
   return readFileSync(input.recordPath, 'utf-8').split('\0').slice(0, -1);
 };
 
@@ -1440,7 +1446,8 @@ describe('rhx enroll depth budget (acceptance)', () => {
    *
    * .note = the child's env is unobservable from outside — the pty owns its stdio, and
    *   `clone get` returns a classification rather than screen content. so the stub brain
-   *   reports its own clone-identity env to `$CLAUDE_CONFIG_DIR/stub.env.json`, which is
+   *   reports its own clone-identity env to `$CLAUDE_CONFIG_DIR/stub.env.json` — the
+   *   actor's brain dir, since enroll points the child there — which is
    *   the one instrument that can answer this at all
    *
    * .note = DOGFOOD, the mutation that makes it bite:
@@ -1452,6 +1459,15 @@ describe('rhx enroll depth budget (acceptance)', () => {
     const dir = genTempDir({ slug: 'enroll-depth-detached' });
     const configDir = genTempDir({ slug: 'enroll-depth-detached-cfg' });
     let env: Record<string, string>;
+    // the child reads the actor's brain dir as its CLAUDE_CONFIG_DIR, so its dump lands there
+    const readStubEnv = async (): Promise<Record<string, string | null>> => {
+      const actorsDir = join(dir, '.agent/.actors');
+      const actor = readdirSync(actorsDir).find((name) => name.startsWith('actor.via.hash='));
+      if (!actor) throw new UnexpectedCodePathError('no hash actor dir after enroll', { actorsDir });
+      const dumpPath = join(actorsDir, actor, 'brain/.claude/stub.env.json');
+      await waitForFile({ path: dumpPath }); // the host hands off before the child dumps
+      return JSON.parse(readFileSync(dumpPath, 'utf8')) as Record<string, string | null>;
+    };
     beforeAll(() => {
       setupDepthFixture(dir);
       // ⚠️ the RICH stub, never this file's local `setupStubBrainPath` — that one is an
@@ -1488,17 +1504,13 @@ describe('rhx enroll depth budget (acceptance)', () => {
         expect(run.stderr).not.toContain('depth budget spent');
       });
 
-      then('🔴 the child was minted at depth 1 — the budget crossed the seam', () => {
-        const dumped = JSON.parse(
-          readFileSync(join(configDir, 'stub.env.json'), 'utf8'),
-        ) as { depth: string | null };
+      then('🔴 the child was minted at depth 1 — the budget crossed the seam', async () => {
+        const dumped = await readStubEnv();
         expect(dumped.depth).toEqual('1');
       });
 
-      then('the child carries its OWN serial and socket, never the caller\u2019s', () => {
-        const dumped = JSON.parse(
-          readFileSync(join(configDir, 'stub.env.json'), 'utf8'),
-        ) as { serial: string | null; socket: string | null };
+      then('the child carries its OWN serial and socket, never the caller\u2019s', async () => {
+        const dumped = await readStubEnv();
         const handoff = JSON.parse(run.stdout) as { serial: string };
         expect(dumped.serial).toEqual(handoff.serial);
         expect(dumped.socket).toContain(handoff.serial);
@@ -2127,7 +2139,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
     });
 
     when('[t0] `enroll claude` (no passthrough)', () => {
-      const argv = useThen('exits 0 and the stub records the spawn', () => {
+      const argv = useThen('exits 0 and the stub records the spawn', async () => {
         const run = invokeRhachetCliBinary({
           args: ['enroll', 'claude'],
           cwd: dir,
@@ -2135,7 +2147,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           logOnError: false,
         });
         expect(run.status).toEqual(0);
-        return { list: readRecordedBrainArgv({ recordPath: scene.recordPath }) };
+        return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
       then('`--system-prompt` is followed by an EMPTY element', () => {
@@ -2173,7 +2185,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
     });
 
     when('[t1] `enroll claude --model haiku --append-system-prompt <text>` (passthrough)', () => {
-      const argv = useThen('exits 0 and the stub records the spawn', () => {
+      const argv = useThen('exits 0 and the stub records the spawn', async () => {
         const run = invokeRhachetCliBinary({
           args: [
             'enroll',
@@ -2188,7 +2200,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           logOnError: false,
         });
         expect(run.status).toEqual(0);
-        return { list: readRecordedBrainArgv({ recordPath: scene.recordPath }) };
+        return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
       then('the empty prompt still leads, and the passthrough follows it in order', () => {

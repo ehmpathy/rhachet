@@ -277,49 +277,6 @@ const performEnroll = async (input: {
     onAbsent: 'refuse', // an enroll is about to SPAWN it, so an absent binary is fatal
   });
 
-  // the actor's brain dir — the one config dir every clone of this actor reads
-  const hash = genEnrollmentHash({
-    brain: enrollment.brain,
-    roles: enrollment.roles,
-  });
-  const actorDir = getActorOndiskDir({ repoPath, hash });
-  const brainDir = getBrainOndiskDir({ actorDir });
-  mkdirSync(brainDir, { recursive: true });
-
-  // render the enrolled roles into the brain dir's boot corpus
-  //
-  // .note = a success says NAUGHT. the corpus render is not enroll's declared job — it is a
-  //   precondition of the spawn — and a census a human cannot act on is noise on the one
-  //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
-  await setBrainDirBoot({
-    brainDir,
-    roles: asRoleRefsForEnrolledSlugs({
-      actorHash: hash,
-      slugs: enrollment.roles,
-      refsLinked,
-    }),
-    repoPath,
-    scope: { kind: 'actor', actorHash: hash },
-  });
-
-  // share the human's login, or say plainly that there is none to share (D13)
-  const credential = findsertBrainCredentialSymlink({
-    brainDir,
-    home: getHomeDir(),
-  });
-  if (credential.status === 'absent')
-    console.error(asBrainCredentialAbsentLine({ brainDir }));
-
-  // settle first-run state before any spawn, so no clone meets a prompt (D11)
-  findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
-
-  // write the per-enrollment config, then derive the child passthrough
-  const { configPath } = await genBrainCliConfigArtifact({
-    enrollment,
-    repoPath,
-  });
-  const args = asBrainCliSpawnArgs({ configPath, passthrough });
-
   // what this enroll DOES with the child — derived from nature, and narrowed by whichever
   // of the three modes the caller stated. a `watch` enroll mirrors the brain into this
   // terminal and holds it in the foreground; an `async` enroll hands back the address and
@@ -348,6 +305,15 @@ const performEnroll = async (input: {
 
   // are WE the detached host, or the caller that must stand one up?
   const isDetachedHost = process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
+
+  // a detached host's stderr is a pipe its caller drops once the handoff lands, so a later
+  //   write meets EPIPE. that is the caller gone, never a fault — and an unhandled EPIPE
+  //   would crash the host and the clone it serves. any other write error still throws
+  if (isDetachedHost)
+    process.stderr.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EPIPE') return;
+      throw error;
+    });
 
   // 🔴 the caller's half of an `--async` enroll: stand up a host, report the address
   //   it gives back, and exit. a mere `return` here would NOT detach — the pty master
@@ -408,6 +374,52 @@ const performEnroll = async (input: {
     }
     return;
   }
+
+  // .note = the brain dir is prepared HERE, after the async caller has detached — the
+  //   host re-enters this path and prepares it, so a caller that also did would render
+  //   the boot twice and print each notice twice
+  // the actor's brain dir — the one config dir every clone of this actor reads
+  const hash = genEnrollmentHash({
+    brain: enrollment.brain,
+    roles: enrollment.roles,
+  });
+  const actorDir = getActorOndiskDir({ repoPath, hash });
+  const brainDir = getBrainOndiskDir({ actorDir });
+  mkdirSync(brainDir, { recursive: true });
+
+  // render the enrolled roles into the brain dir's boot corpus
+  //
+  // .note = a success says NAUGHT. the corpus render is not enroll's declared job — it is a
+  //   precondition of the spawn — and a census a human cannot act on is noise on the one
+  //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
+  await setBrainDirBoot({
+    brainDir,
+    roles: asRoleRefsForEnrolledSlugs({
+      actorHash: hash,
+      slugs: enrollment.roles,
+      refsLinked,
+    }),
+    repoPath,
+    scope: { kind: 'actor', actorHash: hash },
+  });
+
+  // share the human's login, or say plainly that there is none to share (D13)
+  const credential = findsertBrainCredentialSymlink({
+    brainDir,
+    home: getHomeDir(),
+  });
+  if (credential.status === 'absent')
+    console.error(asBrainCredentialAbsentLine({ brainDir }));
+
+  // settle first-run state before any spawn, so no clone meets a prompt (D11)
+  findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
+
+  // write the per-enrollment config, then derive the child passthrough
+  const { configPath } = await genBrainCliConfigArtifact({
+    enrollment,
+    repoPath,
+  });
+  const args = asBrainCliSpawnArgs({ configPath, passthrough });
 
   // findsert the clone: reuse a live slug, rebind a dead one, or bake fresh
   const result = await genCloneOndisk({

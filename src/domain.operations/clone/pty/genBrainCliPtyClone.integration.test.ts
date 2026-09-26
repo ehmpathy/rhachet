@@ -387,7 +387,15 @@ describe('genBrainCliPtyClone.integration', () => {
         const socketPath = getCloneSocketPath({ serial })!;
         const cwd = genTempDir({ slug: `ptyclone-resize-${serial}` });
         const clone = await genBrainCliPtyClone(
-          { command: 'noop', args: [], cwd, serial, socketPath, depth: 0, brainDir: cwd },
+          {
+            command: 'noop',
+            args: [],
+            cwd,
+            serial,
+            socketPath,
+            depth: 0,
+            brainDir: cwd,
+          },
           { pty: fakePty, host, emulator: null },
         );
 
@@ -464,7 +472,15 @@ describe('genBrainCliPtyClone.integration', () => {
 
         const error = await getError(
           genBrainCliPtyClone(
-            { command: 'noop', args: [], cwd, serial, socketPath, depth: 0, brainDir: cwd },
+            {
+              command: 'noop',
+              args: [],
+              cwd,
+              serial,
+              socketPath,
+              depth: 0,
+              brainDir: cwd,
+            },
             { pty: fakePty, host: genCaptureHost([]), emulator: null },
           ),
         );

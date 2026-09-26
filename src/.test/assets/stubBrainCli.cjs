@@ -47,11 +47,15 @@ const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
  *   child, never that it spawned a VIABLE one.
  *
  * .the allowlist = exactly what `asBrainCliSpawnArgs` builds: the fixed
- *   config-source prefix. an arg past it is by definition a passthrough arg, and no
+ *   prefix (config sources + the owned empty system prompt). an arg past it is by definition a passthrough arg, and no
  *   extant case passes one — so an arg here is a LEAK, and this refusal is what
  *   says so out loud (rule.forbid.failhide)
  */
-const ARGS_KNOWN_WITH_VALUE = new Set(['--setting-sources', '--settings']);
+const ARGS_KNOWN_WITH_VALUE = new Set([
+  '--setting-sources',
+  '--settings',
+  '--system-prompt',
+]);
 /**
  * 🔴 .the print flags a real brain-cli ACCEPTS — so this stub accepts them too.
  *

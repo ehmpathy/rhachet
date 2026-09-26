@@ -82,10 +82,16 @@ export const genCloneEnrollDetached = async (input: {
     cwd: input.cwd,
     // a NEW session, so the host survives the caller's terminal and its signals
     detached: true,
-    // stdin is closed (no human types at a detached host); stdout is piped only
-    // until the handoff arrives; stderr rides through so a spawn fault is visible
-    // to the caller rather than swallowed
-    stdio: ['ignore', 'pipe', 'inherit'],
+    // stdin is closed (no human types at a detached host); stdout and stderr are piped
+    // only until the handoff arrives. stderr is FORWARDED while piped, so a spawn fault
+    // still reaches the caller's stderr
+    //
+    // 🔴 stderr is never 'inherit'. an inherited fd is held by the host for its whole
+    //   life, so a caller that CAPTURES stderr — a supervisor's spawnSync, a
+    //   `$(rhx enroll … 2>&1)` — reads no EOF until the clone dies. it waits on a clone
+    //   this operation exists to free it from (measured 2026-09-26: every detached
+    //   acceptance case sat its full 60s timeout on exactly that)
+    stdio: ['ignore', 'pipe', 'pipe'],
     // 🔴 the caller's env passes through WHOLE, and one key in it carries the budget:
     //   `CLONE_ENV_KEYS.depth`. the host is a faithful REPLAY of the caller, so it
     //   re-derives the child's depth from the same `asCloneEnrollDepth({ env })` read —
@@ -122,6 +128,7 @@ export const genCloneEnrollDetached = async (input: {
       settled = true;
       clearTimeout(timer);
       child.stdout?.removeAllListeners('data');
+      child.stderr?.removeAllListeners('data');
       // 🔴 the pipe must be UNREF'd, never destroyed, and `child.unref()` does NOT
       //   cover it. `unref` on the child frees the PROCESS handle; the stdio pipe is
       //   a separate libuv handle this process owns, and while it is ref'd the
@@ -130,6 +137,7 @@ export const genCloneEnrollDetached = async (input: {
       //   heard from). a `destroy()` would close the read end instead, and the host's
       //   next write would take an EPIPE, which kills the clone we just stood up
       unrefPipe(child.stdout);
+      unrefPipe(child.stderr);
       // 🔴 the child handle is released HERE, never at the end of the executor. an
       //   unresolved promise does NOT hold node's event loop open — only a ref'd handle
       //   does. so an early `child.unref()` left the stdout pipe as the sole ref, and
@@ -161,6 +169,24 @@ export const genCloneEnrollDetached = async (input: {
     );
     timer.unref();
 
+    // run the act once stderr has ended, or after a short cap if it never does — the
+    //   cap bounds a host whose pipe a grandchild still holds
+    const afterStderrDrains = (act: () => void): void => {
+      const stderr = child.stderr;
+      if (!stderr || stderr.readableEnded) {
+        act();
+        return;
+      }
+      const cap = setTimeout(act, 1_000);
+      stderr.once('end', () => {
+        clearTimeout(cap);
+        act();
+      });
+    };
+
+    // forward the host's stderr verbatim while the caller still listens
+    child.stderr?.on('data', (chunk: Buffer) => process.stderr.write(chunk));
+
     child.stdout?.on('data', (chunk: Buffer) => {
       buffer += chunk.toString('utf8');
       // the handoff is ONE line by design, so a complete line is the unit — a
@@ -174,34 +200,40 @@ export const genCloneEnrollDetached = async (input: {
 
     // the host ended before it reported an address — the caller must hear that,
     // never a timeout that misnames a crash as a slow start
+    //
+    // .note = 'exit' can fire before the stderr pipe drains, and a refusal's frame rides
+    //   that pipe. so the settle waits for stderr's end, capped, so the caller wears the
+    //   code only after it has forwarded the report behind it
     child.on('exit', (code) =>
-      settle(() => {
-        // 🔴 a NON-ZERO code means the host REFUSED and already said why, verbatim, on
-        //   the stderr it inherited — a ConstraintError frame or its json twin, in the
-        //   exact shape an attended enroll would have printed. so the caller's whole job
-        //   is to wear that code; a second error of our own would stack one json object
-        //   on another and leave stderr unparseable (`rule.forbid.failhide` cuts both
-        //   ways — a report that cannot be read is as good as absent)
-        if (code !== null && code !== 0)
-          return done({ outcome: 'spoke', code, pid });
+      afterStderrDrains(() =>
+        settle(() => {
+          // 🔴 a NON-ZERO code means the host REFUSED and already said why, verbatim, on
+          //   the stderr this caller forwarded — a ConstraintError frame or its json twin, in the
+          //   exact shape an attended enroll would have printed. so the caller's whole job
+          //   is to wear that code; a second error of our own would stack one json object
+          //   on another and leave stderr unparseable (`rule.forbid.failhide` cuts both
+          //   ways — a report that cannot be read is as good as absent)
+          if (code !== null && code !== 0)
+            return done({ outcome: 'spoke', code, pid });
 
-        // a clean exit or a signal with no address is genuinely UNEXPLAINED — nobody
-        // rendered a cause, so this is the only account the caller will ever get
-        //
-        // 🔴 the field is `hostExitCode`, never `code`. `code` is RESERVED by
-        //   helpful-errors: it is stripped from the serialized message AND from the
-        //   `.metadata` getter, then re-read as the error's own CLASSIFICATION code
-        //   (`HelpfulError.js` — `omit(metadata, ['cause', 'code'])` at construction,
-        //   `omit(raw, ['code'])` at the getter). so under the name `code`, the one fact
-        //   this error exists to carry — a clean 0 versus a signal — reached no reader at
-        //   all, on either channel (`rule.forbid.failhide`)
-        return fail(
-          new MalfunctionError(
-            'the detached enroll host exited before it reported an address',
-            { hostExitCode: code, pid, sawOnStdout: buffer.slice(0, 2000) },
-          ),
-        );
-      }),
+          // a clean exit or a signal with no address is genuinely UNEXPLAINED — nobody
+          // rendered a cause, so this is the only account the caller will ever get
+          //
+          // 🔴 the field is `hostExitCode`, never `code`. `code` is RESERVED by
+          //   helpful-errors: it is stripped from the serialized message AND from the
+          //   `.metadata` getter, then re-read as the error's own CLASSIFICATION code
+          //   (`HelpfulError.js` — `omit(metadata, ['cause', 'code'])` at construction,
+          //   `omit(raw, ['code'])` at the getter). so under the name `code`, the one fact
+          //   this error exists to carry — a clean 0 versus a signal — reached no reader at
+          //   all, on either channel (`rule.forbid.failhide`)
+          return fail(
+            new MalfunctionError(
+              'the detached enroll host exited before it reported an address',
+              { hostExitCode: code, pid, sawOnStdout: buffer.slice(0, 2000) },
+            ),
+          );
+        }),
+      ),
     );
 
     child.on('error', (error: Error) =>
