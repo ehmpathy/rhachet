@@ -93,7 +93,10 @@ describe('awaitCloneAuthGate', () => {
           return {
             verdict: settled.verdict,
             fault: settled.fault,
-            elapsedAtLeastTheBound: Date.now() - startedAt >= 120,
+            // a node timer may fire ~1ms before `Date.now()` ticks past the bound (the
+            //   timer clock is monotonic, the wall clock truncates to the ms), so a strict
+            //   `>= 120` flakes on a loaded host. the slack stays far above an early settle
+            elapsedAtLeastTheBound: Date.now() - startedAt >= 120 - 5,
           };
         },
       );
