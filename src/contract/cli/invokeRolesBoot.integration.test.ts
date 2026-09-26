@@ -11,6 +11,36 @@ import {
 import { resolve } from 'node:path';
 import { invokeRolesBoot } from './invokeRolesBoot';
 
+/**
+ * .what = the one exact block the boot body rendered for a tag at a path
+ * .why = pins the tag's close, its body, AND its closing tag in a single claim
+ *
+ * .note = a containment of the open tag alone leaves the block's END unpinned, so
+ *         trailing content on the tag line, a drifted body, or a dropped closing tag
+ *         each slip past it. this reads back the block the render actually emitted, so
+ *         the caller asserts `toEqual` against the whole of it.
+ *
+ * .note = yields null when the tag is absent, or present in more than one logged call —
+ *         either is a render defect the exact `toEqual` then reports.
+ */
+const asRenderedBootBlock = (input: {
+  logSpy: { mock: { calls: unknown[][] } };
+  tag: 'readme' | 'brief.say' | 'skill.say';
+  path: string;
+}): string | null => {
+  const tagOpen = `<${input.tag} path="${input.path}">\n`;
+  const tagClose = `</${input.tag}>\n`;
+  const saidsWithTag = input.logSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((said) => said.includes(tagOpen));
+  if (saidsWithTag.length !== 1) return null;
+  const said = saidsWithTag[0] as string;
+  const indexFrom = said.indexOf(tagOpen);
+  const indexTo = said.indexOf(tagClose, indexFrom);
+  if (indexTo === -1) return null;
+  return said.slice(indexFrom, indexTo + tagClose.length);
+};
+
 describe('invokeRolesBoot (integration)', () => {
   given('a CLI program with invokeRolesBoot registered', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesBoot');
@@ -157,39 +187,75 @@ describe('invokeRolesBoot (integration)', () => {
             expect.stringContaining('skills = 2'),
           );
 
-          // Check that readme was printed
-          expect(logSpy).toHaveBeenCalledWith(
-            '<readme path=".agent/repo=test/role=mechanic/readme.md">',
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Mechanic Role'),
-          );
-
-          // Check that brief file contents were printed
-          expect(logSpy).toHaveBeenCalledWith(
-            '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief1.md">',
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('This is test brief 1'),
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief2.md">',
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('This is test brief 2'),
+          // the readme block is pinned whole: tag, body, and closing tag
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'readme',
+              path: '.agent/repo=test/role=mechanic/readme.md',
+            }),
+          ).toEqual(
+            [
+              '<readme path=".agent/repo=test/role=mechanic/readme.md">',
+              '# Mechanic Role',
+              '',
+              'This is the mechanic role readme.',
+              '</readme>',
+              '',
+            ].join('\n'),
           );
 
-          // Check that skill documentation was extracted (not full implementation)
-          expect(logSpy).toHaveBeenCalledWith(
-            '<skill.say path=".agent/repo=test/role=mechanic/skills/.skills/skill1.sh">',
+          // each brief block is pinned whole, so a drifted body cannot slip past
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'brief.say',
+              path: '.agent/repo=test/role=mechanic/briefs/.briefs/brief1.md',
+            }),
+          ).toEqual(
+            [
+              '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief1.md">',
+              '# Brief 1',
+              'This is test brief 1',
+              '</brief.say>',
+              '',
+            ].join('\n'),
           );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Skill 1 - Test skill'),
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'brief.say',
+              path: '.agent/repo=test/role=mechanic/briefs/.briefs/brief2.md',
+            }),
+          ).toEqual(
+            [
+              '<brief.say path=".agent/repo=test/role=mechanic/briefs/.briefs/brief2.md">',
+              '# Brief 2',
+              'This is test brief 2',
+              '</brief.say>',
+              '',
+            ].join('\n'),
           );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              '[implementation hidden - use skill to execute]',
-            ),
+
+          // the skill block is pinned whole — so the extract's exact shape is asserted,
+          // docs kept and implementation dropped, rather than merely sampled
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'skill.say',
+              path: '.agent/repo=test/role=mechanic/skills/.skills/skill1.sh',
+            }),
+          ).toEqual(
+            [
+              '<skill.say path=".agent/repo=test/role=mechanic/skills/.skills/skill1.sh">',
+              '#!/bin/bash',
+              '# Skill 1 - Test skill',
+              '# This skill does something useful',
+              '',
+              '# [implementation hidden - use skill to execute]',
+              '</skill.say>',
+              '',
+            ].join('\n'),
           );
 
           // Check that implementation is NOT printed for skills
@@ -255,12 +321,22 @@ describe('invokeRolesBoot (integration)', () => {
               from: 'user',
             });
 
-            // Check that the role was booted from the inferred repo
-            expect(logSpy).toHaveBeenCalledWith(
-              '<readme path=".agent/repo=test/role=mechanic/readme.md">',
-            );
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('Inferred Mechanic Role'),
+            // the role was booted from the inferred repo — block pinned whole
+            expect(
+              asRenderedBootBlock({
+                logSpy,
+                tag: 'readme',
+                path: '.agent/repo=test/role=mechanic/readme.md',
+              }),
+            ).toEqual(
+              [
+                '<readme path=".agent/repo=test/role=mechanic/readme.md">',
+                '# Inferred Mechanic Role',
+                '',
+                'This role was auto-inferred.',
+                '</readme>',
+                '',
+              ].join('\n'),
             );
           },
         );
@@ -495,20 +571,40 @@ describe('invokeRolesBoot (integration)', () => {
               expect.stringContaining('skills = 1'),
             );
 
-            // Check that brief file was printed with correct path
-            expect(logSpy).toHaveBeenCalledWith(
-              '<brief.say path=".agent/repo=.this/role=any/briefs/local-brief.md">',
-            );
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('This is a local brief for the any role'),
+            // the brief block is pinned whole, path and body together
+            expect(
+              asRenderedBootBlock({
+                logSpy,
+                tag: 'brief.say',
+                path: '.agent/repo=.this/role=any/briefs/local-brief.md',
+              }),
+            ).toEqual(
+              [
+                '<brief.say path=".agent/repo=.this/role=any/briefs/local-brief.md">',
+                '# Local Brief',
+                'This is a local brief for the any role',
+                '</brief.say>',
+                '',
+              ].join('\n'),
             );
 
-            // Check that skill documentation was extracted
-            expect(logSpy).toHaveBeenCalledWith(
-              '<skill.say path=".agent/repo=.this/role=any/skills/local-skill.sh">',
-            );
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('Local Skill'),
+            // the skill block is pinned whole — the extract, exactly
+            expect(
+              asRenderedBootBlock({
+                logSpy,
+                tag: 'skill.say',
+                path: '.agent/repo=.this/role=any/skills/local-skill.sh',
+              }),
+            ).toEqual(
+              [
+                '<skill.say path=".agent/repo=.this/role=any/skills/local-skill.sh">',
+                '#!/bin/bash',
+                '# Local Skill - Does something specific to this repo',
+                '',
+                '# [implementation hidden - use skill to execute]',
+                '</skill.say>',
+                '',
+              ].join('\n'),
             );
 
             // Check that skill implementation is hidden
@@ -552,12 +648,21 @@ describe('invokeRolesBoot (integration)', () => {
               },
             );
 
-            // Check that brief file was printed with correct path
-            expect(logSpy).toHaveBeenCalledWith(
-              '<brief.say path=".agent/repo=.this/role=robot/briefs/robot-brief.md">',
-            );
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining('This is a brief for the robot role'),
+            // the brief block is pinned whole, path and body together
+            expect(
+              asRenderedBootBlock({
+                logSpy,
+                tag: 'brief.say',
+                path: '.agent/repo=.this/role=robot/briefs/robot-brief.md',
+              }),
+            ).toEqual(
+              [
+                '<brief.say path=".agent/repo=.this/role=robot/briefs/robot-brief.md">',
+                '# Robot Brief',
+                'This is a brief for the robot role',
+                '</brief.say>',
+                '',
+              ].join('\n'),
             );
           },
         );
@@ -723,12 +828,21 @@ describe('invokeRolesBoot (integration)', () => {
             },
           );
 
-          // Check that brief was printed
-          expect(logSpy).toHaveBeenCalledWith(
-            '<brief.say path=".agent/repo=.this/role=any/briefs/uppercase-test.md">',
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Testing case insensitivity'),
+          // the brief block is pinned whole — uppercase `THIS` renders the same path
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'brief.say',
+              path: '.agent/repo=.this/role=any/briefs/uppercase-test.md',
+            }),
+          ).toEqual(
+            [
+              '<brief.say path=".agent/repo=.this/role=any/briefs/uppercase-test.md">',
+              '# Uppercase Test',
+              'Testing case insensitivity',
+              '</brief.say>',
+              '',
+            ].join('\n'),
           );
         },
       );
@@ -763,12 +877,21 @@ describe('invokeRolesBoot (integration)', () => {
             },
           );
 
-          // Check that brief was printed
-          expect(logSpy).toHaveBeenCalledWith(
-            '<brief.say path=".agent/repo=.this/role=robot/briefs/dotprefix-test.md">',
-          );
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Testing .this syntax with robot role'),
+          // the brief block is pinned whole — `.this` renders the same path
+          expect(
+            asRenderedBootBlock({
+              logSpy,
+              tag: 'brief.say',
+              path: '.agent/repo=.this/role=robot/briefs/dotprefix-test.md',
+            }),
+          ).toEqual(
+            [
+              '<brief.say path=".agent/repo=.this/role=robot/briefs/dotprefix-test.md">',
+              '# Dot Prefix Test',
+              'Testing .this syntax with robot role',
+              '</brief.say>',
+              '',
+            ].join('\n'),
           );
         });
       },

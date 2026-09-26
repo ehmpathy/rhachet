@@ -11,7 +11,48 @@ exports[`rhachet init --hooks given: [case7] a repo with an enrolled actor on di
    └─ 3 updated
 
 🧢 apply hooks to enrolled actors...
-   └─ deadbee…: +3
+   └─ deadbeef: +3
+
+"
+`;
+
+exports[`rhachet init --hooks given: [case8] a role that declares a role boot hook (D3) when: [t0] init --roles tester --hooks then: the init stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain dir (default)
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1, -1
+
+✨ hooks
+   ├─ 1 created
+   └─ 1 deleted
 
 "
 `;

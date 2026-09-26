@@ -63,18 +63,22 @@ describe('asActorListView', () => {
         expect(view.tree).toContain('roles=architect,driver');
       });
 
-      then('the tree abbreviates the hash', () => {
-        expect(view.tree).toContain('@aaaa111…');
+      then('the tree renders the WHOLE hash, so `@<hash>` pastes', () => {
+        // `genEnrollmentHash` mints 8 chars, so the fixture IS a real-width hash and
+        // this view's one contract is that a human can copy the address off the list
+        // and re-type it (define.address-sigils). the `  brain=` suffix is what gives
+        // the clamp teeth — a 7-char render would miss it
+        expect(view.tree).toContain('@aaaa1111  brain=claude');
       });
 
-      then('the data carries the FULL hash a machine reaches by', () => {
+      then('the data carries the same hash a machine reaches by', () => {
         expect(view.data.actors[0]!.hash).toEqual('aaaa1111');
       });
 
       then('the rendered tree matches the snapshot (visual regression)', () => {
         // pins the WHOLE two-actor layout — the `├─`/`└─` branch prefixes, the
-        // abbreviated `@<hash>…` address, the sorted roles, the brain — so a glyph
-        // or alignment drift a per-field assert would miss surfaces in review
+        // `@<hash>` address, the sorted roles, the brain — so a glyph or alignment
+        // drift a per-field assert would miss surfaces in review
         // (rule.require.snapshots). the inputs are hardcoded, so this is stable
         expect(view.tree).toMatchSnapshot();
       });

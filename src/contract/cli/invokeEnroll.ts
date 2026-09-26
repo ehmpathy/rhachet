@@ -3,10 +3,16 @@ import { ConstraintError } from 'helpful-errors';
 
 import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { asBrainCredentialAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainCredentialAbsentLine';
+import { findsertBrainCredentialSymlink } from '@src/domain.operations/actor/enrolled/findsertBrainCredentialSymlink';
+import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { genEnrollmentHash } from '@src/domain.operations/actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
 import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
@@ -28,6 +34,8 @@ import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
+import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
+import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { computeBrainCliInput } from '@src/domain.operations/enroll/computeBrainCliInput';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
@@ -35,13 +43,16 @@ import { getBrainCliPassthroughArgs } from '@src/domain.operations/enroll/getBra
 import { getRolesSpaceFormCollision } from '@src/domain.operations/enroll/getRolesSpaceFormCollision';
 import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPrintMode';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
+import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { getHomeDir } from '@src/infra/getHomeDir';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { asCliOutputMode } from './asCliOutputMode';
 import { withCliOutputErrors } from './withCliOutputErrors';
@@ -80,43 +91,6 @@ const readStdin = async (): Promise<string> => {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
   return Buffer.concat(chunks).toString('utf-8').trim();
-};
-
-/**
- * .what = scan .agent/ for the linked role slugs
- * .why = filesystem-only role discovery — enroll needs the linked set both as the
- *   default roleset and to validate a `--roles` delta against
- *
- * .note = scans every `repo=` / `role=` dir; returns a unique slug list
- */
-const getLinkedRoleSlugs = (input: { gitroot: string }): RoleSlug[] => {
-  const agentDir = join(input.gitroot, '.agent');
-  if (!existsSync(agentDir)) return [];
-
-  // .note = deliberate mutation — two bounded accumulators local to this scan (a
-  //   dedupe set + the ordered result); neither escapes, so no external reader sees it
-  const roleSlugs: RoleSlug[] = [];
-  const seen = new Set<string>();
-
-  const repoDirs = readdirSync(agentDir).filter((name) =>
-    name.startsWith('repo='),
-  );
-
-  for (const repoDir of repoDirs) {
-    const repoPath = join(agentDir, repoDir);
-    const roleDirs = readdirSync(repoPath).filter((name) =>
-      name.startsWith('role='),
-    );
-    for (const roleDir of roleDirs) {
-      const roleSlug = roleDir.replace('role=', '');
-      if (!seen.has(roleSlug)) {
-        seen.add(roleSlug);
-        roleSlugs.push(roleSlug);
-      }
-    }
-  }
-
-  return roleSlugs;
 };
 
 /**
@@ -229,7 +203,11 @@ const performEnroll = async (input: {
     });
 
   // fail loud if roles were never linked — the brain would open role-less
-  const rolesLinked = getLinkedRoleSlugs({ gitroot: repoPath });
+  const refsLinked = getAllLinkedRoleRefs(
+    {},
+    new ContextCli({ cwd: repoPath, gitroot: repoPath }),
+  );
+  const rolesLinked: RoleSlug[] = refsLinked.map((ref) => ref.role);
   if (rolesLinked.length === 0)
     throw new ConstraintError('no roles found in .agent/', {
       gitroot: repoPath,
@@ -258,6 +236,14 @@ const performEnroll = async (input: {
     rolesLinked,
   });
 
+  // the brain's own passthrough — refused before any write if it would override the
+  //   system prompt rhachet owns, then handed to the spawn args as-is
+  const passthrough = getBrainCliPassthroughArgs({
+    args: rawArgs,
+    positionalBrain: input.positionalBrain,
+  });
+  assertBrainCliPassthroughLeavesSystemPromptOwned({ passthrough });
+
   // the `--as` handle (optional) — validated to the safe clone-slug charset
   const slug =
     input.as === undefined ? null : asValidatedSlug({ as: input.as });
@@ -272,23 +258,6 @@ const performEnroll = async (input: {
   const reason =
     input.reason === '@stdin' ? await readStdin() : (input.reason ?? null);
 
-  // write the per-enrollment config, then derive the child command + passthrough
-  const { configPath } = await genBrainCliConfigArtifact({
-    enrollment,
-    repoPath,
-  });
-  const { command } = getSupportedBrainCommand({ brain: enrollment.brain });
-
-  // 🔴 the passthrough is bound to a name rather than inlined, because the enroll MODE
-  //   reads it too: a print flag in here means the invocation owes its caller an answer
-  //   (`isBrainCliPrintMode`). one derivation, one source — a second read of `rawArgs` at
-  //   the mode site could disagree with the tokens the child actually received
-  const passthrough = getBrainCliPassthroughArgs({
-    args: rawArgs,
-    positionalBrain: input.positionalBrain,
-  });
-  const args = asBrainCliSpawnArgs({ configPath, passthrough });
-
   // where in the enroll chain the clone this call mints would sit — 0 for a human's
   // own clone, 1 for a peer that clone enrolls. an over-budget enroll is refused
   // BEFORE any dir or child exists, so a chain never half-forms
@@ -299,6 +268,57 @@ const performEnroll = async (input: {
       depthMax: CLONE_ENROLL_DEPTH_MAX,
       hint: `a clone at depth ${depth - 1} may not enroll another — ask the clone that enrolled you, or a human, to stand this one up`,
     });
+
+  // refuse a brain cli below the floor before any write — it lacks the flags a clone needs
+  const { command } = getSupportedBrainCommand({ brain: enrollment.brain });
+  assertBrainCliVersionFloor({
+    bin: command,
+    env: process.env,
+    onAbsent: 'refuse', // an enroll is about to SPAWN it, so an absent binary is fatal
+  });
+
+  // the actor's brain dir — the one config dir every clone of this actor reads
+  const hash = genEnrollmentHash({
+    brain: enrollment.brain,
+    roles: enrollment.roles,
+  });
+  const actorDir = getActorOndiskDir({ repoPath, hash });
+  const brainDir = getBrainOndiskDir({ actorDir });
+  mkdirSync(brainDir, { recursive: true });
+
+  // render the enrolled roles into the brain dir's boot corpus
+  //
+  // .note = a success says NAUGHT. the corpus render is not enroll's declared job — it is a
+  //   precondition of the spawn — and a census a human cannot act on is noise on the one
+  //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
+  await setBrainDirBoot({
+    brainDir,
+    roles: asRoleRefsForEnrolledSlugs({
+      actorHash: hash,
+      slugs: enrollment.roles,
+      refsLinked,
+    }),
+    repoPath,
+    scope: { kind: 'actor', actorHash: hash },
+  });
+
+  // share the human's login, or say plainly that there is none to share (D13)
+  const credential = findsertBrainCredentialSymlink({
+    brainDir,
+    home: getHomeDir(),
+  });
+  if (credential.status === 'absent')
+    console.error(asBrainCredentialAbsentLine({ brainDir }));
+
+  // settle first-run state before any spawn, so no clone meets a prompt (D11)
+  findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
+
+  // write the per-enrollment config, then derive the child passthrough
+  const { configPath } = await genBrainCliConfigArtifact({
+    enrollment,
+    repoPath,
+  });
+  const args = asBrainCliSpawnArgs({ configPath, passthrough });
 
   // what this enroll DOES with the child — derived from nature, and narrowed by whichever
   // of the three modes the caller stated. a `watch` enroll mirrors the brain into this
@@ -440,11 +460,6 @@ const performEnroll = async (input: {
 
   // a bare create-always enroll can accrue billed brains — count the live clones
   // of this actor and, past the soft threshold, make the accrual visible
-  const hash = genEnrollmentHash({
-    brain: enrollment.brain,
-    roles: enrollment.roles,
-  });
-  const actorDir = getActorOndiskDir({ repoPath, hash });
   const actorsRoot = getActorsRootDir({ repoPath });
   const liveCount = await getOneCloneLiveCountForActor({
     actorDir,

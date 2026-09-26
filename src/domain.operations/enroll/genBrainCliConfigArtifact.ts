@@ -1,12 +1,16 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { getUuid } from 'uuid-fns';
 
 import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
 import type { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
 import { genEnrollmentHash } from '@src/domain.operations/actor/enrolled/genEnrollmentHash';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getDefaultActorOndiskDir } from '@src/domain.operations/actor/enrolled/getDefaultActorOndiskDir';
+import { getHomeDir } from '@src/infra/getHomeDir';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
+import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
 
 /**
@@ -16,6 +20,7 @@ import { getSettingsForRoles } from './getSettingsForRoles';
  * .note = reads extant settings.json which has all synced hooks
  * .note = filters to only include hooks from enrolled roles
  * .note = retains permissions from repo settings.json
+ * .note = adds claudeMdExcludes, so the repo's corpus never loads beside the actor's
  * .note = writes to unique settings.enroll.$hash.local.json file
  */
 export const genBrainCliConfigArtifact = async (input: {
@@ -36,9 +41,18 @@ export const genBrainCliConfigArtifact = async (input: {
     roles: enrollment.roles,
   });
 
+  // exclude every repo door, so the clone reads its actor's brain dir alone (D5, D12)
+  const claudeMdExcludes = getClaudeMdExcludesList({
+    repoPath,
+    defaultBrainDir: getBrainOndiskDir({
+      actorDir: getDefaultActorOndiskDir({ repoPath }),
+    }),
+    home: getHomeDir(),
+  });
+
   // generate unique filename and write config
   const configPath = await writeEnrollmentConfig({
-    settings: settingsFiltered,
+    settings: { ...settingsFiltered, claudeMdExcludes },
     enrollment,
     repoPath,
   });
@@ -70,7 +84,7 @@ const readSettingsJson = async (input: {
  * .why = unique file prevents collision; used with --setting-sources local --settings <path>
  */
 const writeEnrollmentConfig = async (input: {
-  settings: ClaudeCodeSettings;
+  settings: ClaudeCodeSettings & { claudeMdExcludes: string[] };
   enrollment: BrainCliEnrollmentManifest;
   repoPath: string;
 }): Promise<string> => {
@@ -84,20 +98,13 @@ const writeEnrollmentConfig = async (input: {
     `settings.enroll.${hash}.local.json`,
   );
 
-  // ensure directory exists
-  await fs.mkdir(settingsDir, { recursive: true });
-
-  // write ATOMICALLY: a temp file + rename, so a concurrent same-actor enroll
-  // (a bare enroll is create-always — a cron retry / parallel burst races the SAME
-  // hash → the SAME settingsPath) can never leave the brain-cli to read a
-  // half-written settings file at boot (it loads this via `--settings`). rename is
-  // atomic on POSIX; two racers each write their own temp then rename, and the
-  // content is identical (same hash → same filtered settings), so last-writer-wins
-  // is safe. mirrors setCloneIdentity/findsertActorOndisk's temp+rename guard
-  const content = `${JSON.stringify(input.settings, null, 2)}\n`;
-  const tempPath = `${settingsPath}.${getUuid()}.tmp`;
-  await fs.writeFile(tempPath, content, 'utf-8');
-  await fs.rename(tempPath, settingsPath);
+  // write atomically: a concurrent same-actor enroll races the same hash onto the
+  // same path, and the brain-cli must never boot on a half-written file. the
+  // content is identical per hash, so last-writer-wins is safe
+  setFileAtomic({
+    path: settingsPath,
+    content: `${JSON.stringify(input.settings, null, 2)}\n`,
+  });
 
   return settingsPath;
 };

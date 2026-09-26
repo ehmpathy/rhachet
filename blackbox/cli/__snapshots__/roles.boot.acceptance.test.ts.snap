@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles boot given: [case1] repo with briefs when: [t1] roles boot --repo this --role missing then: the refusal frame is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: no role "missing" found in .agent/repo=.this/
+
+tip: did you \`npx rhachet roles link --role missing\` first?
+
+{
+  "input": {
+    "slugRepo": "this",
+    "slugRole": "missing"
+  }
+}
+
+[args] roles,boot,--repo,this,--role,missing
+
+"
+`;

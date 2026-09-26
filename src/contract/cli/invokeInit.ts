@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
+import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
@@ -154,10 +155,21 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           console.log('');
         }
 
-        // flag: --hooks => apply hooks; the iife yields a boolean so the error
-        // state stays an immutable const
+        // flag: --roles or --hooks => re-render every brain dir boot, after the links land.
+        // it precedes the hook sync, so a repo never drops its boot hooks before boot.md exists
+        const boots =
+          deltas !== null || options.hooks !== undefined
+            ? await syncAndReportBrainDirBoots(
+                { repoPath: context.gitroot, env: process.env },
+                context,
+              )
+            : { exitCode: 0 as const, defaultRendered: true };
+
+        // flag: --hooks => apply hooks, only once the default boot.md rendered;
+        // the iife yields a boolean so the error state stays an immutable const
         const hooksHaveErrors = await (async (): Promise<boolean> => {
           if (options.hooks === undefined) return false;
+          if (!boots.defaultRendered) return false;
           const brains =
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
@@ -185,6 +197,9 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // exit with failure if any init step accumulated errors
         const hasErrors = rolesInitHasErrors || hooksHaveErrors;
         if (hasErrors) process.exit(1);
+
+        // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
+        if (boots.exitCode !== 0) process.exit(boots.exitCode);
 
         // no flags => show usage instructions
         const hasAnyFlag =

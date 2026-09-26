@@ -1,11 +1,12 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import {
   type RoleSupplierSlug,
   toRoleSupplierSlug,
 } from '@src/domain.objects/RoleSupplierSlug';
 import { discoverRolePackages } from '@src/domain.operations/init/roles/packages/discoverRolePackages';
 
-import { discoverLinkedRoles, type RoleLinkRef } from './discoverLinkedRoles';
+import { discoverLinkedRoles } from './discoverLinkedRoles';
 
 /**
  * .what = expands role supplier slugs to concrete RoleLinkRefs

@@ -24,6 +24,9 @@
       ],
       "@/*": [
         "*"
+      ],
+      "test-fns/autoprune.setup.jest": [
+        "node_modules/test-fns/dist/contract/autoprune.setup.jest"
       ]
     }
   },

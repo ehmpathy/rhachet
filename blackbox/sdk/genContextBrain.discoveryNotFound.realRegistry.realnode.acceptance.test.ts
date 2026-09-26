@@ -22,14 +22,49 @@ import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
  *         this is the deleted coverage, restored in the only form that can run under the fix.
  * .note = this is the REAL-REGISTRY twin of genContextBrain.discoveryNotFound.realnode (which
  *         uses a fixed esm fixture for a drift-proof snapshot). this one restores the ORIGINAL
- *         real-registry coverage the deleted snapshot held; like any real-registry snapshot it
- *         shifts when a brain package is added / removed / bumped — refresh with RESNAP on an
- *         intentional registry change (rule.require.snapshots: a registry change is an intended
- *         snapshot update, reviewed in the diff).
+ *         real-registry coverage the deleted snapshot held.
+ * .note = 🔴 the roster it renders is a LIVE catalog, so it is masked by
+ *         `asMaskedRealRegistryRoster` below rather than resnapped per dep bump. an unmasked
+ *         snapshot here reddens on a cause this suite does not test, and each such red trains
+ *         the resnap reflex — so the mask is what keeps a red here MEANINGFUL.
  * .note = the probe reaches genContextBrain through the published `rhachet/brains` contract
  *         artifact (dist/contract/sdk.brains.js), the same file a consumer resolves — the action
  *         under test crosses the contract boundary (rule.require.acceptance.blackbox).
  */
+/**
+ * .what = a real-registry not-found message with the REGISTRY'S OWN roster neutralized, and
+ *   every byte this repo's contract owns left live
+ * .why = 🔴 the roster is a live catalog: it moves with any brain-package bump and with the
+ *   supplier's network list, so an unmasked snapshot reddens for a cause unrelated to this
+ *   suite's subject — the not-found message's SHAPE. a maintainer then resnaps to green it,
+ *   which trains the resnap reflex the snapshot exists to resist
+ *   (`rule.require.contract-snapshot-exhaustiveness`, its masked-live note)
+ * .note = what stays LIVE is each byte the message contract owns: the error lead line, the
+ *   `choice` echoed back, the `🔭 available brains` header, the `└── (and N more)` overflow
+ *   row's form, and the `available` key-set with its `atoms` / `repls` keys. so a reword, a
+ *   dropped header, a lost overflow row, or a renamed key all still redden
+ * .note = the roster's per-row RENDER (its glyphs, its indent, its tree characters) is pinned
+ *   drift-proof by this suite's twin, `genContextBrain.discoveryNotFound.realnode`, which
+ *   drives a FIXED esm fixture. this suite's own unique claim is narrower and is what the
+ *   mask protects: that the real `import()` discovery path runs and produces this shape
+ */
+const asMaskedRealRegistryRoster = (input: { message: string }): string =>
+  input.message
+    // a roster row: the tree glyph and the state glyph are the contract's, the slug is the
+    // registry's. collapse a run of rows to one token so the row COUNT cannot redden either
+    .replace(/^ {3}├── [^\n]*(\n {3}├── [^\n]*)*$/gm, '   ├── $BRAIN_ROWS')
+    // the overflow row: its form is the contract's, its N is the registry's
+    .replace(/^ {3}└── \(and \d+ more\)$/gm, '   └── (and $N more)')
+    // 🔴 a TRAILING row that is NOT the overflow form. a catalog short enough to fit
+    //   closes on a real slug rather than on `(and N more)`, and that slug is the
+    //   registry's — so without this row one live byte reached the snapshot, which is
+    //   the leak the `ergo-contract-snapshots` and `ergo-acceptance-journey-coverage`
+    //   lanes converged on independently. the lookahead holds the overflow form above
+    //   out of this rule, so the two cannot fight over one line
+    .replace(/^ {3}└── (?!\(and )[^\n]*$/gm, '   └── $BRAIN_ROW')
+    // the json arrays: the key-set is the contract's, the slugs are the registry's
+    .replace(/\[\n(\s+"[^"]*",?\n)+(\s+)\]/g, '[\n$2  "$BRAIN_SLUGS"\n$2]');
+
 describe('genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance', () => {
   const brainsContractDistPath = join(
     __dirname,
@@ -81,7 +116,11 @@ describe('genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance', (
         });
 
         then('the real-registry generic not-found message matches snapshot', () => {
-          expect(report.generic?.message).toMatchSnapshot();
+          expect(
+            asMaskedRealRegistryRoster({
+              message: report.generic?.message ?? '',
+            }),
+          ).toMatchSnapshot();
         });
       });
 
@@ -92,7 +131,9 @@ describe('genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance', (
         });
 
         then('the real-registry repl not-found message matches snapshot', () => {
-          expect(report.repl?.message).toMatchSnapshot();
+          expect(
+            asMaskedRealRegistryRoster({ message: report.repl?.message ?? '' }),
+          ).toMatchSnapshot();
         });
       });
 
@@ -103,7 +144,9 @@ describe('genContextBrain.discoveryNotFound.realRegistry.realnode.acceptance', (
         });
 
         then('the real-registry atom not-found message matches snapshot', () => {
-          expect(report.atom?.message).toMatchSnapshot();
+          expect(
+            asMaskedRealRegistryRoster({ message: report.atom?.message ?? '' }),
+          ).toMatchSnapshot();
         });
       });
     },

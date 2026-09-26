@@ -33,20 +33,6 @@ const genTranscript = (input: {
   return path;
 };
 
-/**
- * .what = run genCloneHistoryLink with $CLAUDE_CONFIG_DIR pointed at a temp dir
- */
-const runWithConfigDir = <T>(configDir: string, fn: () => T): T => {
-  const prior = process.env['CLAUDE_CONFIG_DIR'];
-  process.env['CLAUDE_CONFIG_DIR'] = configDir;
-  try {
-    return fn();
-  } finally {
-    if (prior === undefined) delete process.env['CLAUDE_CONFIG_DIR'];
-    else process.env['CLAUDE_CONFIG_DIR'] = prior;
-  }
-};
-
 const spawnedAt = asIsoTimeStamp(new Date(Date.now() - 1_000).toISOString());
 
 describe('genCloneHistoryLink.integration', () => {
@@ -61,15 +47,14 @@ describe('genCloneHistoryLink.integration', () => {
         const exid = getUuid();
         genTranscript({ configDir, cwd, exid });
 
-        const result = runWithConfigDir(configDir, () =>
-          genCloneHistoryLink({
-            cloneDir,
-            actorsRoot,
-            cwd,
-            brain: 'claude',
-            spawnedAt,
-          }),
-        );
+        const result = genCloneHistoryLink({
+          cloneDir,
+          actorsRoot,
+          brainDir: configDir,
+          cwd,
+          brain: 'claude',
+          spawnedAt,
+        });
 
         expect(result.linked).toEqual(exid);
         expect(result.ambiguous).toEqual([]);
@@ -97,15 +82,14 @@ describe('genCloneHistoryLink.integration', () => {
           genTranscript({ configDir, cwd, exid: exidA });
           genTranscript({ configDir, cwd, exid: exidB });
 
-          const result = runWithConfigDir(configDir, () =>
-            genCloneHistoryLink({
-              cloneDir,
-              actorsRoot,
-              cwd,
-              brain: 'claude',
-              spawnedAt,
-            }),
-          );
+          const result = genCloneHistoryLink({
+            cloneDir,
+            actorsRoot,
+            brainDir: configDir,
+            cwd,
+            brain: 'claude',
+            spawnedAt,
+          });
 
           expect(result.linked).toBeNull();
           expect(result.ambiguous.sort()).toEqual([exidA, exidB].sort());
@@ -133,6 +117,7 @@ describe('genCloneHistoryLink.integration', () => {
         const result = genCloneHistoryLink({
           cloneDir,
           actorsRoot,
+          brainDir: join(root, 'config'),
           cwd: '/work/x',
           brain: 'codex',
           spawnedAt,
@@ -156,30 +141,58 @@ describe('genCloneHistoryLink.integration', () => {
           const exid = getUuid();
           genTranscript({ configDir, cwd, exid });
 
-          const first = runWithConfigDir(configDir, () =>
-            genCloneHistoryLink({
-              cloneDir,
-              actorsRoot,
-              cwd,
-              brain: 'claude',
-              spawnedAt,
-            }),
-          );
-          const second = runWithConfigDir(configDir, () =>
-            genCloneHistoryLink({
-              cloneDir,
-              actorsRoot,
-              cwd,
-              brain: 'claude',
-              spawnedAt,
-            }),
-          );
+          const linkInput = {
+            cloneDir,
+            actorsRoot,
+            brainDir: configDir,
+            cwd,
+            brain: 'claude',
+            spawnedAt,
+          };
+          const first = genCloneHistoryLink(linkInput);
+          const second = genCloneHistoryLink(linkInput);
 
           expect(first.linked).toEqual(exid);
           expect(second.linked).toBeNull();
           expect(second.ambiguous).toEqual([]);
         },
       );
+    });
+  });
+
+  given('[case5] the parent env names another config dir', () => {
+    when('[t0] the history link runs', () => {
+      then('it scopes the brain dir it was given, never the parent env', () => {
+        const root = genTempDir({ slug: 'histParentEnv' });
+        const configDir = join(root, 'config');
+        const parentConfigDir = join(root, 'parent-config');
+        const actorsRoot = join(root, 'actors');
+        const cloneDir = join(actorsRoot, 'clone');
+        const cwd = '/work/parent';
+        const exidParent = getUuid();
+        genTranscript({ configDir: parentConfigDir, cwd, exid: exidParent });
+
+        const prior = process.env['CLAUDE_CONFIG_DIR'];
+        process.env['CLAUDE_CONFIG_DIR'] = parentConfigDir;
+        const result = (() => {
+          try {
+            return genCloneHistoryLink({
+              cloneDir,
+              actorsRoot,
+              brainDir: configDir,
+              cwd,
+              brain: 'claude',
+              spawnedAt,
+            });
+          } finally {
+            if (prior === undefined) delete process.env['CLAUDE_CONFIG_DIR'];
+            else process.env['CLAUDE_CONFIG_DIR'] = prior;
+          }
+        })();
+
+        expect(result.linked).toBeNull();
+        expect(existsSync(join(actorsRoot, '.exids', exidParent))).toBe(false);
+      });
     });
   });
 });

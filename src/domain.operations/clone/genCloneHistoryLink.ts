@@ -37,6 +37,7 @@ import { getCloneHistoryDir } from './getCloneHistoryDir';
 export const genCloneHistoryLink = (input: {
   cloneDir: string;
   actorsRoot: string;
+  brainDir: string;
   cwd: string;
   brain: BrainSlug;
   spawnedAt: IsoTimeStamp;
@@ -44,6 +45,7 @@ export const genCloneHistoryLink = (input: {
   // per-brain: no known transcript layout → no history to link
   const transcriptDir = getBrainTranscriptDir({
     brain: input.brain,
+    brainDir: input.brainDir,
     cwd: input.cwd,
   });
   if (transcriptDir === null) return { linked: null, ambiguous: [] };

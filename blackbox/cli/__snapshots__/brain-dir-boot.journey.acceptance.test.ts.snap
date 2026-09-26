@@ -1,0 +1,273 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t1.2] a human hand-edits the default AGENTS.md, then rhx init then: stdout names the reset, and that rhachet owns the file 1`] = `
+"🧠 brain dir (default)
+   ├─ boot.md
+   │  └─ upgraded — 4 roles
+   └─ AGENTS.md
+      └─ reset — hand edits dropped; rhachet owns this file
+
+🔭 search for linked roles with hooks...
+   └─ surfshop/waxer
+
+🪝 apply hooks to brains...
+   └─ surfshop/waxer → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t1.3] rhx roles link of role lifeguard, no init after then: link stdout is locked 1`] = `
+"
+🔭 discover roles from packages...
+
+📚 link role repo=surfshop/role=lifeguard
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=surfshop/readme.md (updated)
+   │  ├─ ✓ .agent/repo=surfshop/.gitignore (unchanged)
+   │  ├─ + .agent/repo=surfshop/role=lifeguard/readme.md
+   │  ├─ + .agent/repo=surfshop/role=lifeguard/briefs
+   │  └─ + .agent/repo=surfshop/role=lifeguard/skills
+   └─ stats
+      ├─ 3 brief(s)
+      └─ 1 skill(s)
+
+💡 tip
+   └─ an enrolled actor gains this role via \`rhx enroll --roles +lifeguard\`
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t1] rhx init --roles waxer --hooks then: init stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=surfshop/role=waxer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=surfshop/readme.md
+   │  ├─ + .agent/repo=surfshop/.gitignore
+   │  ├─ + .agent/repo=surfshop/role=waxer/readme.md
+   │  ├─ + .agent/repo=surfshop/role=waxer/briefs
+   │  └─ + .agent/repo=surfshop/role=waxer/skills
+   └─ stats
+      ├─ 3 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain dir (default)
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 4 roles
+
+🔭 search for linked roles with hooks...
+   └─ surfshop/waxer
+
+🪝 apply hooks to brains...
+   └─ surfshop/waxer → anthropic/claude/code: +1, -1
+
+✨ hooks
+   ├─ 1 created
+   └─ 1 deleted
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: an absent credential is no refusal — enroll spawns the brain (D13) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":false}"`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: stderr names the brain dir and both fixes 1`] = `"ℹ no claude credential to link into /TMP_TEST_DIR/.agent/.actors/actor.via.hash=6fdfcc44/brain/.claude — run /login inside the clone, or set ANTHROPIC_API_KEY"`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3] rhx enroll claude --roles shaper, real cli, temp HOME then: the enroll handoff line is locked 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3] rhx enroll claude --roles shaper, real cli, temp HOME then: the json envelope shape is locked 1`] = `
+{
+  "api_error_status": null,
+  "duration_api_ms": "__NUMBER__",
+  "duration_ms": "__NUMBER__",
+  "fast_mode_disabled_reason": "__STRING__",
+  "fast_mode_state": "__STRING__",
+  "first_content_frame_ms": "__NUMBER__",
+  "is_error": false,
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "cacheCreationInputTokens": "__NUMBER__",
+      "cacheReadInputTokens": "__NUMBER__",
+      "canonicalModel": "claude-haiku-4-5",
+      "contextWindow": "__NUMBER__",
+      "costBasis": "list",
+      "costUSD": "__NUMBER__",
+      "inputTokens": "__NUMBER__",
+      "maxOutputTokens": "__NUMBER__",
+      "outputTokens": "__NUMBER__",
+      "provider": "firstParty",
+      "thinkingTokens": "__NUMBER__",
+      "webSearchRequests": "__NUMBER__",
+    },
+  },
+  "num_turns": "__NUMBER__",
+  "permission_denials": "__ARRAY__",
+  "queued_turn_count": "__NUMBER__",
+  "result": "__STRING__",
+  "result_index": "__NUMBER__",
+  "session_id": "__STRING__",
+  "stop_reason": "__STRING__",
+  "subagent_stats": {
+    "by_type": {},
+    "completed": "__NUMBER__",
+    "failed": "__NUMBER__",
+    "killed": {
+      "parent": "__NUMBER__",
+      "system": "__NUMBER__",
+      "user": "__NUMBER__",
+    },
+    "max_depth": "__NUMBER__",
+    "refused": {
+      "budget": "__NUMBER__",
+      "concurrency_limit": "__NUMBER__",
+      "depth_limit": "__NUMBER__",
+    },
+    "requested": {
+      "background": "__NUMBER__",
+      "foreground": "__NUMBER__",
+      "unset": "__NUMBER__",
+    },
+    "spawned": "__NUMBER__",
+    "spawned_by_subagents": "__NUMBER__",
+    "started_in_background": "__NUMBER__",
+  },
+  "subtype": "success",
+  "terminal_reason": "__STRING__",
+  "time_to_request_ms": "__NUMBER__",
+  "total_cost_usd": "__NUMBER__",
+  "ttft_ms": "__NUMBER__",
+  "ttft_stream_ms": "__NUMBER__",
+  "type": "result",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": "__NUMBER__",
+      "ephemeral_5m_input_tokens": "__NUMBER__",
+    },
+    "cache_creation_input_tokens": "__NUMBER__",
+    "cache_read_input_tokens": "__NUMBER__",
+    "inference_geo": "__STRING__",
+    "input_tokens": "__NUMBER__",
+    "iterations": "__ARRAY__",
+    "output_tokens": "__NUMBER__",
+    "output_tokens_details": {
+      "thinking_tokens": "__NUMBER__",
+    },
+    "server_tool_use": {
+      "web_fetch_requests": "__NUMBER__",
+      "web_search_requests": "__NUMBER__",
+    },
+    "service_tier": "__STRING__",
+    "speed": "__STRING__",
+  },
+  "uuid": "__STRING__",
+}
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t4] shaper brief changes; rhx init while the [t3] clone lives then: init stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ surfshop/waxer
+
+🪝 apply hooks to brains...
+   └─ surfshop/waxer → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+🧢 apply hooks to enrolled actors...
+   ├─ 6fdfcc44: +1
+   └─ fddbc072: +1
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init then: stderr names the [t3] actor 1`] = `
+"✗ boot.md (actor fddbc072) not written: 💥 MalfunctionError: brain dir boot.md could not be written
+   ├─ brainDir: /TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude
+   └─ cause: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init then: the lifeguard actor re-renders 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ surfshop/waxer
+
+🪝 apply hooks to brains...
+   └─ surfshop/waxer → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+🧢 apply hooks to enrolled actors...
+   ├─ 15cc47ca: ~1
+   ├─ 6fdfcc44: ~1
+   └─ fddbc072: ~1
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5] a lifeguard actor lives; lifeguard is unlinked; rhx init then: stderr names the lifeguard actor and both fixes, and offers no prune 1`] = `
+"✗ boot.md (actor 15cc47ca) not written: ✋ ConstraintError: actor 15cc47ca enrolled a role no longer linked: lifeguard
+   ├─ actorHash: 15cc47ca
+   ├─ slugsUnlinked: ["lifeguard"]
+   └─ hint: re-link the role (rhx roles link --role lifeguard), or end the actor's live clones so the sweep skips it
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5] a lifeguard actor lives; lifeguard is unlinked; rhx init then: the [t3] actor still re-renders 1`] = `
+"
+🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - surfshop/lifeguard
+   └─ untouched (1)
+
+🔭 search for linked roles with hooks...
+   └─ surfshop/waxer
+
+🪝 apply hooks to brains...
+   └─ surfshop/waxer → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+🧢 apply hooks to enrolled actors...
+   ├─ 15cc47ca: +1
+   ├─ 6fdfcc44: ~1
+   └─ fddbc072: ~1
+
+"
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t7.1] a decoy transcript under the temp HOME; a fresh glasser clone then: the empty-history output is locked 1`] = `
+{
+  "status": 0,
+  "stdout": "😶🎧 talk of @:__SERIAL8__  ·  tail 20
+   │
+   └─ (no messages yet)
+",
+}
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t8] the journey is complete then: the addable tree of the brain dirs is locked 1`] = `
+[
+  ".agent/.actors/.gitignore",
+  ".agent/.actors/actor.via.slug=.default/brain/.claude/.gitignore",
+  ".agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+  ".agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+  ".agent/.actors/actor.via.slug=.default/brain/.claude/settings.json",
+  ".claude",
+]
+`;

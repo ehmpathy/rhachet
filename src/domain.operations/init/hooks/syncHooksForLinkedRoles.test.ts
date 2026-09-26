@@ -47,7 +47,7 @@ const captureConsoleOutput = async (
  * .why = restores the coverage the deleted syncHooksForLinkedRoles.test.ts held
  *   for these paths (rule.require.clamp-edge-cases). the leaf error CONSTRUCTION
  *   is tested one layer down, but the orchestrator's own error-collection +
- *   `⛈️ N hook sync error(s)` summary was left unguarded — a regression that
+ *   `💥 N hook sync error(s)` summary was left unguarded — a regression that
  *   dropped the summary (a silent failure) would go undetected. a REAL temp cwd
  *   makes getAllActorsOndisk return [] (no .agent/.actors), so the test is
  *   hermetic without a mock of the actor read
@@ -96,16 +96,20 @@ describe('syncHooksForLinkedRoles (error paths)', () => {
         expect(scene.errors[0]?.error.message).toEqual('no adapter found');
       });
 
-      then('the per-error line names the role, brain, and cause', () => {
+      then('the per-error line names the role, brain, class, and cause', () => {
+        // 🚨 the CLASS token is the assertion that earns its keep: a glyph alone cannot be
+        //   grepped, and a literal class would assert a verdict this site never read. the
+        //   row leads with the neutral `✗` marker and the class is read off the error
+        //   (`rule.require.unabridged-error-prefix`)
         expect(scene.output).toContain(
-          '⛈️  ehmpathy/mechanic → unknown-brain: no adapter found',
+          '✗ ehmpathy/mechanic → unknown-brain: Error: no adapter found',
         );
       });
 
       then('the operator sees the loud `N hook sync error(s)` summary', () => {
         // the exact line syncHooksForLinkedRoles emits when sync errors > 0 —
         // the summary the deleted test locked, now re-guarded
-        expect(scene.output).toContain('⛈️  1 hook sync error(s) occurred');
+        expect(scene.output).toContain('💥 1 hook sync error(s) occurred');
       });
     });
   });
@@ -160,6 +164,17 @@ describe('syncHooksForLinkedRoles (error paths)', () => {
         'the discovery-error line surfaces the phase tag to the operator',
         () => {
           expect(scene.output).toContain('broken-repo/broken-role [use]');
+        },
+      );
+
+      then(
+        'the discovery-error line names the class, not a glyph alone',
+        () => {
+          // the same clamp the sync row carries — a phase tag says WHICH layer faulted, the
+          // class token says WHAT was raised there, and only the pair is actionable
+          expect(scene.output).toContain(
+            'broken-repo/broken-role [use]: Error: failed to parse role config',
+          );
         },
       );
     });

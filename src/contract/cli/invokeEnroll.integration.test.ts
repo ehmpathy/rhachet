@@ -3,7 +3,7 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 
-import { mkdirSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { invokeEnroll } from './invokeEnroll';
 
@@ -189,6 +189,57 @@ describe('invokeEnroll (integration)', () => {
 
       then('it exits 2 (caller fault)', () => {
         expect(result.exitCode).toEqual(2);
+      });
+    });
+  });
+
+  given('[case5] a brain cli below the version floor', () => {
+    const cwd = genTempDir({ slug: 'invokeEnroll-floor' });
+    seedLinkedRole({ cwd });
+
+    // a `claude` on PATH that reports one patch below the floor
+    const binDir = genTempDir({ slug: 'invokeEnroll-floor-bin' });
+    const shimPath = join(binDir, 'claude');
+    writeFileSync(shimPath, '#!/bin/bash\necho "2.1.276 (Claude Code)"\n');
+    chmodSync(shimPath, 0o755);
+
+    when('[t0] `enroll claude` runs', () => {
+      const result = useBeforeAll(async () => {
+        const pathBefore = process.env['PATH'];
+        process.env['PATH'] = `${binDir}:/usr/bin:/bin`;
+        try {
+          return await driveEnroll({ cwd, argv: ['enroll', 'claude'] });
+        } finally {
+          process.env['PATH'] = pathBefore;
+        }
+      });
+
+      then(
+        'it refuses, names the binary, the version, the floor, and the upgrade',
+        () => {
+          expect(result.err).toContain("brain-cli 'claude'");
+          expect(result.err).toContain('2.1.276');
+          expect(result.err).toContain('2.1.277');
+          expect(result.err).toContain('claude update');
+        },
+      );
+
+      then('the full refusal frame matches the snapshot', () => {
+        // mask the temp dirs, so the frame is stable across runs
+        const errMasked = result.err
+          .split(binDir)
+          .join('<BIN_DIR>')
+          .split(cwd)
+          .join('<CWD>');
+        expect(errMasked).toMatchSnapshot();
+      });
+
+      then('it exits 2 (caller fault)', () => {
+        expect(result.exitCode).toEqual(2);
+      });
+
+      then('it writes no actor dir — the refusal precedes every write', () => {
+        expect(existsSync(join(cwd, '.agent', '.actors'))).toBe(false);
       });
     });
   });

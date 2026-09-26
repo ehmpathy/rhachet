@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0] <repo>/.claude is a real dir with a COMMITTED hand AGENTS.md then: it migrates the dir: boot files drop, the rest move, and the link lands 1`] = `
+"🧠 brain dir (default)
+   ├─ moved
+   │  ├─ .claude/settings.$STAMP.bak.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.$STAMP.bak.json
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ dropped
+   │  └─ .claude/AGENTS.md — rhachet owns the boot context
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role"
+`;
+
+exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0b] <repo>/.claude holds an UNTRACKED hand AGENTS.md then: it refuses with exit 2 and the hand file survives 1`] = `
+"✗ boot.md (default) not written: ✋ ConstraintError: <repo>/.claude holds boot files git could not hand back
+   ├─ path: /TMP_REPO/.claude
+   ├─ unrestorable: ["/TMP_REPO/.claude/AGENTS.md"]
+   └─ hint: commit or discard each, then rerun \`rhx init\` — an untracked boot file is dropped by the migration and git could not restore it"
+`;
+
+exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t2] <repo>/.claude is a file then: it refuses with exit 2 and names the fix 1`] = `
+"✗ boot.md (default) not written: ✋ ConstraintError: <repo>/.claude is a file, not a dir
+   ├─ path: /TMP_REPO/.claude
+   └─ hint: move /TMP_REPO/.claude aside, then rerun \`rhx init\`"
+`;

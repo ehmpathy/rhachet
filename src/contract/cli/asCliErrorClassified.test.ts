@@ -81,8 +81,16 @@ describe('asCliErrorClassified', () => {
        *   escaped the cli entirely and reached the human as node's uncaught-exception
        *   dump: a raw stack, no glyph, no class verdict, no hint, and an exit code node
        *   chose rather than one we judged.
+       *
+       * 🚨 .note = the message owns NO glyph, deliberately. `asCliErrorFrame` prepends the
+       *   one — `💥 MalfunctionError: ` here — so a glyph baked at the throw site renders a
+       *   SECOND one beside it, and the two disagree: `✋` asserts caller-fixable (exit 2)
+       *   while the frame's verdict is ours-to-repair (exit 1). one line, two verdicts.
+       *   the same defect was already repaired once at `assertRegistryHooksNoNpx`
+       *   (`✋ ConstraintError: ✋ hooks with…`); the repair is identical — the frame owns
+       *   the glyph, the thrower owns the sentence.
        */
-      const thrown = new Error('⛈️ duplicate role.slug "echoer"');
+      const thrown = new Error('duplicate role.slug "echoer"');
 
       when('[t0] it is classified', () => {
         then('the verdict is MALFUNCTION — ours to repair, exit 1', () => {
@@ -114,7 +122,7 @@ describe('asCliErrorClassified', () => {
             expect(
               asCliErrorJson({ error: asCliErrorClassified({ error: thrown }) })
                 .message,
-            ).toEqual('⛈️ duplicate role.slug "echoer"');
+            ).toEqual('duplicate role.slug "echoer"');
           },
         );
 

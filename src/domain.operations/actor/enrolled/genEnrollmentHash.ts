@@ -2,6 +2,7 @@ import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 
 import { createHash } from 'node:crypto';
+import { asRoleSlugsInEnrollmentOrder } from './asRoleSlugsInEnrollmentOrder';
 
 /**
  * .what = the 8-char content hash that identifies an enrollment { brain, roles }
@@ -23,7 +24,7 @@ export const genEnrollmentHash = (input: {
 }): string => {
   const data = JSON.stringify({
     brain: input.brain,
-    roles: [...input.roles].sort(),
+    roles: asRoleSlugsInEnrollmentOrder({ slugs: input.roles }),
   });
   return createHash('sha256').update(data).digest('hex').slice(0, 8);
 };

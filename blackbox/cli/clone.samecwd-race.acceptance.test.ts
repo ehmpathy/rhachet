@@ -8,9 +8,12 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { asClaudeProjectSlug } from '@src/domain.operations/clone/asClaudeProjectSlug';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
@@ -31,11 +34,15 @@ import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
  *     plants an orphan symlink to provoke exidsUnreadable. no two live clones, no
  *     timing dependence — so the snapshot is stable (philosophy.verification-strictness)
  *
- * .note = the planted transcript sits in THIS clone's own transcript dir (its
- *   brain + spawn cwd), so the scoped ambiguous read counts it; a marker in a
- *   FOREIGN dir is excluded (the getCloneOutput integration `t1` clamps that half).
- *   the clone's history stays empty because a quarantined exid is excluded from the
- *   linker's eligible pool, so no history link is written
+ * .note = the planted transcript sits in THIS clone's own transcript dir — its
+ *   ACTOR's brain dir + spawn cwd — so the scoped ambiguous read counts it; a marker
+ *   in a FOREIGN dir is excluded (the getCloneOutput integration `t1` clamps that
+ *   half). the clone's history stays empty because a quarantined exid is excluded
+ *   from the linker's eligible pool, so no history link is written
+ *
+ * .note = `CLAUDE_CONFIG_DIR` names a DECOY dir with no transcripts at all, so the
+ *   read that still finds the planted one proves the clone scopes its ACTOR's brain
+ *   dir rather than the parent env (define.brain-dir-repo-vs-actor)
  */
 describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
   given(
@@ -45,18 +52,50 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         const dir = genTempDir({ slug: 'clone-samecwd-race' });
         setupEnrollFixture({ dir });
 
-        // the config root the subprocess reads for claude transcripts — a temp dir
-        // so the planted transcript is the brain's own on-disk session record
-        const claudeConfigDir = join(dir, '.claude-config');
+        // a DECOY config dir the parent env names — a clone reads its ACTOR's brain
+        // dir, never the parent env (define.brain-dir-repo-vs-actor), so a transcript
+        // planted here must stay invisible; it is the negative control below
+        const decoyConfigDir = join(dir, '.claude-config-decoy');
 
-        // provision one real actor + clone on disk; spawnedAt a few seconds back so
-        // a transcript written now lands AT-OR-AFTER spawn (the one-sided window)
+        // findsert the actor and render its brain dir FIRST — the real enroll order
+        // (render the brain dir, THEN spawn the clone). this is idempotent and
+        // converges on the SAME actor genSampleCloneOndisk findserts below (same
+        // { brain, roles } → same hash), so it provisions no second actor
+        const actor = findsertActorOndisk({
+          repoPath: dir,
+          brain: 'claude',
+          roles: ['mechanic'],
+          delta: null,
+          reason: null,
+          logEnrollment: false,
+        });
+        const brainDir = getBrainOndiskDir({
+          actorDir: getActorOndiskDir({
+            repoPath: actor.repoPath,
+            hash: actor.hash,
+          }),
+        });
+        const transcriptDir = join(
+          brainDir,
+          'projects',
+          asClaudeProjectSlug({ cwd: actor.repoPath }),
+        );
+        mkdirSync(transcriptDir, { recursive: true });
+
+        // the clone spawns AT-OR-AFTER its actor's brain dir was born, derived from
+        // that dir's own birth time (ceiled past any sub-ms fraction, which
+        // `Date.now()` truncates away). this is not a detail: `getCloneBrainDir`
+        // falls back to `~/.claude` for a clone that PREDATES its actor's brain dir
+        // (the D8 upgrade path), so a fixture that spawns first reads a different
+        // transcript dir than the one it plants into — and the ambiguous marker
+        // below would be scoped out in silence
         const spawnedAt = asIsoTimeStamp(
-          new Date(Date.now() - 5_000).toISOString(),
+          new Date(Math.ceil(statSync(brainDir).birthtimeMs)).toISOString(),
         );
         const planted = genSampleCloneOndisk({
           repoPath: dir,
           brain: 'claude',
+          roles: ['mechanic'],
           serial: '7f3a0b12-1c2d-4e3f-8a4b-5c6d7e8f9a0b',
           slug: null,
           socketEligible: false,
@@ -67,12 +106,6 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         // brain + spawn-cwd claude writes to), then a `.exids/<exid>.ambiguous`
         // quarantine marker pointed at it — what the linker's ambiguous-refuse writes
         const exid = getUuid();
-        const transcriptDir = join(
-          claudeConfigDir,
-          'projects',
-          asClaudeProjectSlug({ cwd: planted.repoPath }),
-        );
-        mkdirSync(transcriptDir, { recursive: true });
         const transcriptPath = join(transcriptDir, `${exid}.jsonl`);
         writeFileSync(
           transcriptPath,
@@ -87,7 +120,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         mkdirSync(exidsDir, { recursive: true });
         symlinkSync(transcriptPath, join(exidsDir, `${exid}.ambiguous`));
 
-        return { dir, serial: planted.serial, claudeConfigDir };
+        return { dir, serial: planted.serial, decoyConfigDir };
       });
 
       when(
@@ -97,7 +130,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
             invokeRhachetCliBinary({
               args: ['clone', 'get', `@:${scene.serial}`, '--output', 'json'],
               cwd: scene.dir,
-              env: { CLAUDE_CONFIG_DIR: scene.claudeConfigDir },
+              env: { CLAUDE_CONFIG_DIR: scene.decoyConfigDir },
               logOnError: false,
             }),
           );
@@ -137,7 +170,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
           invokeRhachetCliBinary({
             args: ['clone', 'get', `@:${scene.serial}`],
             cwd: scene.dir,
-            env: { CLAUDE_CONFIG_DIR: scene.claudeConfigDir },
+            env: { CLAUDE_CONFIG_DIR: scene.decoyConfigDir },
             logOnError: false,
           }),
         );

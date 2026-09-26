@@ -1,16 +1,8 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-
-/**
- * .what = reference to a linked role in .agent/
- * .why = identifies roles for upgrade resolution
- */
-export interface RoleLinkRef {
-  repo: string;
-  role: string;
-}
 
 /**
  * .what = discovers all linked roles from .agent/ directory

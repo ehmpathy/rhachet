@@ -191,7 +191,7 @@ extant behavior is not a fix; it is a regression in a fix's clothes.
 | `unlock --env camp` (bare — unchanged) | repo ∪ machine-wide | bound ✅ |
 | `unlock --env camp --org @all` | machine-wide only | **free** ← the class-1 win |
 | `unlock --env camp --org @this` | repo only | bound |
-| `unlock --env camp --org @this`, **no repo** | ⛈️ a loud refusal | bound |
+| `unlock --env camp --org @this`, **no repo** | ✋ a loud refusal | bound |
 | `unlock --env camp --org otherorg` | an empty set | per the ask |
 
 ⚠️ **the filter is decided ONCE, above the branch, and applied on every path.** a filter computed

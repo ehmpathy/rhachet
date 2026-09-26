@@ -16,7 +16,7 @@ exports[`rhx actor list (acceptance) given: [case1] a linked repo with NO actors
 
 exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor enrolled when: [t0] \`actor list\` after an enroll then: the populated-actor format is locked (visual spot-check) 1`] = `
 "🎭 actors
-   └─ @ee65f29…  brain=claude  roles=architect,driver,mechanic
+   └─ @ee65f291  brain=claude  roles=architect,driver,mechanic
 "
 `;
 

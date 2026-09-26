@@ -1,5 +1,4 @@
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
-import { abbreviate } from '@src/utils/abbreviate';
 
 /**
  * .what = build the `rhx actor list` view — the enrolled identities on disk, as a
@@ -19,8 +18,12 @@ import { abbreviate } from '@src/utils/abbreviate';
  *     (rule.forbid.snapshot-visual-blemishes)
  *
  * .note = pure: the invoker reads the actors off disk AND probes whether the repo is
- *   linked (impure), then hands both here. the shown hash is abbreviated for the
- *   human tree; the data carries the full hash a machine reaches by
+ *   linked (impure), then hands both here
+ *
+ * .note = the hash renders WHOLE. `genEnrollmentHash` mints 8 chars, so that value IS
+ *   the actor's entire name — an elision would hide one char, spend a glyph on the
+ *   ellipsis, and break the one contract this view owes: `@<hash>` must be copyable
+ *   off the list and re-typable by hand (define.address-sigils)
  */
 export const asActorListView = (input: {
   actors: ActorOndisk[];
@@ -54,7 +57,7 @@ export const asActorListView = (input: {
     lines.push(
       // roles are shown sorted so the display is deterministic (it matches the
       // sorted roleset the identity hash is derived from) — never incidental order
-      `${prefix} @${abbreviate({ value: actor.hash, keep: 7 })}  brain=${actor.brain}  roles=${[...actor.roles].sort().join(',')}`,
+      `${prefix} @${actor.hash}  brain=${actor.brain}  roles=${[...actor.roles].sort().join(',')}`,
     );
   });
 

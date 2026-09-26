@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeEnroll (integration) given: [case5] a brain cli below the version floor when: [t0] \`enroll claude\` runs then: the full refusal frame matches the snapshot 1`] = `
+"
+✋ ConstraintError: brain-cli 'claude' is 2.1.276 at <BIN_DIR>/claude, below the floor 2.1.277
+
+{
+  "hint": "upgrade it: pnpm add -g @anthropic-ai/claude-code@latest (or, without pnpm: claude update)",
+  "bin": "claude",
+  "version": "2.1.276",
+  "floor": "2.1.277",
+  "resolvedPath": "<BIN_DIR>/claude",
+  "shadowed": []
+}
+
+"
+`;

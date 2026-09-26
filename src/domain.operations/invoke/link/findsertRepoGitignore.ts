@@ -14,7 +14,11 @@ const GITIGNORE_CONTENT = `# .what = tells git to ignore this dir
  * .why = ignores symlinked content without mutating shared root .gitignore
  */
 export const findsertRepoGitignore = (input: { repoDir: string }): LinkResult =>
-  findsertDirGitignore({ dir: input.repoDir, content: GITIGNORE_CONTENT });
+  findsertDirGitignore({
+    dir: input.repoDir,
+    content: GITIGNORE_CONTENT,
+    spare: [],
+  });
 
 /**
  * .what = exports the gitignore content for testing

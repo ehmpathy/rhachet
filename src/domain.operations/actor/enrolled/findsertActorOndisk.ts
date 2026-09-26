@@ -1,11 +1,10 @@
-import { getUuid } from 'uuid-fns';
-
 import { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
 
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ACTOR_MANIFEST_SCHEMA_VERSION } from './constants';
 import { genEnrollmentHash } from './genEnrollmentHash';
@@ -48,15 +47,15 @@ export const findsertActorOndisk = (input: {
   mkdirSync(actorDir, { recursive: true });
 
   // persist the identity manifest atomically (temp write + rename)
-  const manifestPath = join(actorDir, 'actor.json');
-  const manifestTemp = join(actorDir, `.actor.json.${getUuid()}.tmp`);
   const manifest = {
     schemaVersion: ACTOR_MANIFEST_SCHEMA_VERSION,
     brain: input.brain,
     roles: input.roles,
   };
-  writeFileSync(manifestTemp, JSON.stringify(manifest) + '\n', 'utf8');
-  renameSync(manifestTemp, manifestPath);
+  setFileAtomic({
+    path: join(actorDir, 'actor.json'),
+    content: JSON.stringify(manifest) + '\n',
+  });
 
   // append a roles-log event, unless this is a pure live-slug reuse
   if (input.logEnrollment)

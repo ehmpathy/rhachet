@@ -1,4 +1,12 @@
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  when,
+} from 'test-fns';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -377,6 +385,46 @@ skills:
         expect(fullOutput).toContain('├── briefs = 2');
         expect(fullOutput).toContain('│   ├── say = 0');
         expect(fullOutput).toContain('│   └── ref = 2');
+      });
+    });
+  });
+
+  given('[case6] a role whose dir is absent', () => {
+    const scene = useBeforeAll(async () => ({
+      tempDir: genTempDir({ slug: 'bootRoleResources-test-absent-role' }),
+    }));
+
+    when('[t0] booted without --if-present', () => {
+      then(
+        'it throws a ConstraintError that names the dir and the fix',
+        async () => {
+          const error = await getError(
+            bootRoleResources({
+              slugRepo: 'ehmpathy',
+              slugRole: 'mechanic',
+              ifPresent: false,
+              cwd: scene.tempDir,
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('role directory not found');
+          expect(error.message).toContain('role=mechanic');
+          expect(error.message).toContain(
+            'rhachet roles link --repo ehmpathy --role mechanic',
+          );
+        },
+      );
+    });
+
+    when('[t1] booted with --if-present', () => {
+      then('it resolves silent', async () => {
+        await bootRoleResources({
+          slugRepo: 'ehmpathy',
+          slugRole: 'mechanic',
+          ifPresent: true,
+          cwd: scene.tempDir,
+        });
+        expect(output).toEqual([]);
       });
     });
   });

@@ -43,6 +43,14 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
+🧠 brain dir (default)
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
 🔭 search for linked roles with hooks...
    ├─ test/reviewer
    └─ test/tester

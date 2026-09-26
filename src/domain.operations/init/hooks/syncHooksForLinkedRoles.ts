@@ -5,7 +5,7 @@ import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAll
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
-import { abbreviate } from '@src/utils/abbreviate';
+import { asErrorClassText } from '@src/utils/asErrorClassText';
 
 import { join } from 'node:path';
 
@@ -31,14 +31,20 @@ export const syncHooksForLinkedRoles = async (
     await getLinkedRolesWithHooks(context);
 
   // report discover errors loud and proud
+  //
+  // 🚨 the TALLY carries a class glyph and each ROW carries a row marker, and the split is
+  //   deliberate. `💥` is a verdict — a sweep that could not finish is ours to repair, exit 1,
+  //   and the tally names no single error so it has no class to read. a row DOES have one, so
+  //   it leads with the neutral `✗` marker (`asBrainDirBootFailureLines`'s shape) and lets the
+  //   class token ride inside, read off the error rather than asserted over it
   if (discoverErrors.length > 0) {
     console.log('');
-    console.log(`⛈️  ${discoverErrors.length} hook discovery error(s):`);
+    console.log(`💥 ${discoverErrors.length} hook discovery error(s):`);
     for (const err of discoverErrors) {
       // surface the phase tag (load vs use) so the operator sees the true layer that faulted —
       // getLinkedRolesWithHooks computes it precisely so the caller can point at the right layer
       console.log(
-        `   └─ ${err.repoSlug}/${err.roleSlug} [${err.phase}]: ${err.error.message}`,
+        `   └─ ${err.repoSlug}/${err.roleSlug} [${err.phase}]: ${asErrorClassText({ error: err.error })}`,
       );
       errors.push({
         source: `discover:${err.repoSlug}/${err.roleSlug}`,
@@ -122,8 +128,11 @@ export const syncHooksForLinkedRoles = async (
 
   // collect sync errors
   for (const err of syncResult.errors) {
+    // the CLASS rides the row, never a lone glyph — a glyph cannot be grepped and the class is
+    // the actionable token (`rule.require.unabridged-error-prefix`). `asErrorClassText` reads it
+    // off the error rather than asserts one, so a caller-fixable adapter fault is not relabelled
     outputLines.push(
-      `⛈️  ${err.role.repo}/${err.role.slug} → ${err.brain}: ${err.error.message}`,
+      `✗ ${err.role.repo}/${err.role.slug} → ${err.brain}: ${asErrorClassText({ error: err.error })}`,
     );
     errors.push({
       source: `sync:${err.role.repo}/${err.role.slug}→${err.brain}`,
@@ -162,11 +171,11 @@ export const syncHooksForLinkedRoles = async (
     console.log('✨ hooks: no changes needed');
   }
   if (syncResult.errors.length > 0) {
-    console.log(`⛈️  ${syncResult.errors.length} hook sync error(s) occurred`);
+    console.log(`💥 ${syncResult.errors.length} hook sync error(s) occurred`);
   }
   console.log('');
 
-  // apply the SAME hooks into every enrolled actor's brain config dir, so an
+  // apply the SAME hooks into every enrolled actor's brain dir, so an
   // actor's own brain/.claude/settings.json never drifts from the repo root
   // (usecase.9 — one boot/link keeps root AND all actors in sync)
   const actorsEnrolled = getAllActorsOndisk({ repoPath: context.cwd });
@@ -222,24 +231,23 @@ export const syncHooksForLinkedRoles = async (
           .join(', ');
         for (const err of actorSync.errors) {
           errors.push({
-            source: `sync:actor=${actor.hash.slice(0, 7)}:${err.role.repo}/${err.role.slug}→${err.brain}`,
+            source: `sync:actor=${actor.hash}:${err.role.repo}/${err.role.slug}→${err.brain}`,
             error: err.error,
           });
         }
       } catch (error) {
         errors.push({
-          source: `sync:actor=${actor.hash.slice(0, 7)}`,
+          source: `sync:actor=${actor.hash}`,
           error: error instanceof Error ? error : new Error(String(error)),
         });
       }
 
-      // a decorative short handle for the log row (NOT a real path) — the same
-      // abbreviate the list views use, so this display never misuses the on-disk
-      // dir-name token transformer (whose contract is a real path segment). the
-      // change summary mirrors the brain row so the reader sees WHAT changed per actor
-      console.log(
-        `   ${prefix} ${abbreviate({ value: actor.hash, keep: 7 })}${changes ? `: ${changes}` : ''}`,
-      );
+      // the actor hash is rendered WHOLE — it is already the actor's entire name
+      // (genEnrollmentHash mints 8 chars), so an elision here would hide one char,
+      // spend a glyph on the ellipsis, and cost the reader a copyable `@<hash>`
+      // address (define.address-sigils). the change summary mirrors the brain row
+      // so the reader sees WHAT changed per actor
+      console.log(`   ${prefix} ${actor.hash}${changes ? `: ${changes}` : ''}`);
     }
     console.log('');
   }

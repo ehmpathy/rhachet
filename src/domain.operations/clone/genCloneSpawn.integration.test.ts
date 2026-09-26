@@ -80,6 +80,7 @@ describe('genCloneSpawn', () => {
       args: ['-e', ''],
       cwd: genTempDir({ slug: `clonespawn-${serial}` }),
       serial,
+      brainDir: genTempDir({ slug: `clonespawn-brain-${serial}` }),
       socketPath: getCloneSocketPath({ serial })!,
       socketEligible: true,
       pty: input.pty,

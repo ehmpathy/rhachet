@@ -260,6 +260,7 @@ const spawnStubClone = async (): Promise<{
       serial,
       socketPath,
       depth: 0,
+      brainDir: genTempDir({ slug: `ptyclone-brain-${serial}` }),
     },
     {
       pty: pty!,
@@ -271,16 +272,6 @@ const spawnStubClone = async (): Promise<{
 };
 
 describe('genBrainCliPtyClone.integration', () => {
-  // keep the child's transcript off the real ~/.claude
-  const configBefore = process.env['CLAUDE_CONFIG_DIR'];
-  beforeAll(() => {
-    process.env['CLAUDE_CONFIG_DIR'] = genTempDir({ slug: 'ptyclone-config' });
-  });
-  afterAll(() => {
-    if (configBefore === undefined) delete process.env['CLAUDE_CONFIG_DIR'];
-    else process.env['CLAUDE_CONFIG_DIR'] = configBefore;
-  });
-
   given('[case1] a stub brain spawned through a managed pty', () => {
     const scene = useBeforeAll(async () => spawnStubClone());
     afterAll(async () => {
@@ -396,7 +387,7 @@ describe('genBrainCliPtyClone.integration', () => {
         const socketPath = getCloneSocketPath({ serial })!;
         const cwd = genTempDir({ slug: `ptyclone-resize-${serial}` });
         const clone = await genBrainCliPtyClone(
-          { command: 'noop', args: [], cwd, serial, socketPath, depth: 0 },
+          { command: 'noop', args: [], cwd, serial, socketPath, depth: 0, brainDir: cwd },
           { pty: fakePty, host, emulator: null },
         );
 
@@ -473,7 +464,7 @@ describe('genBrainCliPtyClone.integration', () => {
 
         const error = await getError(
           genBrainCliPtyClone(
-            { command: 'noop', args: [], cwd, serial, socketPath, depth: 0 },
+            { command: 'noop', args: [], cwd, serial, socketPath, depth: 0, brainDir: cwd },
             { pty: fakePty, host: genCaptureHost([]), emulator: null },
           ),
         );
@@ -594,6 +585,7 @@ describe('genBrainCliPtyClone.integration', () => {
                 cwd,
                 serial,
                 socketPath,
+                brainDir: cwd,
                 // the gate ALREADY cleared a socket for this enroll — which is exactly why
                 // the bind fault that follows is ours rather than the caller's
                 socketEligible: true,

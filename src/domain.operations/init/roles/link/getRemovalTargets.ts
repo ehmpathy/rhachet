@@ -1,8 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 
+import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
-import type { RoleLinkRef } from '@src/domain.operations/upgrade/discoverLinkedRoles';
 
 /**
  * .what = maps `-role` remove specifiers to concrete { repo, role } unlink targets

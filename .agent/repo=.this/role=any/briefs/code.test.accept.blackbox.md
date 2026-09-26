@@ -19,7 +19,7 @@ these tests exercise the same code paths users experience, without access to int
 ## .structure
 
 ```
-accept.blackbox/                      # @/accept.blackbox
+blackbox/                             # the real dir name — NOT `accept.blackbox/`
   .test/
     assets/                           # fixture templates copied into temp repos
       minimal/                        # bare .agent/ structure
@@ -126,7 +126,7 @@ add acceptance tests when:
 ## .example
 
 ```ts
-// file: accept.blackbox/cli/run.acceptance.test.ts
+// file: blackbox/cli/run.acceptance.test.ts
 import { given, when, then, useBeforeAll } from 'test-fns';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';

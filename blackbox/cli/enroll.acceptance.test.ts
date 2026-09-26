@@ -1,7 +1,7 @@
 import { UnexpectedCodePathError } from 'helpful-errors';
-import { genTempDir, given, then, useThen, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 
 import {
   asCloneSayHeadSnapshotSafe,
@@ -21,6 +21,9 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -36,6 +39,32 @@ const maskTempPaths = (input: string): string =>
   input.replace(/\/(?:private\/)?tmp\/test-fns\/[^\s"]+/g, '$TESTDIR');
 
 /**
+ * .what = masks the version-floor refusal's TWO stub `claude` paths to DISTINCT tokens
+ * .why = 🔴 a general path mask collapses both to one token, and that destroys the very
+ *        distinction the refusal exists to draw: the hint then reads "a newer 2.1.280 sits at X
+ *        but X wins your PATH", which is self-contradictory and hides that they are different
+ *        dirs. a mask must not eat the difference a reader checks — so the richer branch (the
+ *        one with a shadowed newer install) gets two tokens that say which is which
+ *
+ * .note = keyed on each dir's OWN name rather than on a root, so it holds whether the cli
+ *   renders the path absolute or relative to cwd — and it ends at `/claude`, so the comma that
+ *   follows the path survives (the general mask eats that too)
+ *
+ * 🚨 .note = the leading class is `[^\s"]*`, never `\S*`. a `"` is non-whitespace, so a greedy
+ *   `\S*` reaches BACK over the opening quote of a json value and renders
+ *   `"resolvedPath": $TOKEN/claude",` — a value with one quote, which is the exact over-consume
+ *   this file's own masker documents for its `"` terminator. measured here, so it is clamped here
+ *
+ * 🚨 .note = `-shadowed` FIRST, always. `.stub-bin` is a PREFIX of `.stub-bin-shadowed`, so the
+ *   shorter pattern would match inside the longer path and leave a `-shadowed/claude` tail
+ *   behind — the `rule.require.mask-both-names-of-a-temp-dir` order trap, one grain down
+ */
+const maskStubBrainPaths = (input: string): string =>
+  input
+    .replace(/[^\s"]*\.stub-bin-shadowed\/claude/g, '$STUBDIR_NEWER/claude')
+    .replace(/[^\s"]*\.stub-bin\/claude/g, '$STUBDIR_WINNER/claude');
+
+/**
  * .what = writes a stub `claude` executable into a fresh bin dir and returns a
  *         PATH that finds it first
  * .why = enroll's terminal action spawns the brain CLI. to prove the POSITIVE
@@ -43,14 +72,104 @@ const maskTempPaths = (input: string): string =>
  *        `claude`, we shadow `claude` with a no-op stub that exits 0. the config
  *        artifact is authored BEFORE the spawn, so a 0-exit stub lets the whole
  *        run complete deterministically and leaves the artifact to assert on.
+ * .note = `--version` answers the floor by default, so enroll's version guard lets it
+ *   through. pass `version` BELOW the floor to exercise the refusal at this same grain
+ *
+ * 🚨 .note = `shadowed` makes the PATH HERMETIC, and that is the whole point of it. the
+ *   default form appends `process.env.PATH`, so any real `claude` on the host joins the
+ *   scan — harmless for a case that only asserts the winner, FATAL for one that snaps the
+ *   refusal, because `shadowed` then pins whichever installs that host happens to carry
+ *   (`rule.require.hermetic-tests`). pass `shadowed` and the PATH holds two stubs we wrote
+ *   plus `/usr/bin:/bin`, so the whole scan is deterministic on every box
  */
-const setupStubBrainPath = (input: { dir: string }): string => {
+const setupStubBrainPath = (input: {
+  dir: string;
+  version?: string;
+  /** a SECOND stub `claude`, one dir BEHIND the winner, whose version the refusal reports
+   *  as shadowed. its presence switches the PATH to the hermetic form described above */
+  shadowed?: string;
+}): string => {
+  const writeStubBrain = (stubDir: string, version: string): void => {
+    mkdirSync(stubDir, { recursive: true });
+    const stubPath = join(stubDir, 'claude');
+    writeFileSync(
+      stubPath,
+      `#!/usr/bin/env bash\nif [ "$1" = "--version" ]; then echo "${version} (Claude Code)"; fi\nexit 0\n`,
+      'utf-8',
+    );
+    chmodSync(stubPath, 0o755);
+  };
+
   const binDir = join(input.dir, '.stub-bin');
+  writeStubBrain(binDir, input.version ?? '2.1.277');
+
+  // the host PATH is kept ONLY where no snapshot reads the scan (see the note above)
+  if (!input.shadowed) return `${binDir}:${process.env.PATH ?? ''}`;
+
+  const binDirShadowed = join(input.dir, '.stub-bin-shadowed');
+  writeStubBrain(binDirShadowed, input.shadowed);
+
+  // the built cli routes `enroll` to its jit entry, whose shebang resolves `node` on
+  // PATH — so a hermetic PATH must carry one. it carries OUR node (a symlink to this
+  // process's own interpreter) in a dir of its own, rather than the host dir node
+  // happens to live in, because that dir is exactly where a real `claude` install sits
+  const binDirNode = join(input.dir, '.stub-bin-node');
+  mkdirSync(binDirNode, { recursive: true });
+  const nodePath = join(binDirNode, 'node');
+  if (!existsSync(nodePath)) symlinkSync(process.execPath, nodePath);
+
+  // `/usr/bin:/bin` is the minimum the shell dispatcher needs. of the four dirs, only
+  // the two stub dirs hold a `claude`, so the scan sees exactly those two, in this order
+  return `${binDir}:${binDirShadowed}:${binDirNode}:/usr/bin:/bin`;
+};
+
+/**
+ * .what = writes a stub `claude` that RECORDS the argv of each spawn, and returns a PATH
+ *   that finds it first plus the path of the record
+ * .why = the empty system prompt is a contract between rhachet and the brain cli, and a
+ *   unit test of the argv builder cannot see past it: a later layer (the passthrough, the
+ *   pty spawn) could drop or reorder the pair and every unit test would stay green. a stub
+ *   at the far end of the real spawn reads exactly what the cli would receive
+ *
+ * .note = the record is NUL-separated (`printf '%s\0'`), so an EMPTY argv element survives
+ *   as its own entry — a newline or space join would erase the very `''` under test
+ * .note = `--version` answers the floor and records naught, so the record holds the spawn
+ *   argv alone, never the floor probe
+ */
+const setupArgvRecorderBrainPath = (input: {
+  dir: string;
+}): { path: string; recordPath: string } => {
+  const binDir = join(input.dir, '.stub-bin-recorder');
   mkdirSync(binDir, { recursive: true });
+  const recordPath = join(input.dir, '.stub-brain-argv');
   const stubPath = join(binDir, 'claude');
-  writeFileSync(stubPath, '#!/usr/bin/env bash\nexit 0\n', 'utf-8');
+  writeFileSync(
+    stubPath,
+    [
+      '#!/usr/bin/env bash',
+      'if [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; exit 0; fi',
+      `printf '%s\\0' "$@" > "${recordPath}"`,
+      'exit 0',
+      '',
+    ].join('\n'),
+    'utf-8',
+  );
   chmodSync(stubPath, 0o755);
-  return `${binDir}:${process.env.PATH ?? ''}`;
+  return { path: `${binDir}:${process.env.PATH ?? ''}`, recordPath };
+};
+
+/**
+ * .what = reads the argv the recorder stub captured, one entry per element
+ * .why = a NUL closes every element, the last one included, so the final empty split is
+ *   dropped; every other empty entry is a real `''` the spawn passed
+ */
+const readRecordedBrainArgv = (input: { recordPath: string }): string[] => {
+  if (!existsSync(input.recordPath))
+    throw new UnexpectedCodePathError('the recorder stub captured no spawn', {
+      recordPath: input.recordPath,
+      hint: 'check enroll reached the spawn and that the stub brain was first on PATH',
+    });
+  return readFileSync(input.recordPath, 'utf-8').split('\0').slice(0, -1);
 };
 
 /**
@@ -451,6 +570,15 @@ describe('rhx enroll --roles (acceptance)', () => {
       stubPath = setupStubBrainPath({ dir });
     });
 
+    // init already rendered the repo's brain dir; capture its corpus before the enroll.
+    // 🚨 held in an OBJECT rather than as a bare string: `useBeforeAll` hands back a proxy,
+    //   and a proxy over a primitive compares as the proxy inside `toEqual`, never as the
+    //   value. one property read resolves it, so the scene shape is what makes the
+    //   immutable-reference idiom safe here (`howto.write-bdd`)
+    const before = useBeforeAll(async () => ({
+      repoBoot: readFileSync(join(dir, '.claude', 'boot.md'), 'utf-8'),
+    }));
+
     when('[t0] `enroll claude` (no --roles → the default roleset)', () => {
       const run = useThen('exits 0 (valid bare path, reaches the stub brain)', () =>
         invokeRhachetCliBinary({
@@ -488,6 +616,27 @@ describe('rhx enroll --roles (acceptance)', () => {
         // the stub brain emits no output; this locks that the bare default-roles
         // success path leaks no unexpected rhachet output before the spawn
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+
+      then('the boot corpus lands in the actor brain dir, never the repo brain dir', () => {
+        // enroll owns the actor's brain dir only; the repo's `.claude` stays the
+        // default actor's brain dir, and its corpus is untouched by the enroll
+        const actorsDir = join(dir, '.agent', '.actors');
+        const actorHashDirs = readdirSync(actorsDir).filter((name) =>
+          name.startsWith('actor.via.hash='),
+        );
+        expect(actorHashDirs).toHaveLength(1);
+        const brainDir = join(actorsDir, actorHashDirs[0]!, 'brain', '.claude');
+        expect(existsSync(join(brainDir, 'boot.md'))).toBe(true);
+        expect(existsSync(join(brainDir, 'AGENTS.md'))).toBe(true);
+        expect(realpathSync(join(dir, '.claude'))).toEqual(
+          realpathSync(
+            join(actorsDir, 'actor.via.slug=.default', 'brain', '.claude'),
+          ),
+        );
+        expect(readFileSync(join(dir, '.claude', 'boot.md'), 'utf-8')).toEqual(
+          before.repoBoot,
+        );
       });
     });
 
@@ -982,6 +1131,128 @@ describe('rhx enroll --roles (acceptance)', () => {
 
       then('the structured error is locked to a snapshot', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = the version-floor refusal, at the CONTRACT grain
+   * .why = `rule.require.test-coverage-by-grain` puts a contract-layer op's FAILURE path
+   *   on the acceptance grain with a snapshot, never the integration grain alone. the
+   *   refusal is what a human meets when a stale `claude` shadows a current one, so its
+   *   text is a shipped surface and a silent reword is a regression a snapshot catches
+   *
+   * .note = the integration suite (`assertBrainCliVersionFloor.integration.test.ts`)
+   *   proves the two-binary PATH arithmetic. this proves the refusal survives the whole
+   *   cli path — argv parse, pre-spawn order, stderr shape — and that it beats the spawn
+   */
+  given('[case11] a linked repo whose `claude` sits BELOW the version floor', () => {
+    const dir = genTempDir({ slug: 'enroll-version-floor' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture(dir);
+      // 🚨 a hermetic two-stub PATH: the winner sits below the floor, and the one behind
+      //   it clears the floor, so the refusal renders its RICHER branch (the "a newer X
+      //   sits at Y but Z wins your PATH" hint plus a populated `shadowed`) — which is the
+      //   very branch this acceptance case exists to pin, and the one the integration
+      //   twin (`invokeEnroll.integration` case5, `shadowed: []`) cannot reach.
+      //   both versions are ours, so the snapshot is identical on every host
+      stubPath = setupStubBrainPath({
+        dir,
+        version: '2.1.87',
+        shadowed: '2.1.280',
+      });
+    });
+
+    when('[t0] `enroll claude --roles mechanic`', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', 'mechanic'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('it refuses before the spawn, and names the found version', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr).toContain('2.1.87');
+      });
+
+      then('the refusal carries a repair a human can run', () => {
+        expect(run.stderr.toLowerCase()).toContain('claude');
+        expect(
+          run.stderr.includes('claude update') ||
+            run.stderr.includes('@anthropic-ai/claude-code'),
+        ).toEqual(true);
+      });
+
+      then('the refusal output is locked to a snapshot', () => {
+        // the stub dirs are masked FIRST, so the general masker never sees them and cannot
+        // collapse the winner and the shadowed dir into one indistinguishable token
+        expect(
+          asSnapshotSafe(maskStubBrainPaths(run.stderr)),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = an enroll on a host where `claude` is absent from PATH entirely
+   * .why = the floor guard's `onAbsent` forks its two callers, and this is the half that
+   *   REFUSES: an enroll is about to SPAWN that binary, so an absent one is fatal and must
+   *   be named before the spawn. its opposite half — the boot sweep, which PERMITS an
+   *   absent cli because the corpus it writes has no reader on such a host — is pinned at
+   *   `blackbox/cli/roles.link.acceptance.test.ts` `[case5]`
+   *
+   * .note = the PATH is hermetic: one dir that holds only a `node` symlink, plus the
+   *   `/usr/bin:/bin` the shell dispatcher needs for `dirname`, `readlink` and `git`. the
+   *   host PATH is dropped whole rather than filtered, because the dir a real `claude`
+   *   installs into is commonly the very dir `node` lives in (`rule.require.hermetic-tests`).
+   *   [t0] proves the PATH finds no claude rather than assume it
+   */
+  given('[case12] a linked repo on a host with NO `claude` on PATH', () => {
+    const dir = genTempDir({ slug: 'enroll-brain-cli-absent' });
+    let brainlessPath: string;
+    beforeAll(() => {
+      setupEnrollFixture(dir);
+      const binDirNode = join(dir, '.stub-bin-node');
+      mkdirSync(binDirNode, { recursive: true });
+      const nodePath = join(binDirNode, 'node');
+      if (!existsSync(nodePath)) symlinkSync(process.execPath, nodePath);
+      brainlessPath = `${binDirNode}:/usr/bin:/bin`;
+    });
+
+    when('[t0] that PATH is searched for a claude', () => {
+      then('it finds none — so the case is hermetic, never host-dependent', () => {
+        const probe = spawnSync('/bin/sh', ['-c', 'command -v claude'], {
+          env: { ...process.env, PATH: brainlessPath },
+          encoding: 'utf-8',
+        });
+        expect(probe.status).not.toEqual(0);
+        expect((probe.stdout ?? '').trim()).toEqual('');
+      });
+    });
+
+    when('[t1] `enroll claude --roles mechanic`', () => {
+      const run = useThen('exits non-zero', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', 'mechanic'],
+          cwd: dir,
+          env: { PATH: brainlessPath },
+          logOnError: false,
+        }),
+      );
+
+      then('it refuses before the spawn, and says the binary was not found', () => {
+        expect(run.status).not.toEqual(0);
+        expect(run.stderr).not.toContain('\u0000');
+        expect(run.stderr).toContain('not found on PATH');
+      });
+
+      then('the refusal carries an install command a human can run', () => {
+        expect(run.stderr).toContain('@anthropic-ai/claude-code');
       });
     });
   });
@@ -1833,6 +2104,151 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
       });
     });
   });
+
+});
+
+/**
+ * .what = the argv a real enroll hands the brain cli, read at the far end of the spawn
+ * .why = rhachet owns the boot context: every clone spawns with `--system-prompt ''`, so
+ *   the vendor default prompt is gone and the corpus arrives via CLAUDE.md alone. this
+ *   clamps that the pair survives every layer between the argv builder and the cli, that
+ *   no other prompt flag rides beside it, and that a passthrough cannot fork it
+ */
+describe('rhx enroll owns the system prompt (acceptance)', () => {
+  given('[case1] a linked repo whose `claude` records the argv it is spawned with', () => {
+    const dir = genTempDir({ slug: 'enroll-system-prompt' });
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic', 'architect', 'driver'],
+        cwd: dir,
+      });
+      return setupArgvRecorderBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude` (no passthrough)', () => {
+      const argv = useThen('exits 0 and the stub records the spawn', () => {
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        return { list: readRecordedBrainArgv({ recordPath: scene.recordPath }) };
+      });
+
+      then('`--system-prompt` is followed by an EMPTY element', () => {
+        const index = argv.list.indexOf('--system-prompt');
+        expect(index).toBeGreaterThan(-1);
+        expect(argv.list[index + 1]).toEqual('');
+      });
+
+      then('`--system-prompt` appears exactly once', () => {
+        expect(argv.list.filter((arg) => arg === '--system-prompt')).toHaveLength(1);
+      });
+
+      then('no other flag touches the system prompt', () => {
+        for (const flag of [
+          '--system-prompt-file',
+          '--append-system-prompt',
+          '--append-system-prompt-file',
+          '--exclude-dynamic-system-prompt-sections',
+        ])
+          expect(argv.list).not.toContain(flag);
+      });
+
+      then('the prefix is exact: config source, config, then the empty prompt', () => {
+        expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user,local']);
+        expect(argv.list[2]).toEqual('--settings');
+        expect(argv.list[3]).toMatch(/settings\.enroll\.[0-9a-f]{8}\.local\.json$/);
+        expect(argv.list.slice(4)).toEqual(['--system-prompt', '']);
+      });
+
+      then('the recorded argv is locked to a snapshot', () => {
+        expect(
+          argv.list.map((arg) => (arg === '' ? '<empty>' : maskTempPaths(arg))),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] `enroll claude --model haiku --append-system-prompt <text>` (passthrough)', () => {
+      const argv = useThen('exits 0 and the stub records the spawn', () => {
+        const run = invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--model',
+            'haiku',
+            '--append-system-prompt',
+            'be brief',
+          ],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        return { list: readRecordedBrainArgv({ recordPath: scene.recordPath }) };
+      });
+
+      then('the empty prompt still leads, and the passthrough follows it in order', () => {
+        expect(argv.list.slice(4)).toEqual([
+          '--system-prompt',
+          '',
+          '--model',
+          'haiku',
+          '--append-system-prompt',
+          'be brief',
+        ]);
+      });
+    });
+
+    when('[t2] `enroll claude --system-prompt <text>` (a passthrough override)', () => {
+      const run = useThen('exits 2 — a constraint', () => {
+        rmSync(scene.recordPath, { force: true });
+        return invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--system-prompt', 'you are a pirate'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+      });
+
+      then('it refuses with exit 2', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('the brain cli is never spawned', () => {
+        expect(existsSync(scene.recordPath)).toBe(false);
+      });
+
+      then('stderr names the owned slot and the additive flag to use', () => {
+        expect(run.stderr).toContain('enroll owns the system prompt');
+        expect(run.stderr).toContain('--append-system-prompt');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] `enroll claude --system-prompt-file=<path>` (the file form, inline)', () => {
+      const run = useThen('exits 2 — a constraint', () => {
+        rmSync(scene.recordPath, { force: true });
+        return invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--system-prompt-file=./prompt.md'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+      });
+
+      then('it refuses with exit 2 and never spawns', () => {
+        expect(run.status).toEqual(2);
+        expect(existsSync(scene.recordPath)).toBe(false);
+      });
+    });
+  });
 });
 
 /**
@@ -1871,4 +2287,5 @@ describe('rhx enroll --help (acceptance)', () => {
       });
     });
   });
+
 });

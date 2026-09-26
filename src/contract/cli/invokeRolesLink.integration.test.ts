@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
+import { genTempDir, getError, given, then, when } from 'test-fns';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
 import { Role } from '@src/domain.objects/Role';
@@ -12,11 +12,13 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { invokeRolesLink } from './invokeRolesLink';
 
 /**
@@ -44,16 +46,13 @@ const makeDirectoryWritable = (dirPath: string): void => {
 
 describe('invokeRolesLink (integration)', () => {
   given('a CLI program with invokeRolesLink registered', () => {
-    const testDir = resolve(__dirname, './.temp/invokeRolesLink');
+    // a git repo of its own, so the link's brain dir sync renders into the fixture, never this repo
+    const testDir = realpathSync(
+      genTempDir({ slug: 'invokeRolesLink', git: true }),
+    );
     const originalCwd = process.cwd();
 
     beforeAll(() => {
-      // make files writable first, then clean up (handles readonly files from previous runs)
-      makeDirectoryWritable(testDir);
-      rmSync(testDir, { recursive: true, force: true });
-
-      // create test directory structure
-      mkdirSync(testDir, { recursive: true });
       process.chdir(testDir);
 
       // Create mock briefs directory
@@ -326,6 +325,55 @@ describe('invokeRolesLink (integration)', () => {
         },
       );
     });
+
+    when(
+      'invoked with "link --repo test --role mechanic", then the brain dir',
+      () => {
+        then(
+          'it renders the default boot.md, links <repo>/.claude to it, and names the enroll path',
+          async () => {
+            await rolesCommand.parseAsync(
+              ['link', '--repo', 'test', '--role', 'mechanic'],
+              { from: 'user' },
+            );
+
+            // the default corpus holds the linked role's briefs
+            const defaultBrainDirRel =
+              '.agent/.actors/actor.via.slug=.default/brain/.claude';
+            const bootMd = readFileSync(
+              join(testDir, defaultBrainDirRel, 'boot.md'),
+              'utf-8',
+            );
+            expect(bootMd).toContain('This is test brief 1');
+
+            // <repo>/.claude reaches it via a relative link
+            expect(readlinkSync(join(testDir, '.claude'))).toEqual(
+              defaultBrainDirRel,
+            );
+
+            // one brain dir tree for the default, and the enroll hint
+            const lines = logSpy.mock.calls.map((call) => String(call[0]));
+            expect(
+              lines.filter((line) => line === '🧠 brain dir (default)'),
+            ).toHaveLength(1);
+            // the corpus is named as a ROW of that tree, never as a bare line wedged
+            //   between two adjacent treestructs (`rule.require.treestruct-output`)
+            expect(lines).toContain('   └─ boot.md');
+            expect(
+              lines.filter((line) =>
+                /^ {6}└─ (created|upgraded) — \d+ roles?$/.test(line),
+              ),
+            ).toHaveLength(1);
+            // the enroll advice is a TIP BLOCK, never a bare line wedged under the tree
+            //   above it — a glyph root plus one leaf, as `clone list` renders its prune tip
+            expect(lines).toContain('💡 tip');
+            expect(lines).toContain(
+              '   └─ an enrolled actor gains this role via `rhx enroll --roles +mechanic`',
+            );
+          },
+        );
+      },
+    );
 
     when(
       'invoked with "link --role mechanic" without --repo (single registry has the role)',

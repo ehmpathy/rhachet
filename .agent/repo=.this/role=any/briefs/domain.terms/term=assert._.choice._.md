@@ -42,7 +42,6 @@ exports may not share a name). different act, different word, and `.assure` does
 - `src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest.ts`
 - `src/domain.operations/keyrack/getKeyrackKeyGrants/assertKeyrackUnlockIdentityAvailable.ts`
 - `src/domain.operations/keyrack/grades/assertKeyGradeProtected.ts`
-- `src/domain.operations/manifest/assertRegistryBootHooksDeclared.ts`
 - `src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs.ts`
 - `src/domain.operations/manifest/assertRegistryHooksNoNpx.ts`
 - `src/domain.operations/manifest/assertRegistrySkillsExecutable.ts`

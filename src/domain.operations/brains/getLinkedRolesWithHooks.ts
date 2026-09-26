@@ -2,10 +2,33 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { isRolesBootCommand } from '@src/domain.operations/boot/isRolesBootCommand';
 import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExports';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+
+/**
+ * .what = a role with each `rhachet roles boot` onBoot hook dropped
+ * .why = the brain dir boot.md supersedes the role boot hook; every other hook is kept
+ */
+const asRoleWithoutRolesBootHooks = (input: { role: Role }): Role => {
+  // a role with no onBoot array has no role boot hook to drop
+  const onBrain = input.role.hooks?.onBrain;
+  if (!onBrain || !Array.isArray(onBrain.onBoot)) return input.role;
+
+  // keep each onBoot hook whose command is not a role boot
+  return {
+    ...input.role,
+    hooks: {
+      ...input.role.hooks,
+      onBrain: {
+        ...onBrain,
+        onBoot: onBrain.onBoot.filter((hook) => !isRolesBootCommand(hook)),
+      },
+    },
+  };
+};
 
 /**
  * .what = discovers linked roles and loads their full Role objects with hooks
@@ -123,9 +146,14 @@ export const getLinkedRolesWithHooks = async (
         }
 
         // only include roles that have hooks.onBrain declared
-        if (role.hooks?.onBrain) {
-          roles.push({ ...role, repo: registry.slug });
-        }
+        if (!role.hooks?.onBrain) continue;
+
+        // drop each role boot hook; the brain dir boot.md supersedes it. the role stays in
+        // the list, so the per-author reconcile deletes its extant role boot hooks
+        roles.push({
+          ...asRoleWithoutRolesBootHooks({ role }),
+          repo: registry.slug,
+        });
       }
     } catch (error) {
       recordRepoFailure(error, 'use');

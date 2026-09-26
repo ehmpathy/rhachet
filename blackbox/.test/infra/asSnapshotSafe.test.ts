@@ -142,4 +142,138 @@ describe('asSnapshotSafe path mask', () => {
       });
     });
   });
+
+  given('[case5] the two volatile spans a BOOT CENSUS line carries', () => {
+    // 🚨 .why = these two spans are masked HERE and were clamped NOWHERE. seven
+    //   acceptance call sites wrapped this mask as `maskBootCensusVolatiles(asSnapshotSafe(x))`
+    //   and read that outer call as a safety net — but it was provably inert: its regex ends
+    //   in a literal `\d+ chars`, which cannot match the `__CHARS__ chars` this mask has
+    //   already written, so the ENTIRE replace failed rather than merely its path clause.
+    //
+    // ⚠️ a net that cannot catch is worse than an absent one — it reads as protection and
+    //   guards naught (`rule.require.clamp-edge-cases`). the composition is gone; these rows
+    //   are what replaced it, and unlike the net they go RED when this mask stops.
+    when('[t0] a census char count reaches the mask', () => {
+      then('the count is masked, and the role count beside it survives', () => {
+        // the role count is the part a reader checks; only the char sum is volatile,
+        // since it moves with every role package bump
+        expect(
+          asSnapshotSafe('boot.md (default): /x/boot.md — 2 roles, 48173 chars'),
+        ).toEqual('boot.md (default): /x/boot.md — 2 roles, __CHARS__ chars');
+      });
+
+      then('a SINGULAR role reads the same way, so both census forms clamp', () => {
+        expect(asSnapshotSafe('— 1 role, 512 chars')).toEqual(
+          '— 1 role, __CHARS__ chars',
+        );
+      });
+    });
+
+    when('[t1] a per-run temp repo root reaches the mask', () => {
+      then('the root is masked, and the path below it survives', () => {
+        // the path below the root names WHICH file the census reports on, so it is the
+        // half a reader is owed — a mask that ate it would pin a census of no file
+        expect(
+          asSnapshotSafe('/tmp/rhachet-test-a1b2c3/.agent/.actors/x/boot.md'),
+        ).toEqual('/TMP_REPO/.agent/.actors/x/boot.md');
+      });
+    });
+  });
+
+  given('[case6] the HUMAN OWN home `.claude` root, beside incidental host paths', () => {
+    // 🚨 .why = an enroll config's `claudeMdExcludes` array renders five entries rooted at
+    //   `/TMP_TEST_DIR/...` and one bare `/PATH_STRIPPED` between them. both tokens were
+    //   correct and the array still failed its one job: a reader could not tell a genuinely
+    //   different root from one per-run root stamped two ways, without a read of the source.
+    //   one vocabulary per concept is the repair (`rule.forbid.ambiguous-labels`), and these
+    //   rows are what keeps the home mask from a silent fall back to the catch-all.
+    when('[t0] the human own claude config root reaches the mask', () => {
+      then('the root is named, and the path below it survives', () => {
+        expect(asSnapshotSafe('/home/vlad/.claude/CLAUDE.md')).toEqual(
+          '/HOME_DIR/.claude/CLAUDE.md',
+        );
+      });
+
+      then('a darwin home reads the same way, so both host shapes clamp', () => {
+        expect(asSnapshotSafe('/Users/vlad/.claude/rules/**')).toEqual(
+          '/HOME_DIR/.claude/rules/**',
+        );
+      });
+
+      then('the catch-all token is NOT what it renders', () => {
+        // the whole point of the mask: the generic `/PATH_STRIPPED` names no root, so a
+        // fall-through here would restore the ambiguity this case exists to close
+        expect(asSnapshotSafe('/home/vlad/.claude/CLAUDE.md')).not.toContain(
+          'PATH_STRIPPED',
+        );
+      });
+    });
+
+    when('[t1] an INCIDENTAL host path reaches the mask', () => {
+      then('it still renders the catch-all, so the new mask does not over-reach', () => {
+        // a host path with no `.claude` segment is incidental — its root tells a reader
+        // naught they need, so a token that named one would over-claim
+        expect(asSnapshotSafe('/home/vlad/git/rhachet/src/x.ts')).toEqual(
+          '/PATH_STRIPPED',
+        );
+      });
+
+      then('a `.claude` segment that is NOT at the home root is incidental too', () => {
+        // the mask is anchored on `.claude` as the FIRST segment below the home dir. a
+        // `.claude` nested deeper belongs to a repo, not to the human, so it falls through
+        expect(asSnapshotSafe('/home/vlad/git/rhachet/.claude/CLAUDE.md')).toEqual(
+          '/PATH_STRIPPED',
+        );
+      });
+    });
+  });
+
+  /**
+   * .what = the stamp in a `.bak` filename, which carries DASHES where the iso mask
+   *   demands colons
+   *
+   * 🔴 .why = a filename cannot hold a colon, so the backup a role init writes reads
+   *   `settings.2026-09-25T17-41-02Z.bak.json`. the iso mask beside it demands
+   *   `\d{2}:\d{2}:\d{2}`, so it never touched this form — and every brain-dir tree
+   *   snapshot that reports a moved backup pinned a raw wallclock, flaky by construction
+   *   on the next run (`rule.require.clamp-edge-cases`). the file already carries this
+   *   same dash-vs-colon note for the `test-fns` root; this is its second instance, so
+   *   the class is real rather than a one-off
+   */
+  given('[case7] a `.bak` filename stamp, written with dashes', () => {
+    when('[t0] a moved backup row reaches the mask', () => {
+      then('the stamp is masked, and the name around it survives', () => {
+        // the name around it is the half a reader is owed: WHICH file moved, and that it
+        // was a backup rather than the live settings
+        expect(
+          asSnapshotSafe(
+            '.claude/settings.2026-09-25T17-41-02Z.bak.json → x/settings.2026-09-25T17-41-02Z.bak.json',
+          ),
+        ).toEqual('.claude/settings.$STAMP.bak.json → x/settings.$STAMP.bak.json');
+      });
+
+      then('a stamp WITH millis masks too', () => {
+        // iso-time omits `.000` on a whole second, so both forms reach a filename
+        expect(
+          asSnapshotSafe('settings.2026-09-25T17-41-02.123Z.bak.json'),
+        ).toEqual('settings.$STAMP.bak.json');
+      });
+
+      then('no raw wallclock survives, which is the whole claim', () => {
+        expect(
+          asSnapshotSafe('settings.2026-09-25T17-41-02Z.bak.json'),
+        ).not.toMatch(/\d{2}-\d{2}-\d{2}Z/);
+      });
+    });
+
+    when('[t1] a dash-stamp that is NOT a backup name reaches the mask', () => {
+      then('it is left alone, so the mask cannot over-reach', () => {
+        // the lookahead anchors on `.bak.`. a dash-stamp elsewhere — a transcript name, an
+        // enrollment log field — is a span a reader may be owed, so it must fall through
+        expect(asSnapshotSafe('history/2026-09-25T17-41-02Z.jsonl')).toEqual(
+          'history/2026-09-25T17-41-02Z.jsonl',
+        );
+      });
+    });
+  });
 });

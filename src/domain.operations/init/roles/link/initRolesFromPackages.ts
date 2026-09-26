@@ -1,6 +1,7 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { indentLines } from '@src/infra/indentLines';
+import { asErrorClassText } from '@src/utils/asErrorClassText';
 
 import { getRolesFoundFromSlugs } from './getRolesFoundFromSlugs';
 import { getRolesLinkedFromFound } from './getRolesLinkedFromFound';
@@ -51,7 +52,7 @@ export const initRolesFromPackages = async (
     console.log(`⚠️  ${packageErrors.length} package(s) failed to load:`);
     for (const { packageName, error } of packageErrors)
       console.log(
-        `   ⛈️ ${packageName}:\n${indentLines({ text: error.message, prefix: '      > ' })}`,
+        `   ✗ ${packageName}:\n${indentLines({ text: asErrorClassText({ error }), prefix: '      > ' })}`,
       );
     console.log('');
   }

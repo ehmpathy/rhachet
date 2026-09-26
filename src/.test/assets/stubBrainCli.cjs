@@ -17,6 +17,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
+// answer the version probe the way claude does, then exit. a test pins a version
+// below the floor via RHACHET_STUB_BRAIN_VERSION
+if (process.argv.includes('--version')) {
+  const version = process.env.RHACHET_STUB_BRAIN_VERSION || '2.1.277';
+  process.stdout.write(`${version} (Claude Code)\n`);
+  process.exit(0);
+}
+
 const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
 
 /**

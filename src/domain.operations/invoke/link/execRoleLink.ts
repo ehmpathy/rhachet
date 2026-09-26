@@ -89,8 +89,14 @@ export const execRoleLink = (
   // records + caches that must never enter git history
   // .note = not pushed to linkResults; this is infra housekeeping, not a
   //   role-specific link, so it stays out of the per-role link tree
-  findsertAgentEphemeralGitignore({ dir: resolve(agentDir, '.actors') });
-  findsertAgentEphemeralGitignore({ dir: resolve(agentDir, '.cache') });
+  findsertAgentEphemeralGitignore({
+    dir: resolve(agentDir, '.actors'),
+    kind: 'actors',
+  });
+  findsertAgentEphemeralGitignore({
+    dir: resolve(agentDir, '.cache'),
+    kind: 'cache',
+  });
 
   // symlink .agent/repo=$repo/readme.md
   if (input.repo.readme?.uri) {

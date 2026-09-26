@@ -1,4 +1,4 @@
-import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { resolve } from 'node:path';
 
 /**
@@ -38,6 +38,26 @@ export const asSnapshotSafe = (output: string): string => {
       // ⚠️ `,` is deliberately NOT a terminator — a comma is legal in a path, and the `"`
       //   already bounds every json value. to add it would trade a real defect for a
       //   speculative one
+      // strip the HUMAN'S OWN home `.claude` dir to a token that names its root, and do
+      // it BEFORE the generic host-path mask below.
+      //
+      // ⚠️ .why it is not left to the generic mask: `/PATH_STRIPPED` is a catch-all the
+      //   generic mask stamps on any host path, and it names no root. an enroll config's
+      //   `claudeMdExcludes` array renders five entries rooted at `/TMP_TEST_DIR/...` and
+      //   one bare `/PATH_STRIPPED` between them — so a reader who scans the locked array
+      //   cannot tell "a genuinely different root, correctly masked" from "one per-run
+      //   root stamped two ways" without a read of the source. that is the vibecheck a
+      //   contract snapshot exists to serve (`rule.require.contract-snapshot-exhaustiveness`),
+      //   and one vocabulary per concept is what restores it (`rule.forbid.ambiguous-labels`).
+      //
+      // the mask is anchored on the literal `.claude` segment, so it reaches ONLY the
+      // human's own claude config root. every other host path still falls through to the
+      // generic mask below, where the catch-all token is the right answer — the path is
+      // incidental there, and a token that named a root would over-claim.
+      .replace(
+        /\/(?:home\/[^/]+|Users\/[^/]+)\/\.claude\/([^)\s"]+)/g,
+        '/HOME_DIR/.claude/$1',
+      )
       .replace(
         /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
@@ -68,11 +88,31 @@ export const asSnapshotSafe = (output: string): string => {
       // dashes only. the mask keeps the `debug.` / `.log` literals, so the snapshot still
       // proves WHICH artifact the envelope names, and only the day floats
       .replace(/debug\.\d{4}-\d{2}-\d{2}\.log/g, 'debug.__DATE__.log')
+      // strip a boot census char count. it sums every linked role's rendered corpus, so
+      // any role package bump moves it; the role count beside it stays, since that is
+      // the part a reader checks
+      .replace(/(\d+ roles?, )\d+ chars/g, '$1__CHARS__ chars')
       // strip ISO timestamps (vary by run). the millis are OPTIONAL: iso-time's
       // now() omits `.000` when the instant lands on a whole second, so a spawn on
       // an exact second renders `…30Z` (no millis) — the mask must catch both forms
       // or the clone-list `since=` snapshot flakes ~1-in-1000 (rule.require.clamp-edge-cases)
       .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z/g, '__TIMESTAMP__')
+      // strip the stamp in a `.bak` filename. the mask above demands COLONS, and a
+      // filename cannot carry one — the backup a role init writes is
+      // `settings.2026-09-25T17-41-02Z.bak.json`, dashes throughout — so the stamp
+      // reached the snapshots raw and every brain-dir tree that reports a moved backup
+      // was flaky by construction (`rule.require.clamp-edge-cases`)
+      //
+      // `$STAMP` is the token `src/contract/cli/invokeInit.integration.test.ts` already
+      // uses for this exact concept — ONE vocabulary per concept, so a reader of either
+      // snapshot set never has to ask whether the two placeholders mean one value
+      //
+      // the lookahead anchors on `.bak.`, so the mask cannot reach a stamp that is not a
+      // backup name — a `since=` field, a transcript name, an enrollment log line
+      .replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(\.\d{3})?Z(?=\.bak\.)/g,
+        '$STAMP',
+      )
       // strip a clone socket path (host-scoped, varies by run) BEFORE the serial
       // mask, so the whole `.sock` token collapses to one stable placeholder
       .replace(/\S*clone\.[0-9a-f-]+\.[0-9a-f]+\.sock/gi, '__SOCKET__')
@@ -278,6 +318,66 @@ export const invokeRhachetCliBinary = (input: {
   }
 
   return result;
+};
+
+/**
+ * .what = invokes the compiled rhachet CLI binary WITHOUT a block of the event loop
+ * .why = a test that holds a live pty (`spawnRhachetCliBackground`) is that pty's ONLY
+ *   reader, and it reads only when its event loop turns. a `spawnSync` freezes the loop,
+ *   so the pty goes undrained for the whole call. the enrolled clone mirrors its brain's
+ *   screen into that pty with a SYNCHRONOUS tty write, so once the kernel buffer fills the
+ *   clone's own event loop blocks too — and its socket server can no longer ack a `say`.
+ *   the say then waits out its 30s wedge window, exits 2, and only THEN does the loop
+ *   resume, drain the pty, and let the clone deliver the message it held. a test-made
+ *   deadlock that reads as a product wedge
+ *
+ * .note = a human's terminal always drains, so this is a harness defect, never a product
+ *   one. a call made while a background pty is live uses this twin, never the sync one
+ */
+export const invokeRhachetCliBinaryAsync = (input: {
+  /** CLI args after the binary name */
+  args: string[];
+  /** cwd for the command */
+  cwd: string;
+  /** optional stdin data to pipe */
+  stdin?: string;
+  /** optional env vars to merge with process.env; undefined unsets an inherited var */
+  env?: Record<string, string | undefined>;
+  /** whether to log output on failure (default: true), as the sync twin does */
+  logOnError?: boolean;
+}): Promise<{ status: number | null; stdout: string; stderr: string }> => {
+  // merge env, drop undefined so a test can unset an inherited var
+  const mergedEnv = { ...process.env, ...input.env };
+  const envFiltered = Object.fromEntries(
+    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
+  ) as NodeJS.ProcessEnv;
+
+  return new Promise((done, fail) => {
+    const child = spawn(RHACHET_BIN, input.args, {
+      cwd: input.cwd,
+      env: envFiltered,
+    });
+
+    // .note = deliberate mutation — a child streams its output over time, so the two
+    //   buffers accumulate as chunks arrive; both are local to this promise
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString('utf-8')));
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString('utf-8')));
+    child.once('error', fail);
+    child.once('close', (status) => {
+      // log output for debug on failure, as the sync twin does
+      if ((input.logOnError ?? true) && status !== 0) {
+        console.error('stderr:', stderr);
+        console.error('stdout:', stdout);
+      }
+      done({ status, stdout, stderr });
+    });
+
+    // pipe stdin when given, then close it so a `@stdin` read sees its EOF
+    if (input.stdin !== undefined) child.stdin.write(input.stdin);
+    child.stdin.end();
+  });
 };
 
 /**
