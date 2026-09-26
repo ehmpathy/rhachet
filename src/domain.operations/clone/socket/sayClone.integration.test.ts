@@ -144,9 +144,12 @@ describe('sayClone.integration', () => {
           reachCause: outcome.metadata.reachCause,
           acksSeen: outcome.metadata.acksSeen,
           // the silence is measured from the connect, since no ack ever re-armed the clock
+          //
+          // .note = a node timer may fire a ms or two before `Date.now()` passes its bound,
+          //   so the floor tolerates that edge rather than flake on it
           silentAtLeastTheWindow:
             typeof outcome.metadata.silentMs === 'number' &&
-            outcome.metadata.silentMs >= 1000,
+            outcome.metadata.silentMs >= 1000 - 5,
         }).toEqual({
           threw: true,
           reachCause: 'wedged',
