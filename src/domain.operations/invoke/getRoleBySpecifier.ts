@@ -4,6 +4,7 @@ import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { getRoleFromManifests } from '@src/domain.operations/manifest/getRoleFromManifests';
+import { asErrorClassText } from '@src/utils/asErrorClassText';
 
 /**
  * .what = resolves a role by specifier from either explicit or implicit config
@@ -39,8 +40,8 @@ export const getRoleBySpecifier = async (
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         console.log(``);
-        console.log(`⛈️  failed to load rhachet.use.ts:`);
-        console.log(`   └── ${error.message}`);
+        console.log(`✗ failed to load rhachet.use.ts:`);
+        console.log(`   └── ${asErrorClassText({ error })}`);
         throw error;
       }
     }

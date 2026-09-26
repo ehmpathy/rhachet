@@ -320,9 +320,10 @@ describe('asCloneListView', () => {
         const view = asCloneListView({ groups, linked: true, scoped: false });
 
         then('ONLY the actor that owns a clone renders', () => {
-          // the header abbreviates the hash to 7 chars (`live000…`); the FULL hash
-          // lives in json (asserted below)
-          expect(view.tree).toContain('live000');
+          // the header carries the hash WHOLE — `genEnrollmentHash` mints 8 chars, so
+          // that value is the actor's entire name and a human copies it off this list
+          // to address `@<hash>` by hand (define.address-sigils)
+          expect(view.tree).toContain('actor live0000 (');
           expect(view.tree).toContain('@:runner');
         });
 

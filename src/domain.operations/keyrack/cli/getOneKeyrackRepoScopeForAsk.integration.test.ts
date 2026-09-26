@@ -36,7 +36,7 @@ describe('getOneKeyrackRepoScopeForAsk.integration', () => {
 
   given('[case1] a cwd that is NOT a git repo — the onNoRepo axis', () => {
     // ⚠️ .why = `genTestTempDir` roots under `__dirname`, which IS inside this repo — so a real
-    //        `git rev-parse` from there walks UP and finds this worktree's own root. a clamp
+    //        gitroot walk from there climbs UP and finds this worktree's own root. a clamp
     //        built on it reads a gitroot on every row, and so asserts none of the no-repo axis.
     //        `genTestTempDirNonRepo` roots in os.tmpdir(), outside any repo, which is the only
     //        place the absent-gitroot branch actually runs
@@ -109,7 +109,7 @@ describe('getOneKeyrackRepoScopeForAsk.integration', () => {
     '[case2] a repo whose keyrack.yml cannot hydrate — the manifest axis',
     () => {
       // ⚠️ .why = the manifest axis needs a REAL gitroot, and it must be THIS dir rather than the
-      //        worktree above it — `getGitRepoRootOrNull` shells out to `git rev-parse`, so a dir
+      //        worktree above it — `getGitRepoRootOrNull` climbs to the nearest `.git` marker, so a dir
       //        inside this repo resolves to this repo's own root and reads this repo's own
       //        keyrack.yml. the broken fixture below would then never be the file under test
       const scene = useBeforeAll(async () => {

@@ -74,7 +74,7 @@ check() {
   if [[ "$actual" == "$expectation" ]]; then
     echo "   ├─ ✅ $label"
   else
-    echo "   ├─ ⛈️  $label"
+    echo "   ├─ 💥 $label"
     echo "   │     expected: $expectation"
     echo "   │     actual:   $actual"
     FAILURES=$((FAILURES + 1))

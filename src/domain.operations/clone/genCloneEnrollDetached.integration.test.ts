@@ -1,5 +1,7 @@
 import { getError, given, then, useThen, when } from 'test-fns';
 
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 import { genCloneEnrollDetached } from './genCloneEnrollDetached';
 
 /**
@@ -51,7 +53,7 @@ describe('genCloneEnrollDetached', () => {
 
   given('[case2] a host that REFUSES with a non-zero code', () => {
     // 🔴 the shape that carries the whole failhide cure. the host has already rendered
-    //   its own cause on the stderr it inherited, so this must NOT throw — a throw makes
+    //   its own cause on the stderr the caller forwards, so this must NOT throw — a throw makes
     //   the caller narrate a second error over the host's, and stderr then holds two json
     //   objects a machine can parse neither of
     when('[t0] the caller awaits its address', () => {
@@ -153,4 +155,60 @@ describe('genCloneEnrollDetached', () => {
       });
     });
   });
+
+  given(
+    '[case5] a caller whose own stderr is CAPTURED, and a host that lives on',
+    () => {
+      // 🔴 the hang this clamps: a host that inherits the caller's stderr holds that fd for
+      //   its whole life, so whoever captures the caller's stderr — a supervisor's
+      //   spawnSync, a `$(rhx enroll … 2>&1)` — reads no EOF until the clone dies. the
+      //   caller must hand the fd back once it has the address. a separate caller process
+      //   is the only seam that can observe it: the test's own stderr is never captured
+      when('[t0] the caller runs to its address and exits', () => {
+        const run = useThen('it returns', () => {
+          const script = [
+            `const { genCloneEnrollDetached } = require(${JSON.stringify(join(__dirname, 'genCloneEnrollDetached.ts'))});`,
+            'genCloneEnrollDetached({',
+            '  execPath: process.execPath,',
+            // the host speaks on stderr, hands off, then lives on past the caller
+            `  argv: ['-e', "console.error('host.pre'); console.log(JSON.stringify({ outcome: 'baked' })); setTimeout(() => {}, 30000)"],`,
+            '  cwd: process.cwd(),',
+            '  timeoutMs: 20000,',
+            '}).then((result) => console.log(result.outcome));',
+          ].join('\n');
+          const begun = Date.now();
+          const ran = spawnSync(
+            process.execPath,
+            ['--import', 'tsx', '-e', script],
+            {
+              cwd: process.cwd(),
+              encoding: 'utf8',
+              timeout: 25_000,
+            },
+          );
+          return { ...ran, ms: Date.now() - begun };
+        });
+
+        then('the caller is handed its address', () => {
+          expect(run.status).toEqual(0);
+          expect(run.stdout).toContain('addressed');
+        });
+
+        then(
+          'the host\u2019s pre-handoff stderr still reaches the caller\u2019s stderr',
+          () => {
+            expect(run.stderr).toContain('host.pre');
+          },
+        );
+
+        then(
+          'the captured stderr closes with the caller, never with the host',
+          () => {
+            // the host lives 30s; a held fd would pin this read to the spawn timeout
+            expect(run.ms).toBeLessThan(10_000);
+          },
+        );
+      });
+    },
+  );
 });

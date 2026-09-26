@@ -1,7 +1,7 @@
 import type { IsoTimeStamp } from 'iso-time';
-import { getUuid } from 'uuid-fns';
 
-import { renameSync, writeFileSync } from 'node:fs';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
+
 import { join } from 'node:path';
 import { CLONE_IDENTITY_SCHEMA_VERSION } from './constants';
 
@@ -45,8 +45,8 @@ export const setCloneIdentity = (input: {
   };
 
   // write to a temp file, then rename — so a reader never sees a partial record
-  const recordPath = join(input.cloneDir, 'identity.json');
-  const recordTemp = join(input.cloneDir, `.identity.json.${getUuid()}.tmp`);
-  writeFileSync(recordTemp, JSON.stringify(record) + '\n', 'utf8');
-  renameSync(recordTemp, recordPath);
+  setFileAtomic({
+    path: join(input.cloneDir, 'identity.json'),
+    content: JSON.stringify(record) + '\n',
+  });
 };

@@ -17,7 +17,7 @@ test fixture generators (e.g., `genMockedBrainAtom`, `genSampleBrainSpec`) must 
 | ----------------- | ----------------------------------------------------------------------- |
 | unit tests        | `src/.test/assets/`                                                     |
 | integration tests | `src/.test/assets/`                                                     |
-| acceptance tests  | `src/.test/assets/` if applicable, else `accept.blackbox/.test/assets/` |
+| acceptance tests  | `src/.test/assets/` if applicable, else `blackbox/.test/assets/`       |
 
 acceptance tests should import from `src/.test/assets/` (via `@src/` imports) only when the fixture is also relevant for unit or integration tests.
 

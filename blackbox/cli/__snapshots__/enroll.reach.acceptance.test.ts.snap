@@ -12,7 +12,7 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case2c] a bare enroll (n
 
 exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --no-socket (the fallback) when: [t0] \`clone list\` after a socketless enroll then: the socketless clone-list format is locked (visual spot-check) 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       └─ @:plain  serial=__SERIAL8__  state=DEAF  since=__TIMESTAMP__
 "
 `;

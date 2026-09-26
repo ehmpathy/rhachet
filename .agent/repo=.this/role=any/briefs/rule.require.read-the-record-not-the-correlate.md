@@ -63,6 +63,10 @@ before a state claim, name the record for that question — then read **that**:
 | is an action permitted? | the enforcement path — run it and read the exit |
 | what changed, and in which direction? | the commit graph |
 | does a capability still work? | **a run in this session** — its command, and its output |
+| what **grain** is this operation — pure, or i/o? | its **input and output types**, never the grade annotated beside it |
+| is this change a **move**, or a **rewrite**? | the source's **emit mechanism** — an operation that streams cannot be moved into one that returns |
+| why has this codepath **no test coverage**? | the **test file** — *"not yet done"* and *"cannot be done at this tier"* read identically in a comment |
+| what did the **wisher rule** on X? | the **LATEST** seed on X, never the first one a search returns — a seed set is append-only, and a superseded seed does not know it was reversed |
 
 **the enforcement path deserves its own note.** where the state governs whether you *may* act, the
 run IS the record — it is the only read that stays correct without knowledge of how the meters
@@ -77,6 +81,7 @@ a state claim whose warrant is a signal that merely **accompanies** the state:
 - *"I am permitted — the org row says allowed"*
 - *"that branch deleted it — the diff shows it gone"*
 - 🔴 *"that works — I verified it"* / *"the brief records the measurement"*
+- *"the wisher ruled X — here is the seed that says so"*
 
 reach for the check whenever the evidence is what the state *causes*, rather than what the state
 *is*.
@@ -85,6 +90,46 @@ reach for the check whenever the evidence is what the state *causes*, rather tha
 every *"I verified that"* that does not carry its own command and output** — so when a capability is
 called **key**, its warrant is a run in the current session, never a citation of a run in a prior
 one. one command, and it cannot be wrong about its own subject.
+### 🔴 the APPEND-ONLY variant — a record can be genuine and STALE
+
+the four instances above each read a signal beside the state. the fifth shape is worse, because the
+artifact read **is** the record — it is merely **not the latest one**:
+
+> an append-only set (seeds, a passage log, a changelog) has a **latest**. any single entry in it was
+> true when written and may have been reversed since. ⇒ **the correlate is an entry's existence; the
+> record is the set's latest entry on that subject.**
+
+⚠️ **a search makes this failure the DEFAULT.** `grepsafe` and `Glob` return matches in **file
+order**, and file order is not time order — so the first hit on a topic is as likely to be the
+superseded entry as the live one. *a superseded entry does not know it was reversed*, so its own page
+cannot warn you.
+
+**measured 2026-09-23** on `v2026_09_22.feat-boot-briefs-into-claude-md`: a transport mechanism was
+derived from seed `S6` (`--append-system-prompt`, a **recorded** prompt) and written into a
+blueprint. `S12` had reversed it to an `AGENTS.md` file, which is **re-read** — the opposite
+mechanism. 🔴 **the conclusions happened to hold under both**, so no downstream check could have
+caught it.
+
+⇒ the counter-move: **scan the whole match set for a reversal before you cite any single entry.**
+
+### 🔴 the sharpest tell — a grade and its edge case that describe DIFFERENT WORLDS
+
+it needs no judgment, it costs one glance, and it catches the case a careful reader defends in prose:
+
+```
+| `getAllActorsActive` | … | … | an empty actors ROOT → [] |     ← a *root* is a DIRECTORY
+                          filed under: transformers (pure)      ← pure means NO i/o
+```
+
+**both cannot be true.** the author's own statement of the boundary reached for the filesystem while
+the grade beside it claimed purity. ⇒ where an annotation and its neighbour imply different worlds,
+**the one that names a concrete artifact is the one to believe** — it was written while its author
+pictured the real artifact.
+
+measured 2026-09-23 on `v2026_09_22.feat-boot-briefs-into-claude-md`: that row was passed ✅ on a
+first read and defended in a written paragraph, then overturned by one look at the upstream
+operation's return type (`ActorOndisk` carries no clone records ⇒ the filter must `readdir` ⇒ it is
+a communicator, never a transformer). **the tell was on the page the whole time.**
 
 ## .not the same as a mechanism claim
 
@@ -228,6 +273,10 @@ it prescribes a **wrong cure**, and the wrong cure is usually destructive:
 - `rule.forbid.mechanism-inferred-from-outcome` — the peer; how-it-works, never what-state
 - `rule.require.search-before-you-claim-absence` — the third of the family; the widen case
 - `rule.require.trust-but-verify` (ehmpathy/mechanic) — the parent discipline all three serve
+- the three **blueprint-review** rows and the different-worlds tell were added 2026-09-23 from
+  `.behavior/v2026_09_22.feat-boot-briefs-into-claude-md/review/self/for.3.3.1.blueprint.product._.r7.has-thorough-test-coverage.md`
+  — four instances in one document, each a grade or a coverage note read off an annotation rather
+  than off the source it describes
 
 ⚠️ **instance 4 has no brief in this repo.** it is dispatched to its owner as
 `ehmpathy/rhachet-roles-ehmpathy#644` (a direction-explicit `rhx git.diff --since main`, plus a

@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainDirSyncReportLines given: [case1] a full migration — moves, drops, a fresh link, a new corpus when: [t0] the lines are rendered then: every group sits under one header, in the one order 1`] = `
+[
+  "🧠 brain dir (default)",
+  "   ├─ moved",
+  "   │  ├─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json",
+  "   │  └─ .claude/keep.json → .agent/.actors/actor.via.slug=.default/brain/.claude/keep.json",
+  "   ├─ dropped",
+  "   │  └─ .claude/CLAUDE.md — rhachet owns the boot context",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude",
+  "   └─ boot.md",
+  "      └─ created — 2 roles",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case2] a link this run created, with naught to migrate when: [t0] the lines are rendered then: it names the link and the corpus, and naught else 1`] = `
+[
+  "🧠 brain dir (default)",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude",
+  "   └─ boot.md",
+  "      └─ created — 2 roles",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case4] an actor brain dir, which has no <repo>/.claude beneath it when: [t0] a first render, with no symlink then: the header names the actor, and the role word is singular 1`] = `
+[
+  "🧠 brain dir (actor 051970ec)",
+  "   └─ boot.md",
+  "      └─ created — 1 role",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case4b] a move that replaced an entry the default dir held when: [t0] the lines are rendered then: only the replaced row is marked — the other is a plain move 1`] = `
+[
+  "🧠 brain dir (default)",
+  "   ├─ moved",
+  "   │  ├─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json (replaced)",
+  "   │  └─ .claude/rules → .agent/.actors/actor.via.slug=.default/brain/.claude/rules",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude",
+  "   └─ boot.md",
+  "      └─ upgraded — 2 roles",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case5] an AGENTS.md reset, with no other change when: [t0] the lines are rendered then: the reset is never silent — the human lost hand edits (S11) 1`] = `
+[
+  "🧠 brain dir (default)",
+  "   ├─ boot.md",
+  "   │  └─ upgraded — 2 roles",
+  "   └─ AGENTS.md",
+  "      └─ reset — hand edits dropped; rhachet owns this file",
+]
+`;

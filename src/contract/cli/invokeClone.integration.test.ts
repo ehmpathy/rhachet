@@ -1,14 +1,17 @@
 import { Command } from 'commander';
+import { asIsoTimeStamp } from 'iso-time';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { asClaudeProjectSlug } from '@src/domain.operations/clone/asClaudeProjectSlug';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { invokeClone } from './invokeClone';
 
@@ -222,8 +225,11 @@ describe('invokeClone (integration)', () => {
         then(
           'it scopes to exactly that one actor (usecase.5 + addendum 2)',
           () => {
-            expect(result.out).toContain(scene.a.hash.slice(0, 7));
-            expect(result.out).not.toContain(scene.b.hash.slice(0, 7));
+            // the WHOLE hash is asserted, never a 7-char prefix of it: the view renders
+            // the hash entire (it is the actor's whole name), so a prefix assert would
+            // pass on a truncated render too and pin the weaker claim
+            expect(result.out).toContain(scene.a.hash);
+            expect(result.out).not.toContain(scene.b.hash);
           },
         );
 
@@ -373,6 +379,156 @@ describe('invokeClone (integration)', () => {
 
         then('it exits 2', () => {
           expect(result.exitCode).toEqual(2);
+        });
+      });
+    },
+  );
+
+  given(
+    '[case8] a clone spawned after its actor brain dir was born (D8 route)',
+    () => {
+      // the transcript sits under the actor's brain dir, the dir the clone was
+      // spawned with; `clone get` must link and read it from there, never `~/.claude`
+      const scene = useBeforeAll(async () => {
+        const brainCwd = genTempDir({ slug: 'invokeClone-d8' });
+        const repoPath = getOneRepoPath({ from: brainCwd });
+        const serial = getUuid();
+        const spawnedAtMs = Date.now() + 2_000;
+        const clone = genSampleCloneOndisk({
+          repoPath,
+          serial,
+          slug: null,
+          socketEligible: false,
+          spawnedAt: asIsoTimeStamp(new Date(spawnedAtMs)),
+        });
+
+        // the brain dir is born before the spawn instant, so D8 routes to it
+        const brainDir = getBrainOndiskDir({ actorDir: clone.actorDir });
+        const projectDir = join(
+          brainDir,
+          'projects',
+          asClaudeProjectSlug({ cwd: clone.repoPath }),
+        );
+        mkdirSync(projectDir, { recursive: true });
+        const transcriptPath = join(projectDir, `${getUuid()}.jsonl`);
+        writeFileSync(
+          transcriptPath,
+          JSON.stringify({
+            type: 'assistant',
+            message: {
+              content: [{ type: 'text', text: 'sentinel-from-brain-dir' }],
+            },
+          }) + '\n',
+          'utf8',
+        );
+        const transcriptAt = new Date(spawnedAtMs + 5_000);
+        utimesSync(transcriptPath, transcriptAt, transcriptAt);
+        return { brainCwd, serial };
+      });
+
+      when('[t0] `clone get @:<serial>` runs', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.brainCwd,
+            argv: ['clone', 'get', `@:${scene.serial}`],
+          }),
+        );
+
+        then('it reads the transcript from the actor brain dir', () => {
+          expect(result.out).toContain('sentinel-from-brain-dir');
+        });
+
+        then('it exits 0', () => {
+          expect(result.exitCode).toEqual(0);
+        });
+      });
+    },
+  );
+
+  given(
+    '[case9] one actor, a clone spawned before its brain dir was born and one after (D8 legacy route)',
+    () => {
+      // a clone alive across the upgrade still writes under `~/.claude`; one spawned
+      //   after writes under the brain dir, so `~/.claude` must never enter its reads.
+      //   HOME is a temp dir for the whole scene, so the host hash and `~/.claude` agree
+      const scene = useBeforeAll(async () => {
+        const homeBefore = process.env['HOME'];
+        const home = genTempDir({ slug: 'invokeClone-d8-legacy-home' });
+        process.env['HOME'] = home;
+        try {
+          const brainCwd = genTempDir({ slug: 'invokeClone-d8-legacy' });
+          const repoPath = getOneRepoPath({ from: brainCwd });
+
+          // the prior clone spawns a minute before the brain dir is born
+          const serialPrior = getUuid();
+          const clonePrior = genSampleCloneOndisk({
+            repoPath,
+            serial: serialPrior,
+            slug: null,
+            socketEligible: false,
+            spawnedAt: asIsoTimeStamp(new Date(Date.now() - 60_000)),
+          });
+          mkdirSync(getBrainOndiskDir({ actorDir: clonePrior.actorDir }), {
+            recursive: true,
+          });
+
+          // the later clone of the same actor spawns after the brain dir is born
+          const spawnedAtLaterMs = Date.now() + 2_000;
+          const serialLater = getUuid();
+          genSampleCloneOndisk({
+            repoPath,
+            serial: serialLater,
+            slug: null,
+            socketEligible: false,
+            spawnedAt: asIsoTimeStamp(new Date(spawnedAtLaterMs)),
+          });
+
+          // one transcript under `~/.claude`, newer than both spawns
+          const projectDir = join(
+            home,
+            '.claude',
+            'projects',
+            asClaudeProjectSlug({ cwd: clonePrior.repoPath }),
+          );
+          mkdirSync(projectDir, { recursive: true });
+          const transcriptPath = join(projectDir, `${getUuid()}.jsonl`);
+          writeFileSync(
+            transcriptPath,
+            JSON.stringify({
+              type: 'assistant',
+              message: {
+                content: [{ type: 'text', text: 'sentinel-from-home' }],
+              },
+            }) + '\n',
+            'utf8',
+          );
+          const transcriptAt = new Date(spawnedAtLaterMs + 5_000);
+          utimesSync(transcriptPath, transcriptAt, transcriptAt);
+
+          const resultPrior = await driveClone({
+            cwd: brainCwd,
+            argv: ['clone', 'get', `@:${serialPrior}`],
+          });
+          const resultLater = await driveClone({
+            cwd: brainCwd,
+            argv: ['clone', 'get', `@:${serialLater}`],
+          });
+          return { resultPrior, resultLater };
+        } finally {
+          process.env['HOME'] = homeBefore;
+        }
+      });
+
+      when('[t0] `clone get` runs for each clone', () => {
+        then('the prior clone reads its transcript from ~/.claude', () => {
+          expect(scene.resultPrior.out).toContain('sentinel-from-home');
+          expect(scene.resultPrior.exitCode).toEqual(0);
+        });
+
+        then('the later clone never reads ~/.claude', () => {
+          expect(scene.resultLater.exitCode).toEqual(0);
+          expect(scene.resultLater.out).toContain('talk of @:');
+          expect(scene.resultLater.out).not.toContain('sentinel-from-home');
         });
       });
     },

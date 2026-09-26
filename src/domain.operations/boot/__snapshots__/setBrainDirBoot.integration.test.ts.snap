@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setBrainDirBoot given: [case1] a repo with two linked roles when: [t0] one brain dir is rendered then: boot.md holds both roles, no stats block, and the pointer files are set 1`] = `
+"<readme path=".agent/repo=.this/role=any/readme.md">
+any readme
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+any brief body
+</brief.say>
+
+<readme path=".agent/repo=fixture/role=zeta/readme.md">
+zeta readme
+</readme>
+
+<brief.say path=".agent/repo=fixture/role=zeta/briefs/core.md">
+zeta brief body
+</brief.say>
+
+"
+`;

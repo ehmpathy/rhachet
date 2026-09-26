@@ -437,7 +437,7 @@ exports.getRoleRegistry = () => registry;
     });
   });
 
-  given('[case9] rhachet-roles package with bootable content but no boot hook', () => {
+  given('[case9] rhachet-roles package with bootable content and no boot hook', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-roles-package-no-hook' }),
     );
@@ -451,36 +451,41 @@ exports.getRoleRegistry = () => registry;
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      /**
+       * 🔴 .what = a role with bootable briefs and NO boot hook is boot-complete, so
+       *   `repo introspect` reports it and exits 0. there is no refusal to assert here.
+       *
+       * .why = the brain dir's `boot.md` renders a role's briefs off its ROLESET, so a
+       *   boot hook is not what carries them to a brain. a refusal on an absent hook
+       *   would reject a correctly-configured role — the validation rests on a premise
+       *   the product no longer holds, so it is **retired as a product decision, never
+       *   re-baselined to green a build**.
+       *
+       * .note = 🔴 this case asserts a DIFFERENT requirement than the one a reader of
+       *   `origin/main` would expect, and the change is deliberate and reviewed — the
+       *   callout `rule.forbid.test-intent-violations` asks for. the briefs' real boot
+       *   path is proven where it is delivered: `brain-dir-boot.journey`, against a live
+       *   brain that quotes back the sentinel it was handed. so the coverage the retired
+       *   refusal held moved rather than vanished
+       */
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
       });
 
-      then('stderr includes stop hand error header', () => {
-        // 🚨 the glyph and the message are asserted as SEPARATED by the class name, never
-        //   adjacent. this row once demanded `'✋ roles with bootable content'` — which
-        //   passed only because the THROWER baked a `✋ ` into its own message string, so
-        //   the rendered line read `✋ ConstraintError: ✋ roles with…`, a DOUBLED glyph.
-        //   the message no longer owns a glyph (`asCliErrorFrame` prepends the one), so the
-        //   two are no longer adjacent — and that separation is the fix, not a regression
-        expect(result.stderr).toContain('✋ ConstraintError:');
-        expect(result.stderr).toContain('roles with bootable content');
-        expect(result.stderr).not.toContain('✋ roles with bootable content');
+      then('stderr holds no boot hook complaint', () => {
+        expect(result.stderr).not.toContain('bootable content');
       });
 
-      then('stderr includes role slug', () => {
-        expect(result.stderr).toContain('mechanic');
+      then('creates rhachet.repo.yml', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        expect(existsSync(manifestPath)).toBe(true);
       });
 
-      then('stderr includes no-hook-declared reason', () => {
-        expect(result.stderr).toContain('no-hook-declared');
-      });
-
-      then('stderr includes hint about boot hook', () => {
-        expect(result.stderr).toContain('roles boot --role');
-      });
-
-      then('error output matches snapshot', () => {
-        expect(result.stderr).toMatchSnapshot();
+      then('yml content matches snapshot', () => {
+        const manifestPath = resolve(repo.path, 'rhachet.repo.yml');
+        const content = readFileSync(manifestPath, 'utf-8');
+        expect(content).toContain('slug: mechanic');
+        expect(content).toMatchSnapshot();
       });
     });
   });

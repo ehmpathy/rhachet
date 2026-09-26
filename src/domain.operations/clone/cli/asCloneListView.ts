@@ -1,5 +1,3 @@
-import { abbreviate } from '@src/utils/abbreviate';
-
 import { asCloneAddressHuman } from '../asCloneAddressHuman';
 import { asCloneSerialHuman } from '../asCloneSerialHuman';
 import type { CloneReachState } from '../computeCloneReachState';
@@ -133,7 +131,7 @@ export const asCloneListView = (input: {
     lines.push(
       // roles sorted so the display is deterministic (matches the sorted roleset
       // the identity hash derives from) — never incidental store order
-      `${groupPrefix} actor ${abbreviate({ value: group.hash, keep: 7 })} (brain=${group.brain} roles=${[...group.roles].sort().join(',')})`,
+      `${groupPrefix} actor ${group.hash} (brain=${group.brain} roles=${[...group.roles].sort().join(',')})`,
     );
 
     if (group.clones.length === 0) {

@@ -27,3 +27,37 @@ export const ENROLLMENT_LOG_SCHEMA_VERSION = 1;
  *   newer-unknown version fails loud with an upgrade hint
  */
 export const ACTOR_MANIFEST_SCHEMA_VERSION = 1;
+
+/**
+ * .what = the name of the reserved default actor dir, a direct child of `.agent/.actors`
+ * .why = the default brain dir, the enroll excludes and all three gitignore writers
+ *        address it; one literal keeps them in agreement (D10)
+ */
+export const DEFAULT_ACTOR_DIR_NAME = 'actor.via.slug=.default';
+
+/**
+ * .what = the gitignore lines that keep `.agent/.actors` out of git, except the default
+ *         actor dir, which is tracked
+ * .why = three writers emit these lines — the repo `.gitignore` rewrite, the repo
+ *        `.gitignore` negation, and the `.actors/.gitignore` self-ignore. a line that
+ *        drifts in one writer re-ignores the default dir, or un-ignores every actor
+ *
+ * .note = git never re-includes a path under an excluded dir, so the repo line is
+ *         `.agent/.actors/*` (its children), never `.agent/.actors/` (the dir itself)
+ */
+export const ACTORS_GITIGNORE_LINE = {
+  /**
+   * the repo `.gitignore`: every direct child of the actors root
+   */
+  repoChildren: '.agent/.actors/*',
+
+  /**
+   * the repo `.gitignore`: the default actor dir, re-included
+   */
+  repoDefaultNegation: `!.agent/.actors/${DEFAULT_ACTOR_DIR_NAME}/`,
+
+  /**
+   * the `.actors/.gitignore`: the default actor dir, re-included from within
+   */
+  selfDefaultNegation: `!/${DEFAULT_ACTOR_DIR_NAME}/`,
+} as const;

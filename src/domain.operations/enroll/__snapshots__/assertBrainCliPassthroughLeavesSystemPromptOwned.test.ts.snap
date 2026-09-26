@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertBrainCliPassthroughLeavesSystemPromptOwned the refusal message is locked to a snapshot 1`] = `
+"✋ ConstraintError: enroll owns the system prompt; the passthrough may not override it
+
+{
+  "overrides": [
+    "--system-prompt"
+  ],
+  "hint": "rhachet spawns every clone with \`--system-prompt ''\` and boots its briefs via CLAUDE.md. to add text, pass \`--append-system-prompt <text>\`; to change what a clone knows, add a brief to one of its roles"
+}"
+`;

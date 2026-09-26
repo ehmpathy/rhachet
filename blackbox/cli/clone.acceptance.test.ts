@@ -12,6 +12,7 @@ import {
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 // the ONE owner of the short-serial projection. its own unit clamp pins the shape with
@@ -96,9 +97,13 @@ describe('rhx clone reach (acceptance)', () => {
         const entries = readdirSync(actorsRoot);
         // the two-grain split: enroll writes ONLY the hash namespace
         expect(entries.some((e) => e.startsWith('actor.via.hash='))).toBe(true);
-        expect(entries.some((e) => e.startsWith('actor.via.slug='))).toBe(
-          false,
-        );
+        // `actor.via.slug=.default` is the REPO's own brain dir, written by
+        // `roles link` in the fixture — enroll never touches it
+        // (define.brain-dir-repo-vs-actor). so the one permitted slug entry is
+        // named outright: any OTHER slug actor means enroll minted one
+        expect(entries.filter((e) => e.startsWith('actor.via.slug='))).toEqual([
+          'actor.via.slug=.default',
+        ]);
       });
 
       then('the clone appears LIVE in `clone list`, by slug + abbreviated serial', () => {
@@ -159,7 +164,7 @@ describe('rhx clone reach (acceptance)', () => {
       //   the other clone's reply, a green about a dispatch this row never made
       const nonce = `slug${getUuid()}`;
       const roundtrip = useThen('the say+get round-trips by slug', async () => {
-        const said = invokeRhachetCliBinary({
+        const said = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'say', '@:driver', '--what', `poke ${nonce}`],
           cwd: scene.dir,
           env: scene.env,
@@ -207,7 +212,7 @@ describe('rhx clone reach (acceptance)', () => {
         'the same clone round-trips by serial (address forms interchangeable)',
         async () => {
           const address = `@:${scene.serial}`;
-          const said = invokeRhachetCliBinary({
+          const said = await invokeRhachetCliBinaryAsync({
             args: ['clone', 'say', address, '--what', `poke ${nonce}`],
             cwd: scene.dir,
             env: scene.env,
@@ -254,7 +259,7 @@ describe('rhx clone reach (acceptance)', () => {
           // the EXACT short form the list renders, read through its one owner — so a
           // change to the projection moves this address with it rather than strands it
           const address = `@:${asCloneSerialHuman({ serial: scene.serial })}`;
-          const said = invokeRhachetCliBinary({
+          const said = await invokeRhachetCliBinaryAsync({
             args: ['clone', 'say', address, '--what', `poke ${nonce}`],
             cwd: scene.dir,
             env: scene.env,
@@ -574,7 +579,7 @@ describe('rhx clone reach (acceptance)', () => {
       const roundtrip = useThen(
         'a piped message round-trips like --what <m>',
         async () => {
-          const said = invokeRhachetCliBinary({
+          const said = await invokeRhachetCliBinaryAsync({
             args: ['clone', 'say', '@:driver', '--what', '@stdin'],
             cwd: scene.dir,
             env: scene.env,
@@ -1017,7 +1022,7 @@ describe('rhx clone reach (acceptance)', () => {
       const convo = useThen(
         'say poke <nonce>, then get --tail 4 as blocks and as raw',
         async () => {
-          const said = invokeRhachetCliBinary({
+          const said = await invokeRhachetCliBinaryAsync({
             args: ['clone', 'say', '@:driver', '--what', `poke ${nonce}`],
             cwd: scene.dir,
             env: scene.env,

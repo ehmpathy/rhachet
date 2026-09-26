@@ -59,6 +59,15 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
+🧠 brain dir (default)
+   ├─ moved
+   │  ├─ .claude/settings.$TIMESTAMP.bak.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.$TIMESTAMP.bak.json
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
 "
 `;
 
@@ -193,6 +202,12 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    └─ stats
       └─ 45 brief(s)
 
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
 "
 `;
 
@@ -259,6 +274,12 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    └─ stats
       └─ 45 brief(s)
 
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
 "
 `;
 
@@ -285,6 +306,12 @@ exports[`rhx init --roles incremental (acceptance) given: [case15] remove where 
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (0)
+
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 0 roles
 
 "
 `;

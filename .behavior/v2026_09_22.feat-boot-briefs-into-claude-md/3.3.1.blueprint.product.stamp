@@ -1,0 +1,89 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 3.3.1.blueprint.product
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i003.43735ea6f0534fe2e5.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i003.43735ea6f0534fe2e5.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: mech-failhides (l1, 5/5)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r002._.given.by_peer.mech-failhides.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r002._.taken.by_self.mech-failhides.md
+   │  │   ├─ r3: mech-decode-friction (l1, 5/5)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r003._.given.by_peer.mech-decode-friction.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r003._.taken.by_self.mech-decode-friction.md
+   │  │   ├─ r4: arch-opport-decomposition (l1, 5/5)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r004._.given.by_peer.arch-opport-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r004._.taken.by_self.arch-opport-decomposition.md
+   │  │   ├─ r5: arch-smell-scopeleaks (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i003.43735ea6f0534fe2e5.r005._.given.by_peer.arch-smell-scopeleaks.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i003.43735ea6f0534fe2e5.r005._.taken.by_self.arch-smell-scopeleaks.md
+   │  │   ├─ r6: arch-hazards-maintenance (l1, 5/5)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r006._.given.by_peer.arch-hazards-maintenance.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r006._.taken.by_self.arch-hazards-maintenance.md
+   │  │   ├─ r7: arch-hazards-behavior (l1, 7/7)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 3 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i007.da27d3b9dcf986ce94.r007._.given.by_peer.arch-hazards-behavior.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i007.da27d3b9dcf986ce94.r007._.taken.by_self.arch-hazards-behavior.md
+   │  │   ├─ r8: arch-ambiguous-terms (l1, 5/5)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r008._.given.by_peer.arch-ambiguous-terms.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r008._.taken.by_self.arch-ambiguous-terms.md
+   │  │   ├─ r9: ergo-acceptance-journey-coverage (l1, 5/5)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r009._.given.by_peer.ergo-acceptance-journey-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r009._.taken.by_self.ergo-acceptance-journey-coverage.md
+   │  │   ├─ r10: ergo-snapshot-visual-blemishes (l1, 5/5)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r010._.given.by_peer.ergo-snapshot-visual-blemishes.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i005.df2834607cd7651a10.r010._.taken.by_self.ergo-snapshot-visual-blemishes.md
+   │  │   ├─ r11: enroll-blueprint-arch-defects (l3, 8/12)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 7 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i012.258484fac1a444ab98.r011._.given.by_peer.enroll-blueprint-arch-defects.md
+   │  │   │   └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i012.258484fac1a444ab98.r011._.taken.by_self.enroll-blueprint-arch-defects.md
+   │  │   └─ r12: enroll-blueprint-behavior-intent (l3, 8/12)
+   │  │       ├─ malfunction 💥
+   │  │       ├─ terminal — does not block higher levels
+   │  │       ├─ given: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i013.258484fac1a444ab98.r012._.given.by_peer.enroll-blueprint-behavior-intent.md
+   │  │       └─ taken: .behavior/v2026_09_22.feat-boot-briefs-into-claude-md/.reviews/peer/3.3.1.blueprint.product._.review.i013.258484fac1a444ab98.r012._.taken.by_self.enroll-blueprint-behavior-intent.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │      │   └─ finished 3.6s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 1.2s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

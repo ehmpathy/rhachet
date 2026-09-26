@@ -29,7 +29,7 @@ exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pi
 
 exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pilot enrolled and live when: [t3] the brain exits — the clone is watched to go DEAD in \`clone list\` then: the DEAD-transition clone-list format is locked (visual spot-check) 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       └─ @:pilot  serial=__SERIAL8__  state=DEAD  since=__TIMESTAMP__
 
 💡 tip

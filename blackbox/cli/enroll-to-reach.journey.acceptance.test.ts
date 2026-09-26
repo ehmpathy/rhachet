@@ -11,6 +11,7 @@ import {
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
@@ -64,8 +65,8 @@ describe('enroll → reach journey (acceptance)', () => {
     when('[t0] the actor + clone are on disk', () => {
       then('the on-disk actor is an ANONYMOUS hash actor, never a slug actor', () => {
         // the two-grain split: the clone wears the @:pilot handle, but its actor is
-        // named by an abbreviated HASH (@<7hex>…) — enroll is hash-only (never
-        // actors.yml), so the slug is a clone grain, never an actor grain
+        // named by its WHOLE hash (@<8hex>) — enroll is hash-only (never actors.yml),
+        // so the slug is a clone grain, never an actor grain
         const listed = invokeRhachetCliBinary({
           args: ['actor', 'list'],
           cwd: scene.dir,
@@ -74,8 +75,24 @@ describe('enroll → reach journey (acceptance)', () => {
         });
         expect(listed.status).toEqual(0);
         expect(listed.stdout).toContain('brain=claude');
-        expect(listed.stdout).toMatch(/@[0-9a-f]{7}…/);
+        expect(listed.stdout).toMatch(/@[0-9a-f]{8}\s/);
         expect(listed.stdout).not.toContain('pilot');
+      });
+
+      then('the actor hash renders WHOLE — never elided', () => {
+        // genEnrollmentHash mints 8 chars, so that value IS the actor's entire name
+        // and a human copies it off this list to address `@<hash>` by hand
+        // (define.address-sigils). an elision to 7 chars + `…` hid one character,
+        // spent a glyph on the ellipsis — identical width, zero copyability
+        const listed = invokeRhachetCliBinary({
+          args: ['actor', 'list'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        });
+        expect(listed.status).toEqual(0);
+        expect(listed.stdout).not.toMatch(/@[0-9a-f]{7}…/);
+        expect(listed.stdout).not.toContain('…');
       });
 
       then('the clone appears LIVE by its slug in `clone list`', () => {
@@ -94,7 +111,7 @@ describe('enroll → reach journey (acceptance)', () => {
     when('[t1] the human reaches the clone by slug (the core round-trip)', () => {
       const nonce = getUuid().slice(0, 8);
       const reach = useThen('say @:pilot then get carries the ack', async () => {
-        const said = invokeRhachetCliBinary({
+        const said = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'say', '@:pilot', '--what', `poke ${nonce}`],
           cwd: scene.dir,
           env: scene.env,
@@ -158,8 +175,8 @@ describe('enroll → reach journey (acceptance)', () => {
         expect(asSnapshotSafe(slipJson.stderr)).toMatchSnapshot();
       });
 
-      then('recovery: the SAME message by the @: clone form delivers', () => {
-        const recovered = invokeRhachetCliBinary({
+      then('recovery: the SAME message by the @: clone form delivers', async () => {
+        const recovered = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'say', '@:pilot', '--what', 'right grain'],
           cwd: scene.dir,
           env: scene.env,

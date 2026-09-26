@@ -17,6 +17,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
+// answer the version probe the way claude does, then exit. a test pins a version
+// below the floor via RHACHET_STUB_BRAIN_VERSION
+if (process.argv.includes('--version')) {
+  const version = process.env.RHACHET_STUB_BRAIN_VERSION || '2.1.277';
+  process.stdout.write(`${version} (Claude Code)\n`);
+  process.exit(0);
+}
+
 const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
 
 /**
@@ -39,11 +47,15 @@ const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
  *   child, never that it spawned a VIABLE one.
  *
  * .the allowlist = exactly what `asBrainCliSpawnArgs` builds: the fixed
- *   config-source prefix. an arg past it is by definition a passthrough arg, and no
+ *   prefix (config sources + the owned empty system prompt). an arg past it is by definition a passthrough arg, and no
  *   extant case passes one — so an arg here is a LEAK, and this refusal is what
  *   says so out loud (rule.forbid.failhide)
  */
-const ARGS_KNOWN_WITH_VALUE = new Set(['--setting-sources', '--settings']);
+const ARGS_KNOWN_WITH_VALUE = new Set([
+  '--setting-sources',
+  '--settings',
+  '--system-prompt',
+]);
 /**
  * 🔴 .the print flags a real brain-cli ACCEPTS — so this stub accepts them too.
  *

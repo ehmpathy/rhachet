@@ -1,3 +1,4 @@
+import { asBrainCliSpawnEnv } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { spawn } from 'node:child_process';
@@ -27,21 +28,26 @@ export const genBrainCliPlainClone = (input: {
   serial: string;
   /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
   depth: number;
+  brainDir: string;
 }): {
   socketPath: null;
   pid: number;
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 } => {
-  const env = {
-    ...process.env,
-    [CLONE_ENV_KEYS.serial]: input.serial,
-    [CLONE_ENV_KEYS.depth]: String(input.depth),
-    // a socket-less clone owns no socket, so the key is ABSENT rather than the parent's path.
-    // `spawn` omits an `undefined` value from the child env, which leaves the child in the same
-    // state a non-clone shell is in — the state a future reader branches on correctly
-    [CLONE_ENV_KEYS.socket]: undefined,
-  };
+  // the child reads its actor's brain dir, and carries its own serial + chain depth
+  const env = asBrainCliSpawnEnv({
+    env: {
+      ...process.env,
+      [CLONE_ENV_KEYS.serial]: input.serial,
+      [CLONE_ENV_KEYS.depth]: String(input.depth),
+      // a socket-less clone owns no socket, so the key is ABSENT rather than the parent's path.
+      // `spawn` omits an `undefined` value from the child env, which leaves the child in the same
+      // state a non-clone shell is in — the state a future reader branches on correctly
+      [CLONE_ENV_KEYS.socket]: undefined,
+    },
+    brainDir: input.brainDir,
+  });
 
   const child = spawn(input.command, input.args, {
     cwd: input.cwd,

@@ -16,6 +16,7 @@ import {
 import { asCloneInputSurfaceText } from '@src/domain.operations/clone/cli/asCloneInputSurfaceText';
 import { genCloneHistoryLink } from '@src/domain.operations/clone/genCloneHistoryLink';
 import { getBrainTranscriptDir } from '@src/domain.operations/clone/getBrainTranscriptDir';
+import { getCloneBrainDir } from '@src/domain.operations/clone/getCloneBrainDir';
 import { getCloneDir } from '@src/domain.operations/clone/getCloneDir';
 import { getCloneOutput } from '@src/domain.operations/clone/getCloneOutput';
 import { getCloneReachState } from '@src/domain.operations/clone/getCloneReachState';
@@ -188,12 +189,20 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             // same getCloneDir every writer composes), never by an undo of historyDir
             // via dirname — so the dir shape stays single-owned. the actors root
             // comes off the clone's own actor (canonical), never the cwd
+            const actorDir = getActorOndiskDir({
+              repoPath: cloneFound.actor.repoPath,
+              hash: cloneFound.actor.hash,
+            });
             const cloneDir = getCloneDir({
-              actorDir: getActorOndiskDir({
-                repoPath: cloneFound.actor.repoPath,
-                hash: cloneFound.actor.hash,
-              }),
+              actorDir,
               serial: cloneFound.serial,
+            });
+
+            // the one brain dir this clone writes under — the link and the read
+            // below both scope it, so they never disagree (D8)
+            const brainDir = getCloneBrainDir({
+              actorDir,
+              spawnedAt: cloneFound.spawnedAt,
             });
             const actorsRoot = getActorsRootDir({
               repoPath: cloneFound.actor.repoPath,
@@ -214,6 +223,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
               genCloneHistoryLink({
                 cloneDir,
                 actorsRoot,
+                brainDir,
                 cwd: cloneFound.actor.repoPath,
                 brain: actorRecord.brain,
                 spawnedAt: cloneFound.spawnedAt,
@@ -226,6 +236,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             const transcriptDir = actorRecord
               ? getBrainTranscriptDir({
                   brain: actorRecord.brain,
+                  brainDir,
                   cwd: cloneFound.actor.repoPath,
                 })
               : null;

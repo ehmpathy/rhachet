@@ -2,7 +2,7 @@
 
 exports[`asCloneListView given: [case2] one actor with a named LIVE clone and an unnamed DEAD clone when: [t0] the view is built then: the rendered tree matches the snapshot (visual regression) 1`] = `
 "😶 clones
-   └─ actor 9c1e000… (brain=claude roles=mechanic)
+   └─ actor 9c1e0000 (brain=claude roles=mechanic)
       ├─ @:driver  serial=7f3a1111  state=LIVE  since=__SPAWNED_AT_1__
       └─ @:abcd8888  state=DEAD  since=__SPAWNED_AT_2__
 
@@ -12,14 +12,14 @@ exports[`asCloneListView given: [case2] one actor with a named LIVE clone and an
 
 exports[`asCloneListView given: [case4] TWO actors — a sorted multi-role actor with a DEAF clone, and a second actor when: [t0] the view is built then: the rendered tree matches the snapshot (visual regression) 1`] = `
 "😶 clones
-   ├─ actor aaaa000… (brain=claude roles=architect,mechanic)
+   ├─ actor aaaa0000 (brain=claude roles=architect,mechanic)
    │  └─ @:11110000  state=DEAF  since=__SPAWNED_AT_1__
-   └─ actor bbbb000… (brain=claude roles=driver)
+   └─ actor bbbb0000 (brain=claude roles=driver)
       └─ @:foreman  serial=22220000  state=LIVE  since=__SPAWNED_AT_2__"
 `;
 
 exports[`asCloneListView given: [case5] UNSCOPED with a MIX — one actor with a clone, two clone-less (the dogfood scenario) when: [t0] a bare \`clone list\` is rendered then: the rendered tree matches the snapshot (visual regression) 1`] = `
 "😶 clones
-   └─ actor live000… (brain=claude roles=driver)
+   └─ actor live0000 (brain=claude roles=driver)
       └─ @:runner  serial=33330000  state=LIVE  since=__SPAWNED_AT_1__"
 `;

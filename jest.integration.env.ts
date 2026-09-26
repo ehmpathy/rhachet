@@ -3,8 +3,6 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import util from 'util';
 
-import { keyrack } from 'rhachet/keyrack';
-
 // eslint-disable-next-line no-undef
 jest.setTimeout(180000); // since we call downstream apis w/ retries
 
@@ -85,13 +83,4 @@ if (requiresTestDb) {
   }
 }
 
-/**
- * .what = source api keys from keyrack into process.env; otherwise, fail fast
- * .why =
- *   - prevent time wasted on tests that fail due to absent api keys
- *   - prevent agents from quit when they have access to credentials
- *
- * .note = hardcoded to --owner ehmpath because we expect only ehmpaths to work in this repo
- * .note = keyrack already prefers passthrough (checks env vars first)
- */
-keyrack.source({ env: 'test', owner: 'ehmpath' });
+// .note = the keyrack source runs once per jest run, in jest.integration.globalSetup.ts

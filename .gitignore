@@ -4,7 +4,7 @@
 *.log
 *.tsbuildinfo
 .agent/.cache/
-.agent/.actors/
+.agent/.actors/*
 .agent/.notes/
 .artifact
 .claude/scheduled_tasks.lock
@@ -21,3 +21,4 @@ dist
 node_modules
 !.test*/**/node_modules
 !.test*/**/node_modules/**
+!.agent/.actors/actor.via.slug=.default/

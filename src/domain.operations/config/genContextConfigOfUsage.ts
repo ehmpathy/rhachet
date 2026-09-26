@@ -13,10 +13,10 @@ import type {
   ContextConfigOfUsage,
   HasPackageRoot,
 } from './ContextConfigOfUsage';
-import { getBrainsByConfigExplicit } from './getBrainsByConfigExplicit';
-import { getRoleHooksOnDispatchByConfigExplicit } from './getRoleHooksOnDispatchByConfigExplicit';
-import { getRoleRegistriesByConfigExplicit } from './getRoleRegistriesByConfigExplicit';
-import { getRoleRegistriesByConfigImplicit } from './getRoleRegistriesByConfigImplicit';
+
+// .note = each getter loads its operation on first call, never at module-eval: every cli call
+//   builds this context, and most never read a registry, a brain, or a hook
+//   (rule.require.thinnest-import-path)
 
 /**
  * .what = extracts config path from cli args
@@ -103,6 +103,9 @@ export const genContextConfigOfUsage = async (input: {
           'explicit config required but not found. create rhachet.use.ts or use --config',
         );
       }
+      const { getRoleRegistriesByConfigExplicit } = await import(
+        './getRoleRegistriesByConfigExplicit'
+      );
       const registries = await getRoleRegistriesByConfigExplicit({
         opts: { config: explicitConfigPath },
       });
@@ -115,6 +118,9 @@ export const genContextConfigOfUsage = async (input: {
       manifests: HasPackageRoot<RoleRegistryManifest>[];
       errors: { packageName: string; error: Error }[];
     }> => {
+      const { getRoleRegistriesByConfigImplicit } = await import(
+        './getRoleRegistriesByConfigImplicit'
+      );
       return getRoleRegistriesByConfigImplicit(context);
     },
   );
@@ -125,6 +131,9 @@ export const genContextConfigOfUsage = async (input: {
         'explicit config required but not found. create rhachet.use.ts or use --config',
       );
     }
+    const { getBrainsByConfigExplicit } = await import(
+      './getBrainsByConfigExplicit'
+    );
     return getBrainsByConfigExplicit({ opts: { config: explicitConfigPath } });
   });
 
@@ -135,6 +144,9 @@ export const genContextConfigOfUsage = async (input: {
           'explicit config required but not found. create rhachet.use.ts or use --config',
         );
       }
+      const { getRoleHooksOnDispatchByConfigExplicit } = await import(
+        './getRoleHooksOnDispatchByConfigExplicit'
+      );
       return getRoleHooksOnDispatchByConfigExplicit({
         opts: { config: explicitConfigPath },
       });

@@ -1,5 +1,6 @@
 import type { IPty } from 'node-pty';
 
+import { asBrainCliSpawnEnv } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
@@ -100,6 +101,7 @@ export const genBrainCliPtyClone = async (
     socketPath: string;
     /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
     depth: number;
+    brainDir: string;
   },
   context: {
     pty: PtyModule;
@@ -113,14 +115,18 @@ export const genBrainCliPtyClone = async (
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 }> => {
-  // the child inherits the human's env plus its own self-identity vars
-  const env = {
-    ...process.env,
-    [CLONE_ENV_KEYS.serial]: input.serial,
-    [CLONE_ENV_KEYS.socket]: input.socketPath,
-    // its place in the enroll chain, so its OWN `rhx enroll` is bounded by the budget
-    [CLONE_ENV_KEYS.depth]: String(input.depth),
-  };
+  // the child inherits the human's env plus its own self-identity vars, and reads
+  // its actor's brain dir
+  const env = asBrainCliSpawnEnv({
+    env: {
+      ...process.env,
+      [CLONE_ENV_KEYS.serial]: input.serial,
+      [CLONE_ENV_KEYS.socket]: input.socketPath,
+      // its place in the enroll chain, so its OWN `rhx enroll` is bounded by the budget
+      [CLONE_ENV_KEYS.depth]: String(input.depth),
+    },
+    brainDir: input.brainDir,
+  });
 
   // a stale socket from a prior crash must go before the server binds this path
   delFileSync({ path: input.socketPath });

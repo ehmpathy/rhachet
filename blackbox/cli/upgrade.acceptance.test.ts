@@ -1,10 +1,11 @@
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { asBrainDirReportBlock } from '@/blackbox/.test/infra/asBrainDirReportBlock';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -533,6 +534,22 @@ describe('rhachet upgrade', () => {
         expect(at('"hint"')).toBeGreaterThan(-1);
         expect(at(PNPM_LOG_MARKER_TAIL)).toBeGreaterThan(at('"hint"'));
       });
+
+      then('the WHOLE framed report is pinned, not merely its tokens', () => {
+        // 🚨 the rows above prove each CLAUSE reached the human, and that the log is
+        //   bounded and sits below the hint; NONE of them can see whether the frame
+        //   READS well. a broken treestruct, a lost blank line, a reordered field, or
+        //   a glyph regression satisfies every one of them — the same gap `[case15]`
+        //   names in its own whole-frame row, here on a frame this change INTRODUCED
+        //   (`asCliErrorFrame`, reached once `invoke.ts`'s catch widened to
+        //   `HelpfulError`)
+        //
+        // .why beside the pointwise rows, never in place of them = a snapshot alone
+        //   greens on any render a maintainer resnaps; the seven rows above each
+        //   carry a claim a resnap cannot silence (`rule.forbid.failhide` at the
+        //   snapshot grain). the two clamp different failures, so both stay
+        expect(asSnapshotSafe(scene.result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
@@ -639,6 +656,13 @@ describe('rhachet upgrade', () => {
       then('reinit does NOT run (role not linked)', () => {
         // reinit outputs "🔧 init" when it runs - should NOT be present
         expect(result.upgradeResult.stdout).not.toContain('🔧 init');
+      });
+
+      then('stdout renders no brain dir tree (no linked role, so none renders)', () => {
+        // upgrade re-renders the brain dirs only beside the reinit of a linked role
+        expect(result.upgradeResult.stdout).not.toContain('🧠 brain dir');
+        // and the census line this once asserted is gone from every surface
+        expect(result.upgradeResult.stdout).not.toContain('boot.md (');
       });
 
       then('stdout.header matches snapshot', () => {
@@ -1074,11 +1098,129 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
+      then('the default brain dir reports as a tree, never a census line', () => {
+        // the reinit of a linked role re-renders the repo's brain dir; no actor is
+        //   enrolled here. what a human reads is one `🧠 brain dir` treestruct — the
+        //   `boot.md (default): <path> — N roles, M chars` census it once read is gone
+        //   from every surface (`rule.require.treestruct-output`)
+        expect(result.upgradeResult.stdout).not.toContain('boot.md (default):');
+
+        // and the corpus still landed — the report shape changed, the render did not
+        expect(
+          existsSync(
+            join(
+              scene.repo.path,
+              '.agent/.actors/actor.via.slug=.default/brain/.claude/boot.md',
+            ),
+          ),
+        ).toEqual(true);
+      });
+
+      then('the brain dir tree is locked to a snapshot', () => {
+        // the assert above proves the census is GONE; only a snapshot shows a reader the
+        // tree's own order, glyphs, and words in a pr diff. every other surface that
+        // renders this block — `init`, `roles link`, `brain-dir-boot` — pins it, and this
+        // one had fallen out of that set
+        // (`rule.require.contract-snapshot-exhaustiveness`). paired with the asserts
+        // above, never snapshot-only (`rule.forbid.failhide`)
+        expect(
+          asSnapshotSafe(
+            asBrainDirReportBlock({ stdout: result.upgradeResult.stdout }),
+          ),
+        ).toMatchSnapshot();
+      });
+
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
         expect(summary).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case12.1] --roles ehmpathy/mechanic where <repo>/.claude and the default dir hold the same name', () => {
+    const scene = useBeforeAll(async () => {
+      // both <repo>/.claude and the default dir hold a settings.json. rhachet OWNS the
+      //   default brain dir, so the shared name is overwritten rather than refused — and
+      //   `<repo>/.claude/settings.json` is the copy the role's own init just merged
+      //   permissions into, so it is the live one and it must win
+      const repo = await genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+      mkdirSync(join(repo.path, '.claude'));
+      writeFileSync(join(repo.path, '.claude', 'settings.json'), '{"a":1}\n');
+      const defaultDir = join(
+        repo.path,
+        '.agent',
+        '.actors',
+        'actor.via.slug=.default',
+        'brain',
+        '.claude',
+      );
+      mkdirSync(defaultDir, { recursive: true });
+      writeFileSync(join(defaultDir, 'settings.json'), '{"b":2}\n');
+      return { repo, defaultDir };
+    });
+
+    when('[t0] rhachet upgrade --roles ehmpathy/mechanic', () => {
+      const result = useBeforeAll(async () => {
+        const upgradeResult = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
+          cwd: scene.repo.path,
+          logOnError: false,
+        });
+        return { upgradeResult };
+      });
+
+      then('exits 0 — a shared name is no refusal', () => {
+        expect({
+          status: result.upgradeResult.status,
+          stderr: result.upgradeResult.stderr,
+        }).toMatchObject({ status: 0 });
+      });
+
+      then('the repo-side copy overwrote the default dir, and the stale one is gone', () => {
+        // `{"b":2}` was the default dir's copy. the migration carried the repo-side file
+        //   over it, so what remains is what `<repo>/.claude` held at sync time — the
+        //   role init's merge, never the stale `b`
+        const settings = readFileSync(
+          join(scene.defaultDir, 'settings.json'),
+          'utf8',
+        );
+        expect(settings).not.toEqual('{"b":2}\n');
+        expect(settings).not.toContain('"b"');
+      });
+
+      then('the overwritten row is marked, so a human knows what to diff', () => {
+        // an overwrite is silent harm unless the report names the row it replaced — the
+        //   one line a human may want to check against git
+        expect(result.upgradeResult.stdout).toMatch(
+          /\.claude\/settings\.json → \S+ \(replaced\)/,
+        );
+      });
+
+      then('the brain dir tree is locked to a snapshot', () => {
+        // the overwrite is a user-faced surface on the upgrade contract, so it is snapped
+        // like every other render in this change
+        // (`rule.require.contract-snapshot-exhaustiveness`,
+        // `rule.require.test-coverage-by-grain` — a contract owes a snapshot). the
+        // asserts above fix the substance; this pins the whole frame — the tree layout,
+        // the row order, the `(replaced)` marker — so a reword shows in the pr diff
+        expect(
+          asSnapshotSafe(
+            asBrainDirReportBlock({ stdout: result.upgradeResult.stdout }),
+          ),
+        ).toMatchSnapshot();
+      });
+
+      then('the hook sync still runs, since the default boot.md rendered', () => {
+        // the refusal this case once proved is gone, so the render downstream of it
+        //   reaches the hook sweep rather than halt ahead of it
+        expect(
+          existsSync(join(scene.defaultDir, 'boot.md')),
+        ).toEqual(true);
       });
     });
   });

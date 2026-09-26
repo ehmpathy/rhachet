@@ -159,36 +159,16 @@ roles:
 "
 `;
 
-exports[`rhachet repo introspect given: [case9] rhachet-roles package with bootable content but no boot hook when: [t0] repo introspect then: error output matches snapshot 1`] = `
-"
-✋ ConstraintError: roles with bootable content but no valid boot hook
-   │
-   ├─ these roles declare briefs or skills but lack a valid boot hook:
-   │
-   └─ mechanic
-      ├─ has: briefs.dirs, skills.dirs
-      ├─ reason: no-hook-declared
-      └─ hint: add hooks.onBrain.onBoot with './node_modules/.bin/rhachet roles boot --role mechanic'
-
-   ├─ why:
-   │  roles with briefs.dirs or skills.dirs have content to boot on session start.
-   │  the boot hook must run 'rhachet roles boot --role <this-role>' to load the content.
-   │
-   └─ fix: if a role doesn't need to boot, don't declare briefs.dirs or skills.dirs.
-
-{
-  "violations": [
-    {
-      "roleSlug": "mechanic",
-      "hasBriefsDirs": true,
-      "hasSkillsDirs": true,
-      "reason": "no-hook-declared"
-    }
-  ]
-}
-
-[args] repo,introspect
-
+exports[`rhachet repo introspect given: [case9] rhachet-roles package with bootable content and no boot hook when: [t0] repo introspect then: yml content matches snapshot 1`] = `
+"slug: test-no-hook
+readme: readme.md
+roles:
+  - slug: mechanic
+    readme: roles/mechanic/readme.md
+    briefs:
+      dirs: roles/mechanic/briefs
+    skills:
+      dirs: roles/mechanic/skills
 "
 `;
 

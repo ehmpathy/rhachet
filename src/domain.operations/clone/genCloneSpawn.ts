@@ -67,6 +67,8 @@ export const genCloneSpawn = async (
     args: string[];
     cwd: string;
     serial: string;
+    /** the actor's brain dir, the child's CLAUDE_CONFIG_DIR */
+    brainDir: string;
     /** the socket to bind, or null when this enroll gets no socket */
     socketPath: string | null;
     /** whether the caller's gate cleared a socket for this enroll */
@@ -97,6 +99,7 @@ export const genCloneSpawn = async (
       cwd: input.cwd,
       serial: input.serial,
       depth: input.depth,
+      brainDir: input.brainDir,
     });
     return {
       ...plain,
@@ -113,6 +116,7 @@ export const genCloneSpawn = async (
         serial: input.serial,
         socketPath: input.socketPath,
         depth: input.depth,
+        brainDir: input.brainDir,
       },
       { pty: input.pty, host: context.host, emulator: input.emulator },
     );

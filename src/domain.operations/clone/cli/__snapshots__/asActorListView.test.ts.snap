@@ -2,6 +2,6 @@
 
 exports[`asActorListView given: [case2] two enrolled actors when: [t0] the view is built then: the rendered tree matches the snapshot (visual regression) 1`] = `
 "🎭 actors
-   ├─ @aaaa111…  brain=claude  roles=mechanic
-   └─ @bbbb222…  brain=codex  roles=architect,driver"
+   ├─ @aaaa1111  brain=claude  roles=mechanic
+   └─ @bbbb2222  brain=codex  roles=architect,driver"
 `;

@@ -1,9 +1,11 @@
 import { ConstraintError } from 'helpful-errors';
 
+import { asLegibleScreen } from './asLegibleScreen';
 import { genRealBrainSlot } from './genRealBrainSlot';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from './invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from './roleFixtureRepo';
 import {
@@ -23,7 +25,14 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { join } from 'node:path';
+
+import { BRAIN_CLI_VERSION_FLOOR } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
+import {
+  getAllBrainCliPathResolutions,
+  type BrainCliPathResolution,
+} from '@src/domain.operations/enroll/getAllBrainCliPathResolutions';
+import { isBrainCliVersionAtOrAboveFloor } from '@src/domain.operations/enroll/isBrainCliVersionAtOrAboveFloor';
 
 /**
  * .what = shared harness for clone-reach acceptance tests — link roles, shim a
@@ -146,24 +155,45 @@ export const pollForAck = async (input: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * .what = locate the real `claude` binary this host would spawn, or null if absent
- * .why = the real tier needs the genuine brain-cli on PATH. an override env lets a
- *   nightly runner pin an exact binary; otherwise the well-known pnpm global path and
- *   a PATH scan are tried. null means "no real claude" — the gate then fails loud.
+ * .what = every real `claude` on PATH, each with the version it reports
+ * .why = a host carries MORE THAN ONE install — measured here, 2.1.280 at
+ *   `<repo>/.temp/bin/claude` and 2.1.87 at the pnpm global — so the tier needs the
+ *   whole list, never the first hit, to pass over one the product would refuse.
+ *   `getAllBrainCliPathResolutions` is the same walk enroll's own refusal uses, so the
+ *   harness and the product read one PATH the same way
+ *
+ * .note = an override env pins one exact binary for a nightly runner; a bin that holds
+ *   a separator is taken as that one path, so the override flows through unchanged
  */
-export const getRealClaudeBinPath = (): string | null => {
-  const override = process.env.RHACHET_REAL_CLAUDE_BIN;
-  if (override && existsSync(override)) return override;
+const getAllRealClaudeResolutions = (): BrainCliPathResolution[] =>
+  getAllBrainCliPathResolutions({
+    bin: process.env.RHACHET_REAL_CLAUDE_BIN ?? 'claude',
+    env: process.env,
+  });
 
-  const candidates = [
-    join(homedir(), '.local', 'share', 'pnpm', 'claude'),
-    ...(process.env.PATH ?? '')
-      .split(delimiter)
-      .filter((dir) => dir.length > 0)
-      .map((dir) => join(dir, 'claude')),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? null;
-};
+/**
+ * .what = a version triple as a human reads it
+ */
+const asVersionWords = (version: BrainCliPathResolution['version']): string =>
+  version ? `${version.major}.${version.minor}.${version.patch}` : 'unreadable';
+
+/**
+ * .what = locate a real `claude` that CLEARS the brain-cli version floor, or null
+ * .why = enroll REFUSES a below-floor brain outright (assertBrainCliVersionFloor), so
+ *   a harness that hands the tier the first binary it merely FINDS hands it a
+ *   guaranteed refusal. existence was the old test, and it picked the pnpm global at
+ *   2.1.87 while a 2.1.280 sat one PATH entry ahead. the floor is now the test, so the
+ *   tier spawns a brain the product will actually accept — or fails loud below
+ */
+export const getRealClaudeBinPath = (): string | null =>
+  getAllRealClaudeResolutions().find(
+    (resolution) =>
+      !!resolution.version &&
+      isBrainCliVersionAtOrAboveFloor({
+        version: resolution.version,
+        floor: BRAIN_CLI_VERSION_FLOOR,
+      }),
+  )?.path ?? null;
 
 /**
  * .what = is a real claude authenticated on this host?
@@ -189,15 +219,25 @@ export const isRealClaudeAuthed = (): boolean => {
  */
 export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
   const binPath = getRealClaudeBinPath();
-  if (!binPath)
+  if (!binPath) {
+    // name what WAS found, with each version — the measured failure is not "no cli",
+    // it is "the one that wins PATH is too old", and only the list tells them apart
+    const resolutions = getAllRealClaudeResolutions();
+    const foundWords = resolutions.length
+      ? resolutions
+          .map((one) => `${one.path}=${asVersionWords(one.version)}`)
+          .join(', ')
+      : 'none on PATH';
     throw new ConstraintError(
       [
-        'no real `claude` binary found for the real-claude reach tier.',
-        'fix: install claude-code (`pnpm add -g @anthropic-ai/claude-code`) or set',
-        'RHACHET_REAL_CLAUDE_BIN to its path. this tier NEVER skips — an absent brain',
-        'is a loud gate, not a silent pass.',
+        `no real \`claude\` at or above the brain-cli floor ${asVersionWords(BRAIN_CLI_VERSION_FLOOR)}`,
+        `for the real-claude reach tier. found: ${foundWords}.`,
+        'fix: upgrade the install that wins your PATH (`pnpm add -g @anthropic-ai/claude-code@latest`),',
+        'put a newer one first on PATH, or set RHACHET_REAL_CLAUDE_BIN to a binary that clears the',
+        'floor. this tier NEVER skips — an absent or below-floor brain is a loud gate, not a silent pass.',
       ].join(' '),
     );
+  }
 
   if (!isRealClaudeAuthed())
     throw new ConstraintError(
@@ -467,6 +507,8 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   dir: string;
   env: Record<string, string | undefined>;
   as?: string;
+  /** the roleset to enroll; absent → the repo default */
+  roles?: string[];
   model?: string;
   timeoutMs?: number;
 }): Promise<{ bg: RhachetBackgroundHandle; address: string; serial: string }> => {
@@ -489,6 +531,7 @@ export const enrollRealClaudeAndWaitReach = async (input: {
       '--model',
       input.model ?? 'haiku',
       ...(input.as ? ['--as', input.as] : []),
+      ...(input.roles ? ['--roles', input.roles.join(',')] : []),
       '--output',
       'json',
     ],
@@ -672,13 +715,17 @@ export const sayAndPollForMarker = async (input: {
    */
   getScreen?: () => string;
 }): Promise<{
-  said: ReturnType<typeof invokeRhachetCliBinary>;
+  said: Awaited<ReturnType<typeof invokeRhachetCliBinaryAsync>>;
   lastRead: string;
   landed: boolean;
 }> => {
-  // one dispatch attempt — the say cli invocation, factored so a retry re-sends it
-  const sendSay = (): ReturnType<typeof invokeRhachetCliBinary> =>
-    invokeRhachetCliBinary({
+  // one dispatch attempt — the say cli invocation, factored so a retry re-sends it.
+  // 🚨 ASYNC, never spawnSync: the clone's pty is drained only while this event loop
+  //   turns. a sync say froze the loop, the undrained pty blocked the clone's own mirror
+  //   write, and its socket could not ack — a harness-made wedge (exit 2) whose message
+  //   then landed seconds later. see `invokeRhachetCliBinaryAsync`
+  const sendSay = (): ReturnType<typeof invokeRhachetCliBinaryAsync> =>
+    invokeRhachetCliBinaryAsync({
       args: [
         'clone',
         'say',
@@ -690,7 +737,6 @@ export const sayAndPollForMarker = async (input: {
       cwd: input.dir,
       env: input.env,
       stdin: input.stdin,
-      logOnError: false,
     });
 
   // a wedged/undelivered say is the FAIL-LOUD signal (exit 2), and the wish's real
@@ -706,7 +752,7 @@ export const sayAndPollForMarker = async (input: {
 
   // .note = deliberate mutation — `said` latches the most-recent say result, `lastRead`
   //   the most-recent `get` read; both reassigned across attempts, neither escapes
-  let said = sendSay();
+  let said = await sendSay();
   let lastRead = '';
 
   // 🚨 the SAY TRAIL, one row per attempt — the instrument this harness lacked
@@ -742,7 +788,11 @@ export const sayAndPollForMarker = async (input: {
    *   differ only in their headline, so a second copy of this block would drift from the first
    */
   const reportSayTrail = (report: { headline: string }): void => {
-    const screen = input.getScreen?.() ?? '(no screen supplied)';
+    // stripped BEFORE the slice below — on a raw pty buffer the 4000-char budget is spent
+    // almost entirely on escapes, so the dump shows a few hundred chars of real text
+    const screen = input.getScreen
+      ? asLegibleScreen(input.getScreen())
+      : '(no screen supplied)';
     console.error(
       [
         report.headline,
@@ -763,7 +813,7 @@ export const sayAndPollForMarker = async (input: {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     // a retry (attempt 2+) re-sends before its poll; attempt 1 was sent above
-    if (attempt > 1) said = sendSay();
+    if (attempt > 1) said = await sendSay();
     recordSay(attempt);
 
     // a TIGHT per-attempt deadline — claude replies + writes its transcript within
@@ -771,11 +821,11 @@ export const sayAndPollForMarker = async (input: {
     // retry above covers the live settle-race, so the cap need not swallow it
     const deadline = Date.now() + (input.timeoutMs ?? 30000);
     while (Date.now() < deadline) {
-      const got = invokeRhachetCliBinary({
+      // async for the same reason as the say — a poll must never stall the pty drain
+      const got = await invokeRhachetCliBinaryAsync({
         args: ['clone', 'get', input.address, '--tail', '10'],
         cwd: input.dir,
         env: input.env,
-        logOnError: false,
       });
       lastRead = got.stdout;
       if (got.stdout.includes(input.marker)) {

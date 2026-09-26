@@ -3,6 +3,7 @@ import { HelpfulError } from 'helpful-errors';
 import type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
+import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 import { asThrownValueText } from '@src/utils/asThrownValueText';
@@ -35,6 +36,12 @@ export interface UpgradeResult {
   };
   upgradedRoles: RoleSupplierSlug[];
   upgradedBrains: BrainSupplierSlug[];
+
+  /**
+   * .what = the exit code the brain dir boot sync owes: 0, 2 for a human fix, 1 for a malfunction
+   * .why = the caller exits by it; a domain operation never exits the process itself
+   */
+  bootsExitCode: 0 | 1 | 2;
 }
 
 /**
@@ -313,16 +320,26 @@ export const execUpgrade = async (
     }
   })();
 
-  // re-init only linked roles (not all roles in upgraded packages)
-  if (whichTargets.includes('local') && roleExpanded.linkedRoles.length > 0) {
+  // re-init only linked roles (not all roles in upgraded packages), then re-render
+  // every brain dir boot from the fresh content, then sync hooks once the default rendered
+  const boots = await (async (): Promise<{ exitCode: 0 | 1 | 2 }> => {
+    if (!whichTargets.includes('local')) return { exitCode: 0 };
+    if (roleExpanded.linkedRoles.length === 0) return { exitCode: 0 };
     const specifiers = buildRoleSpecifiers({
       linkedRoles: roleExpanded.linkedRoles,
     });
     await initRolesFromPackages({ specifiers }, context);
 
-    // sync hooks for linked roles (always on for upgrade)
-    await syncHooksForLinkedRoles({}, context);
-  }
+    // re-render the boots before the hook sync, so the boot hooks never go first
+    const synced = await syncAndReportBrainDirBoots(
+      { repoPath: context.gitroot, env: process.env },
+      context,
+    );
+
+    // sync hooks for linked roles (always on for upgrade), once the default rendered
+    if (synced.defaultRendered) await syncHooksForLinkedRoles({}, context);
+    return { exitCode: synced.exitCode };
+  })();
 
   // extract slugs from brain packages for result
   const upgradedBrains = getUpgradedBrains({ brainPackages, localRefDeps });
@@ -341,5 +358,6 @@ export const execUpgrade = async (
     },
     upgradedRoles: whichTargets.includes('local') ? upgradedRoles : [],
     upgradedBrains: whichTargets.includes('local') ? upgradedBrains : [],
+    bootsExitCode: boots.exitCode,
   };
 };

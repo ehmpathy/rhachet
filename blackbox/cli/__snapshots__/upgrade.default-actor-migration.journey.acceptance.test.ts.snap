@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`upgrade — the default actor brain dir migration, under a BARE rhx upgrade given: [case1] a repo whose <repo>/.claude is still a real dir when: [t1] rhx upgrade — bare, with NO flags at all then: the migration tree is locked to a snapshot 1`] = `
+"🧠 brain dir (default)
+   ├─ moved
+   │  ├─ .claude/keep.json → .agent/.actors/actor.via.slug=.default/brain/.claude/keep.json
+   │  ├─ .claude/settings.$STAMP.bak.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.$STAMP.bak.json
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ dropped
+   │  └─ .claude/CLAUDE.md — rhachet owns the boot context
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role"
+`;

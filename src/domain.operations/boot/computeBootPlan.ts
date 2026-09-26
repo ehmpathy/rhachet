@@ -7,7 +7,7 @@ import type {
 } from '@src/domain.objects/RoleBootSpec';
 import type { RoleBriefRef } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 
-import { filterByGlob, filterPathsByGlob } from './filterBootResourcesByGlob';
+import { filterByGlob } from './filterBootResourcesByGlob';
 
 /**
  * .what = the result of say vs ref computation for boot resources
@@ -23,107 +23,165 @@ export interface BootPlan {
 }
 
 /**
- * .what = compute which brief refs to say vs ref based on curation globs
- * .why = applies the say-key semantics to determine say/ref partition
+ * .what = the glob-match key of one boot resource
+ * .why = briefs and skills are curated by the SAME algorithm and differ only here — a
+ *        brief carries its match path beside a minified variant, a skill IS its path.
+ *        every generic below takes one of these two, so the algorithm is written once
  *
- * .note = globs match against pathToOriginal (.md files)
+ * .note = briefs match on pathToOriginal (the .md), never on the minified variant
+ */
+const getBriefKey = (ref: RoleBriefRef): string => ref.pathToOriginal;
+const getSkillKey = (path: string): string => path;
+
+/**
+ * .what = partitions a resource list into say vs ref by one curation's globs
+ * .why = the say-key semantics, written once for every resource kind
+ *
  * .note = say-key semantics:
  *   - say: null → key was absent, say all resources
  *   - say: [] → key was present but empty, say none (all ref)
  *   - say: ['glob'] → say matched, ref unmatched
  */
-const computeBriefRefPlan = async (input: {
+const computeCurationPlan = async <T>(input: {
   curation: ResourceCurationResolved | null;
-  refs: RoleBriefRef[];
+  items: T[];
+  getKey: (item: T) => string;
   cwd: string;
-}): Promise<{ say: RoleBriefRef[]; ref: RoleBriefRef[] }> => {
+}): Promise<{ say: T[]; ref: T[] }> => {
   // no curation = say all (backwards compat, key absent at resource level)
-  if (!input.curation) {
-    return { say: input.refs, ref: [] };
-  }
+  if (!input.curation) return { say: input.items, ref: [] };
 
   // say: null means say key was absent -> say all
   if (input.curation.say === null) {
     // ref globs still apply if present
     if (input.curation.ref.length > 0) {
       const refMatched = await filterByGlob({
-        items: input.refs,
+        items: input.items,
         globs: input.curation.ref,
         cwd: input.cwd,
-        getMatchPath: (ref) => ref.pathToOriginal,
+        getMatchPath: input.getKey,
       });
-      const refSet = new Set(refMatched.map((r) => r.pathToOriginal));
-      const sayRefs = input.refs.filter((r) => !refSet.has(r.pathToOriginal));
-      return { say: sayRefs, ref: refMatched };
+      const refKeys = new Set(refMatched.map(input.getKey));
+      return {
+        say: input.items.filter((item) => !refKeys.has(input.getKey(item))),
+        ref: refMatched,
+      };
     }
-    return { say: input.refs, ref: [] };
+    return { say: input.items, ref: [] };
   }
 
   // say: [] means say key was present but empty -> say none
-  if (input.curation.say.length === 0) {
-    return { say: [], ref: input.refs };
-  }
+  if (input.curation.say.length === 0) return { say: [], ref: input.items };
 
   // say: ['glob', ...] means say matched, ref unmatched
   const sayMatched = await filterByGlob({
-    items: input.refs,
+    items: input.items,
     globs: input.curation.say,
     cwd: input.cwd,
-    getMatchPath: (ref) => ref.pathToOriginal,
+    getMatchPath: input.getKey,
   });
-  const saySet = new Set(sayMatched.map((r) => r.pathToOriginal));
-  const refRefs = input.refs.filter((r) => !saySet.has(r.pathToOriginal));
-
-  return { say: sayMatched, ref: refRefs };
+  const sayKeys = new Set(sayMatched.map(input.getKey));
+  return {
+    say: sayMatched,
+    ref: input.items.filter((item) => !sayKeys.has(input.getKey(item))),
+  };
 };
 
 /**
- * .what = compute which skill paths to say vs ref based on curation globs
- * .why = applies the say-key semantics to determine say/ref partition
+ * .what = collects the resources one subject section explicitly claims
+ * .why = in subject mode, only resources that match explicit globs are claimed
  *
- * .note = skills remain as paths (no minified variant)
+ * .note = unlike computeCurationPlan (for simple mode), this does NOT treat
+ *         unmatched resources as ref. only explicitly matched resources are returned.
  */
-const computeSkillPathPlan = async (input: {
+const collectSectionResources = async <T>(input: {
   curation: ResourceCurationResolved | null;
-  paths: string[];
+  items: T[];
+  getKey: (item: T) => string;
   cwd: string;
-}): Promise<{ say: string[]; ref: string[] }> => {
-  // no curation = say all (backwards compat, key absent at resource level)
-  if (!input.curation) {
-    return { say: input.paths, ref: [] };
-  }
+}): Promise<{ say: T[]; ref: T[] }> => {
+  if (!input.curation) return { say: [], ref: [] };
 
-  // say: null means say key was absent -> say all
-  if (input.curation.say === null) {
-    // ref globs still apply if present
-    if (input.curation.ref.length > 0) {
-      const refMatched = await filterPathsByGlob({
-        paths: input.paths,
-        globs: input.curation.ref,
-        cwd: input.cwd,
-      });
-      const refSet = new Set(refMatched);
-      const sayPaths = input.paths.filter((p) => !refSet.has(p));
-      return { say: sayPaths, ref: refMatched };
-    }
-    return { say: input.paths, ref: [] };
-  }
+  // say globs: match and claim as say
+  const say =
+    input.curation.say && input.curation.say.length > 0
+      ? await filterByGlob({
+          items: input.items,
+          globs: input.curation.say,
+          cwd: input.cwd,
+          getMatchPath: input.getKey,
+        })
+      : [];
 
-  // say: [] means say key was present but empty -> say none
-  if (input.curation.say.length === 0) {
-    return { say: [], ref: input.paths };
-  }
+  // ref globs: match and claim as ref (exclude already said)
+  if (input.curation.ref.length === 0) return { say, ref: [] };
 
-  // say: ['glob', ...] means say matched, ref unmatched
-  const sayMatched = await filterPathsByGlob({
-    paths: input.paths,
-    globs: input.curation.say,
+  const refMatched = await filterByGlob({
+    items: input.items,
+    globs: input.curation.ref,
     cwd: input.cwd,
+    getMatchPath: input.getKey,
   });
-  const saySet = new Set(sayMatched);
-  const refPaths = input.paths.filter((p) => !saySet.has(p));
+  const sayKeys = new Set(say.map(input.getKey));
+  return {
+    say,
+    ref: refMatched.filter((item) => !sayKeys.has(input.getKey(item))),
+  };
+};
 
-  return { say: sayMatched, ref: refPaths };
+/**
+ * .what = accumulates say/ref for ONE resource kind across the always + subject sections
+ * .why = the dedupe rule — say wins over ref, first occurrence says — is identical for
+ *        briefs and skills, so it is written once rather than per kind
+ *
+ * .note = push ORDER is the contract: a render is snapshot-tested, so say and ref are
+ *         appended in the order sections are processed, and within a section say before ref
+ * .note = membership is tracked in Sets beside the lists, so a repeat is O(1) rather than
+ *         a scan of the list built so far
+ */
+const genSectionAccumulator = <T>(input: { getKey: (item: T) => string }) => {
+  const say: T[] = [];
+  const ref: T[] = [];
+  const saidKeys = new Set<string>();
+  const refKeys = new Set<string>();
+  const claimedKeys = new Set<string>();
+
+  return {
+    /** claim items a section says — a key already said falls to ref instead */
+    addSay: (items: T[]): void => {
+      for (const item of items) {
+        const key = input.getKey(item);
+        if (saidKeys.has(key)) {
+          // already said by an earlier section, so this occurrence becomes a ref
+          if (!refKeys.has(key)) {
+            ref.push(item);
+            refKeys.add(key);
+          }
+        } else {
+          say.push(item);
+          saidKeys.add(key);
+        }
+        claimedKeys.add(key);
+      }
+    },
+
+    /** claim items a section refs — skipped where the key is already said or already ref */
+    addRef: (items: T[]): void => {
+      for (const item of items) {
+        const key = input.getKey(item);
+        if (!saidKeys.has(key) && !refKeys.has(key)) {
+          ref.push(item);
+          refKeys.add(key);
+        }
+        claimedKeys.add(key);
+      }
+    },
+
+    /** every key any section claimed, said or ref — the complement is the `also` set */
+    hasClaimed: (key: string): boolean => claimedKeys.has(key),
+
+    result: (): { say: T[]; ref: T[] } => ({ say, ref }),
+  };
 };
 
 /**
@@ -136,15 +194,17 @@ const computeSimpleModePlan = async (input: {
   skillPaths: string[];
   cwd: string;
 }): Promise<BootPlan> => {
-  const briefsPlan = await computeBriefRefPlan({
+  const briefsPlan = await computeCurationPlan({
     curation: input.config.briefs,
-    refs: input.briefRefs,
+    items: input.briefRefs,
+    getKey: getBriefKey,
     cwd: input.cwd,
   });
 
-  const skillsPlan = await computeSkillPathPlan({
+  const skillsPlan = await computeCurationPlan({
     curation: input.config.skills,
-    paths: input.skillPaths,
+    items: input.skillPaths,
+    getKey: getSkillKey,
     cwd: input.cwd,
   });
 
@@ -153,85 +213,6 @@ const computeSimpleModePlan = async (input: {
     skills: skillsPlan,
     also: { briefs: [], skills: [] },
   };
-};
-
-/**
- * .what = collects explicitly claimed resources from a subject section
- * .why = in subject mode, only resources that match explicit globs are claimed
- *
- * .note = unlike computeBriefRefPlan (for simple mode), this does NOT treat
- *         unmatched resources as ref. only explicitly matched resources are returned.
- */
-const collectResourcesFromSection = async (input: {
-  section: SubjectSectionResolved | null;
-  briefRefs: RoleBriefRef[];
-  skillPaths: string[];
-  cwd: string;
-}): Promise<{
-  briefsSay: RoleBriefRef[];
-  briefsRef: RoleBriefRef[];
-  skillsSay: string[];
-  skillsRef: string[];
-}> => {
-  if (!input.section) {
-    return { briefsSay: [], briefsRef: [], skillsSay: [], skillsRef: [] };
-  }
-
-  // collect briefs that explicitly match say/ref globs
-  let briefsSay: RoleBriefRef[] = [];
-  let briefsRef: RoleBriefRef[] = [];
-
-  if (input.section.briefs) {
-    // say globs: match and claim as say
-    if (input.section.briefs.say && input.section.briefs.say.length > 0) {
-      briefsSay = await filterByGlob({
-        items: input.briefRefs,
-        globs: input.section.briefs.say,
-        cwd: input.cwd,
-        getMatchPath: (ref) => ref.pathToOriginal,
-      });
-    }
-
-    // ref globs: match and claim as ref (exclude already said)
-    if (input.section.briefs.ref.length > 0) {
-      const refMatched = await filterByGlob({
-        items: input.briefRefs,
-        globs: input.section.briefs.ref,
-        cwd: input.cwd,
-        getMatchPath: (ref) => ref.pathToOriginal,
-      });
-      const saySet = new Set(briefsSay.map((r) => r.pathToOriginal));
-      briefsRef = refMatched.filter((r) => !saySet.has(r.pathToOriginal));
-    }
-  }
-
-  // collect skills that explicitly match say/ref globs
-  let skillsSay: string[] = [];
-  let skillsRef: string[] = [];
-
-  if (input.section.skills) {
-    // say globs: match and claim as say
-    if (input.section.skills.say && input.section.skills.say.length > 0) {
-      skillsSay = await filterPathsByGlob({
-        paths: input.skillPaths,
-        globs: input.section.skills.say,
-        cwd: input.cwd,
-      });
-    }
-
-    // ref globs: match and claim as ref (exclude already said)
-    if (input.section.skills.ref.length > 0) {
-      const refMatched = await filterPathsByGlob({
-        paths: input.skillPaths,
-        globs: input.section.skills.ref,
-        cwd: input.cwd,
-      });
-      const saySet = new Set(skillsSay);
-      skillsRef = refMatched.filter((p) => !saySet.has(p));
-    }
-  }
-
-  return { briefsSay, briefsRef, skillsSay, skillsRef };
 };
 
 /**
@@ -248,59 +229,36 @@ const computeSubjectModePlan = async (input: {
   cwd: string;
   subjects?: string[];
 }): Promise<BootPlan> => {
-  // track which resources have been said (for dedupe, by pathToOriginal)
-  const saidBriefs = new Set<string>();
-  const saidSkills = new Set<string>();
+  const briefs = genSectionAccumulator<RoleBriefRef>({ getKey: getBriefKey });
+  const skills = genSectionAccumulator<string>({ getKey: getSkillKey });
 
-  // track which resources are in any section (for also, by pathToOriginal)
-  const claimedBriefs = new Set<string>();
-  const claimedSkills = new Set<string>();
+  // absorb one section's claims into both accumulators, say before ref
+  const absorbSection = async (
+    section: SubjectSectionResolved | null,
+  ): Promise<void> => {
+    if (!section) return;
 
-  // lookup ref by pathToOriginal for also section
-  const briefRefByOriginal = new Map<string, RoleBriefRef>();
-  for (const ref of input.briefRefs) {
-    briefRefByOriginal.set(ref.pathToOriginal, ref);
-  }
+    const briefsClaimed = await collectSectionResources({
+      curation: section.briefs,
+      items: input.briefRefs,
+      getKey: getBriefKey,
+      cwd: input.cwd,
+    });
+    const skillsClaimed = await collectSectionResources({
+      curation: section.skills,
+      items: input.skillPaths,
+      getKey: getSkillKey,
+      cwd: input.cwd,
+    });
 
-  // result collections
-  const briefsSay: RoleBriefRef[] = [];
-  const briefsRef: RoleBriefRef[] = [];
-  const skillsSay: string[] = [];
-  const skillsRef: string[] = [];
+    briefs.addSay(briefsClaimed.say);
+    skills.addSay(skillsClaimed.say);
+    briefs.addRef(briefsClaimed.ref);
+    skills.addRef(skillsClaimed.ref);
+  };
 
-  // process always section first
-  const alwaysResult = await collectResourcesFromSection({
-    section: input.config.always,
-    briefRefs: input.briefRefs,
-    skillPaths: input.skillPaths,
-    cwd: input.cwd,
-  });
-
-  // add always say resources
-  for (const ref of alwaysResult.briefsSay) {
-    briefsSay.push(ref);
-    saidBriefs.add(ref.pathToOriginal);
-    claimedBriefs.add(ref.pathToOriginal);
-  }
-  for (const path of alwaysResult.skillsSay) {
-    skillsSay.push(path);
-    saidSkills.add(path);
-    claimedSkills.add(path);
-  }
-
-  // add always ref resources (unless already said)
-  for (const ref of alwaysResult.briefsRef) {
-    if (!saidBriefs.has(ref.pathToOriginal)) {
-      briefsRef.push(ref);
-    }
-    claimedBriefs.add(ref.pathToOriginal);
-  }
-  for (const path of alwaysResult.skillsRef) {
-    if (!saidSkills.has(path)) {
-      skillsRef.push(path);
-    }
-    claimedSkills.add(path);
-  }
+  // process always section first, so its claims say before any subject's
+  await absorbSection(input.config.always);
 
   // determine which subjects to process
   const subjectSlugs = Object.keys(input.config.subjects);
@@ -318,86 +276,22 @@ const computeSubjectModePlan = async (input: {
     }
   }
 
-  // process each selected subject
+  // process each selected subject, in declaration order
   for (const slug of selectedSlugs) {
-    const section = input.config.subjects[slug];
-    if (!section) continue;
-
-    const subjectResult = await collectResourcesFromSection({
-      section,
-      briefRefs: input.briefRefs,
-      skillPaths: input.skillPaths,
-      cwd: input.cwd,
-    });
-
-    // add subject say resources (say wins over ref)
-    for (const ref of subjectResult.briefsSay) {
-      if (saidBriefs.has(ref.pathToOriginal)) {
-        // already said, add as ref (dedupe)
-        const alreadyRef = briefsRef.some(
-          (r) => r.pathToOriginal === ref.pathToOriginal,
-        );
-        if (!alreadyRef) {
-          briefsRef.push(ref);
-        }
-      } else {
-        briefsSay.push(ref);
-        saidBriefs.add(ref.pathToOriginal);
-      }
-      claimedBriefs.add(ref.pathToOriginal);
-    }
-    for (const path of subjectResult.skillsSay) {
-      if (saidSkills.has(path)) {
-        // already said, add as ref (dedupe)
-        if (!skillsRef.includes(path)) {
-          skillsRef.push(path);
-        }
-      } else {
-        skillsSay.push(path);
-        saidSkills.add(path);
-      }
-      claimedSkills.add(path);
-    }
-
-    // add subject ref resources (unless already said)
-    for (const ref of subjectResult.briefsRef) {
-      const alreadyRef = briefsRef.some(
-        (r) => r.pathToOriginal === ref.pathToOriginal,
-      );
-      if (!saidBriefs.has(ref.pathToOriginal) && !alreadyRef) {
-        briefsRef.push(ref);
-      }
-      claimedBriefs.add(ref.pathToOriginal);
-    }
-    for (const path of subjectResult.skillsRef) {
-      if (!saidSkills.has(path) && !skillsRef.includes(path)) {
-        skillsRef.push(path);
-      }
-      claimedSkills.add(path);
-    }
+    await absorbSection(input.config.subjects[slug] ?? null);
   }
 
   // compute also section (only when all subjects booted)
-  const alsoBriefs: RoleBriefRef[] = [];
-  const alsoSkills: string[] = [];
-
-  if (!input.subjects) {
-    // all subjects booted, include unclaimed resources in also
-    for (const ref of input.briefRefs) {
-      if (!claimedBriefs.has(ref.pathToOriginal)) {
-        alsoBriefs.push(ref);
-      }
-    }
-    for (const path of input.skillPaths) {
-      if (!claimedSkills.has(path)) {
-        alsoSkills.push(path);
-      }
-    }
-  }
+  const alsoBriefs = input.subjects
+    ? []
+    : input.briefRefs.filter((ref) => !briefs.hasClaimed(getBriefKey(ref)));
+  const alsoSkills = input.subjects
+    ? []
+    : input.skillPaths.filter((path) => !skills.hasClaimed(getSkillKey(path)));
 
   return {
-    briefs: { say: briefsSay, ref: briefsRef },
-    skills: { say: skillsSay, ref: skillsRef },
+    briefs: briefs.result(),
+    skills: skills.result(),
     also: { briefs: alsoBriefs, skills: alsoSkills },
   };
 };

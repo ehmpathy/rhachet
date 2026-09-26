@@ -1,5 +1,6 @@
 import { given, then, when } from 'test-fns';
 
+import { createHash } from 'node:crypto';
 import { genEnrollmentHash } from './genEnrollmentHash';
 
 describe('genEnrollmentHash', () => {
@@ -66,6 +67,30 @@ describe('genEnrollmentHash', () => {
       then('a different roleset hashes distinctly', () => {
         expect(otherRoles).not.toEqual(base);
       });
+    });
+  });
+
+  /**
+   * .why = the digest shape keys every extant actor dir; the comparator eject must
+   *        leave it byte-equal, so the expected value is the documented formula itself
+   */
+  given('[case5] the extant digest shape', () => {
+    when('[t0] a multi-role enrollment is hashed', () => {
+      const hash = genEnrollmentHash({
+        brain: 'claude',
+        roles: ['mechanic', 'driver'],
+      });
+
+      then(
+        'it equals sha256 of { brain, sorted roles }, first 8 hex chars',
+        () => {
+          const expected = createHash('sha256')
+            .update('{"brain":"claude","roles":["driver","mechanic"]}')
+            .digest('hex')
+            .slice(0, 8);
+          expect(hash).toEqual(expected);
+        },
+      );
     });
   });
 });

@@ -395,6 +395,124 @@ module.exports = { getRoleRegistry };
     });
   });
 
+  given('[case8] a role that declares a role boot hook (D3)', () => {
+    // the brain dir boot.md supersedes each `rhachet roles boot` onBoot hook, so discovery drops
+    // it and the per-author reconcile deletes the extant one. the adhoc route.drive onBoot hook
+    // shares that author and stays; a human-authored hook is never touched
+    const rolesBootCommand =
+      './node_modules/.bin/rhachet roles boot --repo test --role tester';
+    const routeDriveCommand =
+      './node_modules/.bin/rhachet run --repo bhrain --skill route.drive --when hook.onBoot';
+    const humanCommand = 'echo human-hook';
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+
+      // the role declares a role boot hook beside the adhoc route.drive hook
+      await fs.writeFile(
+        path.join(r.path, 'node_modules/rhachet-roles-test/dist/index.js'),
+        `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role with a role boot hook',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      hooks: {
+        onBrain: {
+          onBoot: [
+            { command: '${rolesBootCommand}', timeout: 'PT60S' },
+            { command: '${routeDriveCommand}', timeout: 'PT30S' },
+          ],
+        },
+      },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`,
+        'utf-8',
+      );
+
+      // settings.json as a prior rhachet left it: the role boot hook installed, plus a human hook
+      await fs.writeFile(
+        path.join(r.path, '.claude', 'settings.json'),
+        JSON.stringify(
+          {
+            hooks: {
+              SessionStart: [
+                {
+                  matcher: 'repo=test/role=tester',
+                  command: rolesBootCommand,
+                  timeout: 'PT60S',
+                },
+                { matcher: 'human', command: humanCommand, timeout: 'PT5S' },
+              ],
+            },
+          },
+          null,
+          2,
+        ),
+        'utf-8',
+      );
+      return r;
+    });
+
+    when('[t0] init --roles tester --hooks', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+        }),
+      );
+      const commands = useBeforeAll(async () => {
+        const config = JSON.parse(
+          await fs.readFile(
+            path.join(repo.path, '.claude', 'settings.json'),
+            'utf-8',
+          ),
+        );
+        return {
+          list: (config.hooks.SessionStart as Array<{ command: string }>).map(
+            (hook) => hook.command,
+          ),
+        };
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('settings.json holds no role boot hook', () => {
+        expect(commands.list).not.toContain(rolesBootCommand);
+      });
+
+      then('the adhoc route.drive hook is present', () => {
+        expect(commands.list).toContain(routeDriveCommand);
+      });
+
+      then('the human hook is present', () => {
+        expect(commands.list).toContain(humanCommand);
+      });
+
+      then('the init stdout is locked', () => {
+        // D3 changes what a human READS on this journey, not merely what lands in
+        // settings.json: the role boot hook is superseded, so the apply tree renders a
+        // different hook set than it did before. the three asserts above prove the
+        // reconcile; this pins the surface the human meets, so a reworded or reordered
+        // tree shows up in the pr diff (`rule.require.acceptance-journey-coverage` —
+        // a new journey's stdout is snapped). paired with those asserts, never
+        // snapshot-only (`rule.forbid.failhide`)
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
   given('[case6] repo with multiple roles', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-role-hooks' }),

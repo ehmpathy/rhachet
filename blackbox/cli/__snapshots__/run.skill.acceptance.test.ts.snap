@@ -8,4 +8,21 @@ args: --skill echo-args --help
 "
 `;
 
+exports[`rhachet run given: [case3] minimal repo when: [t0] run --skill any then: the refusal frame is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: no skill "any" found in any linked role
+
+tip: did you \`npx rhachet roles link\` the --role this skill comes from?
+
+{
+  "input": {
+    "slugSkill": "any"
+  }
+}
+
+[args] run,--skill,any
+
+"
+`;
+
 exports[`rhachet run given: [case6] short flags on run (\`-r\`/\`-s\`) after the enroll \`-r\` fix when: [t0] \`run -r any -s say-hello\` (short-flag form) then: the short-flag stderr is locked to a snapshot 1`] = `""`;

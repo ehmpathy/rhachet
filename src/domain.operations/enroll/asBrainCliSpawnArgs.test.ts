@@ -4,13 +4,13 @@ import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
 
 /**
  * .what = locks the enroll spawn argv contract — the exact `--setting-sources
- *   local --settings <path>` flag ORDER, then the brain's passthrough
+ *   user,local --settings <path>` flag ORDER, then the brain's passthrough
  * .why = the flag order is a contract with the brain cli; a reorder or a dropped
  *   flag silently breaks enrollment. this restores the coverage the deleted
  *   enrollBrainCli.test.ts held once its array-build moved into a named
  *   transformer (rule.require.clamp-edge-cases: a previously-locked failure mode
- *   regains its guard). DOGFOOD: drop `local`, or swap the two flags, and the
- *   order asserts below go red
+ *   regains its guard). DOGFOOD: drop `user` or `local`, or swap the two flags, and
+ *   the asserts below go red. `user` carries the actor's boot corpus (D9, M1)
  */
 describe('asBrainCliSpawnArgs', () => {
   given('[case1] a config path with no passthrough', () => {
@@ -19,9 +19,9 @@ describe('asBrainCliSpawnArgs', () => {
     when('[t0] the spawn args are built', () => {
       const args = asBrainCliSpawnArgs({ configPath, passthrough: [] });
 
-      then('it includes the `--setting-sources local` flag', () => {
-        expect(args).toContain('--setting-sources');
-        expect(args).toContain('local');
+      then('it includes the `--setting-sources user,local` flag', () => {
+        const sourcesIndex = args.indexOf('--setting-sources');
+        expect(args[sourcesIndex + 1]).toEqual('user,local');
       });
 
       then('it includes `--settings` with the config path right after', () => {
@@ -39,11 +39,22 @@ describe('asBrainCliSpawnArgs', () => {
       then('the exact prefix order is locked', () => {
         expect(args).toEqual([
           '--setting-sources',
-          'local',
+          'user,local',
           '--settings',
           configPath,
+          '--system-prompt',
+          '',
         ]);
       });
+
+      then(
+        'the default system prompt is emptied, so rhachet owns the boot context',
+        () => {
+          const promptIndex = args.indexOf('--system-prompt');
+          expect(promptIndex).toBeGreaterThan(-1);
+          expect(args[promptIndex + 1]).toEqual('');
+        },
+      );
     });
   });
 
@@ -59,9 +70,11 @@ describe('asBrainCliSpawnArgs', () => {
       then('the passthrough comes AFTER `--settings <path>`', () => {
         expect(args).toEqual([
           '--setting-sources',
-          'local',
+          'user,local',
           '--settings',
           configPath,
+          '--system-prompt',
+          '',
           '--resume',
           '--dangerously-skip-permissions',
         ]);

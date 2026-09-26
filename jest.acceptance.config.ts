@@ -54,7 +54,8 @@ const config: Config = {
   // stamped. wire one alone and every dir is stamped and never reclaimed.
   // ⇒ this tier is where the cost bites hardest — a realbrain test provisions a whole
   //   fixture repo per clone, so an unreclaimed run leaves several on disk
-  globalSetup: 'test-fns/autoprune.setup.jest',
+  // ⇒ our globalSetup composes the autoprune setup with the keyrack source (one key, two jobs)
+  globalSetup: './jest.acceptance.globalSetup.ts',
   globalTeardown: 'test-fns/autoprune.teardown.jest',
 
   // use 50% of threads to leave headroom for other processes

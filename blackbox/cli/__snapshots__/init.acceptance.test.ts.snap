@@ -22,5 +22,11 @@ exports[`rhachet init given: [case4] repo with rhachet-roles packages installed 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
 "
 `;

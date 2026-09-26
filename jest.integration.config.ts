@@ -55,7 +55,8 @@ const config: Config = {
   // this run's id BEFORE jest forks its workers (a worker inherits only a copy of the
   // env that existed at fork), and the teardown reclaims exactly the dirs that id
   // stamped. wire one alone and every dir is stamped and never reclaimed
-  globalSetup: 'test-fns/autoprune.setup.jest',
+  // ⇒ our globalSetup composes the autoprune setup with the keyrack source (one key, two jobs)
+  globalSetup: './jest.integration.globalSetup.ts',
   globalTeardown: 'test-fns/autoprune.teardown.jest',
 
   // use 50% of threads to leave headroom for other processes

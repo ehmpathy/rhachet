@@ -41,6 +41,10 @@ import {
  *       case has no stake in the roster (the same re-coupling `[case7]` redacts).
  *       ⚠️ `role(s)` is deliberately NOT in that set: `2 role(s) linked` is the
  *       subject under test, so a mask over it would void the case
+ *
+ * .note = a `boot.md (<label>): <path> — N roles, M chars` census line once needed its
+ *   own masker here. that surface is gone — a brain dir reports as one `🧠 brain dir`
+ *   treestruct now — so the char count and absolute path it masked no longer render
  */
 const asAbsoluteInitScreen = (input: {
   stdout: string;

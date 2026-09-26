@@ -4,6 +4,7 @@ import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActor
 import { getOneActorOndiskByHash } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByHash';
 
 import { genCloneHistoryLink } from './genCloneHistoryLink';
+import { getCloneBrainDir } from './getCloneBrainDir';
 import { getCloneDir } from './getCloneDir';
 
 /**
@@ -24,13 +25,11 @@ export const genCloneHistoryRelink = (input: {
   repoPath: string;
   clone: CloneOndisk;
 }): void => {
-  const cloneDir = getCloneDir({
-    actorDir: getActorOndiskDir({
-      repoPath: input.clone.actor.repoPath,
-      hash: input.clone.actor.hash,
-    }),
-    serial: input.clone.serial,
+  const actorDir = getActorOndiskDir({
+    repoPath: input.clone.actor.repoPath,
+    hash: input.clone.actor.hash,
   });
+  const cloneDir = getCloneDir({ actorDir, serial: input.clone.serial });
   const actorsRoot = getActorsRootDir({ repoPath: input.clone.actor.repoPath });
 
   const actorRecord = getOneActorOndiskByHash({
@@ -41,6 +40,10 @@ export const genCloneHistoryRelink = (input: {
     genCloneHistoryLink({
       cloneDir,
       actorsRoot,
+      brainDir: getCloneBrainDir({
+        actorDir,
+        spawnedAt: input.clone.spawnedAt,
+      }),
       cwd: input.clone.actor.repoPath,
       brain: actorRecord.brain,
       spawnedAt: input.clone.spawnedAt,

@@ -222,7 +222,17 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -271,7 +281,17 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -305,7 +325,17 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -345,7 +375,17 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -375,7 +415,17 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -405,7 +455,17 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -435,7 +495,17 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -570,6 +640,27 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 "
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`claude\` sits BELOW the version floor when: [t0] \`enroll claude --roles mechanic\` then: the refusal output is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: brain-cli 'claude' is 2.1.87 at $STUBDIR_WINNER/claude, below the floor 2.1.277
+
+{
+  "hint": "a newer 2.1.280 sits at $STUBDIR_NEWER/claude, but $STUBDIR_WINNER/claude wins your PATH — put that dir first, or upgrade the one that wins: pnpm add -g @anthropic-ai/claude-code@latest",
+  "bin": "claude",
+  "version": "2.1.87",
+  "floor": "2.1.277",
+  "resolvedPath": "$STUBDIR_WINNER/claude",
+  "shadowed": [
+    {
+      "path": "$STUBDIR_NEWER/claude",
+      "version": "2.1.280"
+    }
+  ]
+}
+
+"
+`;
+
 exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
 "{
   "class": "ConstraintError",
@@ -594,6 +685,31 @@ exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the 
   "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
   "depthRequested": 2,
   "depthMax": 1
+}
+
+"
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t0] \`enroll claude\` (no passthrough) then: the recorded argv is locked to a snapshot 1`] = `
+[
+  "--setting-sources",
+  "user,local",
+  "--settings",
+  "$TESTDIR",
+  "--system-prompt",
+  "<empty>",
+]
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t2] \`enroll claude --system-prompt <text>\` (a passthrough override) then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: enroll owns the system prompt; the passthrough may not override it
+
+{
+  "hint": "rhachet spawns every clone with \`--system-prompt ''\` and boots its briefs via CLAUDE.md. to add text, pass \`--append-system-prompt <text>\`; to change what a clone knows, add a brief to one of its roles",
+  "overrides": [
+    "--system-prompt"
+  ]
 }
 
 "

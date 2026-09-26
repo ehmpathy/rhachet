@@ -1,0 +1,48 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles link given: [case1] repo with link sources when: [t0] roles link --repo test-repo --role tester then: the whole stdout is locked (the reviewer-faced contract) 1`] = `
+"
+🔭 rhachet.use.ts found, import roles from config...
+
+📚 link role repo=test-repo/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test-repo/readme.md
+   │  ├─ + .agent/repo=test-repo/.gitignore
+   │  ├─ + .agent/repo=test-repo/role=tester/readme.md
+   │  ├─ + .agent/repo=test-repo/role=tester/briefs
+   │  └─ + .agent/repo=test-repo/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+💡 tip
+   └─ an enrolled actor gains this role via \`rhx enroll --roles +tester\`
+
+"
+`;
+
+exports[`rhachet roles link given: [case2] minimal repo (empty registries) when: [t0] roles link --role nonexistent then: the whole negative-path stderr is locked 1`] = `
+"
+✋ ConstraintError: No registries found in rhachet.use.ts
+
+[args] roles,link,--role,nonexistent
+
+"
+`;
+
+exports[`rhachet roles link given: [case2] minimal repo (empty registries) when: [t1] roles link without --role then: the whole absent-flag stderr is locked 1`] = `
+"
+✋ ConstraintError: --role is required (e.g., --role mechanic)
+
+[args] roles,link
+
+"
+`;

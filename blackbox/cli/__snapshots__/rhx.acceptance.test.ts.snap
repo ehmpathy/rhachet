@@ -22,6 +22,12 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    ├─ org: ehmpathy
    └─ created .agent/keyrack.yml
 
+🧠 brain dir (default)
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
 🔭 search for linked roles with hooks...
    └─ ehmpathy/architect
 

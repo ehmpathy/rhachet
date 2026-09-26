@@ -9,11 +9,20 @@ briefs:
     # core identity - always boot these
     - briefs/define.rhachet.v3.md
     - briefs/define.agent-dir.md
+    # the actor/clone identity model — the frame every design here sits within
+    - briefs/catalog.of=actor-clone-design._.md
+    - briefs/define.actor-clone-hierarchy.md
+    - briefs/rule.forbid.per-clone-config.md
+    - briefs/define.enrollment-identity-is-the-roleset-hash.md
+    - briefs/define.brain-dir-repo-vs-actor.md
+    - briefs/define.claude-md-vs-system-prompt.md
+    - briefs/philosophy.minimal-budget-for-maximum-perspective.md
     # actively used patterns
     - briefs/howto.test-local-rhachet.md
     - briefs/rule.forbid.node-modules-bin-rhx.md
     - briefs/bin.dispatcher.pattern.md
     - briefs/run.executable.lookup.pattern.md
+    - briefs/rule.require.thinnest-import-path.md
     # test patterns (frequently referenced)
     - briefs/code.test.accept.blackbox.md
     - briefs/rule.require.shared-test-fixtures.md
@@ -28,3 +37,5 @@ briefs:
     # reflex, so a ref tier fires only after the unreviewable read already ran.
     # measured 2026-09-21 — the human halted one mid-flight
     - briefs/rule.forbid.inline-interpreter-reads.md
+    - briefs/rule.forbid.npm-in-tests.md
+    - briefs/rule.forbid.sync-invoke-while-a-pty-is-live.md

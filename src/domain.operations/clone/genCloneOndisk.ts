@@ -14,6 +14,7 @@ import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
 import { genEnrollmentHash } from '../actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '../actor/enrolled/getActorsRootDir';
+import { getBrainOndiskDir } from '../actor/enrolled/getBrainOndiskDir';
 import { asCloneDirName } from './asCloneDirName';
 import { asCloneSocketOmissionReasonError } from './asCloneSocketOmissionReasonError';
 import {
@@ -26,6 +27,7 @@ import { delCloneStagedDir } from './delCloneStagedDir';
 import { genCloneHistoryLink } from './genCloneHistoryLink';
 import { genCloneSerial } from './genCloneSerial';
 import { type CloneSpawnHandle, genCloneSpawn } from './genCloneSpawn';
+import { getCloneBrainDir } from './getCloneBrainDir';
 import { getCloneDir } from './getCloneDir';
 import { getCloneReachState } from './getCloneReachState';
 import { getCloneSocketPath } from './getCloneSocketPath';
@@ -166,6 +168,7 @@ export const genCloneOndisk = async (
   const socketPath = getCloneSocketPath({ serial });
   const actorDir = getActorOndiskDir({ repoPath, hash });
   const cloneDir = getCloneDir({ actorDir, serial });
+  const brainDir = getBrainOndiskDir({ actorDir });
 
   // does a socket make sense here, and can the pty carry one on this host?
   // 🔴 the mode is NOT a term here. a clone is reachable in either mode — that is
@@ -222,6 +225,10 @@ export const genCloneOndisk = async (
   );
   mkdirSync(tempDir, { recursive: true });
 
+  // the brain dir exists before the spawn, so its birth precedes every clone of it
+  // and the history link routes this clone to it (D8)
+  mkdirSync(brainDir, { recursive: true });
+
   // capture the spawn instant ONCE, BEFORE the spawn, and reuse it for BOTH the
   // persisted identity and the history-link window below. a second now() taken
   // AFTER the pty spawn's real wall-clock cost could fall outside
@@ -242,6 +249,7 @@ export const genCloneOndisk = async (
       args: input.args,
       cwd: input.cwd,
       serial,
+      brainDir,
       socketPath,
       socketEligible,
       pty: ptyModule,
@@ -324,10 +332,12 @@ export const genCloneOndisk = async (
   setCloneSerialIndex({ actorsRoot, actorHash: hash, serial });
 
   // link the brain's own transcript (best-effort; a later `get` re-links). the SAME
-  // spawnedAt the identity persisted, so the window here matches the one `get` reuses
+  // spawnedAt the identity persisted, so the window here matches the one `get` reuses.
+  // the brain dir comes through the same call `get` makes, so the two never disagree
   genCloneHistoryLink({
     cloneDir,
     actorsRoot,
+    brainDir: getCloneBrainDir({ actorDir, spawnedAt }),
     cwd: input.cwd,
     brain: input.brain,
     spawnedAt,

@@ -166,7 +166,7 @@ exports[`rhx clone prune (acceptance) given: [case4b] the mid-batch reap failure
 
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t0] both clones are alive then: the alive-state list format is locked (DEAF + LIVE) 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       ├─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
       └─ @:goner  serial=__SERIAL8__  state=DEAF  since=__TIMESTAMP__
 "
@@ -174,7 +174,7 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t1] the goner process exits (DEAF → DEAD) then: the DEAD-after-exit list format is locked 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       ├─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
       └─ @:goner  serial=__SERIAL8__  state=DEAD  since=__TIMESTAMP__
 
@@ -207,7 +207,7 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t3] \`clone prune --mode apply\` reaps the dead goner then: the post-apply list format is locked (goner gone, keeper LIVE) 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       └─ @:keeper  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
 "
 `;

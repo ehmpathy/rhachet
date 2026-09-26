@@ -72,6 +72,9 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
           console.log('✨ rhachet upgraded globally');
         }
         console.log('');
+
+        // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
+        if (result.bootsExitCode !== 0) process.exit(result.bootsExitCode);
       },
     );
 };

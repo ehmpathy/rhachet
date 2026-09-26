@@ -7,6 +7,7 @@ import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropi
 import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
 
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
+import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 
 describe('genBrainCliConfigArtifact', () => {
   /**
@@ -123,6 +124,30 @@ describe('genBrainCliConfigArtifact', () => {
         expect(content).not.toContain('role=driver');
         expect(content).not.toContain('role=ergonomist');
       });
+
+      then(
+        'carries claudeMdExcludes for every repo door (D5, D12)',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings = JSON.parse(content) as {
+            claudeMdExcludes?: string[];
+          };
+          expect(settings.claudeMdExcludes).toEqual(
+            getClaudeMdExcludesList({
+              repoPath: scene.repoPath,
+              defaultBrainDir: path.join(
+                scene.repoPath,
+                '.agent',
+                '.actors',
+                'actor.via.slug=.default',
+                'brain',
+                '.claude',
+              ),
+              home: os.homedir(),
+            }),
+          );
+        },
+      );
     });
 
     when('[t1] enroll with mechanic and ergonomist roles', () => {

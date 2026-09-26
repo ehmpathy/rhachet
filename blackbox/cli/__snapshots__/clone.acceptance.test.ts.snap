@@ -27,7 +27,7 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 
 exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled through a real pty when: [t0] the clone is enrolled then: the clone-list tree format is locked (visual spot-check) 1`] = `
 "😶 clones
-   └─ actor ee65f29… (brain=claude roles=architect,driver,mechanic)
+   └─ actor ee65f291 (brain=claude roles=architect,driver,mechanic)
       └─ @:driver  serial=__SERIAL8__  state=LIVE  since=__TIMESTAMP__
 "
 `;
@@ -431,7 +431,7 @@ exports[`rhx clone reach (acceptance) given: [case5] a repo with NO .agent/ dire
 
 exports[`rhx clone reach (acceptance) given: [case6] a linked repo with an actor enrolled but NO clones under it when: [t0] \`clone list @<hash>\` for an actor with no clones then: the actor-scoped empty format is locked (visual spot-check) 1`] = `
 "😶 clones
-   └─ actor 8967acd… (brain=claude roles=mechanic)
+   └─ actor 8967acd9 (brain=claude roles=mechanic)
       └─ (no clones)
          └─ enroll one with \`rhx enroll <brain>\`
 "
@@ -478,7 +478,7 @@ exports[`rhx clone reach (acceptance) given: [case7] UNSCOPED \`clone list\` wit
 
 exports[`rhx clone reach (acceptance) given: [case7] UNSCOPED \`clone list\` with a MIX — one actor owns a clone, one is clone-less when: [t0] a bare \`clone list\` is run then: the unscoped-mixed tree format is locked (visual regression) 1`] = `
 "😶 clones
-   └─ actor 8967acd… (brain=claude roles=mechanic)
+   └─ actor 8967acd9 (brain=claude roles=mechanic)
       └─ @:__SERIAL8__  state=DEAF  since=__TIMESTAMP__
 "
 `;
