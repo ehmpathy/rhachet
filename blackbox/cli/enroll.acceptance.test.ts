@@ -11,6 +11,7 @@ import {
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
   asSnapshotSafe,
+  asSnapshotSafeOfHostLogin,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from '@/blackbox/.test/infra/roleFixtureRepo';
@@ -557,7 +558,7 @@ describe('rhx enroll --roles (acceptance)', () => {
       then('the success output is locked to a snapshot', () => {
         // the stub brain emits no output; this locks that the success path leaks
         // no unexpected rhachet output to stderr before the spawn
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
       });
     });
   });
@@ -621,7 +622,7 @@ describe('rhx enroll --roles (acceptance)', () => {
       then('the success output is locked to a snapshot', () => {
         // the stub brain emits no output; this locks that the bare default-roles
         // success path leaks no unexpected rhachet output before the spawn
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
       });
 
       then('the boot corpus lands in the actor brain dir, never the repo brain dir', () => {
@@ -2070,7 +2071,7 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
       });
 
       then('the collision error is locked to a snapshot', () => {
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
       });
     });
 

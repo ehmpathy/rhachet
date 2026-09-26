@@ -408,7 +408,10 @@ const performEnroll = async (input: {
     brainDir,
     home: getHomeDir(),
   });
-  if (credential.status === 'absent')
+  //
+  // .note = a human hint only. a `--output json` caller parses stderr as its error
+  //   contract, so a prose line there would break the parse on a host with no login
+  if (credential.status === 'absent' && mode !== 'json')
     console.error(asBrainCredentialAbsentLine({ brainDir }));
 
   // settle first-run state before any spawn, so no clone meets a prompt (D11)

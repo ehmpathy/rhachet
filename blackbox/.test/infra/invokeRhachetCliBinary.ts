@@ -435,3 +435,13 @@ export const invokeRhachetCliBinaryChain = (input: {
 
   return result;
 };
+
+/**
+ * .what = asSnapshotSafe, minus the one enroll line that depends on the host's claude login
+ * .why = enroll prints `ℹ no claude credential to link …` only on a host with no login, so
+ *   a snapshot of enroll stderr differs between a dev box and ci. the line is its own
+ *   concern, clamped where the journey pins a HOME with no credential; elsewhere it is
+ *   host noise
+ */
+export const asSnapshotSafeOfHostLogin = (output: string): string =>
+  asSnapshotSafe(output).replace(/^ℹ no claude credential to link into .*\n?/gm, '');

@@ -11,6 +11,7 @@ import {
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
   asSnapshotSafe,
+  asSnapshotSafeOfHostLogin,
   invokeRhachetCliBinary,
   invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -1717,7 +1718,7 @@ describe('rhx clone reach (acceptance)', () => {
       then('the reused tree line is locked (visual spot-check)', () => {
         // the slug is a stable literal + no serial in the reuse line, so the masked
         // stderr is deterministic — this pins the human reuse experience against drift
-        expect(asSnapshotSafe(reused.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafeOfHostLogin(reused.stderr)).toMatchSnapshot();
       });
     });
   });
