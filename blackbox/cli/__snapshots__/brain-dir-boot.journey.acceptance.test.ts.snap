@@ -85,7 +85,7 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: an absent credential is no refusal — enroll spawns the brain (D13) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
 
-exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: stderr names the brain dir and both fixes 1`] = `"ℹ no claude credential to link into /TMP_TEST_DIR/.agent/.actors/actor.via.hash=6fdfcc44/brain/.claude — run /login inside the clone, or set ANTHROPIC_API_KEY"`;
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: stderr names the shared login path and both fixes 1`] = `"ℹ no claude login at $HOME/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY"`;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3] rhx enroll claude --roles shaper, real cli, temp HOME then: the enroll handoff line is locked 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
 

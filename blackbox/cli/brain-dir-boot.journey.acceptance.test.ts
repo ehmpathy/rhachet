@@ -769,16 +769,34 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         expect(result.status).not.toEqual(2);
       });
 
-      then('stderr names the brain dir and both fixes', () => {
+      then('stderr names the shared login path and both fixes', () => {
         const line =
           result.stderr
             .split('\n')
-            .find((row) => row.includes('no claude credential to link')) ?? '';
+            .find((row) => row.includes('no claude login at')) ?? '';
         expect(line).toContain('/login');
         expect(line).toContain('ANTHROPIC_API_KEY');
-        const brainDir = line.match(/link into (\S+) —/)?.[1] ?? '';
-        expect(existsSync(join(brainDir, '.credentials.json'))).toBe(false);
-        expect(asSnapshotSafe(line)).toMatchSnapshot();
+        const brainAuthPath = line.match(/login at (\S+) —/)?.[1] ?? '';
+        expect(brainAuthPath).toMatch(/\/\.claude\/\.credentials\.json$/);
+        expect(existsSync(brainAuthPath)).toBe(false);
+        // .note = not asSnapshotSafe: it strips this path to `/PATH_STRIPPED`, which
+        //   hides which file the line names; the one masked span is the temp HOME
+        expect(
+          line.replace(
+            /\S+\/\.claude\/\.credentials\.json/,
+            '$HOME/.claude/.credentials.json',
+          ),
+        ).toMatchSnapshot();
+      });
+
+      then('no actor brain dir holds a login of its own — every clone shares ~/.claude', () => {
+        // .note = lstat, not exists: a 1.48.0 symlink to an absent login still counts
+        const actorsDir = join(scene.dir, '.agent', '.actors');
+        const brainDirLogins = readdirSync(actorsDir)
+          .filter((name) => name.startsWith('actor.via.'))
+          .map((name) => join(actorsDir, name, 'brain', '.claude', '.credentials.json'))
+          .filter((path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined);
+        expect(brainDirLogins).toEqual([]);
       });
     });
 

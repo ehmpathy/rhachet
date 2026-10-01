@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthAbsentLine given: [case1] a shared login path with no login in it when: [t0] the line is rendered then: it names the login path and both fixes 1`] = `"ℹ no claude login at /home/h/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY"`;

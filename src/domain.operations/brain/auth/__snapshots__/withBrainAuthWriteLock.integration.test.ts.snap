@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`withBrainAuthWriteLock given: [case7] a live holder that never releases when: [t0] a procedure asks for the lock past the wait then: the error names the lock and the fix 1`] = `
+"💥 MalfunctionError: the claude login write lock stayed held; the shared login was not touched
+
+{
+  "lockPath": "$LOCK_PATH",
+  "hint": "a live claude-code process holds the lock past the wait; retry the enroll. a lock dir older than 15s is stale, and is cleared on the next try"
+}"
+`;

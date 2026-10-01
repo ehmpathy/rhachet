@@ -22,6 +22,27 @@ describe('asBrainCliSpawnEnv', () => {
       then("the caller's other env is kept", () => {
         expect(env['PATH']).toEqual('/usr/bin');
       });
+
+      then('the login store is the shared ~/.claude, via an empty var', () => {
+        // '' points claude-code's credential file and its refresh locks at ~/.claude
+        expect(env['CLAUDE_SECURESTORAGE_CONFIG_DIR']).toEqual('');
+      });
+    });
+  });
+
+  given('[case5] a caller env that sets the secure-storage dir', () => {
+    when('[t0] the spawn env is built', () => {
+      const env = asBrainCliSpawnEnv({
+        env: {
+          PATH: '/usr/bin',
+          CLAUDE_SECURESTORAGE_CONFIG_DIR: '/some/other/dir',
+        },
+        brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+      });
+
+      then('rhachet overrides it, so no clone splits the store', () => {
+        expect(env['CLAUDE_SECURESTORAGE_CONFIG_DIR']).toEqual('');
+      });
     });
   });
 
@@ -54,6 +75,7 @@ describe('asBrainCliSpawnEnv', () => {
           [
             'ANTHROPIC_API_KEY',
             'CLAUDE_CONFIG_DIR',
+            'CLAUDE_SECURESTORAGE_CONFIG_DIR',
             'PATH',
             ...Object.keys(BRAIN_CLI_SPINUP_ENV_DEFAULTS),
           ].sort(),

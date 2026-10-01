@@ -36,6 +36,23 @@ boot.md      # the rendered role corpus — ours
 | the repo's | the repo's default roles |
 | the actor's | that actor's enrolled roles |
 
+## .credentials
+
+> **the config is the actor's. the login is the box's.**
+
+a brain dir holds boot, settings, and transcripts. it never holds the claude login.
+
+| what | where | why |
+|---|---|---|
+| the login (`.credentials.json`) | `~/.claude`, one per box | it derives from the human's login, never from `{ brain, roles }` |
+| its write lock and its refresh lock | `~/.claude`, beside it | one lock set, so a refresh loser waits, re-reads, and adopts the winner's token |
+
+- **how.** every clone spawns with `CLAUDE_SECURESTORAGE_CONFIG_DIR=''` beside its per-actor `CLAUDE_CONFIG_DIR`. in claude-code, `''` keys the login file and both locks by `~/.claude`; unset keys them by the config dir. rhachet sets the var after the caller env, so a caller value never reopens the split.
+- 🔴 **never link or copy the login into a brain dir.** N actors over one linked file means N lock sets: a refresh winner renames over its link, and the next loser blanks the shared file for the whole box. that is the rhachet 1.48.0 outage.
+- **a dead login refuses the enroll.** a login whose refresh token claude-code emptied exits 2 and names `/login`. one `/login` refills the one file, and every live clone recovers with no respawn. an env credential (`CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`) outranks the file and is never refused.
+- **a 1.48.0 leftover in a brain dir** is kept while a clone of the actor lives, then removed. a live real file is first adopted into `~/.claude` only when the shared login is dead or absent — a live shared login may be refreshed by any peer at any instant, so it is never overwritten.
+- **the clamp.** `blackbox/cli/enroll.shared-brain-auth.acceptance.test.ts` runs a real claude-code through rhachet's spawn env. if a claude-code release stops to honor the var, it goes red.
+
 ## .invariants
 
 - **no third place.** a boot never comes from `~/.claude`, and the human's own user-scope memory never loads into a clone. the relocation alone does not hold this — the cli still loads a literal `~/.claude/CLAUDE.md` — so the enroll artifact's `claudeMdExcludes` names it.

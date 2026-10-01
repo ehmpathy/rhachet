@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll vs a real claude-code: one shared login store given: [case1] a HOME whose ~/.claude holds an expired login, and no env credential when: [t1] a second clone is enrolled against the now-dead shared login then: the refusal a human reads is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: the box's claude login is dead
+
+{
+  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY for this clone",
+  "brainAuthPath": "/PATH_STRIPPED"
+}
+
+"
+`;

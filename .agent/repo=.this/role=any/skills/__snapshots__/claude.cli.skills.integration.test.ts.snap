@@ -1,0 +1,193 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial against a claude bin that prints no version when: [t0] the trial is run then: it fails loud with exit 1, before any scenario 1`] = `
+"💥 MalfunctionError: the probe claude did not print a version (exit 0)
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t0] an unknown arg is passed then: it refuses with exit 2 and names the arg 1`] = `
+"✋ ConstraintError: claude.cli.secstore.trial: unknown arg '--bogus'
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t1] --in is absent then: it refuses with exit 2 and shows the usage 1`] = `
+"✋ ConstraintError: claude.cli.secstore.trial needs --in
+   usage: claude.cli.secstore.trial --in <probe-prefix>
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t2] --in names no probe install then: it refuses with exit 2 and names the install command 1`] = `
+"✋ ConstraintError: no probe install at '.temp/absent-probe'
+   fix: rhx claude.cli.probe --into .temp/absent-probe
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t3] --in sits outside the repo then: it refuses with exit 2, and reads no file there 1`] = `
+"✋ ConstraintError: --in must sit inside the repo (<repo>)
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t4] --help is passed then: it prints the header and exits 0 1`] = `
+"######################################################################
+# .what = run a probe claude-code against a fake home inside the repo,
+#         and report which credential file it reads and which it
+#         writes, with and without CLAUDE_SECURESTORAGE_CONFIG_DIR=""
+#
+# .why  = proves by a run (not by a read of the code) where the
+#         credential store lands under a per-actor CLAUDE_CONFIG_DIR —
+#         the premise of the shared-credential-blank cure. it never
+#         touches the real ~/.claude: HOME is a temp dir in the repo,
+#         and every token it plants is a fake it made itself
+#
+# usage:
+#   rhx claude.cli.probe --into .temp/claude-cli.probe --version 2.1.280
+#   rhx claude.cli.secstore.trial --in .temp/claude-cli.probe
+#
+# options:
+#   --in       the probe prefix \`claude.cli.probe --into\` made; must sit
+#              inside the repo (required)
+#
+# requires: jq on the PATH (it reads each credential); refused if absent
+#
+# the scenarios:
+#   read.unset    — the home store holds a valid fake login; the actor
+#                   dir is empty; the var is unset
+#   read.empty    — same, with CLAUDE_SECURESTORAGE_CONFIG_DIR=""
+#   read.link     — the actor's credential is a symlink to the home store
+#                   (the rhachet 1.48.0 topology); the var is unset
+#   write.link    — the home store holds an EXPIRED fake login, the actor
+#                   links to it, the var is unset. claude refreshes, the
+#                   server rejects the fake token (invalid_grant), and
+#                   claude-code's dead-token clear blanks the file under
+#                   its secure-storage dir. where the blank lands = where
+#                   a write lands
+#   write.empty   — same expired login, no link, var = ""
+#
+# guarantee:
+#   - HOME, the config dirs and every file live under .temp/ in the repo
+#   - the env is built from empty (env -i): no real token, api key, or
+#     config dir leaks in from the caller
+#   - a credential is reported as planted | blank | other, never a value
+#   - write.* sends one fake refresh token to the oauth endpoint
+#   - exit 0 = trial ran (the verdicts are the result)
+#   - exit 1 = malfunction (the probe did not run)
+#   - exit 2 = constraint (bad args, prefix outside the repo, no install,
+#     no jq)
+######################################################################
+
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.secstore.trial when: [t5] --in is a dir in the repo with no claude-code install then: it refuses with exit 2 and names the install command 1`] = `
+"✋ ConstraintError: no claude bin under '.temp/claude.cli.skills.test/empty'
+   fix: rhx claude.cli.probe --into .temp/claude.cli.skills.test/empty
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a fake claude-code package in the repo when: [t0] --radius is not a whole number then: it refuses with exit 2 1`] = `
+"✋ ConstraintError: --radius and --limit must be whole numbers
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a fake claude-code package in the repo when: [t1] --pattern is not a valid extended regex then: it refuses with exit 2, never a zero-match report 1`] = `
+"✋ ConstraintError: --pattern is not a valid extended regex: 'lock('
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a fake claude-code package in the repo when: [t2] the pattern matches, in a text file and in a binary then: it exits 0 and reports each distinct match once 1`] = `
+"🔭 claude.cli.strings --in .temp/claude.cli.skills.test/probe --pattern 'storage-write' --radius 8 --limit 20
+   ├─ package: @anthropic-ai/claude-code@9.9.9
+   ├─ matches: 2 distinct
+   └─ shown: first 2
+
+────
+...bin.storage-write.end..
+────
+(dir, ".storage-write.lock");
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a fake claude-code package in the repo when: [t3] the pattern matches no file then: it exits 0 and reports zero matches 1`] = `
+"🔭 claude.cli.strings --in .temp/claude.cli.skills.test/probe --pattern 'absentword' --radius 200 --limit 20
+   ├─ package: @anthropic-ai/claude-code@9.9.9
+   ├─ matches: 0 distinct
+   └─ crickets
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a package link that resolves outside the repo when: [t0] a search is run then: it refuses with exit 2, and reads no file there 1`] = `
+"✋ ConstraintError: the claude-code package lands outside the repo (/usr)
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings against a package with an unreadable file when: [t0] a search is run then: it fails loud with exit 1, never a zero-match report 1`] = `
+"💥 MalfunctionError: unreadable file .temp/claude.cli.skills.test/locked/node_modules/@anthropic-ai/claude-code/locked.js
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t0] an unknown arg is passed then: it refuses with exit 2 and names the arg 1`] = `
+"✋ ConstraintError: claude.cli.strings: unknown arg '--bogus'
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t1] --in is absent then: it refuses with exit 2 and shows the usage 1`] = `
+"✋ ConstraintError: claude.cli.strings needs --in and --pattern
+   usage: claude.cli.strings --in <probe-prefix> --pattern <regex> [--radius N] [--limit N]
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t2] --in names no probe install then: it refuses with exit 2 and names the install command 1`] = `
+"✋ ConstraintError: no probe install at '.temp/absent-probe'
+   fix: rhx claude.cli.probe --into .temp/absent-probe
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t3] --in sits outside the repo then: it refuses with exit 2, and reads no file there 1`] = `
+"✋ ConstraintError: --in must sit inside the repo (<repo>)
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t4] --help is passed then: it prints the header and exits 0 1`] = `
+"######################################################################
+# .what = search the readable text embedded in a claude-code install
+#         (its native binary included) for a pattern, and print each
+#         match with the code around it
+#
+# .why  = claude-code ships as a native binary with its js embedded as
+#         strings. to learn how it behaves (a lock path, a refresh
+#         flow, an env var it reads) a mechanic must search those
+#         strings; a raw grep -a over a binary needs a permission grant
+#         each time. this skill bounds that read to a probe install
+#         inside the repo
+#
+# usage:
+#   rhx claude.cli.probe --into .temp/claude-cli.probe --version 2.1.280
+#   rhx claude.cli.strings --in .temp/claude-cli.probe --pattern 'credentials\\.json'
+#   rhx claude.cli.strings --in .temp/claude-cli.probe --pattern 'lockSync' --radius 400 --limit 5
+#
+# options:
+#   --in       the probe prefix \`claude.cli.probe --into\` made; must sit
+#              inside the repo (required)
+#   --pattern  an extended regex to find (required)
+#   --radius   chars of context on each side of a match (default: 200)
+#   --limit    max distinct matches to print (default: 20)
+#
+# guarantee:
+#   - reads only files under the probe's claude-code package, which
+#     must sit inside the repo
+#   - non-printable bytes are shown as '.', so a binary match prints
+#     as one readable line
+#   - duplicate matches are printed once; the total is reported
+#   - exit 0 = searched (zero matches is a result, not an error)
+#   - exit 1 = malfunction (the package or its files are unreadable)
+#   - exit 2 = constraint (bad args, prefix outside the repo, no install)
+######################################################################
+
+"
+`;
+
+exports[`claude.cli probe skills given: [case] claude.cli.strings when: [t5] --in is a dir in the repo with no claude-code install then: it refuses with exit 2 and names the install command 1`] = `
+"✋ ConstraintError: no @anthropic-ai/claude-code under '.temp/claude.cli.skills.test/empty'
+   fix: rhx claude.cli.probe --into .temp/claude.cli.skills.test/empty
+"
+`;

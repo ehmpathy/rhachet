@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainDirAuthMigratedLine given: [case1] the login was kept for live clones when: [t0] the line is rendered then: it names the kept path, the live count and the respawn cure 1`] = `"ℹ kept the pre-cure login at /r/.agent/.actors/actor.via.hash=abc/brain/.claude/.credentials.json — 2 clone(s) of this actor still live, and any spawned before the cure refresh it on their own locks; respawn them to close the race"`;
+
+exports[`asBrainDirAuthMigratedLine given: [case2] the login was adopted when: [t0] the line is rendered then: it names both paths 1`] = `"ℹ adopted the later login from /r/.agent/.actors/actor.via.hash=abc/brain/.claude/.credentials.json into /home/h/.claude/.credentials.json"`;
