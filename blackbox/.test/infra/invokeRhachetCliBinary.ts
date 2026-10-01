@@ -138,6 +138,18 @@ export const asSnapshotSafe = (output: string): string => {
       // between turns varies by run (a say + reply may straddle a minute boundary), so
       // the offset is masked; a functional assert checks the `T0+\d\dH\d\dM` FORMAT
       .replace(/T0\+\d{2}H\d{2}M/g, 'T0+__ELAPSED__')
+      // collapse consecutive identical `$STAMP` rows. a role's own init may back
+      //   settings.json up more than once per run, each under a SECONDS-grain stamp: two
+      //   backups in one second collide into one file, two across a second boundary stay
+      //   two. once the stamp is masked those rows are identical, so all that is left to
+      //   vary is their COUNT, and that count belongs to the wall clock — the same cure
+      //   `invokeInit.integration.test.ts` applies (`rule.forbid.time-assumptions`)
+      .split('\n')
+      .filter(
+        (line, index, lines) =>
+          !(line.includes('$STAMP') && line === lines[index - 1]),
+      )
+      .join('\n')
   );
 };
 

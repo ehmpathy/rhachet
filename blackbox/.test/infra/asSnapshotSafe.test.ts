@@ -275,5 +275,41 @@ describe('asSnapshotSafe path mask', () => {
         );
       });
     });
+
+    /**
+     * 🔴 .why = the measured flake. two role inits each back settings.json up under a
+     *   seconds-grain stamp, so the moved tree held ONE backup row when both inits landed
+     *   in one second and TWO when a second boundary fell between them. once masked, the
+     *   two rows were identical and only their count varied with the wall clock
+     */
+    when('[t2] two backups straddle a second boundary', () => {
+      const oneBackup = [
+        '   │  ├─ .claude/settings.2026-10-01T07-18-22Z.bak.json → x/settings.2026-10-01T07-18-22Z.bak.json',
+        '   │  └─ .claude/settings.json → x/settings.json',
+      ].join('\n');
+      const twoBackups = [
+        '   │  ├─ .claude/settings.2026-10-01T07-18-22Z.bak.json → x/settings.2026-10-01T07-18-22Z.bak.json',
+        '   │  ├─ .claude/settings.2026-10-01T07-18-23Z.bak.json → x/settings.2026-10-01T07-18-23Z.bak.json',
+        '   │  └─ .claude/settings.json → x/settings.json',
+      ].join('\n');
+
+      then('both runs mask to the same tree', () => {
+        expect(asSnapshotSafe(twoBackups)).toEqual(asSnapshotSafe(oneBackup));
+      });
+
+      then('one backup row survives, so the move is still reported', () => {
+        expect(asSnapshotSafe(twoBackups)).toContain(
+          '.claude/settings.$STAMP.bak.json → x/settings.$STAMP.bak.json',
+        );
+      });
+    });
+
+    when('[t3] identical rows that carry no stamp reach the mask', () => {
+      then('they are left alone, so only the clock-owned count collapses', () => {
+        expect(asSnapshotSafe('   ├─ same\n   ├─ same')).toEqual(
+          '   ├─ same\n   ├─ same',
+        );
+      });
+    });
   });
 });
