@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertBrainAuthNotDead given: [case1] the shared login is dead when: [t0] no env credential is set then: it refuses with a ConstraintError that names /login 1`] = `
+"✋ ConstraintError: the box's claude login is dead
+
+{
+  "brainAuthPath": "/home/fake/.claude/.credentials.json",
+  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY for this clone"
+}"
+`;

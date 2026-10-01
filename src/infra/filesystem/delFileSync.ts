@@ -1,3 +1,5 @@
+import { isErrnoEnoent } from '@src/infra/filesystem/isErrnoEnoent';
+
 import { unlinkSync } from 'node:fs';
 
 /**
@@ -22,6 +24,6 @@ export const delFileSync = (input: { path: string }): void => {
     unlinkSync(input.path);
   } catch (error) {
     // allow expected errors: ENOENT = already absent, which is the desired end state
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if (!isErrnoEnoent(error)) throw error;
   }
 };

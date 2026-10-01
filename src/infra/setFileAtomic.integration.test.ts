@@ -3,7 +3,7 @@ import { genTempDir, given, then, when } from 'test-fns';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { spawn } from 'node:child_process';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -56,6 +56,21 @@ describe('setFileAtomic', () => {
 
         expect(readFileSync(path, 'utf8')).toEqual('short\n');
         expect(readdirSync(dir)).toEqual(['boot.md']);
+      });
+    });
+  });
+
+  given('[case2.1] a prior file with open permissions', () => {
+    when('[t0] a new content is set with mode 0600', () => {
+      then('the file lands with mode 0600', () => {
+        const dir = genTempDir({ slug: 'setFileAtomic-c2-1t0' });
+        const path = join(dir, '.credentials.json');
+        writeFileSync(path, 'prior\n', { mode: 0o644 });
+
+        setFileAtomic({ path, content: 'next\n' }, { mode: 0o600 });
+
+        expect(readFileSync(path, 'utf8')).toEqual('next\n');
+        expect(statSync(path).mode & 0o777).toEqual(0o600);
       });
     });
   });

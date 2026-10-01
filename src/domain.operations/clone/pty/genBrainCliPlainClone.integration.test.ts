@@ -15,9 +15,9 @@ describe('genBrainCliPlainClone.integration', () => {
       const brainDir = genTempDir({ slug: `plainclone-brain-${serial}` });
       const envOut = join(cwd, 'env.json');
 
-      // the child records the two env vars the spawn must carry
+      // the child records the env vars the spawn must carry
       const program = [
-        `const env = { configDir: process.env.CLAUDE_CONFIG_DIR ?? null, serial: process.env[${JSON.stringify(CLONE_ENV_KEYS.serial)}] ?? null };`,
+        `const env = { configDir: process.env.CLAUDE_CONFIG_DIR ?? null, secureStorageDir: process.env.CLAUDE_SECURESTORAGE_CONFIG_DIR ?? null, serial: process.env[${JSON.stringify(CLONE_ENV_KEYS.serial)}] ?? null };`,
         `require('fs').writeFileSync(${JSON.stringify(envOut)}, JSON.stringify(env));`,
       ].join('\n');
 
@@ -32,6 +32,7 @@ describe('genBrainCliPlainClone.integration', () => {
       const exitCode = await clone.waitForExit;
       const env = JSON.parse(readFileSync(envOut, 'utf8')) as {
         configDir: string | null;
+        secureStorageDir: string | null;
         serial: string | null;
       };
       return { serial, brainDir, exitCode, env };
@@ -44,6 +45,11 @@ describe('genBrainCliPlainClone.integration', () => {
 
       then('its CLAUDE_CONFIG_DIR is the actor brain dir', () => {
         expect(scene.env.configDir).toEqual(scene.brainDir);
+      });
+
+      then('its login store is the shared ~/.claude, via an empty var', () => {
+        // '' is set, never unset: unset would key the login to the brain dir
+        expect(scene.env.secureStorageDir).toEqual('');
       });
 
       then('it carries its own serial', () => {

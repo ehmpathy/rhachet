@@ -5,14 +5,18 @@ import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollm
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
-import { asBrainCredentialAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainCredentialAbsentLine';
-import { findsertBrainCredentialSymlink } from '@src/domain.operations/actor/enrolled/findsertBrainCredentialSymlink';
+import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { genEnrollmentHash } from '@src/domain.operations/actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
+import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
+import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
+import { assertBrainAuthNotDead } from '@src/domain.operations/brain/auth/assertBrainAuthNotDead';
+import { getBrainAuthPath } from '@src/domain.operations/brain/auth/getBrainAuthPath';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
 import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
@@ -47,6 +51,7 @@ import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/as
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
@@ -403,11 +408,44 @@ const performEnroll = async (input: {
     scope: { kind: 'actor', actorHash: hash },
   });
 
-  // share the human's login, or say plainly that there is none to share (D13)
-  const credential = findsertBrainCredentialSymlink({
-    brainDir,
-    home: getHomeDir(),
+  // observe the shared login every clone reads, to say plainly when there is none (D13)
+  //
+  // .note = no per-actor link is written: each clone spawns with
+  //   CLAUDE_SECURESTORAGE_CONFIG_DIR='' (asBrainCliSpawnEnv), so it reads and refreshes
+  //   ~/.claude/.credentials.json under ONE lock set with every peer on the box
+  const brainAuthPath = getBrainAuthPath({ home: getHomeDir() });
+
+  // retire the per-actor login a 1.48.0 enroll left here: kept while a clone of this
+  //   actor lives (it may still read it), else removed — and adopted into the shared
+  //   store first when the shared login is dead or absent. this runs BEFORE the
+  //   dead-login check, because an adoption can revive a shared login that was cleared
+  const actorsRoot = getActorsRootDir({ repoPath });
+  const migrated = await setBrainDirAuthMigrated(
+    { brainDir, brainAuthPath },
+    {
+      getLiveCount: () =>
+        getOneCloneLiveCountForActor({
+          actorDir,
+          actorsRoot,
+          repoPath,
+          actorHash: hash,
+        }),
+    },
+  );
+  const migratedLine = asBrainDirAuthMigratedLine({
+    ...migrated,
+    brainAuthPath,
   });
+  if (migratedLine) console.error(migratedLine);
+
+  // refuse a clone that would boot into a dead shared login, before any spawn (case 2)
+  //   .note = this sits on the path a detached host re-enters, so an `--async` caller
+  //   wears the same refusal and exit code the host reports
+  //   .note = the login is read once, so the refusal and the absent line judge one state
+  const brainAuthContent = getFileContentOrNull({ path: brainAuthPath });
+  assertBrainAuthNotDead({ brainAuthPath, brainAuthContent, env: process.env });
+  const isBrainAuthAbsent =
+    asBrainAuthState({ content: brainAuthContent }) === 'absent';
 
   // settle first-run state before any spawn, so no clone meets a prompt (D11)
   findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
@@ -440,8 +478,8 @@ const performEnroll = async (input: {
   // .note = a refused enroll (a slug collision) and a live-slug reuse spawn no brain, so
   //   a "run /login inside the clone" hint there names a clone that never started — and
   //   on a refusal it would land ahead of the json error a machine parses off stderr
-  if (credential.status === 'absent' && result.spawn !== null)
-    console.error(asBrainCredentialAbsentLine({ brainDir }));
+  if (isBrainAuthAbsent && result.spawn !== null)
+    console.error(asBrainAuthAbsentLine({ brainAuthPath }));
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
   // a `--output json` caller (the idempotent-cron-retry path) still gets the
@@ -478,7 +516,6 @@ const performEnroll = async (input: {
 
   // a bare create-always enroll can accrue billed brains — count the live clones
   // of this actor and, past the soft threshold, make the accrual visible
-  const actorsRoot = getActorsRootDir({ repoPath });
   const liveCount = await getOneCloneLiveCountForActor({
     actorDir,
     actorsRoot,

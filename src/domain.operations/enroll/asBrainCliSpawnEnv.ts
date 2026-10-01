@@ -38,11 +38,15 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
 /**
  * .what = the env a brain cli clone spawns with: the spinup defaults, then the
  *         caller's env minus the parent-session markers, then `CLAUDE_CONFIG_DIR`
- *         set to the actor's brain dir
+ *         set to the actor's brain dir and `CLAUDE_SECURESTORAGE_CONFIG_DIR` set to ''
  * .why = one owner for both spawn sites (pty and plain), so neither can drop the
  *        relocation and boot a clone from the human's `~/.claude` (D4), nor leak a
  *        parent session's markers into the clone (a clone run from inside claude
  *        would otherwise persist no transcript), nor pay spinup work it never uses
+ * .note = `CLAUDE_SECURESTORAGE_CONFIG_DIR=''` (empty, not unset) points claude-code's
+ *         login store, its write lock, and its oauth refresh lock at `~/.claude`, while
+ *         config stays per actor — one login file under one lock set for every clone.
+ *         it is set after the caller env, so a caller value never overrides it
  */
 export const asBrainCliSpawnEnv = (input: {
   env: NodeJS.ProcessEnv;
@@ -55,4 +59,5 @@ export const asBrainCliSpawnEnv = (input: {
     ),
   ),
   CLAUDE_CONFIG_DIR: input.brainDir,
+  CLAUDE_SECURESTORAGE_CONFIG_DIR: '',
 });
