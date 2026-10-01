@@ -159,6 +159,7 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
     },
     "cache_creation_input_tokens": "__NUMBER__",
     "cache_read_input_tokens": "__NUMBER__",
+    "fallback_credit": null,
     "inference_geo": "__STRING__",
     "input_tokens": "__NUMBER__",
     "iterations": "__ARRAY__",
