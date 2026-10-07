@@ -21,6 +21,10 @@ import {
 describe('get.package.format', () => {
   const REPO_ROOT = resolve(__dirname, '../..');
 
+  // the repo's own pinned tsx — `npx tsx` looks from the temp cwd, so it would fetch tsx
+  // and print the fetch into the snapshotted stderr
+  const TSX_BIN = join(REPO_ROOT, 'node_modules', '.bin', 'tsx');
+
   const invoke = (args: string[]) =>
     invokeRhachetCliBinary({
       binary: 'rhx',
@@ -249,9 +253,8 @@ describe('get.package.format', () => {
       );
 
       const ran = spawnSync(
-        'npx',
+        TSX_BIN,
         [
-          'tsx',
           join(
             REPO_ROOT,
             '.agent',
@@ -328,9 +331,8 @@ describe('get.package.format', () => {
     );
     writeFileSync(join(dirPackage, 'index.js'), input.entry, 'utf-8');
     const ran = spawnSync(
-      'npx',
+      TSX_BIN,
       [
-        'tsx',
         join(
           REPO_ROOT,
           '.agent',
