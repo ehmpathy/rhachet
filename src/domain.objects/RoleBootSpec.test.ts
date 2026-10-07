@@ -250,7 +250,8 @@ describe('RoleBootSpec', () => {
     when('[t0] instance is created', () => {
       const spec = new RoleBootSpecSimplified({
         mode: 'simple',
-        briefs: { say: ['core.md'], ref: ['glossary.md'] },
+        budget: null,
+        briefs: { say: ['core.md'], ref: ['glossary.md'], not: [] },
         skills: null,
       });
 
@@ -273,14 +274,15 @@ describe('RoleBootSpec', () => {
     when('[t0] instance is created', () => {
       const spec = new RoleBootSpecSubjected({
         mode: 'subject',
+        budget: null,
         always: {
-          briefs: { say: ['core.md'], ref: [] },
+          briefs: { say: ['core.md'], ref: [], not: [] },
           skills: null,
         },
         subjects: {
           test: {
-            briefs: { say: ['test-rules.md'], ref: [] },
-            skills: { say: ['test-runner.sh'], ref: [] },
+            briefs: { say: ['test-rules.md'], ref: [], not: [] },
+            skills: { say: ['test-runner.sh'], ref: [], not: [] },
           },
         },
       });
@@ -302,10 +304,11 @@ describe('RoleBootSpec', () => {
     when('[t1] instance with null always', () => {
       const spec = new RoleBootSpecSubjected({
         mode: 'subject',
+        budget: null,
         always: null,
         subjects: {
           test: {
-            briefs: { say: ['test-rules.md'], ref: [] },
+            briefs: { say: ['test-rules.md'], ref: [], not: [] },
             skills: null,
           },
         },

@@ -63,7 +63,7 @@ export const discoverInitExecutables = (input: {
       const initsDir = resolve(repoDir, roleEntry, 'inits');
 
       // get all files from inits directory
-      const initFiles = getAllFilesFromDir(initsDir);
+      const initFiles = getAllFilesFromDir({ dir: initsDir });
 
       for (const initPath of initFiles) {
         const slug = extractSlugFromPath({ initsDir, filePath: initPath });

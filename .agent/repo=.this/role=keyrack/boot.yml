@@ -3,6 +3,9 @@
 # controls which briefs are said (inline) vs reffed (pointer only).
 # unmatched briefs become refs automatically.
 
+budget:
+  tokens: 2_000
+
 briefs:
   say:
     # core identity

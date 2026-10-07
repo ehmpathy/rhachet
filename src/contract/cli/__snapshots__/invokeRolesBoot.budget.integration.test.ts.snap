@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeRolesBoot budget (integration) given: [case2] an over-budget manifest in SUBJECT mode when: [t0] the boot is run against it then: the five-rung ladder renders as snapshotted — on STDERR: stderr-halt-subject 1`] = `
+"🧢 roles boot --what .behavior/over.subject/boot.yml
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 1,034 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 1,014 tokens   (5170% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .behavior/over.subject/boot.yml   sorts every batch by what it costs
+   │
+   ├─ in scope — 1 subject, and what a drop of it recovers
+   │  └─ vision  − 407 tokens
+   │
+   └─ fix — five strategies, cheapest first
+      ├─ narrow      boot fewer --subject sections
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+"
+`;

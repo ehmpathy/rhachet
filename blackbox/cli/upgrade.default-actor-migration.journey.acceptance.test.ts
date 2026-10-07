@@ -13,11 +13,9 @@ import { isAbsolute, join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { asBrainDirReportBlock } from '@/blackbox/.test/infra/asBrainDirReportBlock';
+import { asBrainDirReportSnapshot } from '@/blackbox/.test/infra/asBrainDirReportSnapshot';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import {
-  asSnapshotSafe,
-  invokeRhachetCliBinary,
-} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the BARE `rhx upgrade` journey — no flags — over a repo whose `<repo>/.claude`
@@ -146,11 +144,12 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
       );
 
       then('exits 0', () => {
-        // status beside stderr, so a failed upgrade names its own cause rather than
-        // reports a bare number (`rule.require.failloud`)
-        expect({ status: upgrade.status, stderr: upgrade.stderr }).toMatchObject({
-          status: 0,
-        });
+        // stderr rides beside the status only on a failure, so a failed upgrade shows its
+        //   cause in the diff (`rule.require.failloud`)
+        expect({
+          status: upgrade.status,
+          stderr: upgrade.status === 0 ? null : upgrade.stderr,
+        }).toEqual({ status: 0, stderr: null });
       });
 
       // ── the migration itself ────────────────────────────────────────────────
@@ -276,7 +275,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
         //   (`rule.require.contract-snapshot-exhaustiveness`, paired with the asserts
         //   above rather than alone — `rule.forbid.failhide`)
         expect(
-          asSnapshotSafe(asBrainDirReportBlock({ stdout: upgrade.stdout })),
+          asBrainDirReportSnapshot({ stdout: upgrade.stdout }),
         ).toMatchSnapshot();
       });
     });
@@ -292,9 +291,10 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
       );
 
       then('exits 0 — the migration is idempotent', () => {
-        expect({ status: again.status, stderr: again.stderr }).toMatchObject({
-          status: 0,
-        });
+        expect({
+          status: again.status,
+          stderr: again.status === 0 ? null : again.stderr,
+        }).toEqual({ status: 0, stderr: null });
       });
 
       then('<repo>/.claude is still the same relative symlink', () => {

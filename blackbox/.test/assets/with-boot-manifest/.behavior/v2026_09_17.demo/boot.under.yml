@@ -1,0 +1,9 @@
+budget:
+  tokens: 20000
+always:
+  briefs:
+    say:
+      - '0.wish.md'
+      - '1.vision.yield.md'
+    ref:
+      - '2.criteria.md'

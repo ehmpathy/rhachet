@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootSweepOverBudgetReadout given: [case1] one owned spec over its cap when: [t0] the readout renders then: it renders as snapshotted 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (29,264 / 5,000 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+"
+`;
+
+exports[`asBootSweepOverBudgetReadout given: [case2] two owned specs over their caps when: [t0] the readout renders then: it renders as snapshotted 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 2 boot specs over budget
+   │  ├─ .agent/repo=.this/role=any/boot.yml (300 / 20 tokens)
+   │  └─ .agent/repo=.this/role=user/boot.yml (500 / 40 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  ├─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │  └─ rhx cost --what .agent/repo=.this/role=user/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+"
+`;

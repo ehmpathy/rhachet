@@ -1,0 +1,7 @@
+budget:
+  tokens: 100
+briefs:
+  say:
+    - briefs/core.md
+  ref:
+    - briefs/refs/**/*.md

@@ -1,3 +1,6 @@
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
@@ -6,6 +9,12 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
+/**
+ * .what = acceptance tests for `rhachet roles boot` over a ROLE source
+ * .why = this render is the context a brain reads, so it is a contract: `toContain` pins intent,
+ *        the snapshot pins the whole render (`rule.require.contract-snapshot-exhaustiveness`)
+ * .note = every case names its stream; a refusal is snapped from stderr
+ */
 describe('rhachet roles boot', () => {
   given('[case1] repo with briefs', () => {
     const repo = useBeforeAll(async () =>
@@ -35,12 +44,17 @@ describe('rhachet roles boot', () => {
       then('outputs readme', () => {
         expect(result.stdout).toContain('<readme');
       });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-briefs');
+      });
     });
 
-    when('[t1] roles boot --repo this --role missing', () => {
+    when('[t1] roles boot --repo this --role absent', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
-          args: ['roles', 'boot', '--repo', 'this', '--role', 'missing'],
+          args: ['roles', 'boot', '--repo', 'this', '--role', 'absent'],
           cwd: repo.path,
           logOnError: false,
         }),
@@ -48,14 +62,16 @@ describe('rhachet roles boot', () => {
 
       /**
        * .why = this row walks the BUN `roles` entry (`bin/run` dispatches `roles` to
-       *        `run.bun.rhachet-roles.bc`), which is its own process root and so owns its own
-       *        last error handler. it had NONE, so a throw escaped to bun's default render — raw
-       *        `node_modules` source with a caret, a stack, a `Bun v…` footer — and exited 1
-       *        rather than the 2 a caller-fixable constraint documents
+       *        `run.bun.rhachet-roles.bc`), a process root with its own last error handler,
+       *        which maps a ConstraintError to exit 2
        */
       then('exits 2 — a caller-fixable constraint, never a malfunction', () => {
-        // `not.toEqual(0)` was the prior assertion, and it passed on the defect: 1 is non-zero
         expect(result.status).toEqual(2);
+      });
+
+      then('names the repair', () => {
+        // an absent role is caller-fixable, so the refusal names the fix (`rule.require.errors-name-the-fix`)
+        expect(result.stderr).toContain('roles link');
       });
 
       then('shows a human NO raw runtime dump', () => {
@@ -72,11 +88,14 @@ describe('rhachet roles boot', () => {
         // (`rule.require.contract-snapshot-exhaustiveness` +
         // `rule.require.acceptance-journey-coverage` — a negative path is snapped).
         // paired with those asserts, never snapshot-only (`rule.forbid.failhide`)
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-role-absent',
+        );
       });
     });
 
-    when('[t2] roles boot --repo this --role missing --if-present', () => {
+    when('[t2] roles boot --repo this --role absent --if-present', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: [
@@ -85,7 +104,7 @@ describe('rhachet roles boot', () => {
             '--repo',
             'this',
             '--role',
-            'missing',
+            'absent',
             '--if-present',
           ],
           cwd: repo.path,
@@ -99,6 +118,13 @@ describe('rhachet roles boot', () => {
       then('outputs skipped message', () => {
         expect(result.stdout).toContain('🫧');
         expect(result.stdout).toContain('skipped');
+      });
+
+      then('the skip renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-if-present-skip',
+        );
       });
     });
   });
@@ -123,6 +149,11 @@ describe('rhachet roles boot', () => {
       then('outputs both briefs and skills stats', () => {
         expect(result.stdout).toContain('briefs');
         expect(result.stdout).toContain('skills');
+      });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-registry');
       });
     });
   });
@@ -155,6 +186,13 @@ describe('rhachet roles boot', () => {
       then('outputs skipped message', () => {
         expect(result.stdout).toContain('🫧');
         expect(result.stdout).toContain('skipped');
+      });
+
+      then('the skip render matches its snapshot', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-if-present-skip-minimal',
+        );
       });
     });
   });
@@ -193,6 +231,14 @@ describe('rhachet roles boot', () => {
 
       then('reports correct brief count (1, not 3)', () => {
         expect(result.stdout).toContain('briefs = 1');
+      });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // the snapshot pins the set that landed; the assertions above pin what was excluded
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-scratch-archive-excluded',
+        );
       });
     });
   });
@@ -234,6 +280,11 @@ describe('rhachet roles boot', () => {
       then('brief count reflects only .md files (not .min)', () => {
         expect(result.stdout).toContain('briefs = 1');
       });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT; the `.min` is what lands
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-min');
+      });
     });
   });
 
@@ -257,6 +308,13 @@ describe('rhachet roles boot', () => {
 
       then('stderr names the orphan file', () => {
         expect(result.stderr).toContain('orphan.md.min');
+      });
+
+      then('the refusal renders as snapshotted — on STDERR', () => {
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-orphan-min',
+        );
       });
     });
   });
@@ -292,6 +350,13 @@ describe('rhachet roles boot', () => {
 
       then('brief count is 2 (one compressed, one plain)', () => {
         expect(result.stdout).toContain('briefs = 2');
+      });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-mixed-min',
+        );
       });
     });
   });
@@ -330,6 +395,50 @@ describe('rhachet roles boot', () => {
 
       then('brief count is 1 (blocklisted .min files excluded)', () => {
         expect(result.stdout).toContain('briefs = 1');
+      });
+
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT. the blocklist must reach a `.md.min`
+        //   as it reaches a `.md`, so the snapshot pins the set that survived both filters
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-scratch-archive-min-excluded',
+        );
+      });
+    });
+  });
+
+  given('[case9] a role dir that holds no resources', () => {
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+      mkdirSync(join(r.path, '.agent', 'repo=.this', 'role=empty'), {
+        recursive: true,
+      });
+      return r;
+    });
+
+    when('[t0] roles boot --repo .this --role empty', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'boot', '--repo', '.this', '--role', 'empty'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0 — an empty role is not a refusal', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('it says the role holds no resources', () => {
+        expect(result.stdout).toContain(
+          '🟡 no resources found — this boot emits naught',
+        );
+      });
+
+      then('the empty render is snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-role-empty',
+        );
       });
     });
   });

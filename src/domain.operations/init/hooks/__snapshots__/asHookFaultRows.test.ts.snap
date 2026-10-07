@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asHookFaultRows each fault renders one row that names its source and class 1`] = `
+[
+  "✗ actor: ✋ ConstraintError: settings absent",
+  "✗ repo: TypeError: bad shape",
+]
+`;
+
+exports[`asHookFaultRows no fault renders no row 1`] = `[]`;

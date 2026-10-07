@@ -9,7 +9,10 @@ import { resolve } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet repo introspect', () => {
   given('[case0] --help is invoked', () => {
@@ -347,7 +350,7 @@ const registry = {
         onBrain: {
           onBoot: [
             {
-              command: './node_modules/.bin/rhachet roles boot --role mechanic',
+              command: './node_modules/.bin/rhachet run --skill say-hello',
               timeout: 'PT60S',
             },
           ],
@@ -456,17 +459,9 @@ exports.getRoleRegistry = () => registry;
        *   `repo introspect` reports it and exits 0. there is no refusal to assert here.
        *
        * .why = the brain dir's `boot.md` renders a role's briefs off its ROLESET, so a
-       *   boot hook is not what carries them to a brain. a refusal on an absent hook
-       *   would reject a correctly-configured role — the validation rests on a premise
-       *   the product no longer holds, so it is **retired as a product decision, never
-       *   re-baselined to green a build**.
+       *   boot hook is not what carries them to a brain.
        *
-       * .note = 🔴 this case asserts a DIFFERENT requirement than the one a reader of
-       *   `origin/main` would expect, and the change is deliberate and reviewed — the
-       *   callout `rule.forbid.test-intent-violations` asks for. the briefs' real boot
-       *   path is proven where it is delivered: `brain-dir-boot.journey`, against a live
-       *   brain that quotes back the sentinel it was handed. so the coverage the retired
-       *   refusal held moved rather than vanished
+       * .note = the briefs' boot path is proven in `brain-dir-boot.journey`, against a live brain.
        */
       then('exits with status 0', () => {
         expect(result.status).toEqual(0);
@@ -518,7 +513,7 @@ const registry = {
         onBrain: {
           onBoot: [
             {
-              command: 'npx rhachet roles boot --role mechanic',
+              command: 'npx rhachet run --skill say-hello',
               timeout: 'PT60S',
             },
           ],
@@ -564,11 +559,225 @@ exports.getRoleRegistry = () => registry;
       });
 
       then('stderr includes forbidden command', () => {
-        expect(result.stderr).toContain('npx rhachet roles boot');
+        expect(result.stderr).toContain('npx rhachet run --skill say-hello');
       });
 
       then('stderr includes hint with direct path', () => {
         expect(result.stderr).toContain('./node_modules/.bin/rhachet');
+      });
+
+      then('error output matches snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = the budget gate at `repo introspect` — pre-publish, in the author's own tree
+   * .why = the render is a human surface, snapped through the contract: the cli frame, class
+   *   prefix, and exit code are invisible to the operation-tier snapshot
+   *   (`rule.require.contract-snapshot-exhaustiveness`)
+   */
+  given('[case11] a role whose boot.yml declares a budget its payload exceeds', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
+
+      // a spec with a cap no real payload can meet, beside a brief that blows it
+      const dirRole = resolve(tempRepo.path, 'roles/mechanic');
+      const dirBriefs = resolve(dirRole, 'briefs');
+      mkdirSync(dirBriefs, { recursive: true });
+      writeFileSync(
+        resolve(dirBriefs, 'heavy.md'),
+        '# heavy brief\n\n'.concat('a sentence that costs tokens. '.repeat(40)),
+      );
+      writeFileSync(
+        resolve(dirRole, 'boot.yml'),
+        'budget:\n  tokens: 20\nalways:\n  briefs:\n    say:\n      - briefs/*.md\n',
+      );
+
+      // the registry must DECLARE the spec, or gate 1 has no budget to read
+      writeFileSync(
+        resolve(tempRepo.path, 'index.js'),
+        `
+const path = require('path');
+const packageRoot = __dirname;
+const registry = {
+  slug: 'test',
+  readme: { uri: path.join(packageRoot, 'readme.md') },
+  roles: [
+    {
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'fix things',
+      readme: { uri: path.join(packageRoot, 'roles/mechanic/readme.md') },
+      traits: [],
+      boot: { uri: path.join(packageRoot, 'roles/mechanic/boot.yml') },
+      briefs: { dirs: { uri: path.join(packageRoot, 'roles/mechanic/briefs') } },
+      skills: {
+        dirs: { uri: path.join(packageRoot, 'roles/mechanic/skills') },
+        refs: [],
+      },
+      hooks: {
+        onBrain: {
+          onBoot: [
+            {
+              command: './node_modules/.bin/rhachet run --skill say-hello',
+              timeout: 'PT60S',
+            },
+          ],
+        },
+      },
+    },
+  ],
+};
+exports.getRoleRegistry = () => registry;
+`,
+      );
+
+      return tempRepo;
+    });
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      // exit 2: the spec is the author's own file, so the author settles it (`rule.require.exit-code-semantics`)
+      then('exits with status 2 — the author settles it, not us', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      // the halt refuses before it renders, so stdout holds no payload
+      then('stdout carries no payload — the halt spent naught', () => {
+        expect(result.stdout).not.toContain('heavy.md');
+      });
+
+      then('stderr names this gate, and the role it refused', () => {
+        expect(result.stderr).toContain('repo introspect');
+        expect(result.stderr).toContain('role=mechanic');
+      });
+
+      // the halt names the spec path, since the author can write it
+      then('🔴 stderr names the SPEC PATH the author must open', () => {
+        expect(result.stderr).toContain('roles/mechanic/boot.yml');
+      });
+
+      // the snapshot masks the temp dir, so only this assertion catches an absolute path
+      then('the spec path is repo-relative — no absolute prefix', () => {
+        expect(result.stderr).not.toContain(`${repo.path}/roles`);
+      });
+
+      // the strategies sort cheapest-first by cost to the reader
+      then('stderr names the four strategies, cheapest first', () => {
+        const at = (word: string): number => result.stderr.indexOf(word);
+        expect(at('catalogize')).toBeGreaterThan(-1);
+        expect(at('catalogize')).toBeLessThan(at('condense'));
+        expect(at('condense')).toBeLessThan(at('reference'));
+        expect(at('reference')).toBeLessThan(at('eliminate'));
+      });
+
+      // the gate sees cost, never value, so it ranks no resource
+      then('stderr names NO individual resource — the choice is the author’s', () => {
+        expect(result.stderr).not.toContain('heavy.md');
+        expect(result.stderr).toContain('you choose which');
+      });
+
+      // `narrow` is a subject-mode remedy; this spec is `all` mode
+      then('stderr omits `narrow` — this spec is not subject-scoped', () => {
+        expect(result.stderr).not.toContain('narrow');
+      });
+
+      then('the whole refusal matches its snapshot', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = a role that boots itself from a hook is refused at publish
+   * .why = briefs reach a session through the brain dir boot.md render, so a `roles boot
+   *   --role` hook is redundant. consumers already drop it before their settings write; the
+   *   supplier's publish is where the fix is owned, so the refusal lands there
+   */
+  given('[case12] rhachet-roles package whose role boots itself from a hook', () => {
+    const repo = useBeforeAll(async () => {
+      const tempRepo = await genTestTempRepo({ fixture: 'with-roles-package' });
+      writeFileSync(
+        resolve(tempRepo.path, 'index.js'),
+        `
+const path = require('path');
+const packageRoot = __dirname;
+const registry = {
+  slug: 'test',
+  readme: { uri: path.join(packageRoot, 'readme.md') },
+  roles: [
+    {
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'fix things',
+      readme: { uri: path.join(packageRoot, 'roles/mechanic/readme.md') },
+      traits: [],
+      briefs: { dirs: { uri: path.join(packageRoot, 'roles/mechanic/briefs') } },
+      skills: {
+        dirs: { uri: path.join(packageRoot, 'roles/mechanic/skills') },
+        refs: [],
+      },
+      hooks: {
+        onBrain: {
+          onBoot: [
+            {
+              command: './node_modules/.bin/rhachet roles boot --manifest .behavior/boot.yml',
+              timeout: 'PT60S',
+            },
+            {
+              command: './node_modules/.bin/rhachet roles boot --role mechanic',
+              timeout: 'PT60S',
+            },
+          ],
+        },
+      },
+    },
+  ],
+};
+exports.getRoleRegistry = () => registry;
+`,
+      );
+      return tempRepo;
+    });
+
+    when('[t0] repo introspect', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['repo', 'introspect'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      // the hook is the supplier's own declaration, so the fix is theirs — exit 2
+      then('exits with status 2', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('stderr names the class, the role, and the hook', () => {
+        expect(result.stderr).toContain('✋ ConstraintError:');
+        expect(result.stderr).toContain('hooks that boot their own role');
+        expect(result.stderr).toContain('mechanic');
+        expect(result.stderr).toContain('onBrain.onBoot[1]');
+      });
+
+      // a `--manifest` boot carries a payload boot.md never renders, so it is not flagged
+      then('stderr does not flag the --manifest boot', () => {
+        expect(result.stderr).not.toContain('onBrain.onBoot[0]');
+        expect(result.stderr).not.toContain('--manifest');
+      });
+
+      then('no manifest is written', () => {
+        expect(existsSync(resolve(repo.path, 'rhachet.repo.yml'))).toBe(false);
       });
 
       then('error output matches snapshot', () => {

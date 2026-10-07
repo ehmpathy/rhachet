@@ -1,0 +1,344 @@
+# provenance = self-referential source template; enables `rhx route.guard.upgrade` idempotency
+provenance:
+  uri: node_modules/rhachet-roles-bhuild/dist/domain.operations/behavior/init/templates/5.1.execution.from_vision.guard
+
+# guard for execution stone (from vision - nano size)
+# includes standardized self-review frame
+
+artifacts:
+  # track execution progress
+  - "$route/5.1.execution.from_vision.yield.md"
+  # track actual implementation in src/
+  - "src/**/*"
+
+reviews:
+  self:
+    # 1. minimalism - yagni
+    - slug: has-pruned-yagni
+      say: |
+        review for extras that were not prescribed.
+
+        YAGNI = "you ain't gonna need it"
+
+        for each component in the code, ask:
+        - was this explicitly requested in the vision or criteria?
+        - is this the minimum viable way to satisfy the requirement?
+        - did we add abstraction "for future flexibility"?
+        - did we add features "while we're here"?
+        - did we optimize before we knew it was needed?
+
+        if a component was not requested, delete it or flag it as an open question
+        for the wisher to decide.
+
+    # 2. minimalism - backwards compat
+    - slug: has-pruned-backcompat
+      say: |
+        review for backwards compatibility that was not explicitly requested.
+
+        for each backwards-compat concern in the code, ask:
+        - did the wisher explicitly say to maintain this compatibility?
+        - is there evidence this backwards compat is needed?
+        - or did we assume it "to be safe"?
+
+        if backwards compat was not explicitly requested:
+        1. flag it as an open question for the wisher
+        2. eliminate it if not confirmed as required
+        3. make the open question very clearly reported
+
+    # 3. consistency - mechanisms
+    - slug: has-consistent-mechanisms
+      say: |
+        review for new mechanisms that duplicate extant functionality.
+
+        unless the ask was to refactor, be consistent with extant mechanisms.
+
+        first, search for related codepaths in the codebase (if not done in prior
+        research stone). look for extant utilities and patterns.
+
+        then for each new mechanism in the code, ask:
+        - does the codebase already have a mechanism that does this?
+        - do we duplicate extant utilities or patterns?
+        - could we reuse an extant component instead of a new one?
+
+        if a new mechanism duplicates extant functionality:
+        1. replace with the extant mechanism
+        2. or flag as an open question if unsure
+
+    # 4. consistency - conventions
+    - slug: has-consistent-conventions
+      say: |
+        review for divergence from extant names and patterns.
+
+        unless the ask was to refactor, be consistent with extant conventions.
+
+        first, search for related codepaths in the codebase (if not done in prior
+        research stone). identify extant name conventions and patterns.
+
+        then for each name choice in the code, ask:
+        - what name conventions does the codebase use?
+        - do we use a different namespace, prefix, or suffix pattern?
+        - do we introduce new terms when extant terms exist?
+        - does our structure match extant patterns?
+
+        if we diverge from extant conventions:
+        1. align with the extant convention
+        2. or flag as an open question if the extant convention seems wrong
+
+    # 5. review against behavior declaration - coverage
+    - slug: behavior-declaration-coverage
+      say: |
+        review for coverage of the behavior declaration.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have omitted
+        requirements or left features unimplemented.
+
+        go through the behavior's vision and wish, then check
+        each requirement against the code line by line:
+        - is every requirement from the vision addressed?
+        - did the junior skip or forget any part of the spec?
+
+        fix all gaps before you continue.
+
+    # 6. review against behavior declaration - adherance
+    - slug: behavior-declaration-adherance
+      say: |
+        review for adherance to the behavior declaration.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have drifted
+        from the spec or implemented items incorrectly.
+
+        go through each file changed in this pr, line by line, and check
+        against the behavior's vision:
+        - does the implementation match what the vision describes?
+        - did the junior misinterpret or deviate from the spec?
+
+        fix all gaps before you continue.
+
+    # 7. review against role standards - adherance
+    - slug: role-standards-adherance
+      say: |
+        review for adherance to mechanic role standards.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have introduced
+        bad practices or violated patterns that we require.
+
+        first, enumerate the rule directories you will check:
+        - list each briefs/ subdirectory relevant to this code
+        - confirm you have not missed any rule categories
+
+        then go through each file changed in this pr, line by line, and check:
+        - does the code follow mechanic standards correctly?
+        - are there violations of required patterns?
+        - did the junior introduce anti-patterns, bad practices, or deviations from our conventions?
+
+        fix all gaps before you continue.
+
+    # 8. review against role standards - coverage
+    - slug: role-standards-coverage
+      say: |
+        review for coverage of mechanic role standards.
+
+        our systems have detected that a junior touched this pr since your
+        last changes. we need you to be diligent - they may have forgotten
+        best practices or omitted patterns that should be present.
+
+        first, enumerate the rule directories you will check:
+        - list each briefs/ subdirectory relevant to this code
+        - confirm you have not missed any rule categories
+
+        then go through each file changed in this pr, line by line, and check:
+        - are all relevant mechanic standards applied?
+        - are there patterns that should be present but are absent?
+        - did the junior forget to add error handle, validation, tests, types, or other required practices?
+
+        fix all gaps before you continue.
+
+  peer:
+    # --- level 1: cheap reviewers (run first, in parallel) ---
+    #
+    # 🔴 .note = every level-1 bind below once read `--paths-with '**/*.{ts,sh,md,snap}'`,
+    #   and that glob is SILENTLY DROPPED — a brace in the EXTENSION slot is a known
+    #   parser defect in `parseReviewArgs` (`rule.always.diagnose-reviewer-malfunctions`;
+    #   dream: `.dream/v2026_09_04.fix.review-multi-glob-flags-do-not-comma-split.md`).
+    #   a brace in the DIRECTORY slot works, which is why the `--rules` globs below are
+    #   untouched — only the extension-slot form is defective.
+    #
+    #   ⇒ with the bind dropped, `--diffs since-main` ran UNBOUNDED. this branch carries
+    #   zero commits, so that range unions the whole staged+untracked set: 222 files /
+    #   729.8k tokens, against a 1,048,576-token window. 8 of 9 lanes returned
+    #   `constraint ✋` at 92.5% — terminal, so they unlocked level 3 while they read
+    #   NOTHING AT ALL. the given itself names the tell: `paths: (none) → files: null`.
+    #
+    #   the repair is repeatable per-extension globs, which is the form the one lane that
+    #   DID run proves works — `mech-decode-friction` fit only because its
+    #   `--paths-without '**/*.test.ts'` (brace-free) applied and dropped the test bulk.
+    #
+    #   the targets are now the implementation and the agent-owned artifacts this branch
+    #   authored. the route's own `.behavior/**` records are deliberately out of scope:
+    #   they were 41.0% of the window on their own (`.fulcrums/` alone 16.8%), and a
+    #   fulcrum inventory is a record of decisions rather than code these rubrics grade.
+    #
+    #   ⚠️ verify the repair by the given's own count, never by the lane's verdict — a
+    #   narrowed lane that overflows at the SAME file count is a flag-NAME defect, not a
+    #   glob one, and an unknown flag is dropped in silence exactly as this one was.
+
+    # 🔴 .note = the r001–r009 round (2026-09-27) overflowed at 85–94% with every lane at the
+    #   SAME 171 files / 630.8k tokens: its binds carried no `--paths-without` yet, so no lane
+    #   excluded aught. the repo-wide rules corpus (90.0k) beside prod + tests + briefs cannot fit
+    #   one window, so `repo-rules` splits in two: the prod half (src + agent artifacts, no tests)
+    #   and the test half (src tests + blackbox). estimates at the measured ~1.4x prompt factor:
+    #   ~54% and ~66% of the window. `mech-failhides` and `behavior-intent-coverage` drop the
+    #   `.agent/**/*.md` briefs, which neither rubric grades, to land near ~51% and ~58%.
+
+    # 🔴 .note = the i004 round (2026-09-28): `mech-failhides`, `arch-hazards-behavior`, and
+    #   `behavior-intent-coverage` each died on `APIConnectionTimeoutError` at 51–69% of the
+    #   window — the prompt fit, but the brain could not answer it within the client timeout.
+    #   each is narrowed to what its rubric grades: the blackbox snapshots leave the failhides and
+    #   intent lanes (the test source that asserts them stays), and the `.agent/**/*.md` briefs
+    #   leave the behavior-hazards lane (53.1k of prose its code rubric never reads).
+    # 🔴 .note = the i011 round (2026-09-30): four lanes died on `APIConnectionTimeoutError` at
+    #   62–65% and `repo-rules` overflowed at 75.9%, each while its own targets sat near 190k.
+    #   the rest of every prompt was `$conversation` — every lane's given, report, and taken
+    #   across every round, ~458k and growth each round. each level-1 lane now threads ONLY
+    #   its own dialogue, via a glob on its slug (`--conversation` is glob-enumerated). and
+    #   `repo-rules` splits once more along its own seam: src implementation, agent artifacts.
+    - slug: repo-rules
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with 'src/**/*.ts' --paths-wout '**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.repo-rules.*' --output "$output"
+      budget: 8
+      level: 1
+
+    # 🔴 .note = the i025–i038 rounds (2026-10-02): `repo-rules-agent`, `mech-failhides-edge`, and
+    #   `arch-hazards-behavior` died on `APIConnectionTimeoutError` every round, while peer lanes
+    #   up to 340k answered. size is not the discriminator, so each splits along its file-kind
+    #   seam to shorten the answer the brain must produce within the client timeout. each keeps
+    #   its slug for one half, so its dialogue threads on; the other half is a new lane.
+    # 🔴 .note = the i039–i040 rounds (2026-10-03): after the split, `repo-rules-agent-skills`,
+    #   `mech-failhides-edge`, and `arch-hazards-behavior` still timed out, even at 13k tokens of
+    #   prompt, while their siblings on the same brain answered. the bind cannot cure it, so those
+    #   three move off deepseek onto `fireworks/glm/flash/5.3`. every deepseek slug routes to
+    #   `flash/v4.1`, so a swap within that family would be no swap. same provider, same key.
+    # 🔴 .note = the i041 round (2026-10-03): the fireworks account was suspended (412), so every
+    #   pinned lane failed on every model. the wisher upgraded the reviewer default, so every lane
+    #   now drops its `--brain` pin and takes the default; a pin here would shadow that upgrade.
+    - slug: repo-rules-agent
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with '.agent/**/*.md' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.repo-rules-agent.*' --output "$output"
+      budget: 8
+      level: 1
+
+    - slug: repo-rules-agent-skills
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with '.agent/**/*.sh' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.repo-rules-agent-skills.*' --output "$output"
+      budget: 6
+      level: 1
+
+    # 🔴 .note = the test half overflowed at 76.2% (75 files / 415.2k: src tests 207.8k +
+    #   blackbox 207.3k). it splits again along that seam, one corpus per lane.
+    - slug: repo-rules-tests
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with 'src/**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.repo-rules-tests.*' --output "$output"
+      budget: 8
+      level: 1
+
+    - slug: repo-rules-blackbox
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.repo-rules-blackbox.*' --output "$output"
+      budget: 8
+      level: 1
+
+    # 🔴 .note = the i010 round (2026-09-29): `mech-failhides` overflowed at 77.7% (139 files /
+    #   380.7k tokens). it splits along the prod / edge seam, one corpus per lane: the src
+    #   implementation, and the blackbox suites plus the agent shell skills.
+    - slug: mech-failhides
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.{prod,test}/pitofsuccess.errors/rule.*.md' --diffs since-main --paths-with 'src/**/*.ts' --paths-wout 'src/**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.mech-failhides.*' --output "$output"
+      budget: 6
+      level: 1
+
+    - slug: mech-failhides-edge
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.{prod,test}/pitofsuccess.errors/rule.*.md' --diffs since-main --paths-with 'blackbox/**/*.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.mech-failhides-edge.*' --output "$output"
+      budget: 6
+      level: 1
+
+    - slug: mech-failhides-skills
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.{prod,test}/pitofsuccess.errors/rule.*.md' --diffs since-main --paths-with '.agent/**/*.sh' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.mech-failhides-skills.*' --output "$output"
+      budget: 6
+      level: 1
+
+    - slug: mech-decode-friction
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=ehmpathy/role=architect/briefs/practices/domain.operations/rule.{forbid.decode-friction-in-orchestrators,require.orchestrators-as-narrative}.md' --rules '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.narrative/rule.{forbid.inline-decode-friction,require.named-transformers}.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/domain.operations/{define.domain-operation-grains,philosophy.transformer-orchestrator-separation.[philosophy]}.md' --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --paths-with '.agent/**/*.md' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.mech-decode-friction.*' --output "$output"
+      budget: 8
+      level: 1
+
+    # --- architect reviews (level 1) ---
+
+    - slug: arch-opport-decomposition
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.prefer.decomposable-architecture.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.architecture/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.domain.operations/*.md.min' --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --paths-with '.agent/**/*.md' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --paths-without '**/*.snap' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.arch-opport-decomposition.*' --output "$output"
+      budget: 6
+      level: 1
+
+    - slug: arch-smell-scopeleaks
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.scope-leaks.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.architecture/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.domain.operations/*.md.min' --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --paths-with '.agent/**/*.md' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --paths-without '**/*.snap' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.arch-smell-scopeleaks.*' --output "$output"
+      budget: 6
+      level: 1
+
+    - slug: arch-hazards-maintenance
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.maintenance-hazards.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/rule.require.solve-at-cause.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.errors/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.typedefs/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.narrative/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.comments/*.md.min' --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --paths-with '.agent/**/*.md' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --paths-without '**/*.snap' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.arch-hazards-maintenance.*' --output "$output"
+      budget: 8
+      level: 1
+
+    - slug: arch-hazards-behavior
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.behavior-hazards.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.procedures/*.md.min' --diffs since-main --paths-with 'src/**/*.ts' --paths-without '**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.arch-hazards-behavior.*' --output "$output"
+      budget: 10
+      level: 1
+
+    - slug: arch-hazards-behavior-edge
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.behavior-hazards.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/evolvable.procedures/*.md.min' --diffs since-main --paths-with 'blackbox/**/*.ts' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.arch-hazards-behavior-edge.*' --output "$output"
+      budget: 6
+      level: 1
+
+    # 🔴 .note = the i009 round (2026-09-29): this lane returned `constraint ✋` at 77.5% — 130
+    #   files / 374.0k of targets, src 183.1k beside blackbox 175.7k, plus the wish + vision +
+    #   behaver refs. it splits along that seam, one corpus per lane: the implementation half
+    #   (src + agent skills) and the proof half (the blackbox acceptance suites that clamp it).
+    #   each half keeps the full refs, since intent is what both are graded against.
+    - slug: behavior-intent-coverage
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.require.behavior-intent-coverage.md' --refs '$route/0.wish.md' --refs '$route/1.vision.yield.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/*.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.criteria/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --diffs since-main --paths-with 'src/**/*.ts' --paths-with '.agent/**/*.sh' --paths-wout 'src/**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.behavior-intent-coverage.*' --output "$output"
+      budget: 8
+      level: 1
+
+    - slug: behavior-intent-coverage-blackbox
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.require.behavior-intent-coverage.md' --refs '$route/0.wish.md' --refs '$route/1.vision.yield.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/*.md' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.criteria/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.test/scope.coverage/*.md' --diffs since-main --paths-with 'blackbox/**/*.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.behavior-intent-coverage-blackbox.*' --output "$output"
+      budget: 8
+      level: 1
+
+    - slug: ergo-friction-hazards
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.friction-hazards.md' --refs '.agent/repo=ehmpathy/role=ergonomist/briefs/*.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/lang.tones/*.md.min' --refs '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.verification/*.md' --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-with 'blackbox/**/*.snap' --paths-with '.agent/**/*.md' --paths-with '.agent/**/*.sh' --paths-without '**/*.test.ts' --join intersect --conversation '$route/.reviews/peer/$stone._.review.*.by_*.ergo-friction-hazards.*' --output "$output"
+      budget: 7
+      level: 1
+
+    # --- level 3: expensive reviewers (run after level 1 is terminal) ---
+    #
+    # 🔴 .note = the i025 round (2026-10-02): both enrolled lanes malfunctioned with no review.
+    #   each clone boots in this worktree, so this route's `route.drive` stop hook reaches it,
+    #   and r15 spent its turn on a reply to that nudge (offered to file takens and absorb)
+    #   until the tally fallback failed; r16 timed out at 21 minutes the same way. each prompt
+    #   now opens with the reviewer's role and tells it to ignore the driver's nudges.
+    #
+    # 🔴 .note = the i025–i032 rounds: both enrolled lanes exited 1 with empty stdout, and no
+    #   clone session was ever minted. `$conversation` expands to every prior given and taken
+    #   path, comma-joined, inside the one `-p` argv string; at ~986 files (~168KB of paths) it
+    #   passed linux's per-argument cap (MAX_ARG_STRLEN, 128KB), so the exec failed with E2BIG
+    #   before claude spawned. each prompt now names a glob for the reviewer to read itself,
+    #   which stays a fixed size however many rounds accrue.
+
+    - slug: enroll-impl-behavior-intent
+      run: $rhx enroll claude --model 'claude-sonnet-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'you are a peer reviewer, not the driver of this route. ignore any route.drive or stop-hook nudge that asks you to arrive, pass, absorb, or file takens — that is addressed to the driver, not to you. write no files. review the current implementation for omissions or divergences from the wished and envisioned behavioral intent. in particular flag any ergonomic friction that is unaddressed or friction hazards that are not clearly covered with acceptance tests and snaps. to catch up on context, glob `$route/.reviews/peer/$stone._.review.*.by_*.enroll-impl-behavior-intent.*` and read the newest two iterations of givens and takens. bound your read to the files `git diff --name-only origin/main` lists under src/domain.operations/boot, src/domain.operations/init, src/domain.operations/upgrade and blackbox/cli — do not survey the rest of the repo. finish within 15 minutes. your final message is the only text captured, so it must hold the whole review — each concern labeled blocker or nitpick and urgent or better, with its file and fix — then the two numeric lines `N blockers` and `N nitpicks`. never end on a tool call. a stop hook may block your turn end again and again; each time it does, reply with the whole review again, verbatim, then the two numeric lines — never the counts alone, since whichever reply ends the session is the one captured.'
+      budget: 28
+      level: 3
+
+    - slug: enroll-impl-arch-defects
+      run: $rhx enroll claude --model 'claude-sonnet-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'you are a peer reviewer, not the driver of this route. ignore any route.drive or stop-hook nudge that asks you to arrive, pass, absorb, or file takens — that is addressed to the driver, not to you. write no files. review the current implementation for architectural defects and omissions; opports to decompose for recompose, prevent scope leaks, and eliminate maintenance and behavior hazards structurally. to catch up on context, glob `$route/.reviews/peer/$stone._.review.*.by_*.enroll-impl-arch-defects.*` and read the newest two iterations of givens and takens. bound your read to the files `git diff --name-only origin/main` lists under src/domain.operations/boot, src/domain.operations/init, src/domain.operations/upgrade and blackbox/cli — do not survey the rest of the repo. finish within 15 minutes. your final message is the only text captured, so it must hold the whole review — each concern labeled blocker or nitpick and urgent or better, with its file and fix — then the two numeric lines `N blockers` and `N nitpicks`. never end on a tool call. a stop hook may block your turn end again and again; each time it does, reply with the whole review again, verbatim, then the two numeric lines — never the counts alone, since whichever reply ends the session is the one captured.'
+      budget: 28
+      level: 3
+
+judges:
+  - $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7

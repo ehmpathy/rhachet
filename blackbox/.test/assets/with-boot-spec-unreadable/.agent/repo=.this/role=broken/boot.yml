@@ -1,0 +1,12 @@
+# 🔴 DELIBERATELY MALFORMED — this spec must NOT parse.
+#
+# .why = the sweep's tolerance arm has one job: a spec it cannot read costs the roster one
+#   row, and that loss must be SAID rather than absorbed. so the fixture needs a spec that
+#   fails to parse for a reason a human would actually produce.
+#
+# .the fault = the `say:` sequence opens a flow brace `{` it never closes, which is the
+#   commonest yaml hand-edit fault there is. it throws `boot.yml has invalid yaml`.
+budget:
+  tokens: 5000
+briefs:
+  say: { - briefs/**/*.md

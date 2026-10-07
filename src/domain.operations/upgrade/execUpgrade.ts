@@ -42,6 +42,20 @@ export interface UpgradeResult {
    * .why = the caller exits by it; a domain operation never exits the process itself
    */
   bootsExitCode: 0 | 1 | 2;
+
+  /**
+   * 🔴 the hook-sync faults this upgrade absorbed, never dropped
+   *
+   * .why = `syncHooksForLinkedRoles` AGGREGATES rather than throws, so a result that
+   *   omits this field reports "upgraded" over a hook set that never landed — a role's
+   *   guards, boots, and permission checks all silently absent while the command claims
+   *   success (`rule.forbid.failhide`).
+   *
+   * ⚠️ empty when hooks were not synced at all — this upgrade touched no local linked
+   *   roles. that is NOT the same fact as "synced cleanly", and a caller that needs the
+   *   two parted must read `upgradedRoles` beside it rather than infer from the length.
+   */
+  hookErrors: { source: string; error: Error }[];
 }
 
 /**
@@ -322,9 +336,15 @@ export const execUpgrade = async (
 
   // re-init only linked roles (not all roles in upgraded packages), then re-render
   // every brain dir boot from the fresh content, then sync hooks once the default rendered
-  const boots = await (async (): Promise<{ exitCode: 0 | 1 | 2 }> => {
-    if (!whichTargets.includes('local')) return { exitCode: 0 };
-    if (roleExpanded.linkedRoles.length === 0) return { exitCode: 0 };
+  //
+  // .note = an empty `hookErrors` is the honest value for an upgrade that synced no hooks
+  const boots = await (async (): Promise<{
+    exitCode: 0 | 1 | 2;
+    hookErrors: { source: string; error: Error }[];
+  }> => {
+    if (!whichTargets.includes('local')) return { exitCode: 0, hookErrors: [] };
+    if (roleExpanded.linkedRoles.length === 0)
+      return { exitCode: 0, hookErrors: [] };
     const specifiers = buildRoleSpecifiers({
       linkedRoles: roleExpanded.linkedRoles,
     });
@@ -335,10 +355,28 @@ export const execUpgrade = async (
       { repoPath: context.gitroot, env: process.env },
       context,
     );
+    if (!synced.defaultRendered)
+      return { exitCode: synced.exitCode, hookErrors: [] };
 
     // sync hooks for linked roles (always on for upgrade), once the default rendered
-    if (synced.defaultRendered) await syncHooksForLinkedRoles({}, context);
-    return { exitCode: synced.exitCode };
+    //
+    // 🔴 .note = the RETURN IS READ, never discarded. `syncHooksForLinkedRoles` AGGREGATES
+    //   its per-brain faults into `errors` rather than throws, so a bare `await` swallows
+    //   every one of them — and this orchestrator's final report (below) would then say
+    //   "upgraded" over a hook set that never landed (`rule.forbid.failhide`)
+    //
+    // ⚠️ and the fault it hides is not a nicety: these hooks are how a linked role's guards,
+    //   boots, and permission checks reach a brain at all, so a silent failure here leaves
+    //   every one of them uninstalled while `rhachet upgrade` reports success — the one
+    //   combination a guard must never reach
+    //
+    // .note = a WARN, never a throw, for the same reason the global-install catch above
+    //   warns: a hook fault must not undo a local upgrade that already landed on disk
+    //   (criteria usecase.3). `syncHooksForLinkedRoles` already rendered each fault and the
+    //   one header for the set, so this operation prints no second one; the report below
+    //   carries the faults, and the exit code is the caller's to set from them
+    const hookSync = await syncHooksForLinkedRoles({}, context);
+    return { exitCode: synced.exitCode, hookErrors: hookSync.errors };
   })();
 
   // extract slugs from brain packages for result
@@ -359,5 +397,8 @@ export const execUpgrade = async (
     upgradedRoles: whichTargets.includes('local') ? upgradedRoles : [],
     upgradedBrains: whichTargets.includes('local') ? upgradedBrains : [],
     bootsExitCode: boots.exitCode,
+    // 🔴 carried, never dropped — the report is the one place a caller can learn that the
+    //   upgrade landed and the hooks did not (`rule.forbid.failhide`)
+    hookErrors: boots.hookErrors,
   };
 };

@@ -1,0 +1,479 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles cost given: [case1] a role whose boot declares NO budget when: [t0] roles cost --repo .this --role any then: the report renders as snapshotted — on STDOUT: stdout-role-unbudgeted 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 366 (full emitted payload, o200k_base)
+   ├─ budget  = none declared — this boot is uncapped
+   ├─ batches = 4 say · 0 ref
+   ├─ chrome  = 142 tokens (38.8%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 66  18.0%  .agent/repo=.this/role=any/skills/echo-args.sh
+      ├─ 66  18.0%  .agent/repo=.this/role=any/skills/say-hello.sh
+      ├─ 56  15.3%  .agent/repo=.this/role=any/briefs/sample.md
+      └─ 36   9.8%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case2] a role whose boot DECLARES a budget and sits under it when: [t0] roles cost --repo .this --role any then: the report renders as snapshotted — on STDOUT: stdout-role-budgeted-under 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 235 (full emitted payload, o200k_base)
+   ├─ budget  = 5,000 tokens (5% used)
+   ├─ batches = 2 say · 0 ref
+   ├─ chrome  = 152 tokens (64.7%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 44  18.7%  .agent/repo=.this/role=any/briefs/core.md
+      └─ 39  16.6%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case3] a role whose boot EXCEEDS the budget it declares when: [t0] roles boot --repo .this --role any then: the halt renders as snapshotted — on STDERR: stderr-halt-points-at-cost 1`] = `
+"🧢 roles boot --repo .this --role any
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 335 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 315 tokens   (1675% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 20,
+  "payload": 335,
+  "over": 315
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles cost given: [case3] a role whose boot EXCEEDS the budget it declares when: [t1] the author runs the cost command the halt named then: the over-budget report renders as snapshotted — on STDOUT: stdout-role-budgeted-over 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 335 (full emitted payload, o200k_base)
+   ├─ budget  = 20 tokens (1675% used)
+   ├─ batches = 2 say · 0 ref
+   ├─ chrome  = 150 tokens (44.8%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 146  43.6%  .agent/repo=.this/role=any/briefs/core.md
+      └─  39  11.6%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t0] roles cost --what then: the manifest report renders as snapshotted — on STDOUT: stdout-manifest 1`] = `
+"🧢 roles cost --what .behavior/v2026_09_17.demo/boot.under.yml
+   ├─ tokens  = 407 (full emitted payload, o200k_base)
+   ├─ budget  = 20,000 tokens (2% used)
+   ├─ batches = 3 say · 1 ref
+   ├─ chrome  = 248 tokens (60.9%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 50  12.3%  .behavior/v2026_09_17.demo/readme.md
+      ├─ 44  10.8%  .behavior/v2026_09_17.demo/0.wish.md
+      ├─ 39   9.6%  .behavior/v2026_09_17.demo/1.vision.yield.md
+      └─ 26   6.4%  <briefs.ref>
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t1] roles cost --what --top 1 then: the capped report renders as snapshotted — on STDOUT: stdout-manifest-top-1 1`] = `
+"🧢 roles cost --what .behavior/v2026_09_17.demo/boot.under.yml
+   ├─ tokens  = 407 (full emitted payload, o200k_base)
+   ├─ budget  = 20,000 tokens (2% used)
+   ├─ batches = 3 say · 1 ref
+   ├─ chrome  = 248 tokens (60.9%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─  50  12.3%  .behavior/v2026_09_17.demo/readme.md
+      └─ 109  26.8%  … 3 more
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t2] roles cost --what --role then: the refusal renders as snapshotted — on STDERR: stderr-with-role 1`] = `
+"
+✋ ConstraintError: --what cannot be used with --role/--repo
+
+{
+  "hint": "use one source: --what <path>, or --repo/--role",
+  "what": ".behavior/v2026_09_17.demo/boot.yml",
+  "role": "any"
+}
+
+[args] roles,cost,--what,.behavior/v2026_09_17.demo/boot.yml,--role,any
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t3] roles cost --what, at a path that points at no file then: the refusal renders as snapshotted — on STDERR: stderr-absent 1`] = `
+"
+✋ ConstraintError: --what points at no file
+
+{
+  "hint": "fix the path, or boot a role instead — \`roles boot --repo <slug> --role <slug>\`",
+  "path": ".behavior/v2026_09_17.demo/typo.yml",
+  "pathTaken": "/TMP_REPO/.behavior/v2026_09_17.demo/typo.yml",
+  "expected": "a readable boot.yml",
+  "found": "no such path"
+}
+
+[args] roles,cost,--what,.behavior/v2026_09_17.demo/typo.yml
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t4] roles cost --what --top fractional then: the refusal renders as snapshotted — on STDERR: stderr-top-fractional 1`] = `
+"
+✋ ConstraintError: --top must be a non-negative integer
+
+{
+  "hint": "pass a whole number ≥ 0, or omit --top to rank the default 10",
+  "top": "2.5",
+  "expected": "a non-negative integer, e.g. --top 5",
+  "found": "2.5"
+}
+
+[args] roles,cost,--what,.behavior/v2026_09_17.demo/boot.under.yml,--top,2.5
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t4] roles cost --what --top negative then: the refusal renders as snapshotted — on STDERR: stderr-top-negative 1`] = `
+"
+✋ ConstraintError: --top must be a non-negative integer
+
+{
+  "hint": "pass a whole number ≥ 0, or omit --top to rank the default 10",
+  "top": "-1",
+  "expected": "a non-negative integer, e.g. --top 5",
+  "found": "-1"
+}
+
+[args] roles,cost,--what,.behavior/v2026_09_17.demo/boot.under.yml,--top,-1
+
+"
+`;
+
+exports[`rhachet roles cost given: [case4] a declared manifest when: [t4] roles cost --what --top non-numeric then: the refusal renders as snapshotted — on STDERR: stderr-top-non-numeric 1`] = `
+"
+✋ ConstraintError: --top must be a non-negative integer
+
+{
+  "hint": "pass a whole number ≥ 0, or omit --top to rank the default 10",
+  "top": "abc",
+  "expected": "a non-negative integer, e.g. --top 5",
+  "found": "abc"
+}
+
+[args] roles,cost,--what,.behavior/v2026_09_17.demo/boot.under.yml,--top,abc
+
+"
+`;
+
+exports[`rhachet roles cost given: [case5] a flag set that addresses no boot when: [t0] no --role is named then: the refusal renders as snapshotted — on STDERR: stderr-absent-role 1`] = `
+"
+✋ ConstraintError: --role is required (e.g., --role mechanic)
+
+{
+  "hint": "pass --role <slug>, or --what <path> to boot a spec"
+}
+
+[args] roles,cost,--repo,.this
+
+"
+`;
+
+exports[`rhachet roles cost given: [case5] a flag set that addresses no boot when: [t1] the role is not linked here then: the refusal renders as snapshotted — on STDERR: stderr-role-unlinked 1`] = `
+"
+✋ ConstraintError: no role "nonesuch" found in .agent/repo=.this/
+
+tip: did you \`npx rhachet roles link --role nonesuch\` first?
+
+{
+  "input": {
+    "slugRepo": ".this",
+    "slugRole": "nonesuch"
+  }
+}
+
+[args] roles,cost,--repo,.this,--role,nonesuch
+
+"
+`;
+
+exports[`rhachet roles cost given: [case5] a flag set that addresses no boot when: [t2] the role is not linked, under --if-present then: the skip renders as snapshotted — on STDOUT: stdout-if-present-skip 1`] = `
+"🫧 role not present, skipped
+"
+`;
+
+exports[`rhachet roles cost given: [case6] a role dir with an orphan .md.min when: [t0] roles cost --repo .this --role any then: the refusal renders as snapshotted — on STDERR: stderr-orphan-min 1`] = `
+"
+✋ ConstraintError: orphan .md.min file(s) detected without .md source:
+  - /TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min
+
+each .md.min file must have a matched .md source file.
+
+{
+  "hint": "a .md.min is derived from its .md source — restore the absent .md, or delete the orphan .md.min",
+  "orphanPaths": [
+    "/TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min"
+  ]
+}
+
+[args] roles,cost,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles cost given: [case7] a role dir with mixed compression when: [t0] roles cost --repo .this --role any then: the report renders as snapshotted — on STDOUT: stdout-mixed-min 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 331 (full emitted payload, o200k_base)
+   ├─ budget  = none declared — this boot is uncapped
+   ├─ batches = 3 say · 0 ref
+   ├─ chrome  = 142 tokens (42.9%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 89  26.9%  .agent/repo=.this/role=any/briefs/plain.md
+      ├─ 64  19.3%  .agent/repo=.this/role=any/briefs/compressed.md.min
+      └─ 36  10.9%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case8] a repo whose THREE specs all fit the budgets they declare when: [t0] roles cost --all then: the roster renders as snapshotted — on STDOUT: stdout-all-under 1`] = `
+"🧢 3 boot specs — 3 budgeted, all within budget
+   ├─ 226 / 5,000 tokens (5%)  .agent/repo=.this/role=alpha/boot.yml
+   ├─ 228 / 5,000 tokens (5%)  .agent/repo=.this/role=bravo/boot.yml
+   ├─ 230 / 5,000 tokens (5%)  .agent/repo=.this/role=charlie/boot.yml
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case9] a repo with one spec under, one over, and one uncapped when: [t0] roles cost --all then: the mixed roster renders as snapshotted — on STDOUT: stdout-all-mixed 1`] = `
+"🧢 3 boot specs — 2 budgeted, 1 over budget
+   ├─ 232 / 20 tokens (1160%)  .agent/repo=.this/role=breached/boot.yml 🟡
+   ├─ 223 / 5,000 tokens (4%)  .agent/repo=.this/role=capped/boot.yml
+   ├─ 228 tokens (no budget)  .agent/repo=.this/role=uncapped/boot.yml
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case9] a repo with one spec under, one over, and one uncapped when: [t1] roles cost --all --role capped then: the refusal renders as snapshotted — on STDERR: stderr-all-with-role 1`] = `
+"
+✋ ConstraintError: --all cannot be used with --role/--repo/--what/--subject/--top/--if-present
+
+{
+  "hint": "run \`roles cost --all\` alone, or drop --all to cost one spec",
+  "passed": [
+    "--role"
+  ]
+}
+
+[args] roles,cost,--all,--role,capped
+
+"
+`;
+
+exports[`rhachet roles cost given: [case9] a repo with one spec under, one over, and one uncapped when: [t2] roles cost --all --top 3 then: the refusal renders as snapshotted — on STDERR: stderr-all-with-top 1`] = `
+"
+✋ ConstraintError: --all cannot be used with --role/--repo/--what/--subject/--top/--if-present
+
+{
+  "hint": "run \`roles cost --all\` alone, or drop --all to cost one spec",
+  "passed": [
+    "--top"
+  ]
+}
+
+[args] roles,cost,--all,--top,3
+
+"
+`;
+
+exports[`rhachet roles cost given: [case9] a repo with one spec under, one over, and one uncapped when: [t3] roles cost --all --if-present then: the refusal renders as snapshotted — on STDERR: stderr-all-with-if-present 1`] = `
+"
+✋ ConstraintError: --all cannot be used with --role/--repo/--what/--subject/--top/--if-present
+
+{
+  "hint": "run \`roles cost --all\` alone, or drop --all to cost one spec",
+  "passed": [
+    "--if-present"
+  ]
+}
+
+[args] roles,cost,--all,--if-present
+
+"
+`;
+
+exports[`rhachet roles cost given: [case10] a repo where one spec cannot be parsed when: [t0] roles cost --all then: the fault block renders as snapshotted — on STDERR: stderr-all-unreadable 1`] = `
+"
+🟡 a boot spec could not be read — it is absent from the roster below
+   ├─ spec  = .agent/repo=.this/role=broken/boot.yml
+   ├─ fault = ✋ ConstraintError: boot.yml has invalid yaml
+   └─ hint: repair the spec, or report it upstream where it is a linked role
+
+"
+`;
+
+exports[`rhachet roles cost given: [case10] a repo where one spec cannot be parsed when: [t0] roles cost --all then: the roster renders as snapshotted — on STDOUT: stdout-all-unreadable 1`] = `
+"🧢 1 boot spec — 1 budgeted, all within budget
+   ├─ 279 / 5,000 tokens (6%)  .agent/repo=.this/role=sound/boot.yml
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case11] a repo with a role dir and NO boot spec anywhere when: [t0] roles cost --all then: the empty render matches its snapshot — on STDOUT: stdout-all-empty 1`] = `
+"🧢 0 boot specs — none found at the paths swept
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case12] a repo with one OWN spec and one LINKED spec when: [t0] roles cost --all then: the mixed-ownership roster renders as snapshotted — on STDOUT: stdout-all-mixed-ownership 1`] = `
+"🧢 2 boot specs — 2 budgeted, 1 over budget
+   ├─ 271 / 5,000 tokens (5%)  .agent/repo=.this/role=resident/boot.yml
+   ├─ 496 / 20 tokens (2480%)  .agent/repo=linked-repo/role=lodger/boot.yml (linked) 🟡
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 2 here)
+
+"
+`;
+
+exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subjects when: [t0] roles cost --subject review then: the scoped report renders as snapshotted — on STDOUT: stdout-subject-one 1`] = `
+"🧢 roles cost --repo .this --role any --subject review
+   ├─ tokens  = 289 (full emitted payload, o200k_base)
+   ├─ budget  = 400 tokens (72% used)
+   ├─ batches = 3 say · 0 ref
+   ├─ chrome  = 148 tokens (51.2%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 51  17.6%  .agent/repo=.this/role=any/briefs/shared.md
+      ├─ 46  15.9%  .agent/repo=.this/role=any/briefs/review.md
+      └─ 44  15.2%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subjects when: [t1] roles cost --subject review,fulcrums then: the two-subject report renders as snapshotted — on STDOUT: stdout-subject-two 1`] = `
+"🧢 roles cost --repo .this --role any --subject review,fulcrums
+   ├─ tokens  = 650 (full emitted payload, o200k_base)
+   ├─ budget  = 400 tokens (163% used)
+   ├─ batches = 4 say · 0 ref
+   ├─ chrome  = 148 tokens (22.8%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 361  55.5%  .agent/repo=.this/role=any/briefs/fulcrums.md
+      ├─  51   7.8%  .agent/repo=.this/role=any/briefs/shared.md
+      ├─  46   7.1%  .agent/repo=.this/role=any/briefs/review.md
+      └─  44   6.8%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case14] a role dir that holds no resources when: [t0] roles cost --repo .this --role empty then: the empty report renders as snapshotted — on STDOUT: stdout-role-empty 1`] = `
+"🧢 roles cost --repo .this --role empty
+   └─ 🟡 no resources found — this boot emits naught
+"
+`;
+
+exports[`rhachet roles cost given: [case15] a role whose boot.yml is in SIMPLE mode when: [t0] roles cost --repo .this --role any --subject test then: the refusal renders as snapshotted — on STDERR: stderr-subject-on-simple 1`] = `
+"
+✋ ConstraintError: --subject requires boot.yml in subject mode
+
+{
+  "subjects": [
+    "test"
+  ],
+  "mode": "simple"
+}
+
+[args] roles,cost,--repo,.this,--role,any,--subject,test
+
+"
+`;

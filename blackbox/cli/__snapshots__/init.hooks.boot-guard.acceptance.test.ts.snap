@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t0] init --hooks then: boot.yml now declares a 5_000 token budget 1`] = `
+"# a repo's own role, with a payload and no budget — the shape a repo grows into unwatched
+budget:
+  tokens: 5_000
+briefs:
+  say:
+    - briefs/**/*.md
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t0] init --hooks then: stdout reports the budget it findserted 1`] = `
+"🧢 .agent/repo=.this/role=any
+   └─ + boot.yml  budget.tokens: 5_000
+
+🧠 brain dir (default)
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ .this/any → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t2] a brief grows the boot past its budget, then the hook fires then: stderr names the spec over budget and the remedies 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (29,270 / 5,000 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot specs exceed their declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "specsOver": [
+    ".agent/repo=.this/role=any/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t3] init --hooks runs again then: the re-run renders as snapshotted: stdout-rerun 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ .this/any → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2] a repo whose own role already declares a budget when: [t0] init --hooks then: the render matches its snapshot: stdout-owner-budget 1`] = `
+"🧠 brain dir (default)
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ .this/any → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2] a repo whose own role already declares a budget when: [t1] the onStop hook fires against the owner budget then: exits with status 2, measured against the owner budget 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (255 / 20 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot specs exceed their declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "specsOver": [
+    ".agent/repo=.this/role=any/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case3] a caller that names no declared hook event when: [t0] roles cost --all --when hook.bogus then: is refused with status 2, and names the valid callers 1`] = `
+"
+✋ ConstraintError: --when must be one of hook.onBoot, hook.onTool, hook.onStop, hook.onTalk
+
+{
+  "hint": "pass a declared hook caller, or drop --when for a hand run",
+  "when": "hook.bogus"
+}
+
+[args] roles,cost,--all,--when,hook.bogus
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case3] a caller that names no declared hook event when: [t1] roles cost --when hook.onStop, without --all then: is refused with status 2 1`] = `
+"
+✋ ConstraintError: --when requires --all
+
+{
+  "hint": "run \`roles cost --all --when hook.onStop\`",
+  "when": "hook.onStop"
+}
+
+[args] roles,cost,--when,hook.onStop
+
+"
+`;

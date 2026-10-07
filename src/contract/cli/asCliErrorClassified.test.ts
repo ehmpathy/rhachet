@@ -51,17 +51,9 @@ describe('asCliErrorClassified', () => {
           'it is passed through too — the renderer never overrules a thrower',
           () => {
             /**
-             * 🚨 .why this row asserts the DEFECT rather than a cure = a `BadRequestError`
-             *   carries no `.code`, so a caller fault exits 1 (the malfunction code). that
-             *   is real and it is wrong — and to special-case it HERE is the exact move
-             *   `rule.forbid.helpful-error-parents` names as *"the trap"*:
-             *   *"if a type guard or renderer rejects your error, the ERROR is wrong — not
-             *   the guard."*
-             *
-             * ⚠️ so this row exists to make the renderer's neutrality a GUARANTEE. it goes
-             *   red the day someone repairs the exit code at this layer instead of at the
-             *   throw sites that still owe the owner question — a repair that would hide
-             *   the very symptom the migration runs on.
+             * .note = a `BadRequestError` carries no `.code`, so it exits 1 rather than 2.
+             *   the renderer passes it through unchanged regardless
+             *   (`rule.forbid.helpful-error-parents`).
              */
             const thrown = new BadRequestError(
               'a parent class, no owner named',
@@ -77,18 +69,10 @@ describe('asCliErrorClassified', () => {
     '[case2] an UNCLASSIFIED error — a bare Error our contract never named',
     () => {
       /**
-       * 🚨 this is the case the whole transformer exists for. before it, such a throw
-       *   escaped the cli entirely and reached the human as node's uncaught-exception
-       *   dump: a raw stack, no glyph, no class verdict, no hint, and an exit code node
-       *   chose rather than one we judged.
-       *
-       * 🚨 .note = the message owns NO glyph, deliberately. `asCliErrorFrame` prepends the
-       *   one — `💥 MalfunctionError: ` here — so a glyph baked at the throw site renders a
-       *   SECOND one beside it, and the two disagree: `✋` asserts caller-fixable (exit 2)
-       *   while the frame's verdict is ours-to-repair (exit 1). one line, two verdicts.
-       *   the same defect was already repaired once at `assertRegistryHooksNoNpx`
-       *   (`✋ ConstraintError: ✋ hooks with…`); the repair is identical — the frame owns
-       *   the glyph, the thrower owns the sentence.
+       * .what = an unclassified error, a bare `Error` our contract never named
+       * .note = the message carries NO glyph. `asCliErrorFrame` prepends the one
+       *   (`💥 MalfunctionError: `), so a glyph baked at the throw site would render a
+       *   second one beside it and the two could disagree.
        */
       const thrown = new Error('duplicate role.slug "echoer"');
 
@@ -118,6 +102,12 @@ describe('asCliErrorClassified', () => {
              *   serialized-metadata tail. so `.message` is the lib's internal render and
              *   this is the sentence a human and a machine actually receive. a `toContain`
              *   on the raw `.message` would pass under either shape and clamp no contract.
+             *
+             * 🔴 the fixture message carries NO glyph, and that is deliberate: the frame
+             *   above prefixes `💥` itself, so a glyph inside the message renders twice —
+             *   and the inner copy is the one that can disagree with the class
+             *   (`rule.forbid.stormcloud-for-errors`). `assureUniqueRoles`, the real
+             *   throw site this mirrors, carries none either.
              */
             expect(
               asCliErrorJson({ error: asCliErrorClassified({ error: thrown }) })
@@ -221,14 +211,15 @@ describe('asCliErrorClassified', () => {
       when('[t1] a SYMBOL is thrown', () => {
         then('it renders its descriptive text', () => {
           /**
-           * ⚠️ this row once claimed to be *"the sharpest in this case"*, on the premise
-           *   that `String(aSymbol)` raises a `TypeError`. it does NOT — `String(value)`
-           *   carries an explicit carve-out for symbols. what raises is IMPLICIT
-           *   conversion, a template literal or `+ ''`, and this path uses neither.
+           * 🟡 .note = a symbol is an ORDINARY row here, never the fault row, and the
+           *   distinction turns on a carve-out that reads the other way at a glance:
+           *   **`String(aSymbol)` does NOT raise.** `String(value)` carries an explicit
+           *   exemption for symbols. what raises is an IMPLICIT conversion — a template
+           *   literal, or `+ ''` — and this path uses neither.
            *
-           *   the row is kept because a symbol IS a real thrown value and its metadata
-           *   shape is worth a clamp. it is no longer the fault row: `[t2]` is, and the
-           *   premise itself is measured in `asThrownValueText.test.ts`.
+           *   ⇒ so a reader who expects this row to exercise the `TypeError` arm is one
+           *   carve-out short. `[t2]` is the fault row, and the premise is measured in
+           *   `asThrownValueText.test.ts`.
            */
           const classified = asCliErrorClassified({ error: Symbol('nope') });
           expect(classified.metadata).toMatchObject({
@@ -249,7 +240,7 @@ describe('asCliErrorClassified', () => {
              */
             const hostile = {
               toString: () => {
-                throw new Error('i refuse to render');
+                throw new MalfunctionError('i refuse to render');
               },
             };
             const classified = asCliErrorClassified({ error: hostile });

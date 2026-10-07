@@ -1,0 +1,522 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case1] a role spec that declares NO budget when: [t0] roles boot --repo .this --role any then: and the whole render is snapshotted: stdout-unbudgeted 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 2
+  │       ├── say = 1
+  │       └── ref = 1
+  ├── chars = 549
+  └── tokens ≈ 138 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# test role for boot.yml simple mode
+
+this role tests simple mode boot.yml curation
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/always-say.md">
+# always say brief
+
+this brief is matched by the say glob and should have full content injected
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/subdir/deep.md">
+# deep brief
+
+this brief is in a subdirectory and matched by the recursive glob
+
+</brief.say>
+
+<briefs.ref base=".agent/repo=.this/role=any/briefs/">
+not-matched.md
+</briefs.ref>
+
+<skill.say path=".agent/repo=.this/role=any/skills/say-me.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = test skill that should be said
+# .why = matched by skills.say glob
+######################################################################
+
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skills.ref base=".agent/repo=.this/role=any/skills/">
+ref-me.sh
+</skills.ref>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 2
+  │       ├── say = 1
+  │       └── ref = 1
+  ├── chars = 549
+  └── tokens ≈ 138 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case2] a role spec that fits the budget it declares when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-boot-under 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 235 (full emitted payload, o200k_base)
+  └── budget = 235 / 5,000 tokens (5% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role whose resident payload sits well inside the cap its spec declares.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core
+
+a rule this role always carries. it sits at \`say\`, and it fits.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 235 (full emitted payload, o200k_base)
+  └── budget = 235 / 5,000 tokens (5% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case3] a role spec that EXCEEDS the budget it declares when: [t0] roles boot --repo .this --role any then: the halt renders as snapshotted — on STDERR: stderr-boot-over 1`] = `
+"🧢 roles boot --repo .this --role any
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 335 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 315 tokens   (1675% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 20,
+  "payload": 335,
+  "over": 315
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case4] a LINKED role whose spec exceeds its own budget when: [t1] roles boot --repo linked-repo --role lodger then: the warn renders as snapshotted — on STDERR: stderr-warn-linked 1`] = `
+"🧢 roles boot --repo linked-repo --role lodger
+   ├─ 🟡 over budget — and this spec is not yours to trim
+   │  ├─ budget   = 20 tokens   (declared upstream)
+   │  ├─ payload  = 506 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 486 tokens   (2530% of budget)
+   │
+   └─ not refused — the spec is a symlink into a version-pinned store,
+      so every remedy would name a file this repo cannot write
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case4] a LINKED role whose spec exceeds its own budget when: [t2] roles cost --all, over the same real link then: the roster renders as snapshotted — on STDOUT: stdout-cost-all-linked 1`] = `
+"🧢 1 boot spec — 1 budgeted, 1 over budget
+   ├─ 506 / 20 tokens (2530%)  .agent/repo=linked-repo/role=lodger/boot.yml (linked) 🟡
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 1 here)
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case5] a SUBJECT-mode role spec whose cap sits between its subjects when: [t0] roles boot --subject review — the lighter selection then: the narrowed payload renders as snapshotted — on STDOUT: stdout-subject-narrowed-under 1`] = `
+"<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── tokens = 289 (full emitted payload, o200k_base)
+  └── budget = 289 / 400 tokens (72% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role in subject mode, whose cap one \`--subject\` selection fits and another exceeds.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/shared.md">
+# shared
+
+a rule every subject carries. it sits under \`always:\`, so it rides in whichever
+selection the caller names.
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/review.md">
+# review
+
+the lighter of the two subjects. \`always\` plus this one sits inside the cap.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── tokens = 289 (full emitted payload, o200k_base)
+  └── budget = 289 / 400 tokens (72% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case5] a SUBJECT-mode role spec whose cap sits between its subjects when: [t1] roles boot --subject review,fulcrums — the wider selection then: the halt renders as snapshotted — on STDERR: stderr-subject-widened-over 1`] = `
+"🧢 roles boot --repo .this --role any --subject review,fulcrums
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 400 tokens   (declared in boot.yml)
+   │  ├─ payload  = 650 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 250 tokens   (163% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any --subject review,fulcrums   sorts every batch by what it costs
+   │
+   ├─ in scope — 2 subjects, and what a drop of each recovers
+   │  ├─ review    −  46 tokens
+   │  └─ fulcrums  − 361 tokens
+   │
+   └─ fix — five strategies, cheapest first
+      ├─ narrow      boot fewer --subject sections
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "boot fewer --subject sections, or trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 400,
+  "payload": 650,
+  "over": 250
+}
+
+[args] roles,boot,--repo,.this,--role,any,--subject,review,fulcrums
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case5] a SUBJECT-mode role spec whose cap sits between its subjects when: [t2] roles boot --subject review --subject fulcrums — the repeated form then: the halt renders as snapshotted — on STDERR: stderr-subject-widened-over-repeated 1`] = `
+"🧢 roles boot --repo .this --role any --subject review,fulcrums
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 400 tokens   (declared in boot.yml)
+   │  ├─ payload  = 650 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 250 tokens   (163% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any --subject review,fulcrums   sorts every batch by what it costs
+   │
+   ├─ in scope — 2 subjects, and what a drop of each recovers
+   │  ├─ review    −  46 tokens
+   │  └─ fulcrums  − 361 tokens
+   │
+   └─ fix — five strategies, cheapest first
+      ├─ narrow      boot fewer --subject sections
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "boot fewer --subject sections, or trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 400,
+  "payload": 650,
+  "over": 250
+}
+
+[args] roles,boot,--repo,.this,--role,any,--subject,review,--subject,fulcrums
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case6] a breach the REF roster carries, not the say set when: [t0] roles cost --repo .this --role any — the premise then: the report renders as snapshotted — on STDOUT: stdout-ref-dominated-cost 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 452 (full emitted payload, o200k_base)
+   ├─ budget  = 100 tokens (452% used)
+   ├─ batches = 2 say · 1 ref
+   ├─ chrome  = 244 tokens (54.0%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 138  30.5%  <briefs.ref>
+      ├─  36   8.0%  .agent/repo=.this/role=any/briefs/core.md
+      └─  34   7.5%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case6] a breach the REF roster carries, not the say set when: [t1] roles boot --repo .this --role any — the halt then: the halt renders as snapshotted — on STDERR: stderr-ref-dominated-over 1`] = `
+"🧢 roles boot --repo .this --role any
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 100 tokens   (declared in boot.yml)
+   │  ├─ payload  = 452 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 352 tokens   (452% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 100,
+  "payload": 452,
+  "over": 352
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case7] a payload HIGH against its cap, and under it when: [t0] roles boot --repo .this --role any then: the steer line renders as snapshotted — on STDOUT: stdout-steer-band 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 241 (full emitted payload, o200k_base)
+  └── budget = 241 / 245 tokens (98% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role whose resident payload sits in the steer band — high against its cap, and under it.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core
+
+a rule this role always carries. it sits at \`say\`, and it very nearly does not fit.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 241 (full emitted payload, o200k_base)
+  └── budget = 241 / 245 tokens (98% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case8] a cap with room for TWO boots, and a say set that grows when: [t1] a brief lands in the say set, and the role boots again then: and BOTH renders are pinned — the climb, seen: stdout-climb-after 1`] = `
+"<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── tokens = 317 (full emitted payload, o200k_base)
+  └── budget = 317 / 400 tokens (79% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role whose cap leaves room for a second boot — so an author can watch the headroom climb.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core
+
+a rule this role always carries. it sits at \`say\`, and it leaves headroom under the cap.
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/second.md">
+# second
+
+a brief the author wrote between the two boots. it costs real tokens, and it is
+small enough that the payload still lands under the cap — so what the author sees
+is a steer that moved, never a refusal.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── tokens = 317 (full emitted payload, o200k_base)
+  └── budget = 317 / 400 tokens (79% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case8] a cap with room for TWO boots, and a say set that grows when: [t1] a brief lands in the say set, and the role boots again then: and BOTH renders are pinned — the climb, seen: stdout-climb-before 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 243 (full emitted payload, o200k_base)
+  └── budget = 243 / 400 tokens (61% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role whose cap leaves room for a second boot — so an author can watch the headroom climb.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core
+
+a rule this role always carries. it sits at \`say\`, and it leaves headroom under the cap.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 243 (full emitted payload, o200k_base)
+  └── budget = 243 / 400 tokens (61% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case9] a breach the author CLOSES, and boots again then: the halt renders as snapshotted — on STDERR: stderr-loop-halt 1`] = `
+"🧢 roles boot --repo .this --role any
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 400 tokens   (declared in boot.yml)
+   │  ├─ payload  = 653 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 253 tokens   (163% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --repo .this --role any   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 400,
+  "payload": 653,
+  "over": 253
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot — the budget gate, on a role coordinate given: [case9] a breach the author CLOSES, and boots again when: [t1] the author takes the CONDENSE rung, and boots again then: the recovered render matches its snapshot — on STDOUT: stdout-loop-recovered 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 272 (full emitted payload, o200k_base)
+  └── budget = 272 / 400 tokens (68% used)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## any
+
+a role whose one resident brief runs long — so its boot breaches the cap, and a condense recovers it.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md.min">
+# core
+
+a boot renders only where its payload sits under its declared cap. the cap counts
+the full emitted payload. a breach offers four moves, cheapest first, and names no
+document — the gate sees cost, the author holds value.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── tokens = 272 (full emitted payload, o200k_base)
+  └── budget = 272 / 400 tokens (68% used)
+</stats>
+
+"
+`;

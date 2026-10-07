@@ -1,3 +1,5 @@
+import { MalfunctionError } from 'helpful-errors';
+
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
@@ -7,6 +9,7 @@ import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExpo
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { getAllRepoThisRolesWithHooks } from './getAllRepoThisRolesWithHooks';
 
 /**
  * .what = a role with each `rhachet roles boot` onBoot hook dropped
@@ -34,7 +37,9 @@ const asRoleWithoutRolesBootHooks = (input: { role: Role }): Role => {
  * .what = discovers linked roles and loads their full Role objects with hooks
  * .why = enables hook application for roles already linked into .agent/
  *
- * .note = scans .agent/repo=* directories (skips repo=.this) to find linked roles
+ * .note = scans .agent/repo=* directories to find linked roles; repo=.this has no package and
+ *   declares no hooks of its own. it gets only the framework-owned budget gate, armed when a
+ *   `.this` boot.yml declares a budget (getAllRepoThisRolesWithHooks)
  * .note = imports packages dynamically to get full Role objects with hooks.onBrain
  * .note = returns HasRepo<Role> so caller knows which repo each role came from
  */
@@ -57,10 +62,14 @@ export const getLinkedRolesWithHooks = async (
   }
 
   // scan for repo=* directories (skip repo=.this)
-  const repoDirs = readdirSync(agentDir).filter(
-    (name) => name.startsWith('repo=') && name !== 'repo=.this',
-  );
+  // sorted: the roster is a function of the SET of dirs, never of readdir order
+  const repoDirs = readdirSync(agentDir)
+    .filter((name) => name.startsWith('repo=') && name !== 'repo=.this')
+    .sort();
 
+  // 🟡 .note = DELIBERATE MUTATION — `roles` and `errors` grow by `push` across the async
+  //   per-repo walk. each import may land a role or an error, never both, so two accumulators
+  //   fed by one sequential pass read plainer than a partition of a mixed result list
   const roles: HasRepo<Role>[] = [];
   const errors: Array<{
     repoSlug: string;
@@ -74,9 +83,9 @@ export const getLinkedRolesWithHooks = async (
     const repoPath = join(agentDir, repoDir);
 
     // scan for role=* directories within this repo
-    const roleDirs = readdirSync(repoPath).filter((name) =>
-      name.startsWith('role='),
-    );
+    const roleDirs = readdirSync(repoPath)
+      .filter((name) => name.startsWith('role='))
+      .sort();
 
     const packageName = `rhachet-roles-${repoSlug}`;
 
@@ -98,7 +107,9 @@ export const getLinkedRolesWithHooks = async (
           error:
             error instanceof Error
               ? error
-              : new Error(`failed to load package: ${String(error)}`),
+              : new MalfunctionError(
+                  `failed to load package: ${String(error)}`,
+                ),
         });
       }
     };
@@ -159,6 +170,13 @@ export const getLinkedRolesWithHooks = async (
       recordRepoFailure(error, 'use');
     }
   }
+
+  // a budgeted `.this` boot arms the built-in gate, which joins the same sync as a supplier's
+  const repoThis = getAllRepoThisRolesWithHooks({ gitroot: context.gitroot });
+  roles.push(...repoThis.roles);
+  errors.push(
+    ...repoThis.errors.map((one) => ({ ...one, phase: 'load' as const })),
+  );
 
   return { roles, errors };
 };

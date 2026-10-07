@@ -27,12 +27,37 @@ const execFileAsync = promisify(execFile);
  *
  * .note = uses execFile (not exec) to avoid shell interpretation
  *         this preserves json quotes and special characters in args
+ *
+ * 🔴 .note = `env` is passed EXPLICITLY, for the same reason `isOpCliInstalled` does — see its
+ *   docblock. `execFile` with no `env` reads the REAL process env, which a jest sandbox does
+ *   not share with its test, so a suite cannot otherwise steer which `op` this resolves. in
+ *   production the two envs are the same object, so no runtime behavior changes.
  */
 const execOp = async (
   args: string[],
 ): Promise<{ stdout: string; stderr: string }> => {
-  return execFileAsync('op', args);
+  return execFileAsync('op', args, { env: process.env });
 };
+
+/**
+ * .what = read an error's message, with no gate on its constructor identity
+ * .why = every allowlist below decides whether to SWALLOW or RETHROW by the phrase `op` printed,
+ *   so each one needs the message and none of them needs the class.
+ *
+ * 🔴 .note = an `error instanceof Error` gate is REALM-FRAGILE, and that is why it is absent here.
+ *   `child_process` mints its rejection in node's own realm, so code under a jest sandbox (or any
+ *   vm/worker boundary) compares it against a DIFFERENT `Error` and the check is false — measured:
+ *   `inst=false` for the very rejection whose message reads "could not be found". ⇒ each allowlist
+ *   would then fall through and rethrow the outcome it was written to swallow, and no integration
+ *   test could ever grade it (`rule.forbid.failhide`).
+ *
+ *   the message is the contract `op` actually promises; the constructor identity is not. in
+ *   production both realms are the same object, so no runtime behavior changes.
+ */
+const asErrorMessage = (error: unknown): string =>
+  typeof (error as { message?: unknown })?.message === 'string'
+    ? (error as { message: string }).message
+    : String(error);
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -243,7 +268,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       await execOp(['whoami']);
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : '';
+      const message = asErrorMessage(error);
 
       // allowlist: not signed in → not unlocked
       const notSignedInPatterns = [
@@ -255,9 +280,12 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       if (notSignedInPatterns.some((p) => message.toLowerCase().includes(p)))
         return false;
 
-      // allowlist: exit code 1 without specific message typically means auth issue
+      // allowlist: a `Command failed` rejection that carries a `code` key set to undefined —
+      //   the shape a wrapped op failure takes with no errno and no auth phrase — reads as not
+      //   signed in. a numeric exit code is NOT this branch, so it rethrows below
       if (
-        error instanceof Error &&
+        typeof error === 'object' &&
+        error !== null &&
         'code' in error &&
         (error as NodeJS.ErrnoException).code === undefined &&
         message.includes('Command failed')
@@ -296,10 +324,7 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
       source = stdout.trim();
     } catch (error) {
       // op read returns error if item not found
-      if (
-        error instanceof Error &&
-        error.message.includes('could not be found')
-      ) {
+      if (asErrorMessage(error).includes('could not be found')) {
         return null;
       }
       throw error;
@@ -489,6 +514,10 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
           `${field}=${source}`,
         ]);
       } catch (error) {
+        // allowlist: only an op exit (a numeric exit code) is a store failure; all else rethrows
+        if (typeof (error as { code?: unknown }).code !== 'number') throw error;
+
+        // render the store failure, then exit 2 (the caller must fix the item or the auth)
         console.log('');
         console.log('🔐 keyrack set');
         console.log('   └─ ✗ failed to store in 1password');
@@ -498,11 +527,8 @@ export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
         console.log('   - field name matches the exid');
         console.log('   - op cli is authenticated (run: op whoami)');
         console.log('');
-        if (error instanceof Error) {
-          console.log(`   error: ${error.message}`);
-          console.log('');
-        }
-        // exit 2 = constraint error (user must fix before retry)
+        console.log(`   error: ${asErrorMessage(error)}`);
+        console.log('');
         process.exit(2);
       }
 

@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneBootSourceFromRole (integration) given: [case1] a role whose dir is absent, and --if-present is off when: [t0] the source is looked up for a LINKED repo then: it refuses, and the message names \`roles link\` 1`] = `
+"✋ ConstraintError: role directory not found: /TMP_REPO/.agent/repo=bhrain/role=driver
+
+{
+  "rootDir": "/TMP_REPO/.agent/repo=bhrain/role=driver",
+  "slugRepo": "bhrain",
+  "slugRole": "driver",
+  "hint": "Run \\"rhachet roles link --repo bhrain --role driver\\" first"
+}"
+`;
+
+exports[`getOneBootSourceFromRole (integration) given: [case1] a role whose dir is absent, and --if-present is off when: [t1] the source is looked up for the repo ITSELF then: it refuses, and the fix names the dirs to create 1`] = `
+"✋ ConstraintError: role directory not found: /TMP_REPO/.agent/repo=.this/role=any
+
+{
+  "rootDir": "/TMP_REPO/.agent/repo=.this/role=any",
+  "slugRepo": ".this",
+  "slugRole": "any",
+  "hint": "Create .agent/repo=.this/role=any/briefs and skills directories"
+}"
+`;

@@ -5,7 +5,9 @@ import { getGitRepoRoot } from 'rhachet-artifact-git';
 import type { RoleRegistry } from '@src/domain.objects';
 import { assertRegistryHasNoOrphanBriefs } from '@src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs';
 import { assertRegistryHooksNoNpx } from '@src/domain.operations/manifest/assertRegistryHooksNoNpx';
+import { assertRegistryHooksNoRoleBoot } from '@src/domain.operations/manifest/assertRegistryHooksNoRoleBoot';
 import { assertRegistrySkillsExecutable } from '@src/domain.operations/manifest/assertRegistrySkillsExecutable';
+import { assertRegistryWithinBudget } from '@src/domain.operations/manifest/assertRegistryWithinBudget';
 import {
   castIntoRoleRegistryManifest,
   serializeRoleRegistryManifest,
@@ -84,8 +86,18 @@ export const invokeRepoIntrospect = ({
       // fail fast if any hooks use forbidden npx/bunx patterns
       assertRegistryHooksNoNpx({ registry });
 
+      // fail fast if any role boots itself from a hook; boot.md renders every linked role
+      assertRegistryHooksNoRoleBoot({ registry });
+
       // fail fast if any role has orphan .md.min briefs
       assertRegistryHasNoOrphanBriefs({ registry });
+
+      // fail fast if any role's boot payload exceeds the budget it declares
+      //
+      // .why = gate 1 of `0.wish.md` requirement 9. it is the only gate whose spec is
+      //   writable by construction, so the refusal lands on the author's own git-tracked
+      //   file — before publish, rather than on a consumer who cannot edit it.
+      await assertRegistryWithinBudget({ registry, dirRepo: gitRoot });
 
       // generate manifest
       console.log(``);

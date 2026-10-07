@@ -9,6 +9,9 @@ import { getExitCodeFromError } from './getExitCodeFromError';
  *   the runtime's own uncaught-exception dump. an `instanceof HelpfulError` gate here would hand
  *   that dump to a human for every error our contract has not classified yet.
  *
+ * ⚠️ it must wrap the WHOLE entrypoint, never `parseAsync` alone: a config load, a command
+ *   registration, and a uniqueness check all throw ABOVE that call.
+ *
  * 🔴 .why it is SHARED across all three entries = each entry is a separate process root, so each
  *   owns its own last handler. the two bun entries (`invoke.bun.entry.run`, `…roles`) had NONE,
  *   so every throw escaped to bun's default render. walked on `rhx nosuchskill`, which printed

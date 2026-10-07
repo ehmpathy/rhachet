@@ -1,11 +1,15 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = acceptance tests for boot.yml curation feature
  * .why = verifies say vs ref behavior for briefs and skills
+ * .note = every snapshot names its stream and readout; a refusal is snapped from stderr
  */
 describe('rhachet roles boot with boot.yml', () => {
   /**
@@ -59,8 +63,9 @@ describe('rhachet roles boot with boot.yml', () => {
 
       then('refs unmatched briefs with path only (not-matched.md)', () => {
         expect(result.stdout).toContain(
-          '<brief.ref path=".agent/repo=.this/role=any/briefs/not-matched.md"/>',
+          '<briefs.ref base=".agent/repo=.this/role=any/briefs/">',
         );
+        expect(result.stdout).toContain('\nnot-matched.md\n');
         // should NOT contain full content of not-matched.md
         expect(result.stdout).not.toContain(
           'this brief is NOT matched by any say glob',
@@ -75,8 +80,9 @@ describe('rhachet roles boot with boot.yml', () => {
 
       then('refs unmatched skills with path only (ref-me.sh)', () => {
         expect(result.stdout).toContain(
-          '<skill.ref path=".agent/repo=.this/role=any/skills/ref-me.sh"/>',
+          '<skills.ref base=".agent/repo=.this/role=any/skills/">',
         );
+        expect(result.stdout).toContain('\nref-me.sh\n');
       });
 
       then('always says readme with full content', () => {
@@ -84,8 +90,9 @@ describe('rhachet roles boot with boot.yml', () => {
         expect(result.stdout).toContain('this role tests simple mode');
       });
 
-      then('output matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-simple');
       });
     });
 
@@ -108,9 +115,17 @@ describe('rhachet roles boot with boot.yml', () => {
       );
 
       then('fails with error: --subject requires subject mode', () => {
-        expect(result.status).not.toEqual(0);
+        // a caller-fixable spec defect is a constraint (`rule.require.exit-code-semantics`)
+        expect(result.status).toEqual(2);
         expect(result.stderr).toContain(
           '--subject requires boot.yml in subject mode',
+        );
+      });
+
+      then('the refusal renders as snapshotted — on STDERR', () => {
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-subject-on-simple',
         );
       });
     });
@@ -144,8 +159,9 @@ describe('rhachet roles boot with boot.yml', () => {
         expect(result.stdout).not.toMatch(/ref\s*=/);
       });
 
-      then('output matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-no-spec');
       });
     });
 
@@ -168,9 +184,17 @@ describe('rhachet roles boot with boot.yml', () => {
       );
 
       then('fails with error: --subject requires subject mode', () => {
-        expect(result.status).not.toEqual(0);
+        // a caller-fixable spec defect is a constraint (`rule.require.exit-code-semantics`)
+        expect(result.status).toEqual(2);
         expect(result.stderr).toContain(
           '--subject requires boot.yml in subject mode',
+        );
+      });
+
+      then('the refusal renders as snapshotted — on STDERR', () => {
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-subject-on-no-spec',
         );
       });
     });
@@ -191,15 +215,67 @@ describe('rhachet roles boot with boot.yml', () => {
       );
 
       then('fails with error: mixed mode not allowed', () => {
-        expect(result.status).not.toEqual(0);
+        // a caller-fixable spec defect is a constraint (`rule.require.exit-code-semantics`)
+        expect(result.status).toEqual(2);
         expect(result.stderr).toContain('mixed mode not allowed');
+      });
+
+      then('the refusal renders as snapshotted — on STDERR', () => {
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-mixed-mode',
+        );
       });
     });
   });
 
   /**
-   * subject mode tests (placeholder - subject mode not yet implemented)
-   * these tests verify the error cases for subject mode
+   * .what = the absent-role refusal, which a human meets when they boot an unlinked role
+   * .note = this pins `findUniqueRoleDir`'s refusal; the `getOneBootSource` guard is unreachable
+   *   here and pinned in `getOneBootSource.integration.test.ts`
+   */
+  given('[case3b] a repo where the named role was never linked', () => {
+    const repo = useBeforeAll(async () =>
+      genTestTempRepo({ fixture: 'with-boot-yaml-simple' }),
+    );
+
+    when('[t0] roles boot --repo absent --role absent', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'boot', '--repo', 'absent', '--role', 'absent'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 2 — the caller must link the role', () => {
+        // an unlinked role is the caller's to link (`rule.require.exit-code-semantics`)
+        expect(result.status).toEqual(2);
+      });
+
+      then('it names the role it could not find', () => {
+        expect(result.stderr).toContain('absent');
+      });
+
+      then('the refusal names the fix, and lands on STDERR', () => {
+        // the hint names the command (`rule.require.errors-name-the-fix`)
+        expect(result.stderr).toContain('roles link');
+        expect(result.stdout).not.toContain('<brief.say');
+      });
+
+      then('the refusal renders as snapshotted — on STDERR', () => {
+        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-role-dir-absent',
+        );
+      });
+    });
+  });
+
+  /**
+   * .what = subject mode, booted with no `--subject` — so every subject is selected
+   * .why = the payload is the union of `always` plus every `subject.*` section, deduped
+   *        (`computeSubjectModePlan`); the `<also>` block renders only in subject mode
    */
   given('[case4] repo with boot.yml subject mode', () => {
     const repo = useBeforeAll(async () =>
@@ -218,13 +294,14 @@ describe('rhachet roles boot with boot.yml', () => {
         expect(result.status).toEqual(0);
       });
 
-      // placeholder: subject mode currently says all (to be implemented)
+      // the readme is said unconditionally; `getAllRelevantFiles` prepends it to every set
       then('says the readme', () => {
         expect(result.stdout).toContain('<readme path=');
       });
 
-      then('output matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-subject');
       });
     });
   });
@@ -246,13 +323,16 @@ describe('rhachet roles boot with boot.yml', () => {
         expect(result.status).toEqual(0);
       });
 
-      // placeholder: subject mode currently says all (to be implemented)
+      // this spec declares no `always` section, yet the readme is still said
       then('says the readme', () => {
         expect(result.stdout).toContain('<readme path=');
       });
 
-      then('output matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-subject-no-always',
+        );
       });
     });
   });
@@ -304,8 +384,11 @@ describe('rhachet roles boot with boot.yml', () => {
         );
       });
 
-      then('output matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+      then('the payload renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-minified',
+        );
       });
     });
   });

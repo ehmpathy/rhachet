@@ -4,7 +4,6 @@ import type { RoleManifest } from '@src/domain.objects/RoleManifest';
 import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { getRoleFromManifests } from '@src/domain.operations/manifest/getRoleFromManifests';
-import { asErrorClassText } from '@src/utils/asErrorClassText';
 
 /**
  * .what = resolves a role by specifier from either explicit or implicit config
@@ -29,21 +28,18 @@ export const getRoleBySpecifier = async (
     if (isExplicit) {
       console.log(``);
       console.log(`🔭 rhachet.use.ts found, import roles from config...`);
-      try {
-        const registries = (
-          await context.config.usage.get.registries.explicit()
-        ).registries;
-        if (registries.length === 0) {
-          ConstraintError.throw('No registries found in rhachet.use.ts');
-        }
-        return registries;
-      } catch (error) {
-        if (!(error instanceof Error)) throw error;
-        console.log(``);
-        console.log(`✗ failed to load rhachet.use.ts:`);
-        console.log(`   └── ${asErrorClassText({ error })}`);
-        throw error;
-      }
+      // 🔴 NO catch-log-rethrow here. the rethrow reaches `emitCliErrorAndExit`, which is the
+      //   one owner of what a human reads off a cli error — a preview logged beside it
+      //   renders the same failure twice, to stdout, with no class name.
+      const registries = (await context.config.usage.get.registries.explicit())
+        .registries;
+      if (registries.length === 0)
+        ConstraintError.throw('No registries found in rhachet.use.ts', {
+          from: 'rhachet.use.ts',
+          why: 'the config was imported and read, and it declared no registry to boot a role from',
+          hint: 'declare at least one registry in rhachet.use.ts, or delete the file to fall back to package discovery',
+        });
+      return registries;
     }
 
     // implicit discovery

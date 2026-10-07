@@ -1,6 +1,7 @@
-import { ConstraintError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
+import { genSampleErrnoError } from '@src/.test/assets/genSampleErrnoError';
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
@@ -16,9 +17,8 @@ jest.mock('./resolveBrainsToPackages', () => ({
 jest.mock('./execNpmInstallLocal', () => ({
   execNpmInstallLocal: jest.fn(),
 }));
-// .note = the error CLASS is kept real while the function is mocked. a hand-rolled
-//   stand-in for the class would let this suite pass against a shape the producer
-//   cannot emit — the exact trap the prior EACCES string fell into
+// .note = the error CLASS stays real; only the producer function is mocked, so the
+//   suite exercises the actual error shape
 jest.mock('./execNpmInstallGlobal', () => ({
   ...jest.requireActual('./execNpmInstallGlobal'),
   execNpmInstallGlobal: jest.fn(),
@@ -38,7 +38,37 @@ jest.mock(
     initRolesFromPackages: jest.fn(),
   }),
 );
+/**
+ * .what = the ONE collaborator replaced here; the rest of the module stays real
+ * .why = this suite needs the hook sync to FAULT — it aggregates per-brain faults into
+ *   `errors` rather than a throw, so a suite that cannot drive that channel cannot
+ *   clamp whether `execUpgrade` reads it
+ */
+jest.mock('@src/domain.operations/init/hooks/syncHooksForLinkedRoles', () => ({
+  ...jest.requireActual(
+    '@src/domain.operations/init/hooks/syncHooksForLinkedRoles',
+  ),
+  syncHooksForLinkedRoles: jest.fn(),
+}));
 
+/**
+ * .what = the boot sync, replaced as narrowly as the hook sync above — the default is the REAL one
+ * .why = the hook sync runs only once the default boot rendered (`defaultRendered` gates it),
+ *   and against this suite's `/test` cwd the real render never lands. a case that drives a
+ *   hook-sync fault opens that gate explicitly
+ */
+jest.mock(
+  '@src/domain.operations/init/boots/syncAndReportBrainDirBoots',
+  () => ({
+    ...jest.requireActual(
+      '@src/domain.operations/init/boots/syncAndReportBrainDirBoots',
+    ),
+    syncAndReportBrainDirBoots: jest.fn(),
+  }),
+);
+
+import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
+import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 
 import { asNpmInstallFailureError } from './asNpmInstallFailureError';
@@ -55,17 +85,10 @@ import { getLocalRefDependencies } from './getLocalRefDependencies';
 import { resolveBrainsToPackages } from './resolveBrainsToPackages';
 
 /**
- * .what = takes the callout block around a header line out of a captured console log —
- *   the blank above the header, the header, its indented message, and the blank below
- *
- * .why = BOUNDED to the four lines the branch composes. an unbounded tail would drag every
- *   later log line into the snapshot, so an unrelated change elsewhere in `execUpgrade`
- *   would redden a clamp about the hint — and a snapshot that goes red for reasons outside
- *   its own subject trains a reader to resnap without a look, which is how a clamp quietly
- *   becomes a decoration.
- *
- * .note = named rather than sliced inline, so the window's SHAPE is stated instead of
- *   encoded as a `-1`/`+3` a reader must simulate (`rule.require.named-transformers`)
+ * .what = the callout block around a header line in a captured console log — the blank
+ *   above the header, the header, its indented message, and the blank below
+ * .why = bounded to the four lines the branch composes, so an unrelated log line
+ *   elsewhere in the file does not enter this clamp
  */
 const asCalloutBlockFromLogs = (input: {
   logs: string[];
@@ -114,6 +137,23 @@ const mockDetectInvocationMethod =
 const mockInitRolesFromPackages = initRolesFromPackages as jest.MockedFunction<
   typeof initRolesFromPackages
 >;
+// the TYPE stays real, so a shape change on `syncHooksForLinkedRoles`' return reddens
+// this suite at typecheck rather than passing against a fiction
+const spySyncHooksForLinkedRoles =
+  syncHooksForLinkedRoles as jest.MockedFunction<
+    typeof syncHooksForLinkedRoles
+  >;
+const spySyncAndReportBrainDirBoots =
+  syncAndReportBrainDirBoots as jest.MockedFunction<
+    typeof syncAndReportBrainDirBoots
+  >;
+const {
+  syncAndReportBrainDirBoots: syncAndReportBrainDirBootsActual,
+}: {
+  syncAndReportBrainDirBoots: typeof syncAndReportBrainDirBoots;
+} = jest.requireActual(
+  '@src/domain.operations/init/boots/syncAndReportBrainDirBoots',
+);
 
 describe('execUpgrade', () => {
   const context = new ContextCli({ cwd: '/test', gitroot: '/test' });
@@ -121,19 +161,11 @@ describe('execUpgrade', () => {
   /**
    * .what = runs one upgrade with the console redirected, and hands back both the lines it
    *   printed and what it returned
-   *
-   * .why  = 🚨 a REAL stream redirect, never a `jest.spyOn(console, 'log')`. a spy REPLACES
-   *   the global logger with a stand-in, so every row that used one was checked against the
-   *   stand-in's own record rather than against bytes a console produced — and a render that
-   *   reached `process.stdout` by any other path (a `console.error`, a direct write) was
-   *   invisible to it (`rule.forbid.unit.remote-boundaries`).
-   *
-   *   `withCapturedStreams` swaps in a real node `Console` whose two streams are in-memory
-   *   sinks, so the code under test runs for real and only its output is diverted.
-   *
-   * .note = the split is on newlines rather than per call, so a single `console.log` that
-   *   carries an embedded newline reads here as the two lines a human actually sees — which
-   *   is the question every `logs.find(...)` below puts.
+   * .why = a real stream redirect (`withCapturedStreams`) swaps in a real node `Console`
+   *   whose streams are in-memory sinks, so every render path is captured, including one
+   *   that reaches `process.stdout` outside a mocked `console.log`
+   * .note = lines are split on newlines, so a single `console.log` call with an embedded
+   *   newline reads here as the two lines a human actually sees
    */
   const runUpgradeCaptured = async (
     args: Parameters<typeof execUpgrade>[0],
@@ -161,6 +193,12 @@ describe('execUpgrade', () => {
       rolesInitialized: [],
       errors: [],
     });
+    // default: hooks sync clean, so every extant case reads exactly as before
+    spySyncHooksForLinkedRoles.mockResolvedValue({ errors: [] });
+    // default: the real boot sync, so every extant case reads exactly as before
+    spySyncAndReportBrainDirBoots.mockImplementation(
+      syncAndReportBrainDirBootsActual,
+    );
     // default: global rhachet installed, invoked via global (not npx)
     mockGetGlobalRhachetVersion.mockReturnValue('1.39.10');
     mockDetectInvocationMethod.mockReturnValue('global');
@@ -182,10 +220,8 @@ describe('execUpgrade', () => {
                 'rhachet-roles-ehmpathy',
                 'rhachet-brains-anthropic',
               ],
-              // 🚨 asserted, never omitted. `toHaveBeenCalledWith` is a deep equality,
-              //   so every row below must state the hook decision too — which means the
-              //   extant suite now clamps it: a future edit that swaps the value, or
-              //   that re-hardcodes the flag and drops the field, goes red here
+              // asserted, never omitted — `toHaveBeenCalledWith` is a deep equality, so
+              // this clamps the hook decision alongside the package list
               lifecycleHooks: 'skip',
             },
             context,
@@ -384,6 +420,80 @@ describe('execUpgrade', () => {
 
         expect(mockInitRolesFromPackages).not.toHaveBeenCalled();
       });
+
+      then('hookErrors is EMPTY — no hooks were synced at all', async () => {
+        // the empty array means "not run", never "ran clean" — hookErrors is present
+        // on every path, even the one that skipped the sync
+        const result = await execUpgrade({ roleSpecs: ['*'] }, context);
+        expect(spySyncHooksForLinkedRoles).not.toHaveBeenCalled();
+        expect(result.hookErrors).toEqual([]);
+      });
+    });
+  });
+
+  /**
+   * .what = a hook sync that FAULTS while the upgrade itself lands
+   * .why = the hook sync aggregates per-brain faults into `errors` rather than a throw,
+   *   so a bare await would swallow them and report success over hooks that never wrote.
+   *   the fault is a warn, never a throw — it must not undo a local upgrade that
+   *   already landed on disk
+   */
+  given('[case1h] the hook sync FAULTS after a local upgrade lands', () => {
+    beforeEach(() => {
+      // the default boot rendered, so the gate opens and the hook sync runs
+      spySyncAndReportBrainDirBoots.mockResolvedValue({
+        exitCode: 0,
+        defaultRendered: true,
+      });
+      spySyncHooksForLinkedRoles.mockResolvedValue({
+        errors: [
+          {
+            source: 'sync:ehmpathy/mechanic→claude-code',
+            error: genSampleErrnoError({
+              code: 'EROFS',
+              message: 'settings.json is read-only',
+            }),
+          },
+          {
+            source: 'sync:actor=abc1234:ehmpathy/mechanic→claude-code',
+            error: genSampleErrnoError({
+              code: 'EROFS',
+              message: 'actor config dir is read-only',
+            }),
+          },
+        ],
+      });
+    });
+
+    when('execUpgrade is called', () => {
+      then(
+        'it prints NO second header — the sync owns the one render of the set',
+        async () => {
+          // the sync rendered each fault and the one header already; a reprint here is the
+          //   three-headers-on-two-streams defect this case clamps
+          const { logs } = await runUpgradeCaptured({});
+          expect(logs.some((line) => line.includes('hook sync error'))).toBe(
+            false,
+          );
+        },
+      );
+
+      then('the faults are CARRIED on the result, never dropped', async () => {
+        const { result } = await runUpgradeCaptured({});
+        expect(result.hookErrors).toHaveLength(2);
+        expect(result.hookErrors.map((e) => e.source)).toEqual([
+          'sync:ehmpathy/mechanic→claude-code',
+          'sync:actor=abc1234:ehmpathy/mechanic→claude-code',
+        ]);
+      });
+
+      then(
+        'the local upgrade STILL succeeds — a warn, never a throw',
+        async () => {
+          const { result } = await runUpgradeCaptured({});
+          expect(result.upgradedSelf.local).toBe(true);
+        },
+      );
     });
   });
 
@@ -749,17 +859,8 @@ describe('execUpgrade', () => {
   });
 
   given('global upgrade fails with permission error', () => {
-    // 🚨 the throw routes through `asNpmInstallFailureError` — the SAME transformer the
-    //   producer calls — never a hand-written error of the test's own.
-    //
-    //   the prior version of this block invented a message that held 'EACCES' and
-    //   asserted the consumer parsed it out. but `execNpmInstallGlobal` could never
-    //   emit that text, so the test verified a seam that did not exist: two green
-    //   suites, mocked on both sides, over a classifier that was dead in production.
-    //
-    //   a mock may stand in for a collaborator. it may not invent a contract the
-    //   collaborator cannot honor. to build the throw from the producer's own
-    //   transformer is what makes that impossible here rather than merely discouraged.
+    // the throw routes through `asNpmInstallFailureError`, the same transformer the
+    // producer calls
     beforeEach(() => {
       mockExecNpmInstallGlobal.mockImplementation(() => {
         throw asNpmInstallFailureError({
@@ -784,16 +885,10 @@ describe('execUpgrade', () => {
           expect(result.upgradedSelf.local).toBe(true);
 
           // global upgrade should report failure.
-          // .note = the class name prefixes the message because the error is a
-          //   HelpfulError, which is the same render the clone path already emits
-          //   (`💥 MalfunctionError: …`). it reads `ConstraintError` because a permission
-          //   wall is the CALLER's to fix — and that class is also what makes the process
-          //   exit 2 rather than 1 (rule.require.exit-code-semantics). the `✋` glyph is
-          //   the palette's own mark for a constraint, so the render says WHOSE problem
-          //   it is before a word of the sentence is read.
-          // .note = the SERIALIZED METADATA is deliberately absent: `execUpgrade` redacts
-          //   it, because `output` carries the package manager's whole captured log and
-          //   this field reaches a human
+          // .note = the class is `ConstraintError` because a permission wall is the
+          //   caller's to fix, which is also what sets the exit code to 2 rather than 1
+          // .note = the serialized metadata is absent — `execUpgrade` redacts it before
+          //   the message reaches a human
           expect(result.upgradedSelf.global).toEqual({
             upgraded: false,
             error:
@@ -816,15 +911,7 @@ describe('execUpgrade', () => {
       );
 
       then('the printed lines still NAME THE FIX', async () => {
-        // 🚨 THE CLAMP for the dropped hint, and the reason this then exists.
-        //   a prior shape printed the bare literal 'permission denied' on THIS branch
-        //   while the very next branch printed its own hint in full — so the one path
-        //   with an actionable cure was the one path that withheld it. the header
-        //   assertions above stayed green throughout, because they read only the header.
-        //
-        //   the mutation that reddens this: substitute a literal for `message` on the
-        //   permission branch. the snapshot goes red on the changed line, and the
-        //   explicit assertion names WHICH property was lost.
+        // the clamp: the permission branch prints `message` in full, not a bare literal
         const { logs } = await runUpgradeCaptured({ which: 'both' });
 
         const lines = asCalloutBlockFromLogs({
@@ -844,17 +931,8 @@ describe('execUpgrade', () => {
   });
 
   given('[case1p] a failure whose sentence TERMINATES ITSELF', () => {
-    // 🚨 THE CLAMP for doubled punctuation, and the reason this given exists.
-    //
-    //   `asUpgradeFailureMessage` joins a sentence to a hint, and both come from another
-    //   party — a `HelpfulError` raised anywhere in the tree. neither is forbidden its own
-    //   `.`/`?`/`!`, so a join that APPENDS a period renders `denied.. retry…` the moment
-    //   one arrives that already ends. every extant row here happens to use an
-    //   unterminated sentence, which is why the defect was invisible to a green suite.
-    //
-    //   the mutation that reddens this: restore the join to `${sentence}. ${hint}.`
-    //   both assertions below catch it — the `not.toContain` on the doubled mark, and
-    //   the positive on the single one.
+    // the clamp: a sentence and a hint are joined with `.` — if either already ends
+    // with its own terminator, an unconditional join doubles it (`denied.. retry…`)
     beforeEach(() => {
       mockExecNpmInstallGlobal.mockImplementation(() => {
         throw new ConstraintError(
@@ -894,14 +972,9 @@ describe('execUpgrade', () => {
   });
 
   given('global upgrade exits nonzero with no classified cause', () => {
-    // .why = THE CLAMP for the false-failure header. an exit the installer could not
-    //   place must not be reported as a confident "✗ failed" — that is the
-    //   opposite-direction twin of rule.forbid.failhide, and it sends a human to hunt
-    //   a defect that may not be there.
-    //
-    //   the mutation that reddens this: revert the header to the unconditional
-    //   '✗ rhachet upgrade globally failed'. the two negative assertions below each
-    //   catch that exact text.
+    // .why = an exit the installer could not classify must not be reported as a
+    //   confident "✗ failed" — that would send a human to hunt a defect that may not
+    //   be there
     beforeEach(() => {
       mockExecNpmInstallGlobal.mockImplementation(() => {
         throw asNpmInstallFailureError({
@@ -953,32 +1026,11 @@ describe('execUpgrade', () => {
   });
 
   given('global upgrade fails with EVERY cause the classifier CAN name', () => {
-    // 🚨 THE DRIFT CLAMP for the header, and the reason this block exists at all.
-    //
-    //   the header used to be a BINARY ternary — `permission-denied` on one side, each
-    //   other kind on the other — written when those were the only two members. when
-    //   `package-absent` and `timed-out` were added to the union they fell to the else,
-    //   so a human whose slug was typo'd read *"cause unclassified"* directly above a
-    //   sentence that named the registry 404. the cause was classified and then discarded
-    //   at the one line a human reads (`rule.forbid.failhide`).
-    //
-    //   ⚠️ this is the THIRD reader of this union to drift the same way — the first was
-    //   `asNpmInstallFailureKindFromError`'s hand-copied `||` chain. a fix that merely
-    //   added two arms would re-arm the trap for member six, so the cure tests the ONE
-    //   member that means "unknown" and this row proves it over the WHOLE union.
-    //
-    //   so this does NOT enumerate the kinds — it reads the same list the union is
-    //   derived from, minus the two that cannot reach this render:
-    //     - `unclassified`       is the one kind that SHOULD say unclassified (covered above)
-    //     - `build-gate-blocked` is not a failure, so it never reaches the catch at all
-    //
-    //   the mutation that reddens this: restore `kind === 'permission-denied'` as the
-    //   test in `asGlobalUpgradeFailureHeader`. every kind but that one goes red.
-    // .why = a type PREDICATE, never a bare filter — `Array.filter` does not narrow, and
-    //   `asNpmInstallFailureError` declares its input as
-    //   `Exclude<NpmInstallFailureKind, 'build-gate-blocked'>`. so the predicate makes the
-    //   exclusion type-level and the compiler holds this row to the producer's own
-    //   contract, rather than a cast that would let a future unreachable kind through
+    // .why = the header must never claim "unclassified" for a cause the classifier DID
+    //   name. this row walks every kind the union declares except `unclassified` and
+    //   `build-gate-blocked` (the latter is not a failure, so it never reaches this catch)
+    // .why = a type predicate keeps the exclusion type-level, so the compiler holds
+    //   this row to the producer's own contract
     const kindsNameable = NPM_INSTALL_FAILURE_KINDS.filter(
       (
         kind,
@@ -1027,30 +1079,17 @@ describe('execUpgrade', () => {
 
   given('global upgrade throws a value `String()` cannot render', () => {
     /**
-     * 🚨 THE CLAMP for the warn-and-continue contract itself, not merely for its text.
-     *
-     *   the render runs INSIDE the catch that exists to keep local unblocked
-     *   (`usecase.3`). a fault THERE does not degrade the report — it escapes the catch,
-     *   so `execUpgrade` throws, the human gets no failure report at all, AND the local
-     *   upgrade the catch was written to protect never runs. one render fault takes both.
-     *
-     *   the mutation that reddens this: revert `asUpgradeFailureMessage`'s last rung to a
-     *   bare `String(input.error)`.
-     *
-     * ⚠️ only the HOSTILE row reddens under that mutation, and the asymmetry is recorded
-     *   rather than papered over. `String(value)` carves symbols out and renders them, so
-     *   the symbol row passes either way — it clamps the metadata shape, never the fault.
-     *   this block was first authored under the belief that both rows bit, which is
-     *   exactly the kind of claim `rule.require.clamp-edge-cases` demands be dogfooded
-     *   instead of assumed. the premise now has its own measurement in
-     *   `asThrownValueText.test.ts`.
+     * .why = the render happens inside the catch that keeps the local upgrade unblocked
+     *   — a fault there must not escape the catch, or the local upgrade it protects
+     *   never runs. the hostile row (an object whose `toString` throws) clamps that
+     *   fault; the symbol row clamps the metadata shape
      */
     const casesUnrenderable = [
       {
         slug: 'an object whose own `toString` throws — the row with TEETH',
         thrown: {
           toString: () => {
-            throw new Error('i refuse to render');
+            throw new MalfunctionError('i refuse to render');
           },
         },
         expect: '[object Object]',
@@ -1093,8 +1132,7 @@ describe('execUpgrade', () => {
         then('local upgrade is still unblocked', async () => {
           const { result } = await runUpgradeCaptured({ which: 'both' });
 
-          // 🚨 the half a text-only assertion would miss. a render fault escapes the
-          //   catch, so this line never runs at all — the contract, not the copy
+          // a render fault would escape the catch, so this line would never run
           expect(result.upgradedSelf.local).toBe(true);
         });
       });

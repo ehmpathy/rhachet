@@ -271,6 +271,7 @@ const computeSubjectModePlan = async (input: {
         throw new ConstraintError(`subject not found: ${slug}`, {
           available: subjectSlugs,
           requested: input.subjects,
+          hint: `pass --subject with one of: ${subjectSlugs.join(', ')}`,
         });
       }
     }
@@ -297,6 +298,80 @@ const computeSubjectModePlan = async (input: {
 };
 
 /**
+ * .what = every `not` glob a spec declares for one resource kind, across every section
+ * .why = `not` excludes from the WHOLE payload, so one subject's exclusion must not be
+ *        undone by another subject's silence
+ */
+const getAllExclusionGlobs = (input: {
+  config: RoleBootSpec;
+  kind: 'briefs' | 'skills';
+}): string[] =>
+  getAllSpecSections({ config: input.config }).flatMap(
+    (section) => section?.[input.kind]?.not ?? [],
+  );
+
+/**
+ * .what = every section of a spec that may declare resources — the spec itself in simple mode,
+ *         or `always` plus each subject in subject mode
+ * .why = the two modes nest their `briefs` / `skills` keys at different depths, and a walk
+ *        over "every section" should not restate that split at each call site
+ */
+const getAllSpecSections = (input: {
+  config: RoleBootSpec;
+}): Array<Partial<
+  Record<'briefs' | 'skills', { not?: string[] } | null>
+> | null> =>
+  input.config.mode === 'simple'
+    ? [input.config]
+    : [input.config.always, ...Object.values(input.config.subjects)];
+
+/**
+ * .what = drops every resource a `not` glob claims, before the say/ref partition
+ * .why = an exclusion subtracts from the universe rather than sorts within it, so an
+ *        excluded resource is unreachable by say, ref, and `<also>` alike — `<also>`
+ *        especially, since no say/ref glob governs it
+ */
+const getUniverseLessExclusions = async (input: {
+  config: RoleBootSpec;
+  briefRefs: RoleBriefRef[];
+  skillPaths: string[];
+  cwd: string;
+}): Promise<{ briefRefs: RoleBriefRef[]; skillPaths: string[] }> => {
+  const globs = {
+    briefs: getAllExclusionGlobs({ config: input.config, kind: 'briefs' }),
+    skills: getAllExclusionGlobs({ config: input.config, kind: 'skills' }),
+  };
+
+  // the common case excludes naught, so it costs no glob expansion
+  if (!globs.briefs.length && !globs.skills.length)
+    return { briefRefs: input.briefRefs, skillPaths: input.skillPaths };
+
+  const dropBriefs = new Set(
+    (
+      await filterByGlob({
+        items: input.briefRefs,
+        globs: globs.briefs,
+        cwd: input.cwd,
+        getMatchPath: (ref) => ref.pathToOriginal,
+      })
+    ).map((r) => r.pathToOriginal),
+  );
+  const dropSkills = new Set(
+    await filterByGlob({
+      items: input.skillPaths,
+      globs: globs.skills,
+      cwd: input.cwd,
+      getMatchPath: (path) => path,
+    }),
+  );
+
+  return {
+    briefRefs: input.briefRefs.filter((r) => !dropBriefs.has(r.pathToOriginal)),
+    skillPaths: input.skillPaths.filter((p) => !dropSkills.has(p)),
+  };
+};
+
+/**
  * .what = computes which resources to say vs ref
  * .why = centralizes the say/ref decision logic
  *
@@ -318,11 +393,18 @@ export const computeBootPlan = async (input: {
     };
   }
 
+  const universe = await getUniverseLessExclusions({
+    config: input.config,
+    briefRefs: input.briefRefs,
+    skillPaths: input.skillPaths,
+    cwd: input.cwd,
+  });
+
   if (input.config.mode === 'simple') {
     return computeSimpleModePlan({
       config: input.config,
-      briefRefs: input.briefRefs,
-      skillPaths: input.skillPaths,
+      briefRefs: universe.briefRefs,
+      skillPaths: universe.skillPaths,
       cwd: input.cwd,
     });
   }
@@ -330,8 +412,8 @@ export const computeBootPlan = async (input: {
   // subject mode
   return computeSubjectModePlan({
     config: input.config,
-    briefRefs: input.briefRefs,
-    skillPaths: input.skillPaths,
+    briefRefs: universe.briefRefs,
+    skillPaths: universe.skillPaths,
     cwd: input.cwd,
     subjects: input.subjects,
   });

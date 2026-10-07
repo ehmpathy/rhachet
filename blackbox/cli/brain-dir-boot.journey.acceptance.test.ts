@@ -842,6 +842,17 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         ).toMatchSnapshot();
       });
 
+      // the [t3] actor enrolled shaper alone, so the waxer hook the repo root carries is
+      //   foreign to it: its clones read this brain dir at user scope, where a foreign hook
+      //   would fire inside them. the actor row above reads a bare hash for this reason
+      then('the [t3] actor carries no hook of a role it did not enroll', () => {
+        const settingsPath = join(t3.brainDir, 'settings.json');
+        const settings = existsSync(settingsPath)
+          ? readFileSync(settingsPath, 'utf-8')
+          : '';
+        expect(settings).not.toContain('echo adhoc-waxer');
+      });
+
       // the /compact of the [t3] clone and the spawn of a fresh shaper clone share no state
       //   past the init, so both brain waits run at once
       const compactThenAsk = async () => {

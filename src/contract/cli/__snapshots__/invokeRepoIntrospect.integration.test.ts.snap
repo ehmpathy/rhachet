@@ -10,6 +10,7 @@ roles:
       dirs: src/roles/mechanic/briefs
     skills:
       dirs: src/roles/mechanic/skills
+    boot: src/roles/mechanic/boot.yml
 "
 `;
 
@@ -28,6 +29,7 @@ roles:
       dirs: src/roles/mechanic/briefs
     skills:
       dirs: src/roles/mechanic/skills
+    boot: src/roles/mechanic/boot.yml
 "
 `;
 

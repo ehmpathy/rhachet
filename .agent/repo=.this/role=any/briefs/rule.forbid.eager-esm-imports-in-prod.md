@@ -105,8 +105,22 @@ the shared `getOneLazyEsmModuleLoader` guarantees (so callers do not re-implemen
 
 ## .how to detect
 
+🔴 **the verdict for one package is entooled — do not re-derive it by hand:**
+
+```sh
+rhx get.package.format --package js-tiktoken     # → dual      (a static import is SAFE)
+rhx get.package.format --package age-encryption  # → esm-only  (lazy-load it)
+```
+
+it reads the manifest that this tree actually installed, reports the `type` / `main` /
+`exports['.'].require` fields the table below turns on, and runs a real `require()` beside them.
+
+⚠️ **it reports the probe and the verdict separately, because they disagree** — see the
+false-pass note below, which this skill exists to keep an author clear of.
+
 - **audit source**: grep `src/**/*.ts` for a top-level `import ... from '<pkg>'` where
-  `node_modules/<pkg>/package.json` has `"type": "module"` and no commonjs entry.
+  `node_modules/<pkg>/package.json` has `"type": "module"` and no commonjs entry, then run
+  `get.package.format` on each hit rather than read the `type` field alone.
 - **the honest witness is the BUILT dist, not the source** — `@swc/jest` may keep `import()` native
   and mask the defect; only the tsc `dist/` under a real-node CJS `require()` reproduces it. clamp
   with a `.realnode.acceptance.test.ts` that `require()`s the built module under CJS.
@@ -133,6 +147,15 @@ condition, or a `.cjs` main) is dual-published and require()s cleanly — NOT a 
 | `@octokit/auth-app` | yes | no | **lazy-load** (fixed — second landmine, same keyrack graph) |
 | `@noble/curves`, `@noble/hashes`, `@scure/base` | yes | no | **lazy-load** (fixed — third landmine, ssh-crypto files in the keyrack graph via the vault adapters) |
 | `zod` | yes | yes (`require` condition + `.cjs` main) | eager import OK (dual-published, require()s cleanly) |
+| `js-tiktoken` | yes | yes (`require` condition + `.cjs` main) | eager import OK (dual-published — measured 2026-09-19 via `rhx get.package.format`) |
+
+🔴 **a `type: module` package is NOT a landmine by that field alone**, and `zod` and `js-tiktoken`
+are the proof. the field names the format of the package's **own** `.js` files; the
+`require` condition names what a **consumer** gets. ⇒ read the second, never the first.
+
+⚠️ **and a bare `require()` probe cannot settle it either** — node 22.12+ loads a synchronous esm
+graph through `require()`, so `age-encryption`, a real landmine, probes green on node v24.
+measured 2026-09-19.
 
 ## .scope
 

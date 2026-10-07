@@ -1,0 +1,10 @@
+# .agent/repo=.this/role=bundler/boot.yml
+#
+# the opt-in: a .this role boots into the brain dirs only where it holds a boot.yml.
+#
+# one research brief, needed rarely; its roster line is the whole advertisement it needs.
+budget:
+  tokens: 500
+
+briefs:
+  say: []

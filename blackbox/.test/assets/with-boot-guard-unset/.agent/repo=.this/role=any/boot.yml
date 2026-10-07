@@ -1,0 +1,4 @@
+# a repo's own role, with a payload and no budget — the shape a repo grows into unwatched
+briefs:
+  say:
+    - briefs/**/*.md

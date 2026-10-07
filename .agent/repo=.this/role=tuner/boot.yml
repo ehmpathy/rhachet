@@ -1,0 +1,12 @@
+# .agent/repo=.this/role=tuner/boot.yml
+#
+# the opt-in: a .this role boots into the brain dirs only where it holds a boot.yml.
+#
+# the latency targets matter whenever a change touches the dispatcher or the import graph, so the
+# index (each target, one line) is resident; the measurements ride at ref. unmatched briefs become refs.
+budget:
+  tokens: 1_000
+
+briefs:
+  say:
+    - briefs/catalog.of=perf._.md

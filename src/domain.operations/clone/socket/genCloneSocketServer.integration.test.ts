@@ -12,6 +12,7 @@ import { getUuid } from 'uuid-fns';
 
 import { realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
+import { relative } from 'node:path';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
 import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
@@ -701,16 +702,15 @@ describe('genCloneSocketServer.integration', () => {
     //   `chmodSync` on that path faults `ENOENT` with a structured `syscall` — a bind that
     //   succeeded and a lockdown that then failed, which is exactly this row's subject.
     const scene = useBeforeAll(async () => {
-      // ⚠️ the PHYSICAL temp path, never the in-repo symlink. the two differ by ~50 bytes
-      //   here, and which side of the cap the TRUNCATION lands on is the whole fixture: the
-      //   physical base is short enough that the truncated address stays INSIDE this managed
-      //   dir, so node's own `close()` reaps it and the row litters no file. the symlink base
-      //   would truncate mid-name into a dir that does not exist, which faults at `bind`
-      //   instead — a different row's subject
-      // ⚠️ a TERSE slug, and that is load-bearing rather than style. the base must fit under
-      //   the cap for the truncation to stay inside it, and every slug byte eats that margin
-      //   — a 21-byte slug measured 109 bytes here and tripped the guard below
-      const base = realpathSync(genTempDir({ slug: 'lock' }));
+      // ⚠️ a CWD-RELATIVE path to the managed dir, never an absolute one. which side of the
+      //   cap the TRUNCATION lands on is the whole fixture: the base must be short enough
+      //   that the truncated address stays INSIDE this managed dir, so the row litters no
+      //   file. an absolute base embeds the host's repo dirname (`/tmp/test-fns/<repo>/…`),
+      //   so a long worktree name pushed it to 111 bytes and broke the premise on that host.
+      //   `sun_path` holds the relative string as given, so the relative form fixes the base
+      //   length at ~72 bytes on every host, whatever the repo is named
+      // ⚠️ a TERSE slug, and that matters: every slug byte eats the margin under the cap
+      const base = relative(process.cwd(), genTempDir({ slug: 'lock' }));
       const socketPath = `${base}/clone.${getUuid()}.sock`;
 
       // 🚨 both bounds asserted, never assumed. a host whose temp base is long enough to

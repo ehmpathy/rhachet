@@ -189,8 +189,8 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 6fdfcc44: +1
-   └─ fddbc072: +1
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;
@@ -213,9 +213,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 15cc47ca: ~1
-   ├─ 6fdfcc44: ~1
-   └─ fddbc072: ~1
+   ├─ 15cc47ca
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;
@@ -245,9 +245,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 15cc47ca: +1
-   ├─ 6fdfcc44: ~1
-   └─ fddbc072: ~1
+   ├─ 15cc47ca
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;

@@ -97,11 +97,11 @@ runs:
               GRANTED_SLUGS=$(echo "$GRANTED_SLUGS" | jq --arg k "$key" '. + [$k]')
             else
               MESSAGE=$(jq -r '.message // "unknown error"' /tmp/keyrack-grant-${key}.json)
-              echo "   │   └── ⛈️ $STATUS: $MESSAGE"
+              echo "   │   └── ✋ $STATUS: $MESSAGE"
               FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$key" --arg m "$MESSAGE" '. + [{slug: $k, reason: $m}]')
             fi
           else
-            echo "   │   └── ⛈️ command failed"
+            echo "   │   └── 💥 command failed"
             FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$key" '. + [{slug: $k, reason: "command failed"}]')
           fi
         }
@@ -132,12 +132,12 @@ runs:
               else
                 SLUG=$(echo "$attempt" | jq -r '.slug')
                 MESSAGE=$(echo "$attempt" | jq -r '.message // "unknown error"')
-                echo "   ├── ⛈️ $SLUG: $MESSAGE"
+                echo "   ├── ✋ $SLUG: $MESSAGE"
                 FAILED_SLUGS=$(echo "$FAILED_SLUGS" | jq --arg k "$SLUG" --arg m "$MESSAGE" '. + [{slug: $k, reason: $m}]')
               fi
             done <<< "$ATTEMPTS"
           else
-            echo "   └── ⛈️ command failed"
+            echo "   └── 💥 command failed"
             exit 1
           fi
         else

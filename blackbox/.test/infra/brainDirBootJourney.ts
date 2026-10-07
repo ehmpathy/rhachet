@@ -109,7 +109,12 @@ export const setupBrainDirBootFixtureRepo = (input: {
   });
   spawnSync('git', ['config', 'user.name', 'Journey Human'], { cwd: input.dir });
 
-  // the native roles
+  // the native roles, each opted into the boot by a boot.yml with no payload (all briefs say)
+  for (const role of ['shaper', 'glasser', 'sander'])
+    writeFileDeep({
+      path: join(input.dir, '.agent', 'repo=.this', `role=${role}`, 'boot.yml'),
+      content: '# boot every brief of this role\n',
+    });
   for (const role of ['shaper', 'glasser', 'sander'])
     for (const brief of asRoleBriefs({ role, nonce: input.nonce }))
       writeFileDeep({

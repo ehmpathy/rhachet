@@ -1,0 +1,14 @@
+budget:
+  tokens: 400
+always:
+  briefs:
+    say:
+      - briefs/shared.md
+subject.review:
+  briefs:
+    say:
+      - briefs/review.md
+subject.fulcrums:
+  briefs:
+    say:
+      - briefs/fulcrums.md

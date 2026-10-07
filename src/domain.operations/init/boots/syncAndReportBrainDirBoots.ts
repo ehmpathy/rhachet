@@ -6,9 +6,12 @@ import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainD
 import { asBrainDirSyncReportLines } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
+import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
 
 import { relative } from 'node:path';
+import { asBootGuardReportLines } from './asBootGuardReportLines';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
+import { findsertRepoThisRoleAnyBootGuard } from './findsertRepoThisRoleAnyBootGuard';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
 /**
@@ -49,6 +52,18 @@ export const syncAndReportBrainDirBoots = async (
     env: input.env,
     onAbsent: 'permit',
   });
+
+  // findsert the repo's own boot guards BEFORE the render, so the render reads the budget.
+  //   one treestruct, printed only where a guard was created
+  const guard = findsertRepoThisRoleAnyBootGuard({ repoPath: input.repoPath });
+  const linesGuard = asBootGuardReportLines({ guard });
+  if (linesGuard.length > 0) {
+    console.log('🧢 .agent/repo=.this/role=any');
+    asTreeBranchLines({ rows: linesGuard, indent: '   ' }).forEach((line) =>
+      console.log(line),
+    );
+    console.log('');
+  }
 
   const { renders, failures, symlink } = await syncBootsForBrainDirs(
     { repoPath: input.repoPath },

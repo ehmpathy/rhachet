@@ -60,6 +60,8 @@ exports[`rhachet upgrade given: [case11] --roles ehmpathy/* with linked role whe
 "│ ✨ permissions applied:
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
+✨ hooks
+   └─ 14 created
 ✨ 1 role(s) upgraded: ehmpathy/*"
 `;
 
@@ -78,6 +80,8 @@ exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked r
 "│ ✨ permissions applied:
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
+✨ hooks
+   └─ 14 created
 ✨ 1 role(s) upgraded: ehmpathy/mechanic"
 `;
 
@@ -120,4 +124,36 @@ exports[`rhachet upgrade given: [case16] local install dies by signal (unclassif
 [args] upgrade,--self,--which,local
 
 "
+`;
+
+exports[`rhachet upgrade given: [case17] a linked role whose brain adapter refuses every hook write when: [t0] rhachet upgrade --roles test/tester --which local then: stdout.header matches snapshot 1`] = `
+"🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ ✗ test/tester → anthropic/claude/code: Error: adapter refused the hook write
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+
+hint: hooks did not land — fix the hook sync faults above, then rerun \`rhx upgrade\`"
 `;

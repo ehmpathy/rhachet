@@ -64,10 +64,41 @@ cluster claims nothing more.
 
 ## .disputes
 
-none raised. the split was applied consistently in every contract that qualifies it
-(`daoKeyrackHostManifest`, `daoKeyrackRepoManifest`, `getOneKeyrackRepoManifestForAsk`,
-`hydrateKeyrackRepoManifest`, `initKeyrackRepoManifest`); this cluster records the rule those
-names already follow, and names the two fields that do not. a dispute would be filed here.
+### dispute: a bare `manifest`, as the `roles boot` flag — raised 2026-09-18 — status: 🔴 **RESOLVED (a bare `manifest` stands, bounded)**
+
+- raised.by  = the owner of `.behavior/v2026_09_17.feat-boot-manifest-and-budget` (seed
+  `S1-the-flag-is-manifest`, fulcrum `F3-the-flag-name`)
+- claim      = the flag is `--manifest`. `roles boot` takes one path and admits no second kind of
+  manifest, so at the point of use the qualifier adds a word and no sense
+- counter    = this cluster's whole rule, and it is not weak. **five** declared objects already
+  wear the word, and `rhachet roles link --manifest` would be genuinely ambiguous the day that
+  flag exists. the adherent form costs exactly one word (`--boot-manifest`)
+- resolution = 🔴 **the flag is `--manifest`.** `rule.forbid.domain-term-synonyms` offers two
+  legitimate moves — adhere, or dispute with a record. this entry IS that record, so the flag is a
+  **sanctioned exception** rather than a synonym that accreted
+
+#### ⚠️ the bound — what the exception covers, and what it does NOT
+
+the exception is **not** a licence to spell the word bare anywhere. it reaches exactly two sites,
+and the second rides the first:
+
+| site | shape | why it is inside the bound |
+|---|---|---|
+| the **cli flag** | `--manifest <path>` on `roles boot` | the dispute above |
+| the **discriminant key** that mirrors it | `from: PickOne<{ role; manifest; registryRole }>` (`getOneBootSource.ts:78-82`) | 🔴 a discriminant that diverges from the flag it decodes re-introduces the decode the flag removed — a reader who greps `--manifest` must land on `from.manifest` |
+
+**every other contract in the feature keeps its qualifier**, and that is the check a reviewer runs:
+`RoleBootSpec`, `getOneBootSourceForSpecPath`, `assertRepoBootSpecsWithinBudget`,
+`isBootSpecForeign`, `calcBootPayloadTokens` — none spells `manifest` bare, and the domain noun
+they share is **`bootSpec`**, never `manifest`.
+
+⇒ 🟡 **the residual hazard is real and accepted, not argued away.** the day a second `--manifest`
+flag is proposed on any other `rhachet` verb, this entry is the record that says the first one was
+granted deliberately and the second owes its own dispute.
+
+🟡 **adhere and dispute are equally legitimate.** adherence tempts because it needs no
+permission; where the wish itself spells the bare word as the contract, that word is the stronger
+signal, and the dispute is the move owed.
 
 ## .evidence
 

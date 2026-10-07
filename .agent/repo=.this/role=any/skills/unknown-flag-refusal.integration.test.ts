@@ -47,6 +47,52 @@ const FORWARDS = /#\s*forwarded:/;
 const DISPATCH_FLAGS = ['--repo', '--role', '--skill'];
 
 /**
+ * .what = the names of the shell functions in a source whose LAST statement is a non-zero exit
+ * .why = a skill that renders its refusals through one shared function (`belay message=… hint=…`)
+ *   refuses as surely as one that spells `exit 2` inline. the clamp reads that function's own
+ *   body, so the arm earns its `refused` fate from code, never from a name that merely sounds
+ *   final
+ *
+ * .note = LAST statement only. a function that exits on one branch and returns on another is
+ *   not a refusal, and an `exit` buried mid-body proves naught about the call that reaches its end
+ */
+const getAllRefuserNames = (input: { source: string }): string[] => {
+  const lines = input.source.split('\n');
+  const names: string[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const head = /^([A-Za-z_][\w.]*)\(\)\s*\{\s*$/.exec(lines[i]!);
+    if (!head) continue;
+
+    // the body runs to the first column-zero `}` — a refuser here is flat, never nested
+    const closeIndex = lines.findIndex(
+      (line, index) => index > i && line === '}',
+    );
+    if (closeIndex === -1) continue;
+
+    const lastStatement = lines
+      .slice(i + 1, closeIndex)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'))
+      .at(-1);
+    if (lastStatement && REFUSES.test(lastStatement)) names.push(head[1]!);
+  }
+
+  return names;
+};
+
+/**
+ * .what = whether a default arm refuses — an inline non-zero exit, or a call to a refuser
+ */
+const isArmRefusal = (input: { body: string; refusers: string[] }): boolean =>
+  REFUSES.test(input.body) ||
+  input.refusers.some((name) =>
+    new RegExp(`(^|[\\s;])${name.replace(/\./g, '\\.')}(\\s|$)`, 'm').test(
+      input.body,
+    ),
+  );
+
+/**
  * .what = reads a shell source's argv boundary — its default arms, and the flags it declares
  * .why = the invariant's subject is the fate of a flag token, and that fate is decided in
  *   exactly one place: the case inside the argv loop. both halves are read from that one
@@ -54,9 +100,13 @@ const DISPATCH_FLAGS = ['--repo', '--role', '--skill'];
  */
 const getArgvBoundary = (input: {
   source: string;
-}): { arms: { line: number; body: string }[]; declared: string[] } => {
+}): {
+  arms: { line: number; body: string; refuses: boolean }[];
+  declared: string[];
+} => {
   const lines = input.source.split('\n');
-  const arms: { line: number; body: string }[] = [];
+  const refusers = getAllRefuserNames({ source: input.source });
+  const arms: { line: number; body: string; refuses: boolean }[] = [];
   const declared: string[] = [];
 
   // walk to each argv loop, then read its default arm. bounded by the loop's own `done`
@@ -89,7 +139,12 @@ const getArgvBoundary = (input: {
       )
         bodyLines.push(lines[k]!);
 
-      arms.push({ line: j + 1, body: bodyLines.join('\n') });
+      const body = bodyLines.join('\n');
+      arms.push({
+        line: j + 1,
+        body,
+        refuses: isArmRefusal({ body, refusers }),
+      });
     }
 
     i = loopEnd;
@@ -111,6 +166,30 @@ describe('unknown-flag-refusal', () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
+    then('a refuser is credited only when its last statement exits non-zero', () => {
+      // the clamp's own teeth: a function that may return must never earn a `refused` arm
+      const asSource = (lastLine: string) =>
+        [
+          'belay() {',
+          '  echo "nope" >&2',
+          `  ${lastLine}`,
+          '}',
+          'while [[ $# -gt 0 ]]; do',
+          '  case $1 in',
+          '    *)',
+          '      belay message="x"',
+          '      ;;',
+          '  esac',
+          'done',
+        ].join('\n');
+
+      const exits = getArgvBoundary({ source: asSource('exit 2') });
+      const returns = getArgvBoundary({ source: asSource('return 0') });
+
+      expect(exits.arms.map((arm) => arm.refuses)).toEqual([true]);
+      expect(returns.arms.map((arm) => arm.refuses)).toEqual([false]);
+    });
+
     when('[t0] each argv boundary is read', () => {
       const boundaries = paths.map((path) => ({
         path,
@@ -128,7 +207,7 @@ describe('unknown-flag-refusal', () => {
 
       then('no default arm drops the flag token in silence', () => {
         const dropped = arms
-          .filter((arm) => !REFUSES.test(arm.body) && !FORWARDS.test(arm.body))
+          .filter((arm) => !arm.refuses && !FORWARDS.test(arm.body))
           .map((arm) => `${arm.path}:${arm.line}`);
 
         expect(dropped).toEqual([]);
@@ -136,7 +215,7 @@ describe('unknown-flag-refusal', () => {
 
       then('every skill that refuses declares the dispatcher flags it is handed', () => {
         const unreachable = boundaries
-          .filter((boundary) => boundary.arms.some((arm) => REFUSES.test(arm.body)))
+          .filter((boundary) => boundary.arms.some((arm) => arm.refuses))
           .flatMap((boundary) =>
             DISPATCH_FLAGS.filter(
               (flag) => !boundary.declared.includes(flag),

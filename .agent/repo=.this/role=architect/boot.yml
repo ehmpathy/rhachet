@@ -1,0 +1,12 @@
+# .agent/repo=.this/role=architect/boot.yml
+#
+# the opt-in: a .this role boots into the brain dirs only where it holds a boot.yml.
+#
+# the vocabulary every design here is argued in, so its index is resident; each term's brief is
+# read when that term enters a design. unmatched briefs become refs.
+budget:
+  tokens: 1_500
+
+briefs:
+  say:
+    - briefs/catalog.of=architecture-terms._.md

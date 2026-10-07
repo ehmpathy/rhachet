@@ -1,0 +1,46 @@
+# .what = the route-scoped boot this whole behavior was written for
+# .why  = the payload that motivated the wish was a hand-written SessionStart hook that
+#         injected a doc set and measured ~46% of a session's context. this is that
+#         capability, declared rather than bespoke — and capped.
+#
+# .note = it is the vision's own "day in the life" file, and the shape it settled on is the
+#   OUTPUT of the authorship loop rather than a first draft. the first draft said
+#   `say: [0.wish.md, 1.vision.yield.md]` at a 15,000 budget, and the boot refused it at
+#   37,667. what follows is the three remedies the halt named, taken in order.
+
+budget:
+  tokens: 15_000
+
+always:
+  briefs:
+    # 🔴 `not` first — it is subtracted from the universe BEFORE the say/ref partition, so
+    #   an excluded file is never said, reffed, OR swept into `<also>`.
+    #
+    #   ⚠️ this is the line the dogfood earned. a route dir accretes review artifacts without
+    #   bound — takens, givens, self-reviews, stones, guards — and every one of them landed in
+    #   `<also>` as a path line. measured at 13,760 tokens, 36.5% of the payload, for a set no
+    #   reader of this route ever dereferences. the say entries were never the problem.
+    not:
+      - 'review/**'
+      - '.reviews/**'
+      - '.route/**'
+      - '.bind/**'
+      - 'dreams/**'
+      - '*.stone'
+      - '*.guard'
+      - '*.stamp'
+      - '*.flag'
+      - 'refs/**'
+
+    # resident — the wish alone. it is the one doc whose absence changes what gets built
+    say:
+      - '0.wish.md'
+
+    # 🔴 `1.vision.yield.md` sits here rather than in `say`, and that is the `reference`
+    #   remedy the halt recommended. measured at 19,795 tokens — 52.6% of the payload, and
+    #   more than the budget entire. it stays addressable at the cost of one path line.
+    ref:
+      - '1.vision.yield.md'
+      - '1.vision.experience.*.md'
+      - '.fulcrums/*.md'
+      - '.seeds/*.md'

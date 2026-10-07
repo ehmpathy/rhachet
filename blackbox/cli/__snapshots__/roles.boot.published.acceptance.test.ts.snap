@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet with published packages given: [case1] repo with published rhachet + rhachet-roles-ehmpathy via pnpm when: [t1] roles boot --repo ehmpathy --role mechanic then: the rendered SHAPE matches its snapshot: skeleton 1`] = `
+"<stats>
+quant
+  ├── files = N
+  │   ├── briefs = N
+  │   │   ├── say = N
+  │   │   └── ref = N
+  │   └── skills = N
+  │       ├── say = N
+  │       └── ref = N
+  ├── chars = N
+  └── tokens ≈ N / unlimited budget ($N at $N/mil)
+</stats>
+<readme>
+<brief.say>
+<skill.say>
+<also>
+  <briefs.ref>
+  <skills.ref>
+<stats>
+quant
+  ├── files = N
+  │   ├── briefs = N
+  │   │   ├── say = N
+  │   │   └── ref = N
+  │   └── skills = N
+  │       ├── say = N
+  │       └── ref = N
+  ├── chars = N
+  └── tokens ≈ N / unlimited budget ($N at $N/mil)
+</stats>"
+`;

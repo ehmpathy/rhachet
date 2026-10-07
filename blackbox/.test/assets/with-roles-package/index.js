@@ -25,7 +25,10 @@ const registry = {
         onBrain: {
           onBoot: [
             {
-              command: './node_modules/.bin/rhachet roles boot --role mechanic',
+              // a `--manifest` boot, never `--role`: a role that boots itself from a hook is
+              // refused at publish, since boot.md already renders it
+              command:
+                './node_modules/.bin/rhachet roles boot --manifest .behavior/boot.yml',
               timeout: 'PT60S',
             },
           ],

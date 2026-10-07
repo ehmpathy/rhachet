@@ -55,7 +55,7 @@ runs:
 
         # failfast if version not found
         if [ -z "$VERSION" ]; then
-          echo "   └── ⛈️ could not extract version from: $COMMIT_MSG"
+          echo "   └── 💥 could not extract version from: $COMMIT_MSG"
           echo "::error::could not extract version from commit message: $COMMIT_MSG"
           exit 1
         fi
@@ -65,7 +65,7 @@ runs:
 
         # failfast if release pr not found
         if [ -z "$PR_NUMBER" ]; then
-          echo "   └── ⛈️ could not find merged release pr for: $VERSION"
+          echo "   └── 💥 could not find merged release pr for: $VERSION"
           echo "::error::could not find merged release pr for version: $VERSION"
           exit 1
         fi
@@ -289,7 +289,7 @@ runs:
 
         # failfast if package.json doesnt exist
         if [ ! -f package.json ]; then
-          echo "   └── ⛈️ package.json not found"
+          echo "   └── ✋ package.json not found"
           echo "::error::package.json not found"
           exit 1
         fi
@@ -382,7 +382,7 @@ runs:
               if echo "$DELETE_OUTPUT" | grep -q "Reference does not exist"; then
                 echo "   ├── branch already deleted: $FOUND_PR_BRANCH"
               else
-                echo "   ├── ⛈️ failed to delete branch: $FOUND_PR_BRANCH"
+                echo "   ├── 💥 failed to delete branch: $FOUND_PR_BRANCH"
                 echo "$DELETE_OUTPUT"
                 exit 1
               fi
