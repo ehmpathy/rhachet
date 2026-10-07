@@ -1,0 +1,5 @@
+budget:
+  tokens: 20
+briefs:
+  say:
+    - briefs/**/*.md

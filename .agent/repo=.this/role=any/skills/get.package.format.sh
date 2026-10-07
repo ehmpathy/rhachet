@@ -153,4 +153,12 @@ if [ "$PACKAGE_COUNT" -eq 0 ]; then
   belay message="--package is required" hint="rhx get.package.format --package js-tiktoken"
 fi
 
-exec npx tsx "$SCRIPT_DIR/get.package.format.ts" "${ARGS_ORIGINAL[@]}"
+# run this repo's own pinned tsx — `npx tsx` resolves from the cwd, so a cwd outside
+#   this repo downloads tsx and prints the fetch to stderr
+TSX_BIN="$SCRIPT_DIR/../../../../node_modules/.bin/tsx"
+if [ ! -x "$TSX_BIN" ]; then
+  echo "💥 MalfunctionError: tsx is not installed in this repo" >&2
+  echo "   └─ hint: pnpm install" >&2
+  exit 1
+fi
+exec "$TSX_BIN" "$SCRIPT_DIR/get.package.format.ts" "${ARGS_ORIGINAL[@]}"

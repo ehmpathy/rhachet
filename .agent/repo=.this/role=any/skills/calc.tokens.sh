@@ -195,4 +195,12 @@ if [[ -n "$TOP" && ! "$TOP" =~ ^[0-9]+$ ]]; then
 fi
 
 # run the typescript implementation
-exec npx tsx "$SCRIPT_DIR/calc.tokens.ts" "${ORIGINAL_ARGS[@]}"
+# via this repo's own pinned tsx — `npx tsx` resolves from the cwd, so a cwd outside
+#   this repo downloads tsx and prints the fetch to stderr
+TSX_BIN="$SCRIPT_DIR/../../../../node_modules/.bin/tsx"
+if [ ! -x "$TSX_BIN" ]; then
+  echo "💥 MalfunctionError: tsx is not installed in this repo" >&2
+  echo "   └─ hint: pnpm install" >&2
+  exit 1
+fi
+exec "$TSX_BIN" "$SCRIPT_DIR/calc.tokens.ts" "${ORIGINAL_ARGS[@]}"
