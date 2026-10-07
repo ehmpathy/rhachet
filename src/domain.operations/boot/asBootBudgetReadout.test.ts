@@ -33,13 +33,16 @@ describe('asBootBudgetReadout', () => {
           expect(new Set(columns).size).toEqual(1);
         });
 
-        then('each rung is exactly one line, and eliminate ends the ladder', () => {
-          // a rung's gloss fits on its own row; a continuation line beneath the last rung
-          // reads as a second gloss for eliminate
-          expect(lines.length).toEqual(strategies.length);
-          expect(lines[lines.length - 1]).toContain('eliminate');
-          expect(lines[lines.length - 1]).toContain('`not`');
-        });
+        then(
+          'each rung is exactly one line, and eliminate ends the ladder',
+          () => {
+            // a rung's gloss fits on its own row; a continuation line beneath the last rung
+            // reads as a second gloss for eliminate
+            expect(lines.length).toEqual(strategies.length);
+            expect(lines[lines.length - 1]).toContain('eliminate');
+            expect(lines[lines.length - 1]).toContain('`not`');
+          },
+        );
 
         then('the last rung closes the tree, and no other rung does', () => {
           // the elbow is computed per index; only the final rung carries `└─`
