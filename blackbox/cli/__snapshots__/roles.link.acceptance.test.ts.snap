@@ -33,6 +33,12 @@ exports[`rhachet roles link given: [case2] minimal repo (empty registries) when:
 "
 ✋ ConstraintError: No registries found in rhachet.use.ts
 
+{
+  "hint": "declare at least one registry in rhachet.use.ts, or delete the file to fall back to package discovery",
+  "from": "rhachet.use.ts",
+  "why": "the config was imported and read, and it declared no registry to boot a role from"
+}
+
 [args] roles,link,--role,nonexistent
 
 "

@@ -1,8 +1,10 @@
 import type { Command } from 'commander';
-import { ConstraintError, UnexpectedCodePathError } from 'helpful-errors';
 
 import { bootRoleResources } from '@src/domain.operations/invoke/bootRoleResources';
-import { findUniqueRoleDir } from '@src/domain.operations/invoke/findUniqueRoleDir';
+
+import { asSubjectFlagValues } from './asSubjectFlagValues';
+import { getAllSubjectSlugs } from './getAllSubjectSlugs';
+import { getOneBootSourceRequest } from './getOneBootSourceRequest';
 
 /**
  * .what = adds the "roles boot" subcommand to the CLI
@@ -15,57 +17,39 @@ export const invokeRolesBoot = ({ command }: { command: Command }): void => {
     .description('boot context from role resources (briefs and skills)')
     .option('--repo <slug>', 'the repository slug for the role')
     .option('--role <slug>', 'the role to boot resources for')
+    // 🔴 .note = TWO flags, one option. commander reads the LAST as the long form, so `--what`
+    //   is primary and `opts.what` is the key; `--manifest` is a live alias of the same path
     .option(
-      '--if-present',
-      'exit silently if role directory does not exist (no error)',
+      '--manifest, --what <path>',
+      'boot from a declared boot.yml instead of a role default',
     )
+    .option('--if-present', 'exit silently where the role dir is absent')
     .option(
       '--subject <slugs>',
-      'boot specific subjects (comma-separated, subject mode only)',
+      'boot specific subjects (comma-separated or repeated, subject mode only)',
+      asSubjectFlagValues,
     )
     .action(
       async (opts: {
         repo?: string;
         role?: string;
+        what?: string;
         ifPresent?: boolean;
-        subject?: string;
+        subject?: string[];
       }) => {
-        // require --role for all cases
-        if (!opts.role)
-          ConstraintError.throw('--role is required (e.g., --role mechanic)');
+        const subjects = getAllSubjectSlugs({ raw: opts.subject });
 
-        // discover role dir from .agent/
-        const roleDir = findUniqueRoleDir({
-          slugRepo: opts.repo,
-          slugRole: opts.role,
-          ifPresent: opts.ifPresent,
-        });
+        // one owner for the whole flag contract — `roles cost` calls the same resolver, so
+        // neither command can drift from the other's refusals
+        const request = getOneBootSourceRequest({ opts });
 
-        // skip if role not found and --if-present
-        if (!roleDir) {
-          if (!opts.ifPresent)
-            throw new UnexpectedCodePathError(
-              'roleDir null without ifPresent',
-              {
-                opts,
-              },
-            );
+        // the one cause of a null: a role this repo never linked, under --if-present
+        if (!request) {
           console.log(`🫧 role not present, skipped`);
           return;
         }
 
-        // parse subject option
-        const subjects = opts.subject
-          ? opts.subject.split(',').map((s) => s.trim())
-          : undefined;
-
-        // boot the role resources
-        await bootRoleResources({
-          slugRepo: roleDir.slugRepo,
-          slugRole: roleDir.slugRole,
-          ifPresent: opts.ifPresent ?? false,
-          subjects,
-        });
+        await bootRoleResources({ ...request, subjects });
       },
     );
 };

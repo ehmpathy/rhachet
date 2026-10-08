@@ -91,90 +91,15 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3] rhx enroll claude --roles shaper, real cli, temp HOME then: the json envelope shape is locked 1`] = `
 {
-  "api_error_status": null,
-  "duration_api_ms": "__NUMBER__",
-  "duration_ms": "__NUMBER__",
-  "fast_mode_disabled_reason": "__STRING__",
-  "fast_mode_state": "__STRING__",
-  "first_content_frame_ms": "__NUMBER__",
   "is_error": false,
-  "modelUsage": {
-    "claude-haiku-4-5-20251001": {
-      "cacheCreationInputTokens": "__NUMBER__",
-      "cacheReadInputTokens": "__NUMBER__",
-      "canonicalModel": "claude-haiku-4-5",
-      "contextWindow": "__NUMBER__",
-      "costBasis": "list",
-      "costUSD": "__NUMBER__",
-      "inputTokens": "__NUMBER__",
-      "maxOutputTokens": "__NUMBER__",
-      "outputTokens": "__NUMBER__",
-      "provider": "firstParty",
-      "thinkingTokens": "__NUMBER__",
-      "webSearchRequests": "__NUMBER__",
-    },
-  },
-  "num_turns": "__NUMBER__",
-  "permission_denials": "__ARRAY__",
-  "queued_turn_count": "__NUMBER__",
   "result": "__STRING__",
-  "result_index": "__NUMBER__",
-  "session_id": "__STRING__",
-  "stop_reason": "__STRING__",
-  "subagent_stats": {
-    "by_type": {},
-    "completed": "__NUMBER__",
-    "failed": "__NUMBER__",
-    "killed": {
-      "parent": "__NUMBER__",
-      "system": "__NUMBER__",
-      "user": "__NUMBER__",
-    },
-    "max_depth": "__NUMBER__",
-    "refused": {
-      "budget": "__NUMBER__",
-      "concurrency_limit": "__NUMBER__",
-      "depth_limit": "__NUMBER__",
-    },
-    "requested": {
-      "background": "__NUMBER__",
-      "foreground": "__NUMBER__",
-      "unset": "__NUMBER__",
-    },
-    "spawned": "__NUMBER__",
-    "spawned_by_subagents": "__NUMBER__",
-    "started_in_background": "__NUMBER__",
-  },
   "subtype": "success",
-  "terminal_reason": "__STRING__",
-  "time_to_request_ms": "__NUMBER__",
-  "total_cost_usd": "__NUMBER__",
-  "ttft_ms": "__NUMBER__",
-  "ttft_stream_ms": "__NUMBER__",
   "type": "result",
   "usage": {
-    "cache_creation": {
-      "ephemeral_1h_input_tokens": "__NUMBER__",
-      "ephemeral_5m_input_tokens": "__NUMBER__",
-    },
     "cache_creation_input_tokens": "__NUMBER__",
     "cache_read_input_tokens": "__NUMBER__",
-    "fallback_credit": null,
-    "inference_geo": "__STRING__",
     "input_tokens": "__NUMBER__",
-    "iterations": "__ARRAY__",
-    "output_tokens": "__NUMBER__",
-    "output_tokens_details": {
-      "thinking_tokens": "__NUMBER__",
-    },
-    "server_tool_use": {
-      "web_fetch_requests": "__NUMBER__",
-      "web_search_requests": "__NUMBER__",
-    },
-    "service_tier": "__STRING__",
-    "speed": "__STRING__",
   },
-  "uuid": "__STRING__",
 }
 `;
 
@@ -189,8 +114,8 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 6fdfcc44: +1
-   └─ fddbc072: +1
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;
@@ -213,9 +138,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 15cc47ca: ~1
-   ├─ 6fdfcc44: ~1
-   └─ fddbc072: ~1
+   ├─ 15cc47ca
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;
@@ -245,9 +170,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    └─ 1 updated
 
 🧢 apply hooks to enrolled actors...
-   ├─ 15cc47ca: +1
-   ├─ 6fdfcc44: ~1
-   └─ fddbc072: ~1
+   ├─ 15cc47ca
+   ├─ 6fdfcc44
+   └─ fddbc072
 
 "
 `;

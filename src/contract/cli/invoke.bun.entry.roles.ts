@@ -1,9 +1,13 @@
 /**
  * .what = minimal entrypoint for `rhachet roles` subcommands (boot/cost)
- * .why = fast startup via skip of registry load; reads from .agent/ directly
+ * .why = fast startup via skip of registry load; reads from the filesystem directly
  *
  * .note = this binary handles boot/cost which read from .agent/ symlinks
  *         roles link/init is routed to JIT binary (needs npm package imports)
+ *
+ * 🔴 .note = `boot` belongs on THIS binary because it fires from a `SessionStart` hook, once
+ *    per role, on every session — and the budget gate lives INSIDE it, so the gate's whole
+ *    cost is paid on the fast path.
  */
 import { Command } from 'commander';
 import { withEmojiSpaceShim } from 'emoji-space-shim';
@@ -26,9 +30,9 @@ const _invoke = async (): Promise<void> => {
   invokeRolesBoot({ command: rolesCommand });
   invokeRolesCost({ command: rolesCommand });
 
-  // ⚠️ `parseAsync`, never `parse` — `invokeRolesBoot` registers an ASYNC action handler, and a
-  //   sync `parse` does not await one, so its rejection escapes as an unhandled rejection that
-  //   the last handler below cannot see
+  // 🔴 `parseAsync`, never `parse`. every action here is async, and `parse` returns before
+  //    they settle — so a rejected action escaped as an UNHANDLED REJECTION the last handler
+  //    below cannot see, and exited 1 whatever the error's class said
   await program.parseAsync(process.argv);
 };
 

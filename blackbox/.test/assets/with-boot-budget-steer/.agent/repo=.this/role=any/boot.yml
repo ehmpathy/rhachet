@@ -1,0 +1,14 @@
+# the STEER band — the payload is high against this cap, and under it.
+#
+# .why = `case=7` narrates an author who watches the headroom shrink turn by turn. that band
+#   is what makes the budget pedagogical rather than merely punitive, and it is the one band
+#   the other fixtures skip: they land at 5%, 72%, and far over.
+#
+# 🔴 .note = the cap is a LITERAL and the case asserts a RANGE, never this number. a literal
+#   read back as an assertion would be a second statement of what the payload costs, and it
+#   would go red on any render change rather than on a behavior change.
+budget:
+  tokens: 245
+briefs:
+  say:
+    - briefs/**/*.md

@@ -1,0 +1,9 @@
+# 🔴 the value names NO number on purpose. a digit-run string (`'5000'`) is now VALID —
+# yaml has no separator, so `tokens: 5_000` arrives as a string and the digit-group cast
+# reads it. a fixture that reads as a number no longer exercises the malformed case.
+budget:
+  tokens: 'five thousand'
+always:
+  briefs:
+    say:
+      - '0.wish.md'

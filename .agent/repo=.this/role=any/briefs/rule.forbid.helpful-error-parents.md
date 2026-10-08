@@ -134,6 +134,11 @@ say so, or the next reader reads the resnap as a regression waved through.
 - a subclass that extends `ConstraintError` or `MalfunctionError` = **false positive** — it
   reaches down, so it inherits the leaf's owner and exit code; the direction, never the depth,
   is what this rule forbids
+- a bare `Error` thrown by a test SPECIMEN whose declared subject IS the unclassified path =
+  **false positive** — a leaf would be classified, so the one input that proves the cli's
+  unclassified arm cannot be a leaf. the specimen lives in test code — a `src/.test/` asset, or
+  a fixture a blackbox test writes into its temp repo — and its docblock names this carve-out
+  (e.g. `example.rhachet.use.plainThrow.ts`, `upgrade.acceptance` `[case17]`)
 
 ## .the in-repo inventory — the rule is NOT yet met
 

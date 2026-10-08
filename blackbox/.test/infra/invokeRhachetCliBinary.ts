@@ -1,4 +1,5 @@
 import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 /**
@@ -92,6 +93,20 @@ export const asSnapshotSafe = (output: string): string => {
       // any role package bump moves it; the role count beside it stays, since that is
       // the part a reader checks
       .replace(/(\d+ roles?, )\d+ chars/g, '$1__CHARS__ chars')
+      // strip the OS temp root itself, which differs per host (`/tmp` vs `/var/folders/…/T`)
+      //   and is reached by a path that walks up out of a test repo. anchored at a path start
+      //   (line start, quote, or whitespace), so a `tmp` segment deeper in a path such as
+      //   `/var/tmp` stays unmasked. `\\s` in the template yields the regex `\s`
+      .replace(
+        new RegExp(
+          `(^|["\\s])${tmpdir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[/"\\s]|$)`,
+          'gm',
+        ),
+        '$1/TMP_ROOT',
+      )
+      // strip the runtime's own node version (`process.version`, varies per host). anchored
+      //   on the literal `node v`, so a measured package's version stays unmasked
+      .replace(/node v\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?/g, 'node vNODE')
       // strip ISO timestamps (vary by run). the millis are OPTIONAL: iso-time's
       // now() omits `.000` when the instant lands on a whole second, so a spawn on
       // an exact second renders `…30Z` (no millis) — the mask must catch both forms
@@ -358,8 +373,10 @@ export const invokeRhachetCliBinaryAsync = (input: {
   /** whether to log output on failure (default: true), as the sync twin does */
   logOnError?: boolean;
 }): Promise<{ status: number | null; stdout: string; stderr: string }> => {
-  // merge env, drop undefined so a test can unset an inherited var
-  const mergedEnv = { ...process.env, ...input.env };
+  // merge env, drop undefined so a test can unset an inherited var. the runner's own
+  // clone identity is stripped first, as the sync twin does — the clone axis is a test's
+  // to declare, never the shell that ran the suite (`rule.require.hermetic-tests`)
+  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
   const envFiltered = Object.fromEntries(
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
   ) as NodeJS.ProcessEnv;

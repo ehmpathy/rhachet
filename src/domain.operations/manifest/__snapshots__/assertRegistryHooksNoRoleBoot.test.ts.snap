@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertRegistryHooksNoRoleBoot given: [case3] a registry whose roles boot themselves from a hook when: [t0] the assertion runs then: the message matches snapshot 1`] = `
+"✋ ConstraintError: hooks that boot their own role
+   │
+   ├─ briefs reach a session via the brain dir boot.md render, so these hooks are redundant:
+   │
+   ├─ mechanic
+   │  ├─ hook: onBrain.onBoot[0]
+   │  └─ command: ./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present
+   ├─ mechanic
+   │  ├─ hook: onBrain.onBoot[1]
+   │  └─ command: ./node_modules/.bin/rhachet roles boot --repo ehmpathy --role mechanic
+   ├─ architect
+   │  ├─ hook: onBrain.onBoot[0]
+   │  └─ command: ./node_modules/.bin/rhachet roles boot --role architect
+   │
+   └─ hint: delete each \`roles boot --role\` hook; boot.md already renders these roles
+
+{
+  "violations": [
+    {
+      "roleSlug": "mechanic",
+      "hookType": "onBoot",
+      "hookIndex": 0,
+      "command": "./node_modules/.bin/rhachet roles boot --repo .this --role any --if-present"
+    },
+    {
+      "roleSlug": "mechanic",
+      "hookType": "onBoot",
+      "hookIndex": 1,
+      "command": "./node_modules/.bin/rhachet roles boot --repo ehmpathy --role mechanic"
+    },
+    {
+      "roleSlug": "architect",
+      "hookType": "onBoot",
+      "hookIndex": 0,
+      "command": "./node_modules/.bin/rhachet roles boot --role architect"
+    }
+  ]
+}"
+`;

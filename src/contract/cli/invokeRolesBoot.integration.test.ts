@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
+import { asLogLines } from '@src/.test/infra/asLogLines';
+
 import {
   existsSync,
   mkdirSync,
@@ -20,8 +22,10 @@ import { invokeRolesBoot } from './invokeRolesBoot';
  *         each slip past it. this reads back the block the render actually emitted, so
  *         the caller asserts `toEqual` against the whole of it.
  *
- * .note = yields null when the tag is absent, or present in more than one logged call —
- *         either is a render defect the exact `toEqual` then reports.
+ * .note = it reads the WHOLE stream — every logged call joined as the wire joins them, one
+ *         '\n' per call — so the claim holds whether the boot emits in one call or one per
+ *         line. yields null when the tag is absent or opens more than once — either is a
+ *         render defect the exact `toEqual` then reports.
  */
 const asRenderedBootBlock = (input: {
   logSpy: { mock: { calls: unknown[][] } };
@@ -30,16 +34,18 @@ const asRenderedBootBlock = (input: {
 }): string | null => {
   const tagOpen = `<${input.tag} path="${input.path}">\n`;
   const tagClose = `</${input.tag}>\n`;
-  const saidsWithTag = input.logSpy.mock.calls
-    .map((call) => String(call[0]))
-    .filter((said) => said.includes(tagOpen));
-  if (saidsWithTag.length !== 1) return null;
-  const said = saidsWithTag[0] as string;
+  const said = input.logSpy.mock.calls
+    .map((call) => `${String(call[0])}\n`)
+    .join('');
+  if (said.split(tagOpen).length - 1 !== 1) return null;
   const indexFrom = said.indexOf(tagOpen);
   const indexTo = said.indexOf(tagClose, indexFrom);
   if (indexTo === -1) return null;
   return said.slice(indexFrom, indexTo + tagClose.length);
 };
+
+// .note = the byte-identity oracle is the pinned acceptance snapshot
+//   (`blackbox/cli/__snapshots__/roles.boot.bootyaml.acceptance.test.ts.snap`); these grade CONTENT
 
 describe('invokeRolesBoot (integration)', () => {
   given('a CLI program with invokeRolesBoot registered', () => {
@@ -176,14 +182,14 @@ describe('invokeRolesBoot (integration)', () => {
           );
 
           // Check that stats were printed
-          expect(logSpy).toHaveBeenCalledWith('<stats>');
-          expect(logSpy).toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).toContainEqual('<stats>');
+          expect(asLogLines(logSpy)).toContainEqual(
             expect.stringContaining('files = 5'), // 1 readme + 2 briefs + 2 skills
           );
-          expect(logSpy).toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).toContainEqual(
             expect.stringContaining('briefs = 2'),
           );
-          expect(logSpy).toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).toContainEqual(
             expect.stringContaining('skills = 2'),
           );
 
@@ -259,7 +265,7 @@ describe('invokeRolesBoot (integration)', () => {
           );
 
           // Check that implementation is NOT printed for skills
-          expect(logSpy).not.toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).not.toContainEqual(
             expect.stringContaining('echo "test skill 1"'),
           );
         });
@@ -274,18 +280,18 @@ describe('invokeRolesBoot (integration)', () => {
           );
 
           // Check that inits are NOT printed (inits are one-time setup, not booted)
-          expect(logSpy).not.toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).not.toContainEqual(
             expect.stringContaining('init.claude.sh'),
           );
-          expect(logSpy).not.toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).not.toContainEqual(
             expect.stringContaining('Init Claude'),
           );
-          expect(logSpy).not.toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).not.toContainEqual(
             expect.stringContaining('<init'),
           );
 
           // Verify that stats do NOT count inits
-          expect(logSpy).not.toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).not.toContainEqual(
             expect.stringContaining('inits ='),
           );
         });
@@ -426,8 +432,8 @@ describe('invokeRolesBoot (integration)', () => {
             },
           );
 
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('No resources found'),
+          expect(asLogLines(logSpy)).toContainEqual(
+            expect.stringContaining('no resources found'),
           );
         });
       },
@@ -560,14 +566,14 @@ describe('invokeRolesBoot (integration)', () => {
             );
 
             // Check that stats were printed
-            expect(logSpy).toHaveBeenCalledWith('<stats>');
-            expect(logSpy).toHaveBeenCalledWith(
+            expect(asLogLines(logSpy)).toContainEqual('<stats>');
+            expect(asLogLines(logSpy)).toContainEqual(
               expect.stringContaining('files = 2'),
             );
-            expect(logSpy).toHaveBeenCalledWith(
+            expect(asLogLines(logSpy)).toContainEqual(
               expect.stringContaining('briefs = 1'),
             );
-            expect(logSpy).toHaveBeenCalledWith(
+            expect(asLogLines(logSpy)).toContainEqual(
               expect.stringContaining('skills = 1'),
             );
 
@@ -608,7 +614,7 @@ describe('invokeRolesBoot (integration)', () => {
             );
 
             // Check that skill implementation is hidden
-            expect(logSpy).not.toHaveBeenCalledWith(
+            expect(asLogLines(logSpy)).not.toContainEqual(
               expect.stringContaining('echo "local skill"'),
             );
           },
@@ -692,8 +698,8 @@ describe('invokeRolesBoot (integration)', () => {
             },
           );
 
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('No resources found'),
+          expect(asLogLines(logSpy)).toContainEqual(
+            expect.stringContaining('no resources found'),
           );
         });
       },
@@ -762,8 +768,10 @@ describe('invokeRolesBoot (integration)', () => {
           );
 
           // Should output skipped message
-          expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('🫧'));
-          expect(logSpy).toHaveBeenCalledWith(
+          expect(asLogLines(logSpy)).toContainEqual(
+            expect.stringContaining('🫧'),
+          );
+          expect(asLogLines(logSpy)).toContainEqual(
             expect.stringContaining('skipped'),
           );
         });

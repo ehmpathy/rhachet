@@ -31,7 +31,7 @@ every glyph fills exactly one slot:
 | slot | role | glyphs |
 |------|------|--------|
 | **role-mascot** | a ROLE's own voice — never rhachet's | (supplier-role only — see below) |
-| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade |
+| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade · `🧢` role · `🥾` boot · `🧮` measurement |
 | **verb-artifact** | names the OPERATION, inline after the `😶` clone face | `🎙️` clone say (speak in) · `🎧` clone get (listen out) |
 | **error-class** | names the fault owner — one of exactly two | `✋` caller-must-fix · `💥` server-must-fix |
 | **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse · `🟡` degraded |
@@ -69,7 +69,10 @@ root; a rhachet tree roots on its domain glyph.
 | `🎙️` | verb-artifact | **clone say** — you speak INTO the clone (the dispatch/input side); inline after `😶`, no space (`😶🎙️ said to @:bert`) |
 | `🎧` | verb-artifact | **clone get** — you LISTEN to the clone (the observe/output side); the in/out counterpart to `🎙️` |
 | `🧹` | domain-root | `🧹 clone prune` (the reap / sweep surface) |
-| `📦` | domain-root | **upgrade** (`📦 upgrade (pnpm -g)`) — the package-install surface. a shipped box is what a package manager moves, so the glyph names the domain rather than a mood; registered here on purpose because no extant root covers `rhx upgrade`, and because the neutral slots cannot root a tree (`⚠️`/`💡` are callouts, `✨`/`🫧` are leaves) |
+| `📦` | domain-root | **upgrade** (`📦 upgrade (pnpm -g)`) — the package-install surface. a shipped box is what a package manager moves, so the glyph names the domain rather than a mood; registered here on purpose because no extant root covers `rhx upgrade`, and because the neutral slots cannot root a tree (`⚠️`/`💡` are callouts, `✨`/`🫧` are leaves). it roots every package install, so `📦 install.age` (an apt install of a system binary) wears it too — one surface, the box a manager moves |
+| `🧢` | domain-root | **role** (`🧢 roles boot …`, `🧢 apply hooks to enrolled actors…`) — the cap a brain wears. it roots every `roles *` surface and the budget halt those surfaces raise |
+| `🥾` | domain-root | **boot** — a boot is what you put on before you walk, so the glyph names the domain rather than a mood. 🟡 **reserved — no surface emits it**: every boot surface sits under `roles *` (a `--manifest` render included), so `🧢` roots them all. `🥾` is held for a surface outside `roles *` that roots the boot act itself |
+| `🧮` | domain-root | **measurement** (`🧮 calc.tokens …`) — an abacus counts, so the glyph names the act of measure rather than a mood. registered on purpose: a measurement skill is repo-generic, so it may wear no role-mascot, and the neutral slots cannot root a tree. distinct from `🔭` lookup: `🔭` DISCOVERS what exists, `🧮` QUANTIFIES what was found. a categorical measurement counts as well: `🧮 get.package.format` probes a package and grades it cjs / dual / esm-only, a verdict a test computes, not a file it finds |
 | `🔌` | connection | a literal socket / port (`🔌 reach this clone`) |
 | `💡` | callout | an actionable tip (`💡 tip` header — see below) |
 | `🟡` | callout · status-leaf | a caution, and a **degraded** leaf — a step that succeeded on a weaker basis than the full one (`🟡 probe-blind (older clone) — verified by transcript`). registered here on purpose: it is the width-safe caution glyph, and `✨`/`🫧`/`♻️` cover only success, absence, and reuse, so a partial success had no leaf of its own |

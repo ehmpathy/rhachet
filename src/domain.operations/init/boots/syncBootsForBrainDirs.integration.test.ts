@@ -49,6 +49,11 @@ const genRepoWithRoles = (input: {
       `${role.role} brief body`,
     );
   }
+  // a native role boots only once it declares a boot.yml
+  writeFileSync(
+    join(repoPath, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
+    'briefs:\n  say:\n    - briefs/core.md\n',
+  );
   writeFileSync(join(repoPath, '.gitignore'), '.agent/.actors/\n');
   return {
     repoPath,

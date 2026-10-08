@@ -39,6 +39,30 @@ if [ "$1" = "list" ]; then
   exec "$SCRIPT_DIR/run" run list "$@"
 fi
 
+# short-circuit the boot/cost aliases (roles subcommands, not skills)
+#
+# .why = these two are the commands a human types most — `boot` fires from a hook on every
+#   session, and `cost` is the surface an author returns to as they trim. the `roles` group is
+#   a namespace that costs a reader keystrokes and earns them naught at a prompt.
+#
+# .why = and the alias is LOAD-BEARING rather than a convenience: the over-budget halt names
+#   `rhx cost <coordinates>` as the instrument an author reaches for next. absent this route,
+#   that pointer falls through to the skill proxy below and dies on a "no skill found" — a halt
+#   whose one remedy names a command that errors (rule.require.errors-name-the-fix).
+#
+# .note = it splices the `roles` group back in rather than teach the binary a second name, so
+#   ONE command contract is declared and the alias is purely a dispatch concern. `bin/run`
+#   carries the same two routes, so `rhachet boot` and `rhx boot` reach one destination.
+#
+# .note = this SHADOWS a skill named `boot` or `cost`. that is the cost of the alias, and it
+#   is paid deliberately: a role that wants those verbs still reaches them by their full
+#   `rhachet run --skill <name>` form, where the roles subcommands have no second name at all.
+if [ "$1" = "boot" ] || [ "$1" = "cost" ]; then
+  RHACHET_SUBCOMMAND="$1"
+  shift
+  exec "$SCRIPT_DIR/run" roles "$RHACHET_SUBCOMMAND" "$@"
+fi
+
 # short-circuit keyrack commands (via jit path, not bun binary)
 if [ "$1" = "keyrack" ]; then
   shift

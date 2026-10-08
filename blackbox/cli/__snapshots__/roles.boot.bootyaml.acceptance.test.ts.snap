@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`rhachet roles boot with boot.yml given: [case1] repo with boot.yml simple mode when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+exports[`rhachet roles boot with boot.yml given: [case1] repo with boot.yml simple mode when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-simple 1`] = `
 "<stats>
 quant
   ├── files = 6
@@ -11,7 +11,7 @@ quant
   │       ├── say = 1
   │       └── ref = 1
   ├── chars = 549
-  └── tokens ≈ 138 (< $0.01 at $3/mil)
+  └── tokens ≈ 138 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 <readme path=".agent/repo=.this/role=any/readme.md">
@@ -35,7 +35,9 @@ this brief is in a subdirectory and matched by the recursive glob
 
 </brief.say>
 
-<brief.ref path=".agent/repo=.this/role=any/briefs/not-matched.md"/>
+<briefs.ref base=".agent/repo=.this/role=any/briefs/">
+not-matched.md
+</briefs.ref>
 
 <skill.say path=".agent/repo=.this/role=any/skills/say-me.sh">
 #!/usr/bin/env bash
@@ -48,7 +50,9 @@ this brief is in a subdirectory and matched by the recursive glob
 # [implementation hidden - use skill to execute]
 </skill.say>
 
-<skill.ref path=".agent/repo=.this/role=any/skills/ref-me.sh"/>
+<skills.ref base=".agent/repo=.this/role=any/skills/">
+ref-me.sh
+</skills.ref>
 
 <stats>
 quant
@@ -60,20 +64,36 @@ quant
   │       ├── say = 1
   │       └── ref = 1
   ├── chars = 549
-  └── tokens ≈ 138 (< $0.01 at $3/mil)
+  └── tokens ≈ 138 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 "
 `;
 
-exports[`rhachet roles boot with boot.yml given: [case2] repo with boot.yml but no boot.yml present when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+exports[`rhachet roles boot with boot.yml given: [case1] repo with boot.yml simple mode when: [t1] roles boot --repo .this --role any --subject test then: the refusal renders as snapshotted — on STDERR: stderr-subject-on-simple 1`] = `
+"
+✋ ConstraintError: --subject requires boot.yml in subject mode
+
+{
+  "subjects": [
+    "test"
+  ],
+  "mode": "simple"
+}
+
+[args] roles,boot,--repo,.this,--role,any,--subject,test
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case2] repo with boot.yml but no boot.yml present when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-no-spec 1`] = `
 "<stats>
 quant
   ├── files = 2
   │   ├── briefs = 1
   │   └── skills = 0
   ├── chars = 189
-  └── tokens ≈ 48 (< $0.01 at $3/mil)
+  └── tokens ≈ 48 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 <readme path=".agent/repo=.this/role=any/readme.md">
@@ -104,13 +124,63 @@ quant
   │   ├── briefs = 1
   │   └── skills = 0
   ├── chars = 189
-  └── tokens ≈ 48 (< $0.01 at $3/mil)
+  └── tokens ≈ 48 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 "
 `;
 
-exports[`rhachet roles boot with boot.yml given: [case4] repo with boot.yml subject mode when: [t0] roles boot --repo .this --role any (all subjects) then: output matches snapshot 1`] = `
+exports[`rhachet roles boot with boot.yml given: [case2] repo with boot.yml but no boot.yml present when: [t1] roles boot --repo .this --role any --subject test then: the refusal renders as snapshotted — on STDERR: stderr-subject-on-no-spec 1`] = `
+"
+✋ ConstraintError: --subject requires boot.yml in subject mode
+
+{
+  "subjects": [
+    "test"
+  ],
+  "mode": "none"
+}
+
+[args] roles,boot,--repo,.this,--role,any,--subject,test
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case3] repo with boot.yml mixed mode (error case) when: [t0] roles boot --repo .this --role any then: the refusal renders as snapshotted — on STDERR: stderr-mixed-mode 1`] = `
+"
+✋ ConstraintError: mixed mode not allowed — use either top-level briefs/skills OR always/subject, not both
+
+{
+  "keys": [
+    "briefs",
+    "always"
+  ]
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case3b] a repo where the named role was never linked when: [t0] roles boot --repo absent --role absent then: the refusal renders as snapshotted — on STDERR: stderr-role-dir-absent 1`] = `
+"
+✋ ConstraintError: no role "absent" found in .agent/repo=absent/
+
+tip: did you \`npx rhachet roles link --role absent\` first?
+
+{
+  "input": {
+    "slugRepo": "absent",
+    "slugRole": "absent"
+  }
+}
+
+[args] roles,boot,--repo,absent,--role,absent
+
+"
+`;
+
+exports[`rhachet roles boot with boot.yml given: [case4] repo with boot.yml subject mode when: [t0] roles boot --repo .this --role any (all subjects) then: the payload renders as snapshotted — on STDOUT: stdout-subject 1`] = `
 "<stats>
 quant
   ├── files = 19
@@ -121,7 +191,7 @@ quant
   │       ├── say = 5
   │       └── ref = 3
   ├── chars = 1984
-  └── tokens ≈ 496 (< $0.01 at $3/mil)
+  └── tokens ≈ 496 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 <readme path=".agent/repo=.this/role=any/readme.md">
@@ -168,11 +238,11 @@ this brief is in subject.prod.briefs.say only
 
 </brief.say>
 
-<brief.ref path=".agent/repo=.this/role=any/briefs/glossary.md"/>
-
-<brief.ref path=".agent/repo=.this/role=any/briefs/precedence.md"/>
-
-<brief.ref path=".agent/repo=.this/role=any/briefs/shared.md"/>
+<briefs.ref base=".agent/repo=.this/role=any/briefs/">
+glossary.md
+precedence.md
+shared.md
+</briefs.ref>
 
 <skill.say path=".agent/repo=.this/role=any/skills/commit.sh">
 #!/usr/bin/env bash
@@ -229,15 +299,20 @@ this brief is in subject.prod.briefs.say only
 # [implementation hidden - use skill to execute]
 </skill.say>
 
-<skill.ref path=".agent/repo=.this/role=any/skills/lint.sh"/>
-
-<skill.ref path=".agent/repo=.this/role=any/skills/skill-precedence.sh"/>
-
-<skill.ref path=".agent/repo=.this/role=any/skills/shared-tool.sh"/>
+<skills.ref base=".agent/repo=.this/role=any/skills/">
+lint.sh
+skill-precedence.sh
+shared-tool.sh
+</skills.ref>
 
 <also>
-  <brief.ref path=".agent/repo=.this/role=any/briefs/misc.md"/>
-  <skill.ref path=".agent/repo=.this/role=any/skills/orphan-skill.sh"/>
+  <briefs.ref base=".agent/repo=.this/role=any/briefs/">
+  misc.md
+  </briefs.ref>
+
+  <skills.ref base=".agent/repo=.this/role=any/skills/">
+  orphan-skill.sh
+  </skills.ref>
 </also>
 
 <stats>
@@ -250,20 +325,20 @@ quant
   │       ├── say = 5
   │       └── ref = 3
   ├── chars = 1984
-  └── tokens ≈ 496 (< $0.01 at $3/mil)
+  └── tokens ≈ 496 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 "
 `;
 
-exports[`rhachet roles boot with boot.yml given: [case5] repo with boot.yml subject mode without always when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+exports[`rhachet roles boot with boot.yml given: [case5] repo with boot.yml subject mode without always when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-subject-no-always 1`] = `
 "<stats>
 quant
   ├── files = 4
   │   ├── briefs = 1
   │   └── skills = 1
   ├── chars = 458
-  └── tokens ≈ 115 (< $0.01 at $3/mil)
+  └── tokens ≈ 115 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 <readme path=".agent/repo=.this/role=any/readme.md">
@@ -292,7 +367,9 @@ this brief is in subject.test.briefs.say
 </skill.say>
 
 <also>
-  <brief.ref path=".agent/repo=.this/role=any/briefs/orphan.md"/>
+  <briefs.ref base=".agent/repo=.this/role=any/briefs/">
+  orphan.md
+  </briefs.ref>
 </also>
 
 <stats>
@@ -301,20 +378,20 @@ quant
   │   ├── briefs = 1
   │   └── skills = 1
   ├── chars = 458
-  └── tokens ≈ 115 (< $0.01 at $3/mil)
+  └── tokens ≈ 115 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 "
 `;
 
-exports[`rhachet roles boot with boot.yml given: [case6] repo with boot.yml and minified briefs when: [t0] roles boot --repo .this --role any then: output matches snapshot 1`] = `
+exports[`rhachet roles boot with boot.yml given: [case6] repo with boot.yml and minified briefs when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-minified 1`] = `
 "<stats>
 quant
   ├── files = 3
   │   ├── briefs = 2
   │   └── skills = 0
   ├── chars = 472
-  └── tokens ≈ 118 (< $0.01 at $3/mil)
+  └── tokens ≈ 118 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 <readme path=".agent/repo=.this/role=any/readme.md">
@@ -352,7 +429,7 @@ quant
   │   ├── briefs = 2
   │   └── skills = 0
   ├── chars = 472
-  └── tokens ≈ 118 (< $0.01 at $3/mil)
+  └── tokens ≈ 118 / unlimited budget (< $0.01 at $3/mil)
 </stats>
 
 "

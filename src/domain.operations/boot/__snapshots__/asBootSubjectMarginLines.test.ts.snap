@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootSubjectMarginLines given: [case4] several priced subjects of uneven slug length when: [t0] the block renders then: the render matches its snapshot 1`] = `
+"   ├─ in scope — 2 subjects, and what a drop of each recovers
+   │  ├─ a            −     9 tokens
+   │  └─ longer-slug  − 1,234 tokens"
+`;

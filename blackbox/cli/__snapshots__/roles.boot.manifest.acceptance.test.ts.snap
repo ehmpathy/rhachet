@@ -1,0 +1,569 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles boot --what given: [case1] a manifest whose docs sit directly beside it when: [t0] roles boot --what then: the pass renders as snapshotted — on STDOUT: stdout-pass 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 252
+  └── tokens ≈ 63 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".behavior/v2026_09_17.demo/readme.md">
+## the demo route
+
+a route dir whose docs sit DIRECTLY BESIDE its manifest, under no \`briefs/\` subdir.
+
+</readme>
+
+<brief.say path=".behavior/v2026_09_17.demo/0.wish.md">
+# the wish
+
+boot from a declared manifest, and refuse a boot that exceeds a declared budget.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_17.demo/1.vision.yield.md">
+# the vision
+
+the wish, executed against this codebase.
+
+</brief.say>
+
+<briefs.ref base=".behavior/v2026_09_17.demo/">
+2.criteria.md
+</briefs.ref>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 252
+  └── tokens ≈ 63 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case1b] a manifest that DECLARES a budget and sits under it when: [t0] roles boot --what then: the budgeted pass renders as snapshotted — on STDOUT: stdout-pass-budgeted 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 407 (full emitted payload, o200k_base)
+  └── budget = 407 / 20,000 tokens (2% used)
+</stats>
+
+<readme path=".behavior/v2026_09_17.demo/readme.md">
+## the demo route
+
+a route dir whose docs sit DIRECTLY BESIDE its manifest, under no \`briefs/\` subdir.
+
+</readme>
+
+<brief.say path=".behavior/v2026_09_17.demo/0.wish.md">
+# the wish
+
+boot from a declared manifest, and refuse a boot that exceeds a declared budget.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_17.demo/1.vision.yield.md">
+# the vision
+
+the wish, executed against this codebase.
+
+</brief.say>
+
+<briefs.ref base=".behavior/v2026_09_17.demo/">
+2.criteria.md
+</briefs.ref>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 407 (full emitted payload, o200k_base)
+  └── budget = 407 / 20,000 tokens (2% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case2] a manifest whose payload exceeds the budget it declares when: [t0] roles boot --what then: the halt renders as snapshotted — on STDERR: stderr-halt 1`] = `
+"🧢 roles boot --what .behavior/v2026_09_17.demo/boot.over.yml
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 405 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 385 tokens   (2025% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .behavior/v2026_09_17.demo/boot.over.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 20,
+  "payload": 405,
+  "over": 385
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.over.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case2b] an over-budget manifest in SUBJECT mode when: [t0] roles boot --what then: the five-rung ladder renders as snapshotted — on STDERR: stderr-halt-subject 1`] = `
+"🧢 roles boot --what .behavior/v2026_09_17.demo/boot.over.subject.yml
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 405 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 385 tokens   (2025% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .behavior/v2026_09_17.demo/boot.over.subject.yml   sorts every batch by what it costs
+   │
+   ├─ in scope — 1 subject, and what a drop of it recovers
+   │  └─ vision  − 161 tokens
+   │
+   └─ fix — five strategies, cheapest first
+      ├─ narrow      boot fewer --subject sections
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "boot fewer --subject sections, or trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 20,
+  "payload": 405,
+  "over": 385
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.over.subject.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case3] a --what path that points at no file when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-absent 1`] = `
+"
+✋ ConstraintError: --what points at no file
+
+{
+  "hint": "fix the path, or boot a role instead — \`roles boot --repo <slug> --role <slug>\`",
+  "path": ".behavior/v2026_09_17.demo/typo.yml",
+  "pathTaken": "/TMP_REPO/.behavior/v2026_09_17.demo/typo.yml",
+  "expected": "a readable boot.yml",
+  "found": "no such path"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/typo.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case3a] a --what path one edit away from a real spec when: [t0] roles boot --what then: the refusal and its offer render as snapshotted — on STDERR: stderr-absent-near-miss 1`] = `
+"
+✋ ConstraintError: --what points at no file
+
+{
+  "hint": "fix the path, or boot a role instead — \`roles boot --repo <slug> --role <slug>\`",
+  "path": ".behavior/v2026_09_17.demo/boot.yaml",
+  "pathTaken": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.yaml",
+  "expected": "a readable boot.yml",
+  "found": "no such path",
+  "didYouMean": [
+    ".behavior/v2026_09_17.demo/boot.yml"
+  ]
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.yaml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case3b] a --what path that points at a DIRECTORY when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-directory 1`] = `
+"
+✋ ConstraintError: --what points at no file
+
+{
+  "hint": "fix the path, or boot a role instead — \`roles boot --repo <slug> --role <slug>\`",
+  "path": ".behavior/v2026_09_17.demo",
+  "pathTaken": "/TMP_REPO/.behavior/v2026_09_17.demo",
+  "expected": "a readable boot.yml",
+  "found": "a directory"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case4] a --what alongside --role when: [t0] roles boot --what --role then: the refusal renders as snapshotted — on STDERR: stderr-with-role 1`] = `
+"
+✋ ConstraintError: --what cannot be used with --role/--repo
+
+{
+  "hint": "use one source: --what <path>, or --repo/--role",
+  "what": ".behavior/v2026_09_17.demo/boot.yml",
+  "role": "any"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.yml,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case5] a --what alongside --if-present when: [t0] roles boot --what --if-present then: the refusal renders as snapshotted — on STDERR: stderr-with-if-present 1`] = `
+"
+✋ ConstraintError: --what cannot be used with --if-present — an explicit path that points at no file is an error
+
+{
+  "hint": "drop --if-present, or point --what at a file",
+  "what": ".behavior/v2026_09_17.demo/boot.yml"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.yml,--if-present
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case6] a --what that reaches outside the repo when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-outside-repo 1`] = `
+"
+✋ ConstraintError: --what reaches outside the repo
+
+{
+  "hint": "name a boot.yml path inside the repo",
+  "path": "../escaped/boot.yml",
+  "pathTaken": "/TMP_ROOT/escaped/boot.yml",
+  "repoRoot": "/TMP_REPO"
+}
+
+[args] roles,boot,--what,../escaped/boot.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case7] a --what with an empty value when: [t0] roles boot --what "" then: the refusal renders as snapshotted — on STDERR: stderr-absent-value 1`] = `
+"
+✋ ConstraintError: --what requires a path
+
+{
+  "hint": "pass the spec path, e.g. --what .agent/repo=.this/role=any/boot.yml",
+  "what": ""
+}
+
+[args] roles,boot,--what,
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case8] a budget declared as zero when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-budget-zero 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case8] a budget declared as zero when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-budget-zero 1`] = `
+"
+✋ ConstraintError: boot.yml declares a budget whose token count is not a positive whole number
+
+{
+  "hint": "a budget of 0 can never be met — the gate counts the whole emitted payload, and chrome alone is nonzero. for a ref-only boot, declare \`say: []\` and a chrome-sized cap.",
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.zero.yml",
+  "found": 0,
+  "expected": "budget: { tokens: <a positive whole number, e.g. 5_000> }"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.zero.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case9] a budget declared as negative when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-budget-negative 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case9] a budget declared as negative when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-budget-negative 1`] = `
+"
+✋ ConstraintError: boot.yml declares a budget whose token count is not a positive whole number
+
+{
+  "hint": "the budget caps the whole emitted payload, measured in o200k_base tokens.",
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.negative.yml",
+  "found": -1,
+  "expected": "budget: { tokens: <a positive whole number, e.g. 5_000> }"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.negative.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case10] a budget declared as non-numeric when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-budget-non-numeric 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case10] a budget declared as non-numeric when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-budget-non-numeric 1`] = `
+"
+✋ ConstraintError: boot.yml declares a budget whose token count is not a positive whole number
+
+{
+  "hint": "the budget caps the whole emitted payload, measured in o200k_base tokens.",
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.string.yml",
+  "found": "five thousand",
+  "expected": "budget: { tokens: <a positive whole number, e.g. 5_000> }"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.string.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case11] a budget nested inside always: when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-budget-nested 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case11] a budget nested inside always: when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-budget-nested 1`] = `
+"
+✋ ConstraintError: boot.yml declares a budget inside a section — a budget caps the whole payload, so it belongs at the top level
+
+{
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.nested.yml",
+  "section": "always"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.nested.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case12] a manifest in a BUSY dir that declares no say key when: [t0] roles boot --what then: the payload renders as snapshotted — on STDOUT: stdout-busy-dir-say-all 1`] = `
+"<stats>
+quant
+  ├── files = 5
+  │   ├── briefs = 5
+  │   │   ├── say = 4
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 453
+  └── tokens ≈ 114 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<brief.say path=".behavior/v2026_09_21.busy/.fulcrums/inventory.of=fulcrums._.md">
+# inventory.of=fulcrums
+
+a decision record the author never meant to boot resident — it is read at a council, once,
+and never on every session.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_21.busy/.seeds/inventory.of=seeds._.md">
+# inventory.of=seeds
+
+an archive the author never meant to boot resident — it exists so a later reader can check
+a distillate against the words that seeded it.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_21.busy/0.wish.md">
+# wish
+
+the one doc the author meant to boot.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_21.busy/review/self/for.1.vision._.r1.has-questioned-assumptions.md">
+# review.self — has-questioned-assumptions
+
+a review artifact the author never meant to boot resident.
+
+</brief.say>
+
+<briefs.ref base=".behavior/v2026_09_21.busy/">
+2.criteria.md
+</briefs.ref>
+
+<stats>
+quant
+  ├── files = 5
+  │   ├── briefs = 5
+  │   │   ├── say = 4
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 453
+  └── tokens ≈ 114 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case14] the authorship loop — the \`reference\` remedy, twice booted when: [t0] the same doc set, before and after one say → ref move then: the AFTER render is pinned: stdout-loop-after 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 1
+  │   │   └── ref = 2
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 375 (full emitted payload, o200k_base)
+  └── budget = 375 / 20,000 tokens (2% used)
+</stats>
+
+<readme path=".behavior/v2026_09_17.demo/readme.md">
+## the demo route
+
+a route dir whose docs sit DIRECTLY BESIDE its manifest, under no \`briefs/\` subdir.
+
+</readme>
+
+<brief.say path=".behavior/v2026_09_17.demo/0.wish.md">
+# the wish
+
+boot from a declared manifest, and refuse a boot that exceeds a declared budget.
+
+</brief.say>
+
+<briefs.ref base=".behavior/v2026_09_17.demo/">
+1.vision.yield.md
+2.criteria.md
+</briefs.ref>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 1
+  │   │   └── ref = 2
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 375 (full emitted payload, o200k_base)
+  └── budget = 375 / 20,000 tokens (2% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case14] the authorship loop — the \`reference\` remedy, twice booted when: [t0] the same doc set, before and after one say → ref move then: the BEFORE render is pinned: stdout-loop-before 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 407 (full emitted payload, o200k_base)
+  └── budget = 407 / 20,000 tokens (2% used)
+</stats>
+
+<readme path=".behavior/v2026_09_17.demo/readme.md">
+## the demo route
+
+a route dir whose docs sit DIRECTLY BESIDE its manifest, under no \`briefs/\` subdir.
+
+</readme>
+
+<brief.say path=".behavior/v2026_09_17.demo/0.wish.md">
+# the wish
+
+boot from a declared manifest, and refuse a boot that exceeds a declared budget.
+
+</brief.say>
+
+<brief.say path=".behavior/v2026_09_17.demo/1.vision.yield.md">
+# the vision
+
+the wish, executed against this codebase.
+
+</brief.say>
+
+<briefs.ref base=".behavior/v2026_09_17.demo/">
+2.criteria.md
+</briefs.ref>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 3
+  │   │   ├── say = 2
+  │   │   └── ref = 1
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── tokens = 407 (full emitted payload, o200k_base)
+  └── budget = 407 / 20,000 tokens (2% used)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case15] a payload section under a mistyped subject prefix when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-section-mistyped 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case15] a payload section under a mistyped subject prefix when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-section-mistyped 1`] = `
+"
+✋ ConstraintError: boot.yml declares a payload section under a key no mode reads — as written, its briefs and skills boot for no one
+
+{
+  "hint": "a section key is either \`always\` or begins with \`subject.\` — check how this one is spelled",
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.mistyped.yml",
+  "key": "subjct.repo",
+  "expected": "\`always\`, or a \`subject.<coordinate>\` prefix"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.mistyped.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case16] a budget declared as fractional when: [t0] roles boot --what then: stdout renders as snapshotted — the empty half of the pair: stdout-budget-fractional 1`] = `""`;
+
+exports[`rhachet roles boot --what given: [case16] a budget declared as fractional when: [t0] roles boot --what then: the refusal renders as snapshotted — on STDERR: stderr-budget-fractional 1`] = `
+"
+✋ ConstraintError: boot.yml declares a budget whose token count is not a positive whole number
+
+{
+  "hint": "the budget caps the whole emitted payload, measured in o200k_base tokens.",
+  "path": "/TMP_REPO/.behavior/v2026_09_17.demo/boot.float.yml",
+  "found": 5000.5,
+  "expected": "budget: { tokens: <a positive whole number, e.g. 5_000> }"
+}
+
+[args] roles,boot,--what,.behavior/v2026_09_17.demo/boot.float.yml
+
+"
+`;
+
+exports[`rhachet roles boot --what given: [case17] the raise must land on the diff — no per-invocation override when: [t0] roles boot --what, with a --budget override attempted then: the refusal matches its snapshot: stderr-budget-flag-absent 1`] = `
+"error: unknown option '--budget'
+"
+`;

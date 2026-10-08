@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneBootSourceFromManifest (integration) given: [case1] a manifest path that reaches outside the repo when: [t0] the source is looked up then: it refuses before any read, and names the bound it checked 1`] = `
+"✋ ConstraintError: --what reaches outside the repo
+
+{
+  "path": "../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../outside-the-repo/boot.yml",
+  "pathTaken": "/outside-the-repo/boot.yml",
+  "repoRoot": "/REPO_ROOT",
+  "hint": "name a boot.yml path inside the repo"
+}"
+`;
+
+exports[`getOneBootSourceFromManifest (integration) given: [case3] a manifest path that points at a DIRECTORY when: [t0] the source is looked up then: it refuses, and says what it found instead of a file 1`] = `
+"✋ ConstraintError: --what points at no file
+
+{
+  "path": "not-a-spec",
+  "pathTaken": "/TMP_REPO/not-a-spec",
+  "expected": "a readable boot.yml",
+  "found": "a directory",
+  "hint": "fix the path, or boot a role instead — \`roles boot --repo <slug> --role <slug>\`"
+}"
+`;
+
+exports[`getOneBootSourceFromManifest (integration) given: [case5] a manifest path that walks a symlink cycle when: [t0] the walk faults with a caller-fixable errno then: the refusal matches its snapshot 1`] = `
+"✋ ConstraintError: --what is not a readable path
+
+{
+  "path": "loopA",
+  "pathTaken": "/TMP_REPO/loopA",
+  "why": "the filesystem refused the read (ELOOP)",
+  "hint": "fix the path — it walks a symlink cycle, or it is longer than the fs allows"
+}"
+`;

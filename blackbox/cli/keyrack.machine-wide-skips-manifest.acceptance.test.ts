@@ -1,3 +1,5 @@
+import { realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { genBrokenKeyrackManifestYml } from '@/blackbox/.test/infra/genBrokenKeyrackManifestYml';
@@ -41,6 +43,10 @@ import {
  *        per-run suffix, so a raw snapshot is green exactly once, on the run that wrote it
  * .note = the swap is on the EXACT path this run used, never a `/tmp/...` pattern, so a real
  *         path a render should have kept cannot be masked by a near-miss match
+ * .note = `asSnapshotSafe` rewrites the os temp root to `/TMP_ROOT`, so the swap also takes the
+ *         dir's `/TMP_ROOT/…` name — else the exact-path split finds no `cwd` left to match and
+ *         the per-run suffix leaks into the snapshot. a repo cwd is already `/TMP_REPO` by then,
+ *         and stays so
  * .note = it composes `asSnapshotSafe` FIRST, which strips ansi sgr bytes among other run
  *         volatiles. `emitKeyrackKeyBranch` paints every `tip:` line with `\x1b[2m…\x1b[0m`, so
  *         any row whose render carries a tip would otherwise commit raw escape bytes — the
@@ -52,7 +58,19 @@ import {
  *         be guarded at one value instead of guarded
  */
 const asTempCwdMasked = (input: { output: string; cwd: string }): string =>
-  asSnapshotSafe(input.output).split(input.cwd).join('$TESTCWD');
+  [
+    input.cwd,
+    // both names of the dir: a temp root reached through a symlink (macos `/var` →
+    //   `/private/var`) renders as either (rule.require.mask-both-names-of-a-temp-dir)
+    realpathSync(input.cwd),
+    // and the name `asSnapshotSafe` leaves once it rewrites the os temp root to `/TMP_ROOT`
+    ...[input.cwd, realpathSync(input.cwd)].map((name) =>
+      name.replace(tmpdir(), '/TMP_ROOT'),
+    ),
+  ].reduce(
+    (output, name) => output.split(name).join('$TESTCWD'),
+    asSnapshotSafe(input.output),
+  );
 
 describe('keyrack machine-wide skips manifest', () => {
   given('[case1] a repo whose keyrack.yml extends an absent file', () => {

@@ -1,0 +1,193 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`install.age given: [case1] plan mode — the default, with age ABSENT when: [t0] it is invoked bare then: the absent-branch plan render is pinned: stdout-plan-age-absent 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+
+📦 install.age
+   ├─ age: not on PATH
+   ├─ would run
+   │  └─ sudo apt-get install -y age
+   ├─ source: .github/workflows/.test.yml:209 — identical to cicd
+   └─ hint: rerun with --mode apply to install
+"
+`;
+
+exports[`install.age given: [case1b] plan mode — the default, with age PRESENT when: [t0] it is invoked bare then: the present-branch plan render is pinned: stdout-plan-age-present 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+
+📦 install.age
+   ├─ ✨ already on PATH
+   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   └─ version: age 1.0.0-stub
+"
+`;
+
+exports[`install.age given: [case1c] an age on PATH whose --version fails when: [t0] it is invoked bare then: the refusal render is pinned: stderr-age-version-fails 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ 💥 failed with an error
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age
+   ├─ 💥 MalfunctionError: age is on PATH, but 'age --version' failed
+   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   ├─ error: age: exec format error
+   └─ hint: the binary is broken or foreign — reinstall per https://github.com/FiloSottile/age#installation
+"
+`;
+
+exports[`install.age given: [case2] the help text when: [t0] it is asked for then: the help matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+
+📦 install.age — put the 'age' encryption cli on PATH, the way cicd does
+
+usage:
+  rhx install.age [--mode plan|apply]
+
+options:
+  --mode      optional. plan (default) prints what would run and changes naught.
+              apply runs it.
+
+what it runs:
+  sudo apt-get install -y age
+  .why = matched to .github/workflows/.test.yml:209, so a dev box and cicd
+    provision the identical binary. a divergence here is a divergence in what
+    the two tiers actually test.
+
+exits:
+  0  age is on PATH (already there, or installed now)
+  1  malfunction — the package manager failed
+  2  constraint  — no sudo, unsupported platform, or bad args
+
+who needs it:
+  src/infra/ssh/sshPrikeyToAgeIdentity.integration.test.ts
+  src/domain.operations/keyrack/recipient/recipient.integration.test.ts
+
+  🟡 the npm package named 'age' is an unrelated game engine with no bin.
+     it cannot satisfy these suites. this skill installs the real cli.
+
+examples:
+  rhx install.age                 # plan — show the command, change naught
+  rhx install.age --mode apply    # install it
+"
+`;
+
+exports[`install.age given: [case3] an invalid --mode value when: [t0] it is invoked with --mode sideways then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode sideways
+   ├─ ✋ ConstraintError: invalid mode: sideways
+   └─ valid: plan or apply
+"
+`;
+
+exports[`install.age given: [case4] --mode handed a FLAG as its value when: [t0] it is invoked with --mode --verbose then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode --verbose
+   ├─ ✋ ConstraintError: absent value for --mode
+   ├─ valid: plan or apply
+   └─ hint: rhx install.age help
+"
+`;
+
+exports[`install.age given: [case5] an unknown argument when: [t0] it is invoked with --node apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --node apply
+   ├─ ✋ ConstraintError: unknown argument: --node
+   └─ hint: rhx install.age help
+"
+`;
+
+exports[`install.age given: [case6] apply mode, on a platform with no apt-get when: [t0] it is invoked with --mode apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode apply
+   ├─ ✋ ConstraintError: apt-get not found on this platform
+   ├─ why: cicd installs age via apt (.github/workflows/.test.yml:209),
+   │       so apt is the one manager this skill mirrors
+   └─ hint: install age per https://github.com/FiloSottile/age#installation
+"
+`;
+
+exports[`install.age given: [case7] apply mode, with apt-get but no sudo when: [t0] it is invoked with --mode apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode apply
+   ├─ ✋ ConstraintError: sudo not found, and apt needs it
+   └─ hint: ask a human with root to install age — apt-get install -y age, run as root,
+            or per https://github.com/FiloSottile/age#installation
+"
+`;
+
+exports[`install.age given: [case8] apply mode, where apt-get fails when: [t0] it is invoked with --mode apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ 💥 failed with an error
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode apply
+   ├─ 💥 MalfunctionError: apt-get failed
+   ├─ tried: sudo apt-get install -y age
+   └─ hint: a stale index is the usual cause — sudo apt-get update, then retry
+"
+`;
+
+exports[`install.age given: [case9] apply mode, where apt reports success and leaves no age when: [t0] it is invoked with --mode apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ 💥 failed with an error
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode apply
+   ├─ 💥 MalfunctionError: apt reported success, but age is not on PATH
+   └─ hint: check that $PATH carries the apt bin dir (usually /usr/bin)
+"
+`;
+
+exports[`install.age given: [case10] apply mode, where sudo needs a password and no tty exists when: [t0] it is invoked with --mode apply then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+   └─ ✋ blocked by constraints
+
+📦 install.age
+   ├─ ran: rhx install.age --skill install.age --mode apply
+   ├─ ✋ ConstraintError: sudo needs a password, and this shell has no tty
+   ├─ why: sudo reads its password from a tty, and this shell has none
+   └─ hint: ask a human to run — sudo apt-get install -y age
+"
+`;
+
+exports[`install.age given: [case11] apply mode, where the install succeeds when: [t0] it is invoked with --mode apply then: the success render is pinned: stdout-apply-installed 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=install.age
+
+📦 install.age
+   ├─ age: not on PATH
+   └─ run: sudo apt-get install -y age
+
+📦 install.age
+   ├─ ✨ installed
+   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   └─ version: age 1.0.0-stub
+"
+`;

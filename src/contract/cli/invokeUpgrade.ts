@@ -71,10 +71,19 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
         if (result.upgradedSelf.global?.upgraded) {
           console.log('✨ rhachet upgraded globally');
         }
+        // a hook sync fault set was already rendered, header and rows, by the sync itself;
+        //   this layer only names the next move, on the same stream as those rows
+        if (result.hookErrors.length > 0)
+          console.log(
+            'hint: hooks did not land — fix the hook sync faults above, then rerun `rhx upgrade`',
+          );
         console.log('');
 
         // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
         if (result.bootsExitCode !== 0) process.exit(result.bootsExitCode);
+
+        // a hook sync fault is a malfunction, never a clean exit
+        if (result.hookErrors.length > 0) process.exit(1);
       },
     );
 };

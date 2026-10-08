@@ -41,6 +41,14 @@ case "$ARGS" in
     echo "mock op: could not parse item edit args: $ARGS" >&2
     exit 1
     ;;
+  read\ op://*/nonexistent-item/*)
+    # 🔴 the ABSENT-item arm, and it MUST precede the generic `read op://*` below — a case
+    #    that grades "an absent item yields null" cannot use a mock that answers every read.
+    #    the real cli exits nonzero here, and the adapter allowlists the phrase
+    #    "could not be found" to return null rather than rethrow
+    echo '"nonexistent-item" could not be found in the "keyrack" vault' >&2
+    exit 1
+    ;;
   read\ op://*)
     # read from mock storage, or a canned value when no prior write occurred
     # (a reference set roundtrip reads before any write; the value is unused)

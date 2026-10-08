@@ -4,7 +4,8 @@
 # .why = routes to bun (fast) or jit (flexible) dispatcher
 #
 # architecture:
-#   run, roles boot/cost → run.bun (bun compiled, reads .agent/)
+#   run, roles boot/cost → run.bun (bun compiled, reads the filesystem)
+#   boot/cost            → the same, via the short alias below
 #   *                    → run.jit (jit, imports from npm packages)
 #
 # .note = run.bun does finer-grained dispatch to .bc binaries
@@ -46,6 +47,20 @@ case "$1" in
         exec "$SCRIPT_DIR/run.jit" "$@"
         ;;
     esac
+    ;;
+  boot|cost)
+    # the short alias: `rhx boot` reaches `roles boot`
+    #
+    # .why = these two are the commands a human types most — `boot` fires from a hook on
+    #   every session, and `cost` is the surface an author returns to as they trim. the
+    #   `roles` group is a namespace that costs a reader keystrokes and earns them naught
+    #   at a prompt.
+    #
+    # .note = it splices the group back in rather than teach the binary a second name, so
+    #   ONE command contract is declared and the alias is purely a dispatch concern.
+    RHACHET_SUBCOMMAND="$1"
+    shift
+    exec "$SCRIPT_DIR/run.bun" roles "$RHACHET_SUBCOMMAND" "$@"
     ;;
   *)
     # else, use jit

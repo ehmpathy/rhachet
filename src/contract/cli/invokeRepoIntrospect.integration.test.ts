@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { getError, given, then, when } from 'test-fns';
+import { getError, given, then, useThen, when } from 'test-fns';
 
 import {
   chmodSync,
@@ -67,9 +67,10 @@ const mechanic = new Role({
   },
   hooks: {
     onBrain: {
-      onBoot: [{ command: './node_modules/.bin/rhachet roles boot --role mechanic' }],
+      onBoot: [{ command: './node_modules/.bin/rhachet run --skill say-hello' }],
     },
   },
+  boot: { uri: testDir + '/src/roles/mechanic/boot.yml' },
 });
 
 const registry = new RoleRegistry({
@@ -634,6 +635,61 @@ exports.getRoleRegistry = () => registry;
         expect(
           error?.message?.replace(new RegExp(testDir, 'g'), '<testDir>'),
         ).toMatchSnapshot('multiple-non-executable-error');
+      });
+    });
+
+    when('[t15] a role whose boot payload exceeds its declared budget', () => {
+      const pathToSpec = resolve(testDir, 'src/roles/mechanic/boot.yml');
+      const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      beforeEach(() => {
+        errSpy.mockClear();
+
+        // a cap no payload can meet — the role's own readme alone exceeds it
+        writeFileSync(
+          pathToSpec,
+          ['budget:', '  tokens: 1', 'briefs:', "  say: ['**/*.md']", ''].join(
+            '\n',
+          ),
+        );
+      });
+
+      afterEach(() => {
+        if (existsSync(pathToSpec)) rmSync(pathToSpec);
+      });
+
+      /**
+       * .what = ONE introspect, observed once — its message, and whether a manifest landed
+       * .why = one introspect (a registry walk, a tokenizer load, a payload count) serves
+       *        both facets (`rule.forbid.redundant-expensive-operations`).
+       *
+       * .note = the manifest check is captured HERE rather than read per `then`, because
+       *   the suite's `afterEach` removes the spec — a later read would observe a tree the
+       *   refusal never saw, and the negative assertion would pass for the wrong reason.
+       */
+      const refusal = useThen('it refuses the build', async () => {
+        const error = await getError(
+          program.parseAsync(['repo', 'introspect'], { from: 'user' }),
+        );
+        return {
+          message: error?.message ?? '',
+          manifestLanded: existsSync(resolve(testDir, 'rhachet.repo.yml')),
+        };
+      });
+
+      then('the refusal names the budget', () => {
+        // 🔴 this clamps the WIRING, never the gate's own logic — the operation is
+        //    clamped beside itself. without this case, a builder could delete the call
+        //    at `invokeRepoIntrospect.ts` and every budget test would stay green
+        expect(refusal.message).toContain(
+          'boot payload exceeds its declared budget',
+        );
+      });
+
+      then('it refuses BEFORE it writes the manifest', () => {
+        // the gate sits among the four extant `assertRegistry*` peers, so it fires while
+        // the build is still refusable — a manifest written first would ship the overage
+        expect(refusal.manifestLanded).toBe(false);
       });
     });
 

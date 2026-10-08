@@ -61,8 +61,36 @@ next decision.
 |---|---|---|
 | *"a consumer that catches and logs the error sees the prefix twice"* | only if they log the whole object; node's uncaught printer prepends `err.name`, so a caller who reads `err.message` sees it once | a valid reviewer blocker declined, then overturned by a peer |
 | *"budget is inert — a lane dies before it spends a unit"* | the guard debits on **arrival**, never on **verdict**; one arrival read `4/11 → 3/11` | a claim made to a supervisor, then retracted; a lever misjudged for a whole round |
+| 🔴 *"sudo is unusable here — `sudo -n true` failed"* | `-n` asks *"can sudo run with **no** password?"*. its failure proves a password is **wanted**, never that one cannot be **supplied** — a human at a tty types it | a skill shipped that refused its own human operator, in their own terminal, with a correct-sounding error |
+| 🔴 *"12 brain tests report `skipped` ⇒ they are credential-gated"* | they are **hard `.skip(` tokens**. the keys were present throughout — a peer suite in the same tier fail-fasts on those very keys and **ran**, real brain call and all. and one of the twelve skips for `process.chdir`, an unrelated cause | an escalation that asked a human to **buy API keys that would have closed zero sites** |
 
-both reasoned backward from a visible result. both were one observation from disproof.
+each reasoned backward from a visible result. each was one observation from disproof.
+
+🔴 **the `skipped` incident is the one to study, because its outcome was a WORD.** `skipped` is what jest prints
+for a conditional gate and for a hard `.skip(` alike — **one rendered token, two mechanisms** — so
+the report cannot part them, and no amount of care in the read will. the distinction lives in the
+source, as a literal token, and costs one grep.
+
+⇒ **so a rendered status is never evidence of the mechanism behind it.** where a tool collapses two
+causes into one word, the word is the *last* place to look.
+
+## 🔴 .the PROBE variant — a negative that is narrower than the claim drawn from it
+
+the sudo incident is the same error with a twist worth its own name: the outcome was not a
+by-product, it was a **probe I chose**. so the defect sits one step earlier — the probe answered a
+**narrower question** than the one that decides, and its negative was read as the wider one.
+
+| the probe answers | what was claimed | the gap |
+|---|---|---|
+| can it run with **no** password? | can it run **at all**? | a password that a human could supply |
+
+⚠️ **a probe you chose feels like a measurement, so its negative feels like proof.** it is proof of
+its own question only — and a probe warrants naught wider than the question it asks.
+
+⇒ the counter-move is *read the deciding operation*, applied to the instrument rather than the subject: **read
+what the probe means** (`man`, `--help`, the flag's own docs) before a refusal rests on it. and when
+several conditions each suffice, the guard is a **disjunction** — probe them all, refuse only when
+every one fails.
 
 ## .enforcement
 
@@ -72,6 +100,9 @@ both reasoned backward from a visible result. both were one observation from dis
   **blocker** — the claim must be checked before it is acted on
 - a mechanism claim and an absence claim merged into one lesson = **nitpick** — their
   counter-moves are opposite, so the merge teaches the wrong reflex
+- 🔴 a **refusal** whose warrant is a probe that asks a narrower question than the one that
+  decides = **blocker** — it refuses a caller who could have proceeded, and its error reads as
+  authoritative precisely because a probe was run
 
 ## .see also
 

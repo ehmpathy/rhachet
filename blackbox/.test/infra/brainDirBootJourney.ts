@@ -109,7 +109,12 @@ export const setupBrainDirBootFixtureRepo = (input: {
   });
   spawnSync('git', ['config', 'user.name', 'Journey Human'], { cwd: input.dir });
 
-  // the native roles
+  // the native roles, each opted into the boot by a boot.yml with no payload (all briefs say)
+  for (const role of ['shaper', 'glasser', 'sander'])
+    writeFileDeep({
+      path: join(input.dir, '.agent', 'repo=.this', `role=${role}`, 'boot.yml'),
+      content: '# boot every brief of this role\n',
+    });
   for (const role of ['shaper', 'glasser', 'sander'])
     for (const brief of asRoleBriefs({ role, nonce: input.nonce }))
       writeFileDeep({
@@ -267,53 +272,75 @@ export const getAllActorHashDirNames = (input: { dir: string }): string[] => {
 /**
  * .what = the envelope keys whose value is DETERMINISTIC, so the mask leaves them live
  * .why = a mask neutralizes only the bytes that vary run to run; a deterministic value
- *   masked to `__STRING__` proves its key exists and proves none of what it says. each
- *   key here is a shape or config fact with no dependence on the model's own behavior:
- *     - `type` / `subtype` — the envelope's discriminators
- *     - `canonicalModel` / `provider` / `costBasis` — which model answered, and how it
- *       is billed. a drifted model is exactly what a reader of this snapshot checks
- * .note = a key is admitted here ONLY where a run-to-run change in it would be a real
- *   contract change rather than model variance. `stop_reason`, `terminal_reason` and the
- *   `fast_mode_*` pair are deliberately ABSENT: each turns on the model's own reply or on
- *   host config, so a live value there reddens the suite for a cause unrelated to the
- *   subject under test — the host-parasitic failure this journey already paid for once
+ *   masked to `__STRING__` proves its key exists and proves none of what it says.
+ *   `type` / `subtype` are the envelope's discriminators, with no dependence on the
+ *   model's own behavior
  */
-const ENVELOPE_KEYS_DETERMINISTIC = [
-  'canonicalModel',
-  'costBasis',
-  'provider',
+const ENVELOPE_KEYS_DETERMINISTIC = ['subtype', 'type'] as const;
+
+/**
+ * .what = the envelope keys this journey reads, at top level and under `usage`
+ * .why = the test install tracks `@latest`, and each claude-code release adds and drops
+ *   envelope keys (`safety_stops`, `fallback_credit`) and moves the `haiku` alias to a new
+ *   model — which renames the `modelUsage` key and its `canonicalModel`. a lock on the
+ *   whole envelope reddens on a vendor release, never on a rhachet change. the keys the
+ *   journey reads are the contract, so those alone are locked
+ */
+const ENVELOPE_KEYS_READ = [
+  'is_error',
+  'result',
   'subtype',
   'type',
+  'usage',
+] as const;
+const ENVELOPE_USAGE_KEYS_READ = [
+  'cache_creation_input_tokens',
+  'cache_read_input_tokens',
+  'input_tokens',
 ] as const;
 
 /**
- * .what = a claude `--output-format json` envelope with every volatile value masked
- * .why = the envelope's shape is the contract a snapshot locks; token counts, costs,
- *   ids and the reply text vary per run. an array's length varies per run too —
- *   `usage.iterations` holds zero or one entry from one ask to the next — so an
- *   array is masked whole
+ * .what = a claude `--output-format json` envelope, narrowed to the keys the journey
+ *   reads, with every volatile value masked
+ * .why = the read keys are the contract a snapshot locks
  * .note = a key in `ENVELOPE_KEYS_DETERMINISTIC` keeps its live value, so the snapshot
  *   locks more of the real contract than a key-set alone
  */
-export const asMaskedClaudeEnvelope = (input: {
-  value: unknown;
-  key?: string;
-}): unknown => {
+export const asMaskedClaudeEnvelope = (input: { value: object }): unknown =>
+  asMaskedClaudeEntries({ value: input.value, keysRead: ENVELOPE_KEYS_READ });
+
+/**
+ * .what = an object's entries, narrowed to `keysRead` when given, sorted, each masked
+ * .why = the one walk both the top level and `usage` narrow through
+ */
+const asMaskedClaudeEntries = (input: {
+  value: object;
+  keysRead: readonly string[] | null;
+}): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(input.value)
+      .filter(([key]) => !input.keysRead || input.keysRead.includes(key))
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([key, item]) => [key, asMaskedClaudeValue({ value: item, key })]),
+  );
+
+/**
+ * .what = one envelope value, masked unless it is deterministic
+ * .why = token counts, costs, ids and the reply text vary per run; an array's length
+ *   varies too (`usage.iterations` holds zero or one entry), so an array masks whole
+ */
+const asMaskedClaudeValue = (input: { value: unknown; key: string }): unknown => {
   const { value, key } = input;
-  if (key && (ENVELOPE_KEYS_DETERMINISTIC as readonly string[]).includes(key))
+  if ((ENVELOPE_KEYS_DETERMINISTIC as readonly string[]).includes(key))
     return value;
   if (typeof value === 'number') return '__NUMBER__';
   if (typeof value === 'string') return '__STRING__';
   if (Array.isArray(value)) return '__ARRAY__';
   if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-        .map(([itemKey, item]) => [
-          itemKey,
-          asMaskedClaudeEnvelope({ value: item, key: itemKey }),
-        ]),
-    );
+    return asMaskedClaudeEntries({
+      value,
+      keysRead: key === 'usage' ? ENVELOPE_USAGE_KEYS_READ : null,
+    });
   return value;
 };
 

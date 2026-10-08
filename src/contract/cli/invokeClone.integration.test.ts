@@ -393,16 +393,14 @@ describe('invokeClone (integration)', () => {
         const brainCwd = genTempDir({ slug: 'invokeClone-d8' });
         const repoPath = getOneRepoPath({ from: brainCwd });
         const serial = getUuid();
-        const spawnedAtMs = Date.now() + 2_000;
         const clone = genSampleCloneOndisk({
           repoPath,
           serial,
           slug: null,
           socketEligible: false,
-          spawnedAt: asIsoTimeStamp(new Date(spawnedAtMs)),
         });
 
-        // the brain dir is born before the spawn instant, so D8 routes to it
+        // the brain dir is born first
         const brainDir = getBrainOndiskDir({ actorDir: clone.actorDir });
         const projectDir = join(
           brainDir,
@@ -410,6 +408,18 @@ describe('invokeClone (integration)', () => {
           asClaudeProjectSlug({ cwd: clone.repoPath }),
         );
         mkdirSync(projectDir, { recursive: true });
+
+        // the spawn instant is stamped AFTER the birth, so `born < spawnedAt` holds however
+        //   slow the setup above ran — a spawn instant computed before the mkdir lost that
+        //   race under a loaded suite, and D8 routed the clone to `~/.claude` instead
+        const spawnedAtMs = Date.now() + 1_000;
+        genSampleCloneOndisk({
+          repoPath,
+          serial,
+          slug: null,
+          socketEligible: false,
+          spawnedAt: asIsoTimeStamp(new Date(spawnedAtMs)),
+        });
         const transcriptPath = join(projectDir, `${getUuid()}.jsonl`);
         writeFileSync(
           transcriptPath,

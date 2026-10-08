@@ -1,19 +1,317 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`rhachet roles boot given: [case1] repo with briefs when: [t1] roles boot --repo this --role missing then: the refusal frame is locked to a snapshot 1`] = `
-"
-✋ ConstraintError: no role "missing" found in .agent/repo=.this/
+exports[`rhachet roles boot given: [case1] repo with briefs when: [t0] roles boot --repo this --role any then: the payload renders as snapshotted — on STDOUT: stdout-briefs 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 189
+  └── tokens ≈ 48 / unlimited budget (< $0.01 at $3/mil)
+</stats>
 
-tip: did you \`npx rhachet roles link --role missing\` first?
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/sample.md">
+# sample brief
+
+this is a sample brief for testing.
+
+## .what
+
+a test brief
+
+## .why
+
+validates brief discovery in acceptance tests
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 189
+  └── tokens ≈ 48 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case1] repo with briefs when: [t1] roles boot --repo this --role absent then: the refusal frame is locked to a snapshot: stderr-role-absent 1`] = `
+"
+✋ ConstraintError: no role "absent" found in .agent/repo=.this/
+
+tip: did you \`npx rhachet roles link --role absent\` first?
 
 {
   "input": {
     "slugRepo": "this",
-    "slugRole": "missing"
+    "slugRole": "absent"
   }
 }
 
-[args] roles,boot,--repo,this,--role,missing
+[args] roles,boot,--repo,this,--role,absent
 
+"
+`;
+
+exports[`rhachet roles boot given: [case1] repo with briefs when: [t2] roles boot --repo this --role absent --if-present then: the skip renders as snapshotted — on STDOUT: stdout-if-present-skip 1`] = `
+"🫧 role not present, skipped
+"
+`;
+
+exports[`rhachet roles boot given: [case2] repo with registry when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-registry 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 2
+  ├── chars = 750
+  └── tokens ≈ 188 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/sample.md">
+# sample brief
+
+this is a sample brief for testing.
+
+## .what
+
+a test brief
+
+## .why
+
+validates brief discovery in acceptance tests
+
+</brief.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/echo-args.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = echoes all arguments
+# .why = test skill for argument passing
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/say-hello.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = greet the world
+# .why = test skill for acceptance tests
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 2
+  ├── chars = 750
+  └── tokens ≈ 188 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case3] minimal repo when: [t0] roles boot --repo this --role any --if-present then: the skip render matches its snapshot: stdout-if-present-skip-minimal 1`] = `
+"🫧 role not present, skipped
+"
+`;
+
+exports[`rhachet roles boot given: [case4] repo with .scratch and .archive directories when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-scratch-archive-excluded 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 133
+  └── tokens ≈ 34 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+## test role
+
+role for testing blocklisted directory exclusion
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/included.brief.md">
+# included brief
+
+this brief should be included in roles boot output.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 133
+  └── tokens ≈ 34 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case5] repo with compressed briefs (.md.min) when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-min 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 234
+  └── tokens ≈ 59 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/sample.md.min">
+# sample brief
+test brief; validates compressed brief preference at boot.
+.md.min counterpart exists => loader prefers minified variant for content; .md path = stable identity.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 234
+  └── tokens ≈ 59 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case6] repo with orphan .md.min when: [t0] roles boot --repo .this --role any then: the refusal renders as snapshotted — on STDERR: stderr-orphan-min 1`] = `
+"
+✋ ConstraintError: orphan .md.min file(s) detected without .md source:
+  - /TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min
+
+each .md.min file must have a matched .md source file.
+
+{
+  "hint": "a .md.min is derived from its .md source — restore the absent .md, or delete the orphan .md.min",
+  "orphanPaths": [
+    "/TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min"
+  ]
+}
+
+[args] roles,boot,--repo,.this,--role,any
+
+"
+`;
+
+exports[`rhachet roles boot given: [case7] repo with mixed compression when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-mixed-min 1`] = `
+"<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── chars = 494
+  └── tokens ≈ 124 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/compressed.md.min">
+# compressed brief
+has .md.min counterpart => loader prefers minified variant.
+validates mixed-mode: briefs w/ .md.min load minified; briefs w/o load .md.
+
+</brief.say>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/plain.md">
+# plain brief
+
+this brief has no \`.md.min\` counterpart. it should be loaded as-is from the \`.md\` file.
+
+## .what
+
+a brief without compressed counterpart for mixed-mode test validation.
+
+## .why
+
+validates backwards compatibility: briefs without \`.md.min\` load from \`.md\` as before.
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 2
+  │   └── skills = 0
+  ├── chars = 494
+  └── tokens ≈ 124 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case8] repo with .scratch and .archive directories that contain .md.min files when: [t0] roles boot --repo .this --role any then: the payload renders as snapshotted — on STDOUT: stdout-scratch-archive-min-excluded 1`] = `
+"<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 101
+  └── tokens ≈ 26 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+this role tests blocklist exclusion of .min files
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/included.brief.md.min">
+loader prefers minified variant for included brief
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 101
+  └── tokens ≈ 26 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case9] a role dir that holds no resources when: [t0] roles boot --repo .this --role empty then: the empty render is snapshotted — on STDOUT: stdout-role-empty 1`] = `
+"🧢 roles boot --repo .this --role empty
+   └─ 🟡 no resources found — this boot emits naught
 "
 `;

@@ -1,24 +1,53 @@
 # .agent/repo=.this/role=any/boot.yml
 #
-# controls which briefs are said (inline) vs reffed (pointer only).
+# controls which briefs are said (inline), reffed (pointer only), or excluded.
 # unmatched briefs become refs automatically.
 # note: .md.min versions are auto-preferred when they exist.
 
+# the budget is a ratchet. the built-in onStop gate it arms halts every stop once the payload
+# crosses it — so a new `say` brief must displace an old one, move to `ref`, or condense to
+# `.md.min`, never simply pile on. lower it as the payload is trimmed; raise it only as a
+# deliberate, reviewed choice.
+budget:
+  tokens: 15_000
+
+skills:
+  # a skill's name advertises it; its docblock instructs. only the first is owed every session.
+  #
+  # measured 2026-09-22: the four heaviest skill docblocks cost 2,288 tokens — `get.package.format`
+  # (808), `calc.tokens` (728), `perf.test` (396), `show.claude.task.output` (356) — against 8
+  # resident briefs that together cost less. a docblock is a manual, and a manual is read at the
+  # moment of use rather than at boot.
+  #
+  # ⇒ so every skill is `ref`. the roster still names each one, so none becomes unreachable
+  #   pavement (`philosophy.entoolment-is-the-pinnacle`) — what is dropped is the usage text, which
+  #   `--help` renders on demand and which no session reads unprompted.
+  say: []
+
 briefs:
+  # the ref roster is the payload's single largest line item, not the resident docs.
+  # measured 2026-09-22: 276 ref lines = 8,404 tokens (57%), at 30.4 tokens per line —
+  # more than every said brief combined. a path string is the densest text a boot emits.
+  #
+  # ⇒ so the term cluster is excluded outright. ~200 of those lines are `domain.terms/`,
+  #   and a term is looked up by name rather than discovered by a roster read — the one
+  #   set whose advertisement earns least. `rhx grepsafe` finds them when a reader wants one.
+  not:
+    - briefs/domain.terms/**
+
   say:
     # core identity - always boot these
     - briefs/define.rhachet.v3.md
     - briefs/define.agent-dir.md
-    # the actor/clone identity model — the frame every design here sits within
+    # the actor/clone identity model — the frame every design here sits within.
+    # the catalog carries the invariants and a row per brief, so the long defines it
+    # indexes (actor-clone-hierarchy, enrollment-identity) ride at ref, read on demand
     - briefs/catalog.of=actor-clone-design._.md
-    - briefs/define.actor-clone-hierarchy.md
     - briefs/rule.forbid.per-clone-config.md
-    - briefs/define.enrollment-identity-is-the-roleset-hash.md
     - briefs/define.brain-dir-repo-vs-actor.md
-    - briefs/define.claude-md-vs-system-prompt.md
     - briefs/philosophy.minimal-budget-for-maximum-perspective.md
-    # actively used patterns
-    - briefs/howto.test-local-rhachet.md
+    # actively used patterns. howto.test-local-rhachet rides at ref: its cue fires via
+    # rule.forbid.node-modules-bin-rhx, and the howto is the detail behind it
     - briefs/rule.forbid.node-modules-bin-rhx.md
     - briefs/bin.dispatcher.pattern.md
     - briefs/run.executable.lookup.pattern.md

@@ -93,6 +93,36 @@ a credential prompt stops a test run, this file is the first artifact to open.
 mechanism** (`rule.forbid.mechanism-inferred-from-outcome`). *"the gate faulted"* and *"the tier
 needs this credential"* are different propositions. I never separated them, three times.
 
+## 🔴 incident 4 — the CLAIM was true and the COMMAND was inert
+
+a review lane timed out twice. the diagnosis was correct — the remedy is a guard edit, and the
+guard is sealed behind a privilege only a human may grant. so the question *"is this only a human's to do?"* was asked and it
+**held**. the escalation still failed, one step later:
+
+```sh
+rhx route.mutate.guard --stone … --route …    # ← what I handed a human
+```
+
+that command does not grant the privilege. `route.mutate.guard.sh:3` declares itself a **pretooluse
+hook**; with no tool-input JSON on stdin it exits 0 at line 43 and changes no state at all. the
+grant is a different skill, named in that file's own docblock at `:24`:
+
+```sh
+rhx route.mutate grant allow                  # ← the command that does it
+```
+
+⇒ **I handed a human the name of the lock rather than the key**, and the escalation read as complete
+because it carried a backticked command with the right nouns in it.
+
+🔴 **an escalation owes a run of the command it hands upward.** the checks above grade the
+*claim* — is the credential read, does the rule permit this, is the act truly human-only. the
+REMEDY is graded too: a true claim with an inert command spends a human's attention and leaves them
+no act to perform, which costs as much as a false claim and is harder to spot, because the diagnosis
+above it is sound.
+
+🟡 **the check is one invocation.** run the command before it is handed over; if it prints a banner
+and exits, read its source before the escalation names it.
+
 ## .the test
 
 before you escalate a halt, answer the one question its class asks:
@@ -102,6 +132,7 @@ before you escalate a halt, answer the one question its class asks:
 | a credential prompt | does the code under test read this credential? |
 | a rule you judge unsatisfiable | what does the rule's own exception clause accept? |
 | any *"only a human can do this"* claim | which command would show that, and have I run it? |
+| 🔴 **the command you hand upward** | 🔴 **have I RUN it — and did it do what its name implies?** |
 
 - **checked, and it holds** → escalate, and name the exact fix (`rule.require.errors-name-the-fix`)
 - **checked, and it does not** → the halt is yours to route around. do the work
@@ -121,6 +152,8 @@ diagnosis you could have done.
   exception clause = **blocker**
 - an *"only a foreman can do this"* claim whose precondition is checkable by one command that was
   never run = **blocker**
+- 🔴 an escalation that hands a human a command the escalator never ran, which turns out inert =
+  **blocker** (the claim may be true and the escalation still delivers no act they can take)
 - a progress report that records a precondition halt as a passed gate = **blocker**
   (`rule.forbid.failhide`, applied to the report rather than the code)
 

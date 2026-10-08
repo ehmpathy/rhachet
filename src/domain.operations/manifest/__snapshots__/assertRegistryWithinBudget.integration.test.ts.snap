@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertRegistryWithinBudget (integration) given: [case1] a role whose payload exceeds the budget it declares when: [t0] the registry is introspected then: the whole refusal matches its snapshot 1`] = `
+"🧢 repo introspect (role=over) — src/domain.roles/over/boot.yml
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 483 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 463 tokens   (2415% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what src/domain.roles/over/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+"
+`;
+
+exports[`assertRegistryWithinBudget (integration) given: [case4] a BUDGETED role whose briefs sit outside its role dir when: [t0] the registry is introspected then: it refuses, rather than measure the payload short 1`] = `
+"✋ ConstraintError: a budgeted role declares resources outside its own role dir
+
+{
+  "role": "split",
+  "dirRole": "/TEST_DIR/src/domain.roles/split",
+  "dirsOffRole": [
+    "/TEST_DIR/elsewhere/briefs"
+  ],
+  "why": "the budget gate scans the role dir, so an off-dir resource would be measured short here and rendered in full by a consumer",
+  "hint": "move the briefs/skills dirs beside boot.yml, or drop budget.tokens from that spec"
+}"
+`;

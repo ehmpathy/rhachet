@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { asBrainDirReportBlock } from '@/blackbox/.test/infra/asBrainDirReportBlock';
+import { asBrainDirReportSnapshot } from '@/blackbox/.test/infra/asBrainDirReportSnapshot';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -17,22 +17,14 @@ import {
  *   its log and the LAST — so a test can ask both WHICH CHANNEL those bytes reached and
  *   HOW MUCH of the log each channel carries
  *
- * .why = the install captures its child's output and puts the same bytes in two places:
- *   a replay to the terminal, and `metadata.output` on the error it throws. one of those
- *   is owed to the human and the other is owed to a log, so a clamp on the render needs a
- *   token it can follow through both. a token this distinctive cannot arrive by accident,
- *   so a hit is a fact about our own code rather than about the host
+ * .why = the install puts the child's output in two places — a replay to the terminal, and
+ *   `metadata.output` on the error it throws — and a distinctive token can be followed
+ *   through both
  *
- * 🔴 .why a PAIR rather than one token = the error's `output` is bounded to a 20-line TAIL
- *   at its source (`asNpmInstallFailureError`'s `asOutputTail`). a single token cannot
- *   tell a bounded tail from the whole log — it is either in both channels or neither,
- *   whatever the bound does. the pair splits that: the stub prints MORE lines than the
- *   bound keeps, so `HEAD` must fall outside the tail and `TAIL` must sit inside it. a
- *   bound that regressed to keep the WHOLE log reddens on `HEAD`; a bound that regressed
- *   to keep none of it reddens on `TAIL`.
+ * .note = `asOutputTail` keeps the last 20 lines, so `HEAD` falls outside that tail and
+ *   `TAIL` sits inside it
  *
- * .note = deliberately shaped to survive `maskInstallOutput` untouched — they must remain
- *   greppable in a raw stderr read, which is the whole point of them
+ * .note = both survive `maskInstallOutput` untouched, so a raw stderr read can grep them
  */
 const PNPM_LOG_MARKER_HEAD = 'RHACHET_TEST_PM_LOG_HEAD_LINE_BEYOND_THE_TAIL';
 const PNPM_LOG_MARKER_TAIL = 'RHACHET_TEST_PM_LOG_TAIL_LINE_WITHIN_THE_TAIL';
@@ -40,10 +32,8 @@ const PNPM_LOG_MARKER_TAIL = 'RHACHET_TEST_PM_LOG_TAIL_LINE_WITHIN_THE_TAIL';
 /**
  * .what = how many filler lines the stub prints between its two markers
  *
- * .why = it must exceed `NPM_INSTALL_OUTPUT_TAIL_LINES` (20), so the head marker is
- *   genuinely pushed out of the tail rather than merely assumed to be. stated as a
- *   comparison rather than a bare number, so a reader can check the claim without a
- *   trip to the source it is calibrated against
+ * .why = it exceeds `NPM_INSTALL_OUTPUT_TAIL_LINES` (20), so the head marker falls outside
+ *   the tail
  */
 const PNPM_LOG_FILLER_LINES = 30;
 
@@ -54,11 +44,8 @@ const PNPM_LOG_FILLER_LINES = 30;
  * .why = the frame is what a human READS, so a snapshot of it catches a broken treestruct,
  *   a lost blank, or a clause in the wrong order — none of which a `toContain` row can see.
  *
- * 🚨 the window closes on the `└──` TERMINATOR, never on a fixed row count. a count is a
- *   second owner of the notice's length, so a row ADDED to the notice falls outside a
- *   counted window and the snapshot stays green over a render that changed — the
- *   unfaithful-fixture defect, inside the clamp meant to catch it. the terminator is the
- *   treestruct's own declaration of where it ends, so it tracks the render by construction.
+ * .note = the window closes on the `└──` terminator, never a fixed row count, so it tracks
+ *   the render's own length
  */
 const asPnpmNoticeFrame = (input: { stdout: string }): string => {
   const lines = input.stdout.split('\n');
@@ -108,13 +95,30 @@ const extractRhachetOutput = (input: {
     if (!headerEnded) headerLines.push(line);
   }
 
-  // summary = lines that start with ✨
-  const summaryLines = lines.filter((line) => line.includes('✨'));
+  // summary = each ✨ line, plus the tree rows that hang beneath it (e.g. `✨ hooks` → `└─ 1 created`)
+  const summaryLines = lines.filter((line, index) =>
+    isSummaryLine({ lines, index }),
+  );
 
   return {
     header: headerLines.join('\n').trim(),
     summary: summaryLines.join('\n').trim(),
   };
+};
+
+/**
+ * .what = whether a stdout line belongs to the ✨ summary
+ * .why = a summary header may carry its counts as tree rows beneath it; a filter on `✨` alone
+ *        keeps the header and drops the counts, so the snapshot shows a bare `✨ hooks`
+ */
+const isSummaryLine = (input: { lines: string[]; index: number }): boolean => {
+  const line = input.lines[input.index]!;
+  if (line.includes('✨')) return true;
+
+  // a tree row counts only where an unbroken run of tree rows leads back to a ✨ header
+  if (!/^ {3}[├└]─ /.test(line)) return false;
+  if (input.index === 0) return false;
+  return isSummaryLine({ lines: input.lines, index: input.index - 1 });
 };
 
 /**
@@ -138,23 +142,9 @@ const maskNodeVersion = (input: string): string =>
 /**
  * .what = masks the value of the install error's `output` field to a stable token
  *
- * .why  = the install error carries the package manager's WHOLE captured log in
- *   `metadata.output`, and node's own crash renderer prints every metadata field. so an
- *   uncaught install failure dumps a live registry response into this snapshot — here, a
- *   404 body from registry.npmjs.org, complete with its own url and prose.
- *
- *   two properties of this snapshot break if that payload is kept verbatim:
- *   - **determinism** — the text is npm's to reword, and the reword would redden a
- *     snapshot whose declared subject is the lead-dash sentinel decode, never how the
- *     registry words a 404. a red for a reason outside its own subject trains a reader to
- *     resnap without a look, which is how a clamp becomes a decoration
- *   - **legibility** — the field is JSON-encoded, so its ansi codes survive as literal
- *     `\u001b[41m` text. `stripAnsiCodes` cannot reach them (they are no longer control
- *     bytes), and they render as noise (rule.forbid.snapshot-visual-blemishes)
- *
- * .note = it masks the VALUE and keeps the KEY, deliberately. that the error carries the
- *   captured log at all is a real, assertable property of the contract — so the snapshot
- *   still goes red if the field disappears. only the payload it cannot own is dropped.
+ * .why  = `metadata.output` carries the package manager's captured log — a live registry
+ *   response this repo does not own, with json-escaped ansi codes `stripAnsiCodes` cannot reach
+ * .note = the value is masked and the key kept, so the snapshot still pins the field
  */
 const maskInstallOutput = (input: string): string =>
   input.replace(/("output": ")(?:\\.|[^"\\])*(")/g, '$1$OUTPUT_MASKED$2');
@@ -273,23 +263,8 @@ describe('rhachet upgrade', () => {
       });
 
       then('the human reads a framed report, never a node crash dump', () => {
-        // 🚨 the ERGONOMICS half of the class split, and it was not designed for —
-        //   it was measured when this snapshot moved. `invoke.ts` frames a
-        //   `ConstraintError` (a `HelpfulError` leaf) into a clean `✋` report; a
-        //   raw `BadRequestError`/bare `Error` still escapes as an uncaught throw.
-        //   so before this change a typo'd slug printed a stack trace whose caret
-        //   pointed at OUR `return new MalfunctionError(` line, as though our
-        //   construction site were the fault.
-        //
-        //   a stack trace as a human's error output is a blocker under
-        //   `rule.require.errors-name-the-fix`, so this row locks the frame rather
-        //   than leave it a side effect a later refactor could silently undo.
-        //
-        //   `MalfunctionError` — the local install's `timed-out`/`unclassified`
-        //   family member — now takes the same frame: `invoke.ts` widened its
-        //   catch from `BadRequestError` to `HelpfulError`, the base both leaves
-        //   share, so the two classes no longer disagree on this path. `[case16]`
-        //   below clamps that other leaf directly
+        // `invoke.ts` frames any `HelpfulError` into a clean report, never a stack trace
+        //   (`rule.require.errors-name-the-fix`); `[case16]` clamps the `MalfunctionError` leaf
         expect(result.stderr).not.toContain('    at ');
         expect(result.stderr).not.toContain('Node.js v');
       });
@@ -307,15 +282,9 @@ describe('rhachet upgrade', () => {
     });
   });
 
-  // 🚨 THE REAL-BINARY FRAME for the unreadable-probe notice, and the reason it lives at
-  //   the acceptance tier rather than beside the renderer: the notice is a bare
-  //   `console.log`, so a captured-stream unit clamp proves its PAYLOAD and says naught
-  //   about whether a human ever SEES it. **payload ≠ screen** — a render can be correct
-  //   and unreachable, and only a run through the compiled binary tells the two apart.
-  //
-  //   the scene is HERMETIC by construction: three stubs prepended to PATH decide every
-  //   ambient read this path makes, so the case reaches no network and never writes into
-  //   the host's real global store (`rule.require.hermetic-tests`)
+  // the unreadable-probe notice, as a human sees it through the compiled binary.
+  //   three stubs prepended to PATH decide every ambient read this path makes, so the
+  //   case reaches no network and writes no global store (`rule.require.hermetic-tests`)
   given('[case15] the pnpm-presence probe never answers', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({ fixture: 'minimal' });
@@ -327,10 +296,7 @@ describe('rhachet upgrade', () => {
         mode: 0o755,
       });
 
-      // `pnpm` dies by SIGNAL, so the probe yields `unreadable` rather than a verdict.
-      // ⚠️ a signal death is chosen over a hang deliberately — it reaches the same branch
-      //   in milliseconds, where a hang would cost the probe's full bound, TWICE (it
-      //   retries). a test that waits 20s to prove a render is a test nobody keeps
+      // `pnpm` dies by signal, so the probe yields `unreadable` in milliseconds
       writeFileSync(join(stubDir, 'pnpm'), '#!/bin/sh\nkill -9 $$\n', {
         mode: 0o755,
       });
@@ -341,10 +307,7 @@ describe('rhachet upgrade', () => {
         mode: 0o755,
       });
 
-      // ⚠️ `--which global` is REQUIRED, and its absence is what makes this frame subtle:
-      //   `--self` alone only adds `rhachet` to the LOCAL list, and the local path never
-      //   probes for pnpm. only the global target reaches `getPnpmPresence`, so a run
-      //   without this flag renders no notice and would pass a weaker assertion silently
+      // `--which global` is what reaches `getPnpmPresence`; the local path never probes
       const result = invokeRhachetCliBinary({
         args: ['upgrade', '--self', '--which', 'global'],
         cwd: repo.path,
@@ -357,8 +320,6 @@ describe('rhachet upgrade', () => {
 
     when('[t0] rhachet upgrade --which global, with the probe wedged', () => {
       then('the human SEES the notice — it is not swallowed', () => {
-        // 🚨 the row acceptance #3 rests on. before this, the only proof the notice
-        //   rendered was a captured stream inside the process that wrote it
         expect(scene.result.stdout).toContain(
           'could not tell whether pnpm is installed',
         );
@@ -386,16 +347,8 @@ describe('rhachet upgrade', () => {
       });
 
       then('the WHOLE rendered frame is pinned, not merely its tokens', () => {
-        // 🚨 the `toContain` rows above prove each CLAUSE reached the human; they cannot
-        //   prove the frame READS well — a broken treestruct, a lost blank line, or a
-        //   clause in the wrong order satisfies every one of them. the peer frame
-        //   (`enroll.reach.acceptance.test.ts [case4]`) was snapped and this one was not,
-        //   so acceptance #3's second half rested on assertions that cannot see layout.
-        //
-        // .why sliced, never the whole stdout = the rest of the upgrade output carries a
-        //   version and a package list that drift for reasons unrelated to this notice.
-        //   the frame itself is invariant — its one variable is the timeout, derived from
-        //   `PROBE_TIMEOUT_MS`, so a change to that bound SHOULD redden this row
+        // pins the layout the `toContain` rows cannot see. sliced to the notice frame,
+        //   whose one variable is the timeout derived from `PROBE_TIMEOUT_MS`
         expect(
           asPnpmNoticeFrame({ stdout: scene.result.stdout }),
         ).toMatchSnapshot();
@@ -403,46 +356,18 @@ describe('rhachet upgrade', () => {
     });
   });
 
-  // 🚨 THE CLAMP for the gap `[case2b]` named but never recorded: a `MalfunctionError`
-  //   thrown off the LOCAL install path (`execNpmInstallLocal` -> `asNpmInstallFailureError`,
-  //   the `timed-out`/`unclassified` rows) had no try/catch above it anywhere in the call
-  //   chain, so it escaped `invoke.ts`'s only catch (which matched `BadRequestError` alone)
-  //   and surfaced as a raw, unhandled node crash dump — on the DEFAULT upgrade target, for
-  //   the one failure kind that carries the most load-bearing hint in the file (a stalled
-  //   pnpm may still hold its store lock).
-  //
-  //   fixed by widening `invoke.ts`'s catch from `BadRequestError` to `HelpfulError`, the
-  //   shared base both `ConstraintError` and `MalfunctionError` extend — a single site, no
-  //   change to either leaf's own exit code (`getExitCodeFromError` already reads
-  //   `.code.exit` generically)
+  // a `MalfunctionError` off the local install path (`execNpmInstallLocal` ->
+  //   `asNpmInstallFailureError`) reaches `invoke.ts`'s `HelpfulError` catch and renders framed
   given('[case16] local install dies by signal (unclassified) — the human sees a framed report, never a raw crash dump', () => {
     const scene = useBeforeAll(async () => {
       const repo = await genTestTempRepo({ fixture: 'minimal' });
       const stubDir = genTempDir({ slug: 'pnpm-local-crash' });
 
-      // `pnpm` dies by SIGNAL rather than hang — it reaches the SAME `unclassified`
-      // branch a real 5-minute timeout would (`execNpmInstall`'s `result.signal !== null`
-      // row), in milliseconds rather than the full install bound. see `[case15]`'s own
-      // note for why a signal death is chosen over a genuine wait
+      // `pnpm` dies by signal — the `unclassified` branch (`result.signal !== null`)
       //
-      // 🚨 .why it PRINTS a LOG before it dies = this stub used to be silent, and that
-      //   silence is what kept a real defect invisible here. `execNpmInstall` CAPTURES the
-      //   package manager's output, replays it to the terminal, then puts the same bytes
-      //   into `metadata.output` on the error it throws. so a renderer that mishandles
-      //   that field prints the log a SECOND time and buries the one sentence that names
-      //   the fix beneath bytes the human just watched scroll past.
-      //
-      //   ⚠️ a stub with NO output yields empty metadata, so the double print has naught
-      //   to double and the case stays green whether or not the defect is present. that is
-      //   `rule.require.clamp-edge-cases`'s "a clamp not watched red is a guess", produced
-      //   by a fixture rather than by an assertion.
-      //
-      // 🔴 .why the log is LONGER than the tail bound = the guarantee under test is no
-      //   longer "the bytes reach exactly one channel". `asCliErrorFrame` renders metadata
-      //   UNREDACTED on purpose — the metadata is where the fix lives — so the tail DOES
-      //   reach the human's error, by design. what still must hold is that it arrives
-      //   BOUNDED and BELOW the hint. a one-line log cannot tell those apart from a
-      //   render that dumps everything, so the stub emits more lines than the bound keeps
+      // .why it prints a log = `execNpmInstall` replays the output and also puts it into
+      //   `metadata.output`, so an empty stub could not show a double print
+      // .why the log exceeds the tail bound = the tail must arrive bounded and below the hint
       writeFileSync(
         join(stubDir, 'pnpm'),
         [
@@ -456,8 +381,7 @@ describe('rhachet upgrade', () => {
         { mode: 0o755 },
       );
 
-      // `--which local` isolates the path under test — no global branch to consider,
-      // matching `[case15]`'s use of `--which global` for the same reason in reverse
+      // `--which local` isolates the local install path
       const result = invokeRhachetCliBinary({
         args: ['upgrade', '--self', '--which', 'local'],
         cwd: repo.path,
@@ -470,16 +394,13 @@ describe('rhachet upgrade', () => {
 
     when('[t0] rhachet upgrade --self --which local, with pnpm dead by signal', () => {
       then('exits 1 — the cause is unclassified, ours to diagnose', () => {
-        // .why 1, not 2 = `rule.require.exit-code-semantics`: exit 1 reads "may be
-        //   transient, retry might help" — the honest claim for a package manager that
-        //   died of a signal for a reason this classifier cannot see in its own output
+        // exit 1 — a signal death is a malfunction, possibly transient
+        //   (`rule.require.exit-code-semantics`)
         expect(scene.result.status).toEqual(1);
       });
 
       then('the human reads a framed report, never a node crash dump', () => {
-        // before the `invoke.ts` widening, this exact scene printed a raw unhandled
-        // rejection whose caret pointed at `asNpmInstallFailureError`'s own
-        // `return new MalfunctionError(` line
+        // an unhandled rejection would print a node stack; the cli frames it instead
         expect(scene.result.stderr).not.toContain('    at ');
         expect(scene.result.stderr).not.toContain('Node.js v');
       });
@@ -489,20 +410,8 @@ describe('rhachet upgrade', () => {
         expect(scene.result.stderr).toContain('rhx --version');
       });
 
-      // 🚨 THE QUARTET that clamps how the captured log reaches a human. no row proves
-      //   it alone, and they are deliberately in tension — two demand the tail be
-      //   PRESENT in the error, two demand it be CONTAINED there. a render that drops
-      //   metadata satisfies the containment rows and reddens the presence rows; a
-      //   render that dumps everything does the reverse.
-      //
-      // 🔴 .why the old single row is GONE = it asserted the log never appears in stderr
-      //   at all, and cited `error.redact(['metadata']).message` as the mechanism. that
-      //   render is retired: metadata is now UNREDACTED by contract, because metadata is
-      //   where the fix lives (`asCliErrorFrame`'s own `🔴 .note`), so a redact here
-      //   would invert `rule.require.errors-name-the-fix`. the CONCERN the row carried —
-      //   that the bulk must never bury the fix — is real and outlived its mechanism, so
-      //   it is re-clamped below against the two guards that actually deliver it now:
-      //   the tail bound at the source, and the hint-first ordering in the frame
+      // the next four rows clamp how the captured log reaches a human: two demand the tail
+      //   be PRESENT in the error, two demand it be CONTAINED there
       then('the whole package manager log is replayed on stdout — head and tail', () => {
         // the REPLAY channel owes the human every byte their package manager wrote; it
         // is the error's metadata that is bounded, never this
@@ -511,43 +420,25 @@ describe('rhachet upgrade', () => {
       });
 
       then('the error keeps the log TAIL — metadata is never stripped', () => {
-        // .why = the hint says *"read the pnpm output above — its last error line names
-        //   the cause"*, so the tail IS the diagnosis. a `--output json` consumer, or a
-        //   human whose terminal already scrolled, has no other way to reach it
+        // the tail holds the last error line, which the hint points to
         expect(scene.result.stderr).toContain(PNPM_LOG_MARKER_TAIL);
       });
 
       then('but BOUNDS it — the head of the log is outside the tail', () => {
-        // 🚨 the row that parts "unredacted" from "unbounded". `asOutputTail` keeps the
-        //   last 20 lines, and the stub printed well past that, so a bound that
-        //   regressed to the whole log reddens HERE rather than in a reviewer's eye
+        // `asOutputTail` keeps the last 20 lines, and the stub prints well past that
         expect(scene.result.stderr).not.toContain(PNPM_LOG_MARKER_HEAD);
       });
 
       then('and never lets the log bury the fix — hint renders first', () => {
-        // 🚨 the guarantee that REPLACED the redaction. `JSON.stringify` walks insertion
-        //   order and the error writes `output` among its other fields, so without
-        //   `asCliErrorFrame`'s hint-first reorder the fix sentence renders UNDERNEATH
-        //   the log tail — which is the exact harm the old redact row was defending
-        //   against, by the cruder means of dropping the log entirely
+        // `asCliErrorFrame` reorders the hint ahead of the log tail
         const at = (needle: string): number => scene.result.stderr.indexOf(needle);
         expect(at('"hint"')).toBeGreaterThan(-1);
         expect(at(PNPM_LOG_MARKER_TAIL)).toBeGreaterThan(at('"hint"'));
       });
 
       then('the WHOLE framed report is pinned, not merely its tokens', () => {
-        // 🚨 the rows above prove each CLAUSE reached the human, and that the log is
-        //   bounded and sits below the hint; NONE of them can see whether the frame
-        //   READS well. a broken treestruct, a lost blank line, a reordered field, or
-        //   a glyph regression satisfies every one of them — the same gap `[case15]`
-        //   names in its own whole-frame row, here on a frame this change INTRODUCED
-        //   (`asCliErrorFrame`, reached once `invoke.ts`'s catch widened to
-        //   `HelpfulError`)
-        //
-        // .why beside the pointwise rows, never in place of them = a snapshot alone
-        //   greens on any render a maintainer resnaps; the seven rows above each
-        //   carry a claim a resnap cannot silence (`rule.forbid.failhide` at the
-        //   snapshot grain). the two clamp different failures, so both stay
+        // pins the whole `asCliErrorFrame` render, beside the pointwise rows above
+        //   (`rule.forbid.failhide`)
         expect(asSnapshotSafe(scene.result.stderr)).toMatchSnapshot();
       });
     });
@@ -661,7 +552,7 @@ describe('rhachet upgrade', () => {
       then('stdout renders no brain dir tree (no linked role, so none renders)', () => {
         // upgrade re-renders the brain dirs only beside the reinit of a linked role
         expect(result.upgradeResult.stdout).not.toContain('🧠 brain dir');
-        // and the census line this once asserted is gone from every surface
+        // and no census line renders
         expect(result.upgradeResult.stdout).not.toContain('boot.md (');
       });
 
@@ -1100,9 +991,8 @@ describe('rhachet upgrade', () => {
 
       then('the default brain dir reports as a tree, never a census line', () => {
         // the reinit of a linked role re-renders the repo's brain dir; no actor is
-        //   enrolled here. what a human reads is one `🧠 brain dir` treestruct — the
-        //   `boot.md (default): <path> — N roles, M chars` census it once read is gone
-        //   from every surface (`rule.require.treestruct-output`)
+        //   enrolled here. a human reads one `🧠 brain dir` treestruct, never a census line
+        //   (`rule.require.treestruct-output`)
         expect(result.upgradeResult.stdout).not.toContain('boot.md (default):');
 
         // and the corpus still landed — the report shape changed, the render did not
@@ -1117,16 +1007,11 @@ describe('rhachet upgrade', () => {
       });
 
       then('the brain dir tree is locked to a snapshot', () => {
-        // the assert above proves the census is GONE; only a snapshot shows a reader the
-        // tree's own order, glyphs, and words in a pr diff. every other surface that
-        // renders this block — `init`, `roles link`, `brain-dir-boot` — pins it, and this
-        // one had fallen out of that set
+        // pins the tree's order, glyphs, and words, as `init` and `roles link` do
         // (`rule.require.contract-snapshot-exhaustiveness`). paired with the asserts
         // above, never snapshot-only (`rule.forbid.failhide`)
         expect(
-          asSnapshotSafe(
-            asBrainDirReportBlock({ stdout: result.upgradeResult.stdout }),
-          ),
+          asBrainDirReportSnapshot({ stdout: result.upgradeResult.stdout }),
         ).toMatchSnapshot();
       });
 
@@ -1209,15 +1094,12 @@ describe('rhachet upgrade', () => {
         // asserts above fix the substance; this pins the whole frame — the tree layout,
         // the row order, the `(replaced)` marker — so a reword shows in the pr diff
         expect(
-          asSnapshotSafe(
-            asBrainDirReportBlock({ stdout: result.upgradeResult.stdout }),
-          ),
+          asBrainDirReportSnapshot({ stdout: result.upgradeResult.stdout }),
         ).toMatchSnapshot();
       });
 
       then('the hook sync still runs, since the default boot.md rendered', () => {
-        // the refusal this case once proved is gone, so the render downstream of it
-        //   reaches the hook sweep rather than halt ahead of it
+        // a shared name is no refusal, so the render reaches the hook sweep
         expect(
           existsSync(join(scene.defaultDir, 'boot.md')),
         ).toEqual(true);
@@ -1347,6 +1229,85 @@ describe('rhachet upgrade', () => {
         expect(result.packageJson.dependencies['rhachet-roles-brain']).toEqual(
           'link:.',
         );
+      });
+    });
+  });
+
+  /**
+   * .note = the written adapter is a test specimen whose subject IS the unclassified path, so
+   *   its bare `Error` falls under `rule.forbid.helpful-error-parents`' specimen carve-out; it
+   *   lives in `node_modules` of a temp repo, never under `src/.test/` (fulcrum F51)
+   */
+  given('[case17] a linked role whose brain adapter refuses every hook write', () => {
+    // the fixture's deps are `file:` refs, so the upgrade installs naught and needs no network
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+
+      // link the role first, so the upgrade has a linked role to re-sync
+      const linked = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+      });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles tester failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the linked fixture sees a fresh dist, then re-run',
+        });
+
+      // swap in an adapter whose reads succeed and whose writes throw, so each hook write faults
+      writeFileSync(
+        join(repo.path, 'node_modules/rhachet-brains-test/dist/index.js'),
+        [
+          'const refuse = async () => { throw new Error("adapter refused the hook write"); };',
+          'const getBrainHooks = ({ brain }) => {',
+          "  if (brain !== 'claude-code' && brain !== 'anthropic/claude/code') return null;",
+          '  return {',
+          "    slug: 'claude-code',",
+          '    dao: {',
+          '      get: { one: async () => null, all: async () => [] },',
+          '      set: { findsert: refuse, upsert: refuse },',
+          '      del: refuse,',
+          '    },',
+          '  };',
+          '};',
+          'module.exports = { getBrainHooks };',
+        ].join('\n'),
+      );
+
+      return { repo };
+    });
+
+    when('[t0] rhachet upgrade --roles test/tester --which local', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: scene.repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits 1, since a hook sync fault is a malfunction', () => {
+        expect(result.status).toEqual(1);
+      });
+
+      then('stdout names the fault set under ONE header, once', () => {
+        // one fault set renders one way: a single header, with its rows, on one stream
+        expect(result.stdout).toContain(
+          '💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled',
+        );
+        expect(result.stdout.split('hook sync error')).toHaveLength(2);
+      });
+
+      then('the fix hint rides the SAME stream as the faults it names', () => {
+        expect(result.stdout).toContain(
+          'hint: hooks did not land — fix the hook sync faults above, then rerun `rhx upgrade`',
+        );
+        expect(result.stderr).not.toContain('hook');
+      });
+
+      then('stdout.header matches snapshot', () => {
+        const { header } = extractRhachetOutput({ stdout: result.stdout });
+        expect(asSnapshotSafe(header)).toMatchSnapshot();
       });
     });
   });

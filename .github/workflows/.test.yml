@@ -315,8 +315,11 @@ jobs:
       # the real-brain acceptance tier spawns a genuine `claude` under our managed pty —
       # it lives in the DEFAULT gate on purpose (rule.forbid.faked-or-quarantined-acceptance),
       # so the runner needs the binary on PATH. absent it, the tier fails LOUD (never skips).
+      # pinned, never latest: a vendor release must not change the brain under test between
+      #   two runs of one commit. keep in step with CLAUDE_CLI_VERSION_PINNED in
+      #   blackbox/.test/infra/genIsolatedClaudeHome.ts
       - name: install claude-code # the real brain-cli the reach tier spawns
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-code@2.1.292
 
       # an explicit shard is hand-picked for ISOLATION — a suite that needs the runner to
       # itself (a real brain-cli spawn, a port bind). so it runs SERIAL: a parallel worker

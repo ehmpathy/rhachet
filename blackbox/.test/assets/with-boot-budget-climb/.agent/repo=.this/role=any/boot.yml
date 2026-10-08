@@ -1,0 +1,16 @@
+# the CLIMB — a cap with room for TWO under-budget boots, so the headroom can be watched to move.
+#
+# .why = `case=7` narrates an author who watches the headroom shrink turn by turn, and that is a
+#   claim about a SEQUENCE. a single boot can prove a band; it cannot prove a direction. so this
+#   fixture declares a cap generous enough that a `say` set can grow once and still land under —
+#   the only shape under which two consecutive boots are both steers rather than a steer then a
+#   halt.
+#
+# 🔴 .note = the `say` entry is a GLOB, deliberately. the case grows the payload with a file the
+#   glob already covers, so the climb is driven by the resident set rather than by an edit to this
+#   spec — which is what an author actually does between two boots.
+budget:
+  tokens: 400
+briefs:
+  say:
+    - briefs/**/*.md

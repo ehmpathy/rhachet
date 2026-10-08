@@ -1,0 +1,19 @@
+# the LOOP — a breach a real trim can CLOSE, so the authorship cycle can be walked end to end.
+#
+# .why = `case=7` narrates a loop: the author boots, meets the halt, trims, and boots again under
+#   the cap. every other budget fixture here freezes one end of it — `with-boot-budget-over` caps
+#   at 20 tokens, which the xml chrome alone exceeds, so NO trim can recover it. that fixture
+#   proves the halt renders; it cannot prove the halt is ESCAPABLE.
+#
+# 🔴 .note = the cap sits BETWEEN the two payloads on purpose — over with `core.md` resident, under
+#   once a `core.md.min` stands beside it. that is the whole assertion: the same spec, the same
+#   command, two verdicts, and the one change between them is a file the author wrote.
+#
+# 🔴 .note = the `say` entry is a GLOB, so the trim below touches NO part of this spec. the
+#   renderer prefers a `.md.min` where an author wrote one, which is what makes `condense` a rung
+#   on the halt's own ladder rather than advice with no mechanism behind it.
+budget:
+  tokens: 400
+briefs:
+  say:
+    - briefs/**/*.md

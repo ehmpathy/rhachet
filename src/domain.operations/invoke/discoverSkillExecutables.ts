@@ -57,7 +57,7 @@ export const discoverSkillExecutables = (input: {
       const skillsDir = resolve(repoDir, roleEntry, 'skills');
 
       // get all files from skills directory
-      const skillFiles = getAllFilesFromDir(skillsDir);
+      const skillFiles = getAllFilesFromDir({ dir: skillsDir });
 
       for (const skillPath of skillFiles) {
         const filename = basename(skillPath);

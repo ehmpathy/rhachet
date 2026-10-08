@@ -46,7 +46,7 @@ export const findNonExecutableShellSkills = (input: {
 
     // enumerate files from each skills directory
     for (const dirUri of skillDirUris) {
-      const allFiles = getAllFilesFromDir(dirUri);
+      const allFiles = getAllFilesFromDir({ dir: dirUri });
 
       // filter to .sh files and check executability
       for (const filePath of allFiles) {

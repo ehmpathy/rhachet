@@ -1,0 +1,15 @@
+# a payload section under a key NO MODE reads — `subjct.` is a typo for `subject.`
+#
+# 🔴 .why = it PARSES today. a zod catchall accepts any top-level key as a subject section, and
+#    the `subject.` prefix filter then discards this one downstream — so its briefs boot for
+#    no one, in silence. the twin of `boot.nested.yml`, one axis over: that one swallows a
+#    MODIFIER, this one swallows the PAYLOAD
+always:
+  briefs:
+    say:
+      - '0.wish.md'
+
+subjct.repo:
+  briefs:
+    say:
+      - '1.vision.yield.md'

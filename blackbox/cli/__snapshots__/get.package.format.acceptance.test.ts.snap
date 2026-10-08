@@ -1,0 +1,159 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`get.package.format given: [case1] an installed dual-published package when: [t0] it is measured then: the readout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+
+🧮 get.package.format --package js-tiktoken
+   ├─ version: 1.0.18
+   ├─ manifest
+   │  ├─ type: module
+   │  ├─ main: ./dist/index.cjs
+   │  └─ exports['.'].require: ./dist/index.cjs
+   ├─ probe (node vNODE — this runtime only)
+   │  └─ require(): ✓ loads
+   └─ verdict: dual
+
+"
+`;
+
+exports[`get.package.format given: [case2] no --package at all when: [t0] it is invoked bare then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ran: rhx get.package.format --skill get.package.format
+   ├─ ✋ ConstraintError: --package is required
+   └─ hint: rhx get.package.format --package js-tiktoken
+"
+`;
+
+exports[`get.package.format given: [case3] --package handed a FLAG as its value when: [t0] it is invoked with --package --verbose then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ran: rhx get.package.format --skill get.package.format --package --verbose
+   ├─ ✋ ConstraintError: --package needs a value, but was handed the flag --verbose
+   └─ hint: rhx get.package.format help
+"
+`;
+
+exports[`get.package.format given: [case3b] --package with no value at all when: [t0] it is invoked with --package as the last token then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ran: rhx get.package.format --skill get.package.format --package
+   ├─ ✋ ConstraintError: --package needs a value
+   └─ hint: rhx get.package.format help
+"
+`;
+
+exports[`get.package.format given: [case4] a package that is not installed when: [t0] it is measured then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ✋ ConstraintError: a-package-that-does-not-exist-here is not installed
+   └─ hint: pnpm install, then re-run — this skill reads node_modules, never the registry
+"
+`;
+
+exports[`get.package.format given: [case5] the help text when: [t0] it is asked for then: the help matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+
+🧮 get.package.format — is this package requireable from commonjs?
+
+usage:
+  rhx get.package.format --package js-tiktoken
+
+options:
+  --package NAME   the installed package to measure (required)
+
+verdicts (taken from the manifest — the probe is evidence beside it):
+  cjs        type is not module            → static import is safe
+  dual       type: module + a cjs entry    → static import is safe
+  esm-only   type: module, no cjs entry    → use getOneLazyEsmModuleLoader
+
+🟡 a green probe does not mean safe. node 22.12+ loads a synchronous esm
+   graph through require(), so a pure-esm package probes green here while
+   jest's cjs runtime and older node still refuse it.
+
+exits:
+  0  measured — an esm-only verdict is an answer, never a refusal
+  1  malfunction — the probe could not run
+  2  constraint  — absent args, unknown flag, package not installed
+
+"
+`;
+
+exports[`get.package.format given: [case6] an unknown flag when: [t0] it is invoked with --pkg then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ran: rhx get.package.format --skill get.package.format --pkg js-tiktoken
+   ├─ ✋ ConstraintError: unknown flag: --pkg
+   └─ hint: rhx get.package.format help
+"
+`;
+
+exports[`get.package.format given: [case7] an unexpected positional argument when: [t0] it is invoked with a bare package name then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=get.package.format
+   └─ ✋ blocked by constraints
+
+🧮 get.package.format
+   ├─ ran: rhx get.package.format --skill get.package.format js-tiktoken
+   ├─ ✋ ConstraintError: unexpected argument: js-tiktoken
+   └─ hint: rhx get.package.format --package <name>
+"
+`;
+
+exports[`get.package.format given: [case8] a malformed package.json inside node_modules when: [t0] it is measured then: the refusal matches its snapshot: stderr-direct-spawn-no-runner-frame 1`] = `
+"🧮 get.package.format
+   ├─ 💥 MalfunctionError: broken-manifest's package.json is not valid json
+   ├─ why: Expected double-quoted property name in JSON at position 48 (line 1 column 49)
+   └─ hint: read /TMP_TEST_DIR/node_modules/broken-manifest/package.json — a malformed manifest in node_modules usually means a partial install; re-run pnpm install
+"
+`;
+
+exports[`get.package.format given: [case9] an installed cjs-only package when: [t0] it is measured then: the readout matches its snapshot: stdout-direct-spawn-no-runner-frame 1`] = `
+"🧮 get.package.format --package fixture-cjs
+   ├─ version: 1.0.0
+   ├─ manifest
+   │  ├─ type: (absent — cjs by default)
+   │  ├─ main: index.js
+   │  └─ exports['.'].require: (absent)
+   ├─ probe (node vNODE — this runtime only)
+   │  └─ require(): ✓ loads
+   └─ verdict: cjs
+
+"
+`;
+
+exports[`get.package.format given: [case10] an installed esm-only package when: [t0] it is measured then: the readout matches its snapshot: stdout-direct-spawn-no-runner-frame 1`] = `
+"🧮 get.package.format --package fixture-esm-only
+   ├─ version: 1.0.0
+   ├─ manifest
+   │  ├─ type: module
+   │  ├─ main: (absent)
+   │  └─ exports['.'].require: (absent)
+   ├─ probe (node vNODE — this runtime only)
+   │  └─ require(): ✗ refuses
+   │     └─ No "exports" main defined in /TMP_TEST_DIR/node_modules/fixture-esm-only/package.json
+   └─ verdict: esm-only
+
+   🟡 esm-only — a static import compiles to require() in dist and a cjs consumer
+      cannot load it. route it through getOneLazyEsmModuleLoader
+      (\`rule.forbid.eager-esm-imports-in-prod\`).
+
+"
+`;

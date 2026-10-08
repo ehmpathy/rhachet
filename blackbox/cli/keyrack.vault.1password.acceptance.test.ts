@@ -1,12 +1,15 @@
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTestPathWithout } from '@/blackbox/.test/infra/genTestPathWithout';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
-import { isOpCliInstalled } from '@src/domain.operations/keyrack/adapters/vaults/1password/isOpCliInstalled';
 
 /**
  * .what = path to mock gh CLI executable
@@ -19,6 +22,18 @@ const MOCK_GH_CLI_DIR = resolve(__dirname, '../.test/assets/mock-gh-cli');
  * .why = placed on PATH ahead of real op CLI for 1password vault tests
  */
 const MOCK_OP_CLI_DIR = resolve(__dirname, '../.test/assets/mock-op-cli');
+
+/**
+ * .what = the caller's PATH, mirrored into one temp dir, minus any `op`
+ * .why = `[case6]` grades the refusal for an absent `op`, so the absence belongs to the case,
+ *   never the machine (`rule.require.hermetic-tests`)
+ */
+const genOnePathWithoutOp = (): string =>
+  genTestPathWithout({
+    binaries: ['op'],
+    into: genTempDir({ slug: 'op-absent-path' }),
+    path: process.env.PATH ?? '',
+  });
 
 /**
  * .what = path to the rhachet binary
@@ -36,14 +51,12 @@ describe('keyrack vault 1password', () => {
   // kill daemon from prior test runs to prevent state leakage
   beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
 
-  let opAvailable: boolean;
+  // .note = no case here probes the host for `op`. every case constructs its own precondition
+  //   (the mock op on PATH, or an op-free PATH), so the host's inventory decides no outcome
+  //   (`rule.require.hermetic-tests`)
 
-  beforeAll(async () => {
-    opAvailable = await isOpCliInstalled();
-    if (!opAvailable) {
-      console.log('skipped 1password acceptance tests: op cli not available');
-    }
-  });
+  // .note = `mock-op-cli` is a stand-in: this suite grades rhachet's caller journey, never the
+  //   real `op`, and no tier reaches the real binary (`rule.require.external-contract-integration-tests`)
 
   /**
    * [uc1] set --vault 1password requires valid exid format
@@ -54,14 +67,13 @@ describe('keyrack vault 1password', () => {
       genTestTempRepo({ fixture: 'with-vault-1password' }),
     );
 
-    when('[t0] set with invalid exid format', () => {
-      const result = useBeforeAll(async () => {
-        if (!opAvailable) {
-          // skip test if op not available
-          return { status: 0, stdout: '{}', stderr: '', skipped: true };
-        }
+    // .note = format validation runs creds-free via the mock op cli on PATH
+    // .note = `repo.path` is read inside each `useBeforeAll`, since `repo` is a `usePrep` proxy
+    const pathWithMockOp = `${MOCK_OP_CLI_DIR}:${process.env.PATH}`;
 
-        return invokeRhachetCliBinary({
+    when('[t0] set with invalid exid format', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
           args: [
             'keyrack',
             'set',
@@ -76,37 +88,31 @@ describe('keyrack vault 1password', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: { HOME: repo.path, PATH: pathWithMockOp },
           logOnError: false,
-        });
-      });
+        }),
+      );
 
-      then('exits with non-zero status', () => {
-        if ((result as any).skipped) {
-          expect(true).toBe(true);
-          return;
-        }
-        expect(result.status).not.toEqual(0);
+      then('exits 2 — a caller-fixable constraint', () => {
+        expect(result.status).toEqual(2);
       });
 
       then('error mentions secret reference uri', () => {
-        if ((result as any).skipped) {
-          expect(true).toBe(true);
-          return;
-        }
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/secret reference uri|op:\/\//i);
+      });
+
+      then('the refusal matches its snapshot', () => {
+        // the `op://` match above passes on any message that quotes the shape; this pins the whole refusal
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-exid-format-invalid',
+        );
       });
     });
 
     when('[t1] set with valid exid format (op://vault/item/field)', () => {
-      const result = useBeforeAll(async () => {
-        if (!opAvailable) {
-          // skip test if op not available
-          return { status: 0, stdout: '{}', stderr: '', skipped: true };
-        }
-
-        return invokeRhachetCliBinary({
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
           args: [
             'keyrack',
             'set',
@@ -121,19 +127,23 @@ describe('keyrack vault 1password', () => {
             '--json',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          env: { HOME: repo.path, PATH: pathWithMockOp },
           logOnError: false,
-        });
-      });
+        }),
+      );
 
       then('does not fail due to format (may fail due to auth)', () => {
-        if ((result as any).skipped) {
-          expect(true).toBe(true);
-          return;
-        }
         // if it fails, it should not be due to format validation
         const output = result.stdout + result.stderr;
         expect(output).not.toMatch(/invalid.*format|must be op:\/\//i);
+      });
+
+      then('the render matches its snapshot', () => {
+        // the negative match above cannot see a reworded body; this pins the whole render
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot('render-exid-format-valid');
       });
     });
   });
@@ -345,28 +355,16 @@ describe('keyrack vault 1password: op cli not installed', () => {
   /**
    * [uc6] set fails fast when op cli not installed
    * exit code 2 (constraint error) with install instructions
-   *
-   * .note = this test is conditional — only runs when op cli is NOT installed
+   * .note = op absence is constructed via an op-free PATH (`rule.require.hermetic-tests`)
    */
   given('[case6] op cli not installed', () => {
-    let opInstalled: boolean;
-
-    beforeAll(async () => {
-      opInstalled = await isOpCliInstalled();
-    });
-
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-vault-1password' }),
     );
 
     when('[t0] set --vault 1password without op cli', () => {
-      const result = useBeforeAll(async () => {
-        if (opInstalled) {
-          // skip test if op is installed
-          return { status: 0, stdout: '', stderr: '', skipped: true };
-        }
-
-        return invokeRhachetCliBinary({
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
           args: [
             'keyrack',
             'set',
@@ -380,36 +378,36 @@ describe('keyrack vault 1password: op cli not installed', () => {
             'op://test/test/test',
           ],
           cwd: repo.path,
-          env: { HOME: repo.path },
+          // an op-free PATH, via `genOnePathWithoutOp`
+          env: {
+            HOME: repo.path,
+            PATH: genOnePathWithoutOp(),
+          },
           logOnError: false,
-        });
-      });
+        }),
+      );
 
       then('exits with code 2 (constraint error)', () => {
-        if ((result as any).skipped) {
-          console.log('skipped: op cli is installed');
-          expect(true).toBe(true);
-          return;
-        }
         expect(result.status).toEqual(2);
       });
 
       then('error mentions op cli not found', () => {
-        if ((result as any).skipped) {
-          expect(true).toBe(true);
-          return;
-        }
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/op cli not found|op.*not installed/i);
       });
 
       then('output includes install instructions', () => {
-        if ((result as any).skipped) {
-          expect(true).toBe(true);
-          return;
-        }
         const output = result.stdout + result.stderr;
         expect(output).toMatch(/install|1password/i);
+      });
+
+      then('the refusal matches its snapshot', () => {
+        // .note = this refusal renders via `console.log`, so stdout (never stderr) is pinned
+        // .note = the pinned bytes come from `vaultAdapter1Password.ts`, unchanged here; their
+        //   known defects are caught in `.dream/2026_09_25.the-op-absent-refusal-*.md` (`F49`)
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-op-cli-absent',
+        );
       });
     });
   });

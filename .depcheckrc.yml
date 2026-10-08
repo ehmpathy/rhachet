@@ -28,6 +28,7 @@ ignores:
   - rhachet-brains-anthropic
   - rhachet-brains-fireworksai
   - rhachet-brains-openai
+  - rhachet-brains-openrouter
   - rhachet-brains-xai
   - rhachet-roles-rhachet
   # deps imported by a LINKED SUPPLIER role's own skills (.agent/repo=*/role=*), never

@@ -4,21 +4,25 @@ import { asRoleBootBody } from '@src/domain.operations/boot/asRoleBootBody';
 import { asRoleBriefFiles } from '@src/domain.operations/boot/asRoleBriefFiles';
 import { asRoleSkillFiles } from '@src/domain.operations/boot/asRoleSkillFiles';
 import { computeBootPlan } from '@src/domain.operations/boot/computeBootPlan';
+import {
+  type BootSayResource,
+  getAllBootSayResources,
+} from '@src/domain.operations/boot/getAllBootSayResources';
 import { parseRoleBootYaml } from '@src/domain.operations/boot/parseRoleBootYaml';
+import { readOneBootSpecFile } from '@src/domain.operations/boot/readOneBootSpecFile';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
-import { extractSkillDocumentation } from '@src/domain.operations/role/extractSkillDocumentation';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { BootStats } from './BootStats';
 
 /**
  * .what = render one linked role's boot content — its readme, say and ref briefs,
  *         say and ref skills — into one body, with its census apart
- * .why = the one renderer: `roles boot` prints it, and a brain dir's `boot.md` is
- *        built from it, so the two never drift
+ * .why = a brain dir's `boot.md` is built from it (`setBrainDirBoot`), so every brain
+ *        dir renders a role the same way. `roles boot` renders through `genBootPayload`
  *
  * .note = the body holds no `<stats>` block, so a render is byte-stable across runs
  */
@@ -49,7 +53,7 @@ export const getOneRoleBootContent = async (input: {
     );
 
   // read all files, then split into readme, briefs, and skills
-  const allFiles = getAllFilesFromDir(roleDir).sort();
+  const allFiles = [...getAllFilesFromDir({ dir: roleDir })].sort();
   const briefsDir = resolve(roleDir, 'briefs');
   const skillsDir = resolve(roleDir, 'skills');
   const readmePath = resolve(roleDir, 'readme.md');
@@ -70,7 +74,7 @@ export const getOneRoleBootContent = async (input: {
   // load boot.yml where present
   const bootConfig = existsSync(bootYamlPath)
     ? parseRoleBootYaml({
-        content: readFileSync(bootYamlPath, 'utf-8'),
+        content: readOneBootSpecFile({ pathToSpec: bootYamlPath }),
         path: bootYamlPath,
       })
     : null;
@@ -92,18 +96,20 @@ export const getOneRoleBootContent = async (input: {
     subjects: subjects.length > 0 ? subjects : undefined,
   });
 
-  // read each said resource once; its content feeds the body and the char census
-  const readme = readmeFile
-    ? { path: readmeFile, content: readFileSync(readmeFile, 'utf-8') }
-    : null;
-  const briefsSaid = bootPlan.briefs.say.map((ref) => {
-    const path = ref.pathToMinified ?? ref.pathToOriginal;
-    return { path, content: readFileSync(path, 'utf-8') };
+  // read each said resource once, through the reader that classifies a vanished file as a
+  // caller fault; its content feeds the body and the char census
+  const saidAll = getAllBootSayResources({
+    pathToReadme: readmeFile,
+    briefsSay: bootPlan.briefs.say,
+    skillsSay: bootPlan.skills.say,
   });
-  const skillsSaid = bootPlan.skills.say.map((path) => ({
-    path,
-    content: extractSkillDocumentation(path),
-  }));
+  const asSaid = (tag: BootSayResource['tag']) =>
+    saidAll
+      .filter((one) => one.tag === tag)
+      .map((one) => ({ path: one.pathToLabel, content: one.content }));
+  const readme = asSaid('readme')[0] ?? null;
+  const briefsSaid = asSaid('brief.say');
+  const skillsSaid = asSaid('skill.say');
 
   // compose the body and its census
   return asRoleBootBody({

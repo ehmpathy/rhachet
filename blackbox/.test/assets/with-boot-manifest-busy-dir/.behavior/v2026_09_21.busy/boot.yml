@@ -1,0 +1,14 @@
+# .what = a manifest that curates its REF list and declares no `say` key at all
+#
+# 🔴 .why = the busy-directory surprise, in the smallest shape that produces it. an absent `say`
+#   key means SAY ALL (`computeBootPlan.ts` — "say: null means say key was absent -> say
+#   all"), and a manifest's candidate universe is every neighbor of the spec rather than a
+#   `briefs/` subtree (`getAllBriefCandidateFiles.ts`).
+#
+#   ⇒ so an author who writes only a ref list, in a route dir that also carries `.seeds/`,
+#   `.fulcrums/`, and `review/`, boots every one of those files RESIDENT — the exact
+#   "I declared a small manifest and got a huge payload" surprise this whole feature exists
+#   to prevent.
+briefs:
+  ref:
+    - '2.criteria.md'

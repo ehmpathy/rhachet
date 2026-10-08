@@ -180,8 +180,8 @@ exports[`rhachet repo introspect given: [case10] rhachet-roles package with forb
    │
    ├─ mechanic
    │  ├─ hook: onBrain.onBoot[0]
-   │  ├─ command: npx rhachet roles boot --role mechanic
-   │  └─ hint: use './node_modules/.bin/rhachet roles boot --role mechanic'
+   │  ├─ command: npx rhachet run --skill say-hello
+   │  └─ hint: use './node_modules/.bin/rhachet run --skill say-hello'
    │
    └─ fix: replace 'npx rhachet' with './node_modules/.bin/rhachet' or 'rhachet' (global)
 
@@ -191,7 +191,66 @@ exports[`rhachet repo introspect given: [case10] rhachet-roles package with forb
       "roleSlug": "mechanic",
       "hookType": "onBoot",
       "hookIndex": 0,
-      "command": "npx rhachet roles boot --role mechanic"
+      "command": "npx rhachet run --skill say-hello"
+    }
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case11] a role whose boot.yml declares a budget its payload exceeds when: [t0] repo introspect then: the whole refusal matches its snapshot 1`] = `
+"🧢 repo introspect (role=mechanic) — roles/mechanic/boot.yml
+   ├─ ✋ ConstraintError: over budget
+   │  ├─ budget   = 20 tokens   (declared in boot.yml)
+   │  ├─ payload  = 454 tokens   (full emitted payload, o200k_base)
+   │  └─ over by  = 434 tokens   (2270% of budget)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what roles/mechanic/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+
+
+✋ ConstraintError: boot payload exceeds its declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "budget": 20,
+  "payload": 454,
+  "over": 434
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`rhachet repo introspect given: [case12] rhachet-roles package whose role boots itself from a hook when: [t0] repo introspect then: error output matches snapshot 1`] = `
+"
+✋ ConstraintError: hooks that boot their own role
+   │
+   ├─ briefs reach a session via the brain dir boot.md render, so these hooks are redundant:
+   │
+   ├─ mechanic
+   │  ├─ hook: onBrain.onBoot[1]
+   │  └─ command: ./node_modules/.bin/rhachet roles boot --role mechanic
+   │
+   └─ hint: delete each \`roles boot --role\` hook; boot.md already renders these roles
+
+{
+  "violations": [
+    {
+      "roleSlug": "mechanic",
+      "hookType": "onBoot",
+      "hookIndex": 1,
+      "command": "./node_modules/.bin/rhachet roles boot --role mechanic"
     }
   ]
 }

@@ -1,0 +1,6 @@
+always:
+  budget:
+    tokens: 5000
+  briefs:
+    say:
+      - '0.wish.md'

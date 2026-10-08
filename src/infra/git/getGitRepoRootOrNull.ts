@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path';
  * .note = a walk over `statSync`, with no package import: every cli call resolves the root, so
  *   this sits on the hot path, and a package barrel here once cost ~570 module loads per call
  *   (rule.require.thinnest-import-path)
+ * .note = a sync variant exists for callers that cannot await: `getOneGitRepoRootSync`
  */
 export const getGitRepoRootOrNull = async (input: {
   from: string;

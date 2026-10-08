@@ -1,0 +1,279 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`calc.tokens given: [case1] a frozen two-file corpus when: [t0] measured as a tree then: the readout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+
+🧮 calc.tokens --paths 'blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md'
+   ├─ corpus
+   │  ├─ files  = 2
+   │  ├─ chars  = 1093
+   │  └─ tokens = 392   (o200k_base, gpt-4o)
+   │
+   ├─ density
+   │  ├─ chars/token = 2.788   (corpus-wide)
+   │  ├─ min = 2.39   (densest file)
+   │  ├─ p05 = 2.39
+   │  ├─ p50 = 2.39
+   │  └─ p95 = 2.39
+   │
+   ├─ estimator: chars-div-4
+   │  ├─ estimate = 274
+   │  └─ error    = -30.1%   (undercounts — a gate would pass an over-budget payload)
+   │
+   └─ densest 2   (where an estimator undercounts most)
+      ├─ 2.39  chars=    766 tokens=    320  blackbox/.test/assets/with-calc-tokens-corpus/plain/beta.md
+      └─ 4.54  chars=    327 tokens=     72  blackbox/.test/assets/with-calc-tokens-corpus/plain/alpha.md
+
+"
+`;
+
+exports[`calc.tokens given: [case1] a frozen two-file corpus when: [t1] measured as json then: the document matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+
+{
+  "corpus": {
+    "files": 2,
+    "chars": 1093,
+    "tokens": 392
+  },
+  "density": {
+    "overall": 2.788,
+    "min": 2.39,
+    "p05": 2.39,
+    "p50": 2.39,
+    "p95": 2.39
+  },
+  "estimator": {
+    "slug": "chars-div-4",
+    "estimate": 274,
+    "errorPct": -30.1
+  },
+  "densest": [
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/plain/beta.md",
+      "chars": 766,
+      "tokens": 320,
+      "density": 2.39
+    },
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/plain/alpha.md",
+      "chars": 327,
+      "tokens": 72,
+      "density": 4.54
+    }
+  ]
+}
+"
+`;
+
+exports[`calc.tokens given: [case2] a corpus whose every match is empty when: [t0] measured then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ✋ ConstraintError: no tokens measured
+   ├─ paths: blackbox/.test/assets/with-calc-tokens-corpus/all-empty/*.md
+   ├─ matched 1 file, and it is empty
+   └─ hint: widen the glob, or measure a corpus that carries content
+"
+`;
+
+exports[`calc.tokens given: [case3] a glob that matches no file when: [t0] measured then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ✋ ConstraintError: no files matched
+   ├─ paths: no-such-dir/**/*.md
+   ├─ matched 0 files
+   └─ hint: quote the glob — --paths '.agent/**/*.md'
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t0] --top is not an integer then: it refuses, and names the valid shape 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --paths blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md --top abc
+   ├─ ✋ ConstraintError: invalid top: abc
+   └─ hint: pass a non-negative integer, e.g. --top 8
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t1] --against names an estimator that does not exist then: it refuses, and names the set that does 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --paths blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md --against chars-div-pi
+   ├─ ✋ ConstraintError: invalid estimator: chars-div-pi
+   └─ valid: chars-div-4 or chars-div-3.97
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t2] a flag is followed by another flag then: it refuses on the MISPAIRED flag, never on the glob that never arrived 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --paths --top 3
+   ├─ ✋ ConstraintError: absent value for --paths
+   └─ hint: rhx calc.tokens help
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t3] a flag is mistyped then: it refuses, and names the token it did not know 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --path blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md
+   ├─ ✋ ConstraintError: unknown argument: --path
+   └─ hint: rhx calc.tokens help
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t4] --paths is absent entirely then: it refuses, and names the required flag 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --format json
+   ├─ ✋ ConstraintError: absent required arg: --paths
+   └─ hint: name the files to measure, and quote the glob — e.g. rhx calc.tokens --paths '.agent/**/*.md'
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t5] a rhachet-prepended flag trails with no value then: it refuses loud, rather than dies silent under set -e 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --paths blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md --skill
+   ├─ ✋ ConstraintError: absent value for --skill
+   └─ hint: rhx calc.tokens help
+"
+`;
+
+exports[`calc.tokens given: [case4] a malformed argument when: [t6] --format names a render that does not exist then: it refuses, and names the set that does 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ ✋ blocked by constraints
+
+🧮 calc.tokens
+   ├─ ran: rhx calc.tokens --skill calc.tokens --paths blackbox/.test/assets/with-calc-tokens-corpus/plain/*.md --format bogus
+   ├─ ✋ ConstraintError: invalid format: bogus
+   └─ valid: tree or json
+"
+`;
+
+exports[`calc.tokens given: [case5] a corpus whose densities tie when: [t0] measured as json then: the tied render is pinned: stdout-tied 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+
+{
+  "corpus": {
+    "files": 4,
+    "chars": 352,
+    "tokens": 84
+  },
+  "density": {
+    "overall": 4.19,
+    "min": 4.19,
+    "p05": 4.19,
+    "p50": 4.19,
+    "p95": 4.19
+  },
+  "estimator": null,
+  "densest": [
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/tied/alpha.md",
+      "chars": 88,
+      "tokens": 21,
+      "density": 4.19
+    },
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/tied/delta.md",
+      "chars": 88,
+      "tokens": 21,
+      "density": 4.19
+    },
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/tied/mike.md",
+      "chars": 88,
+      "tokens": 21,
+      "density": 4.19
+    },
+    {
+      "path": "blackbox/.test/assets/with-calc-tokens-corpus/tied/zulu.md",
+      "chars": 88,
+      "tokens": 21,
+      "density": 4.19
+    }
+  ]
+}
+"
+`;
+
+exports[`calc.tokens given: [case6] a caller who asks how to use it when: [t0] help then: the help matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+
+🧮 calc.tokens — count the real token cost of a fileset
+
+usage:
+  rhx calc.tokens --paths '<glob>' [--against <slug>] [--top N] [--format <fmt>]
+
+options:
+  --paths     required. files to measure. repeatable — pass it once per glob.
+              quote the glob, or the shell expands it before we see it.
+  --against   optional. estimator to grade against the real count.
+              one of: chars-div-4, chars-div-3.97
+  --top       optional. list the N densest files, densest first — the files
+              where a flat divisor errs worst. a non-negative integer.
+              default 0, which omits the section.
+  --format    optional. tree (default) for a human, json for a pipe.
+              🟡 under rhx, a 2-line banner precedes it on stdout —
+                 pipe through 'tail -n +3' to reach a bare json document.
+
+exits:
+  0  measured
+  1  malfunction — tokenizer fault, or a matched file that cannot be read
+  2  constraint  — absent args, bad glob, no match, empty corpus, or a
+                   matched file that vanished between the glob and the read
+
+  .note = that last row is the glob/read race. it is a constraint rather than a
+    malfunction because the caller's own tree moved — a re-run on a settled tree
+    fixes it, and that is the test: who has to act to make it pass?
+
+examples:
+  rhx calc.tokens --paths '.agent/**/*.md'
+  rhx calc.tokens --paths '.agent/**/*.md' --against chars-div-4 --top 8
+  rhx calc.tokens --paths 'src/**/*.ts' --paths 'blackbox/**/*.ts'
+  rhx calc.tokens --paths 'src/**/*.ts' --format json | tail -n +3 | jq
+"
+`;
+
+exports[`calc.tokens given: [case7] a matched file that cannot be read when: [t0] measured then: the refusal matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=calc.tokens
+   └─ 💥 failed with an error
+
+🧮 calc.tokens
+   ├─ 💥 MalfunctionError: a matched file could not be read
+   ├─ path: /TMP_REPO/locked.md
+   ├─ errno: EACCES
+   └─ hint: check the path is a readable file, then file a defect if it is
+"
+`;

@@ -1,0 +1,122 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`shell dispatch given: [case2] the bun binary the route points at when: [t0] run.bun roles cost --help then: the help render matches its snapshot: stdout-run-bun-roles-cost-help 1`] = `
+"Usage: rhachet roles cost [options]
+
+show what a boot costs, and where the tokens go
+
+Options:
+  --repo <slug>              the repository slug for the role
+  --role <slug>              the role to cost
+  --manifest, --what <path>  cost a declared boot.yml instead of a role
+  --subject <slugs>          cost specific subjects (comma-separated or
+                             repeated, subject mode only)
+  --top <count>              how many batches to rank — a non-negative integer
+                             (default: 10)
+  --all                      cost every boot spec in this repo, as a roster
+  --if-present               exit silently where the role dir is absent
+  --when <caller>            who invoked this, with --all — one of hook.onBoot,
+                             hook.onTool, hook.onStop, hook.onTalk
+  -h, --help                 display help for command
+"
+`;
+
+exports[`shell dispatch given: [case2] the bun binary the route points at when: [t1] run.bun roles boot --help then: the help render matches its snapshot: stdout-run-bun-roles-boot-help 1`] = `
+"Usage: rhachet roles boot [options]
+
+boot context from role resources (briefs and skills)
+
+Options:
+  --repo <slug>              the repository slug for the role
+  --role <slug>              the role to boot resources for
+  --manifest, --what <path>  boot from a declared boot.yml instead of a role
+                             default
+  --if-present               exit silently where the role dir is absent
+  --subject <slugs>          boot specific subjects (comma-separated or
+                             repeated, subject mode only)
+  -h, --help                 display help for command
+"
+`;
+
+exports[`shell dispatch given: [case3] the rhx alias table when: [t0] rhx boot --repo .this --role any then: the alias renders as snapshotted — on STDOUT: stdout-rhx-boot-alias 1`] = `
+"<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 2
+  ├── chars = 750
+  └── tokens ≈ 188 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/sample.md">
+# sample brief
+
+this is a sample brief for testing.
+
+## .what
+
+a test brief
+
+## .why
+
+validates brief discovery in acceptance tests
+
+</brief.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/echo-args.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = echoes all arguments
+# .why = test skill for argument passing
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=.this/role=any/skills/say-hello.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = greet the world
+# .why = test skill for acceptance tests
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 4
+  │   ├── briefs = 1
+  │   └── skills = 2
+  ├── chars = 750
+  └── tokens ≈ 188 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`shell dispatch given: [case3] the rhx alias table when: [t1] rhx cost --repo .this --role any then: the alias renders as snapshotted — on STDOUT: stdout-rhx-cost-alias 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 366 (full emitted payload, o200k_base)
+   ├─ budget  = none declared — this boot is uncapped
+   ├─ batches = 4 say · 0 ref
+   ├─ chrome  = 142 tokens (38.8%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      ├─ 66  18.0%  .agent/repo=.this/role=any/skills/echo-args.sh
+      ├─ 66  18.0%  .agent/repo=.this/role=any/skills/say-hello.sh
+      ├─ 56  15.3%  .agent/repo=.this/role=any/briefs/sample.md
+      └─ 36   9.8%  .agent/repo=.this/role=any/readme.md
+
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
+
+"
+`;

@@ -54,8 +54,12 @@ describe('bootRoleResources', () => {
     when('[t0] booted', () => {
       then('all briefs are said with full content', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -75,8 +79,12 @@ describe('bootRoleResources', () => {
 
       then('all skills are said with full content', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -91,8 +99,12 @@ describe('bootRoleResources', () => {
 
       then('stats do not show say/ref breakdown', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -159,8 +171,12 @@ skills:
     when('[t0] booted', () => {
       then('matched briefs are said with full content', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -180,30 +196,37 @@ skills:
 
       then('unmatched briefs are ref with path only', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
 
         const fullOutput = output.join('\n');
 
-        // verify unmatched brief is ref (path only)
+        // verify unmatched brief is ref — a bare name under one hoisted base
         expect(fullOutput).toContain(
-          '<brief.ref path=".agent/repo=.this/role=any/briefs/not-matched.md"/>',
+          '<briefs.ref base=".agent/repo=.this/role=any/briefs/">',
         );
+        expect(fullOutput).toContain('\nnot-matched.md\n');
         // verify ref does not have full content nearby
-        const refIndex = fullOutput.indexOf(
-          '<brief.ref path=".agent/repo=.this/role=any/briefs/not-matched.md"/>',
-        );
-        const nextLine = fullOutput.slice(refIndex).split('\n')[1];
+        const refIndex = fullOutput.indexOf('\nnot-matched.md\n');
+        const nextLine = fullOutput.slice(refIndex + 1).split('\n')[1];
         expect(nextLine).not.toContain('not matched content');
       });
 
       then('matched skills are said with full content', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -218,8 +241,12 @@ skills:
 
       then('unmatched skills are ref with path only', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -228,14 +255,19 @@ skills:
 
         // verify unmatched skill is ref
         expect(fullOutput).toContain(
-          '<skill.ref path=".agent/repo=.this/role=any/skills/ref-me.sh"/>',
+          '<skills.ref base=".agent/repo=.this/role=any/skills/">',
         );
+        expect(fullOutput).toContain('\nref-me.sh\n');
       });
 
       then('stats show say/ref breakdown', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -281,8 +313,12 @@ skills:
       then('throws error: usecase requires subject mode', async () => {
         await expect(
           bootRoleResources({
-            slugRepo: '.this',
-            slugRole: 'any',
+            from: {
+              role: {
+                slugRepo: '.this',
+                slugRole: 'any',
+              },
+            },
             ifPresent: false,
             subjects: ['test'],
             cwd: scene.tempDir,
@@ -313,8 +349,12 @@ skills:
       then('throws error: usecase requires subject mode', async () => {
         await expect(
           bootRoleResources({
-            slugRepo: '.this',
-            slugRole: 'any',
+            from: {
+              role: {
+                slugRepo: '.this',
+                slugRole: 'any',
+              },
+            },
             ifPresent: false,
             subjects: ['test'],
             cwd: scene.tempDir,
@@ -352,29 +392,36 @@ skills:
     when('[t0] booted', () => {
       then('all briefs are ref with path only', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
 
         const fullOutput = output.join('\n');
 
-        // verify all briefs are ref
+        // verify all briefs are ref — two bare names under one hoisted base
         expect(fullOutput).toContain(
-          '<brief.ref path=".agent/repo=.this/role=any/briefs/brief1.md"/>',
+          '<briefs.ref base=".agent/repo=.this/role=any/briefs/">',
         );
-        expect(fullOutput).toContain(
-          '<brief.ref path=".agent/repo=.this/role=any/briefs/brief2.md"/>',
-        );
+        expect(fullOutput).toContain('\nbrief1.md\n');
+        expect(fullOutput).toContain('\nbrief2.md\n');
         // verify no say briefs with content
         expect(fullOutput).not.toContain('<brief.say path=');
       });
 
       then('stats show all briefs as ref', async () => {
         await bootRoleResources({
-          slugRepo: '.this',
-          slugRole: 'any',
+          from: {
+            role: {
+              slugRepo: '.this',
+              slugRole: 'any',
+            },
+          },
           ifPresent: false,
           cwd: scene.tempDir,
         });
@@ -400,8 +447,7 @@ skills:
         async () => {
           const error = await getError(
             bootRoleResources({
-              slugRepo: 'ehmpathy',
-              slugRole: 'mechanic',
+              from: { role: { slugRepo: 'ehmpathy', slugRole: 'mechanic' } },
               ifPresent: false,
               cwd: scene.tempDir,
             }),
@@ -419,8 +465,7 @@ skills:
     when('[t1] booted with --if-present', () => {
       then('it resolves silent', async () => {
         await bootRoleResources({
-          slugRepo: 'ehmpathy',
-          slugRole: 'mechanic',
+          from: { role: { slugRepo: 'ehmpathy', slugRole: 'mechanic' } },
           ifPresent: true,
           cwd: scene.tempDir,
         });

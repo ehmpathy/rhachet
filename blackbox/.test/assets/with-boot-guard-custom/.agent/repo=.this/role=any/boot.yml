@@ -1,0 +1,6 @@
+# a repo's own role, with a budget its owner chose — the guard must never change it
+budget:
+  tokens: 20
+briefs:
+  say:
+    - briefs/**/*.md

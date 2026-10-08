@@ -1,0 +1,12 @@
+# .agent/repo=.this/role=user/boot.yml
+#
+# the opt-in: a .this role boots into the brain dirs only where it holds a boot.yml.
+#
+# rhachet's own public surface — every cli or sdk change touches it — so its index is resident;
+# each guide is read when its surface is in play. unmatched briefs become refs.
+budget:
+  tokens: 1_500
+
+briefs:
+  say:
+    - briefs/catalog.of=usage._.md

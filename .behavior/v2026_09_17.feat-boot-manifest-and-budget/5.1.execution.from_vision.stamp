@@ -1,0 +1,141 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 5.1.execution.from_vision
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  │   ├─ $route/5.1.execution.from_vision.yield.md
+   │  │   └─ src/**/*
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 8/8)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 2 blockers 🔴
+   │  │   │   ├─ 1 nitpick, 1 disputed → 0 tallied ✓
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i031.f0a4efbe0b9ddf3f64.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i031.f0a4efbe0b9ddf3f64.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: repo-rules-agent (l1, 8/8)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i049.5823d14c72efe1c6e0.r002._.given.by_peer.repo-rules-agent.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i049.5823d14c72efe1c6e0.r002._.taken.by_self.repo-rules-agent.md
+   │  │   ├─ r3: repo-rules-agent-skills (l1, 5/6)
+   │  │   │   ├─ approved 1082.0s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r003._.given.by_peer.repo-rules-agent-skills.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r003._.taken.by_self.repo-rules-agent-skills.md
+   │  │   ├─ r4: repo-rules-tests (l1, 8/8)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 4 blockers 🔴
+   │  │   │   ├─ 3 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i015.43ff273f27f7dc0886.r003._.given.by_peer.repo-rules-tests.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i015.43ff273f27f7dc0886.r003._.taken.by_self.repo-rules-tests.md
+   │  │   ├─ r5: repo-rules-blackbox (l1, 8/8)
+   │  │   │   ├─ exhausted 🌙, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker, 1 disputed → 0 tallied ✓
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i030.2d9db0d40da0ead991.r004._.given.by_peer.repo-rules-blackbox.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i030.2d9db0d40da0ead991.r004._.taken.by_self.repo-rules-blackbox.md
+   │  │   ├─ r6: mech-failhides (l1, 6/6)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i023.0a55489a9053fdb062.r005._.given.by_peer.mech-failhides.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i023.0a55489a9053fdb062.r005._.taken.by_self.mech-failhides.md
+   │  │   ├─ r7: mech-failhides-edge (l1, 6/6)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i043.6358eb455774658430.r007._.given.by_peer.mech-failhides-edge.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i043.6358eb455774658430.r007._.taken.by_self.mech-failhides-edge.md
+   │  │   ├─ r8: mech-failhides-skills (l1, 6/6)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i050.1c7240caba33a9c9c1.r008._.given.by_peer.mech-failhides-skills.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i050.1c7240caba33a9c9c1.r008._.taken.by_self.mech-failhides-skills.md
+   │  │   ├─ r9: mech-decode-friction (l1, 8/8)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 2 blockers 🔴
+   │  │   │   ├─ 8 nitpicks, 1 disputed → 7 tallied 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i011.a717caa2bcdda24dbd.r006._.given.by_peer.mech-decode-friction.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i011.a717caa2bcdda24dbd.r006._.taken.by_self.mech-decode-friction.md
+   │  │   ├─ r10: arch-opport-decomposition (l1, 6/6)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 3 nitpicks, 1 disputed → 2 tallied 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i010.6beb9dce79968f268c.r006._.given.by_peer.arch-opport-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i010.6beb9dce79968f268c.r006._.taken.by_self.arch-opport-decomposition.md
+   │  │   ├─ r11: arch-smell-scopeleaks (l1, 6/6)
+   │  │   │   ├─ exhausted 🌙, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 4 blockers, 4 disputed → 0 tallied ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i010.6beb9dce79968f268c.r007._.given.by_peer.arch-smell-scopeleaks.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i010.6beb9dce79968f268c.r007._.taken.by_self.arch-smell-scopeleaks.md
+   │  │   ├─ r12: arch-hazards-maintenance (l1, 8/8)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 10 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i037.f528ed96bc74b56fa1.r010._.given.by_peer.arch-hazards-maintenance.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i037.f528ed96bc74b56fa1.r010._.taken.by_self.arch-hazards-maintenance.md
+   │  │   ├─ r13: arch-hazards-behavior (l1, 10/10)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 3 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i049.5823d14c72efe1c6e0.r013._.given.by_peer.arch-hazards-behavior.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i049.5823d14c72efe1c6e0.r013._.taken.by_self.arch-hazards-behavior.md
+   │  │   ├─ r14: arch-hazards-behavior-edge (l1, 6/6)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i050.1c7240caba33a9c9c1.r014._.given.by_peer.arch-hazards-behavior-edge.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i050.1c7240caba33a9c9c1.r014._.taken.by_self.arch-hazards-behavior-edge.md
+   │  │   ├─ r15: behavior-intent-coverage (l1, 8/8)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 3 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i024.0be00ca8d38945cdfb.r012._.given.by_peer.behavior-intent-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i024.0be00ca8d38945cdfb.r012._.taken.by_self.behavior-intent-coverage.md
+   │  │   ├─ r16: behavior-intent-coverage-blackbox (l1, 8/8)
+   │  │   │   ├─ approved, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick, 1 disputed → 0 tallied ✓
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i033.4fac85bbb46040970b.r013._.given.by_peer.behavior-intent-coverage-blackbox.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i033.4fac85bbb46040970b.r013._.taken.by_self.behavior-intent-coverage-blackbox.md
+   │  │   ├─ r17: ergo-friction-hazards (l1, 7/7)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 2 blockers 🔴
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i047.f8964a524aa16785d7.r017._.given.by_peer.ergo-friction-hazards.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i047.f8964a524aa16785d7.r017._.taken.by_self.ergo-friction-hazards.md
+   │  │   ├─ r18: enroll-impl-behavior-intent (l3, 23/28)
+   │  │   │   ├─ approved 175.2s
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r018._.given.by_peer.enroll-impl-behavior-intent.md
+   │  │   │   └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r018._.taken.by_self.enroll-impl-behavior-intent.md
+   │  │   └─ r19: enroll-impl-arch-defects (l3, 23/28)
+   │  │       ├─ approved 113.5s
+   │  │       ├─ 0 blockers ✓
+   │  │       ├─ 0 nitpicks ✓
+   │  │       ├─ given: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r019._.given.by_peer.enroll-impl-arch-defects.md
+   │  │       └─ taken: .behavior/v2026_09_17.feat-boot-manifest-and-budget/.reviews/peer/5.1.execution.from_vision._.review.i051.f0550250d8710f47ba.r019._.taken.by_self.enroll-impl-arch-defects.md
+   │  └─ judges
+   │      └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │          └─ finished 2.0s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive
