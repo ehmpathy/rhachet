@@ -8,6 +8,17 @@ import {
 } from '@src/domain.operations/enroll/asBrainCliVersion';
 import { isBrainCliVersionAtOrAboveFloor } from '@src/domain.operations/enroll/isBrainCliVersionAtOrAboveFloor';
 
+/**
+ * .what = the one claude-code version every real-brain journey runs against
+ * .why = `@latest` let each vendor release change the brain under test between two runs of
+ *   the same commit — a new model behind the `haiku` alias, new envelope keys, new /compact
+ *   behavior — so a red run could not tell a rhachet defect from a vendor release. a pin
+ *   makes the run reproducible; a bump is a deliberate commit, verified on its own
+ * .note = keep in step with the global install in `.github/workflows/.test.yml`, which the
+ *   PATH-based real-brain suites spawn
+ */
+const CLAUDE_CLI_VERSION_PINNED = '2.1.292';
+
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
@@ -28,7 +39,7 @@ import { join, resolve } from 'node:path';
  *     CLAUDE_CONFIG_DIR — so one shared binary leaves each test's HOME fully isolated
  *
  * .note = the cache lives under the repo's `node_modules/.cache`, gitignored with the rest
- *   of `node_modules`. it is reinstalled only when absent or below the enroll floor
+ *   of `node_modules`. it is reinstalled only when absent or not the pinned version
  * .note = two jest workers may race a cold cache; each installs into its own temp prefix and
  *   renames it into place, so the loser's rename fails harmlessly and it reads the winner's
  */
@@ -53,9 +64,10 @@ const getCachedBinVersion = (input: {
 
 const isCachedBinFresh = (input: { binPath: string }): boolean => {
   const version = getCachedBinVersion(input);
+  if (!version) return false;
   return (
-    !!version &&
-    isBrainCliVersionAtOrAboveFloor({ version, floor: BRAIN_CLI_VERSION_FLOOR })
+    `${version.major}.${version.minor}.${version.patch}` ===
+    CLAUDE_CLI_VERSION_PINNED
   );
 };
 
@@ -81,7 +93,7 @@ const getClaudeCliInstallCommand = (input: {
     'pnpm',
     [
       'add',
-      '@anthropic-ai/claude-code@latest',
+      `@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION_PINNED}`,
       '--dir',
       input.prefix,
       '--ignore-workspace',
@@ -129,12 +141,24 @@ export const getCachedClaudeCliBin =(): { binDir: string; binPath: string } => {
     rmSync(prefix, { recursive: true, force: true });
   }
 
-  // the install must clear the enroll floor, or every enroll step refuses
+  // the install must land the pinned version
   if (!isCachedBinFresh({ binPath }))
-    throw new ConstraintError('the cached claude-code is below the enroll floor', {
+    throw new ConstraintError('the cached claude-code is not the pinned version', {
       binPath,
       version: getCachedBinVersion({ binPath }),
+      pinned: CLAUDE_CLI_VERSION_PINNED,
+    });
+
+  // the pin must clear the enroll floor, or every enroll step refuses
+  const version = getCachedBinVersion({ binPath });
+  if (
+    !version ||
+    !isBrainCliVersionAtOrAboveFloor({ version, floor: BRAIN_CLI_VERSION_FLOOR })
+  )
+    throw new ConstraintError('the pinned claude-code is below the enroll floor', {
+      pinned: CLAUDE_CLI_VERSION_PINNED,
       floor: BRAIN_CLI_VERSION_FLOOR,
+      hint: 'bump CLAUDE_CLI_VERSION_PINNED in genIsolatedClaudeHome.ts',
     });
   return { binDir, binPath };
 };
