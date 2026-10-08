@@ -84,6 +84,27 @@ export const CLONE_SUBMIT_READY_BUDGET_MS = 5_000;
 export const CLONE_SUBMIT_READY_POLL_MS = 25;
 
 /**
+ * .what = the window awaitCloneSubmitTaken watches for the message to LEAVE the input box
+ *   after a submit `\r`, before it re-sends the `\r`
+ * .why =
+ *   - a taken submit clears the box within a frame or two, so a healthy dispatch exits this
+ *     window on its first polls and pays almost none of it
+ *   - a fresh claude TUI still draws its boot animation when the first say lands; the content
+ *     commits, yet the one `\r` is swallowed and the message sits `buffered` (measured CI
+ *     2026-10-08, claude-code 2.1.292, brain-dir-boot [t3]). this window is how long the
+ *     daemon waits before it calls the `\r` lost
+ */
+export const CLONE_SUBMIT_TAKEN_WINDOW_MS = 1_500;
+
+/**
+ * .what = the max count of `\r` re-sends awaitCloneSubmitTaken makes after the first submit
+ * .why = a bare `\r` appends no text, so a re-send cannot duplicate the message; the bound
+ *   keeps a box that never clears (a brain that refuses input) from a resend loop, and the
+ *   verdict channel still reports what landed
+ */
+export const CLONE_SUBMIT_RESEND_MAX = 2;
+
+/**
  * .what = the FLOOR of the in-flight ("wedged") timeout — the minimum window a
  *   dispatch waits for its `delivered` ack before it is called wedged
  * .why = a short prompt commits well under a second, but a generous fixed floor keeps

@@ -19,6 +19,7 @@ import {
   awaitCloneSubmitReady,
   getCloneSubmitBaseline,
 } from './awaitCloneSubmitReady';
+import { awaitCloneSubmitTaken } from './awaitCloneSubmitTaken';
 import { computeCloneAcceptRoute } from './computeCloneAcceptRoute';
 import { computeCloneScreenDispatchGate } from './computeCloneScreenDispatchGate';
 import {
@@ -172,9 +173,24 @@ export const genCloneSocketServer = (
       // blind sleep guessed that interval and lost a bracketed paste outright; the daemon
       // already holds the live screen, so the commit is watched rather than predicted. an
       // unreadable feed degrades to that proven sleep (awaitCloneSubmitReady)
-      await awaitCloneSubmitReady({ read: input.read, message, countBefore });
+      const ready = await awaitCloneSubmitReady({
+        read: input.read,
+        message,
+        countBefore,
+      });
 
       input.write(CLONE_SUBMIT);
+
+      // confirm the Enter was TAKEN — a fresh TUI mid boot animation can swallow the one
+      // `\r`, which left the message in the box, unsent. re-send a bounded count of times
+      // while the box still holds it (awaitCloneSubmitTaken)
+      await awaitCloneSubmitTaken({
+        read: input.read,
+        message,
+        countBefore,
+        observedReady: ready.observed,
+        resubmit: () => input.write(CLONE_SUBMIT),
+      });
       return { delivered: true as const };
     },
   });
