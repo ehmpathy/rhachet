@@ -4,5 +4,8 @@
   "private": true,
   "dependencies": {
     "rhachet-roles-ehmpathy": "1.17.20"
+  },
+  "devDependencies": {
+    "rhachet-brains-xai": "0.3.3"
   }
 }

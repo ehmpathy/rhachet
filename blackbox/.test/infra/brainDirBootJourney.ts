@@ -292,6 +292,19 @@ const ENVELOPE_KEYS_DETERMINISTIC = [
 ] as const;
 
 /**
+ * .what = the `usage` keys this journey reads
+ * .why = `usage` is vendor bill detail; claude-code adds and drops keys there from one
+ *   release to the next (`fallback_credit`, `safety_stops`), and the test install tracks
+ *   `@latest`. a lock on the whole key set reddens on a vendor release, never on a rhachet
+ *   change. the keys the journey reads are the contract, so those alone are locked
+ */
+const ENVELOPE_USAGE_KEYS_READ = [
+  'cache_creation_input_tokens',
+  'cache_read_input_tokens',
+  'input_tokens',
+] as const;
+
+/**
  * .what = a claude `--output-format json` envelope with every volatile value masked
  * .why = the envelope's shape is the contract a snapshot locks; token counts, costs,
  *   ids and the reply text vary per run. an array's length varies per run too —
@@ -310,6 +323,17 @@ export const asMaskedClaudeEnvelope = (input: {
   if (typeof value === 'number') return '__NUMBER__';
   if (typeof value === 'string') return '__STRING__';
   if (Array.isArray(value)) return '__ARRAY__';
+
+  // narrow usage to the keys the journey reads
+  if (key === 'usage' && value && typeof value === 'object')
+    return asMaskedClaudeEnvelope({
+      value: Object.fromEntries(
+        Object.entries(value).filter(([itemKey]) =>
+          (ENVELOPE_USAGE_KEYS_READ as readonly string[]).includes(itemKey),
+        ),
+      ),
+    });
+
   if (value && typeof value === 'object')
     return Object.fromEntries(
       Object.entries(value)

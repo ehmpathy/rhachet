@@ -6,5 +6,8 @@
     "rhachet-brains-anthropic": "0.4.3",
     "rhachet-brains-fireworksai": "0.2.3",
     "rhachet-roles-ehmpathy": "1.17.20"
+  },
+  "devDependencies": {
+    "rhachet-brains-xai": "0.3.3"
   }
 }

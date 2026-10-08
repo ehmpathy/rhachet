@@ -153,26 +153,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
   "ttft_stream_ms": "__NUMBER__",
   "type": "result",
   "usage": {
-    "cache_creation": {
-      "ephemeral_1h_input_tokens": "__NUMBER__",
-      "ephemeral_5m_input_tokens": "__NUMBER__",
-    },
     "cache_creation_input_tokens": "__NUMBER__",
     "cache_read_input_tokens": "__NUMBER__",
-    "fallback_credit": null,
-    "inference_geo": "__STRING__",
     "input_tokens": "__NUMBER__",
-    "iterations": "__ARRAY__",
-    "output_tokens": "__NUMBER__",
-    "output_tokens_details": {
-      "thinking_tokens": "__NUMBER__",
-    },
-    "server_tool_use": {
-      "web_fetch_requests": "__NUMBER__",
-      "web_search_requests": "__NUMBER__",
-    },
-    "service_tier": "__STRING__",
-    "speed": "__STRING__",
   },
   "uuid": "__STRING__",
 }
