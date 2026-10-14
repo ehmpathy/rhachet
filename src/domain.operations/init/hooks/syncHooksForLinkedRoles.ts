@@ -307,7 +307,7 @@ const getOneEnrolledActorSettingsOutcome = async (input: {
 
 /**
  * .what = run logic inside the settings shield of the brain dir `<repo>/.claude` reaches,
- *         when claude's `settings.json` there is an arrow; else run it bare
+ *         when that dir is in the layout; else run it bare
  * .why = the arrow is the only way an adapter's write by name can reach the grove
  */
 const withRepoBrainDirShield = async <T>(
@@ -319,8 +319,13 @@ const withRepoBrainDirShield = async <T>(
   const brainDir = getRealpathOrNull({
     path: join(input.repoPath, '.claude'),
   });
-  if (!brainDir || !isSymlinkAt({ path: join(brainDir, 'settings.json') }))
-    return logic();
+  // 🔴 the layout reach path is the signal, never the grove arrow: a box with no
+  //   `~/.claude/settings.json` has no arrow, and there an old adapter's write by name
+  //   would land in a real `settings.json` the clone never reads
+  const isLayoutReach =
+    isSymlinkAt({ path: join(input.repoPath, '.claude') }) ||
+    (!!brainDir && isSymlinkAt({ path: join(brainDir, 'settings.json') }));
+  if (!brainDir || !isLayoutReach) return logic();
   return withBrainDirSettingsShield(
     { repoPath: input.repoPath, brainDir, home: getHomeDir() },
     logic,
