@@ -3,18 +3,18 @@ import { given, then, when } from 'test-fns';
 import { relative } from 'node:path';
 import { ACTORS_GITIGNORE_LINE } from './constants';
 import { getActorsRootDir } from './getActorsRootDir';
-import { getDefaultActorOndiskDir } from './getDefaultActorOndiskDir';
+import { getOneRepoActorOndiskDir } from './getOneRepoActorOndiskDir';
 
 describe('constants', () => {
   const repoPath = '/repo';
   const actorsRootRel = relative(repoPath, getActorsRootDir({ repoPath }));
-  const defaultDirRel = relative(
+  const repoActorDirRel = relative(
     repoPath,
-    getDefaultActorOndiskDir({ repoPath }),
+    getOneRepoActorOndiskDir({ repoPath }),
   );
-  const defaultDirFromRoot = relative(
+  const repoActorDirFromRoot = relative(
     getActorsRootDir({ repoPath }),
-    getDefaultActorOndiskDir({ repoPath }),
+    getOneRepoActorOndiskDir({ repoPath }),
   );
 
   given('[case1] the repo-relative form of the actors root', () => {
@@ -28,20 +28,17 @@ describe('constants', () => {
         },
       );
 
-      then('the repo negation names the default actor dir', () => {
-        expect(ACTORS_GITIGNORE_LINE.repoDefaultNegation).toEqual(
-          `!${defaultDirRel}/`,
+      then('the repo negation names the repo actor dir', () => {
+        expect(ACTORS_GITIGNORE_LINE.repoRepoActorNegation).toEqual(
+          `!${repoActorDirRel}/`,
         );
       });
 
-      then(
-        'the self negation names the default actor dir from the root',
-        () => {
-          expect(ACTORS_GITIGNORE_LINE.selfDefaultNegation).toEqual(
-            `!/${defaultDirFromRoot}/`,
-          );
-        },
-      );
+      then('the self negation names the repo actor dir from the root', () => {
+        expect(ACTORS_GITIGNORE_LINE.selfRepoActorNegation).toEqual(
+          `!/${repoActorDirFromRoot}/`,
+        );
+      });
     });
   });
 });

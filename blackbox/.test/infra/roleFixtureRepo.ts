@@ -49,12 +49,22 @@ export const setupRoleFixtureRepo = (input: { dir: string }): void => {
  * .why = acceptance tests assert the enrolled set by the presence of the
  *        `.agent/repo=<repo>/role=<slug>` symlink tree the CLI writes
  */
-export const isRoleLinked = (input: { dir: string; role: string }): boolean => {
+export const getOneIsRoleLinked = (input: { dir: string; role: string }): boolean => {
   const agentDir = resolve(input.dir, '.agent');
   if (!existsSync(agentDir)) return false;
-  return readdirSync(agentDir)
-    .filter((e) => e.startsWith('repo=') && e !== 'repo=.this')
-    .some((repoEntry) =>
-      existsSync(resolve(agentDir, repoEntry, `role=${input.role}`)),
-    );
+  const linkedRepoEntries = readdirSync(agentDir).filter((name) =>
+    isLinkedRepoEntry({ name }),
+  );
+  return linkedRepoEntries.some((repoEntry) =>
+    existsSync(resolve(agentDir, repoEntry, `role=${input.role}`)),
+  );
+};
+
+/**
+ * .what = whether an `.agent/` entry is a repo linked from a package (never `.this`)
+ */
+const isLinkedRepoEntry = (input: { name: string }): boolean => {
+  const isRepoEntry = input.name.startsWith('repo=');
+  const isNativeRepo = input.name === 'repo=.this';
+  return isRepoEntry && !isNativeRepo;
 };

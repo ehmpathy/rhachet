@@ -6,7 +6,7 @@ import type { BrainDirBootFailure } from '@src/domain.operations/boot/BrainDirBo
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
 
 const failureOf = (cause: Error): BrainDirBootFailure => ({
-  scope: { kind: 'actor', actorHash: 'abc12345' },
+  scope: { kind: 'actor', actorExid: 'abc12345' },
   cause,
 });
 

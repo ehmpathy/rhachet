@@ -8,6 +8,8 @@ import type { CloneSayObservation } from './computeCloneSayVerdict';
  *   is null (never read), and there is no probe-blind cause. named so the orchestrator's
  *   deliver-or-refuse branch reads two named arms rather than an inline literal a reader must
  *   simulate (rule.forbid.decode-friction-in-orchestrators)
+ * .note = `exitAsked` is false: a refused say never reached the clone, so it asked naught of it
+ *   (and `withheld` is decided before any exit could be)
  */
 export const asCloneSayRefusalObservation = (input: {
   refusal: CloneWithheldReason;
@@ -16,4 +18,5 @@ export const asCloneSayRefusalObservation = (input: {
   transcriptRose: false,
   screen: null,
   probeReason: null,
+  exitAsked: false,
 });

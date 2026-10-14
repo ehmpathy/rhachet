@@ -3,6 +3,7 @@ import { HelpfulError } from 'helpful-errors';
 import type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
+import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
@@ -335,7 +336,7 @@ export const execUpgrade = async (
   })();
 
   // re-init only linked roles (not all roles in upgraded packages), then re-render
-  // every brain dir boot from the fresh content, then sync hooks once the default rendered
+  // every brain dir boot from the fresh content, then sync hooks once the repo actor rendered
   //
   // .note = an empty `hookErrors` is the honest value for an upgrade that synced no hooks
   const boots = await (async (): Promise<{
@@ -348,17 +349,28 @@ export const execUpgrade = async (
     const specifiers = buildRoleSpecifiers({
       linkedRoles: roleExpanded.linkedRoles,
     });
+
+    // put the repo actor's brain dir in the split layout BEFORE the role inits, so an init
+    //   that writes through `<repo>/.claude` meets the layout it lives in
+    //   (inventory.of=requirements.case=8)
+    const layoutBeforeInits = await setRepoActorBrainDirLayoutBeforeInits({
+      repoPath: context.gitroot,
+    });
     await initRolesFromPackages({ specifiers }, context);
 
     // re-render the boots before the hook sync, so the boot hooks never go first
     const synced = await syncAndReportBrainDirBoots(
-      { repoPath: context.gitroot, env: process.env },
+      {
+        repoPath: context.gitroot,
+        env: process.env,
+        symlinkPrior: layoutBeforeInits?.symlink ?? null,
+      },
       context,
     );
-    if (!synced.defaultRendered)
+    if (!synced.repoActorRendered)
       return { exitCode: synced.exitCode, hookErrors: [] };
 
-    // sync hooks for linked roles (always on for upgrade), once the default rendered
+    // sync hooks for linked roles (always on for upgrade), once the repo actor rendered
     //
     // 🔴 .note = the RETURN IS READ, never discarded. `syncHooksForLinkedRoles` AGGREGATES
     //   its per-brain faults into `errors` rather than throws, so a bare `await` swallows

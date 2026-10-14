@@ -3,6 +3,7 @@ import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { asCloneSerialFromDirName } from './asCloneSerialFromDirName';
+import { asClonesInStableOrder } from './asClonesInStableOrder';
 import { getOneCloneHydrated } from './getOneCloneHydrated';
 
 /**
@@ -21,7 +22,7 @@ export const getAllClonesForActor = (input: {
   actorDir: string;
   actorsRoot: string;
   repoPath: string;
-  actorHash: string;
+  actorExid: string;
 }): CloneOndisk[] => {
   const clonesDir = join(input.actorDir, 'clones');
 
@@ -37,23 +38,35 @@ export const getAllClonesForActor = (input: {
     throw error;
   }
 
-  // hydrate each serial dir; skip a half-built one (no identity.json → null)
-  const clones = entries
-    .filter((name) => asCloneSerialFromDirName({ dirName: name }) !== null)
-    .map((name) =>
-      getOneCloneHydrated({
-        cloneDir: join(clonesDir, name),
-        actorsRoot: input.actorsRoot,
-        repoPath: input.repoPath,
-        actorHash: input.actorHash,
-      }),
-    )
-    .filter((clone): clone is NonNullable<typeof clone> => clone !== null);
+  // hydrate each serial dir; skip a non-serial name and a half-built clone dir
+  const clones = entries.flatMap((dirName) =>
+    getOneCloneHydratedFromDirOrNone({ ...input, clonesDir, dirName }),
+  );
 
   // stable order: spawnedAt asc, then serial asc as a deterministic tiebreak
-  // (spread-copy so the sort never mutates the array in place)
-  return [...clones].sort((a, b) => {
-    if (a.spawnedAt !== b.spawnedAt) return a.spawnedAt < b.spawnedAt ? -1 : 1;
-    return a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0;
+  return asClonesInStableOrder({ clones });
+};
+
+/**
+ * .what = hydrate one `clones/` entry into a clone, or none
+ * .why = the enumerate reads as one call per entry; the skip rules live here
+ * .note = returns an array (empty or one) so the enumerate flattens without a null filter:
+ *   - a name that is not `serial=*` => none
+ *   - a serial dir with no identity.json (getOneCloneHydrated → null) => none
+ */
+const getOneCloneHydratedFromDirOrNone = (input: {
+  clonesDir: string;
+  dirName: string;
+  actorsRoot: string;
+  repoPath: string;
+  actorExid: string;
+}): CloneOndisk[] => {
+  if (asCloneSerialFromDirName({ dirName: input.dirName }) === null) return [];
+  const clone = getOneCloneHydrated({
+    cloneDir: join(input.clonesDir, input.dirName),
+    actorsRoot: input.actorsRoot,
+    repoPath: input.repoPath,
+    actorExid: input.actorExid,
   });
+  return clone === null ? [] : [clone];
 };

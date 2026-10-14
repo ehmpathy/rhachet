@@ -12,7 +12,7 @@ import { asRoleRefsFirstSeenPerRole } from '@src/domain.operations/init/roles/li
  * .note = no did-you-mean: the slug was valid once and went stale, so a typo hint would mislead
  */
 export const asRoleRefsForEnrolledSlugs = (input: {
-  actorHash: string;
+  actorExid: string;
   slugs: string[];
   refsLinked: RoleLinkRef[];
 }): RoleLinkRef[] => {
@@ -24,9 +24,9 @@ export const asRoleRefsForEnrolledSlugs = (input: {
   );
   if (slugsUnlinked.length > 0)
     throw new ConstraintError(
-      `actor ${input.actorHash} enrolled a role no longer linked: ${slugsUnlinked.join(', ')}`,
+      `actor ${input.actorExid} enrolled a role no longer linked: ${slugsUnlinked.join(', ')}`,
       {
-        actorHash: input.actorHash,
+        actorExid: input.actorExid,
         slugsUnlinked,
         hint: `re-link the role (rhx roles link --role ${slugsUnlinked[0]}), or end the actor's live clones so the sweep skips it`,
       },

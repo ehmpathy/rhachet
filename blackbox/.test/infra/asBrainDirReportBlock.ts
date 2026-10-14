@@ -1,13 +1,13 @@
 /**
- * .what = slices the `🧠 brain dir (<label>)` treestruct block out of cli stdout — its
- *   head line plus every indented row beneath it, and `''` where no such block rendered
+ * .what = slices the `🧠 brain://<exid>` treestruct block out of cli stdout — its head
+ *   line plus every indented row beneath it, and `''` where no such block rendered
  *
  * .why = a brain dir reports as ONE tree now, never as a `boot.md (<label>): …` census
  *   line. a snapshot of whole stdout would drag in every volatile span around it, and a
- *   `toContain` of one row proves naught about the tree's order, glyphs, or phrasing — the
+ *   `toContain` of one row proves naught about the tree's order, glyphs, or words — the
  *   three spans a human actually reads (`rule.require.treestruct-output`)
  *
- * .why a SHARED slicer = the upgrade suite and the default-actor migration journey both
+ * .why a SHARED slicer = the upgrade suite and the repo actor migration journey both
  *   assert this one block, and each would otherwise re-derive the slice inline
  *   (`rule.require.shared-test-fixtures`)
  *
@@ -17,7 +17,7 @@
  */
 export const asBrainDirReportBlock = (input: { stdout: string }): string => {
   const lines = input.stdout.split('\n');
-  const head = lines.findIndex((line) => line.includes('🧠 brain dir'));
+  const head = lines.findIndex((line) => line.includes('🧠 brain://'));
   if (head === -1) return '';
 
   const rows = [lines[head]!];

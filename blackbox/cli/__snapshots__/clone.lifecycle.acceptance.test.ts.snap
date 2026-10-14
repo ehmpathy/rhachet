@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t0] a process says to the dead clone then: the dead-clone error format is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: no live clone for this address — its socket is gone
+
+{
+  "hint": "re-enroll to spawn a fresh clone",
+  "reachState": "DEAD",
+  "reachCause": "DEAD-same-host"
+}
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t1] a process says to the dead clone with --output json then: the dead-clone json error shape is locked (catches a drifted shape) 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no live clone for this address — its socket is gone",
+  "hint": "re-enroll to spawn a fresh clone",
+  "reachState": "DEAD",
+  "reachCause": "DEAD-same-host",
+  "metadata": {
+    "hint": "re-enroll to spawn a fresh clone",
+    "reachState": "DEAD",
+    "reachCause": "DEAD-same-host"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t2] a process GETs the dead clone (the human tree) then: the dead-clone get tree format is locked (visual spot-check) 1`] = `
+"😶🎧 talk of @:ranger  ·  tail 20
+   │
+   └─ (no messages yet)
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXITED (dead) when: [t3] a process GETs the dead clone with --output json then: the dead-clone get json shape is locked (machine contract) 1`] = `
+"{
+  "messages": [],
+  "exidsUnreadable": [],
+  "exidsAmbiguous": [],
+  "exidsForeign": [],
+  "total": 0,
+  "truncated": false
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case3] a SECOND enroll of a still-live --as slug (idempotent reuse) when: [t0] the same slug is enrolled again with --output json then: the reused json handoff shape is locked (catches a drifted shape) 1`] = `
+"{"outcome":"reused","serial":"__SERIAL__","slug":"driver","socketEligible":true}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case3] a SECOND enroll of a still-live --as slug (idempotent reuse) when: [t1] the same slug is enrolled again in DEFAULT tree mode then: the reused tree line is locked (visual spot-check) 1`] = `
+"♻ reused the live clone that already answers to @:driver (no new brain spawned)
+"
+`;

@@ -15,8 +15,14 @@ const TEST_CASES = [
   },
   {
     description: 'the children form and the negation are kept',
-    given: '.agent/.actors/*\n!.agent/.actors/actor.via.slug=.default/\n',
-    expect: '.agent/.actors/*\n!.agent/.actors/actor.via.slug=.default/\n',
+    given: '.agent/.actors/*\n!.agent/.actors/actor.via.repo=ambient/\n',
+    expect: '.agent/.actors/*\n!.agent/.actors/actor.via.repo=ambient/\n',
+  },
+  {
+    description: 'the legacy repo actor negation is dropped, the rest kept',
+    given:
+      'node_modules/\n.agent/.actors/*\n!.agent/.actors/actor.via.slug=.default/\ndist/\n',
+    expect: 'node_modules/\n.agent/.actors/*\ndist/\n',
   },
   { description: 'an empty file stays empty', given: '', expect: '' },
 ];

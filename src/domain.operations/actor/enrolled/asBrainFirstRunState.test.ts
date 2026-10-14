@@ -23,6 +23,7 @@ describe('asBrainFirstRunState', () => {
                 projects: { '/other': { hasTrustDialogAccepted: true } },
               },
               repoPath: REPO,
+              repoPathMain: null,
             }),
           ).toEqual({
             hasCompletedOnboarding: true,
@@ -52,6 +53,7 @@ describe('asBrainFirstRunState', () => {
               customApiKeyResponses: { approved: ['key-a'] },
             },
             repoPath: REPO,
+            repoPathMain: null,
           }),
         ).toBeNull();
       });
@@ -72,6 +74,7 @@ describe('asBrainFirstRunState', () => {
           customApiKeyResponses: { approved: ['key-b', 'key-a'] },
         },
         repoPath: REPO,
+        repoPathMain: null,
       });
 
       then('the prior theme is kept', () => {
@@ -101,10 +104,80 @@ describe('asBrainFirstRunState', () => {
     when('[t0] the state is computed', () => {
       then('only the trust key is set', () => {
         expect(
-          asBrainFirstRunState({ prior: {}, human: {}, repoPath: REPO }),
+          asBrainFirstRunState({
+            prior: {},
+            human: {},
+            repoPath: REPO,
+            repoPathMain: null,
+          }),
         ).toEqual({
           projects: { [REPO]: { hasTrustDialogAccepted: true } },
         });
+      });
+    });
+  });
+
+  given('[case5] a repo that is a worktree of a main checkout', () => {
+    /**
+     * claude keys workspace trust by the MAIN checkout in a worktree (measured
+     * 2026-09-27), so trust under the worktree path alone is never read
+     */
+    const MAIN = '/home/someone/git/org/repo';
+
+    when('[t0] the state is computed from an empty prior', () => {
+      then(
+        'trust is set under both the worktree path and the main checkout',
+        () => {
+          expect(
+            asBrainFirstRunState({
+              prior: {},
+              human: {},
+              repoPath: REPO,
+              repoPathMain: MAIN,
+            }),
+          ).toEqual({
+            projects: {
+              [REPO]: { hasTrustDialogAccepted: true },
+              [MAIN]: { hasTrustDialogAccepted: true },
+            },
+          });
+        },
+      );
+    });
+
+    when('[t1] the prior trusts only the worktree path', () => {
+      then('the main checkout key is added, and the worktree key kept', () => {
+        expect(
+          asBrainFirstRunState({
+            prior: { projects: { [REPO]: { hasTrustDialogAccepted: true } } },
+            human: {},
+            repoPath: REPO,
+            repoPathMain: MAIN,
+          }),
+        ).toEqual({
+          projects: {
+            [REPO]: { hasTrustDialogAccepted: true },
+            [MAIN]: { hasTrustDialogAccepted: true },
+          },
+        });
+      });
+    });
+
+    when('[t2] the prior trusts both paths', () => {
+      then('no write is owed', () => {
+        expect(
+          asBrainFirstRunState({
+            prior: {
+              projects: {
+                [REPO]: { hasTrustDialogAccepted: true },
+                [MAIN]: { hasTrustDialogAccepted: true },
+              },
+            },
+            human: {},
+            repoPath: REPO,
+            repoPathMain: MAIN,
+          }),
+        ).toEqual(null);
       });
     });
   });

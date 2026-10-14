@@ -2,7 +2,10 @@ import { Command } from 'commander';
 import { given, then, when } from 'test-fns';
 
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
-import { ROLES_DELTA_COMMANDS } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
+import {
+  BARE_DELTA_COMMANDS,
+  ROLES_DELTA_COMMANDS,
+} from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
 
 import { invokeAct } from './invokeAct';
 import { invokeAsk } from './invokeAsk';
@@ -31,7 +34,15 @@ const contextStub = {} as unknown as ContextConfigOfUsage;
  * .why = commander exposes each command's options; we assert the `--roles`
  *        bearers match the gated set exactly
  */
-const getRolesFlagCommands = (): string[] => {
+const getRolesFlagCommands = (): string[] =>
+  getRolesFlagOptions().map((found) => found.command);
+
+/**
+ * .what = each command that declares `--roles`, with whether that option is variadic
+ * .why = the arity in ROLES_DELTA_COMMANDS decides where the encode's `--roles` run
+ *        ends; it must match what commander was told
+ */
+const getRolesFlagOptions = (): { command: string; isVariadic: boolean }[] => {
   const program = new Command();
   program.enablePositionalOptions(); // required for run's passThroughOptions
 
@@ -45,11 +56,12 @@ const getRolesFlagCommands = (): string[] => {
   invokeUpgrade({ program });
 
   // a command declares `--roles` when one of its options has that long flag
-  return program.commands
-    .filter((command) =>
-      command.options.some((option) => option.long === '--roles'),
-    )
-    .map((command) => command.name());
+  return program.commands.flatMap((command) => {
+    const option = command.options.find((found) => found.long === '--roles');
+    return option
+      ? [{ command: command.name(), isVariadic: option.variadic }]
+      : [];
+  });
 };
 
 describe('invoke — ROLES_DELTA_COMMANDS enforcement', () => {
@@ -83,6 +95,31 @@ describe('invoke — ROLES_DELTA_COMMANDS enforcement', () => {
         expect('act' in ROLES_DELTA_COMMANDS).toEqual(false);
         expect('ask' in ROLES_DELTA_COMMANDS).toEqual(false);
         expect('run' in ROLES_DELTA_COMMANDS).toEqual(false);
+      });
+    });
+
+    when('[t2] the arity of each `--roles` option is read', () => {
+      then(
+        'ROLES_DELTA_COMMANDS names the same arity commander was told',
+        () => {
+          const found = getRolesFlagOptions();
+          expect(found.length).toBeGreaterThan(0);
+          for (const { command, isVariadic } of found)
+            expect({ command, arity: ROLES_DELTA_COMMANDS[command] }).toEqual({
+              command,
+              arity: isVariadic ? 'variadic' : 'single',
+            });
+        },
+      );
+    });
+
+    when('[t3] the bare-delta commands are checked', () => {
+      then('each one is a `--roles` delta command too', () => {
+        // a bare `-driver` is an alias of `--roles -driver`; a command with no
+        // `--roles` has no delta to alias
+        expect(BARE_DELTA_COMMANDS.size).toBeGreaterThan(0);
+        for (const command of BARE_DELTA_COMMANDS)
+          expect(command in ROLES_DELTA_COMMANDS).toEqual(true);
       });
     });
   });

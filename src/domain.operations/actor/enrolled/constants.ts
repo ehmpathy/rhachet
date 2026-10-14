@@ -1,3 +1,5 @@
+import { asActorOndiskDirName } from './asActorOndiskDirName';
+
 /**
  * .what = the max byte length of ONE enrollment.jsonl line (incl. the newline)
  * .why =
@@ -29,18 +31,33 @@ export const ENROLLMENT_LOG_SCHEMA_VERSION = 1;
 export const ACTOR_MANIFEST_SCHEMA_VERSION = 1;
 
 /**
- * .what = the name of the reserved default actor dir, a direct child of `.agent/.actors`
- * .why = the default brain dir, the enroll excludes and all three gitignore writers
- *        address it; one literal keeps them in agreement (D10)
+ * .what = the name of the repo actor dir, a direct child of `.agent/.actors`
+ * .why = the repo actor holds the ambient roles, and only it (`term=ambient`). the
+ *        namespace `repo` names the actor; the value `ambient` names its roles. the brain
+ *        dir render, the enroll excludes and all three gitignore writers address it; one
+ *        literal keeps them in agreement (D10)
+ * .note = the dir name routes through `asActorOndiskDirName`, the one owner of the
+ *        `actor.via.<exid>` format, so the repo actor's gitignore lines and migration can
+ *        never drift from the dir every other reader derives
  */
-export const DEFAULT_ACTOR_DIR_NAME = 'actor.via.slug=.default';
+export const REPO_ACTOR_EXID = 'repo=ambient';
+export const REPO_ACTOR_DIR_NAME = asActorOndiskDirName({
+  exid: REPO_ACTOR_EXID,
+});
 
 /**
- * .what = the gitignore lines that keep `.agent/.actors` out of git, except the default
+ * .what = the name the repo actor dir held before `actor.via.repo=ambient`
+ * .why = an extant repo still holds a dir under this name; init migrates it to
+ *        `REPO_ACTOR_DIR_NAME`, and the gitignore writers drop its negation
+ */
+export const REPO_ACTOR_DIR_NAME_LEGACY = 'actor.via.slug=.default';
+
+/**
+ * .what = the gitignore lines that keep `.agent/.actors` out of git, except the repo
  *         actor dir, which is tracked
  * .why = three writers emit these lines — the repo `.gitignore` rewrite, the repo
  *        `.gitignore` negation, and the `.actors/.gitignore` self-ignore. a line that
- *        drifts in one writer re-ignores the default dir, or un-ignores every actor
+ *        drifts in one writer re-ignores the repo actor dir, or un-ignores every actor
  *
  * .note = git never re-includes a path under an excluded dir, so the repo line is
  *         `.agent/.actors/*` (its children), never `.agent/.actors/` (the dir itself)
@@ -52,12 +69,23 @@ export const ACTORS_GITIGNORE_LINE = {
   repoChildren: '.agent/.actors/*',
 
   /**
-   * the repo `.gitignore`: the default actor dir, re-included
+   * the repo `.gitignore`: the repo actor dir, re-included
    */
-  repoDefaultNegation: `!.agent/.actors/${DEFAULT_ACTOR_DIR_NAME}/`,
+  repoRepoActorNegation: `!.agent/.actors/${REPO_ACTOR_DIR_NAME}/`,
 
   /**
-   * the `.actors/.gitignore`: the default actor dir, re-included from within
+   * the `.actors/.gitignore`: the repo actor dir, re-included from within
    */
-  selfDefaultNegation: `!/${DEFAULT_ACTOR_DIR_NAME}/`,
+  selfRepoActorNegation: `!/${REPO_ACTOR_DIR_NAME}/`,
+
+  /**
+   * the repo `.gitignore`: the legacy repo actor dir negation — dropped on sight, so the
+   * legacy dir is ignored again
+   */
+  repoRepoActorNegationLegacy: `!.agent/.actors/${REPO_ACTOR_DIR_NAME_LEGACY}/`,
+
+  /**
+   * the `.actors/.gitignore`: the legacy negation from within — dropped on sight
+   */
+  selfRepoActorNegationLegacy: `!/${REPO_ACTOR_DIR_NAME_LEGACY}/`,
 } as const;

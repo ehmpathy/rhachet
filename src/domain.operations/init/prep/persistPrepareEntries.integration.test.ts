@@ -18,12 +18,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet created with --hooks', () => {
+      then('prepare:rhachet created with --hooks', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['mechanic', 'behaver'] },
           context,
         );
@@ -38,12 +38,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare created with npm run prepare:rhachet', () => {
+      then('prepare created with npm run prepare:rhachet', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['mechanic'] },
           context,
         );
@@ -66,12 +66,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet created WITHOUT --hooks', () => {
+      then('prepare:rhachet created WITHOUT --hooks', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: false, roles: ['mechanic'] },
           context,
         );
@@ -105,12 +105,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet updated with new roles', () => {
+      then('prepare:rhachet updated with new roles', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['mechanic', 'behaver', 'designer'] },
           context,
         );
@@ -125,12 +125,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare unchanged (idempotent)', () => {
+      then('prepare unchanged (idempotent)', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: false, roles: ['mechanic'] },
           context,
         );
@@ -160,12 +160,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare appended with && npm run prepare:rhachet', () => {
+      then('prepare appended with && npm run prepare:rhachet', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['mechanic'] },
           context,
         );
@@ -195,12 +195,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare unchanged (idempotent)', () => {
+      then('prepare unchanged (idempotent)', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['mechanic'] },
           context,
         );
@@ -221,7 +221,7 @@ describe('persistPrepareEntries', () => {
     when('[t0] no package.json', () => {
       const tempDir = genTempDir({ slug: 'persistPrepareEntries-c4t0' });
 
-      then('error: no package.json found', () => {
+      then('error: no package.json found', async () => {
         // verify file is actually gone
         const pkgPath = join(tempDir, 'package.json');
         expect(existsSync(pkgPath)).toBe(false);
@@ -233,7 +233,10 @@ describe('persistPrepareEntries', () => {
 
         let caughtError: unknown = null;
         try {
-          persistPrepareEntries({ hooks: true, roles: ['mechanic'] }, context);
+          await persistPrepareEntries(
+            { hooks: true, roles: ['mechanic'] },
+            context,
+          );
         } catch (error) {
           caughtError = error;
         }
@@ -251,7 +254,7 @@ describe('persistPrepareEntries', () => {
         writeFileSync(join(tempDir, 'package.json'), '{ invalid json }');
       });
 
-      then('error: invalid package.json', () => {
+      then('error: invalid package.json', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
@@ -259,7 +262,10 @@ describe('persistPrepareEntries', () => {
 
         let thrownError: Error | null = null;
         try {
-          persistPrepareEntries({ hooks: true, roles: ['mechanic'] }, context);
+          await persistPrepareEntries(
+            { hooks: true, roles: ['mechanic'] },
+            context,
+          );
         } catch (error) {
           if (error instanceof Error) thrownError = error;
         }
@@ -286,12 +292,15 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet updated to include --hooks', () => {
+      then('prepare:rhachet updated to include --hooks', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        persistPrepareEntries({ hooks: true, roles: ['mechanic'] }, context);
+        await persistPrepareEntries(
+          { hooks: true, roles: ['mechanic'] },
+          context,
+        );
 
         const pkg = JSON.parse(
           readFileSync(join(tempDir, 'package.json'), 'utf-8'),
@@ -319,12 +328,15 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet updated to exclude --hooks', () => {
+      then('prepare:rhachet updated to exclude --hooks', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        persistPrepareEntries({ hooks: false, roles: ['mechanic'] }, context);
+        await persistPrepareEntries(
+          { hooks: false, roles: ['mechanic'] },
+          context,
+        );
 
         const pkg = JSON.parse(
           readFileSync(join(tempDir, 'package.json'), 'utf-8'),
@@ -350,12 +362,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet includes npm run build && prefix', () => {
+      then('prepare:rhachet includes npm run build && prefix', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['behaver', 'mechanic'] },
           context,
         );
@@ -388,12 +400,12 @@ describe('persistPrepareEntries', () => {
         );
       });
 
-      then('prepare:rhachet updated with build prefix preserved', () => {
+      then('prepare:rhachet updated with build prefix preserved', async () => {
         const context = new ContextCli({
           cwd: tempDir,
           gitroot: tempDir,
         });
-        const result = persistPrepareEntries(
+        const result = await persistPrepareEntries(
           { hooks: true, roles: ['behaver', 'driver'] },
           context,
         );

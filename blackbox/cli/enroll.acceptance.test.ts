@@ -1,4 +1,4 @@
-import { UnexpectedCodePathError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -20,10 +20,13 @@ import { waitForFile } from '@/blackbox/.test/infra/waitForFile';
 import {
   chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  readlinkSync,
   realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -91,25 +94,25 @@ const setupStubBrainPath = (input: {
    *  as shadowed. its presence switches the PATH to the hermetic form described above */
   shadowed?: string;
 }): string => {
-  const writeStubBrain = (stubDir: string, version: string): void => {
-    mkdirSync(stubDir, { recursive: true });
-    const stubPath = join(stubDir, 'claude');
+  const writeStubBrain = (stub: { dir: string; version: string }): void => {
+    mkdirSync(stub.dir, { recursive: true });
+    const stubPath = join(stub.dir, 'claude');
     writeFileSync(
       stubPath,
-      `#!/usr/bin/env bash\nif [ "$1" = "--version" ]; then echo "${version} (Claude Code)"; fi\nexit 0\n`,
+      `#!/usr/bin/env bash\nif [ "$1" = "--version" ]; then echo "${stub.version} (Claude Code)"; fi\nexit 0\n`,
       'utf-8',
     );
     chmodSync(stubPath, 0o755);
   };
 
   const binDir = join(input.dir, '.stub-bin');
-  writeStubBrain(binDir, input.version ?? '2.1.277');
+  writeStubBrain({ dir: binDir, version: input.version ?? '2.1.277' });
 
   // the host PATH is kept ONLY where no snapshot reads the scan (see the note above)
   if (!input.shadowed) return `${binDir}:${process.env.PATH ?? ''}`;
 
   const binDirShadowed = join(input.dir, '.stub-bin-shadowed');
-  writeStubBrain(binDirShadowed, input.shadowed);
+  writeStubBrain({ dir: binDirShadowed, version: input.shadowed });
 
   // the built cli routes `enroll` to its jit entry, whose shebang resolves `node` on
   // PATH — so a hermetic PATH must carry one. it carries OUR node (a symlink to this
@@ -161,6 +164,49 @@ const setupArgvRecorderBrainPath = (input: {
 };
 
 /**
+ * .what = asSnapshotSafe, minus the one enroll line the runner's own credentials decide
+ * .why = a case that pins HOME still inherits the runner's env, so whether enroll prints
+ *   `ℹ no claude login at …` differs between a dev box and ci; the grove line,
+ *   which the pinned HOME decides, stays in the snapshot
+ */
+const asSnapshotSafeOfCredential = (output: string): string =>
+  asSnapshotSafe(output).replace(/^ℹ no claude login at .*\n?/gm, '');
+
+/**
+ * .what = read a json file another process writes, once its content parses whole
+ * .why = a writer can truncate then fill the file, so a read right after it appears may meet
+ *   zero or half the bytes. only a SyntaxError retries; any other fault throws at once
+ * .note = the wait backs off (5ms, doubled, capped at 200ms), so a fast writer is read at
+ *   once and a slow box is polled less often, under one 10s bound
+ */
+const getOneJsonOnceWhole = async (input: { path: string }): Promise<unknown> => {
+  const deadline = Date.now() + 10_000;
+  // .note = deliberate mutation — `delayMs` is the backoff induction variable: 5ms,
+  //   doubled per miss, capped at 200ms; bounded to this loop
+  for (let delayMs = 5; ; delayMs = Math.min(delayMs * 2, 200)) {
+    try {
+      return getOneJsonContent({ path: input.path });
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      if (Date.now() >= deadline)
+        throw new MalfunctionError('the json file never parsed whole', {
+          path: input.path,
+          cause: error,
+          hint: 'the writer may have died mid-write; read the file to see what it holds',
+        });
+      await new Promise<void>((done) => setTimeout(done, delayMs));
+    }
+  }
+};
+
+/**
+ * .what = read a json file and parse it, once
+ * .why = the leaf read, so the retry above is only the wait
+ */
+const getOneJsonContent = (input: { path: string }): unknown =>
+  JSON.parse(readFileSync(input.path, 'utf8'));
+
+/**
  * .what = reads the argv the recorder stub captured, one entry per element
  * .why = a NUL closes every element, the last one included, so the final empty split is
  *   dropped; every other empty entry is a real `''` the spawn passed
@@ -169,23 +215,29 @@ const readRecordedBrainArgv = async (input: {
   recordPath: string;
 }): Promise<string[]> => {
   // an async enroll returns at handoff, before the child it spawned has written its record
-  await waitForFile({ path: input.recordPath }).catch((cause: Error) => {
-    throw new UnexpectedCodePathError('the recorder stub captured no spawn', {
-      recordPath: input.recordPath,
-      hint: 'check enroll reached the spawn and that the stub brain was first on PATH',
-      cause,
-    });
-  });
+  const waitForRecord = MalfunctionError.wrap(
+    () => waitForFile({ path: input.recordPath }),
+    {
+      message: 'the recorder stub captured no spawn',
+      metadata: {
+        recordPath: input.recordPath,
+        hint: 'check enroll reached the spawn and that the stub brain was first on PATH',
+      },
+    },
+  );
+  await waitForRecord();
   return readFileSync(input.recordPath, 'utf-8').split('\0').slice(0, -1);
 };
 
 /**
- * .what = seeds a `.claude/settings.json` whose SessionStart hooks are authored
+ * .what = seeds the repo actor's `settings.of.repo.json` with SessionStart hooks authored
  *         by distinct roles (driver, mechanic, architect)
- * .why = genBrainCliConfigArtifact retains only the hooks whose `author` names an
- *        ENROLLED role. so the authored `settings.enroll.*.json` is a direct,
- *        observable readout of the computed role set: drop driver ⇒ its hook is
- *        gone, keep mechanic/architect ⇒ their hooks remain.
+ * .why = genBrainCliConfigArtifact reads the repo actor's `settings.of.repo.json` and retains
+ *        only the hooks whose `author` names an ENROLLED role. so the enrolled actor's
+ *        `settings.of.repo.json` is a direct, observable readout of the computed role set:
+ *        drop driver ⇒ its hook is gone, keep mechanic/architect ⇒ their hooks remain.
+ * .note = written through `<repo>/.claude`, the symlink into the repo actor's brain dir,
+ *        and never to `settings.json` — that name is an arrow to the host's grove
  */
 const seedRoleAuthoredHooks = (input: { dir: string }): void => {
   const settings = {
@@ -223,31 +275,102 @@ const seedRoleAuthoredHooks = (input: { dir: string }): void => {
   const claudeDir = join(input.dir, '.claude');
   mkdirSync(claudeDir, { recursive: true });
   writeFileSync(
-    join(claudeDir, 'settings.json'),
+    join(claudeDir, 'settings.of.repo.json'),
     JSON.stringify(settings, null, 2) + '\n',
     'utf-8',
   );
 };
 
 /**
- * .what = reads the authored enrollment config artifact for a repo
+ * .what = finds the dir name of the one actor an enroll landed in
+ * .why = a specific roleset lands in its own hash actor; a bare enroll, or one whose
+ *   roleset equals the ambient roles, lands in the repo actor. a single hash actor
+ *   dir therefore names the enrolled actor, and its absence names the repo actor
+ */
+const getOneEnrolledActorDirName = (input: { dir: string }): string => {
+  const actorsRoot = join(input.dir, '.agent', '.actors');
+  const hashDirs = getAllActorHashDirNames({ actorsRoot });
+  return asOneEnrolledActorDirName({ actorsRoot, hashDirs });
+};
+
+/**
+ * .what = every hash actor dir name under the actors root
+ */
+const getAllActorHashDirNames = (input: { actorsRoot: string }): string[] =>
+  readdirSync(input.actorsRoot).filter((name) =>
+    name.startsWith('actor.via.hash='),
+  );
+
+/**
+ * .what = the enrolled actor's dir name, from the hash actor dirs found: the one hash
+ *   actor, or the repo actor when none
+ * .note = more than one hash actor means the case enrolled twice; that fails loud
+ */
+const asOneEnrolledActorDirName = (input: {
+  actorsRoot: string;
+  hashDirs: string[];
+}): string => {
+  if (input.hashDirs.length > 1)
+    throw new MalfunctionError('more than one hash actor was authored', {
+      actorsRoot: input.actorsRoot,
+      hashDirs: input.hashDirs,
+      hint: 'each case enrolls one roleset in a fresh temp repo; check the case did not enroll twice',
+    });
+  return input.hashDirs[0] ?? 'actor.via.repo=ambient';
+};
+
+/**
+ * .what = what a clone of the enrolled actor meets first: the first brief its `boot.md`
+ *   says, and whether its `.claude.json` trusts the repo
+ * .why = the wish asks that every actor's boot open with the rhachet intro (vision e10) and
+ *   that every actor trust the repo, so no clone meets the trust prompt (vision e18)
+ * .note = the trust key is the repo's realpath; a plain repo is its own main checkout
+ */
+const getOneEnrolledActorFirstMeet = (input: {
+  dir: string;
+}): { firstBriefPath: string | null; isRepoTrusted: boolean } => {
+  const brainDir = join(
+    input.dir,
+    '.agent',
+    '.actors',
+    getOneEnrolledActorDirName({ dir: input.dir }),
+    'brain',
+    '.claude',
+  );
+  const boot = readFileSync(join(brainDir, 'boot.md'), 'utf-8');
+  const firstBriefPath = /<brief\.say path="([^"]+)">/.exec(boot)?.[1] ?? null;
+  const state = JSON.parse(
+    readFileSync(join(brainDir, '.claude.json'), 'utf-8'),
+  ) as { projects?: Record<string, { hasTrustDialogAccepted?: boolean }> };
+  const isRepoTrusted =
+    state.projects?.[realpathSync(input.dir)]?.hasTrustDialogAccepted === true;
+  return { firstBriefPath, isRepoTrusted };
+};
+
+/**
+ * .what = reads the authored enrollment config artifact — the enrolled actor's
+ *   `settings.of.repo.json`
  * .why = the positive-path proof asserts on the retained hook authors
  */
 const readEnrollmentConfig = (input: { dir: string }): string => {
-  const claudeDir = join(input.dir, '.claude');
-  const file = readdirSync(claudeDir).find(
-    (name) => name.startsWith('settings.enroll.') && name.endsWith('.local.json'),
+  const brainDir = join(
+    input.dir,
+    '.agent',
+    '.actors',
+    getOneEnrolledActorDirName({ dir: input.dir }),
+    'brain',
+    '.claude',
   );
-  if (!file)
-    throw new UnexpectedCodePathError(
+  const configPath = join(brainDir, 'settings.of.repo.json');
+  if (!existsSync(configPath))
+    throw new MalfunctionError(
       'no enrollment config artifact was authored',
       {
-        dir: claudeDir,
-        searchedFilePattern: 'settings.enroll.*.local.json',
+        configPath,
         hint: 'check the stub brain exited 0 and that enroll wrote the config before the spawn',
       },
     );
-  return readFileSync(join(claudeDir, file), 'utf-8');
+  return readFileSync(configPath, 'utf-8');
 };
 
 /**
@@ -261,15 +384,13 @@ const readEnrollmentLog = (input: {
   dir: string;
 }): Array<{ roles: string[]; delta: string | null; reason: string | null }> => {
   const actorsRoot = join(input.dir, '.agent', '.actors');
-  const actorDir = readdirSync(actorsRoot).find((name) =>
-    name.startsWith('actor.via.hash='),
-  );
-  if (!actorDir)
-    throw new UnexpectedCodePathError('no enrolled actor dir was authored', {
-      actorsRoot,
+  const actorDir = getOneEnrolledActorDirName({ dir: input.dir });
+  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
+  if (!existsSync(logPath))
+    throw new MalfunctionError('no enrolled actor roles log was authored', {
+      logPath,
       hint: 'check the stub brain exited 0 and that enroll findserted the actor before the spawn',
     });
-  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
   return readFileSync(logPath, 'utf-8')
     .trim()
     .split('\n')
@@ -288,15 +409,13 @@ const readEnrollmentLog = (input: {
  */
 const readEnrollmentLogRaw = (input: { dir: string }): string => {
   const actorsRoot = join(input.dir, '.agent', '.actors');
-  const actorDir = readdirSync(actorsRoot).find((name) =>
-    name.startsWith('actor.via.hash='),
-  );
-  if (!actorDir)
-    throw new UnexpectedCodePathError('no enrolled actor dir was authored', {
-      actorsRoot,
+  const actorDir = getOneEnrolledActorDirName({ dir: input.dir });
+  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
+  if (!existsSync(logPath))
+    throw new MalfunctionError('no enrolled actor roles log was authored', {
+      logPath,
       hint: 'check the stub brain exited 0 and that enroll findserted the actor before the spawn',
     });
-  const logPath = join(actorsRoot, actorDir, 'roles', 'enrollment.jsonl');
   return readFileSync(logPath, 'utf-8').replace(
     /"at":"[^"]+"/g,
     '"at":"$AT"',
@@ -545,7 +664,7 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
 
       then('the authored config body is locked to a snapshot', () => {
-        // the generated settings.enroll.$hash.local.json IS the wish's real
+        // the generated actor settings.of.repo.json IS the wish's real
         // output. snapshot the full filtered-hook set so the retained role set
         // (sort order, retained permissions, dropped driver hook) is drift-locked
         // in the pr diff — the toContain checks above cannot catch a widened
@@ -559,6 +678,16 @@ describe('rhx enroll --roles (acceptance)', () => {
         // the stub brain emits no output; this locks that the success path leaks
         // no unexpected rhachet output to stderr before the spawn
         expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
+      });
+
+      then('the hash actor boots with the rhachet intro first and trusts the repo', () => {
+        // a hash actor is not special: its boot opens with the intro (vision e10), and its
+        // own .claude.json trusts the repo, so its clone meets no trust prompt (vision e18)
+        expect(getOneEnrolledActorDirName({ dir })).toMatch(/^actor\.via\.hash=/);
+        expect(getOneEnrolledActorFirstMeet({ dir })).toEqual({
+          firstBriefPath: 'rhachet/intro',
+          isRepoTrusted: true,
+        });
       });
     });
   });
@@ -614,6 +743,12 @@ describe('rhx enroll --roles (acceptance)', () => {
         // full authored hook set so a regression that silently drops OR adds a default
         // role surfaces in the pr diff (the toContain checks above cannot catch a
         // widened set that keeps too much)
+        //
+        // .note = its `claudeMdExcludes` holds two entries where [case2]'s hash actor holds
+        //   eight, by design: an actor's list never names its OWN doors, and this bare enroll
+        //   lands in the repo actor, whose doors are the repo's. so only the human's home
+        //   CLAUDE.md and `CLAUDE.local.md` remain. a hash actor additionally names the repo
+        //   actor's doors (define.brain-dir-repo-vs-actor, .invariants)
         expect(
           asSnapshotSafe(readEnrollmentConfig({ dir })),
         ).toMatchSnapshot();
@@ -625,25 +760,32 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(asSnapshotSafeOfHostLogin(run.stderr)).toMatchSnapshot();
       });
 
-      then('the boot corpus lands in the actor brain dir, never the repo brain dir', () => {
-        // enroll owns the actor's brain dir only; the repo's `.claude` stays the
-        // default actor's brain dir, and its corpus is untouched by the enroll
+      then('the bare enroll lands in the repo actor and mints no hash actor', () => {
+        // a bare enroll takes the ambient roles, which live only in the repo actor —
+        // so the clone reads the repo actor's brain dir, the one `<repo>/.claude`
+        // points at, and its corpus is the same one init rendered
         const actorsDir = join(dir, '.agent', '.actors');
         const actorHashDirs = readdirSync(actorsDir).filter((name) =>
           name.startsWith('actor.via.hash='),
         );
-        expect(actorHashDirs).toHaveLength(1);
-        const brainDir = join(actorsDir, actorHashDirs[0]!, 'brain', '.claude');
+        expect(actorHashDirs).toEqual([]);
+        const brainDir = join(actorsDir, 'actor.via.repo=ambient', 'brain', '.claude');
         expect(existsSync(join(brainDir, 'boot.md'))).toBe(true);
         expect(existsSync(join(brainDir, 'AGENTS.md'))).toBe(true);
-        expect(realpathSync(join(dir, '.claude'))).toEqual(
-          realpathSync(
-            join(actorsDir, 'actor.via.slug=.default', 'brain', '.claude'),
-          ),
-        );
+        expect(existsSync(join(brainDir, 'settings.of.repo.json'))).toBe(true);
+        expect(realpathSync(join(dir, '.claude'))).toEqual(realpathSync(brainDir));
         expect(readFileSync(join(dir, '.claude', 'boot.md'), 'utf-8')).toEqual(
           before.repoBoot,
         );
+      });
+
+      then('the repo actor boots with the rhachet intro first and trusts the repo', () => {
+        // the everyday `claude` lands here: its boot opens with the intro (vision e10), and
+        // the repo actor's .claude.json trusts the repo, so no trust prompt (vision e18)
+        expect(getOneEnrolledActorFirstMeet({ dir })).toEqual({
+          firstBriefPath: 'rhachet/intro',
+          isRepoTrusted: true,
+        });
       });
     });
 
@@ -686,6 +828,316 @@ describe('rhx enroll --roles (acceptance)', () => {
         // the serial (a uuid) is masked; outcome/slug/socketEligible stay stable — this
         // locks the DETACHED handoff, a peer of the attended pty variant
         expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2c] the grove, through a real enroll, under a HOME the case pins', () => {
+    // the wish's central layout: `settings.of.grove.json -> ~/.claude/settings.json` and
+    // `settings.json -> settings.of.grove.json`. the layout op has its own integration
+    // suite; this case proves the enroll path calls it, on both grove branches, with
+    // a HOME the case owns — never the host's, which decides the branch per box
+    // (`rule.require.hermetic-tests`)
+    //
+    // .note = the default stub PATH suffices here: the stub dir LEADS the PATH, so the stub
+    //   is the `claude` that runs on every box, and no row reads the version scan that a
+    //   host install could join (the `shadowed` form exists for the rows that snap it)
+
+    when('[t0] the HOME holds a `.claude/settings.json`', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-grove-present' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        const grove = join(home, '.claude', 'settings.json');
+        writeFileSync(grove, '{ "model": "haiku" }\n', 'utf-8');
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { run, grove, brainDir };
+      });
+
+      then('enroll exits 0 and says naught of an absent grove', () => {
+        expect(scene.run.status).toEqual(0);
+        expect(scene.run.stderr).not.toContain('no grove at');
+      });
+
+      then('the grove-present output is locked to a snapshot', () => {
+        // the case pins HOME, so the grove holds; only the credential line goes, since an
+        //   ANTHROPIC_API_KEY in the runner's env decides it
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+
+      then('settings.of.grove.json and settings.json are both arrows', () => {
+        expect(
+          lstatSync(join(scene.brainDir, 'settings.of.grove.json')).isSymbolicLink(),
+        ).toEqual(true);
+        expect(
+          lstatSync(join(scene.brainDir, 'settings.json')).isSymbolicLink(),
+        ).toEqual(true);
+      });
+
+      then('settings.json resolves, through the grove, to the HOME file', () => {
+        expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
+          'settings.of.grove.json',
+        );
+        expect(realpathSync(join(scene.brainDir, 'settings.json'))).toEqual(
+          realpathSync(scene.grove),
+        );
+      });
+    });
+
+    when('[t1] the HOME holds no `.claude/settings.json`', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-grove-absent' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { run, brainDir };
+      });
+
+      then('enroll exits 0 and names the absent grove and its path', () => {
+        expect(scene.run.status).toEqual(0);
+        expect(scene.run.stderr).toContain('ℹ no grove at ');
+        expect(scene.run.stderr).toContain(join('.home', '.claude', 'settings.json'));
+      });
+
+      then('the absent-grove notice is locked to a snapshot', () => {
+        // the grove line is the subject, so it stays; only the credential line goes, since
+        //   an ANTHROPIC_API_KEY in the runner's env decides it, never the pinned HOME
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+
+      then('neither grove arrow is written — not even a broken one', () => {
+        // lstat, never existsSync: existsSync follows the link, so a broken arrow to the
+        //   absent grove would read as absent and the defect would ship green
+        expect(
+          lstatSync(join(scene.brainDir, 'settings.of.grove.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+        expect(
+          lstatSync(join(scene.brainDir, 'settings.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case2d] a repo still at the legacy repo actor dir, enrolled before any init', () => {
+    // an everyday `claude` (a bare enroll) can run on an upgraded repo before its first
+    //   `rhx init`. were enroll to make `actor.via.repo=ambient` first, the legacy move would
+    //   skip forever (a current dir already exists) and strand the tracked config. so enroll
+    //   moves the legacy dir before it makes any actor dir
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'enroll-legacy-actor-dir' });
+      setupEnrollFixture(dir);
+
+      // roll the repo actor dir back to its legacy name, with a marker the move must carry
+      const actorsRoot = join(dir, '.agent', '.actors');
+      const dirLegacy = join(actorsRoot, 'actor.via.slug=.default');
+      const dirCurrent = join(actorsRoot, 'actor.via.repo=ambient');
+      renameSync(dirCurrent, dirLegacy);
+      const marker = join('brain', '.claude', 'keep.json');
+      writeFileSync(join(dirLegacy, marker), '{"keep":"legacy"}\n', 'utf-8');
+
+      // aim `<repo>/.claude` at the legacy brain dir, as a repo from before the rename holds it
+      const linkRepo = join(dir, '.claude');
+      rmSync(linkRepo, { recursive: true, force: true });
+      symlinkSync(
+        join('.agent', '.actors', 'actor.via.slug=.default', 'brain', '.claude'),
+        linkRepo,
+      );
+
+      const home = join(dir, '.home');
+      mkdirSync(join(home, '.claude'), { recursive: true });
+      const run = invokeRhachetCliBinary({
+        args: ['enroll', 'claude'],
+        cwd: dir,
+        env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+        logOnError: false,
+      });
+      return { run, dirLegacy, dirCurrent, marker, linkRepo };
+    });
+
+    when('[t0] a bare enroll runs', () => {
+      then('enroll exits 0', () => {
+        expect({ status: scene.run.status, stderr: scene.run.stderr }).toMatchObject({
+          status: 0,
+        });
+      });
+
+      then('the legacy dir is gone', () => {
+        expect(existsSync(scene.dirLegacy)).toEqual(false);
+      });
+
+      then('its content now lives under the current name', () => {
+        expect(readFileSync(join(scene.dirCurrent, scene.marker), 'utf-8')).toEqual(
+          '{"keep":"legacy"}\n',
+        );
+      });
+
+      then('`<repo>/.claude` is repointed at the current brain dir, never left to dangle', () => {
+        expect(readlinkSync(scene.linkRepo)).toEqual(
+          join('.agent', '.actors', 'actor.via.repo=ambient', 'brain', '.claude'),
+        );
+        expect(readFileSync(join(scene.linkRepo, 'keep.json'), 'utf-8')).toEqual(
+          '{"keep":"legacy"}\n',
+        );
+      });
+
+      then('the enroll report is locked, so what a human reads on the move is reviewable', () => {
+        // the move itself prints no row of its own: the everyday `claude` reports as any
+        //   bare enroll does, and the move shows only in the files above. the lock pins that
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+        expect(asSnapshotSafe(scene.run.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2e] 🔴 core invariant — a `-driver` clone loads no driver hook from ANY layer', () => {
+    // claude MERGES hooks across every settings source it reads, so a filtered `--settings`
+    //   file proves naught on its own. this case reads every layer the recorded spawn argv
+    //   names and asserts none carries a driver hook; then it plants a driver hook in the
+    //   grove (the shape main shipped) and asserts enroll refuses before the brain starts
+    //   (`inventory.of=requirements.case=9`)
+
+    when('[t0] a `-driver` enroll in a repo whose roles author driver hooks', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-invariant-no-driver-layer' });
+        setupEnrollFixture(dir);
+        seedRoleAuthoredHooks({ dir });
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        const argv = run.status === 0
+          ? await readRecordedBrainArgv({ recordPath: recorder.recordPath })
+          : [];
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { dir, run, argv, brainDir };
+      });
+
+      then('enroll exits 0', () => {
+        expect(scene.run.status).toEqual(0);
+      });
+
+      then('the spawn reads the user source alone, so no repo layer joins the merge', () => {
+        const index = scene.argv.indexOf('--setting-sources');
+        expect(scene.argv[index + 1]).toEqual('user');
+        expect(scene.argv.filter((arg) => arg === '--setting-sources')).toHaveLength(1);
+      });
+
+      then('no layer the clone reads carries a driver hook', () => {
+        const flagLayers = scene.argv.flatMap((arg, index) =>
+          arg === '--settings' ? [scene.argv[index + 1]!] : [],
+        );
+        const layers = [join(scene.brainDir, 'settings.json'), ...flagLayers];
+        expect(flagLayers).toHaveLength(1);
+        for (const layer of layers) {
+          const content = existsSync(layer) ? readFileSync(layer, 'utf-8') : '';
+          expect({ layer, hasDriver: content.includes('role=driver') }).toEqual({
+            layer,
+            hasDriver: false,
+          });
+        }
+      });
+
+      then('the enrolled roles still boot their own hooks', () => {
+        const flagIndex = scene.argv.indexOf('--settings');
+        const content = readFileSync(scene.argv[flagIndex + 1]!, 'utf-8');
+        expect(content).toContain('repo=ehmpathy/role=mechanic');
+      });
+    });
+
+    when('[t1] the HOME grove carries a driver-authored hook (the layout main shipped)', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-invariant-grove-leak' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(
+          join(home, '.claude', 'settings.json'),
+          `${JSON.stringify(
+            {
+              hooks: {
+                SessionStart: [
+                  {
+                    matcher: '*',
+                    hooks: [
+                      { type: 'command', command: 'true', author: 'repo=bhrain/role=driver' },
+                    ],
+                  },
+                ],
+              },
+            },
+            null,
+            2,
+          )}\n`,
+          'utf-8',
+        );
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        return { run, recorder };
+      });
+
+      then('enroll refuses with exit 2, before the brain spawns', () => {
+        expect(scene.run.status).toEqual(2);
+        expect(existsSync(scene.recorder.recordPath)).toEqual(false);
+      });
+
+      then('the refusal names the leaked author and the layer it came from', () => {
+        expect(scene.run.stderr).toContain('ConstraintError');
+        expect(scene.run.stderr).toContain('repo=bhrain/role=driver');
+        expect(scene.run.stderr).toContain('.home/.claude/settings.json');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
       });
     });
   });
@@ -876,6 +1328,149 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(
           asSnapshotSafe(readEnrollmentConfig({ dir })),
         ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case7b] a bare role delta after the brain is an alias of `--roles`', () => {
+    // `rhx enroll claude -driver` ≡ `rhx enroll claude --roles -driver`
+    // (inventory.of=requirements.case=4). a brain's own short flag still reaches the brain
+    const dir = genTempDir({ slug: 'enroll-bare-delta-alias' });
+    const scene = useBeforeAll(async () => {
+      setupEnrollFixture(dir);
+      seedRoleAuthoredHooks({ dir });
+      return setupArgvRecorderBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude -driver -c` (bare delta + a brain short flag)', () => {
+      const result = useThen('exits 0 and the stub records the spawn', async () => {
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '-driver', '-c'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        return {
+          argv: await readRecordedBrainArgv({ recordPath: scene.recordPath }),
+          actorDirName: getOneEnrolledActorDirName({ dir }),
+        };
+      });
+
+      then('driver is dropped and the other roles stay', () => {
+        const config = readEnrollmentConfig({ dir });
+        expect(config).not.toContain('role=driver');
+        expect(config).toContain('role=mechanic');
+        expect(config).toContain('role=architect');
+      });
+
+      then('the brain receives `-c` and never `-driver`', () => {
+        expect(result.argv).toContain('-c');
+        expect(result.argv).not.toContain('-driver');
+      });
+
+      then('the actor is a hash actor (not the repo actor)', () => {
+        expect(result.actorDirName.startsWith('actor.via.hash=')).toEqual(true);
+      });
+
+      then('the authored config body is locked to a snapshot', () => {
+        // the toContain checks above cannot catch a widened filter that keeps too much
+        expect(asSnapshotSafe(readEnrollmentConfig({ dir }))).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] `enroll claude --roles -driver` in the same repo', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it lands in the one actor the bare alias made — no second actor', () => {
+        expect(run.status).toEqual(0);
+        // getOneEnrolledActorDirName throws on more than one hash actor
+        const hashDirs = readdirSync(join(dir, '.agent', '.actors')).filter(
+          (name) => name.startsWith('actor.via.hash='),
+        );
+        expect(hashDirs).toEqual([getOneEnrolledActorDirName({ dir })]);
+      });
+    });
+  });
+
+  given('[case7c] a delta actor re-derives when the repo drops a role', () => {
+    // `rhx init --roles -driver` reaches every actor delta'd from the ambient roles, not
+    // merely the next enroll (inventory.of=requirements.case=2)
+    const dir = genTempDir({ slug: 'enroll-delta-rederive' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture(dir);
+      seedRoleAuthoredHooks({ dir });
+      stubPath = setupStubBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude --roles -architect`, then `init --roles -driver`', () => {
+      const result = useThen('both exit 0', () => {
+        const enroll = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-architect'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        });
+        expect(enroll.status).toEqual(0);
+        const actorDirName = getOneEnrolledActorDirName({ dir });
+        const init = invokeRhachetCliBinary({
+          args: ['init', '--roles', '-driver'],
+          cwd: dir,
+          logOnError: false,
+        });
+        expect(init.status).toEqual(0);
+        return { actorDirName };
+      });
+
+      then('the extant actor drops driver from its record', () => {
+        const manifest = JSON.parse(
+          readFileSync(
+            join(dir, '.agent', '.actors', result.actorDirName, 'actor.json'),
+            'utf-8',
+          ),
+        ) as { roles: string[]; rolesDelta: string[] | null };
+        expect(manifest.roles).toEqual(['mechanic']);
+        expect(manifest.rolesDelta).toEqual(['-architect']);
+      });
+
+      then('the extant actor drops driver from its settings.of.repo.json', () => {
+        const config = readEnrollmentConfig({ dir });
+        expect(config).not.toContain('role=driver');
+        expect(config).not.toContain('role=architect');
+        expect(config).toContain('role=mechanic');
+      });
+
+      then('the re-derived config body is locked to a snapshot', () => {
+        // the toContain checks above cannot catch a widened filter that keeps too much
+        expect(asSnapshotSafe(readEnrollmentConfig({ dir }))).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] `enroll claude --roles -architect` again, over the new ambient set', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-architect'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('it lands in the same actor — no second hash actor', () => {
+        expect(run.status).toEqual(0);
+        // [t0] left exactly one hash actor; a fresh identity would mint a second
+        const hashDirs = readdirSync(join(dir, '.agent', '.actors')).filter(
+          (name) => name.startsWith('actor.via.hash='),
+        );
+        expect(hashDirs).toHaveLength(1);
       });
     });
   });
@@ -1462,12 +2057,12 @@ describe('rhx enroll depth budget (acceptance)', () => {
     let env: Record<string, string>;
     // the child reads the actor's brain dir as its CLAUDE_CONFIG_DIR, so its dump lands there
     const readStubEnv = async (): Promise<Record<string, string | null>> => {
+      // a bare enroll lands in the repo actor, so the dump lands in its brain dir
       const actorsDir = join(dir, '.agent/.actors');
-      const actor = readdirSync(actorsDir).find((name) => name.startsWith('actor.via.hash='));
-      if (!actor) throw new UnexpectedCodePathError('no hash actor dir after enroll', { actorsDir });
-      const dumpPath = join(actorsDir, actor, 'brain/.claude/stub.env.json');
+      const dumpPath = join(actorsDir, getOneEnrolledActorDirName({ dir }), 'brain/.claude/stub.env.json');
       await waitForFile({ path: dumpPath }); // the host hands off before the child dumps
-      return JSON.parse(readFileSync(dumpPath, 'utf8')) as Record<string, string | null>;
+      // the file can exist before its bytes do — wait on whole json, never on the name alone
+      return getOneJsonOnceWhole({ path: dumpPath }) as Promise<Record<string, string | null>>;
     };
     beforeAll(() => {
       setupDepthFixture(dir);
@@ -2172,9 +2767,11 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
       });
 
       then('the prefix is exact: config source, config, then the empty prompt', () => {
-        expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user,local']);
+        expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user']);
         expect(argv.list[2]).toEqual('--settings');
-        expect(argv.list[3]).toMatch(/settings\.enroll\.[0-9a-f]{8}\.local\.json$/);
+        expect(argv.list[3]).toMatch(
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/settings\.of\.repo\.json$/,
+        );
         expect(argv.list.slice(4)).toEqual(['--system-prompt', '']);
       });
 
@@ -2293,6 +2890,11 @@ describe('rhx enroll --help (acceptance)', () => {
         expect(run.stdout).toContain('--no-socket');
         expect(run.stdout).toContain('--reason');
         expect(run.stdout).toContain('--output');
+      });
+
+      then('the help names the bare-delta alias of --roles', () => {
+        // inventory.of=requirements.case=4: `rhx enroll claude -driver` ≡ `--roles -driver`
+        expect(run.stdout).toContain('rhx enroll claude -driver ≡ --roles -driver');
       });
 
       then('the help format is locked (visual spot-check)', () => {

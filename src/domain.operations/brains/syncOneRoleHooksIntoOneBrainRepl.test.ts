@@ -186,6 +186,175 @@ describe('syncOneRoleHooksIntoOneBrainRepl', () => {
     });
   });
 
+  given(
+    '[case3b] a re-sync where the brain reads back the timeout in another unit',
+    () => {
+      // the claude adapter writes a timeout as milliseconds and reads it back as
+      //   `{ milliseconds }`, while a role declares it as an iso duration (`PT30S`). the same
+      //   duration must read as unchanged, or every re-run of `rhx init --hooks` reports and
+      //   rewrites every hook as `~updated`
+      const role: HasRepo<Role> = {
+        ...new Role({
+          slug: 'mechanic',
+          name: 'Mechanic',
+          purpose: 'test role',
+          readme: { uri: 'readme.md' },
+          traits: [],
+          skills: { dirs: { uri: 'skills' }, refs: [] },
+          briefs: { dirs: { uri: 'briefs' } },
+          hooks: {
+            onBrain: {
+              onBoot: [{ command: 'npx rhachet roles boot', timeout: 'PT30S' }],
+              onTool: [
+                {
+                  command: 'echo guard',
+                  timeout: 'PT5S',
+                  filter: { what: 'Bash', when: 'before' },
+                },
+              ],
+            },
+          },
+        }),
+        repo: 'test-registry',
+      };
+      const author = 'repo=test-registry/role=mechanic';
+
+      when(
+        '[t0] the brain holds the same hooks, timeouts read back in milliseconds',
+        () => {
+          const adapter = createMockAdapter([
+            new BrainHook({
+              author,
+              event: 'onBoot',
+              command: 'npx rhachet roles boot',
+              timeout: { milliseconds: 30000 },
+            }),
+            new BrainHook({
+              author,
+              event: 'onTool',
+              command: 'echo guard',
+              timeout: { milliseconds: 5000 },
+              filter: { what: 'Bash' },
+            }),
+          ]);
+          const result = useBeforeAll(async () =>
+            syncOneRoleHooksIntoOneBrainRepl({ role, adapter }),
+          );
+
+          then('both hooks read as unchanged, and none is rewritten', () => {
+            expect(result.hooks).toMatchObject({
+              created: [],
+              updated: [],
+              deleted: [],
+            });
+            expect(result.hooks.unchanged).toHaveLength(2);
+            expect(adapter.calls.upsert).toEqual([]);
+          });
+        },
+      );
+
+      when('[t1] the brain holds the hook with a different timeout', () => {
+        const adapter = createMockAdapter([
+          new BrainHook({
+            author,
+            event: 'onBoot',
+            command: 'npx rhachet roles boot',
+            timeout: { milliseconds: 10000 },
+          }),
+        ]);
+        const result = useBeforeAll(async () =>
+          syncOneRoleHooksIntoOneBrainRepl({ role, adapter }),
+        );
+
+        then('the changed duration still reads as updated', () => {
+          expect(result.hooks.updated.map((hook) => hook.command)).toEqual([
+            'npx rhachet roles boot',
+          ]);
+        });
+      });
+
+      when(
+        '[t2] the role declares a non-default when, and the brain holds none',
+        () => {
+          const roleAfter: HasRepo<Role> = {
+            ...role,
+            hooks: {
+              onBrain: {
+                onTool: [
+                  {
+                    command: 'echo guard',
+                    timeout: 'PT5S',
+                    filter: { what: 'Bash', when: 'after' },
+                  },
+                ],
+              },
+            },
+          };
+          const adapter = createMockAdapter([
+            new BrainHook({
+              author,
+              event: 'onTool',
+              command: 'echo guard',
+              timeout: { milliseconds: 5000 },
+              filter: { what: 'Bash' },
+            }),
+          ]);
+          const result = useBeforeAll(async () =>
+            syncOneRoleHooksIntoOneBrainRepl({ role: roleAfter, adapter }),
+          );
+
+          then('the hook reads as updated', () => {
+            expect(result.hooks.updated.map((hook) => hook.command)).toEqual([
+              'echo guard',
+            ]);
+          });
+        },
+      );
+
+      when(
+        '[t3] the role declares a non-iso timeout string, and the brain holds the hook',
+        () => {
+          // the diff is no validator: a timeout it cannot read as a duration is compared
+          //   as declared, and the brain adapter keeps the call on whether it is valid
+          const roleNonIso: HasRepo<Role> = {
+            ...role,
+            hooks: {
+              onBrain: {
+                onBoot: [
+                  {
+                    command: 'npx rhachet roles boot',
+                    timeout: '10s' as BrainHook['timeout'],
+                  },
+                ],
+              },
+            },
+          };
+          const adapter = createMockAdapter([
+            new BrainHook({
+              author,
+              event: 'onBoot',
+              command: 'npx rhachet roles boot',
+              timeout: '10s' as BrainHook['timeout'],
+            }),
+          ]);
+          const result = useBeforeAll(async () =>
+            syncOneRoleHooksIntoOneBrainRepl({ role: roleNonIso, adapter }),
+          );
+
+          then(
+            'the diff does not throw, and the same hook reads as unchanged',
+            () => {
+              expect(
+                result.hooks.unchanged.map((hook) => hook.command),
+              ).toEqual(['npx rhachet roles boot']);
+              expect(adapter.calls.upsert).toEqual([]);
+            },
+          );
+        },
+      );
+    },
+  );
+
   given('[case4] role with onTalk hooks', () => {
     const role: HasRepo<Role> = {
       ...new Role({

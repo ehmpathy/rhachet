@@ -19,7 +19,7 @@ import type { ActorOndisk } from './ActorOndisk';
  * .note = `actor` + `historyDir` are hydration-derived, never persisted: the
  *   on-disk `identity.json` holds only { serial, slug, socketEligible,
  *   spawnedAt, hostHash, hostPid, hostPidStartedAt }; the actor ref is rebuilt
- *   from the clone's location under `actor.via.hash=<hash>/`, and the history
+ *   from the clone's location under `actor.via.<exid>/`, and the history
  *   dir from { cloneDir }
  * .note = the socket PATH is not stored — it is derived fresh from the serial
  *   (host-scoped, under $XDG_RUNTIME_DIR), so a moved repo never carries a
@@ -38,7 +38,7 @@ export interface CloneOndisk {
 
   /**
    * .what = the enrolled actor this clone is a run of, by its natural key
-   *   { repoPath, hash } (ActorOndisk is content-addressed, no surrogate)
+   *   { repoPath, exid } (ActorOndisk is content-addressed, no surrogate)
    */
   actor: RefByUnique<typeof ActorOndisk>;
 

@@ -153,6 +153,9 @@ export const asSnapshotSafe = (output: string): string => {
       // between turns varies by run (a say + reply may straddle a minute boundary), so
       // the offset is masked; a functional assert checks the `T0+\d\dH\d\dM` FORMAT
       .replace(/T0\+\d{2}H\d{2}M/g, 'T0+__ELAPSED__')
+      // strip the pid and the random draw from an atomic write's temp name
+      //   (`.<name>.<pid>.<8hex>.tmp`, `setFileAtomic`) — a write refused mid-way names it
+      .replace(/\.\d+\.[0-9a-f]{8}\.tmp\b/g, '.__PID__.__HEX__.tmp')
       // collapse consecutive identical `$STAMP` rows. a role's own init may back
       //   settings.json up more than once per run, each under a SECONDS-grain stamp: two
       //   backups in one second collide into one file, two across a second boundary stay
@@ -284,6 +287,23 @@ export const asEnvWithoutCloneIdentity = (
 };
 
 /**
+ * .what = the env a cli child spawns with: the runner's env, its clone identity stripped,
+ *   with the test's own vars merged over it
+ * .why = the one owner of the merge, so the sync, async and chain twins never drift apart
+ * .note = an undefined value unsets an inherited var; the type guard narrows each entry,
+ *   so the result needs no cast
+ */
+const asEnvForSpawn = (input: {
+  env?: Record<string, string | undefined>;
+}): NodeJS.ProcessEnv =>
+  Object.fromEntries(
+    Object.entries({
+      ...asEnvWithoutCloneIdentity(process.env),
+      ...input.env,
+    }).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  );
+
+/**
  * .what = paths to CLI binaries
  * .why = acceptance tests invoke compiled binaries for black-box test
  */
@@ -312,18 +332,7 @@ export const invokeRhachetCliBinary = (input: {
   timeoutMs?: number;
 }): SpawnSyncReturns<string> => {
   const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
-
-  // merge env vars, filter out undefined to unset inherited vars
-  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
-  // .note = deliberate cast: the filter above removes every undefined value, so the
-  //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
-  //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.
-  //   the runtime filter guarantees no undefined survives, so the cast only re-narrows
-  //   the compile-time type to what the value already is. removal path: drops when a
-  //   typed fromEntries utility lands (rule.forbid.as-cast, test boundary)
-  const envFiltered = Object.fromEntries(
-    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
-  ) as NodeJS.ProcessEnv;
+  const envFiltered = asEnvForSpawn({ env: input.env });
 
   const result = spawnSync(binPath, input.args, {
     cwd: input.cwd,
@@ -362,6 +371,8 @@ export const invokeRhachetCliBinary = (input: {
  *   one. a call made while a background pty is live uses this twin, never the sync one
  */
 export const invokeRhachetCliBinaryAsync = (input: {
+  /** which binary to invoke (default: 'rhachet'), as the sync twin takes */
+  binary?: 'rhachet' | 'rhx';
   /** CLI args after the binary name */
   args: string[];
   /** cwd for the command */
@@ -372,19 +383,20 @@ export const invokeRhachetCliBinaryAsync = (input: {
   env?: Record<string, string | undefined>;
   /** whether to log output on failure (default: true), as the sync twin does */
   logOnError?: boolean;
+  /** optional wall-clock cap (ms); a child past it is SIGKILLed, as the sync twin does, so a
+   *  hang surfaces as a failed result with its captured output */
+  timeoutMs?: number;
 }): Promise<{ status: number | null; stdout: string; stderr: string }> => {
-  // merge env, drop undefined so a test can unset an inherited var. the runner's own
-  // clone identity is stripped first, as the sync twin does — the clone axis is a test's
-  // to declare, never the shell that ran the suite (`rule.require.hermetic-tests`)
-  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
-  const envFiltered = Object.fromEntries(
-    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
-  ) as NodeJS.ProcessEnv;
+  const binPath = input.binary === 'rhx' ? RHX_BIN : RHACHET_BIN;
+  const envFiltered = asEnvForSpawn({ env: input.env });
 
   return new Promise((done, fail) => {
-    const child = spawn(RHACHET_BIN, input.args, {
+    const child = spawn(binPath, input.args, {
       cwd: input.cwd,
       env: envFiltered,
+      ...(input.timeoutMs
+        ? { timeout: input.timeoutMs, killSignal: 'SIGKILL' as const }
+        : {}),
     });
 
     // .note = deliberate mutation — a child streams its output over time, so the two
@@ -436,18 +448,7 @@ export const invokeRhachetCliBinaryChain = (input: {
     return i < input.argsChain.length - 1 ? `${cmd} > /dev/null` : cmd;
   });
   const chainedCommand = commands.join(' && ');
-
-  // merge env vars, filter out undefined to unset inherited vars
-  const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
-  // .note = deliberate cast: the filter above removes every undefined value, so the
-  //   object is a plain { [key: string]: string } — but Object.fromEntries widens the
-  //   value type back to `string | undefined`, which NodeJS.ProcessEnv already permits.
-  //   the runtime filter guarantees no undefined survives, so the cast only re-narrows
-  //   the compile-time type to what the value already is. removal path: drops when a
-  //   typed fromEntries utility lands (rule.forbid.as-cast, test boundary)
-  const envFiltered = Object.fromEntries(
-    Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
-  ) as NodeJS.ProcessEnv;
+  const envFiltered = asEnvForSpawn({ env: input.env });
 
   const result = spawnSync('bash', ['-c', chainedCommand], {
     cwd: input.cwd,
@@ -466,11 +467,14 @@ export const invokeRhachetCliBinaryChain = (input: {
 };
 
 /**
- * .what = asSnapshotSafe, minus the one enroll line that depends on the host's claude login
- * .why = enroll prints `ℹ no claude login at …` only on a host with no login, so a
- *   snapshot of enroll stderr differs between a dev box and ci. the line is its own
- *   concern, clamped where the journey pins a HOME with no credential; elsewhere it is
- *   host noise
+ * .what = asSnapshotSafe, minus the two enroll lines that depend on the host's own `~/.claude`
+ * .why = enroll prints `ℹ no claude login at …` only on a host with no login, and
+ *   `ℹ no grove at …` only on a host with no `~/.claude/settings.json`. so a snapshot of
+ *   enroll stderr differs between a dev box and ci. each line is its own concern, clamped
+ *   where a case pins a HOME that holds or lacks it (the grove: `enroll.acceptance`
+ *   [case2c]); elsewhere it is host noise
  */
 export const asSnapshotSafeOfHostLogin = (output: string): string =>
-  asSnapshotSafe(output).replace(/^ℹ no claude login at .*\n?/gm, '');
+  asSnapshotSafe(output)
+    .replace(/^ℹ no claude login at .*\n?/gm, '')
+    .replace(/^ℹ no grove at .*\n?/gm, '');

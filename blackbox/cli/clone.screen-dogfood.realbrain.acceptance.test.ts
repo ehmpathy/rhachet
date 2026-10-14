@@ -11,7 +11,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { genCloneHistoryRelink } from '@src/domain.operations/clone/genCloneHistoryRelink';
 import { getCloneSubmittedCount } from '@src/domain.operations/clone/getCloneSubmittedCount';
@@ -266,14 +266,15 @@ const asScreenLive = (
  * .note = the throw carries both streams, so a dispatch failure names its own cause
  *   rather than shows up later as an empty rendered grid
  */
-const dispatchViaCli = (input: {
+const dispatchViaCli = async (input: {
   dir: string;
   env: Record<string, string | undefined>;
   address: string;
   message: string;
-}): { stdout: string; verdict: 'enqueued' | 'released' | 'other' } => {
+}): Promise<{ stdout: string; verdict: 'enqueued' | 'released' | 'other' }> => {
   const multiline = input.message.includes('\n');
-  const result = invokeRhachetCliBinary({
+  // async, never sync: the clone's pty is live (rule.forbid.sync-invoke-while-a-pty-is-live)
+  const result = await invokeRhachetCliBinaryAsync({
     binary: 'rhx',
     args: [
       'clone',
@@ -294,6 +295,7 @@ const dispatchViaCli = (input: {
       status: result.status,
       stdout: result.stdout,
       stderr: result.stderr,
+      hint: 'read the say stderr above; exit 2 names the reach fault, exit 1 a dispatch malfunction',
     });
   return { stdout: result.stdout, verdict: asSayVerdict(result.stdout) };
 };
@@ -342,6 +344,7 @@ describe('screen dogfood — a real brain-cli renders its input states (real acc
       if (clone === null)
         throw new MalfunctionError('the enrolled clone was not found on disk', {
           address: enrolled.address,
+          hint: 'the enroll printed an address no clone dir answers to; check .agent/.actors/ under the fixture dir',
         });
       return { dir, env, repoPath, clone, ...enrolled };
     });
@@ -441,7 +444,7 @@ describe('screen dogfood — a real brain-cli renders its input states (real acc
         };
         for (const printCount of queuedArrangeCounts) {
           const m1 = `Print each integer from 1 to ${printCount}, one per line, and no other text.`;
-          dispatchViaCli({
+          await dispatchViaCli({
             dir: scene.dir,
             env: scene.env,
             address: scene.address,
@@ -464,7 +467,7 @@ describe('screen dogfood — a real brain-cli renders its input states (real acc
             boundMs: 30000,
           });
           m2 = `QUEUED-${Date.now().toString(36)}`;
-          const said = dispatchViaCli({
+          const said = await dispatchViaCli({
             dir: scene.dir,
             env: scene.env,
             address: scene.address,
@@ -773,6 +776,7 @@ describe('screen dogfood — a real brain-cli renders its input states (real acc
       if (clone === null)
         throw new MalfunctionError('the enrolled clone was not found on disk', {
           address: enrolled.address,
+          hint: 'the enroll printed an address no clone dir answers to; check .agent/.actors/ under the fixture dir',
         });
       return { dir, env, repoPath, clone, ...enrolled };
     });
@@ -784,7 +788,7 @@ describe('screen dogfood — a real brain-cli renders its input states (real acc
       const observed = useBeforeAll(async () => {
         const mlTag = `ML-${Date.now().toString(36)}`;
         const mlLines = [`${mlTag}-alpha`, `${mlTag}-bravo`, `${mlTag}-charlie`];
-        dispatchViaCli({
+        await dispatchViaCli({
           dir: scene.dir,
           env: scene.env,
           address: scene.address,

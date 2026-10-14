@@ -1,18 +1,69 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { findsertPrepareWithPrepareRhachetEntry } from './findsertPrepareWithPrepareRhachetEntry';
+import { getOnePackageJsonOrNull } from './getOnePackageJsonOrNull';
 import { getPrepareCommand } from './getPrepareCommand';
+import { setOnePackageJson } from './setOnePackageJson';
 import { upsertPrepareRhachetEntry } from './upsertPrepareRhachetEntry';
+
+/**
+ * .what = the report glyph for each effect a prepare entry can take
+ */
+const PREPARE_EFFECT_GLYPH: Record<
+  'CREATED' | 'UPDATED' | 'APPENDED' | 'FOUND',
+  string
+> = {
+  CREATED: '+',
+  UPDATED: '↻',
+  APPENDED: '↪',
+  FOUND: '○',
+};
 
 /**
  * .what = persist rhachet init command to package.json prepare entries
  * .why = enables auto-setup on npm install for teammates
+ *
+ * .note = the read and the write hold the `package.json` mutex, so a peer `rhx init` that
+ *   writes the same file cannot drop this one's entries
  */
-export const persistPrepareEntries = (
+export const persistPrepareEntries = async (
+  input: {
+    hooks: boolean;
+    roles: string[];
+  },
+  context: ContextCli,
+): Promise<{
+  prepareRhachet: { effect: 'CREATED' | 'UPDATED' };
+  prepare: { effect: 'CREATED' | 'APPENDED' | 'FOUND' };
+}> => {
+  const pkgPath = join(context.cwd, 'package.json');
+  const result = await withRepoMutex(
+    { repoPath: context.cwd, path: pkgPath },
+    async () => persistPrepareEntriesWithinLock(input, context),
+  );
+
+  // report feedback
+  console.log('');
+  console.log('📦 persist prepare entries...');
+  console.log(
+    `   ${PREPARE_EFFECT_GLYPH[result.prepareRhachet.effect]} [${result.prepareRhachet.effect.toLowerCase()}] scripts["prepare:rhachet"]`,
+  );
+  console.log(
+    `   ${PREPARE_EFFECT_GLYPH[result.prepare.effect]} [${result.prepare.effect.toLowerCase()}] scripts["prepare"]`,
+  );
+  console.log('');
+
+  return result;
+};
+
+/**
+ * .what = the read, the two entry edits and the write, once the `package.json` mutex is held
+ */
+const persistPrepareEntriesWithinLock = (
   input: {
     hooks: boolean;
     roles: string[];
@@ -22,31 +73,14 @@ export const persistPrepareEntries = (
   prepareRhachet: { effect: 'CREATED' | 'UPDATED' };
   prepare: { effect: 'CREATED' | 'APPENDED' | 'FOUND' };
 } => {
-  // derive package.json path
-  const pkgPath = join(context.cwd, 'package.json');
-
-  // check file exists
-  if (!existsSync(pkgPath)) {
+  // read package.json; --prep needs one to write into
+  const found = getOnePackageJsonOrNull({ dir: context.cwd });
+  if (!found)
     throw new ConstraintError('no package.json found', {
       cwd: context.cwd,
-      pkgPath,
+      pkgPath: join(context.cwd, 'package.json'),
     });
-  }
-
-  // read package.json
-  const pkgContent = readFileSync(pkgPath, 'utf-8');
-
-  // parse package.json
-  let pkg: Record<string, unknown>;
-  try {
-    pkg = JSON.parse(pkgContent) as Record<string, unknown>;
-  } catch (error) {
-    if (!(error instanceof Error)) throw error;
-    throw new ConstraintError('invalid package.json', {
-      pkgPath,
-      parseError: error.message,
-    });
-  }
+  const { pkgPath, pkg } = found;
 
   // generate prepare command
   const pkgName = typeof pkg.name === 'string' ? pkg.name : null;
@@ -72,23 +106,8 @@ export const persistPrepareEntries = (
     pkg: upsertResult.pkg,
   });
 
-  // write package.json back
-  writeFileSync(
-    pkgPath,
-    JSON.stringify(findsertResult.pkg, null, 2) + '\n',
-    'utf-8',
-  );
-
-  // report feedback
-  console.log('');
-  console.log('📦 persist prepare entries...');
-  console.log(
-    `   ${upsertResult.effect === 'CREATED' ? '+' : '↻'} [${upsertResult.effect.toLowerCase()}] scripts["prepare:rhachet"]`,
-  );
-  console.log(
-    `   ${findsertResult.effect === 'CREATED' ? '+' : findsertResult.effect === 'APPENDED' ? '↪' : '○'} [${findsertResult.effect.toLowerCase()}] scripts["prepare"]`,
-  );
-  console.log('');
+  // write package.json back, whole
+  setOnePackageJson({ pkgPath, pkg: findsertResult.pkg });
 
   return {
     prepareRhachet: { effect: upsertResult.effect },

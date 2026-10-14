@@ -10,8 +10,12 @@ import type { CloneWithheldReason } from './computeCloneDispatchPrecheck';
  *   (buffered → enqueued → released), or a refusal orthogonal to it
  * .why = a transcript-only verify has ONE word for "not in the transcript" — it reads as
  *   "the brain never took it" — so a message the brain merely QUEUED reads as a false
- *   failure. these six verdicts part "not yet" from "never", so a caller's retry policy is
+ *   failure. these verdicts part "not yet" from "never", so a caller's retry policy is
  *   writable (the wish's loudest benefit). each coined word owes a `domain.terms/` cluster
+ *
+ * .note = `exited` sits outside the triple, like `withheld`: the say asked the clone to END
+ *   (`/exit`, `/quit`) and its socket then closed. the clone did what it was told, so it is a
+ *   success, never a probe fault read off a socket that is gone on purpose
  */
 export type CloneSayVerdict =
   | 'released'
@@ -19,7 +23,8 @@ export type CloneSayVerdict =
   | 'buffered'
   | 'withheld'
   | 'absent'
-  | 'unreadable';
+  | 'unreadable'
+  | 'exited';
 
 /**
  * .what = the reason a non-success verdict landed as it did — a CLOSED slug set a caller
@@ -114,6 +119,13 @@ export interface CloneSayObservation {
    *   (r9.n1). a non-null screen carries no probe-blind reason
    */
   probeReason: CloneProbeBlindReason | null;
+  /**
+   * .what = the message asked the clone to end — the brain-cli's `/exit` or `/quit`
+   * .why = a gone socket after such a say is the clone that ended as ASKED, and reads `exited`;
+   *   the same gone socket after any other say is a clone that died on its own, and reads
+   *   `unreadable`. only the message parts the two, so the verdict reads it here
+   */
+  exitAsked: boolean;
 }
 
 /**
@@ -133,7 +145,7 @@ export const isCloneSayEnqueuedShape = (input: {
 
 /**
  * .what = decide one `say` dispatch to exactly one verdict, from its observations
- * .why = this IS the six-verdict decision, pure and in one place — so the CLI, the machine
+ * .why = this IS the verdict decision, pure and in one place — so the CLI, the machine
  *   channel, and every test read one contract. the branches are ordered by strength, first
  *   match wins, and `absent` is the residual
  *
@@ -164,6 +176,21 @@ export const computeCloneSayVerdict = (
       reason: input.refusal,
       probe: 'capable',
       delivered: false,
+    };
+
+  // exited — the say asked the clone to end, and its socket then closed: no listener is left
+  // to probe. the clone did what it was told, so this is a success of its own, checked before
+  // `released` so an exit the transcript also recorded still names the end rather than a turn
+  if (
+    input.exitAsked &&
+    input.screen === null &&
+    input.probeReason === 'socket-gone'
+  )
+    return {
+      verdict: 'exited',
+      reason: null,
+      probe: 'unsupported',
+      delivered: true,
     };
 
   // released — the brain TOOK it: the transcript gained the user turn AND the queue is empty.

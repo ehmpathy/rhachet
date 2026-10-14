@@ -29,20 +29,23 @@ describe('getCloneInputStateOrBlind.integration', () => {
         getCloneInputStateOrBlind({
           socketPath,
           message: 'poke',
-          traceToStderr: (line) => traced.push(line),
+          traceFault: (line) => traced.push(line),
         }),
       );
 
-      then('it degrades to a probe-blind feed-not-live reply', () => {
-        expect(reply.probe).toEqual('unsupported');
-        if (reply.probe !== 'unsupported')
-          throw new Error('expected an unsupported reply');
-        expect(reply.reason).toEqual('feed-not-live');
-      });
+      then(
+        'it degrades to socket-gone — no listener, so a wait never clears it',
+        () => {
+          expect(reply.probe).toEqual('unsupported');
+          if (reply.probe !== 'unsupported')
+            throw new Error('expected an unsupported reply');
+          expect(reply.reason).toEqual('socket-gone');
+        },
+      );
 
       then('the degrade is traced before it is returned, never silent', () => {
         expect(traced).toHaveLength(1);
-        expect(traced[0]).toContain('feed-not-live');
+        expect(traced[0]).toContain('socket-gone');
       });
     });
   });
@@ -180,7 +183,7 @@ describe('getCloneInputStateOrBlind.integration', () => {
             message: 'poke',
             replyTimeoutMs: forwardedBoundMs,
             // capture the degrade trace so it does not spill to the real stderr
-            traceToStderr: () => undefined,
+            traceFault: () => undefined,
           });
           return {
             probe: reply.probe,

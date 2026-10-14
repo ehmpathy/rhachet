@@ -1,8 +1,9 @@
 import { getCloneTraceSink } from '../getCloneTraceSink';
 import type { CloneGetReply } from './asCloneGetReply';
+import { CloneSocketGoneError } from './CloneSocketGoneError';
 import { CloneWireCorruptionError } from './CloneWireCorruptionError';
 import { getCloneInputState } from './getCloneInputState';
-import { isCodeDefectError } from './isCodeDefectError';
+import { isCloneProbeTransportFault } from './isCloneProbeTransportFault';
 
 /**
  * .what = probe a clone's input state; a transient TRANSPORT fault degrades to a probe-blind
@@ -35,17 +36,22 @@ import { isCodeDefectError } from './isCodeDefectError';
  *   (r011-i007-n2). a bound past its budget is safe: the fault degrades probe-blind here, never
  *   crashes the loop
  *
- * .note = the split is THREE-valued, an allowlist that reserves the degrade for transport faults
- *   alone: a `CloneWireCorruptionError` rethrows (a protocol defect), a JS-defect class
- *   (TypeError / RangeError / ReferenceError / SyntaxError — a genuine code bug) rethrows and
- *   crashes LOUD, and only a transport fault (a socket hiccup, a timeout) degrades to probe-blind.
- *   without the defect rethrow a real bug in the probe path would fold into `feed-not-live` and
- *   report the mildest "wait, it self-heals" remedy about a genuine defect (`rule.forbid.failhide`,
- *   r002-i010-n3, a sharper cut of r011-i008-r001-n1). the transport degrade that remains is STILL
- *   traced to the operator's stderr the instant it is caught, before the probe-blind reply — the
- *   same injected-sink shape genCloneScreenFeed's `retainFault` uses (r011-i007-n4). `traceToStderr`
- *   is INJECTED so a clamp captures it without a spy on the process; a transient transport fault
- *   degrades to the caller and self-heals on the next poll, but leaves a trace a debugger can read
+ * .note = the split is an allowlist that reserves the degrade for transport faults alone: a
+ *   `CloneWireCorruptionError` rethrows (a protocol defect), a transport fault the probe path
+ *   mints (`isCloneProbeTransportFault`: a gone socket, a connect fault, a read timeout or socket
+ *   error) degrades to probe-blind, and EVERY other error rethrows and crashes LOUD — a JS defect,
+ *   an unknown class, a plain Error. so a real bug in the probe path never folds into
+ *   `feed-not-live` (`rule.forbid.failhide`, r002-i010-n3, r002-i002 of the seeds round). the
+ *   transport degrade that remains is STILL
+ *   traced the instant it is caught, before the probe-blind reply — the same injected-sink shape
+ *   genCloneScreenFeed's `retainFault` uses (r011-i007-n4). `traceFault` is INJECTED so a clamp
+ *   captures it without a spy on the process, and so a caller whose stderr is a machine channel
+ *   (`clone say`) routes it to the durable trace log alone; the default is the stderr+log tee
+ *
+ * .note = a GONE socket (`CloneSocketGoneError` — the path absent, or the connect refused)
+ *   degrades to `socket-gone`, never `feed-not-live`: no listener means the clone ended, and a
+ *   wait never clears that. the say poll stops on it at once, and a `/exit` whose socket then
+ *   closes reads as the clone that ended as asked (`exited`), never as a probe fault
  */
 export const getCloneInputStateOrBlind = async (input: {
   socketPath: string;
@@ -54,7 +60,7 @@ export const getCloneInputStateOrBlind = async (input: {
   content?: boolean;
   connectTimeoutMs?: number;
   replyTimeoutMs?: number;
-  traceToStderr?: (line: string) => void;
+  traceFault?: (line: string) => void;
 }): Promise<CloneGetReply> => {
   try {
     return await getCloneInputState({
@@ -66,28 +72,29 @@ export const getCloneInputStateOrBlind = async (input: {
       replyTimeoutMs: input.replyTimeoutMs,
     });
   } catch (error) {
-    // a wire-corruption fault is a real protocol defect — never mask it as a benign degrade
+    // a wire-corruption fault is a real protocol defect — never mask it as a benign degrade.
+    //   it extends MalfunctionError, so it is checked before the transport allowlist below
     if (error instanceof CloneWireCorruptionError) throw error;
 
-    // a JS-defect class (TypeError, RangeError, ReferenceError, SyntaxError) is a genuine CODE
-    // bug in the probe path (getCloneInputState's internals, the frame reassembler, a future
-    // edit) — never a transport fault. it must crash LOUD, never fold into the mildest
-    // "wait, self-heals" degrade that would report a code bug as a benign probe-blind read
-    // (rule.forbid.failhide). only a transport fault (connect refused, timeout, socket error —
-    // the MalfunctionError getCloneInputState mints) is legitimately probe-blind. this is the
-    // allowlist the two-valued split lacked: corruption + defect rethrow, transport degrades
-    // (r002-i010-n3)
-    if (isCodeDefectError(error)) throw error;
+    // only a transport fault the probe path mints is legitimately probe-blind; every other
+    //   error — a JS defect, an unknown class, a plain Error — is thrown up loud, never folded
+    //   into the mildest "wait, self-heals" degrade (rule.forbid.failhide)
+    if (!isCloneProbeTransportFault({ error })) throw error;
 
     // a transport fault (connect refused, timeout, socket error) is legitimately probe-blind —
-    // but trace it before the degrade, so a non-transport defect folded into `feed-not-live`
-    // leaves a loud trail rather than hides behind the mildest remedy (rule.forbid.failhide)
-    const traceToStderr = input.traceToStderr ?? getCloneTraceSink();
+    // but trace it before the degrade, so a non-transport defect folded into a probe-blind
+    // reason leaves a trail rather than hides behind the mildest remedy (rule.forbid.failhide).
+    // a GONE socket (no listener) is named apart: it never self-heals, so a poll stops on it
+    const traceFault = input.traceFault ?? getCloneTraceSink();
     const message = error instanceof Error ? error.message : String(error);
-    traceToStderr(
-      `😶 clone probe fault — degraded to feed-not-live (may self-heal on the next poll): ${message}\n`,
+    const reason =
+      error instanceof CloneSocketGoneError ? 'socket-gone' : 'feed-not-live';
+    traceFault(
+      reason === 'socket-gone'
+        ? `😶 clone probe fault — degraded to socket-gone (no listener; the clone ended): ${message}\n`
+        : `😶 clone probe fault — degraded to feed-not-live (may self-heal on the next poll): ${message}\n`,
     );
 
-    return { probe: 'unsupported', reason: 'feed-not-live' };
+    return { probe: 'unsupported', reason };
   }
 };

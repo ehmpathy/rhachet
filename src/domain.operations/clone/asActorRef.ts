@@ -1,12 +1,18 @@
 import { ConstraintError } from 'helpful-errors';
 
 /**
- * .what = a parsed reference to an enrolled actor — by its hash (or a prefix of it)
- * .why = an anonymous actor's address body IS its hash; a full 8-char hash is a
- *   mouthful, so a git-style unique PREFIX is the natural reach. this ref carries
- *   the literal to match against the on-disk actors
+ * .what = a parsed reference to an enrolled actor — by its exid, or a prefix of the exid
+ *   or of its value (`@hash=9c1e`, `@9c1e`, `@repo=ambient`)
+ * .why = an actor's address body IS its exid; a full exid is a mouthful, so a git-style
+ *   unique PREFIX is the natural reach. this ref carries the literal to match against
+ *   the on-disk actors
+ * .note = `hashPrefix` is a legacy-compat name for an EXID prefix (`repo=ambient`, `hash=9c1e`,
+ *   `9c1e`): it rides the json error metadata a machine already reads
  */
-export type ActorRef = { hashPrefix: string };
+export type ActorRef = {
+  /** an exid prefix; the name predates the exid and is kept for the json error contract */
+  hashPrefix: string;
+};
 
 /**
  * .what = parse an actor address (`@<hash>` or `actor://<hash>`) into an ActorRef
@@ -54,7 +60,10 @@ export const asActorRef = (input: { raw: string }): ActorRef => {
   if (body.length === 0)
     return ConstraintError.throw(
       `'${raw}' names no actor — the address body after '@' is empty.`,
-      { raw, hint: `name an actor after '@', e.g. '@<hash-prefix>'` },
+      {
+        raw,
+        hint: `name an actor after '@' by its exid or a prefix of it, e.g. '@repo=ambient' or '@hash=9c1e'`,
+      },
     );
 
   return { hashPrefix: body };

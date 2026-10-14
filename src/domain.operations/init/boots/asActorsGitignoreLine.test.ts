@@ -40,9 +40,9 @@ const TEST_CASES = [
   },
   { description: 'a blank line is kept', given: '', expect: '' },
   {
-    description: 'the default-dir negation is kept',
-    given: '!.agent/.actors/actor.via.slug=.default/',
-    expect: '!.agent/.actors/actor.via.slug=.default/',
+    description: 'the repo actor dir negation is kept',
+    given: '!.agent/.actors/actor.via.repo=ambient/',
+    expect: '!.agent/.actors/actor.via.repo=ambient/',
   },
 ];
 

@@ -23,7 +23,7 @@ describe('setCloneSlugIndex.integration', () => {
       setCloneSlugIndex({
         actorsRoot,
         slug: 'driver',
-        actorHash: 'aaa',
+        actorExid: 'hash=aaa',
         serial: 's1',
       });
       return { actorsRoot };
@@ -48,13 +48,13 @@ describe('setCloneSlugIndex.integration', () => {
       setCloneSlugIndex({
         actorsRoot,
         slug: 'driver',
-        actorHash: 'aaa',
+        actorExid: 'hash=aaa',
         serial: 's1',
       });
       setCloneSlugIndex({
         actorsRoot,
         slug: 'driver',
-        actorHash: 'aaa',
+        actorExid: 'hash=aaa',
         serial: 's2',
       });
       return { actorsRoot };
@@ -95,7 +95,7 @@ describe('setCloneSlugIndex.integration', () => {
           setCloneSlugIndex({
             actorsRoot,
             slug: 'driver',
-            actorHash: 'aaa',
+            actorExid: 'hash=aaa',
             serial: `s${i}`,
           });
         return { actorsRoot };
@@ -125,14 +125,14 @@ describe('setCloneSlugIndex.integration', () => {
         setCloneSlugIndex({
           actorsRoot,
           slug: 'driver',
-          actorHash: 'aaa',
+          actorExid: 'hash=aaa',
           serial: 's1',
         });
         const error = await getError(() =>
           setCloneSlugIndex({
             actorsRoot,
             slug: 'driver',
-            actorHash: 'bbb',
+            actorExid: 'hash=bbb',
             serial: 's9',
           }),
         );

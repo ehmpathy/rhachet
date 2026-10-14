@@ -1,7 +1,10 @@
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 describe('rhachet init (full output)', () => {
   given('[case1] repo with multiple roles, inits, and hooks', () => {
@@ -14,6 +17,11 @@ describe('rhachet init (full output)', () => {
         invokeRhachetCliBinary({
           args: ['init', '--roles', 'tester', 'reviewer', '--hooks'],
           cwd: repo.path,
+          // a fresh HOME with no `.claude/settings.json`, so the brain dir holds no grove
+          //   arrows: the fixture's test brain writes `<repo>/.claude/settings.json` in place,
+          //   and with a grove on the host that name is an arrow to `~/.claude/settings.json`,
+          //   so the write would land in the host's own settings
+          env: { HOME: genTempDir({ slug: 'init-full-home' }) },
         }),
       );
 
@@ -40,7 +48,8 @@ describe('rhachet init (full output)', () => {
       });
 
       then('full stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        // masked: the temp repo path and any per-run stamp
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });

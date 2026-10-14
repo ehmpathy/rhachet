@@ -78,9 +78,11 @@ export const genStepBudget = <TKind extends string>(input: {
    *         throws: no work outlives the overrun it reports. `fn` should still end its own
    *         work by `budgetMs` (e.g. pass it as a child-kill timeout), or the join waits on
    *         it until jest's own timeout
+   * .note = `asEvidence` picks what of the result an overrun shows, as in `withBudgetSync`;
+   *         on a bound hit it reads the joined result, when the work fulfilled
    */
   const withBudget = async <T>(
-    step: { kind: TKind; detail: string },
+    step: { kind: TKind; detail: string; asEvidence?: (result: T) => unknown },
     fn: (budgetMs: number) => Promise<T>,
   ): Promise<T> => {
     const label = asLabel(step.detail);
@@ -100,7 +102,10 @@ export const genStepBudget = <TKind extends string>(input: {
     const work = fn(budgetMs);
     try {
       const result = await Promise.race([work, bound]);
-      settle({ label, kind: step.kind, ms: Date.now() - startedAt, budgetMs });
+      settle(
+        { label, kind: step.kind, ms: Date.now() - startedAt, budgetMs },
+        step.asEvidence?.(result),
+      );
       return result;
     } catch (error) {
       // a bound hit is an overrun; join the work so none outlives it, then record the spend
@@ -111,7 +116,12 @@ export const genStepBudget = <TKind extends string>(input: {
       const [late] = await Promise.allSettled([work]);
       settle(
         { label, kind: step.kind, ms: Date.now() - startedAt, budgetMs },
-        { lateSettlement: late.status },
+        {
+          lateSettlement: late.status,
+          ...(late.status === 'fulfilled' && step.asEvidence
+            ? { late: step.asEvidence(late.value) }
+            : {}),
+        },
       );
       throw error;
     } finally {

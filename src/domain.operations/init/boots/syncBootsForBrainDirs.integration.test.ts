@@ -1,27 +1,25 @@
 import { ConstraintError } from 'helpful-errors';
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
-import { getUuid } from 'uuid-fns';
+import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
+import { genSampleActorWithClone } from '@src/.test/assets/genSampleActorWithClone';
+import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
+import { setSampleRepoCommitted } from '@src/.test/assets/setSampleRepoCommitted';
 import { ContextCli } from '@src/domain.objects/ContextCli';
-import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
-import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 
-import { execFileSync } from 'node:child_process';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   readlinkSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
-const DEFAULT_ACTOR_DIR_REL = '.agent/.actors/actor.via.slug=.default';
-const DEFAULT_BRAIN_DIR_REL = `${DEFAULT_ACTOR_DIR_REL}/brain/.claude`;
+const REPO_ACTOR_DIR_REL = '.agent/.actors/actor.via.repo=ambient';
+const REPO_ACTOR_BRAIN_DIR_REL = `${REPO_ACTOR_DIR_REL}/brain/.claude`;
 
 /**
  * .what = a git repo with synthetic roles linked under `.agent/`, and its cli context
@@ -29,85 +27,18 @@ const DEFAULT_BRAIN_DIR_REL = `${DEFAULT_ACTOR_DIR_REL}/brain/.claude`;
 const genRepoWithRoles = (input: {
   slug: string;
 }): { repoPath: string; context: ContextCli } => {
-  const repoPath = realpathSync(genTempDir({ slug: input.slug, git: true }));
-  const roles = [
-    { repo: '.this', role: 'any' },
-    { repo: 'fixture', role: 'zeta' },
-    { repo: 'fixture', role: 'omega' },
-  ];
-  for (const role of roles) {
-    const roleDir = join(
-      repoPath,
-      '.agent',
-      `repo=${role.repo}`,
-      `role=${role.role}`,
-    );
-    mkdirSync(join(roleDir, 'briefs'), { recursive: true });
-    writeFileSync(join(roleDir, 'readme.md'), `${role.role} readme`);
-    writeFileSync(
-      join(roleDir, 'briefs', 'core.md'),
-      `${role.role} brief body`,
-    );
-  }
-  // a native role boots only once it declares a boot.yml
-  writeFileSync(
-    join(repoPath, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
-    'briefs:\n  say:\n    - briefs/core.md\n',
-  );
-  writeFileSync(join(repoPath, '.gitignore'), '.agent/.actors/\n');
+  const repoPath = genSampleRepoWithRoles({
+    slug: input.slug,
+    roles: [
+      { repo: '.this', role: 'any' },
+      { repo: 'fixture', role: 'zeta' },
+      { repo: 'fixture', role: 'omega' },
+    ],
+    gitignore: '.agent/.actors/\n',
+  });
   return {
     repoPath,
     context: new ContextCli({ cwd: repoPath, gitroot: repoPath }),
-  };
-};
-
-/**
- * .what = stage and commit every tracked-eligible path in the repo
- * .why = the migration drops a boot file ONLY where git could hand it back, so a case that
- *   asserts a DROP must first put that file where git can reach it. the identity rides on
- *   `-c`, so the test needs no global git config to exist
- */
-const commitWholeTree = (input: { repoPath: string }): void => {
-  execFileSync('git', ['add', '-A'], { cwd: input.repoPath, stdio: 'pipe' });
-  execFileSync(
-    'git',
-    [
-      '-c',
-      'user.email=test@example.com',
-      '-c',
-      'user.name=test',
-      'commit',
-      '-q',
-      '-m',
-      'seed',
-    ],
-    { cwd: input.repoPath, stdio: 'pipe' },
-  );
-};
-
-/**
- * .what = seed one actor with one clone; `live` makes the clone DEAF (a live pid), else DEAD
- */
-const genActorWithClone = (input: {
-  repoPath: string;
-  roles: string[];
-  live: boolean;
-}): { actorHash: string; actorDir: string; brainDir: string } => {
-  const seeded = genSampleCloneOndisk({
-    repoPath: input.repoPath,
-    roles: input.roles,
-    serial: getUuid(),
-    slug: null,
-    socketEligible: !input.live,
-  });
-  const actorDir = getActorOndiskDir({
-    repoPath: seeded.repoPath,
-    hash: seeded.actorHash,
-  });
-  return {
-    actorHash: seeded.actorHash,
-    actorDir,
-    brainDir: getBrainOndiskDir({ actorDir }),
   };
 };
 
@@ -115,8 +46,12 @@ describe('syncBootsForBrainDirs', () => {
   given('[case1] a repo with one DEAF actor and one DEAD actor', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, context } = genRepoWithRoles({ slug: 'sync-boots' });
-      const deaf = genActorWithClone({ repoPath, roles: ['zeta'], live: true });
-      const dead = genActorWithClone({
+      const deaf = await genSampleActorWithClone({
+        repoPath,
+        roles: ['zeta'],
+        live: true,
+      });
+      const dead = await genSampleActorWithClone({
         repoPath,
         roles: ['omega'],
         live: false,
@@ -129,15 +64,15 @@ describe('syncBootsForBrainDirs', () => {
       then('the default and the DEAF actor render, and none fail', () => {
         expect(scene.result.failures).toEqual([]);
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'default' },
-          { kind: 'actor', actorHash: scene.deaf.actorHash },
+          { kind: 'repo' },
+          { kind: 'actor', actorExid: scene.deaf.actorExid },
         ]);
       });
 
       then('each render carries its path, role count and chars', () => {
         const [renderDefault, renderActor] = scene.result.renders;
         expect(renderDefault!.bootMdPath).toEqual(
-          join(scene.repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md'),
+          join(scene.repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md'),
         );
         expect(renderDefault!.stats.roles).toEqual(3);
         expect(renderDefault!.stats.chars).toBeGreaterThan(0);
@@ -148,25 +83,31 @@ describe('syncBootsForBrainDirs', () => {
       });
 
       then(
-        '<repo>/.claude is a relative symlink to the default brain dir',
+        '<repo>/.claude is a relative symlink to the repo actor brain dir',
         () => {
           expect(readlinkSync(join(scene.repoPath, '.claude'))).toEqual(
-            DEFAULT_BRAIN_DIR_REL,
+            REPO_ACTOR_BRAIN_DIR_REL,
           );
         },
       );
 
       then(
-        'the default brain dir ignores boot.md and links CLAUDE.md to AGENTS.md',
+        'the repo actor brain dir ignores boot.md and links CLAUDE.md to AGENTS.md',
         () => {
-          const defaultBrainDir = join(scene.repoPath, DEFAULT_BRAIN_DIR_REL);
+          const repoActorBrainDir = join(
+            scene.repoPath,
+            REPO_ACTOR_BRAIN_DIR_REL,
+          );
           const gitignore = readFileSync(
-            join(defaultBrainDir, '.gitignore'),
+            join(repoActorBrainDir, '.gitignore'),
             'utf8',
           );
-          expect(gitignore).toContain('boot.md');
-          expect(gitignore).toContain('*.local.json');
-          expect(readlinkSync(join(defaultBrainDir, 'CLAUDE.md'))).toEqual(
+          // an allowlist: ignore all, re-include only the doors and the settings names
+          const lines = gitignore.split('\n');
+          expect(lines[0]).toEqual('/*');
+          expect(lines).toContain('!/AGENTS.md');
+          expect(lines).not.toContain('!/boot.md');
+          expect(readlinkSync(join(repoActorBrainDir, 'CLAUDE.md'))).toEqual(
             'AGENTS.md',
           );
         },
@@ -211,7 +152,7 @@ describe('syncBootsForBrainDirs', () => {
 
       // the boot file is COMMITTED, so its drop is recoverable from git — the one ground
       // S11 rests on, and now the one state a drop proceeds from
-      commitWholeTree({ repoPath });
+      setSampleRepoCommitted({ repoPath });
 
       const result = await syncBootsForBrainDirs({ repoPath }, context);
       return { repoPath, result };
@@ -228,14 +169,27 @@ describe('syncBootsForBrainDirs', () => {
         },
       );
 
-      then('the other files move under the default dir', () => {
-        expect(
-          readFileSync(
-            join(scene.repoPath, DEFAULT_BRAIN_DIR_REL, 'settings.json'),
-            'utf8',
-          ),
-        ).toEqual('{}\n');
-      });
+      then(
+        'the other files move under the repo actor dir, and a real settings.json lands in settings.of.repo.json',
+        () => {
+          expect(
+            readFileSync(
+              join(
+                scene.repoPath,
+                REPO_ACTOR_BRAIN_DIR_REL,
+                'settings.of.repo.json',
+              ),
+              'utf8',
+            ),
+          ).toEqual('{}\n');
+          expect(
+            lstatSync(
+              join(scene.repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
+              { throwIfNoEntry: false },
+            )?.isFile() ?? false,
+          ).toBe(false);
+        },
+      );
 
       then('the symlink names its effect, the drop and the move', () => {
         expect(scene.result.symlink).toEqual({
@@ -248,22 +202,26 @@ describe('syncBootsForBrainDirs', () => {
     });
   });
 
-  given('[case3] the default brain dir cannot be written', () => {
+  given('[case3] the repo actor brain dir cannot be written', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, context } = genRepoWithRoles({
-        slug: 'sync-boots-default-fails',
+        slug: 'sync-boots-repo-actor-fails',
       });
-      const deaf = genActorWithClone({ repoPath, roles: ['zeta'], live: true });
-      // a file where the default actor dir must be → its mkdir fails
-      writeFileSync(join(repoPath, DEFAULT_ACTOR_DIR_REL), 'not a dir\n');
+      const deaf = await genSampleActorWithClone({
+        repoPath,
+        roles: ['zeta'],
+        live: true,
+      });
+      // a file where the repo actor dir must be → its mkdir fails
+      writeFileSync(join(repoPath, REPO_ACTOR_DIR_REL), 'not a dir\n');
       const result = await syncBootsForBrainDirs({ repoPath }, context);
       return { repoPath, deaf, result };
     });
 
     when('[t0] the brain dirs are synced', () => {
-      then('the default failure is collected under the default scope', () => {
+      then('the repo actor failure is collected under the repo scope', () => {
         expect(scene.result.failures).toHaveLength(1);
-        expect(scene.result.failures[0]!.scope).toEqual({ kind: 'default' });
+        expect(scene.result.failures[0]!.scope).toEqual({ kind: 'repo' });
         expect(scene.result.failures[0]!.cause).not.toBeInstanceOf(
           ConstraintError,
         );
@@ -271,7 +229,7 @@ describe('syncBootsForBrainDirs', () => {
 
       then('every active actor still renders', () => {
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'actor', actorHash: scene.deaf.actorHash },
+          { kind: 'actor', actorExid: scene.deaf.actorExid },
         ]);
       });
 
@@ -289,12 +247,12 @@ describe('syncBootsForBrainDirs', () => {
         const { repoPath, context } = genRepoWithRoles({
           slug: 'sync-boots-partial',
         });
-        const healthy = genActorWithClone({
+        const healthy = await genSampleActorWithClone({
           repoPath,
           roles: ['zeta'],
           live: true,
         });
-        const unwritable = genActorWithClone({
+        const unwritable = await genSampleActorWithClone({
           repoPath,
           roles: ['omega'],
           live: true,
@@ -304,7 +262,7 @@ describe('syncBootsForBrainDirs', () => {
           force: true,
         });
         writeFileSync(join(unwritable.actorDir, 'brain'), 'not a dir\n');
-        const unlinked = genActorWithClone({
+        const unlinked = await genSampleActorWithClone({
           repoPath,
           roles: ['gone'],
           live: true,
@@ -320,7 +278,7 @@ describe('syncBootsForBrainDirs', () => {
             const failure = scene.result.failures.find(
               (f) =>
                 f.scope.kind === 'actor' &&
-                f.scope.actorHash === scene.unwritable.actorHash,
+                f.scope.actorExid === scene.unwritable.actorExid,
             );
             expect(failure?.cause).toBeInstanceOf(Error);
             expect(failure?.cause).not.toBeInstanceOf(ConstraintError);
@@ -331,7 +289,7 @@ describe('syncBootsForBrainDirs', () => {
           const failure = scene.result.failures.find(
             (f) =>
               f.scope.kind === 'actor' &&
-              f.scope.actorHash === scene.unlinked.actorHash,
+              f.scope.actorExid === scene.unlinked.actorExid,
           );
           expect(failure?.cause).toBeInstanceOf(ConstraintError);
         });
@@ -343,8 +301,8 @@ describe('syncBootsForBrainDirs', () => {
               .map((render) => render.scope)
               .sort((a, b) => (a.kind < b.kind ? -1 : 1)),
           ).toEqual([
-            { kind: 'actor', actorHash: scene.healthy.actorHash },
-            { kind: 'default' },
+            { kind: 'actor', actorExid: scene.healthy.actorExid },
+            { kind: 'repo' },
           ]);
         });
       });
@@ -375,7 +333,7 @@ describe('syncBootsForBrainDirs', () => {
 
       then('the default still renders', () => {
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'default' },
+          { kind: 'repo' },
         ]);
       });
     });

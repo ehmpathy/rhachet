@@ -16,12 +16,16 @@ import { CloneWireCorruptionError } from './CloneWireCorruptionError';
  *     grid's parse integrity is in doubt; a wait never clears it — only a RE-ENROLL does
  *   - `peer-probe-blind` — an OLDER daemon that predates the read channel entirely, so it
  *     cannot answer a probe at all; the remedy is to re-enroll to a version that answers
- *   all three drive `unreadable`, but the remedy copy differs (wait vs re-enroll)
+ *   - `socket-gone` — no listener at the socket at all (absent, or refused): the clone ended.
+ *     minted CLIENT-side by the probe degrade, never sent by a peer; a wait never clears it,
+ *     and after a `/exit` it is the clone that ended as asked (the `exited` verdict)
+ *   all drive `unreadable` save the asked exit, but the remedy copy differs per cause
  */
 const CLONE_PROBE_BLIND_REASONS = [
   'feed-not-live',
   'feed-faulted',
   'peer-probe-blind',
+  'socket-gone',
 ] as const;
 
 /**

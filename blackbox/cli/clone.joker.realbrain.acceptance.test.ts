@@ -10,7 +10,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 // the ONE owner of the short-serial projection — same read as its `clone.acceptance`
 // twin, so the two suites cannot drift apart on the form they each assert
 import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
@@ -93,8 +93,8 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
     });
 
     when('[t0] the joker is enrolled and live', () => {
-      then('the clone appears LIVE in `clone list`, by its @:joker slug', () => {
-        const listed = invokeRhachetCliBinary({
+      then('the clone appears LIVE in `clone list`, by its @:joker slug', async () => {
+        const listed = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'list'],
           cwd: scene.dir,
           env: scene.env,
@@ -105,18 +105,18 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
         expect(listed.stdout).toContain('LIVE');
       });
 
-      then('the on-disk actor is a HASH actor, never a slug actor (two-grain split)', () => {
-        const listedJson = invokeRhachetCliBinary({
+      then('the on-disk actor is the REPO actor, never a slug actor (two-grain split)', async () => {
+        const listedJson = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'list', '--output', 'json'],
           cwd: scene.dir,
           env: scene.env,
           logOnError: false,
         });
         const parsed = JSON.parse(listedJson.stdout) as {
-          actors: { hash: string; clones: { slug: string | null }[] }[];
+          actors: { exid: string; clones: { slug: string | null }[] }[];
         };
-        // the clone wears the joker handle; the actor stays a bare content hash
-        expect(parsed.actors[0]!.hash).toMatch(/^[0-9a-f]+$/);
+        // the clone wears the joker handle; a bare enroll lands in the repo actor
+        expect(parsed.actors[0]!.exid).toEqual('repo=ambient');
         expect(parsed.actors[0]!.clones[0]!.slug).toEqual('joker');
       });
     });
@@ -289,14 +289,14 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
     });
 
     when('[t6] the WHOLE 5-turn conversation is observable via `get --tail all`', () => {
-      const reads = useThen('get --tail all carries every turn, --tail 1 bounds', () => {
-        const all = invokeRhachetCliBinary({
+      const reads = useThen('get --tail all carries every turn, --tail 1 bounds', async () => {
+        const all = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'get', '@:joker', '--output', 'json', '--tail', 'all'],
           cwd: scene.dir,
           env: scene.env,
           logOnError: false,
         });
-        const one = invokeRhachetCliBinary({
+        const one = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'get', '@:joker', '--output', 'json', '--tail', '1'],
           cwd: scene.dir,
           env: scene.env,
@@ -330,7 +330,7 @@ describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptan
 
     when('[t7] the joker names ITSELF via `clone whoami`', () => {
       const who = useThen('whoami from within the clone returns its own address', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinaryAsync({
           args: ['clone', 'whoami'],
           cwd: scene.dir,
           env: { ...scene.env, RHACHET_CLONE_SERIAL: scene.serial },

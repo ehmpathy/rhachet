@@ -1,20 +1,15 @@
 import { ConstraintError } from 'helpful-errors';
-import { genTempDir, getError, given, then, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
+import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  realpathSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { syncAndReportBrainDirBoots } from './syncAndReportBrainDirBoots';
 
-const DEFAULT_BRAIN_DIR_REL =
-  '.agent/.actors/actor.via.slug=.default/brain/.claude';
+const REPO_ACTOR_BRAIN_DIR_REL =
+  '.agent/.actors/actor.via.repo=ambient/brain/.claude';
 
 /**
  * .what = a git repo with one synthetic role linked under `.agent/`, and its cli context
@@ -24,12 +19,11 @@ const DEFAULT_BRAIN_DIR_REL =
 const genRepoWithRole = (input: {
   slug: string;
 }): { repoPath: string; context: ContextCli } => {
-  const repoPath = realpathSync(genTempDir({ slug: input.slug, git: true }));
-  const roleDir = join(repoPath, '.agent', 'repo=.this', 'role=any');
-  mkdirSync(join(roleDir, 'briefs'), { recursive: true });
-  writeFileSync(join(roleDir, 'readme.md'), 'any readme');
-  writeFileSync(join(roleDir, 'briefs', 'core.md'), 'any brief body');
-  writeFileSync(join(repoPath, '.gitignore'), '.agent/.actors/\n');
+  const repoPath = genSampleRepoWithRoles({
+    slug: input.slug,
+    roles: [{ repo: '.this', role: 'any' }],
+    gitignore: '.agent/.actors/\n',
+  });
   return {
     repoPath,
     context: new ContextCli({ cwd: repoPath, gitroot: repoPath }),
@@ -76,7 +70,7 @@ describe('syncAndReportBrainDirBoots', () => {
 
           // the refusal precedes the write — no corpus, and no repo symlink
           expect(
-            existsSync(join(repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md')),
+            existsSync(join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md')),
           ).toEqual(false);
           expect(existsSync(join(repoPath, '.claude'))).toEqual(false);
         },
@@ -96,9 +90,9 @@ describe('syncAndReportBrainDirBoots', () => {
           context,
         );
         expect(result.exitCode).toEqual(0);
-        expect(result.defaultRendered).toEqual(true);
+        expect(result.repoActorRendered).toEqual(true);
         expect(
-          existsSync(join(repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md')),
+          existsSync(join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md')),
         ).toEqual(true);
       });
     });
@@ -124,9 +118,9 @@ describe('syncAndReportBrainDirBoots', () => {
             context,
           );
           expect(result.exitCode).toEqual(0);
-          expect(result.defaultRendered).toEqual(true);
+          expect(result.repoActorRendered).toEqual(true);
           expect(
-            existsSync(join(repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md')),
+            existsSync(join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md')),
           ).toEqual(true);
         },
       );

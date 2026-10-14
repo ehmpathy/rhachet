@@ -5,14 +5,16 @@ import { asActorRef } from './asActorRef';
 
 describe('asActorRef', () => {
   given('[case1] an actor address', () => {
-    when('[t0] via the bare @ sigil (a hash prefix)', () => {
-      then('it parses as a hash-prefix ref', () => {
+    // .note = the field stays `hashPrefix` for the json error contract (see asActorRef.ts);
+    //   what it holds is a prefix of the actor's exid
+    when('[t0] via the bare @ sigil (an exid prefix)', () => {
+      then('it parses as an exid-prefix ref', () => {
         expect(asActorRef({ raw: '@9c1e' })).toEqual({ hashPrefix: '9c1e' });
       });
     });
 
     when('[t1] via the actor:// uri', () => {
-      then('it parses as a hash-prefix ref', () => {
+      then('it parses as an exid-prefix ref', () => {
         expect(asActorRef({ raw: 'actor://9c1e0af3' })).toEqual({
           hashPrefix: '9c1e0af3',
         });
@@ -40,7 +42,7 @@ describe('asActorRef', () => {
   });
 
   given('[case3] a dropped sigil', () => {
-    when('[t0] a bare hash with no @', () => {
+    when('[t0] a bare exid prefix with no @', () => {
       then('it fails loud and names the @ fix', async () => {
         const error = await getError(() => asActorRef({ raw: '9c1e' }));
         expect(error).toBeInstanceOf(ConstraintError);
@@ -64,7 +66,9 @@ describe('asActorRef', () => {
         expect(error).toBeInstanceOf(ConstraintError);
         // the hint names how to fix an empty address, for a machine consumer
         expect(error).toMatchObject({
-          metadata: { hint: `name an actor after '@', e.g. '@<hash-prefix>'` },
+          metadata: {
+            hint: `name an actor after '@' by its exid or a prefix of it, e.g. '@repo=ambient' or '@hash=9c1e'`,
+          },
         });
       });
     });

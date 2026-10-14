@@ -17,13 +17,13 @@ export const getOneCloneLiveCountForActor = async (input: {
   actorDir: string;
   actorsRoot: string;
   repoPath: string;
-  actorHash: string;
+  actorExid: string;
 }): Promise<number> => {
   const clones = getAllClonesForActor({
     actorDir: input.actorDir,
     actorsRoot: input.actorsRoot,
     repoPath: input.repoPath,
-    actorHash: input.actorHash,
+    actorExid: input.actorExid,
   });
 
   const states = await Promise.all(

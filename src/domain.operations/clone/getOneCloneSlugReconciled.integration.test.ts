@@ -34,7 +34,7 @@ describe('getOneCloneSlugReconciled.integration', () => {
         setCloneSlugIndex({
           actorsRoot,
           slug: 'driver',
-          actorHash: 'aaa',
+          actorExid: 'hash=aaa',
           serial: 's1',
         });
         expect(
@@ -55,13 +55,13 @@ describe('getOneCloneSlugReconciled.integration', () => {
         setCloneSlugIndex({
           actorsRoot,
           slug: 'driver',
-          actorHash: 'aaa',
+          actorExid: 'hash=aaa',
           serial: 's1',
         });
         setCloneSlugIndex({
           actorsRoot,
           slug: 'driver',
-          actorHash: 'aaa',
+          actorExid: 'hash=aaa',
           serial: 's2',
         });
         expect(

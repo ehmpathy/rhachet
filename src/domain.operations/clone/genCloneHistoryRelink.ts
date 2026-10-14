@@ -1,7 +1,7 @@
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
-import { getOneActorOndiskByHash } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByHash';
+import { getOneActorOndiskByExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByExid';
 
 import { genCloneHistoryLink } from './genCloneHistoryLink';
 import { getCloneBrainDir } from './getCloneBrainDir';
@@ -27,14 +27,14 @@ export const genCloneHistoryRelink = (input: {
 }): void => {
   const actorDir = getActorOndiskDir({
     repoPath: input.clone.actor.repoPath,
-    hash: input.clone.actor.hash,
+    exid: input.clone.actor.exid,
   });
   const cloneDir = getCloneDir({ actorDir, serial: input.clone.serial });
   const actorsRoot = getActorsRootDir({ repoPath: input.clone.actor.repoPath });
 
-  const actorRecord = getOneActorOndiskByHash({
+  const actorRecord = getOneActorOndiskByExid({
     repoPath: input.repoPath,
-    hash: input.clone.actor.hash,
+    exid: input.clone.actor.exid,
   });
   if (actorRecord)
     genCloneHistoryLink({

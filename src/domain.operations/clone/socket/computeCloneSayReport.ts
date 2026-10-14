@@ -99,6 +99,11 @@ const REASON_COPY: Record<
       'this clone predates the screen read channel, so it cannot answer a probe; the transcript did not rise within the bound',
     hint: 're-enroll the clone on a current version to read its screen state, or retry with a longer --await release bound',
   },
+  'socket-gone': {
+    message:
+      'the clone socket closed after the say was delivered — the clone ended (it exited, crashed, or was pruned) and the transcript did not show the message',
+    hint: 'a wait never clears a gone socket. read its last turns with `clone get`, then enroll a fresh clone (`rhx enroll`) before you retry',
+  },
 };
 
 /**
@@ -130,6 +135,8 @@ const DEGRADE_COPY: Record<CloneProbeBlindReason, string> = {
     '   └─ 🟡 feed faulted — verified by transcript; re-enroll to rebuild',
   'feed-not-live':
     '   └─ 🟡 feed not live — verified by transcript; self-heals as the feed attaches, else re-enroll (F24)',
+  'socket-gone':
+    '   └─ 🟡 socket closed after the say — verified by transcript; enroll a fresh clone (`rhx enroll`) to reach it again',
 };
 
 /**
@@ -168,6 +175,14 @@ export const computeCloneSayReport = (input: {
       tree: [`😶🎙️ said to ${addressShown}`, DEGRADE_COPY[reason]].join('\n'),
     };
   }
+
+  // exited — the say asked the clone to end, and it did: its socket closed. a success of its
+  // own, so the caller reads that the clone is gone on purpose, never a probe fault
+  if (outcome.verdict === 'exited')
+    return {
+      channel: 'success',
+      tree: `😶🎙️ said to ${addressShown} — the clone exited as asked`,
+    };
 
   // released — the brain took it. the extant success line, byte-for-byte (V13)
   if (outcome.verdict === 'released')

@@ -1,9 +1,12 @@
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { getDefaultActorOndiskDir } from '@src/domain.operations/actor/enrolled/getDefaultActorOndiskDir';
+import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
-import { asBrainDirSyncReportLines } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import {
+  asBrainDirSyncReportLines,
+  type BrainDirSyncSymlink,
+} from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
@@ -33,13 +36,17 @@ const REPO_BRAIN_DIR_READER: BrainSlug = 'claude';
  *   or it is silent — and every line here sits between two adjacent treestructs, so a
  *   census nobody acts on reads as debug chatter (`rule.require.treestruct-output`)
  *
- * .note = `defaultRendered` gates the hook sync: a repo whose default render failed keeps
+ * .note = `repoActorRendered` gates the hook sync: a repo whose repo actor render failed keeps
  *         its role boot hooks, so it never holds neither
  */
 export const syncAndReportBrainDirBoots = async (
-  input: { repoPath: string; env: NodeJS.ProcessEnv },
+  input: {
+    repoPath: string;
+    env: NodeJS.ProcessEnv;
+    symlinkPrior?: BrainDirSyncSymlink | null;
+  },
   context: ContextCli,
-): Promise<{ exitCode: 0 | 1 | 2; defaultRendered: boolean }> => {
+): Promise<{ exitCode: 0 | 1 | 2; repoActorRendered: boolean }> => {
   // a cli below the floor lacks the claudeMdExcludes and dynamic-section flags the boot
   // rests on, so it would load the WRONG corpus in silence. refuse before the write, in
   // the same shape an enroll refuses before the spawn (F2)
@@ -66,16 +73,16 @@ export const syncAndReportBrainDirBoots = async (
   }
 
   const { renders, failures, symlink } = await syncBootsForBrainDirs(
-    { repoPath: input.repoPath },
+    { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
     context,
   );
 
-  // one treestruct per brain dir this run CHANGED, on stdout. only the default render has a
+  // one treestruct per brain dir this run CHANGED, on stdout. only the repo actor's render has a
   //   `<repo>/.claude` link beneath it; an actor's brain dir is reached by its own path
-  const defaultBrainDirRel = relative(
+  const repoActorBrainDirRel = relative(
     input.repoPath,
     getBrainOndiskDir({
-      actorDir: getDefaultActorOndiskDir({ repoPath: input.repoPath }),
+      actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
     }),
   );
   //
@@ -86,8 +93,8 @@ export const syncAndReportBrainDirBoots = async (
   for (const render of renders) {
     const lines = asBrainDirSyncReportLines({
       render,
-      symlink: render.scope.kind === 'default' ? symlink : null,
-      defaultBrainDirRel,
+      symlink: render.scope.kind === 'repo' ? symlink : null,
+      repoActorBrainDirRel,
     });
     if (lines.length === 0) continue;
     for (const line of lines) console.log(line);
@@ -101,8 +108,8 @@ export const syncAndReportBrainDirBoots = async (
 
   return {
     exitCode: asExitCodeForBrainDirSyncFailures({ failures }),
-    defaultRendered: !failures.some(
-      (failure) => failure.scope.kind === 'default',
+    repoActorRendered: !failures.some(
+      (failure) => failure.scope.kind === 'repo',
     ),
   };
 };

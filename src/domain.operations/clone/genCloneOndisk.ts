@@ -4,6 +4,7 @@ import { getUuid } from 'uuid-fns';
 
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
+import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
@@ -11,10 +12,10 @@ import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { mkdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
-import { genEnrollmentHash } from '../actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '../actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '../actor/enrolled/getBrainOndiskDir';
+import { getOneActorOndiskExid } from '../actor/enrolled/getOneActorOndiskExid';
 import { asCloneDirName } from './asCloneDirName';
 import { asCloneSocketOmissionReasonError } from './asCloneSocketOmissionReasonError';
 import {
@@ -75,6 +76,8 @@ export const genCloneOndisk = async (
     repoPath: string;
     brain: BrainSlug;
     roles: RoleSlug[];
+    /** the actor's delta over the ambient roles (`asActorRolesDelta`), or null */
+    rolesDelta?: string[] | null;
     delta: string | null;
     reason: string | null;
     command: string;
@@ -96,7 +99,7 @@ export const genCloneOndisk = async (
     /** how deep in the enroll chain this clone is born (`asCloneEnrollDepth`) */
     depth: number;
   },
-  context?: {
+  context: ContextOfRepoRoles & {
     pty?: PtyModule | null;
     emulator?: EmulatorModule | null;
     host?: PtyCloneHost;
@@ -107,7 +110,10 @@ export const genCloneOndisk = async (
   spawn: CloneSpawnHandle | null;
 }> => {
   const repoPath = getOneRepoPath({ from: input.repoPath });
-  const hash = genEnrollmentHash({ brain: input.brain, roles: input.roles });
+  const exid = getOneActorOndiskExid(
+    { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
+    context,
+  );
   const actorsRoot = getActorsRootDir({ repoPath });
 
   // decide the slug outcome from what already holds the name (if any)
@@ -118,12 +124,12 @@ export const genCloneOndisk = async (
   const claim: CloneSlugClaimState | null = await (async () => {
     if (input.slug === null) return null;
     if (priorClone === null) return { kind: 'unclaimed' as const };
-    // actor identity is the COMPOSITE {repoPath, hash} (ActorOndisk
-    // unique=['repoPath','hash']) — compare both halves, so this decides
+    // actor identity is the COMPOSITE {repoPath, exid} (ActorOndisk
+    // unique=['repoPath','exid']) — compare both halves, so this decides
     // identity by the whole declared key, not a convention that priorClone
     // always shares repoPath (it does today, but the check must not rely on it)
     const sameActor =
-      priorClone.actor.hash === hash && priorClone.actor.repoPath === repoPath;
+      priorClone.actor.exid === exid && priorClone.actor.repoPath === repoPath;
     const reach = await getCloneReachState({ clone: priorClone });
     return reach === 'LIVE'
       ? { kind: 'live' as const, sameActor }
@@ -145,14 +151,18 @@ export const genCloneOndisk = async (
     );
 
   // ensure the actor dir + manifest; a pure live-slug reuse does NOT append a log
-  findsertActorOndisk({
-    repoPath,
-    brain: input.brain,
-    roles: input.roles,
-    delta: input.delta,
-    reason: input.reason,
-    logEnrollment: decision !== 'reuse',
-  });
+  await findsertActorOndisk(
+    {
+      repoPath,
+      brain: input.brain,
+      roles: input.roles,
+      rolesDelta: input.rolesDelta,
+      delta: input.delta,
+      reason: input.reason,
+      logEnrollment: decision !== 'reuse',
+    },
+    context,
+  );
 
   // reuse: the slug already names a LIVE clone of this actor — hand it back. a
   // reuse spawns no child, so no socket check applies
@@ -166,7 +176,7 @@ export const genCloneOndisk = async (
   // bake / rebind: mint a fresh serial + derive its socket
   const serial = genCloneSerial();
   const socketPath = getCloneSocketPath({ serial });
-  const actorDir = getActorOndiskDir({ repoPath, hash });
+  const actorDir = getActorOndiskDir({ repoPath, exid });
   const cloneDir = getCloneDir({ actorDir, serial });
   const brainDir = getBrainOndiskDir({ actorDir });
 
@@ -309,7 +319,7 @@ export const genCloneOndisk = async (
       setCloneSlugIndex({
         actorsRoot,
         slug: input.slug,
-        actorHash: hash,
+        actorExid: exid,
         serial,
       });
     } catch (error) {
@@ -329,7 +339,7 @@ export const genCloneOndisk = async (
   // write the global serial index (AFTER the rename, so the target dir is real) —
   // turns a reach-by-serial into one readlink instead of a full-actor scan. a serial
   // is unique + fresh, so this is a plain findsert (no collision, no reap)
-  setCloneSerialIndex({ actorsRoot, actorHash: hash, serial });
+  setCloneSerialIndex({ actorsRoot, actorExid: exid, serial });
 
   // link the brain's own transcript (best-effort; a later `get` re-links). the SAME
   // spawnedAt the identity persisted, so the window here matches the one `get` reuses.
@@ -348,7 +358,7 @@ export const genCloneOndisk = async (
     cloneDir,
     actorsRoot,
     repoPath,
-    actorHash: hash,
+    actorExid: exid,
   })!;
 
   return {

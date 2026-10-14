@@ -18,8 +18,8 @@ import { withCliOutputErrors } from './withCliOutputErrors';
  *   - a clone that self-manages must learn its OWN address in one read (usecase.11):
  *     its serial is injected into its env at spawn, so it reads that, never a
  *     fragile pid/cwd match
- *   - `--output json` carries the clone's actor hash, so the clone can then run
- *     `rhx clone list @<actorHash>` to enumerate its SIBLING clones — the wish's
+ *   - `--output json` carries the clone's actor exid (`actorExid`), so the clone can then run
+ *     `rhx clone list @<actorExid>` to enumerate its SIBLING clones — the wish's
  *     self-management motive, end to end
  *
  * .note = run OUTSIDE a clone (a plain shell, no injected serial) it fails loud —
@@ -56,7 +56,7 @@ export const invokeCloneWhoami = ({ clone }: { clone: Command }): void => {
 
           const reachState = await getCloneReachState({ clone: self });
           const address = asCloneAddressHuman(self);
-          const actorHash = self.actor.hash;
+          const actorExid = self.actor.exid;
 
           /**
            * 🚨 the tree renders the SHORT serial on both rows, the same form `clone list`
@@ -74,7 +74,7 @@ export const invokeCloneWhoami = ({ clone }: { clone: Command }): void => {
             `😶 you are ${address}`,
             `   ├─ serial=${asCloneSerialHuman({ serial: self.serial })}`,
             `   ├─ state=${reachState}`,
-            `   └─ actor=@${actorHash}`,
+            `   └─ actor=@${actorExid}`,
           ].join('\n');
 
           console.log(
@@ -85,7 +85,7 @@ export const invokeCloneWhoami = ({ clone }: { clone: Command }): void => {
                 serial: self.serial,
                 slug: self.slug,
                 reachState,
-                actorHash,
+                actorExid,
               },
             }),
           );

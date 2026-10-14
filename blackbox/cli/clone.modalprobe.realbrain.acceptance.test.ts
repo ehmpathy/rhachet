@@ -10,7 +10,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the Q8 measurement (fulcrum F11), taken through the REAL product surface. F11
@@ -63,10 +63,17 @@ const asCloneSayJsonSnapshotSafe = (input: {
   const parsed = ((): Record<string, unknown> => {
     try {
       return JSON.parse(input.stdout) as Record<string, unknown>;
-    } catch {
+    } catch (error) {
+      // only a SyntaxError means a garbled payload; any other fault surfaces as it is
+      if (!(error instanceof SyntaxError)) throw error;
       throw new ConstraintError(
         'clone say --output json stdout did not parse — no safe mask applies',
-        { stdout: input.stdout, stderr: input.stderr },
+        {
+          stdout: input.stdout,
+          stderr: input.stderr,
+          cause: error,
+          hint: 'read the stderr above; the say emitted a non-json payload under --output json',
+        },
       );
     }
   })();
@@ -124,7 +131,7 @@ describe('rhx clone say modal-over-match probe vs a REAL claude (real acceptance
     // shipped surface. THIS is the measurement — what the real product reports after a
     // numbered-list reply sits in history
     const secondSay = useBeforeAll(async () => {
-      const said = invokeRhachetCliBinary({
+      const said = await invokeRhachetCliBinaryAsync({
         args: [
           'clone',
           'say',

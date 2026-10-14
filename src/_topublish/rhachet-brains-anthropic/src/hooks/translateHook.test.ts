@@ -202,6 +202,46 @@ describe('translateHook', () => {
         });
       });
     });
+
+    given('[case10] onTool hook with filter.when=after', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onTool',
+        command: 'echo "after fetch"',
+        timeout: 'PT5S',
+        filter: { what: 'WebFetch', when: 'after' },
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookToClaudeCode({ hook });
+
+        then('event is PostToolUse, so the hook fires after the tool', () => {
+          expect(result.event).toEqual('PostToolUse');
+        });
+
+        then('entry matcher matches filter.what', () => {
+          expect(result.entry.matcher).toEqual('WebFetch');
+        });
+      });
+    });
+
+    given('[case11] onTool hook with filter.when=before', () => {
+      const hook: BrainHook = {
+        author: 'repo=test/role=tester',
+        event: 'onTool',
+        command: 'echo "before bash"',
+        timeout: 'PT5S',
+        filter: { what: 'Bash', when: 'before' },
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookToClaudeCode({ hook });
+
+        then('event is PreToolUse', () => {
+          expect(result.event).toEqual('PreToolUse');
+        });
+      });
+    });
   });
 
   describe('translateHookFromClaudeCode', () => {
@@ -451,6 +491,33 @@ describe('translateHook', () => {
 
         then('timeout is IsoDuration object', () => {
           expect(result[0]?.timeout).toEqual({ milliseconds: 5000 });
+        });
+      });
+    });
+
+    given('[case9] PostToolUse entry', () => {
+      const entry = {
+        matcher: 'WebFetch',
+        hooks: [{ type: 'command', command: 'echo "after"', timeout: 5000 }],
+      };
+
+      when('[t0] translated', () => {
+        const result = translateHookFromClaudeCode({
+          event: 'PostToolUse',
+          entry,
+          author: 'repo=test/role=tester',
+        });
+
+        then('it reads back as onTool, filter.when=after', () => {
+          expect(result).toEqual([
+            {
+              author: 'repo=test/role=tester',
+              event: 'onTool',
+              command: 'echo "after"',
+              timeout: { milliseconds: 5000 },
+              filter: { what: 'WebFetch', when: 'after' },
+            },
+          ]);
         });
       });
     });

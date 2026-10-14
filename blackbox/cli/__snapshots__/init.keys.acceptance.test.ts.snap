@@ -27,9 +27,9 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
    │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
    └─ created .agent/keyrack.yml
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -103,9 +103,9 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
    ├─ org: test-org
    └─ created .agent/keyrack.yml
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

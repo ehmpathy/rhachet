@@ -1,3 +1,5 @@
+import { given, then } from 'test-fns';
+
 import {
   type CloneSayObservation,
   type CloneSayOutcome,
@@ -23,9 +25,11 @@ const screenLive = (input: {
   queued: input.queued ?? false,
 });
 
+// every case below is a PROMPT unless it opts in: `exitAsked` defaults false, so only the
+// asked-exit cases name it
 const TEST_CASES: {
   description: string;
-  given: CloneSayObservation;
+  given: Omit<CloneSayObservation, 'exitAsked'> & { exitAsked?: boolean };
   expect: CloneSayOutcome;
 }[] = [
   {
@@ -328,12 +332,83 @@ const TEST_CASES: {
       delivered: true,
     },
   },
+  {
+    description:
+      'a `/exit` whose socket then closed → exited, a success: the clone ended as asked',
+    given: {
+      refusal: null,
+      transcriptRose: false,
+      screen: null,
+      probeReason: 'socket-gone',
+      exitAsked: true,
+    },
+    expect: {
+      verdict: 'exited',
+      reason: null,
+      probe: 'unsupported',
+      delivered: true,
+    },
+  },
+  {
+    description:
+      'a `/exit` the transcript also recorded, socket closed → still exited, never released',
+    given: {
+      refusal: null,
+      transcriptRose: true,
+      screen: null,
+      probeReason: 'socket-gone',
+      exitAsked: true,
+    },
+    expect: {
+      verdict: 'exited',
+      reason: null,
+      probe: 'unsupported',
+      delivered: true,
+    },
+  },
+  {
+    description:
+      'a prompt whose socket then closed → unreadable, socket-gone: the clone died on its own',
+    given: {
+      refusal: null,
+      transcriptRose: false,
+      screen: null,
+      probeReason: 'socket-gone',
+    },
+    expect: {
+      verdict: 'unreadable',
+      reason: 'socket-gone',
+      probe: 'unsupported',
+      delivered: true,
+    },
+  },
+  {
+    description:
+      'a `/exit` on a clone still live (socket answers) → not exited; the extant read decides',
+    given: {
+      refusal: null,
+      transcriptRose: false,
+      screen: null,
+      probeReason: 'feed-not-live',
+      exitAsked: true,
+    },
+    expect: {
+      verdict: 'unreadable',
+      reason: 'feed-not-live',
+      probe: 'unsupported',
+      delivered: true,
+    },
+  },
 ];
 
 describe('computeCloneSayVerdict', () => {
   TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(computeCloneSayVerdict(thisCase.given)).toEqual(thisCase.expect);
+    given(thisCase.description, () => {
+      then('it yields the expected verdict', () => {
+        expect(
+          computeCloneSayVerdict({ exitAsked: false, ...thisCase.given }),
+        ).toEqual(thisCase.expect);
+      });
     }),
   );
 });

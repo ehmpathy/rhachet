@@ -44,8 +44,16 @@ briefs:
     # indexes (actor-clone-hierarchy, enrollment-identity) ride at ref, read on demand
     - briefs/catalog.of=actor-clone-design._.md
     - briefs/rule.forbid.per-clone-config.md
-    - briefs/define.brain-dir-repo-vs-actor.md
-    - briefs/philosophy.minimal-budget-for-maximum-perspective.md
+    # one brain dir layout for every actor — the repo actor is an actor. said, because
+    # the two-kinds misread happens while a design is drawn, before any brief is looked up.
+    # its detail rides at ref, cited from it: define.brain-dir-repo-vs-actor (who writes
+    # which, the init order) and rule.forbid.brain-dir-layout-divergence (the enforcement)
+    - briefs/define.brain-dir-layout-is-one-for-every-actor.md
+    # behavioral requirements — never dropped. said, because a requirement is lost while a
+    # design question is answered from code, before any brief is looked up (2026-10-02: the
+    # `prepare:rhachet` removal clamp, lost in `v2026_07_07.fix-rhx-init`). the inventory it
+    # guards rides at ref: the rule names it as the read owed before a surface changes
+    - briefs/rule.forbid.dropped-behavioral-requirements.md
     # actively used patterns. howto.test-local-rhachet rides at ref: its cue fires via
     # rule.forbid.node-modules-bin-rhx, and the howto is the detail behind it
     - briefs/rule.forbid.node-modules-bin-rhx.md
@@ -67,4 +75,7 @@ briefs:
     # measured 2026-09-21 — the human halted one mid-flight
     - briefs/rule.forbid.inline-interpreter-reads.md
     - briefs/rule.forbid.npm-in-tests.md
+    # stdout shape — a `:` separator is typed while the output line is written, so a ref
+    # tier fires only after the snapshot already pins it
+    - briefs/rule.forbid.colons-in-stdout.md
     - briefs/rule.forbid.sync-invoke-while-a-pty-is-live.md

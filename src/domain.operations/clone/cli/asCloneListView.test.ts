@@ -39,7 +39,7 @@ describe('asCloneListView', () => {
     () => {
       const groups: CloneListGroup[] = [
         {
-          hash: '9c1e0000',
+          exid: 'hash=9c1e0000',
           brain: 'claude',
           roles: ['mechanic'],
           clones: [
@@ -150,7 +150,7 @@ describe('asCloneListView', () => {
       // header (given out of order, rendered sorted), and the third state DEAF
       const groups: CloneListGroup[] = [
         {
-          hash: 'aaaa0000',
+          exid: 'hash=aaaa0000',
           brain: 'claude',
           // given OUT of canonical order — the view must render them sorted, to mirror
           // the sorted roleset the identity hash derives from
@@ -165,7 +165,7 @@ describe('asCloneListView', () => {
           ],
         },
         {
-          hash: 'bbbb0000',
+          exid: 'hash=bbbb0000',
           brain: 'claude',
           roles: ['driver'],
           clones: [
@@ -183,11 +183,11 @@ describe('asCloneListView', () => {
         const view = asCloneListView({ groups, linked: true, scoped: false });
 
         then('the first actor renders a non-last `├─` branch', () => {
-          expect(view.tree).toContain('├─ actor aaaa000');
+          expect(view.tree).toContain('├─ actor @hash=aaaa000');
         });
 
         then('the last actor renders a `└─` branch', () => {
-          expect(view.tree).toContain('└─ actor bbbb000');
+          expect(view.tree).toContain('└─ actor @hash=bbbb000');
         });
 
         then('the multi-role header is rendered SORTED', () => {
@@ -218,7 +218,7 @@ describe('asCloneListView', () => {
   given('[case3] an actor with no clones', () => {
     const groups: CloneListGroup[] = [
       {
-        hash: 'ffff0000',
+        exid: 'hash=ffff0000',
         brain: 'claude',
         roles: ['mechanic'],
         clones: [],
@@ -290,13 +290,13 @@ describe('asCloneListView', () => {
       // ONLY the actor that owns a clone, never the empty ones (rule.require.clamp-edge-cases)
       const groups: CloneListGroup[] = [
         {
-          hash: 'dead0000',
+          exid: 'hash=dead0000',
           brain: 'claude',
           roles: ['behaver', 'mechanic'],
           clones: [],
         },
         {
-          hash: 'live0000',
+          exid: 'hash=live0000',
           brain: 'claude',
           roles: ['driver'],
           clones: [
@@ -309,7 +309,7 @@ describe('asCloneListView', () => {
           ],
         },
         {
-          hash: 'gone0000',
+          exid: 'hash=gone0000',
           brain: 'claude',
           roles: ['reviewer'],
           clones: [],
@@ -320,10 +320,10 @@ describe('asCloneListView', () => {
         const view = asCloneListView({ groups, linked: true, scoped: false });
 
         then('ONLY the actor that owns a clone renders', () => {
-          // the header carries the hash WHOLE — `genEnrollmentHash` mints 8 chars, so
-          // that value is the actor's entire name and a human copies it off this list
-          // to address `@<hash>` by hand (define.address-sigils)
-          expect(view.tree).toContain('actor live0000 (');
+          // the header carries the address WHOLE — `@<exid>`, with the 8-char hash the
+          // actor's entire name, so a human copies it off this list as is to address the
+          // actor by hand (define.address-sigils)
+          expect(view.tree).toContain('actor @hash=live0000 (');
           expect(view.tree).toContain('@:runner');
         });
 
@@ -331,13 +331,13 @@ describe('asCloneListView', () => {
           expect(view.tree).not.toContain('dead000');
           expect(view.tree).not.toContain('gone000');
           expect(view.data.actors).toHaveLength(1);
-          expect(view.data.actors[0]!.hash).toEqual('live0000');
+          expect(view.data.actors[0]!.exid).toEqual('hash=live0000');
         });
 
         then('the sole shown actor renders as the LAST `└─` branch', () => {
           // the filter re-seats branch prefixes — the one survivor is last, so it must
           // render `└─`, never a stray `├─` that assumed a peer below it
-          expect(view.tree).toContain('└─ actor live000');
+          expect(view.tree).toContain('└─ actor @hash=live000');
           expect(view.tree).not.toContain('├─ actor');
         });
 

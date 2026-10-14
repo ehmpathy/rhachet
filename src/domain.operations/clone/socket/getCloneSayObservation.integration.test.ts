@@ -43,7 +43,7 @@ const genCountZeroClone = (): CloneOndisk => {
   return new CloneOndisk({
     serial: getUuid(),
     slug: null,
-    actor: { repoPath, hash: 'aaa' },
+    actor: { repoPath, exid: 'hash=aaa' },
     socketEligible: true,
     spawnedAt: asIsoTimeStamp('2026-08-10T00:00:00Z'),
     hostHash: 'h1',

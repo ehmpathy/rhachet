@@ -10,7 +10,6 @@ import {
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
   asSnapshotSafe,
-  invokeRhachetCliBinary,
   invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
@@ -63,11 +62,13 @@ describe('enroll → reach journey (acceptance)', () => {
 
   given('[case1] a named clone @:pilot enrolled and live', () => {
     when('[t0] the actor + clone are on disk', () => {
-      then('the on-disk actor is an ANONYMOUS hash actor, never a slug actor', () => {
+      // ⚠️ every cli call while @:pilot lives is the async twin: a sync spawn freezes the
+      //   loop that drains its pty (`rule.forbid.sync-invoke-while-a-pty-is-live`)
+      then('the on-disk actor is the REPO actor, never a slug actor', async () => {
         // the two-grain split: the clone wears the @:pilot handle, but its actor is
-        // named by its WHOLE hash (@<8hex>) — enroll is hash-only (never actors.yml),
-        // so the slug is a clone grain, never an actor grain
-        const listed = invokeRhachetCliBinary({
+        // named by its WHOLE exid — a bare enroll lands in the repo actor
+        // (@repo=ambient), never actors.yml, so the slug is a clone grain only
+        const listed = await invokeRhachetCliBinaryAsync({
           args: ['actor', 'list'],
           cwd: scene.dir,
           env: scene.env,
@@ -75,16 +76,16 @@ describe('enroll → reach journey (acceptance)', () => {
         });
         expect(listed.status).toEqual(0);
         expect(listed.stdout).toContain('brain=claude');
-        expect(listed.stdout).toMatch(/@[0-9a-f]{8}\s/);
+        expect(listed.stdout).toMatch(/@repo=ambient\s/);
         expect(listed.stdout).not.toContain('pilot');
       });
 
-      then('the actor hash renders WHOLE — never elided', () => {
-        // genEnrollmentHash mints 8 chars, so that value IS the actor's entire name
-        // and a human copies it off this list to address `@<hash>` by hand
+      then('the actor exid renders WHOLE — never elided', async () => {
+        // the exid IS the actor's entire name, and a human copies it off this list
+        // to address `@<exid>` by hand
         // (define.address-sigils). an elision to 7 chars + `…` hid one character,
         // spent a glyph on the ellipsis — identical width, zero copyability
-        const listed = invokeRhachetCliBinary({
+        const listed = await invokeRhachetCliBinaryAsync({
           args: ['actor', 'list'],
           cwd: scene.dir,
           env: scene.env,
@@ -95,8 +96,8 @@ describe('enroll → reach journey (acceptance)', () => {
         expect(listed.stdout).not.toContain('…');
       });
 
-      then('the clone appears LIVE by its slug in `clone list`', () => {
-        const listed = invokeRhachetCliBinary({
+      then('the clone appears LIVE by its slug in `clone list`', async () => {
+        const listed = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'list'],
           cwd: scene.dir,
           env: scene.env,
@@ -136,8 +137,8 @@ describe('enroll → reach journey (acceptance)', () => {
     when('[t2] a process slips on the address grain, then recovers', () => {
       const slip = useThen(
         'a say to the ACTOR sigil @pilot fails loud (wrong grain)',
-        () =>
-          invokeRhachetCliBinary({
+        async () =>
+          invokeRhachetCliBinaryAsync({
             args: ['clone', 'say', '@pilot', '--what', 'wrong grain'],
             cwd: scene.dir,
             env: scene.env,
@@ -155,11 +156,11 @@ describe('enroll → reach journey (acceptance)', () => {
         expect(asSnapshotSafe(slip.stderr)).toMatchSnapshot();
       });
 
-      then('the grain-confusion json error shape is locked (self-contained machine twin)', () => {
+      then('the grain-confusion json error shape is locked (self-contained machine twin)', async () => {
         // the journey stays self-contained: a machine that slips the address grain
         // reads the recovery hint as a structured field here, not only in the unit
         // reach suite (nitpick — journey json self-containment)
-        const slipJson = invokeRhachetCliBinary({
+        const slipJson = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'say', '@pilot', '--what', 'wrong grain', '--output', 'json'],
           cwd: scene.dir,
           env: scene.env,
@@ -211,11 +212,11 @@ describe('enroll → reach journey (acceptance)', () => {
         expect(asSnapshotSafe(listed.stdout)).toMatchSnapshot();
       });
 
-      then('the DEAD-transition clone-list json shape is locked (self-contained machine twin)', () => {
+      then('the DEAD-transition clone-list json shape is locked (self-contained machine twin)', async () => {
         // a cron that watches for a finished clone reads reachState=DEAD as a field,
         // not by a scrape of the human tree — the journey keeps its own machine proof
         // (serial + spawnedAt are masked by asSnapshotSafe)
-        const listedJson = invokeRhachetCliBinary({
+        const listedJson = await invokeRhachetCliBinaryAsync({
           args: ['clone', 'list', '--output', 'json'],
           cwd: scene.dir,
           env: scene.env,

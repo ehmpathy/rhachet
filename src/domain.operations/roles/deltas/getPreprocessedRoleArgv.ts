@@ -34,10 +34,29 @@ export const ROLES_DELTA_COMMANDS: Record<string, 'single' | 'variadic'> = {
 };
 
 /**
+ * .what = the commands that read a bare role delta OUTSIDE a `--roles` run
+ * .why = `rhx enroll claude -driver` is an alias of `--roles -driver`
+ *   (`inventory.of=requirements.case=4`). enroll reads those deltas off the raw argv, so
+ *   commander only has to leave them alone — and it would not: `-r` is enroll's
+ *   `--roles` short alias, so commander's combo-short branch reads `-reviewer` as
+ *   `-r eviewer`. the encode hides such a token from that branch
+ */
+export const BARE_DELTA_COMMANDS = new Set(['enroll']);
+
+/**
+ * .what = a single-dash token shaped like a role delta — `-driver`, `-ehmpathy/driver`
+ * .why = a brain's own short flags (`-c`, `-p`) are one letter, so they never match and
+ *   reach commander as before
+ */
+const isBareRemoveShaped = (input: { token: string }): boolean =>
+  /^-[a-z0-9.][a-z0-9._-]+(\/[a-z0-9._-]+)?$/i.test(input.token);
+
+/**
  * .what = decides whether a token ends the `--roles` value list
  * .why = a long flag (e.g. --hooks) after --roles is the next option, not a role
  */
-const isNextFlag = (token: string): boolean => token.startsWith('--');
+const isNextFlag = (input: { token: string }): boolean =>
+  input.token.startsWith('--');
 
 /**
  * .what = rewrites `-role` tokens after `--roles` so commander keeps them
@@ -66,6 +85,9 @@ export const getPreprocessedRoleArgv = (input: {
   // dash tokens (brain passthrough flags) are left untouched
   const runStaysOpen = arity === 'variadic';
 
+  // a command that reads bare deltas also encodes a delta-shaped token outside the run
+  const encodesBare = command !== null && BARE_DELTA_COMMANDS.has(command);
+
   // fold the argv; the `withinRoles` flag marks whether the current token sits
   // inside a `--roles` value run; rewrite each `-role` remove sigil to sentinel
   return input.args.reduce<{ result: string[]; withinRoles: boolean }>(
@@ -75,7 +97,7 @@ export const getPreprocessedRoleArgv = (input: {
         return { result: [...acc.result, token], withinRoles: true };
 
       // any other long flag closes the value run
-      if (isNextFlag(token))
+      if (isNextFlag({ token }))
         return { result: [...acc.result, token], withinRoles: false };
 
       // inside the run, a single-dash token is a remove sigil → encode past commander
@@ -89,6 +111,14 @@ export const getPreprocessedRoleArgv = (input: {
       // for a single-valued run this consumed the one value, so close the run
       if (acc.withinRoles)
         return { result: [...acc.result, token], withinRoles: runStaysOpen };
+
+      // outside any run, a bare remove delta encodes past commander's combo-short branch,
+      //   for the commands that read bare deltas; the raw argv still carries the original
+      if (encodesBare && isBareRemoveShaped({ token }))
+        return {
+          result: [...acc.result, INCREMENTAL_REMOVE_SENTINEL + token.slice(1)],
+          withinRoles: false,
+        };
 
       // outside any run, the token passes through untouched
       return { result: [...acc.result, token], withinRoles: false };

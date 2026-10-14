@@ -4,6 +4,7 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
+import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoAmbient';
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
@@ -191,27 +192,33 @@ describe('invokeClone (integration)', () => {
         // seed at the SAME canonical path the invoker resolves from cwd, so the
         // on-disk actor identity the invoker reads matches what we wrote
         const repoPath = getOneRepoPath({ from: prefixCwd });
-        const a = findsertActorOndisk({
-          repoPath,
-          brain: 'claude',
-          roles: ['mechanic'],
-          delta: null,
-          reason: null,
-          logEnrollment: true,
-        });
-        const b = findsertActorOndisk({
-          repoPath,
-          brain: 'claude',
-          roles: ['driver'],
-          delta: null,
-          reason: null,
-          logEnrollment: true,
-        });
+        const a = await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['mechanic'],
+            delta: null,
+            reason: null,
+            logEnrollment: true,
+          },
+          genSampleContextNoAmbient(),
+        );
+        const b = await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['driver'],
+            delta: null,
+            reason: null,
+            logEnrollment: true,
+          },
+          genSampleContextNoAmbient(),
+        );
         // the shortest prefix of A that B does NOT share — a git-style unique reach
         let len = 1;
-        while (len < a.hash.length && b.hash.startsWith(a.hash.slice(0, len)))
+        while (len < a.exid.length && b.exid.startsWith(a.exid.slice(0, len)))
           len += 1;
-        return { prefixCwd, a, b, uniquePrefix: a.hash.slice(0, len) };
+        return { prefixCwd, a, b, uniquePrefix: a.exid.slice(0, len) };
       });
 
       when('[t0] `clone list @<unique-prefix>` runs', () => {
@@ -228,8 +235,8 @@ describe('invokeClone (integration)', () => {
             // the WHOLE hash is asserted, never a 7-char prefix of it: the view renders
             // the hash entire (it is the actor's whole name), so a prefix assert would
             // pass on a truncated render too and pin the weaker claim
-            expect(result.out).toContain(scene.a.hash);
-            expect(result.out).not.toContain(scene.b.hash);
+            expect(result.out).toContain(scene.a.exid);
+            expect(result.out).not.toContain(scene.b.exid);
           },
         );
 
@@ -313,7 +320,7 @@ describe('invokeClone (integration)', () => {
         const foreignCwd = genTempDir({ slug: 'invokeClone-crosshost' });
         const repoPath = getOneRepoPath({ from: foreignCwd });
         const serial = getUuid();
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           serial,
           slug: null,
@@ -393,7 +400,7 @@ describe('invokeClone (integration)', () => {
         const brainCwd = genTempDir({ slug: 'invokeClone-d8' });
         const repoPath = getOneRepoPath({ from: brainCwd });
         const serial = getUuid();
-        const clone = genSampleCloneOndisk({
+        const clone = await genSampleCloneOndisk({
           repoPath,
           serial,
           slug: null,
@@ -413,7 +420,7 @@ describe('invokeClone (integration)', () => {
         //   slow the setup above ran — a spawn instant computed before the mkdir lost that
         //   race under a loaded suite, and D8 routed the clone to `~/.claude` instead
         const spawnedAtMs = Date.now() + 1_000;
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           serial,
           slug: null,
@@ -471,7 +478,7 @@ describe('invokeClone (integration)', () => {
 
           // the prior clone spawns a minute before the brain dir is born
           const serialPrior = getUuid();
-          const clonePrior = genSampleCloneOndisk({
+          const clonePrior = await genSampleCloneOndisk({
             repoPath,
             serial: serialPrior,
             slug: null,
@@ -485,7 +492,7 @@ describe('invokeClone (integration)', () => {
           // the later clone of the same actor spawns after the brain dir is born
           const spawnedAtLaterMs = Date.now() + 2_000;
           const serialLater = getUuid();
-          genSampleCloneOndisk({
+          await genSampleCloneOndisk({
             repoPath,
             serial: serialLater,
             slug: null,

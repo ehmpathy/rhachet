@@ -1,30 +1,45 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-
-import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
 import type { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
-import { genEnrollmentHash } from '@src/domain.operations/actor/enrolled/genEnrollmentHash';
+import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { getDefaultActorOndiskDir } from '@src/domain.operations/actor/enrolled/getDefaultActorOndiskDir';
+import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
+import {
+  CLAUDE_SETTINGS_FILENAMES,
+  readClaudeCodeSettings,
+  writeClaudeCodeSettings,
+} from '@src/domain.operations/brains/claudeCodeSettings';
 import { getHomeDir } from '@src/infra/getHomeDir';
-import { setFileAtomic } from '@src/infra/setFileAtomic';
+import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
+import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
+import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
 
 /**
- * .what = generates unique brain config with only enrolled roles' hooks
- * .why = enables customized role enrollment via --setting-sources user --settings <path>
+ * .what = writes an actor's `settings.of.repo.json`: the repo actor's settings, narrowed to
+ *         the actor's own roles, plus the claudeMdExcludes a clone carries
+ * .why = the one settings file a clone reads at the `--settings` rank
+ *        (define.brain-dir-layout-is-one-for-every-actor). the same function serves enroll
+ *        and init, so an actor's settings derive one way, from one source
  *
- * .note = reads extant settings.json which has all synced hooks
- * .note = filters to only include hooks from enrolled roles
- * .note = retains permissions from repo settings.json
- * .note = adds claudeMdExcludes, so the repo's corpus never loads beside the actor's
- * .note = writes to unique settings.enroll.$hash.local.json file
+ * .note = the source is the repo actor's `settings.of.repo.json` — the hook sync writes every
+ *   ambient role's hooks there, and a role init that writes it by name adds its own keys
+ * .note = the repo actor is the source itself: its hooks are never narrowed (a narrow would
+ *   drop any hook with no author), only its claudeMdExcludes are set
+ * .note = the excludes never name the actor's own doors — for the repo actor, those are its
+ *   own boot, so an exclude there would hide the clone's corpus
+ * .note = the read of the source and the write of the target hold both files' mutexes, the
+ *   source's first. a hook sync (the shield) or a layout findsert on the same file waits its
+ *   turn, so a whole-file write here never drops a hook another `rhx` wrote between the read
+ *   and the write. the write itself stays atomic (temp + rename) for a reader with no lock
+ * .note = for the repo actor the source and the target are one file, so it holds one mutex,
+ *   never the same one twice — the mutex is not reentrant
  */
 export const genBrainCliConfigArtifact = async (input: {
   enrollment: BrainCliEnrollmentManifest;
+  exid: string;
   repoPath: string;
 }): Promise<{ configPath: string }> => {
   const { enrollment, repoPath } = input;
@@ -32,79 +47,97 @@ export const genBrainCliConfigArtifact = async (input: {
   // validate brain is supported (shared transformer — throws ConstraintError if not)
   getSupportedBrainCommand({ brain: enrollment.brain });
 
-  // read current settings.json (has all synced hooks and permissions)
-  const settingsAll = await readSettingsJson({ repoPath });
-
-  // filter hooks to only include enrolled roles (retain permissions)
-  const settingsFiltered = getSettingsForRoles({
-    settings: settingsAll,
-    roles: enrollment.roles,
+  // the source (the repo actor) and the target (this actor)
+  const repoActorBrainDir = getBrainOndiskDir({
+    actorDir: getOneRepoActorOndiskDir({ repoPath }),
   });
-
-  // exclude every repo door, so the clone reads its actor's brain dir alone (D5, D12)
-  const claudeMdExcludes = getClaudeMdExcludesList({
-    repoPath,
-    defaultBrainDir: getBrainOndiskDir({
-      actorDir: getDefaultActorOndiskDir({ repoPath }),
-    }),
-    home: getHomeDir(),
+  const actorBrainDir = getBrainOndiskDir({
+    actorDir: getActorOndiskDir({ repoPath, exid: input.exid }),
   });
+  const isRepoActor = input.exid === REPO_ACTOR_EXID;
 
-  // generate unique filename and write config
-  const configPath = await writeEnrollmentConfig({
-    settings: { ...settingsFiltered, claudeMdExcludes },
-    enrollment,
-    repoPath,
-  });
-
-  return { configPath };
+  // read the source and write the target as one critical section: the source mutex first,
+  //   then the target's. every writer of `settings.of.repo.json` takes them in this order, the
+  //   source before any actor's, so two never wait on each other
+  const withinLocks = () =>
+    setActorSettingsRepoWithinLock({
+      enrollment,
+      repoPath,
+      repoActorBrainDir,
+      actorBrainDir,
+      isRepoActor,
+    });
+  const withSourceHeld = () =>
+    isRepoActor
+      ? withinLocks()
+      : withRepoMutex(
+          {
+            repoPath,
+            path: join(actorBrainDir, CLAUDE_SETTINGS_FILENAMES.repo),
+          },
+          withinLocks,
+        );
+  return withRepoMutex(
+    {
+      repoPath,
+      path: join(repoActorBrainDir, CLAUDE_SETTINGS_FILENAMES.repo),
+    },
+    withSourceHeld,
+  );
 };
 
 /**
- * .what = reads settings.json from repo
- * .why = gets all synced hooks as baseline
+ * .what = the read of the source settings, the narrow, and the write of the actor's file;
+ *         the caller holds both mutexes (one, for the repo actor)
  */
-const readSettingsJson = async (input: {
-  repoPath: string;
-}): Promise<ClaudeCodeSettings> => {
-  const settingsPath = path.join(input.repoPath, '.claude', 'settings.json');
-
-  try {
-    await fs.access(settingsPath);
-  } catch {
-    return {};
-  }
-
-  const content = await fs.readFile(settingsPath, 'utf-8');
-  return JSON.parse(content) as ClaudeCodeSettings;
-};
-
-/**
- * .what = writes filtered settings to unique enrollment config file
- * .why = unique file prevents collision; used with --setting-sources local --settings <path>
- */
-const writeEnrollmentConfig = async (input: {
-  settings: ClaudeCodeSettings & { claudeMdExcludes: string[] };
+const setActorSettingsRepoWithinLock = async (input: {
   enrollment: BrainCliEnrollmentManifest;
   repoPath: string;
-}): Promise<string> => {
-  const settingsDir = path.join(input.repoPath, '.claude');
-  const hash = genEnrollmentHash({
-    brain: input.enrollment.brain,
-    roles: input.enrollment.roles,
-  });
-  const settingsPath = path.join(
-    settingsDir,
-    `settings.enroll.${hash}.local.json`,
-  );
+  repoActorBrainDir: string;
+  actorBrainDir: string;
+  isRepoActor: boolean;
+}): Promise<{ configPath: string }> => {
+  const {
+    enrollment,
+    repoPath,
+    repoActorBrainDir,
+    actorBrainDir,
+    isRepoActor,
+  } = input;
 
-  // write atomically: a concurrent same-actor enroll races the same hash onto the
-  // same path, and the brain-cli must never boot on a half-written file. the
-  // content is identical per hash, so last-writer-wins is safe
-  setFileAtomic({
-    path: settingsPath,
-    content: `${JSON.stringify(input.settings, null, 2)}\n`,
+  // read the repo actor's settings; narrow the hooks to this actor's roles
+  const settingsSource = await readClaudeCodeSettings({
+    from: dirname(repoActorBrainDir),
+  });
+  const settings = isRepoActor
+    ? settingsSource
+    : getSettingsForRoles({
+        settings: settingsSource,
+        roles: enrollment.roles,
+      });
+
+  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
+  //   the repo actor's doors have two paths — its real dir, and `<repo>/.claude`, a
+  //   symlink to it — so neither path may be excluded for it
+  const ownDirs = isRepoActor
+    ? [actorBrainDir, join(repoPath, '.claude')]
+    : [actorBrainDir];
+  const claudeMdExcludes = asClaudeMdExcludesOutsideDirs({
+    excludes: getClaudeMdExcludesList({
+      repoPath,
+      repoActorBrainDir,
+      home: getHomeDir(),
+    }),
+    dirs: ownDirs,
   });
 
-  return settingsPath;
+  // write the actor's settings.of.repo.json
+  await writeClaudeCodeSettings({
+    settings: { ...settings, claudeMdExcludes },
+    to: dirname(actorBrainDir),
+  });
+
+  return {
+    configPath: join(actorBrainDir, CLAUDE_SETTINGS_FILENAMES.repo),
+  };
 };

@@ -13,13 +13,13 @@ describe('getOneCloneLiveCountForActor.integration', () => {
     when('[t0] the live count is gathered', () => {
       then('exactly the live clone is counted', async () => {
         const repoPath = genTempDir({ slug: 'liveCount' });
-        const live = genSampleCloneOndisk({
+        const live = await genSampleCloneOndisk({
           repoPath,
           serial: 'ser-live',
           slug: null,
         });
         // a second clone of the SAME actor, no server → DEAD
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           serial: 'ser-dead',
           slug: null,
@@ -40,7 +40,7 @@ describe('getOneCloneLiveCountForActor.integration', () => {
             actorDir: live.actorDir,
             actorsRoot: live.actorsRoot,
             repoPath: live.repoPath,
-            actorHash: live.actorHash,
+            actorExid: live.actorExid,
           });
           expect(count).toEqual(1);
         } finally {
@@ -67,8 +67,10 @@ describe('getOneCloneLiveCountForActor.integration', () => {
               { length: CLONE_ACCRUAL_THRESHOLD },
               (_, i) => `ser-accrual-${i}`,
             );
-            const seeded = serials.map((serial) =>
-              genSampleCloneOndisk({ repoPath, serial, slug: null }),
+            const seeded = await Promise.all(
+              serials.map((serial) =>
+                genSampleCloneOndisk({ repoPath, serial, slug: null }),
+              ),
             );
             const servers = serials.map((serial) =>
               genCloneSocketServer({
@@ -87,7 +89,7 @@ describe('getOneCloneLiveCountForActor.integration', () => {
                 actorDir: anchor.actorDir,
                 actorsRoot: anchor.actorsRoot,
                 repoPath: anchor.repoPath,
-                actorHash: anchor.actorHash,
+                actorExid: anchor.actorExid,
               });
               expect(count).toEqual(CLONE_ACCRUAL_THRESHOLD);
 

@@ -61,18 +61,18 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         // (render the brain dir, THEN spawn the clone). this is idempotent and
         // converges on the SAME actor genSampleCloneOndisk findserts below (same
         // { brain, roles } → same hash), so it provisions no second actor
-        const actor = findsertActorOndisk({
+        const actor = await findsertActorOndisk({
           repoPath: dir,
           brain: 'claude',
           roles: ['mechanic'],
           delta: null,
           reason: null,
           logEnrollment: false,
-        });
+        }, { repo: { ambient: { roles: [] } } });
         const brainDir = getBrainOndiskDir({
           actorDir: getActorOndiskDir({
             repoPath: actor.repoPath,
-            hash: actor.hash,
+            exid: actor.exid,
           }),
         });
         const transcriptDir = join(
@@ -92,7 +92,7 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         const spawnedAt = asIsoTimeStamp(
           new Date(Math.ceil(statSync(brainDir).birthtimeMs)).toISOString(),
         );
-        const planted = genSampleCloneOndisk({
+        const planted = await genSampleCloneOndisk({
           repoPath: dir,
           brain: 'claude',
           roles: ['mechanic'],

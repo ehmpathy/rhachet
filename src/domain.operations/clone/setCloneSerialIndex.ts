@@ -16,7 +16,7 @@ import { genAtomicSymlinkClaim } from './genAtomicSymlinkClaim';
  *     index, `getOneCloneByRef({by:'serial'})` scans every actor's clones on each
  *     `say`/`get`/`whoami` — an O(actors×clones) walk on the hot self-management
  *     path. the index turns that into one readlink, the same shape as `.slugs/`
- *   - the link TARGET names the owner clone (`actor.via.hash=<hash>/clones/
+ *   - the link TARGET names the owner clone (`actor.via.<exid>/clones/
  *     serial=<serial>`), so a reader resolves serial → clone dir directly
  *
  * .note = unlike `.slugs/`, a serial NEVER collides across actors (it is a fresh
@@ -26,7 +26,7 @@ import { genAtomicSymlinkClaim } from './genAtomicSymlinkClaim';
  */
 export const setCloneSerialIndex = (input: {
   actorsRoot: string;
-  actorHash: string;
+  actorExid: string;
   serial: string;
 }): void => {
   const serialsDir = getActorsIndexDir({
@@ -38,7 +38,7 @@ export const setCloneSerialIndex = (input: {
   const linkPath = join(serialsDir, input.serial);
   const target = join(
     '..',
-    asActorOndiskDirName({ hash: input.actorHash }),
+    asActorOndiskDirName({ exid: input.actorExid }),
     'clones',
     asCloneDirName({ serial: input.serial }),
   );

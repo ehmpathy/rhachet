@@ -8,13 +8,14 @@
  *   - keeps the invoker a narrative — the emit reads `console.error(asCloneAccrualWarnLine(...))`
  *     instead of an inline template with decode-friction (rule.require.named-transformers)
  *
- * .note = the hash is rendered WHOLE. this line hands a human a command to RUN, so the
- *   `@<hash>` inside it must be the actor's real name — `genEnrollmentHash` mints 8 chars,
- *   and a 7-char prefix addresses no actor. an error that names a fix the reader cannot
+ * .note = the exid is rendered WHOLE. this line hands a human a command to RUN, so the
+ *   `@<exid>` inside it must be the actor's real name (`hash=9c1e0a7b`, `repo=ambient`) —
+ *   an elided exid addresses no actor. an error that names a fix the reader cannot
  *   paste is not a fix (rule.require.errors-name-the-fix, define.address-sigils)
+ * .note = `🟡` is the caution glyph, width-safe on every terminal (rule.prefer.emoji-language)
  */
 export const asCloneAccrualWarnLine = (input: {
   liveCount: number;
-  actorHash: string;
+  actorExid: string;
 }): string =>
-  `⚠ this actor now has ${input.liveCount} live clones — a cron that retries can accrue billed brains. triage with \`rhx clone list @${input.actorHash}\`.`;
+  `🟡 this actor now has ${input.liveCount} live clones — a cron that retries can accrue billed brains. triage with \`rhx clone list @${input.actorExid}\`.`;

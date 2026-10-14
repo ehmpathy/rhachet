@@ -6,11 +6,18 @@
  *        none, it meets the trust and api-key prompts with no keyboard behind it (D11)
  *
  * .note = only keys the human already accepted are copied; every other field is kept
+ * 🔴 .note = trust is the one key NOT gated on the human's own entry, on purpose: the enroll IS
+ *   the consent. a human who runs `rhx enroll` in a repo asks a clone to work there, so every
+ *   enroll grants trust outright (under the repo path and, in a worktree, its main checkout),
+ *   which subsumes an inherit from the repo actor. the wisher chose this blanket grant over a
+ *   gate on the repo actor's trust (vision, "does a new actor trust the repo?", answered
+ *   2026-09-28: "the blanket grant stays"); `asBrainFirstRunState.test` [case4] pins it
  */
 export const asBrainFirstRunState = (input: {
   prior: Record<string, unknown>;
   human: Record<string, unknown>;
   repoPath: string;
+  repoPathMain: string | null;
 }): Record<string, unknown> | null => {
   const { prior, human } = input;
 
@@ -45,16 +52,30 @@ export const asBrainFirstRunState = (input: {
         }
       : {};
 
-  // trust: this repo, accepted by the human's enroll
+  // trust: this repo, accepted by the human's enroll — under the repo path AND its main
+  //   checkout, since claude keys trust by the main checkout when the repo is a worktree
   const projectsPrior = asRecord(prior['projects']);
-  const projectPrior = asRecord(projectsPrior[input.repoPath]);
+  const trustPaths = [
+    ...new Set([input.repoPath, input.repoPathMain ?? input.repoPath]),
+  ];
+  const trustPathsAbsent = trustPaths.filter(
+    (path) => asRecord(projectsPrior[path])['hasTrustDialogAccepted'] !== true,
+  );
   const trust =
-    projectPrior['hasTrustDialogAccepted'] === true
+    trustPathsAbsent.length === 0
       ? {}
       : {
           projects: {
             ...projectsPrior,
-            [input.repoPath]: { ...projectPrior, hasTrustDialogAccepted: true },
+            ...Object.fromEntries(
+              trustPathsAbsent.map((path) => [
+                path,
+                {
+                  ...asRecord(projectsPrior[path]),
+                  hasTrustDialogAccepted: true,
+                },
+              ]),
+            ),
           },
         };
 

@@ -29,13 +29,13 @@ export const getAllClonesGroupedByActor = (input: {
     const actorsRoot = getActorsRootDir({ repoPath: actor.repoPath });
     const actorDir = getActorOndiskDir({
       repoPath: actor.repoPath,
-      hash: actor.hash,
+      exid: actor.exid,
     });
     const clones = getAllClonesForActor({
       actorDir,
       actorsRoot,
       repoPath: actor.repoPath,
-      actorHash: actor.hash,
+      actorExid: actor.exid,
     });
     return { actor, clones };
   });

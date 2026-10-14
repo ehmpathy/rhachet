@@ -37,7 +37,8 @@ Options:
   -r, --roles <spec>  roles to enroll — a single spec (e.g. mechanic,
                       +architect, -driver). for multiple use the comma form
                       (--roles -driver,-reviewer) or quote the space form
-                      (--roles "-driver -reviewer")
+                      (--roles "-driver -reviewer"). a bare delta is an alias
+                      (rhx enroll claude -driver ≡ --roles -driver)
   --as <address>      name the clone with a stable handle (@:<slug>)
   --no-socket         enroll without a managed reach socket
   --reason <text>     why this enrollment happened (or @stdin)
@@ -226,12 +227,12 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -283,14 +284,8 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "**/CLAUDE.local.md"
   ]
 }
 "
@@ -307,6 +302,60 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
 
 exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey — bare \`enroll claude\` keeps the DEFAULT roleset when: [t1] the same bare enroll with --output json (the machine handoff) then: the detached machine handoff shape is locked (machine contract) 1`] = `
 "{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t0] the HOME holds a \`.claude/settings.json\` then: the grove-present output is locked to a snapshot 1`] = `
+"
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t1] the HOME holds no \`.claude/settings.json\` then: the absent-grove notice is locked to a snapshot 1`] = `
+"ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2d] a repo still at the legacy repo actor dir, enrolled before any init when: [t0] a bare enroll runs then: the enroll report is locked, so what a human reads on the move is reviewable 1`] = `
+"ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2d] a repo still at the legacy repo actor dir, enrolled before any init when: [t0] a bare enroll runs then: the enroll report is locked, so what a human reads on the move is reviewable 2`] = `""`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t1] the HOME grove carries a driver-authored hook (the layout main shipped) then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: a clone would load hooks from roles it is not enrolled in
+
+{
+  "hint": "your home claude settings hold role hooks; remove every hook whose \`author\` names a \`role=\` from the file(s) above, then enroll again",
+  "rolesEnrolled": [
+    "architect",
+    "mechanic"
+  ],
+  "leaks": [
+    {
+      "event": "SessionStart",
+      "author": "repo=bhrain/role=driver",
+      "source": "user",
+      "path": "/TMP_TEST_DIR/.home/.claude/settings.json"
+    }
+  ]
+}
+
 "
 `;
 
@@ -329,12 +378,12 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -377,14 +426,8 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "**/CLAUDE.local.md"
   ]
 }
 "
@@ -419,12 +462,12 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -459,12 +502,12 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -499,12 +542,82 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/CLAUDE.local.md",
+    "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.slug=.default/brain/.claude/rules/**"
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ]
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after the brain is an alias of \`--roles\` when: [t0] \`enroll claude -driver -c\` (bare delta + a brain short flag) then: the authored config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
+          }
+        ]
+      }
+    ]
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ]
+}
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derives when the repo drops a role when: [t0] \`enroll claude --roles -architect\`, then \`init --roles -driver\` then: the re-derived config body is locked to a snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      }
+    ]
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -693,7 +806,7 @@ exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the 
 exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t0] \`enroll claude\` (no passthrough) then: the recorded argv is locked to a snapshot 1`] = `
 [
   "--setting-sources",
-  "user,local",
+  "user",
   "--settings",
   "$TESTDIR",
   "--system-prompt",

@@ -9,7 +9,7 @@ import { getOneCloneByRef } from './getOneCloneByRef';
 describe('getOneCloneByRef.integration', () => {
   given('[case1] a named clone on disk', () => {
     const scene = useBeforeAll(async () => {
-      return genSampleCloneOndisk({
+      return await genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-named' }),
         serial: 'ser-1',
         slug: 'driver',
@@ -55,19 +55,19 @@ describe('getOneCloneByRef.integration', () => {
       // to distinct actor dirs, so three enrollments = three actors to scan across
       const scene = useBeforeAll(async () => {
         const repoPath = genTempDir({ slug: 'cloneByRef-multi' });
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           roles: ['mechanic'],
           serial: 'ser-mech',
           slug: 'mech-clone',
         });
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           roles: ['architect'],
           serial: 'ser-arch',
           slug: 'arch-clone',
         });
-        genSampleCloneOndisk({
+        await genSampleCloneOndisk({
           repoPath,
           roles: ['mechanic', 'architect'],
           serial: 'ser-both',
@@ -120,7 +120,7 @@ describe('getOneCloneByRef.integration', () => {
     // leaves NO `.serials/<serial>` entry. the reach must still find the clone via
     // the full-actor scan fallback — the index is a fast path, never the only path
     const scene = useBeforeAll(async () => {
-      const sample = genSampleCloneOndisk({
+      const sample = await genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-noindex' }),
         serial: 'ser-orphan',
         slug: null,
@@ -148,7 +148,7 @@ describe('getOneCloneByRef.integration', () => {
 
   given('[case2] an address that names no clone', () => {
     const scene = useBeforeAll(async () => {
-      return genSampleCloneOndisk({
+      return await genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'cloneByRef-unknown' }),
         serial: 'ser-real',
         slug: null,

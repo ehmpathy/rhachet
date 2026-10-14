@@ -16,7 +16,7 @@ describe('asRoleRefsForEnrolledSlugs', () => {
   given('[case1] every enrolled slug is linked', () => {
     when('[t0] mapped', () => {
       const refs = asRoleRefsForEnrolledSlugs({
-        actorHash: 'abc12345',
+        actorExid: 'abc12345',
         slugs: ['mechanic', 'driver'],
         refsLinked: REFS_LINKED,
       });
@@ -45,7 +45,7 @@ describe('asRoleRefsForEnrolledSlugs', () => {
         async () => {
           const error = await getError(async () =>
             asRoleRefsForEnrolledSlugs({
-              actorHash: 'abc12345',
+              actorExid: 'abc12345',
               slugs: ['mechanic', 'ghost'],
               refsLinked: REFS_LINKED,
             }),
@@ -66,7 +66,7 @@ describe('asRoleRefsForEnrolledSlugs', () => {
       then('the result is empty', () => {
         expect(
           asRoleRefsForEnrolledSlugs({
-            actorHash: 'abc12345',
+            actorExid: 'abc12345',
             slugs: [],
             refsLinked: REFS_LINKED,
           }),

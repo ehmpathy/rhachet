@@ -37,7 +37,7 @@ describe('rhx clone get advisory mode-gate (acceptance)', () => {
 
       // provision one real actor + clone on disk (the reach index too), then plant
       // an orphan history symlink so getCloneOutput reports exidsUnreadable
-      const planted = genSampleCloneOndisk({
+      const planted = await genSampleCloneOndisk({
         repoPath: dir,
         serial: '3f9c0b12-7a4e-4c1d-9e2f-0a1b2c3d4e5f',
         slug: null,
@@ -160,7 +160,7 @@ describe('rhx clone get advisory mode-gate (acceptance)', () => {
       const dir = genTempDir({ slug: 'clone-get-foreign' });
       setupEnrollFixture({ dir });
 
-      const planted = genSampleCloneOndisk({
+      const planted = await genSampleCloneOndisk({
         repoPath: dir,
         serial: '7c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f',
         slug: null,

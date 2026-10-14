@@ -8,13 +8,14 @@ import {
   when,
 } from 'test-fns';
 
+import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoAmbient';
 import { HOST_SPECIFIC_SHELL_TOKENS } from '@src/.test/assets/hostSpecificShellTokens';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { genEnrollmentHash } from '../actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
+import { getOneActorOndiskExid } from '../actor/enrolled/getOneActorOndiskExid';
 import { genCloneOndisk } from './genCloneOndisk';
 import type { CloneSpawnHandle } from './genCloneSpawn';
 import { getCloneSocketPath } from './getCloneSocketPath';
@@ -46,6 +47,19 @@ const genCaptureHost = (output: string[]): PtyCloneHost => ({
   enterRawMode: () => () => undefined,
 });
 
+// the repo context every bake here runs under — no ambient roles, so every roleset lands on a
+// hash actor, never the repo actor
+const contextNoAmbient = genSampleContextNoAmbient();
+
+/**
+ * .what = the exid of the default `mechanic` actor these bakes land on
+ */
+const getMechanicExid = (): string =>
+  getOneActorOndiskExid(
+    { brain: 'claude', roles: ['mechanic'] as RoleSlug[] },
+    contextNoAmbient,
+  );
+
 const genCloneVia = (
   repoPath: string,
   opts: {
@@ -74,6 +88,7 @@ const genCloneVia = (
       depth: 0,
     },
     {
+      ...contextNoAmbient,
       pty: opts.pty !== undefined ? opts.pty : getPtyModuleOrNull(),
       host: genCaptureHost([]),
     },
@@ -110,7 +125,7 @@ describe('genCloneOndisk.integration', () => {
             scene.repoPath,
             '.agent',
             '.actors',
-            `actor.via.hash=${scene.result.clone.actor.hash}`,
+            `actor.via.${scene.result.clone.actor.exid}`,
             'clones',
             `serial=${scene.result.clone.serial}`,
           );
@@ -315,11 +330,10 @@ describe('genCloneOndisk.integration', () => {
         // the actor dir/manifest IS findserted (it precedes the socket check),
         // but no CLONE dir was ever created under it — the throw fires BEFORE
         // any spawn/tempDir, so `clones/` stays absent or empty
-        const hash = genEnrollmentHash({
-          brain: 'claude',
-          roles: ['mechanic'] as RoleSlug[],
-        });
-        const clonesDir = join(getActorOndiskDir({ repoPath, hash }), 'clones');
+        const clonesDir = join(
+          getActorOndiskDir({ repoPath, exid: getMechanicExid() }),
+          'clones',
+        );
         expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual([]);
       });
     });
@@ -402,12 +416,8 @@ describe('genCloneOndisk.integration', () => {
         then('the staged clone dir was reaped', () => {
           // the temp dir is created BEFORE the spawn, so a refused spawn must not
           // leave it behind. the mutation that reddens this: drop the rmSync
-          const hash = genEnrollmentHash({
-            brain: 'claude',
-            roles: ['mechanic'] as RoleSlug[],
-          });
           const clonesDir = join(
-            getActorOndiskDir({ repoPath, hash }),
+            getActorOndiskDir({ repoPath, exid: getMechanicExid() }),
             'clones',
           );
           expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual(
@@ -483,12 +493,8 @@ describe('genCloneOndisk.integration', () => {
         then('the staged clone dir was reaped all the same', () => {
           // the reap is unconditional and precedes the classification, so a
           // propagated malfunction leaves no orphan dir either
-          const hash = genEnrollmentHash({
-            brain: 'claude',
-            roles: ['mechanic'] as RoleSlug[],
-          });
           const clonesDir = join(
-            getActorOndiskDir({ repoPath, hash }),
+            getActorOndiskDir({ repoPath, exid: getMechanicExid() }),
             'clones',
           );
           expect(existsSync(clonesDir) ? readdirSync(clonesDir) : []).toEqual(

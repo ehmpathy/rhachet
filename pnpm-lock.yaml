@@ -95,6 +95,9 @@ importers:
       simple-log-methods:
         specifier: 0.6.9
         version: 0.6.9
+      simple-on-disk-cache:
+        specifier: 1.8.1
+        version: 1.8.1(with-simple-cache@0.17.3)
       type-fns:
         specifier: 1.21.4
         version: 1.21.4
@@ -104,6 +107,9 @@ importers:
       with-simple-cache:
         specifier: 0.17.3
         version: 0.17.3
+      with-simple-mutex:
+        specifier: 0.1.1
+        version: 0.1.1
       yaml:
         specifier: 2.8.2
         version: 2.8.2
@@ -5325,6 +5331,10 @@ packages:
   with-simple-caching@0.14.2:
     resolution: {integrity: sha512-jG76kjJBeZnPUPTY5v/031ropCAIGrIUYMOkk+ZfcrpzCMgxBPLB2gvINfY5alggn8qHntoYCeMqIzIlf1DDmw==}
     engines: {node: '>=8.0.0'}
+
+  with-simple-mutex@0.1.1:
+    resolution: {integrity: sha512-FGoeB+jg6y4e0C9vSMR+JK5qSF0eI7RWLK0/37DkGyMQfl5kqLrCTtG9mQgIJ7wkdNdyb+yCyhz8qY5YxRAdmA==}
+    engines: {node: '>=14.17.0'}
 
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
@@ -12930,6 +12940,12 @@ snapshots:
       - aws-crt
       - with-simple-cache
       - zod
+
+  with-simple-mutex@0.1.1:
+    dependencies:
+      helpful-errors: 1.7.3
+      iso-time: 1.11.7
+      with-simple-cache: 0.17.0
 
   word-wrap@1.2.5: {}
 

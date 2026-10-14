@@ -1,5 +1,7 @@
 import { isRolesFlag } from '@src/domain.operations/roles/deltas/isRolesFlag';
 
+import { isEnrollBareRoleDelta } from './isEnrollBareRoleDelta';
+
 /**
  * .what = returns the first extra role token that appears as a SEPARATE argument
  *         after enroll's single-valued `--roles` value — i.e. an unquoted
@@ -20,7 +22,6 @@ export const getRolesSpaceFormCollision = (input: {
   rolesLinked: string[];
 }): string | null => {
   const { rawArgs, rolesLinked } = input;
-  const linked = new Set(rolesLinked);
 
   // locate the roles flag; commander consumes exactly one value after it
   const flagIndex = rawArgs.findIndex(
@@ -35,19 +36,15 @@ export const getRolesSpaceFormCollision = (input: {
   const scanStart = isSeparateForm ? flagIndex + 2 : flagIndex + 1;
 
   // the first post-value token that names a linked role (bare, or in +/-/repo
-  // sigiled shape) is the collision — a role a user meant as a second delta
-  const collision = rawArgs.slice(scanStart).find((token) => {
-    // a `--long` flag is a legit next option, never a role token
-    if (token.startsWith('--')) return false;
-
-    // strip an optional +/- delta sigil, then the repo/ prefix, to the bare slug
-    const body =
-      token.startsWith('+') || token.startsWith('-') ? token.slice(1) : token;
-    if (!body) return false;
-    const slug = body.includes('/') ? body.slice(body.indexOf('/') + 1) : body;
-
-    return linked.has(slug);
-  });
+  // sigiled shape) is the collision — a role a user meant as a second delta.
+  // `isEnrollBareRoleDelta` holds the one linked-role rule; an unsigiled token is read
+  // as an addition so it counts too, and a `--long` flag is never a role token
+  const collision = rawArgs.slice(scanStart).find((token) =>
+    isEnrollBareRoleDelta({
+      token: /^[+-]/.test(token) ? token : `+${token}`,
+      rolesLinked,
+    }),
+  );
 
   return collision ?? null;
 };

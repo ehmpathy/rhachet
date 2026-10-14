@@ -18,7 +18,7 @@ stone. it has no way to know the stone is not addressed to it.
 - and the damage is **invisible at spawn** — `enroll` reports `baked`, `say` reports `released`, and
   the peer answers correctly. the edits land in the background
 
-🔴 **measured 2026-09-18.** `@:wedge1`, enrolled with default roles, answered `reply with exactly:
+🔴 **measured 2026-09-18.** `@:wedge1`, enrolled with ambient roles, answered `reply with exactly:
 PONG` correctly — and 2m46s later its own transcript holds an `Edit` tool call that rewrites a
 docblock in `computeCloneInputState.ts`, a file its enroller held open. it then parked on a
 permission prompt and went deaf to `say` (`withheld` / `modal-holds-focus`).

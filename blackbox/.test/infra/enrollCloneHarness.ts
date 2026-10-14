@@ -15,15 +15,14 @@ import {
 
 import {
   chmodSync,
-  closeSync,
   existsSync,
   mkdirSync,
-  openSync,
   readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -127,8 +126,10 @@ export const pollForAck = async (input: {
   dir: string;
   env: Record<string, string | undefined>;
 }): Promise<string> => {
-  const readOnce = (): ReturnType<typeof invokeRhachetCliBinary> =>
-    invokeRhachetCliBinary({
+  // async, never sync: the clone's pty is live and must drain while the get runs
+  //   (rule.forbid.sync-invoke-while-a-pty-is-live)
+  const readOnce = (): ReturnType<typeof invokeRhachetCliBinaryAsync> =>
+    invokeRhachetCliBinaryAsync({
       args: ['clone', 'get', input.address, '--tail', '5'],
       cwd: input.dir,
       env: input.env,
@@ -138,12 +139,12 @@ export const pollForAck = async (input: {
   // .note = deliberate mutation — a bounded poll counter local to this loop; it
   //   counts ack-poll attempts (max 50) and never escapes this function
   for (let attempt = 0; attempt < 50; attempt++) {
-    const got = readOnce();
+    const got = await readOnce();
     if (got.stdout.includes(`ack:${input.nonce}`)) return got.stdout;
     await new Promise((r) => setTimeout(r, 100));
   }
 
-  const last = readOnce();
+  const last = await readOnce();
   return `NO ack:${input.nonce} after 50 tries.\n--- last stdout ---\n${last.stdout}\n--- last stderr ---\n${last.stderr}`;
 };
 
@@ -271,17 +272,19 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
  *   non-destructive per invocation and NO lever serialized the invocations
  *   (raised by the r007 `behavior-hazards` lane at i076).
  *
- * .why an `O_EXCL` create rather than a flock = `openSync(…, 'wx')` is atomic on posix and
+ * .why an `O_EXCL` create rather than a flock = a `wx` write is atomic on posix and
  *   on win32 and needs no library. the lock is a FILE beside the target, never the target
  *   itself, so a crash mid-mutate cannot leave the config truncated.
  *
- * ⚠️ a stale lock is RECLAIMED by age rather than waited on forever — a worker killed
- *   mid-mutate would otherwise wedge every later run on this host, which is a worse
- *   failure than the race it guards. the reclaim window is far longer than the mutation.
+ * ⚠️ a lock left by a crashed worker is never cleared by age — an age break races a peer that
+ *   just took it. a held lock past the deadline fails loud with its path and age, for a human
+ *   to clear
+ * ⚠️ the release removes the lock only while it still holds THIS call's token, so a holder
+ *   never removes a lock it does not own
  */
 const withHostFileLock = <T>(input: { path: string; mutate: () => T }): T => {
   const lockPath = `${input.path}.rhachet-test.lock`;
-  const staleAfterMs = 30_000;
+  const token = `${process.pid}.${randomBytes(6).toString('hex')}`;
   const deadline = Date.now() + 15_000;
 
   // .note = deliberate mutation — the spin must carry its own acquired-flag out of the
@@ -289,26 +292,20 @@ const withHostFileLock = <T>(input: { path: string; mutate: () => T }): T => {
   let held = false;
   while (!held) {
     try {
-      closeSync(openSync(lockPath, 'wx'));
+      writeFileSync(lockPath, token, { flag: 'wx' });
       held = true;
     } catch (error) {
       // ⚠️ an ALLOWLIST, never a blanket catch — only "someone else holds it" is a
       //   condition to wait on. every other fault (a read-only home, a bad path) rethrows
       //   so it is never absorbed into a spin (`rule.forbid.failhide`)
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-
-      const age = Date.now() - statSync(lockPath).mtimeMs;
-      if (age > staleAfterMs) {
-        rmSync(lockPath, { force: true });
-        continue;
-      }
       if (Date.now() > deadline)
         throw new ConstraintError(
           `could not acquire the ${lockPath} lock within 15s`,
           {
             lockPath,
-            ageMs: age,
-            hint: 'another jest worker may be wedged mid-mutate; remove the lock file to clear it',
+            ageMs: getLockAgeMsOrNull({ lockPath }),
+            hint: `another jest worker may hold it, or one crashed mid-mutate; if no test run is live, remove ${lockPath}`,
           },
         );
       // a short SYNC pause — this whole path is sync so its callers keep their signature,
@@ -320,10 +317,31 @@ const withHostFileLock = <T>(input: { path: string; mutate: () => T }): T => {
   try {
     return input.mutate();
   } finally {
-    // ⚠️ released on EVERY exit path. a throw inside `mutate` that leaked the lock would
-    //   wedge this host until the stale window expired
-    rmSync(lockPath, { force: true });
+    // ⚠️ released on EVERY exit path, and only while the lock still holds this call's token
+    if (getLockTokenOrNull({ lockPath }) === token) rmSync(lockPath);
   }
+};
+
+/**
+ * .what = the token a lock file holds, or null when it is absent
+ * .note = only ENOENT means absent; every other errno surfaces
+ */
+const getLockTokenOrNull = (input: { lockPath: string }): string | null => {
+  try {
+    return readFileSync(input.lockPath, 'utf-8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+};
+
+/**
+ * .what = how long ago a lock file was last written, or null when it is absent
+ * .why = the deadline fault names the age, so a human can tell a live peer from a leak
+ */
+const getLockAgeMsOrNull = (input: { lockPath: string }): number | null => {
+  const stat = statSync(input.lockPath, { throwIfNoEntry: false });
+  return stat ? Date.now() - stat.mtimeMs : null;
 };
 
 /**
@@ -652,24 +670,23 @@ export const pollForCloneListState = async (input: {
   dir: string;
   env: Record<string, string | undefined>;
   timeoutMs?: number;
-}): Promise<ReturnType<typeof invokeRhachetCliBinary>> => {
+}): Promise<Awaited<ReturnType<typeof invokeRhachetCliBinaryAsync>>> => {
   const deadline = Date.now() + (input.timeoutMs ?? 15000);
-  // .note = deliberate mutation — the loop must carry the most recent read out, so the
-  //   caller asserts against a real screen rather than an absent one. bounded to this call
-  let listed = invokeRhachetCliBinary({
-    args: ['clone', 'list'],
-    cwd: input.dir,
-    env: input.env,
-    logOnError: false,
-  });
-  while (!listed.stdout.includes(input.wanted) && Date.now() < deadline) {
-    await new Promise((wake) => setTimeout(wake, 100));
-    listed = invokeRhachetCliBinary({
+  // async, never sync: a caller may poll for LIVE while the clone's pty must drain
+  //   (rule.forbid.sync-invoke-while-a-pty-is-live)
+  const readOnce = (): ReturnType<typeof invokeRhachetCliBinaryAsync> =>
+    invokeRhachetCliBinaryAsync({
       args: ['clone', 'list'],
       cwd: input.dir,
       env: input.env,
       logOnError: false,
     });
+  // .note = deliberate mutation — the loop must carry the most recent read out, so the
+  //   caller asserts against a real screen rather than an absent one. bounded to this call
+  let listed = await readOnce();
+  while (!listed.stdout.includes(input.wanted) && Date.now() < deadline) {
+    await new Promise((wake) => setTimeout(wake, 100));
+    listed = await readOnce();
   }
   return listed;
 };
@@ -917,6 +934,7 @@ export const expectCloneSaySuccessTree = (input: {
           '😶🎙️ enqueued for @:<serial|slug>',
         ],
         stdout: input.stdout,
+        hint: 'read the stdout above: a failure tree means the say did not land; a reworded head means the say render drifted from this assertion',
       },
     );
   const addressShown = matched[2] ?? '';
@@ -930,6 +948,7 @@ export const expectCloneSaySuccessTree = (input: {
         slug: input.slug ?? null,
         addressShown,
         stdout: input.stdout,
+        hint: 'the say resolved its address to another clone; check the slug and serial index under .agent/.actors/',
       },
     );
 
@@ -948,12 +967,22 @@ export const expectCloneSaySuccessTree = (input: {
   if (strays.length)
     throw new ConstraintError(
       'a clone say success tree carried a tail line that is not a `└─ 🟡` leaf',
-      { verdict, strays, stdout: input.stdout },
+      {
+        verdict,
+        strays,
+        stdout: input.stdout,
+        hint: 'a new tail line in the say render needs this assertion widened, or the render reverted',
+      },
     );
   if (tail.length > 1)
     throw new ConstraintError(
       'a clone say success tree carried more than one leaf',
-      { verdict, tail, stdout: input.stdout },
+      {
+        verdict,
+        tail,
+        stdout: input.stdout,
+        hint: 'a success render holds at most one degrade leaf; read the tail to see which render stacked two',
+      },
     );
   // the one branch whose leaf is MANDATORY: a hold must state why it is held and what voids it,
   // which is the caution the retry contract rests on (an aborted turn drops the hold, unsent)

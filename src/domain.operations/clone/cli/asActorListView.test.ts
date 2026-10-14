@@ -43,13 +43,13 @@ describe('asActorListView', () => {
     const actors = [
       new ActorOndisk({
         repoPath: '/repo',
-        hash: 'aaaa1111',
+        exid: 'hash=aaaa1111',
         brain: 'claude',
         roles: ['mechanic'],
       }),
       new ActorOndisk({
         repoPath: '/repo',
-        hash: 'bbbb2222',
+        exid: 'hash=bbbb2222',
         brain: 'codex',
         roles: ['architect', 'driver'],
       }),
@@ -63,16 +63,16 @@ describe('asActorListView', () => {
         expect(view.tree).toContain('roles=architect,driver');
       });
 
-      then('the tree renders the WHOLE hash, so `@<hash>` pastes', () => {
+      then('the tree renders the WHOLE exid, so `@<exid>` pastes', () => {
         // `genEnrollmentHash` mints 8 chars, so the fixture IS a real-width hash and
         // this view's one contract is that a human can copy the address off the list
         // and re-type it (define.address-sigils). the `  brain=` suffix is what gives
         // the clamp teeth — a 7-char render would miss it
-        expect(view.tree).toContain('@aaaa1111  brain=claude');
+        expect(view.tree).toContain('@hash=aaaa1111  brain=claude');
       });
 
-      then('the data carries the same hash a machine reaches by', () => {
-        expect(view.data.actors[0]!.hash).toEqual('aaaa1111');
+      then('the data carries the same exid a machine reaches by', () => {
+        expect(view.data.actors[0]!.exid).toEqual('hash=aaaa1111');
       });
 
       then('the rendered tree matches the snapshot (visual regression)', () => {

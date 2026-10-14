@@ -7,8 +7,8 @@ import {
 import { BOOT_STATS_ZERO } from './BootStats';
 import type { BrainDirBootRender } from './BrainDirBootRender';
 
-const DEFAULT_BRAIN_DIR_REL =
-  '.agent/.actors/actor.via.slug=.default/brain/.claude';
+const REPO_ACTOR_BRAIN_DIR_REL =
+  '.agent/.actors/actor.via.repo=ambient/brain/.claude';
 
 /**
  * .what = one render, with every field the report reads
@@ -16,8 +16,8 @@ const DEFAULT_BRAIN_DIR_REL =
 const genRender = (
   overrides: Partial<BrainDirBootRender> = {},
 ): BrainDirBootRender => ({
-  scope: { kind: 'default' },
-  bootMdPath: `/repo/${DEFAULT_BRAIN_DIR_REL}/boot.md`,
+  scope: { kind: 'repo' },
+  bootMdPath: `/repo/${REPO_ACTOR_BRAIN_DIR_REL}/boot.md`,
   stats: { ...BOOT_STATS_ZERO, roles: 2, chars: 4096 },
   agentsMdReset: false,
   bootMdCreated: false,
@@ -49,7 +49,7 @@ describe('asBrainDirSyncReportLines', () => {
             drops: ['CLAUDE.md'],
             moves: ['settings.json', 'keep.json'],
           }),
-          defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
         then('every group sits under one header, in the one order', () => {
@@ -71,7 +71,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({ bootMdCreated: true }),
         symlink: genSymlink({ effect: 'CREATED' }),
-        defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
       then('it names the link and the corpus, and naught else', () => {
@@ -85,7 +85,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender(),
         symlink: genSymlink({ effect: 'FOUND' }),
-        defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
       then('it says NAUGHT — success is not news', () => {
@@ -102,12 +102,12 @@ describe('asBrainDirSyncReportLines', () => {
       when('[t0] a first render, with no symlink', () => {
         const lines = asBrainDirSyncReportLines({
           render: genRender({
-            scope: { kind: 'actor', actorHash: '051970ec' },
+            scope: { kind: 'actor', actorExid: 'hash=051970ec' },
             bootMdCreated: true,
             stats: { ...BOOT_STATS_ZERO, roles: 1, chars: 512 },
           }),
           symlink: null,
-          defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
         then(
@@ -121,10 +121,10 @@ describe('asBrainDirSyncReportLines', () => {
       when('[t1] a re-render, with no symlink', () => {
         const lines = asBrainDirSyncReportLines({
           render: genRender({
-            scope: { kind: 'actor', actorHash: '051970ec' },
+            scope: { kind: 'actor', actorExid: 'hash=051970ec' },
           }),
           symlink: null,
-          defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
         then('it says NAUGHT', () => {
@@ -143,7 +143,7 @@ describe('asBrainDirSyncReportLines', () => {
           moves: ['settings.json', 'rules'],
           overwrites: ['settings.json'],
         }),
-        defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
       then(
@@ -162,7 +162,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({ agentsMdReset: true }),
         symlink: genSymlink({ effect: 'FOUND' }),
-        defaultBrainDirRel: DEFAULT_BRAIN_DIR_REL,
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
       then(

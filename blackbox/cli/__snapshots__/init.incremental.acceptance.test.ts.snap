@@ -59,12 +59,12 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ moved
-   │  ├─ .claude/settings.$TIMESTAMP.bak.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.$TIMESTAMP.bak.json
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   │  ├─ .claude/settings.$TIMESTAMP.bak.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.$TIMESTAMP.bak.json
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 
@@ -88,6 +88,20 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
       └─ 45 brief(s)
+
+"
+`;
+
+exports[`rhx init --roles incremental (acceptance) given: [case3.1] a repo whose prepare:rhachet replays architect (🔴 inventory case=1) when: [t0] \`init --roles -architect\` then: the remove-path summary, with its replay row, matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/architect
+   └─ untouched (1)
+
+
+📦 persist prepare entries...
+   ↻ [updated] scripts["prepare:rhachet"]
+      └─ rhachet init --hooks --roles mechanic
 
 "
 `;
@@ -202,9 +216,9 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    └─ stats
       └─ 45 brief(s)
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -274,9 +288,9 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    └─ stats
       └─ 45 brief(s)
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -307,9 +321,9 @@ exports[`rhx init --roles incremental (acceptance) given: [case15] remove where 
    │  └─ - ehmpathy/architect
    └─ untouched (0)
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 0 roles
 

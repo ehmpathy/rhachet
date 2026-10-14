@@ -1,2 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types --experimental-transform-types --disable-warning=ExperimentalWarning
+// cache the compiled bytecode of every module this cli loads, so a call after the first skips
+// the parse + compile of ~400 modules (measured 2026-10-05: `clone list` 1.07s → 0.63s). the
+// cache is keyed by file content, so a rebuilt dist recompiles on its own; a node without the
+// api (< 22.1) runs as before
+require('node:module').enableCompileCache?.();
 require('../dist/contract/cli/invoke').invoke({ args: process.argv.slice(2) });

@@ -8,10 +8,11 @@ import {
   when,
 } from 'test-fns';
 
+import { setSampleRepoCommitted } from '@src/.test/assets/setSampleRepoCommitted';
+import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { getDefaultActorOndiskDir } from '@src/domain.operations/actor/enrolled/getDefaultActorOndiskDir';
+import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 
-import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   lstatSync,
@@ -27,24 +28,28 @@ import { join, relative } from 'node:path';
 import { setRepoBrainDirSymlink } from './setRepoBrainDirSymlink';
 
 /**
- * .what = a fresh git repo and its default brain dir path
+ * .what = a fresh git repo and its repo actor brain dir path
  */
 const genRepoScene = (input: { slug: string }) => {
   const repoPath = realpathSync(genTempDir({ slug: input.slug, git: true }));
-  const defaultBrainDir = getBrainOndiskDir({
-    actorDir: getDefaultActorOndiskDir({ repoPath }),
+  const repoActorBrainDir = getBrainOndiskDir({
+    actorDir: getOneRepoActorOndiskDir({ repoPath }),
   });
-  return { repoPath, defaultBrainDir, linkPath: join(repoPath, '.claude') };
+  return { repoPath, repoActorBrainDir, linkPath: join(repoPath, '.claude') };
 };
 
 /**
  * .what = every path under a dir, with each file's bytes or each link's target
  * .why = a refusal must leave the tree byte-unchanged; a digest compares it whole
+ * .note = the repo mutex's own store (`.agent/.actors/.locks/`) is left out: the call holds
+ *   the mutex whether it refuses or not, and that store is lock state, never repo content
  */
 const getTreeDigest = (input: { dir: string }): string[] => {
+  const locksDir = join(input.dir, '.agent', '.actors', '.locks');
   const walk = (dir: string): string[] =>
     readdirSync(dir)
       .filter((name) => name !== '.git')
+      .filter((name) => join(dir, name) !== locksDir)
       .sort()
       .flatMap((name) => {
         const path = join(dir, name);
@@ -57,46 +62,22 @@ const getTreeDigest = (input: { dir: string }): string[] => {
   return walk(input.dir);
 };
 
-/**
- * .what = stage and commit every tracked-eligible path in the repo
- * .why = a boot file is dropped ONLY where git could hand it back, so a case that
- *   asserts a DROP must first put that file where git can reach it. the identity is
- *   passed per-invocation (`-c`), so the test needs no global git config to exist
- */
-const commitWholeTree = (input: { repoPath: string }): void => {
-  execFileSync('git', ['add', '-A'], { cwd: input.repoPath });
-  execFileSync(
-    'git',
-    [
-      '-c',
-      'user.email=test@example.com',
-      '-c',
-      'user.name=test',
-      'commit',
-      '-q',
-      '-m',
-      'seed',
-    ],
-    { cwd: input.repoPath },
-  );
-};
-
 describe('setRepoBrainDirSymlink', () => {
   given('[case1] <repo>/.claude is absent', () => {
     const scene = useBeforeAll(async () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-absent' });
-      const result = setRepoBrainDirSymlink(repo);
+      const result = await setRepoBrainDirSymlink(repo);
       return { ...repo, result };
     });
 
     when('[t0] the link is set', () => {
-      then('a relative symlink to the default brain dir is created', () => {
+      then('a relative symlink to the repo actor brain dir is created', () => {
         expect(scene.result.effect).toEqual('CREATED');
         expect(readlinkSync(scene.linkPath)).toEqual(
-          '.agent/.actors/actor.via.slug=.default/brain/.claude',
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude',
         );
         expect(realpathSync(scene.linkPath)).toEqual(
-          realpathSync(scene.defaultBrainDir),
+          realpathSync(scene.repoActorBrainDir),
         );
       });
 
@@ -106,11 +87,12 @@ describe('setRepoBrainDirSymlink', () => {
     });
 
     when('[t1] the link is set again', () => {
-      const rerun = useBeforeAll(async () =>
-        setRepoBrainDirSymlink({
-          repoPath: scene.repoPath,
-          defaultBrainDir: scene.defaultBrainDir,
-        }),
+      const rerun = useBeforeAll(
+        async () =>
+          await setRepoBrainDirSymlink({
+            repoPath: scene.repoPath,
+            repoActorBrainDir: scene.repoActorBrainDir,
+          }),
       );
 
       then('it is unchanged', () => {
@@ -120,13 +102,13 @@ describe('setRepoBrainDirSymlink', () => {
   });
 
   given(
-    '[case2] <repo>/.claude is an absolute symlink to the default brain dir',
+    '[case2] <repo>/.claude is an absolute symlink to the repo actor brain dir',
     () => {
       const scene = useBeforeAll(async () => {
         const repo = genRepoScene({ slug: 'repo-brain-dir-absolute' });
-        mkdirSync(repo.defaultBrainDir, { recursive: true });
-        symlinkSync(repo.defaultBrainDir, repo.linkPath);
-        const result = setRepoBrainDirSymlink(repo);
+        mkdirSync(repo.repoActorBrainDir, { recursive: true });
+        symlinkSync(repo.repoActorBrainDir, repo.linkPath);
+        const result = await setRepoBrainDirSymlink(repo);
         return { ...repo, result };
       });
 
@@ -135,7 +117,7 @@ describe('setRepoBrainDirSymlink', () => {
           expect(scene.result.effect).toEqual('REWRITTEN');
           expect(readlinkSync(scene.linkPath).startsWith('/')).toBe(false);
           expect(realpathSync(scene.linkPath)).toEqual(
-            realpathSync(scene.defaultBrainDir),
+            realpathSync(scene.repoActorBrainDir),
           );
         });
       });
@@ -147,11 +129,11 @@ describe('setRepoBrainDirSymlink', () => {
     () => {
       const scene = useBeforeAll(async () => {
         const repo = genRepoScene({ slug: 'repo-brain-dir-alt-relative' });
-        mkdirSync(repo.defaultBrainDir, { recursive: true });
+        mkdirSync(repo.repoActorBrainDir, { recursive: true });
         const linkTargetAlt =
-          './.agent/.actors/../.actors/actor.via.slug=.default/brain/.claude';
+          './.agent/.actors/../.actors/actor.via.repo=ambient/brain/.claude';
         symlinkSync(linkTargetAlt, repo.linkPath);
-        const result = setRepoBrainDirSymlink(repo);
+        const result = await setRepoBrainDirSymlink(repo);
         return { ...repo, result, linkTargetAlt };
       });
 
@@ -176,12 +158,12 @@ describe('setRepoBrainDirSymlink', () => {
         writeFileSync(join(repo.linkPath, 'AGENTS.md'), 'hand agents\n');
         writeFileSync(join(repo.linkPath, 'CLAUDE.md'), 'hand claude\n');
         writeFileSync(join(repo.repoPath, '.gitignore'), '*.local.json\n');
-        mkdirSync(repo.defaultBrainDir, { recursive: true });
-        writeFileSync(join(repo.defaultBrainDir, 'AGENTS.md'), '@boot.md\n');
+        mkdirSync(repo.repoActorBrainDir, { recursive: true });
+        writeFileSync(join(repo.repoActorBrainDir, 'AGENTS.md'), '@boot.md\n');
         // the boot files are COMMITTED, so their drop is recoverable — which is the
         // one ground S11 rests on, and now the one state a drop proceeds from
-        commitWholeTree({ repoPath: repo.repoPath });
-        const result = setRepoBrainDirSymlink(repo);
+        setSampleRepoCommitted({ repoPath: repo.repoPath });
+        const result = await setRepoBrainDirSymlink(repo);
         return { ...repo, result };
       });
 
@@ -194,41 +176,41 @@ describe('setRepoBrainDirSymlink', () => {
         then('the boot files are dropped, never moved', () => {
           expect(scene.result.drops).toEqual(['AGENTS.md', 'CLAUDE.md']);
           expect(
-            readFileSync(join(scene.defaultBrainDir, 'AGENTS.md'), 'utf8'),
+            readFileSync(join(scene.repoActorBrainDir, 'AGENTS.md'), 'utf8'),
           ).toEqual('@boot.md\n');
-          expect(existsSync(join(scene.defaultBrainDir, 'CLAUDE.md'))).toBe(
+          expect(existsSync(join(scene.repoActorBrainDir, 'CLAUDE.md'))).toBe(
             false,
           );
         });
 
-        then('every other entry moves into the default brain dir', () => {
+        then('every other entry moves into the repo actor brain dir', () => {
           expect(scene.result.moves).toEqual([
             'rules',
             'settings.json',
             'settings.local.json',
           ]);
           expect(
-            readFileSync(join(scene.defaultBrainDir, 'settings.json'), 'utf8'),
+            readFileSync(
+              join(scene.repoActorBrainDir, 'settings.json'),
+              'utf8',
+            ),
           ).toEqual('{"hooks":{}}\n');
           expect(
-            readFileSync(join(scene.defaultBrainDir, 'rules', 'a.md'), 'utf8'),
+            readFileSync(
+              join(scene.repoActorBrainDir, 'rules', 'a.md'),
+              'utf8',
+            ),
           ).toEqual('rule a\n');
         });
 
         then('settings.local.json stays ignored after the move', () => {
           const relLocal = relative(
             scene.repoPath,
-            join(scene.defaultBrainDir, 'settings.local.json'),
+            join(scene.repoActorBrainDir, 'settings.local.json'),
           );
-          expect(() =>
-            execFileSync(
-              'git',
-              ['check-ignore', '--no-index', '-q', relLocal],
-              {
-                cwd: scene.repoPath,
-              },
-            ),
-          ).not.toThrow();
+          expect(
+            getOneIsPathIgnoredByGit({ repo: scene.repoPath, path: relLocal }),
+          ).toBe(true);
         });
       });
     },
@@ -238,7 +220,7 @@ describe('setRepoBrainDirSymlink', () => {
     const scene = useBeforeAll(async () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-empty' });
       mkdirSync(repo.linkPath);
-      const result = setRepoBrainDirSymlink(repo);
+      const result = await setRepoBrainDirSymlink(repo);
       return { ...repo, result };
     });
 
@@ -257,13 +239,13 @@ describe('setRepoBrainDirSymlink', () => {
 
   /**
    * .what = a name held by BOTH dirs, and a dir entry among them
-   * .why = rhachet owns the default brain dir, so a shared name is overwritten rather than
+   * .why = rhachet owns the repo actor brain dir, so a shared name is overwritten rather than
    *   refused: `<repo>/.claude` is the live copy a human and a role's init have just
    *   written, so it is the one that must win. the `rules/` dir is the case a bare
    *   `renameSync` cannot serve — it throws on a non-empty destination dir
    */
   given(
-    '[case6] <repo>/.claude and the default brain dir hold the same names',
+    '[case6] <repo>/.claude and the repo actor brain dir hold the same names',
     () => {
       const scene = useBeforeAll(async () => {
         const repo = genRepoScene({ slug: 'repo-brain-dir-overwrite' });
@@ -272,18 +254,18 @@ describe('setRepoBrainDirSymlink', () => {
         writeFileSync(join(repo.linkPath, 'rules', 'a.md'), 'src rule\n');
         writeFileSync(join(repo.linkPath, 'fresh.json'), '{"new":1}\n');
         writeFileSync(join(repo.linkPath, 'AGENTS.md'), 'hand\n');
-        mkdirSync(join(repo.defaultBrainDir, 'rules'), { recursive: true });
+        mkdirSync(join(repo.repoActorBrainDir, 'rules'), { recursive: true });
         writeFileSync(
-          join(repo.defaultBrainDir, 'settings.json'),
+          join(repo.repoActorBrainDir, 'settings.json'),
           '{"dst":1}\n',
         );
         writeFileSync(
-          join(repo.defaultBrainDir, 'rules', 'stale.md'),
+          join(repo.repoActorBrainDir, 'rules', 'stale.md'),
           'stale rule\n',
         );
-        writeFileSync(join(repo.defaultBrainDir, 'AGENTS.md'), '@boot.md\n');
-        commitWholeTree({ repoPath: repo.repoPath });
-        const result = setRepoBrainDirSymlink(repo);
+        writeFileSync(join(repo.repoActorBrainDir, 'AGENTS.md'), '@boot.md\n');
+        setSampleRepoCommitted({ repoPath: repo.repoPath });
+        const result = await setRepoBrainDirSymlink(repo);
         return { ...repo, result };
       });
 
@@ -302,7 +284,10 @@ describe('setRepoBrainDirSymlink', () => {
 
         then('the repo-side copy wins — it is the live one', () => {
           expect(
-            readFileSync(join(scene.defaultBrainDir, 'settings.json'), 'utf8'),
+            readFileSync(
+              join(scene.repoActorBrainDir, 'settings.json'),
+              'utf8',
+            ),
           ).toEqual('{"src":1}\n');
         });
 
@@ -310,10 +295,13 @@ describe('setRepoBrainDirSymlink', () => {
           // a merge would leave `stale.md` beside `a.md`, so the default dir would hold a
           //   file `<repo>/.claude` never had. the move replaces the dir, so it cannot
           expect(
-            readFileSync(join(scene.defaultBrainDir, 'rules', 'a.md'), 'utf8'),
+            readFileSync(
+              join(scene.repoActorBrainDir, 'rules', 'a.md'),
+              'utf8',
+            ),
           ).toEqual('src rule\n');
           expect(
-            existsSync(join(scene.defaultBrainDir, 'rules', 'stale.md')),
+            existsSync(join(scene.repoActorBrainDir, 'rules', 'stale.md')),
           ).toBe(false);
         });
 
@@ -329,7 +317,9 @@ describe('setRepoBrainDirSymlink', () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-elsewhere' });
       mkdirSync(join(repo.repoPath, 'other'));
       symlinkSync('other', repo.linkPath);
-      const error = await getError(async () => setRepoBrainDirSymlink(repo));
+      const error = await getError(
+        async () => await setRepoBrainDirSymlink(repo),
+      );
       return { ...repo, error };
     });
 
@@ -346,7 +336,9 @@ describe('setRepoBrainDirSymlink', () => {
     const scene = useBeforeAll(async () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-file' });
       writeFileSync(repo.linkPath, 'not a dir\n');
-      const error = await getError(async () => setRepoBrainDirSymlink(repo));
+      const error = await getError(
+        async () => await setRepoBrainDirSymlink(repo),
+      );
       return { ...repo, error };
     });
 
@@ -369,16 +361,16 @@ describe('setRepoBrainDirSymlink', () => {
         writeFileSync(join(whole.linkPath, 'a.json'), 'a\n');
         writeFileSync(join(whole.linkPath, 'b.json'), 'b\n');
         writeFileSync(join(whole.linkPath, 'CLAUDE.md'), 'hand\n');
-        commitWholeTree({ repoPath: whole.repoPath });
-        setRepoBrainDirSymlink(whole);
+        setSampleRepoCommitted({ repoPath: whole.repoPath });
+        await setRepoBrainDirSymlink(whole);
 
         // the interrupted run: CLAUDE.md dropped and a.json moved, b.json left behind
         const cut = genRepoScene({ slug: 'repo-brain-dir-cut' });
         mkdirSync(cut.linkPath);
         writeFileSync(join(cut.linkPath, 'b.json'), 'b\n');
-        mkdirSync(cut.defaultBrainDir, { recursive: true });
-        writeFileSync(join(cut.defaultBrainDir, 'a.json'), 'a\n');
-        const result = setRepoBrainDirSymlink(cut);
+        mkdirSync(cut.repoActorBrainDir, { recursive: true });
+        writeFileSync(join(cut.repoActorBrainDir, 'a.json'), 'a\n');
+        const result = await setRepoBrainDirSymlink(cut);
         return { whole, cut, result };
       });
 
@@ -409,12 +401,14 @@ describe('setRepoBrainDirSymlink', () => {
       writeFileSync(join(repo.linkPath, 'settings.json'), '{"hooks":{}}\n');
       writeFileSync(join(repo.linkPath, 'AGENTS.md'), 'hand agents\n');
       // .note = NO commit — the file exists only in the worktree
-      // .note = the default brain dir is made up front, as `[case6]` does, so the digest
+      // .note = the repo actor brain dir is made up front, as `[case6]` does, so the digest
       //   measures only what the MIGRATION touched — the idempotent mkdir at the top of
       //   the op runs before any check and is no part of the loss this case guards
-      mkdirSync(repo.defaultBrainDir, { recursive: true });
+      mkdirSync(repo.repoActorBrainDir, { recursive: true });
       const digestBefore = getTreeDigest({ dir: repo.repoPath });
-      const error = await getError(async () => setRepoBrainDirSymlink(repo));
+      const error = await getError(
+        async () => await setRepoBrainDirSymlink(repo),
+      );
       const digestAfter = getTreeDigest({ dir: repo.repoPath });
       return { ...repo, error, digestBefore, digestAfter };
     });
@@ -448,12 +442,14 @@ describe('setRepoBrainDirSymlink', () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-dirty-boot' });
       mkdirSync(repo.linkPath, { recursive: true });
       writeFileSync(join(repo.linkPath, 'AGENTS.md'), 'committed\n');
-      commitWholeTree({ repoPath: repo.repoPath });
+      setSampleRepoCommitted({ repoPath: repo.repoPath });
       writeFileSync(
         join(repo.linkPath, 'AGENTS.md'),
         'committed, then edited\n',
       );
-      const error = await getError(async () => setRepoBrainDirSymlink(repo));
+      const error = await getError(
+        async () => await setRepoBrainDirSymlink(repo),
+      );
       return { ...repo, error };
     });
 
@@ -477,10 +473,12 @@ describe('setRepoBrainDirSymlink', () => {
     const scene = useBeforeAll(async () => {
       const repo = genRepoScene({ slug: 'repo-brain-dir-ignored-boot' });
       writeFileSync(join(repo.repoPath, '.gitignore'), '.claude/\n');
-      commitWholeTree({ repoPath: repo.repoPath });
+      setSampleRepoCommitted({ repoPath: repo.repoPath });
       mkdirSync(repo.linkPath, { recursive: true });
       writeFileSync(join(repo.linkPath, 'CLAUDE.md'), 'hand claude\n');
-      const error = await getError(async () => setRepoBrainDirSymlink(repo));
+      const error = await getError(
+        async () => await setRepoBrainDirSymlink(repo),
+      );
       return { ...repo, error };
     });
 
@@ -494,4 +492,37 @@ describe('setRepoBrainDirSymlink', () => {
       });
     });
   });
+
+  given(
+    '[case13] <repo>/.claude is a relative symlink to the legacy repo actor brain dir',
+    () => {
+      /**
+       * the rename leaves this behind: the repo actor dir moved from
+       *   `actor.via.slug=.default` to `actor.via.repo=ambient`, so rhachet's own prior
+       *   link now dangles. it must be repointed, never refused as "another place"
+       */
+      const scene = useBeforeAll(async () => {
+        const repo = genRepoScene({ slug: 'repo-brain-dir-legacy-link' });
+        mkdirSync(repo.repoActorBrainDir, { recursive: true });
+        symlinkSync(
+          '.agent/.actors/actor.via.slug=.default/brain/.claude',
+          repo.linkPath,
+        );
+        const result = await setRepoBrainDirSymlink(repo);
+        return { ...repo, result };
+      });
+
+      when('[t0] the link is set', () => {
+        then('it is repointed at the repo actor brain dir', () => {
+          expect(scene.result.effect).toEqual('REWRITTEN');
+          expect(readlinkSync(scene.linkPath)).toEqual(
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude',
+          );
+          expect(realpathSync(scene.linkPath)).toEqual(
+            realpathSync(scene.repoActorBrainDir),
+          );
+        });
+      });
+    },
+  );
 });

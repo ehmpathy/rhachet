@@ -12,6 +12,9 @@ import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits'
  *
  * .note = for single init execution, use `run --init <slug>` instead
  * .note = uses getRoleBySpecifier for unified explicit/implicit resolution
+ * .note = in a git repo, puts the repo actor's brain dir in the split layout BEFORE the inits,
+ *   so an init that writes through `<repo>/.claude` meets the layout it lives in — the same
+ *   order `rhx init --roles` and `rhx upgrade` run (inventory.of=requirements.case=8)
  */
 export const invokeRolesInit = (
   { command }: { command: Command },
@@ -31,6 +34,12 @@ export const invokeRolesInit = (
         { role: opts.role, repo: opts.repo },
         context,
       );
+
+      // put the repo actor's brain dir in the split layout before any init writes to it
+      //   .note = loaded lazily: only a role with inits, in a git repo, reaches it
+      //     (rule.require.thinnest-import-path)
+      const hasInits = (resolved.role.inits?.exec ?? []).length > 0;
+      if (hasInits) await setRepoActorBrainDirLayoutIfInRepo();
 
       // execute init commands
       const result = await execRoleInits({
@@ -54,4 +63,23 @@ export const invokeRolesInit = (
       );
       console.log(``);
     });
+};
+
+/**
+ * .what = put the repo actor's brain dir in the split layout, when the cwd is in a git repo
+ * .why = a role init writes through `<repo>/.claude`; outside a repo there is no repo actor
+ *   to lay out, and the cli must tolerate a non-repo cwd (rule.require.cli-tolerates-non-repo-cwd)
+ * .note = a layout fault never blocks the inits; the next `rhx init` reports it
+ *   (`setRepoActorBrainDirLayoutBeforeInits`)
+ */
+const setRepoActorBrainDirLayoutIfInRepo = async (): Promise<void> => {
+  const { getGitRepoRootOrNull } = await import(
+    '../../infra/git/getGitRepoRootOrNull'
+  );
+  const repoPath = await getGitRepoRootOrNull({ from: process.cwd() });
+  if (repoPath === null) return;
+  const { setRepoActorBrainDirLayoutBeforeInits } = await import(
+    '../../domain.operations/init/boots/setRepoActorBrainDirLayout'
+  );
+  await setRepoActorBrainDirLayoutBeforeInits({ repoPath });
 };

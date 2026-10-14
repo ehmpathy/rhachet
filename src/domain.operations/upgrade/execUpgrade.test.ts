@@ -443,7 +443,7 @@ describe('execUpgrade', () => {
       // the default boot rendered, so the gate opens and the hook sync runs
       spySyncAndReportBrainDirBoots.mockResolvedValue({
         exitCode: 0,
-        defaultRendered: true,
+        repoActorRendered: true,
       });
       spySyncHooksForLinkedRoles.mockResolvedValue({
         errors: [

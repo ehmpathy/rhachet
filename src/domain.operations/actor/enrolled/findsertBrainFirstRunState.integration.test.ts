@@ -12,26 +12,35 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { findsertBrainFirstRunState } from './findsertBrainFirstRunState';
 
-const REPO = '/repo';
-
 /**
- * .what = a temp home and an empty brain dir, with the human state written or not
+ * .what = a temp repo, a temp home and an empty brain dir, with the human state written or not
+ * .note = the repo is real, since the `.claude.json` write holds the repo's mutex, and a git
+ *   repo of its own, so its trust key is its own path alone
  */
 const genScene = (input: { slug: string; human: string | null }) => {
-  const dir = genTempDir({ slug: input.slug });
+  const dir = realpathSync(genTempDir({ slug: input.slug }));
+  const repoPath = realpathSync(
+    genTempDir({ slug: `${input.slug}-repo`, git: true }),
+  );
   const home = join(dir, 'home');
   const brainDir = join(dir, 'actor', 'brain', '.claude');
   mkdirSync(home, { recursive: true });
   mkdirSync(brainDir, { recursive: true });
   if (input.human !== null)
     writeFileSync(join(home, '.claude.json'), input.human);
-  return { home, brainDir, statePath: join(brainDir, '.claude.json') };
+  return {
+    repoPath,
+    home,
+    brainDir,
+    statePath: join(brainDir, '.claude.json'),
+  };
 };
 
 const HUMAN_STATE = JSON.stringify({
@@ -51,10 +60,10 @@ describe('findsertBrainFirstRunState', () => {
       when('[t0] the state is findserted', () => {
         then(
           'the brain dir state is written with the accepted keys and repo trust',
-          () => {
-            const result = findsertBrainFirstRunState({
+          async () => {
+            const result = await findsertBrainFirstRunState({
               brainDir: scene.brainDir,
-              repoPath: REPO,
+              repoPath: scene.repoPath,
               home: scene.home,
             });
             expect(result.status).toEqual('written');
@@ -62,18 +71,18 @@ describe('findsertBrainFirstRunState', () => {
               hasCompletedOnboarding: true,
               theme: 'dark',
               customApiKeyResponses: { approved: ['key-a'] },
-              projects: { [REPO]: { hasTrustDialogAccepted: true } },
+              projects: { [scene.repoPath]: { hasTrustDialogAccepted: true } },
             });
           },
         );
       });
 
       when('[t1] the state is findserted again', () => {
-        then('no write lands — the mtime is unchanged', () => {
+        then('no write lands — the mtime is unchanged', async () => {
           const mtimeBefore = statSync(scene.statePath).mtimeMs;
-          const result = findsertBrainFirstRunState({
+          const result = await findsertBrainFirstRunState({
             brainDir: scene.brainDir,
-            repoPath: REPO,
+            repoPath: scene.repoPath,
             home: scene.home,
           });
           expect(result.status).toEqual('unchanged');
@@ -85,15 +94,15 @@ describe('findsertBrainFirstRunState', () => {
 
   given('[case2] no human state file', () => {
     when('[t0] the state is findserted', () => {
-      then('only the trust key is written', () => {
+      then('only the trust key is written', async () => {
         const scene = genScene({ slug: 'first-run-no-human', human: null });
-        findsertBrainFirstRunState({
+        await findsertBrainFirstRunState({
           brainDir: scene.brainDir,
-          repoPath: REPO,
+          repoPath: scene.repoPath,
           home: scene.home,
         });
         expect(JSON.parse(readFileSync(scene.statePath, 'utf-8'))).toEqual({
-          projects: { [REPO]: { hasTrustDialogAccepted: true } },
+          projects: { [scene.repoPath]: { hasTrustDialogAccepted: true } },
         });
       });
     });
@@ -109,12 +118,13 @@ describe('findsertBrainFirstRunState', () => {
             human: HUMAN_STATE,
           });
           writeFileSync(scene.statePath, '{ not json');
-          const error = await getError(() =>
-            findsertBrainFirstRunState({
-              brainDir: scene.brainDir,
-              repoPath: REPO,
-              home: scene.home,
-            }),
+          const error = await getError(
+            async () =>
+              await findsertBrainFirstRunState({
+                brainDir: scene.brainDir,
+                repoPath: scene.repoPath,
+                home: scene.home,
+              }),
           );
           expect(error).toBeInstanceOf(MalfunctionError);
           expect(error.message).toContain(scene.statePath);
@@ -133,12 +143,13 @@ describe('findsertBrainFirstRunState', () => {
             slug: 'first-run-bad-human',
             human: '{ not json',
           });
-          const error = await getError(() =>
-            findsertBrainFirstRunState({
-              brainDir: scene.brainDir,
-              repoPath: REPO,
-              home: scene.home,
-            }),
+          const error = await getError(
+            async () =>
+              await findsertBrainFirstRunState({
+                brainDir: scene.brainDir,
+                repoPath: scene.repoPath,
+                home: scene.home,
+              }),
           );
           expect(error).toBeInstanceOf(MalfunctionError);
           expect(error.message).toContain(join(scene.home, '.claude.json'));

@@ -1000,7 +1000,7 @@ describe('rhachet upgrade', () => {
           existsSync(
             join(
               scene.repo.path,
-              '.agent/.actors/actor.via.slug=.default/brain/.claude/boot.md',
+              '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
             ),
           ),
         ).toEqual(true);
@@ -1040,7 +1040,7 @@ describe('rhachet upgrade', () => {
         repo.path,
         '.agent',
         '.actors',
-        'actor.via.slug=.default',
+        'actor.via.repo=ambient',
         'brain',
         '.claude',
       );

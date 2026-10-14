@@ -1,3 +1,5 @@
+import { given, then } from 'test-fns';
+
 import {
   type CloneSayPollRead,
   type CloneSayPollStep,
@@ -67,6 +69,50 @@ const TEST_CASES: {
         transcriptRose: true,
         screen: ENQUEUED_SCREEN,
         probeReason: null,
+      },
+    },
+  },
+  {
+    // the /exit case: the clone ended as asked, so no later poll can read more. a wait to the
+    // bound printed one fault per poll and then judged the same close (the dream's ~40 lines)
+    description:
+      'a gone socket is terminal on cycle 0, well before the deadline — it never self-heals',
+    given: {
+      transcriptRose: false,
+      screen: null,
+      probeReason: 'socket-gone',
+      target: 'enqueue',
+      cyclesElapsed: 0,
+      deadlineReached: false,
+    },
+    expect: {
+      done: true,
+      observation: {
+        refusal: null,
+        transcriptRose: false,
+        screen: null,
+        probeReason: 'socket-gone',
+      },
+    },
+  },
+  {
+    description:
+      'a gone socket is terminal for target release too — no read is left to wait for',
+    given: {
+      transcriptRose: false,
+      screen: null,
+      probeReason: 'socket-gone',
+      target: 'release',
+      cyclesElapsed: 2,
+      deadlineReached: false,
+    },
+    expect: {
+      done: true,
+      observation: {
+        refusal: null,
+        transcriptRose: false,
+        screen: null,
+        probeReason: 'socket-gone',
       },
     },
   },
@@ -297,8 +343,12 @@ const TEST_CASES: {
 
 describe('computeCloneSayPollStep', () => {
   TEST_CASES.forEach((thisCase) =>
-    test(thisCase.description, () => {
-      expect(computeCloneSayPollStep(thisCase.given)).toEqual(thisCase.expect);
+    given(thisCase.description, () => {
+      then('it yields the expected poll step', () => {
+        expect(computeCloneSayPollStep(thisCase.given)).toEqual(
+          thisCase.expect,
+        );
+      });
     }),
   );
 });
@@ -316,68 +366,83 @@ describe('computeCloneSayPollStep', () => {
 // verdict-neutrality is why the repair is safe, and these clamp it: the verdict's `released`
 // branch is gated on an empty queue, so a `true` carried through cannot reach it
 describe('computeCloneSayPollStep — the observation states the MEASURED rise, never a hardcoded false', () => {
-  test('the enqueued branch carries a TRUE rise through — the queued-plus-risen pair survives', () => {
-    const step = computeCloneSayPollStep({
-      // the measured shape: the brain wrote the user turn at submit AND still holds the message
-      transcriptRose: true,
-      screen: QUEUED_SCREEN,
-      probeReason: null,
-      target: 'enqueue',
-      cyclesElapsed: 1,
-      deadlineReached: false,
-    });
-    expect(step).toEqual({
-      done: true,
-      observation: {
-        refusal: null,
-        transcriptRose: true,
-        screen: QUEUED_SCREEN,
-        probeReason: null,
+  given('the enqueued branch with a measured TRUE rise', () => {
+    then(
+      'it carries the TRUE rise through — the queued-plus-risen pair survives',
+      () => {
+        const step = computeCloneSayPollStep({
+          // the measured shape: the brain wrote the user turn at submit AND still holds the message
+          transcriptRose: true,
+          screen: QUEUED_SCREEN,
+          probeReason: null,
+          target: 'enqueue',
+          cyclesElapsed: 1,
+          deadlineReached: false,
+        });
+        expect(step).toEqual({
+          done: true,
+          observation: {
+            refusal: null,
+            transcriptRose: true,
+            screen: QUEUED_SCREEN,
+            probeReason: null,
+          },
+        });
       },
-    });
+    );
   });
 
-  test('a FALSE rise stays false — the carry-through invents no rise either', () => {
-    // the other direction of the same clamp: it reports what was read, whichever way
-    const step = computeCloneSayPollStep({
-      transcriptRose: false,
-      screen: QUEUED_SCREEN,
-      probeReason: null,
-      target: 'enqueue',
-      cyclesElapsed: 1,
-      deadlineReached: false,
-    });
-    expect(step).toEqual({
-      done: true,
-      observation: {
-        refusal: null,
-        transcriptRose: false,
-        screen: QUEUED_SCREEN,
-        probeReason: null,
+  given('the enqueued branch with a measured FALSE rise', () => {
+    then(
+      'the FALSE rise stays false — the carry-through invents no rise either',
+      () => {
+        // the other direction of the same clamp: it reports what was read, whichever way
+        const step = computeCloneSayPollStep({
+          transcriptRose: false,
+          screen: QUEUED_SCREEN,
+          probeReason: null,
+          target: 'enqueue',
+          cyclesElapsed: 1,
+          deadlineReached: false,
+        });
+        expect(step).toEqual({
+          done: true,
+          observation: {
+            refusal: null,
+            transcriptRose: false,
+            screen: QUEUED_SCREEN,
+            probeReason: null,
+          },
+        });
       },
-    });
+    );
   });
 
-  test('the DEADLINE residual carries its rise through too — where a reader looks hardest', () => {
-    // reachable with a rise: target `release`, a risen transcript, a non-empty queue. the
-    // released branch is gated by the queue and the enqueued branch by the target, so the read
-    // falls to the residual WITH a measured rise in hand
-    const step = computeCloneSayPollStep({
-      transcriptRose: true,
-      screen: QUEUED_SCREEN,
-      probeReason: null,
-      target: 'release',
-      cyclesElapsed: 4,
-      deadlineReached: true,
-    });
-    expect(step).toEqual({
-      done: true,
-      observation: {
-        refusal: null,
-        transcriptRose: true,
-        screen: QUEUED_SCREEN,
-        probeReason: null,
+  given('the DEADLINE residual with a measured rise', () => {
+    then(
+      'it carries its rise through too — where a reader looks hardest',
+      () => {
+        // reachable with a rise: target `release`, a risen transcript, a non-empty queue. the
+        // released branch is gated by the queue and the enqueued branch by the target, so the read
+        // falls to the residual WITH a measured rise in hand
+        const step = computeCloneSayPollStep({
+          transcriptRose: true,
+          screen: QUEUED_SCREEN,
+          probeReason: null,
+          target: 'release',
+          cyclesElapsed: 4,
+          deadlineReached: true,
+        });
+        expect(step).toEqual({
+          done: true,
+          observation: {
+            refusal: null,
+            transcriptRose: true,
+            screen: QUEUED_SCREEN,
+            probeReason: null,
+          },
+        });
       },
-    });
+    );
   });
 });

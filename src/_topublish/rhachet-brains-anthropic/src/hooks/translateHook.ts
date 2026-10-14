@@ -71,8 +71,13 @@ export const translateHookToClaudeCode = (input: {
     return { event: bootTrigger, entry: buildEntry('*') };
   }
 
-  // for onTool and onStop, use extant logic
+  // for onTool, filter.when decides the claude event: 'after' fires on PostToolUse; the
+  //   default ('before', or absent) fires on PreToolUse
   const matcher = hook.filter?.what ?? '*';
+  if (hook.event === 'onTool' && hook.filter?.when === 'after')
+    return { event: 'PostToolUse', entry: buildEntry(matcher) };
+
+  // for onStop and onTalk, and onTool before, use the event map
   return { event: EVENT_MAP[hook.event], entry: buildEntry(matcher) };
 };
 
@@ -95,6 +100,18 @@ export const translateHookFromClaudeCode = (input: {
       command: h.command,
       timeout: h.timeout ? { milliseconds: h.timeout } : { seconds: 30 },
       filter: { what: event },
+    }));
+  }
+
+  // PostToolUse maps to onTool with filter.when='after' (PreToolUse is the default, 'before')
+  if (event === 'PostToolUse') {
+    return entry.hooks.map((h) => ({
+      author,
+      event: 'onTool' as BrainHookEvent,
+      command: h.command,
+      timeout: h.timeout ? { milliseconds: h.timeout } : { seconds: 30 },
+      // a filter names its `what` always; a declared after-hook carries one
+      filter: { what: entry.matcher, when: 'after' as const },
     }));
   }
 

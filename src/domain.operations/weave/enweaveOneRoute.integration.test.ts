@@ -1,4 +1,4 @@
-import { getError, UnexpectedCodePathError } from 'helpful-errors';
+import { getError, MalfunctionError } from 'helpful-errors';
 import {
   addDuration,
   asIsoTimeStamp,
@@ -50,10 +50,9 @@ describe('enweaveOneRoute', () => {
         invoke: ({ threads }) => {
           const lastStitch =
             threads.main.stitches.slice(-1)[0] ??
-            UnexpectedCodePathError.throw(
-              'no stitches found on main thread yet.',
-              { threads },
-            );
+            MalfunctionError.throw('no stitches found on main thread yet.', {
+              threads,
+            });
           return {
             input: lastStitch.output,
             output: addDuration(isIsoTimeStamp.assure(lastStitch.output), {
@@ -130,21 +129,19 @@ describe('enweaveOneRoute', () => {
   );
 
   type OutputFileWrite = { path: string; content: string };
-  given.skip(
-    'a route with imagine stitchers (closer to real world usecase)',
-    () => {
-      const stitcherCodeFileRead = new StitchStepCompute<
-        GStitcher<Threads<{ artist: Empty }>>
-      >({
-        slug: 'mock:read-stubout',
-        readme: null,
-        form: 'COMPUTE',
-        stitchee: 'artist',
-        invoke: () => {
-          // e.g., execute tooluse:file:read
-          return {
-            input: null,
-            output: `
+  given('a route with imagine stitchers (closer to real world usecase)', () => {
+    const stitcherCodeFileRead = new StitchStepCompute<
+      GStitcher<Threads<{ artist: Empty }>>
+    >({
+      slug: 'mock:read-stubout',
+      readme: null,
+      form: 'COMPUTE',
+      stitchee: 'artist',
+      invoke: () => {
+        // e.g., execute tooluse:file:read
+        return {
+          input: null,
+          output: `
 /**
  * .what = calls the open-meteo weather api
  * .how =
@@ -157,78 +154,77 @@ export const sdkOpenMeteo = {
   }
 }
           `.trim(),
-          };
-        },
-      });
+        };
+      },
+    });
 
-      const stitcherCodeFileWrite = new StitchStepCompute<
-        GStitcher<
-          Threads<{ artist: Empty }>,
-          GStitcher['context'],
-          OutputFileWrite
-        >
-      >({
-        slug: 'mock:write-fillout',
-        readme: null,
-        form: 'COMPUTE',
-        stitchee: 'artist',
-        invoke: ({ threads }) => {
-          // e.g., execute tooluse:file:write
-          return {
-            input: null,
-            output: {
-              path: '@src/...', // mock that we did so
-              content:
-                threads.artist.stitches.slice(-1)[0]?.output ??
-                UnexpectedCodePathError.throw(
-                  'expected artist to have had a stitch by now',
-                ),
-            },
-          };
-        },
-      });
-
-      const route = genStitchRoute({
-        slug: 'code:propose',
-        readme: null,
-        sequence: [
-          stitcherCodeFileRead,
-          stitcherCodeDiffImagine,
-          stitcherCodeFileWrite,
-        ],
-      });
-
-      when('given the threads required', () => {
-        let threads: Threads<{
-          artist: { tools: string[]; facts: string[] };
-          director: Empty;
-        }>;
-
-        beforeAll(async () => {
-          threads = {
-            artist: await getExampleThreadCodeArtist(),
-            director: exampleThreadDirector,
-          };
-        });
-
-        then(
-          'it should successfully execute the stitches as a weave',
-          async () => {
-            const output = await enweaveOneRoute(
-              {
-                stitcher: route,
-                threads,
-              },
-              context,
-            );
-            console.log(output);
-
-            // verify that it used conflict markers and wrote the full output
-            expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
-            expect(output.stitch.output.content).toContain('>>>>>>> MODIFIED');
+    const stitcherCodeFileWrite = new StitchStepCompute<
+      GStitcher<
+        Threads<{ artist: Empty }>,
+        GStitcher['context'],
+        OutputFileWrite
+      >
+    >({
+      slug: 'mock:write-fillout',
+      readme: null,
+      form: 'COMPUTE',
+      stitchee: 'artist',
+      invoke: ({ threads }) => {
+        // e.g., execute tooluse:file:write
+        return {
+          input: null,
+          output: {
+            path: '@src/...', // mock that we did so
+            content:
+              threads.artist.stitches.slice(-1)[0]?.output ??
+              MalfunctionError.throw(
+                'expected artist to have had a stitch by now',
+              ),
           },
-        );
+        };
+      },
+    });
+
+    const route = genStitchRoute({
+      slug: 'code:propose',
+      readme: null,
+      sequence: [
+        stitcherCodeFileRead,
+        stitcherCodeDiffImagine,
+        stitcherCodeFileWrite,
+      ],
+    });
+
+    when('given the threads required', () => {
+      let threads: Threads<{
+        artist: { tools: string[]; facts: string[] };
+        director: Empty;
+      }>;
+
+      beforeAll(async () => {
+        threads = {
+          artist: await getExampleThreadCodeArtist(),
+          director: exampleThreadDirector,
+        };
       });
-    },
-  );
+
+      then(
+        'it should successfully execute the stitches as a weave',
+        async () => {
+          const output = await enweaveOneRoute(
+            {
+              stitcher: route,
+              threads,
+            },
+            context,
+          );
+          console.log(output);
+
+          // verify that it used conflict markers and wrote the full output
+          expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
+          expect(output.stitch.output.content).toContain('>>>>>>> MODIFIED');
+        },
+      );
+    });
+  });
 });

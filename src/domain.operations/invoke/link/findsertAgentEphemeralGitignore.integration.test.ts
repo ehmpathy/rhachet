@@ -8,6 +8,8 @@ import {
   when,
 } from 'test-fns';
 
+import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
+
 import { execFileSync } from 'node:child_process';
 import {
   existsSync,
@@ -22,6 +24,17 @@ import {
   AGENT_EPHEMERAL_GITIGNORE_CONTENT,
   findsertAgentEphemeralGitignore,
 } from './findsertAgentEphemeralGitignore';
+
+/**
+ * .what = the records a bare enroll writes into the repo actor dir, outside its brain dir
+ * .note = claude's own runtime state lands inside `brain/.claude/`, where that dir's own
+ *   allowlist `.gitignore` ignores it (`setRepoActorBrainDir`)
+ */
+const REPO_ACTOR_RUNTIME_FILES = [
+  'actor.json',
+  'roles/enrollment.jsonl',
+  'clones/serial=abc/identity.json',
+];
 
 describe('findsertAgentEphemeralGitignore', () => {
   const testDir = resolve(__dirname, './.temp/findsertAgentEphemeralGitignore');
@@ -62,7 +75,10 @@ describe('findsertAgentEphemeralGitignore', () => {
           expect(content).toEqual(AGENT_ACTORS_GITIGNORE_CONTENT);
           expect(content).toContain('\n/*\n');
           expect(content).toContain('\n!/.gitignore\n');
-          expect(content).toContain('\n!/actor.via.slug=.default/\n');
+          expect(content).toContain('\n!/actor.via.repo=ambient/\n');
+          expect(content).toContain(
+            '\n!/actor.via.repo=ambient/brain/.claude/\n',
+          );
         },
       );
     });
@@ -148,13 +164,26 @@ describe('findsertAgentEphemeralGitignore', () => {
     const scene = useBeforeAll(async () => {
       const repo = genTempDir({ slug: 'ephemeral-gitignore-spare', git: true });
       const actorsDir = join(repo, '.agent', '.actors');
-      const defaultFile = join(actorsDir, 'actor.via.slug=.default', 'keep.md');
+      const defaultFile = join(
+        actorsDir,
+        'actor.via.repo=ambient',
+        'brain',
+        '.claude',
+        'keep.md',
+      );
       const hashFile = join(actorsDir, 'actor.via.hash=abc12345', 'drop.md');
       mkdirSync(join(defaultFile, '..'), { recursive: true });
       mkdirSync(join(hashFile, '..'), { recursive: true });
       writeFileSync(defaultFile, 'keep\n', 'utf8');
       writeFileSync(hashFile, 'drop\n', 'utf8');
       execFileSync('git', ['add', '-A'], { cwd: repo });
+
+      // the repo actor's runtime records, as a bare enroll writes them (never added)
+      for (const file of REPO_ACTOR_RUNTIME_FILES) {
+        const path = join(actorsDir, 'actor.via.repo=ambient', file);
+        mkdirSync(join(path, '..'), { recursive: true });
+        writeFileSync(path, '{}\n', 'utf8');
+      }
       return { repo, actorsDir };
     });
 
@@ -177,11 +206,25 @@ describe('findsertAgentEphemeralGitignore', () => {
         };
       });
 
-      then('the default dir file stays tracked', () => {
+      then('the repo actor brain dir file stays tracked', () => {
         expect(result.tracked).toContain(
-          '.agent/.actors/actor.via.slug=.default/keep.md',
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/keep.md',
         );
       });
+
+      then(
+        'the repo actor runtime records are ignored, as in every actor',
+        () => {
+          for (const file of REPO_ACTOR_RUNTIME_FILES)
+            expect({
+              file,
+              ignored: getOneIsPathIgnoredByGit({
+                repo: scene.repo,
+                path: `.agent/.actors/actor.via.repo=ambient/${file}`,
+              }),
+            }).toEqual({ file, ignored: true });
+        },
+      );
 
       then('the hash actor file is untracked', () => {
         expect(result.tracked).not.toContain(
@@ -192,21 +235,17 @@ describe('findsertAgentEphemeralGitignore', () => {
       then(
         'git check-ignore spares the default dir and ignores the hash dir',
         () => {
-          const isIgnored = (path: string): boolean => {
-            try {
-              execFileSync('git', ['check-ignore', '--no-index', '-q', path], {
-                cwd: scene.repo,
-              });
-              return true;
-            } catch {
-              return false;
-            }
-          };
           expect(
-            isIgnored('.agent/.actors/actor.via.slug=.default/keep.md'),
+            getOneIsPathIgnoredByGit({
+              repo: scene.repo,
+              path: '.agent/.actors/actor.via.repo=ambient/brain/.claude/keep.md',
+            }),
           ).toBe(false);
           expect(
-            isIgnored('.agent/.actors/actor.via.hash=abc12345/drop.md'),
+            getOneIsPathIgnoredByGit({
+              repo: scene.repo,
+              path: '.agent/.actors/actor.via.hash=abc12345/drop.md',
+            }),
           ).toBe(true);
         },
       );

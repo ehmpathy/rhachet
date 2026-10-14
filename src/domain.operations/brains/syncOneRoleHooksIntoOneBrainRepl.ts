@@ -1,4 +1,5 @@
 import { serialize } from 'domain-objects';
+import { toMilliseconds } from 'iso-time';
 
 import { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
@@ -148,6 +149,49 @@ const extractDeclaredHooks = (input: {
 };
 
 /**
+ * .what = whether two hooks hold the same body, with each timeout compared as a duration
+ * .why = a brain stores a timeout in its own unit (claude: milliseconds) and reads it back
+ *   so (`{ milliseconds: 30000 }`), while a role declares it as an iso duration (`PT30S`).
+ *   the same duration in two shapes must compare equal, or every re-sync rewrites the hook
+ */
+const isHookBodyEqual = (input: {
+  left: BrainHook;
+  right: BrainHook;
+}): boolean => asHookComparable(input.left) === asHookComparable(input.right);
+
+/**
+ * .what = a hook serialized with its timeout as milliseconds, and its default filter.when
+ *   dropped
+ * .why = `when: 'before'` is the default an onTool hook fires at, so a brain that stores no
+ *   `when` (claude: PreToolUse) reads the hook back without it. a declared default and an
+ *   absent one are the same hook
+ */
+const asHookComparable = (hook: BrainHook): string => {
+  const { when, ...filterRest } = hook.filter ?? {};
+  const filter =
+    when === 'before' ? filterRest : { ...filterRest, ...(when && { when }) };
+  const hasFilter = Object.keys(filter).length > 0;
+  return serialize({
+    ...hook,
+    timeout: asTimeoutComparable({ timeout: hook.timeout }),
+    filter: hasFilter ? filter : undefined,
+  });
+};
+
+/**
+ * .what = a timeout as milliseconds when it is an iso duration, else as declared
+ * .why = the diff only decides whether a hook is rewritten; whether a timeout is valid is
+ *   the brain adapter's call. a role that declares a non-iso string (`'10s'`) keeps the
+ *   raw compare it had before, rather than a throw from the diff for every hook it holds
+ */
+const asTimeoutComparable = (input: {
+  timeout: BrainHook['timeout'];
+}): unknown =>
+  typeof input.timeout === 'string' && !input.timeout.startsWith('P')
+    ? input.timeout
+    : toMilliseconds(input.timeout);
+
+/**
  * .what = computes diff between declared and found hooks
  * .why = enables declarative sync semantics
  */
@@ -179,7 +223,7 @@ const computeHookDiff = (input: {
     if (!hookFound) {
       // not found → add
       toAdd.push(declaredHook);
-    } else if (serialize(hookFound) !== serialize(declaredHook)) {
+    } else if (!isHookBodyEqual({ left: hookFound, right: declaredHook })) {
       // found but different → update
       toUpdate.push(declaredHook);
     } else {
