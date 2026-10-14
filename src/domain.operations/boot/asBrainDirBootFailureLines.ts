@@ -24,7 +24,7 @@ export const asBrainDirBootFailureLines = (input: {
   // its `<glyph> <ClassName>:`, and an unclassified cause gets its bare class so it stays findable
   const isHelpful = cause instanceof HelpfulError;
   const message = asErrorClassText({ error: cause });
-  const headline = `✗ boot.md (${label}) not written: ${message}`;
+  const headline = `✗ ${label}/boot.md not written: ${message}`;
 
   // every metadata field the throw site supplied, the hint last so the fix reads final
   const metadata: Record<string, unknown> = isHelpful

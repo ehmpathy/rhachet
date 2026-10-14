@@ -1,3 +1,5 @@
+import { given, then } from 'test-fns';
+
 import {
   type CloneSayRetryAdvice,
   computeCloneSayRetryAdvice,
@@ -43,28 +45,39 @@ const TEST_CASES: {
     given: { verdict: 'unreadable' },
     expect: 'verify-never-blind',
   },
+  {
+    description:
+      'exited → no-resend (the clone ended as asked; no one is left to re-send to)',
+    given: { verdict: 'exited' },
+    expect: 'no-resend',
+  },
 ];
 
 describe('computeCloneSayRetryAdvice', () => {
   TEST_CASES.forEach((thisCase) =>
-    test(thisCase.description, () => {
-      expect(computeCloneSayRetryAdvice(thisCase.given)).toEqual(
-        thisCase.expect,
-      );
+    given(thisCase.description, () => {
+      then('it yields the expected retry advice', () => {
+        expect(computeCloneSayRetryAdvice(thisCase.given)).toEqual(
+          thisCase.expect,
+        );
+      });
     }),
   );
 
-  test('every one of the six verdicts is mapped — the contract is total', () => {
-    const ALL_VERDICTS: CloneSayVerdict[] = [
-      'released',
-      'enqueued',
-      'buffered',
-      'withheld',
-      'absent',
-      'unreadable',
-    ];
-    expect(TEST_CASES.map((thisCase) => thisCase.given.verdict).sort()).toEqual(
-      [...ALL_VERDICTS].sort(),
-    );
+  given('the full set of verdicts', () => {
+    then('every verdict is mapped — the contract is total', () => {
+      const ALL_VERDICTS: CloneSayVerdict[] = [
+        'released',
+        'enqueued',
+        'buffered',
+        'withheld',
+        'absent',
+        'unreadable',
+        'exited',
+      ];
+      expect(
+        TEST_CASES.map((thisCase) => thisCase.given.verdict).sort(),
+      ).toEqual([...ALL_VERDICTS].sort());
+    });
   });
 });

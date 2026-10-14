@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import { createConnection, type Socket } from 'node:net';
+import { CloneSocketGoneError } from './CloneSocketGoneError';
 import { CLONE_CONNECT_TIMEOUT_MS } from './constants';
 
 /**
@@ -31,7 +32,11 @@ export const connectToClone = (input: {
       fail(
         new ConstraintError(
           'clone socket did not answer in time — the clone may be dead',
-          { socketPath: input.socketPath, timeoutMs },
+          {
+            socketPath: input.socketPath,
+            timeoutMs,
+            hint: 'check `rhx clone list`; a dead clone cannot be reached, so enroll a fresh one (`rhx enroll`)',
+          },
         ),
       );
     });
@@ -41,16 +46,19 @@ export const connectToClone = (input: {
       done(socket);
     });
 
-    socket.once('error', (error) =>
+    socket.once('error', (error) => {
+      // an absent path or a refused connect means no listener: the clone is gone, which a
+      // caller may need to tell apart from any other connect fault (CloneSocketGoneError)
+      const code = (error as NodeJS.ErrnoException).code;
+      const isGone = code === 'ENOENT' || code === 'ECONNREFUSED';
+      const ErrorClass = isGone ? CloneSocketGoneError : ConstraintError;
       fail(
-        new ConstraintError(
-          'no live clone at this socket — it refused or is gone',
-          {
-            socketPath: input.socketPath,
-            cause: error instanceof Error ? error : undefined,
-          },
-        ),
-      ),
-    );
+        new ErrorClass('no live clone at this socket — it refused or is gone', {
+          socketPath: input.socketPath,
+          hint: 'check `rhx clone list`; a dead clone cannot be reached, so enroll a fresh one (`rhx enroll`)',
+          cause: error instanceof Error ? error : undefined,
+        }),
+      );
+    });
   });
 };

@@ -17,7 +17,7 @@ import { genAtomicSymlinkClaim } from './genAtomicSymlinkClaim';
  *     atomic exclusive symlink: the first writer wins, a second writer sees the
  *     link already exists. this is the concurrent-bake winner-election, done by
  *     the filesystem, not a lock we could leak
- *   - the link TARGET names the owner clone (`actor.via.hash=<hash>/clones/
+ *   - the link TARGET names the owner clone (`actor.via.<exid>/clones/
  *     serial=<serial>`), so a reader resolves slug → clone, and a re-claim can
  *     tell OUR actor's stale link from a DIFFERENT actor's live one
  *
@@ -29,7 +29,7 @@ import { genAtomicSymlinkClaim } from './genAtomicSymlinkClaim';
 export const setCloneSlugIndex = (input: {
   actorsRoot: string;
   slug: string;
-  actorHash: string;
+  actorExid: string;
   serial: string;
 }): void => {
   const slugsDir = getActorsIndexDir({
@@ -41,7 +41,7 @@ export const setCloneSlugIndex = (input: {
   const linkPath = join(slugsDir, input.slug);
   const target = join(
     '..',
-    asActorOndiskDirName({ hash: input.actorHash }),
+    asActorOndiskDirName({ exid: input.actorExid }),
     'clones',
     asCloneDirName({ serial: input.serial }),
   );
@@ -51,10 +51,10 @@ export const setCloneSlugIndex = (input: {
   // same `.slugs/`/`.exids/`/quarantine claim uses — never a hand-rolled try/catch
   if (genAtomicSymlinkClaim({ linkPath, target })) return;
 
-  // the slug is already held — read WHO holds it (the actor hash in its target)
+  // the slug is already held — read WHO holds it (the actor exid in its target)
   const heldTarget = readlinkSync(linkPath);
   const heldByThisActor = heldTarget.includes(
-    `${asActorOndiskDirName({ hash: input.actorHash })}/`,
+    `${asActorOndiskDirName({ exid: input.actorExid })}/`,
   );
 
   // a DIFFERENT actor holds the global-unique slug — a hard collision

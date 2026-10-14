@@ -3,11 +3,13 @@ import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { asCliErrorFrameFromOutput } from '@/blackbox/.test/infra/asCliErrorReadouts';
 import { asSummaryBlock } from '@/blackbox/.test/infra/asSummaryBlock';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { getOneFixturePrepareRhachet } from '@/blackbox/.test/infra/getOneFixturePrepareRhachet';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import {
-  isRoleLinked,
+  getOneIsRoleLinked,
   setupRoleFixtureRepo,
 } from '@/blackbox/.test/infra/roleFixtureRepo';
+import { setFixturePrepareRhachet } from '@/blackbox/.test/infra/setFixturePrepareRhachet';
 
 describe('rhx', () => {
   given('[case1] repo with skills', () => {
@@ -317,7 +319,7 @@ describe('rhx', () => {
 
       then('architect is linked (routed to init, not the skill proxy)', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
       });
 
       then('--keys was injected (keyrack init ran)', () => {
@@ -352,7 +354,7 @@ describe('rhx', () => {
 
       then('architect is linked', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
       });
 
       then('--keys was NOT injected (no keyrack init)', () => {
@@ -388,15 +390,55 @@ describe('rhx', () => {
 
       then('ergonomist is removed, architect untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
           false,
         );
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
       });
 
       then('the alias remove-path summary matches snapshot', () => {
         // the remove-sigil path also routes through the alias (+keys +hooks); snap
         // its deterministic summary so the proxy's remove output is drift-locked
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t2.1] `rhx init -ergonomist` with a prepare:rhachet replay (🔴 inventory case=1)', () => {
+      const testDir = genTempDir({ slug: 'rhx-init-alias-remove-prepare' });
+      beforeAll(() => {
+        setupRoleFixtureRepo({ dir: testDir });
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'architect', 'ergonomist'],
+          cwd: testDir,
+        });
+        setFixturePrepareRhachet({
+          dir: testDir,
+          command: 'rhachet init --hooks --roles architect ergonomist',
+        });
+      });
+
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['init', '-ergonomist'],
+          cwd: testDir,
+        }),
+      );
+
+      then('ergonomist leaves the replay; architect and --hooks stay', () => {
+        // the critical clamp, via the bare-sigil alias a human actually types
+        expect(run.status).toEqual(0);
+        expect(getOneFixturePrepareRhachet({ dir: testDir })).toEqual(
+          'rhachet init --hooks --roles architect',
+        );
+      });
+
+      then('the alias remove-path summary, with its replay row, matches snapshot', () => {
+        // the `↻ [updated] scripts["prepare:rhachet"]` row is a new output variant;
+        //   the snapshot locks its glyph, indent and order via the alias a human types
+        expect(run.stdout).toContain('↻ [updated] scripts["prepare:rhachet"]');
         expect(
           asSummaryBlock({ stdout: run.stdout, dir: testDir }),
         ).toMatchSnapshot();
@@ -423,8 +465,8 @@ describe('rhx', () => {
 
       then('architect added, ergonomist removed', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
           false,
         );
       });
@@ -453,8 +495,8 @@ describe('rhx', () => {
 
       then('both roles are linked (absolute set via the alias)', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'ergonomist' })).toEqual(
           true,
         );
       });

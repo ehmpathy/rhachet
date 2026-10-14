@@ -338,23 +338,23 @@ describe('invokeRolesLink (integration)', () => {
             );
 
             // the default corpus holds the linked role's briefs
-            const defaultBrainDirRel =
-              '.agent/.actors/actor.via.slug=.default/brain/.claude';
+            const repoActorBrainDirRel =
+              '.agent/.actors/actor.via.repo=ambient/brain/.claude';
             const bootMd = readFileSync(
-              join(testDir, defaultBrainDirRel, 'boot.md'),
+              join(testDir, repoActorBrainDirRel, 'boot.md'),
               'utf-8',
             );
             expect(bootMd).toContain('This is test brief 1');
 
             // <repo>/.claude reaches it via a relative link
             expect(readlinkSync(join(testDir, '.claude'))).toEqual(
-              defaultBrainDirRel,
+              repoActorBrainDirRel,
             );
 
             // one brain dir tree for the default, and the enroll hint
             const lines = logSpy.mock.calls.map((call) => String(call[0]));
             expect(
-              lines.filter((line) => line === '🧠 brain dir (default)'),
+              lines.filter((line) => line === '🧠 brain://repo=ambient'),
             ).toHaveLength(1);
             // the corpus is named as a ROW of that tree, never as a bare line wedged
             //   between two adjacent treestructs (`rule.require.treestruct-output`)

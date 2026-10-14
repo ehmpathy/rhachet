@@ -22,9 +22,9 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    ├─ org: ehmpathy
    └─ created .agent/keyrack.yml
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -33,7 +33,30 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
 
 🪝 apply hooks to brains...
 
-✨ hooks: no changes needed
+✨ hooks
+   └─ no changes needed
+
+"
+`;
+
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2.1] \`rhx init -ergonomist\` with a prepare:rhachet replay (🔴 inventory case=1) then: the alias remove-path summary, with its replay row, matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - ehmpathy/ergonomist
+   └─ untouched (1)
+
+
+📦 persist prepare entries...
+   ↻ [updated] scripts["prepare:rhachet"]
+      └─ rhachet init --hooks --roles architect
+
+🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 "
 `;
@@ -49,7 +72,8 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -erg
 
 🪝 apply hooks to brains...
 
-✨ hooks: no changes needed
+✨ hooks
+   └─ no changes needed
 
 "
 `;

@@ -5,7 +5,15 @@ import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUs
 import { Role } from '@src/domain.objects/Role';
 import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { resolve } from 'node:path';
 import { invokeRolesInit } from './invokeRolesInit';
 
@@ -13,14 +21,20 @@ describe('invokeRolesInit (integration)', () => {
   given('a CLI program with invokeRolesInit registered', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesInit');
     const originalCwd = process.cwd();
+    const originalHome = process.env.HOME;
 
     beforeAll(() => {
       rmSync(testDir, { recursive: true, force: true });
       mkdirSync(testDir, { recursive: true });
+      // a git marker + its own home, so the layout step lays out this dir, never the host's
+      mkdirSync(resolve(testDir, '.git'), { recursive: true });
+      mkdirSync(resolve(testDir, 'home'), { recursive: true });
+      process.env.HOME = resolve(testDir, 'home');
       process.chdir(testDir);
     });
 
     afterAll(() => {
+      process.env.HOME = originalHome;
       process.chdir(originalCwd);
     });
 
@@ -179,14 +193,20 @@ describe('invokeRolesInit (integration)', () => {
   given('multiple registries have the same role', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesInit-multi');
     const originalCwd = process.cwd();
+    const originalHome = process.env.HOME;
 
     beforeAll(() => {
       rmSync(testDir, { recursive: true, force: true });
       mkdirSync(testDir, { recursive: true });
+      // a git marker + its own home, so the layout step lays out this dir, never the host's
+      mkdirSync(resolve(testDir, '.git'), { recursive: true });
+      mkdirSync(resolve(testDir, 'home'), { recursive: true });
+      process.env.HOME = resolve(testDir, 'home');
       process.chdir(testDir);
     });
 
     afterAll(() => {
+      process.env.HOME = originalHome;
       process.chdir(originalCwd);
     });
 
@@ -243,6 +263,99 @@ describe('invokeRolesInit (integration)', () => {
         );
 
         expect(error?.message).toContain('role "mechanic" is ambiguous');
+      });
+    });
+  });
+  given('[case3] a pre-layout repo with a legacy repo actor dir', () => {
+    // .note = inventory.of=requirements.case=8: a role init meets the split layout in place
+    const testDir = resolve(__dirname, './.temp/invokeRolesInit-layout');
+    const originalCwd = process.cwd();
+    const originalHome = process.env.HOME;
+    const legacyBrainDir = resolve(
+      testDir,
+      '.agent/.actors/actor.via.slug=.default/brain/.claude',
+    );
+    const ambientBrainDir = resolve(
+      testDir,
+      '.agent/.actors/actor.via.repo=ambient/brain/.claude',
+    );
+
+    beforeAll(() => {
+      rmSync(testDir, { recursive: true, force: true });
+      mkdirSync(resolve(testDir, '.git'), { recursive: true });
+      mkdirSync(legacyBrainDir, { recursive: true });
+      writeFileSync(resolve(legacyBrainDir, 'AGENTS.md'), '@boot.md\n');
+      mkdirSync(resolve(testDir, 'home/.claude'), { recursive: true });
+      writeFileSync(resolve(testDir, 'home/.claude/settings.json'), '{}\n');
+      process.env.HOME = resolve(testDir, 'home');
+      process.chdir(testDir);
+    });
+
+    afterAll(() => {
+      process.env.HOME = originalHome;
+      process.chdir(originalCwd);
+    });
+
+    // an init that writes settings.of.repo.json by name, and fails if it is absent
+    const mockRoleWritesRepoSettings = new Role({
+      slug: 'mechanic',
+      name: 'Mechanic',
+      purpose: 'writes its allows into settings.of.repo.json',
+      readme: { uri: '.test/readme.md' },
+      traits: [],
+      skills: { dirs: [], refs: [] },
+      briefs: { dirs: [] },
+      inits: {
+        exec: [
+          {
+            cmd: `test -f .claude/settings.of.repo.json && echo '{"permissions":{"allow":["Bash(npm run test:*)"]}}' > .claude/settings.of.repo.json`,
+          },
+        ],
+      },
+    });
+    const rolesCommand = new Command('roles');
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    invokeRolesInit(
+      { command: rolesCommand },
+      genMockContextConfigOfUsage({
+        isExplicit: true,
+        registries: [
+          new RoleRegistry({
+            slug: 'test',
+            readme: { uri: '.test/readme.md' },
+            roles: [mockRoleWritesRepoSettings],
+          }),
+        ],
+      }),
+    );
+
+    when('[t0] "roles init --role mechanic" runs', () => {
+      then(
+        'the init finds settings.of.repo.json in place and its write holds',
+        async () => {
+          await rolesCommand.parseAsync(['init', '--role', 'mechanic'], {
+            from: 'user',
+          });
+          expect(existsSync(legacyBrainDir)).toBe(false);
+          expect(lstatSync(resolve(testDir, '.claude')).isSymbolicLink()).toBe(
+            true,
+          );
+          const repoSettings = JSON.parse(
+            readFileSync(
+              resolve(ambientBrainDir, 'settings.of.repo.json'),
+              'utf-8',
+            ),
+          );
+          expect(repoSettings.permissions.allow).toEqual([
+            'Bash(npm run test:*)',
+          ]);
+        },
+      );
+
+      then('settings.json is the grove link, never a real file', () => {
+        const pathClaude = resolve(ambientBrainDir, 'settings.json');
+        expect(lstatSync(pathClaude).isSymbolicLink()).toBe(true);
+        expect(readlinkSync(pathClaude)).toEqual('settings.of.grove.json');
       });
     });
   });

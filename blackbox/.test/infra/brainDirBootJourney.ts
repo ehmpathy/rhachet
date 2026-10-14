@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { MalfunctionError } from 'helpful-errors';
@@ -6,7 +6,7 @@ import { MalfunctionError } from 'helpful-errors';
 import { BRAIN_CLI_SPINUP_ENV_DEFAULTS } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
 
 import { asLegibleScreen } from './asLegibleScreen';
-import { invokeRhachetCliBinary } from './invokeRhachetCliBinary';
+import { invokeRhachetCliBinaryAsync } from './invokeRhachetCliBinary';
 
 /**
  * .what = the sentinel token a fixture file carries, unique per run
@@ -96,7 +96,7 @@ export const ROLES_BOOT_COMMAND_WAXER =
  *   - native roles shaper, glasser, sander under `.agent/repo=.this/`
  *   - a package `rhachet-roles-surfshop` in its own `node_modules`, which declares role waxer
  *     (a role boot hook beside an adhoc hook) and role lifeguard (linked only at [t1.3])
- *   - a `.claude/settings.json` with the prior role boot hook of waxer and a human hook
+ *   - a `.claude/settings.of.repo.json` with the prior role boot hook of waxer and a human hook
  */
 export const setupBrainDirBootFixtureRepo = (input: {
   dir: string;
@@ -229,9 +229,11 @@ module.exports = { getRoleRegistry };
     content: `module.exports = require(${JSON.stringify(ADAPTER_BUILT_PATH)});\n`,
   });
 
-  // settings.json as a prior rhachet left it: waxer's role boot hook, and a human's hook
+  // settings.of.repo.json as a prior rhachet left it: waxer's role boot hook, and a human's hook.
+  //   it is the repo's own file, so the migration moves it whole; a real settings.json would
+  //   be replaced by the grove arrow, its content never carried
   writeFileDeep({
-    path: join(input.dir, '.claude', 'settings.json'),
+    path: join(input.dir, '.claude', 'settings.of.repo.json'),
     content: `${JSON.stringify(
       {
         hooks: {
@@ -355,6 +357,8 @@ export const SENTINEL_PROMPT =
 /**
  * .what = run a bare `claude -p` in a dir and return the sentinels it quotes
  * .why = the unenrolled path: the brain reads `<repo>/.claude` from the cwd, never an actor dir
+ * .note = async, so a live clone's pty beside it keeps its drain while `claude -p` runs
+ *   (rule.forbid.sync-invoke-while-a-pty-is-live)
  */
 export const askClaudePrintForSentinels = (input: {
   dir: string;
@@ -363,40 +367,68 @@ export const askClaudePrintForSentinels = (input: {
   args?: string[];
   /** the child is killed past this bound, so a slow launch fails at its budget */
   timeoutMs?: number;
-}): { status: number | null; stdout: string; stderr: string; sentinels: string[] } => {
-  const result = spawnSync(
-    input.binPath,
-    // .note = the prompt rides stdin, since `--tools` is variadic and would swallow a
-    //   positional prompt
-    ['-p', '--model', 'haiku', ...(input.args ?? []), '--tools', ''],
-    {
-      cwd: input.dir,
-      input: SENTINEL_PROMPT,
-      // merge over process.env; an undefined value unsets an inherited var. the spinup
-      //   defaults cut network work at launch and leave the memory-file load untouched
-      env: Object.fromEntries(
-        Object.entries({
-          ...BRAIN_CLI_SPINUP_ENV_DEFAULTS,
-          ...process.env,
-          ...input.env,
-        }).filter(
-          (entry): entry is [string, string] => entry[1] !== undefined,
+}): Promise<{
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  sentinels: string[];
+}> =>
+  new Promise((done, fail) => {
+    const child = spawn(
+      input.binPath,
+      // .note = the prompt rides stdin, since `--tools` is variadic and would swallow a
+      //   positional prompt
+      ['-p', '--model', 'haiku', ...(input.args ?? []), '--tools', ''],
+      {
+        cwd: input.dir,
+        // merge over process.env; an undefined value unsets an inherited var. the spinup
+        //   defaults cut network work at launch and leave the memory-file load untouched
+        env: Object.fromEntries(
+          Object.entries({
+            ...BRAIN_CLI_SPINUP_ENV_DEFAULTS,
+            ...process.env,
+            ...input.env,
+          }).filter(
+            (entry): entry is [string, string] => entry[1] !== undefined,
+          ),
         ),
-      ),
-      stdio: 'pipe',
-      // a healthy ask returns in seconds; a hang fails fast and shows its stderr
-      timeout: input.timeoutMs ?? 90_000,
-      killSignal: 'SIGKILL',
-    },
-  );
-  const stdout = result.stdout?.toString() ?? '';
-  return {
-    status: result.status,
-    stdout,
-    stderr: result.stderr?.toString() ?? '',
-    sentinels: asSentinelsFound({ text: stdout }),
-  };
-};
+        stdio: 'pipe',
+      },
+    );
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+
+    // a healthy ask returns in seconds; a hang is killed at its bound and shows its stderr
+    const killer = setTimeout(
+      () => child.kill('SIGKILL'),
+      input.timeoutMs ?? 90_000,
+    );
+    child.once('error', (error) => {
+      clearTimeout(killer);
+      fail(error);
+    });
+    child.once('close', (status) => {
+      clearTimeout(killer);
+      const stdout = Buffer.concat(stdoutChunks).toString();
+      done({
+        status,
+        stdout,
+        stderr: Buffer.concat(stderrChunks).toString(),
+        sentinels: asSentinelsFound({ text: stdout }),
+      });
+    });
+    // a write to a child that failed to launch or already exited emits `error` on stdin
+    //   (EPIPE, ERR_STREAM_DESTROYED); unheard, that is an unhandled error in the test
+    //   process. it fails this ask loud instead — and after a settled `close`, a late
+    //   `fail` is a no-op
+    child.stdin.once('error', (error) => {
+      clearTimeout(killer);
+      fail(error);
+    });
+    child.stdin.end(SENTINEL_PROMPT);
+  });
 
 /**
  * .what = re-read the replies until two reads one second apart match, or the deadline
@@ -405,11 +437,11 @@ export const askClaudePrintForSentinels = (input: {
  */
 const waitForRepliesSettled = async (input: {
   repliesFirst: string[];
-  getReplies: () => string[];
+  getReplies: () => Promise<string[]>;
   deadline: number;
 }): Promise<string[]> => {
   await new Promise((wake) => setTimeout(wake, 1000));
-  const repliesNext = input.getReplies();
+  const repliesNext = await input.getReplies();
   const isSettled =
     repliesNext.join('\u0000') === input.repliesFirst.join('\u0000');
   if (isSettled || Date.now() >= input.deadline) return repliesNext;
@@ -420,6 +452,8 @@ const waitForRepliesSettled = async (input: {
  * .what = say the sentinel question to a live clone and return the sentinels in its reply
  * .why = only the clone's OWN reply counts — `get --output json` directions each message,
  *   so the prompt echo never satisfies the check
+ * .note = every cli call here is the async twin: the caller holds the clone's live pty, and a
+ *   sync call would starve it (rule.forbid.sync-invoke-while-a-pty-is-live)
  */
 export const askCloneForSentinels = async (input: {
   address: string;
@@ -431,9 +465,11 @@ export const askCloneForSentinels = async (input: {
   /** the clone's pty mirror, so a failure shows the brain's own screen */
   getScreen: () => string;
 }): Promise<{ replies: string[]; sentinels: string[] }> => {
+  type Invoked = Awaited<ReturnType<typeof invokeRhachetCliBinaryAsync>>;
+
   // one read of the transcript; a failed read surfaces its own output
-  const getReplies = (): { replies: string[]; got: ReturnType<typeof invokeRhachetCliBinary> } => {
-    const got = invokeRhachetCliBinary({
+  const getReplies = async (): Promise<{ replies: string[]; got: Invoked }> => {
+    const got = await invokeRhachetCliBinaryAsync({
       args: ['clone', 'get', input.address, '--output', 'json', '--tail', 'all'],
       cwd: input.dir,
       env: input.env,
@@ -450,14 +486,10 @@ export const askCloneForSentinels = async (input: {
   };
 
   // the reply count before the ask, so only a new reply counts
-  const countPrior = getReplies().replies.length;
+  const countPrior = (await getReplies()).replies.length;
 
   // the failure, with the say, the last read, and the brain's own screen attached
-  const asNoReplyError = (
-    said: ReturnType<typeof invokeRhachetCliBinary>,
-    lastGet: ReturnType<typeof invokeRhachetCliBinary>,
-    reason: string,
-  ) =>
+  const asNoReplyError = (said: Invoked, lastGet: Invoked, reason: string) =>
     new MalfunctionError(`the clone never replied to the sentinel ask: ${reason}`, {
       address: input.address,
       say: { status: said.status, stdout: said.stdout, stderr: said.stderr },
@@ -469,23 +501,24 @@ export const askCloneForSentinels = async (input: {
 
   // one dispatch; `say` self-verifies the submit against the transcript, so a refusal
   //   is final and fails fast, never a silent re-send
-  const said = invokeRhachetCliBinary({
+  const said = await invokeRhachetCliBinaryAsync({
     args: ['clone', 'say', input.address, '--what', input.what ?? SENTINEL_PROMPT],
     cwd: input.dir,
     env: input.env,
     logOnError: false,
   });
-  if (said.status !== 0) throw asNoReplyError(said, getReplies().got, 'say refused');
+  if (said.status !== 0)
+    throw asNoReplyError(said, (await getReplies()).got, 'say refused');
 
   // poll the transcript for the clone's own reply
   const deadline = Date.now() + (input.timeoutMs ?? 45_000);
   while (Date.now() < deadline) {
-    const read = getReplies();
+    const read = await getReplies();
     if (read.replies.length > countPrior) {
       // the turn is done once a read one second later shows no new reply text
       const settled = await waitForRepliesSettled({
         repliesFirst: read.replies,
-        getReplies: () => getReplies().replies,
+        getReplies: async () => (await getReplies()).replies,
         deadline,
       });
       return {
@@ -495,5 +528,5 @@ export const askCloneForSentinels = async (input: {
     }
     await new Promise((wake) => setTimeout(wake, 500));
   }
-  throw asNoReplyError(said, getReplies().got, 'no reply before the deadline');
+  throw asNoReplyError(said, (await getReplies()).got, 'no reply before the deadline');
 };

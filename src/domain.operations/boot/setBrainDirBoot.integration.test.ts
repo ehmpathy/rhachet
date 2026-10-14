@@ -1,37 +1,23 @@
 import { ConstraintError } from 'helpful-errors';
-import { genTempDir, getError, given, then, when } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
+
+import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
-
-/**
- * .what = a repo with two synthetic roles, `.this/any` and `fixture/zeta`
- */
-const genRepoWithRoles = (input: { slug: string }): string => {
-  const repoPath = genTempDir({ slug: input.slug });
-  const roles = [
-    { repo: '.this', role: 'any', brief: 'any brief body' },
-    { repo: 'fixture', role: 'zeta', brief: 'zeta brief body' },
-  ];
-  for (const role of roles) {
-    const roleDir = join(
-      repoPath,
-      '.agent',
-      `repo=${role.repo}`,
-      `role=${role.role}`,
-    );
-    mkdirSync(join(roleDir, 'briefs'), { recursive: true });
-    writeFileSync(join(roleDir, 'readme.md'), `${role.role} readme`);
-    writeFileSync(join(roleDir, 'briefs', 'core.md'), role.brief);
-  }
-  return repoPath;
-};
 
 const ROLES = [
   { repo: '.this', role: 'any' },
   { repo: 'fixture', role: 'zeta' },
 ];
+
+/**
+ * .what = a repo with two synthetic roles, `.this/any` and `fixture/zeta`
+ */
+const genRepoWithRoles = (input: { slug: string }): string =>
+  genSampleRepoWithRoles({ slug: input.slug, roles: ROLES });
 
 describe('setBrainDirBoot', () => {
   given('[case1] a repo with two linked roles', () => {
@@ -46,7 +32,7 @@ describe('setBrainDirBoot', () => {
             brainDir,
             roles: ROLES,
             repoPath,
-            scope: { kind: 'default' },
+            scope: { kind: 'repo' },
           });
 
           const bootMd = readFileSync(render.bootMdPath, 'utf8');
@@ -65,6 +51,31 @@ describe('setBrainDirBoot', () => {
           expect(bootMd).toMatchSnapshot();
         },
       );
+
+      then(
+        'boot.md opens with the rhachet intro, ahead of every role',
+        async () => {
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t0b' });
+          const render = await setBrainDirBoot({
+            brainDir: join(repoPath, 'brain', '.claude'),
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'actor', actorExid: 'abc12345' },
+          });
+
+          // the intro tells a clone `rhx list` and `rhx <skill> --help` exist; a clone must
+          //   read it first, in every actor's brain dir alike
+          const bootMd = readFileSync(render.bootMdPath, 'utf8');
+          const intro = getOneRhachetBootIntro().body;
+          expect(bootMd.startsWith(intro)).toEqual(true);
+          expect(bootMd.indexOf(intro)).toBeLessThan(
+            bootMd.indexOf('any brief body'),
+          );
+          expect(bootMd.indexOf(intro)).toBeLessThan(
+            bootMd.indexOf('zeta brief body'),
+          );
+        },
+      );
     });
 
     when('[t1] two brain dirs are rendered, roles in opposite order', () => {
@@ -75,13 +86,13 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'a'),
           roles: ROLES,
           repoPath,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
         const renderB = await setBrainDirBoot({
           brainDir: join(repoPath, 'b'),
           roles: [...ROLES].reverse(),
           repoPath,
-          scope: { kind: 'actor', actorHash: 'abc12345' },
+          scope: { kind: 'actor', actorExid: 'abc12345' },
         });
 
         expect(readFileSync(renderB.bootMdPath, 'utf8')).toEqual(
@@ -98,7 +109,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
         const bytesFirst = readFileSync(first.bootMdPath, 'utf8');
 
@@ -106,7 +117,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
 
         expect(readFileSync(second.bootMdPath, 'utf8')).toEqual(bytesFirst);
@@ -125,13 +136,13 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPathA, 'brain'),
           roles: ROLES,
           repoPath: repoPathA,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
         const renderB = await setBrainDirBoot({
           brainDir: join(repoPathB, 'brain'),
           roles: ROLES,
           repoPath: repoPathB,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
 
         expect(readFileSync(renderB.bootMdPath, 'utf8')).toEqual(
@@ -154,7 +165,7 @@ describe('setBrainDirBoot', () => {
               brainDir,
               roles: [...ROLES, { repo: 'fixture', role: 'absent' }],
               repoPath,
-              scope: { kind: 'default' },
+              scope: { kind: 'repo' },
             }),
           );
 
@@ -181,7 +192,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'default' },
+          scope: { kind: 'repo' },
         });
 
         expect(render.agentsMdReset).toEqual(true);
@@ -202,7 +213,7 @@ describe('setBrainDirBoot', () => {
             brainDir,
             roles: ROLES,
             repoPath,
-            scope: { kind: 'default' },
+            scope: { kind: 'repo' },
           }),
         );
 

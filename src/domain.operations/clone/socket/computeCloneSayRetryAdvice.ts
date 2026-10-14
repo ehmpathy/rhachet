@@ -31,9 +31,11 @@ export const computeCloneSayRetryAdvice = (input: {
   verdict: CloneSayVerdict;
 }): CloneSayRetryAdvice => {
   switch (input.verdict) {
-    // the brain has it (released) or holds it (enqueued) — a re-send duplicates the turn
+    // the brain has it (released) or holds it (enqueued) — a re-send duplicates the turn. an
+    // asked exit (exited) is done: the clone ended, so there is no one left to re-send to
     case 'released':
     case 'enqueued':
+    case 'exited':
       return 'no-resend';
 
     // the pre-check refused — no bytes reached the pty, so a re-send cannot duplicate

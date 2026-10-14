@@ -1,6 +1,7 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
+import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoAmbient';
 
 import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
 import { getAllClonesGroupedByActor } from './getAllClonesGroupedByActor';
@@ -9,22 +10,25 @@ describe('getAllClonesGroupedByActor.integration', () => {
   given('[case1] one actor with a clone, and one actor with no clones', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genTempDir({ slug: 'grouped' });
-      const withClone = genSampleCloneOndisk({
+      const withClone = await genSampleCloneOndisk({
         repoPath,
         roles: ['mechanic'],
         serial: 'ser-1',
         slug: 'driver',
       });
       // a second actor (distinct roleset) with NO clones
-      const empty = findsertActorOndisk({
-        repoPath,
-        brain: 'claude',
-        roles: ['architect'],
-        delta: null,
-        reason: null,
-        logEnrollment: true,
-      });
-      return { repoPath, withClone, emptyHash: empty.hash };
+      const empty = await findsertActorOndisk(
+        {
+          repoPath,
+          brain: 'claude',
+          roles: ['architect'],
+          delta: null,
+          reason: null,
+          logEnrollment: true,
+        },
+        genSampleContextNoAmbient(),
+      );
+      return { repoPath, withClone, emptyExid: empty.exid };
     });
 
     when('[t0] the clones are grouped by actor', () => {
@@ -36,14 +40,14 @@ describe('getAllClonesGroupedByActor.integration', () => {
       then('the actor with a clone carries it under its group', () => {
         const groups = getAllClonesGroupedByActor({ repoPath: scene.repoPath });
         const group = groups.find(
-          (g) => g.actor.hash === scene.withClone.actorHash,
+          (g) => g.actor.exid === scene.withClone.actorExid,
         );
         expect(group?.clones.map((c) => c.serial)).toEqual(['ser-1']);
       });
 
       then('the actor with no clones appears with an empty clones list', () => {
         const groups = getAllClonesGroupedByActor({ repoPath: scene.repoPath });
-        const group = groups.find((g) => g.actor.hash === scene.emptyHash);
+        const group = groups.find((g) => g.actor.exid === scene.emptyExid);
         expect(group?.clones).toEqual([]);
       });
     });

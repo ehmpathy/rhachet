@@ -1,14 +1,18 @@
+import { MalfunctionError } from 'helpful-errors';
+
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { isActorActive } from '@src/domain.operations/actor/enrolled/isActorActive';
 import type {
   BrainDirBootFailure,
   BrainDirBootRender,
 } from '@src/domain.operations/boot/BrainDirBootRender';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
+import { getOneIsActorActive } from '@src/domain.operations/clone/getOneIsActorActive';
+import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
 import { asBrainDirSyncResult } from './asBrainDirSyncResult';
 import { asRoleRefsForEnrolledSlugs } from './asRoleRefsForEnrolledSlugs';
@@ -20,8 +24,9 @@ import { asRoleRefsForEnrolledSlugs } from './asRoleRefsForEnrolledSlugs';
  *        fresh before it boots
  *
  * .note = one actor that fails is collected, and the rest still render
- * .note = the enumeration reads `actor.via.hash=*` alone; a slug or derived actor dir
- *         is not visited, and the default actor is `syncDefaultBrainDir`'s
+ * .note = the sweep visits the hash actors alone: the enumeration admits `repo=` and `hash=`
+ *         dirs (`asActorOndiskExidFromDirName`), and the repo actor is `setRepoActorBrainDir`'s
+ *         to render, from the linked set rather than its first enroll's roles
  */
 export const syncActiveActorBrainDirs = async (input: {
   repoPath: string;
@@ -38,16 +43,7 @@ export const syncActiveActorBrainDirs = async (input: {
   // render each active actor; a throw is collected under that actor's scope
   const outcomes = await Promise.all(
     enumeration.actors.map((actor) =>
-      setActiveActorBrainDirBoot({ actor, refsLinked: input.refsLinked }).then(
-        (render) => ({ render, failure: null }),
-        (error: unknown) => ({
-          render: null,
-          failure: {
-            scope: { kind: 'actor', actorHash: actor.hash },
-            cause: asError(error),
-          } satisfies BrainDirBootFailure,
-        }),
-      ),
+      getOneActorBrainDirBootOutcome({ actor, refsLinked: input.refsLinked }),
     ),
   );
 
@@ -63,11 +59,40 @@ const getAllActorsOrFailure = (input: {
   repoPath: string;
 }): { actors: ActorOndisk[] } | { failure: BrainDirBootFailure } => {
   try {
-    return { actors: getAllActorsOndisk({ repoPath: input.repoPath }) };
+    const actors = getAllActorsOndisk({ repoPath: input.repoPath });
+    return { actors: actors.filter((actor) => actor.exid !== REPO_ACTOR_EXID) };
   } catch (error) {
-    return { failure: { scope: { kind: 'actors' }, cause: asError(error) } };
+    return {
+      failure: {
+        scope: { kind: 'actors' },
+        cause: asErrorCollectedOrThrow({ error }),
+      },
+    };
   }
 };
+
+/**
+ * .what = one actor's render, or its failure under its own scope
+ * .why = one broken actor must never skip the rest of the sweep
+ * .note = a code defect is the one fault that is rethrown, not collected
+ */
+const getOneActorBrainDirBootOutcome = (input: {
+  actor: ActorOndisk;
+  refsLinked: RoleLinkRef[];
+}): Promise<{
+  render: BrainDirBootRender | null;
+  failure: BrainDirBootFailure | null;
+}> =>
+  setActiveActorBrainDirBoot(input).then(
+    (render) => ({ render, failure: null }),
+    (error: unknown) => ({
+      render: null,
+      failure: {
+        scope: { kind: 'actor', actorExid: input.actor.exid },
+        cause: asErrorCollectedOrThrow({ error }),
+      },
+    }),
+  );
 
 /**
  * .what = render one actor's brain dir if the actor is active, else skip it
@@ -78,11 +103,11 @@ const setActiveActorBrainDirBoot = async (input: {
   refsLinked: RoleLinkRef[];
 }): Promise<BrainDirBootRender | null> => {
   // an actor with no clone still live reads naught; skip it
-  if (!(await isActorActive({ actor: input.actor }))) return null;
+  if (!(await getOneIsActorActive({ actor: input.actor }))) return null;
 
   // render from the actor's own roleset, never the repo's linked set
   const refs = asRoleRefsForEnrolledSlugs({
-    actorHash: input.actor.hash,
+    actorExid: input.actor.exid,
     slugs: input.actor.roles,
     refsLinked: input.refsLinked,
   });
@@ -90,18 +115,27 @@ const setActiveActorBrainDirBoot = async (input: {
     brainDir: getBrainOndiskDir({
       actorDir: getActorOndiskDir({
         repoPath: input.actor.repoPath,
-        hash: input.actor.hash,
+        exid: input.actor.exid,
       }),
     }),
     roles: refs,
     repoPath: input.actor.repoPath,
-    scope: { kind: 'actor', actorHash: input.actor.hash },
+    scope: { kind: 'actor', actorExid: input.actor.exid },
   });
 };
 
 /**
- * .what = a thrown value as an Error
- * .why = a failure record carries an Error; a non-Error throw is wrapped, never lost
+ * .what = a thrown value as the Error a failure record collects — or a rethrow, for a defect
+ * .why = the collectors above hold an allowlist: a classed or fs fault is one actor's row, and
+ *        the sweep goes on; a code defect (`isCodeDefectError`) is rethrown, never folded into a
+ *        row (`rule.forbid.failhide`). a non-Error throw is wrapped in a MalfunctionError, so the
+ *        failure line still names a class and the value
  */
-const asError = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error));
+const asErrorCollectedOrThrow = (input: { error: unknown }): Error => {
+  if (isCodeDefectError({ error: input.error })) throw input.error;
+  if (input.error instanceof Error) return input.error;
+  return new MalfunctionError('actor brain dir sync threw a non-Error value', {
+    reason: input.error,
+    hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
+  });
+};

@@ -10,7 +10,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { genCloneHistoryRelink } from '@src/domain.operations/clone/genCloneHistoryRelink';
@@ -108,13 +108,14 @@ const readSubmittedCount = (input: {
  * .note = the throw carries both streams, so a dispatch failure names its own cause
  *   rather than shows up later as a bare `onScreen: false`
  */
-const dispatchViaCli = (input: {
+const dispatchViaCli = async (input: {
   dir: string;
   env: Record<string, string | undefined>;
   address: string;
   message: string;
-}): { stdout: string } => {
-  const result = invokeRhachetCliBinary({
+}): Promise<{ stdout: string }> => {
+  // async, never sync: the clone's pty is live (rule.forbid.sync-invoke-while-a-pty-is-live)
+  const result = await invokeRhachetCliBinaryAsync({
     binary: 'rhx',
     args: ['clone', 'say', input.address, '--what', input.message],
     cwd: input.dir,
@@ -128,6 +129,7 @@ const dispatchViaCli = (input: {
       status: result.status,
       stdout: result.stdout,
       stderr: result.stderr,
+      hint: 'read the say stderr above; exit 2 names the reach fault, exit 1 a dispatch malfunction',
     });
   return { stdout: result.stdout };
 };
@@ -158,6 +160,7 @@ const awaitProbeCapableOrThrow = async (input: {
   if (socketPath === null)
     throw new MalfunctionError('the enrolled clone reported no socket path', {
       serial: input.clone.serial,
+      hint: 'the enroll fell back to a plain spawn; read its stderr for why the dispatch socket did not stand up',
     });
 
   const deadline = Date.now() + input.timeoutMs;
@@ -175,6 +178,7 @@ const awaitProbeCapableOrThrow = async (input: {
         probe: reply.probe,
         reason: reply.probe === 'unsupported' ? reply.reason : null,
         timeoutMs: input.timeoutMs,
+        hint: 'read the probe reason; an unsupported probe means the claude version on PATH renders a screen this probe cannot parse',
       },
     );
 };
@@ -231,6 +235,7 @@ describe('A1 refuted — a brain-cli writes a QUEUED message to the transcript a
       if (clone === null)
         throw new MalfunctionError('the enrolled clone was not found on disk', {
           address: enrolled.address,
+          hint: 'the enroll printed an address no clone dir answers to; check .agent/.actors/ under the fixture dir',
         });
 
       return { dir, env, repoPath, clone, ...enrolled };
@@ -254,7 +259,7 @@ describe('A1 refuted — a brain-cli writes a QUEUED message to the transcript a
         // margin, where 60 lines left almost none and 400 measured as marginal
         const m1 =
           'Print each integer from 1 to 2000, one per line, and no other text.';
-        const m1Dispatch = dispatchViaCli({
+        const m1Dispatch = await dispatchViaCli({
           dir: scene.dir,
           env: scene.env,
           address: scene.address,
@@ -266,7 +271,7 @@ describe('A1 refuted — a brain-cli writes a QUEUED message to the transcript a
         // it, so a second wait for M1's disk write only burns the window this test needs
         // open
         const m2 = `A1-QUEUED-${Date.now().toString(36)}`;
-        const m2Dispatch = dispatchViaCli({
+        const m2Dispatch = await dispatchViaCli({
           dir: scene.dir,
           env: scene.env,
           address: scene.address,

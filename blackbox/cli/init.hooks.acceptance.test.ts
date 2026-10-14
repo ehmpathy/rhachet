@@ -1,13 +1,55 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+
+/**
+ * .what = a HOME with no `.claude/settings.json`, so no brain dir holds grove arrows
+ * .why = with a grove on the host, each brain dir's `settings.json` is an arrow to the
+ *   host's `~/.claude/settings.json`: a seed or a stray write through that name would land
+ *   in the host's own settings, and the host's content would leak into the asserts. an
+ *   empty HOME keeps every run hermetic
+ * .note = a fresh HOME per call, never one shared by the file: a call that wrote into HOME
+ *   would otherwise leave its bytes for the next case, and the grove's absence would be an
+ *   assumption about the test bodies rather than a fact of each run
+ */
+const invokeWithoutGrove = (
+  input: Parameters<typeof invokeRhachetCliBinary>[0],
+): ReturnType<typeof invokeRhachetCliBinary> =>
+  invokeRhachetCliBinary({
+    ...input,
+    env: { HOME: genTempDir({ slug: 'init-hooks-home' }), ...input.env },
+  });
+
+/**
+ * .what = the hooks of one claude event, flat as `{ author, command }`
+ * .why = the test brain writes the real claude shape — `{ matcher, hooks: [{ command,
+ *   author }] }` — while a seeded prior config may hold a legacy flat entry
+ *   `{ matcher: <author>, command }`. one read covers both, so each assert names the hook
+ *   by what it is, never by where the shape nests it
+ */
+const asFlatHooks = (
+  entries: unknown[] | undefined,
+): Array<{ author: string; command: string }> =>
+  (entries ?? []).flatMap((entry) => {
+    const e = entry as {
+      matcher?: string;
+      command?: string;
+      hooks?: Array<{ author?: string; command: string }>;
+    };
+    if (Array.isArray(e.hooks))
+      return e.hooks.map((h) => ({
+        author: h.author ?? '',
+        command: h.command,
+      }));
+    return [{ author: e.matcher ?? '', command: e.command ?? '' }];
+  });
 
 describe('rhachet init --hooks', () => {
   given('[case1] repo with claude config but no roles linked', () => {
@@ -17,7 +59,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t0] init --hooks without linked roles', () => {
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
           logOnError: false,
@@ -41,6 +83,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t0] before any changes', () => {
       then('claude settings.json has empty hooks', async () => {
+        // before any init, `.claude` is the fixture's own real dir, and its legacy file
         const configPath = path.join(repo.path, '.claude', 'settings.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
@@ -50,7 +93,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t1] init --roles tester to link the role', () => {
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'tester'],
           cwd: repo.path,
         }),
@@ -69,13 +112,13 @@ describe('rhachet init --hooks', () => {
       // first link the role, then apply hooks
       const result = useBeforeAll(async () => {
         // link the role first
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'tester'],
           cwd: repo.path,
         });
 
         // then apply hooks
-        return invokeRhachetCliBinary({
+        return invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
@@ -90,7 +133,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('claude settings.json has SessionStart hooks', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         expect(config.hooks.SessionStart).toBeDefined();
@@ -98,7 +141,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('claude settings.json has PreToolUse hooks', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         expect(config.hooks.PreToolUse).toBeDefined();
@@ -106,11 +149,26 @@ describe('rhachet init --hooks', () => {
       });
 
       then('hooks have correct author namespace', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        const firstHook = config.hooks.SessionStart[0];
-        expect(firstHook.matcher).toContain('repo=test/role=tester');
+        const firstHook = asFlatHooks(config.hooks.SessionStart)[0]!;
+        expect(firstHook.author).toContain('repo=test/role=tester');
+      });
+
+      then('the written hooks take the NESTED claude shape, never the legacy flat one', async () => {
+        // `asFlatHooks` reads both shapes on purpose (a seeded prior config may be flat), so
+        //   the author asserts above cannot tell a writer that reverted to the flat shape.
+        //   this reads the raw file and pins the shape the writer must emit
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
+        const content = await fs.readFile(configPath, 'utf-8');
+        const config = JSON.parse(content);
+        for (const entry of config.hooks.SessionStart) {
+          expect(entry).toHaveProperty('hooks');
+          expect(entry).not.toHaveProperty('command');
+          expect(entry.hooks[0]).toHaveProperty('command');
+          expect(entry.hooks[0].author).toContain('repo=test/role=tester');
+        }
       });
     });
 
@@ -120,7 +178,7 @@ describe('rhachet init --hooks', () => {
       );
 
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'tester', '--hooks'],
           cwd: repoFresh.path,
         }),
@@ -139,7 +197,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('claude settings.json has hooks', async () => {
-        const configPath = path.join(repoFresh.path, '.claude', 'settings.json');
+        const configPath = path.join(repoFresh.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         expect(Object.keys(config.hooks).length).toBeGreaterThan(0);
@@ -151,7 +209,7 @@ describe('rhachet init --hooks', () => {
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
       // link role and apply hooks
-      invokeRhachetCliBinary({
+      invokeWithoutGrove({
         args: ['init', '--roles', 'tester', '--hooks'],
         cwd: r.path,
       });
@@ -160,7 +218,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t0] init --hooks is run again', () => {
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         }),
@@ -171,7 +229,7 @@ describe('rhachet init --hooks', () => {
       });
 
       then('hooks remain correctly configured', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         expect(config.hooks.SessionStart).toBeDefined();
@@ -184,7 +242,7 @@ describe('rhachet init --hooks', () => {
     const repo = useBeforeAll(async () => {
       const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
       // link role first
-      invokeRhachetCliBinary({
+      invokeWithoutGrove({
         args: ['init', '--roles', 'tester'],
         cwd: r.path,
       });
@@ -193,7 +251,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t0] init --hooks claude-code', () => {
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--hooks', 'claude-code'],
           cwd: repo.path,
         }),
@@ -214,7 +272,7 @@ describe('rhachet init --hooks', () => {
       const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
 
       // link role and apply hooks
-      invokeRhachetCliBinary({
+      invokeWithoutGrove({
         args: ['init', '--roles', 'tester', '--hooks'],
         cwd: r.path,
       });
@@ -224,7 +282,7 @@ describe('rhachet init --hooks', () => {
 
     when('[t0] hooks are initially applied', () => {
       then('claude settings.json has 2 SessionStart hooks', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         expect(config.hooks.SessionStart).toHaveLength(2);
@@ -270,7 +328,7 @@ module.exports = { getRoleRegistry };
         await fs.writeFile(roleIndexPath, modifiedRole, 'utf-8');
 
         // re-run init --hooks
-        return invokeRhachetCliBinary({
+        return invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
@@ -285,11 +343,12 @@ module.exports = { getRoleRegistry };
       });
 
       then('claude settings.json now has only 1 SessionStart hook', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        expect(config.hooks.SessionStart).toHaveLength(1);
-        expect(config.hooks.SessionStart[0].command).toContain('boot-hook-1');
+        const hooks = asFlatHooks(config.hooks.SessionStart);
+        expect(hooks).toHaveLength(1);
+        expect(hooks[0]!.command).toContain('boot-hook-1');
       });
     });
   });
@@ -305,7 +364,7 @@ module.exports = { getRoleRegistry };
       const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
 
       // link the tester role + apply hooks to the repo root
-      invokeRhachetCliBinary({
+      invokeWithoutGrove({
         args: ['init', '--roles', 'tester', '--hooks'],
         cwd: r.path,
       });
@@ -330,8 +389,11 @@ module.exports = { getRoleRegistry };
         }) + '\n',
         'utf-8',
       );
-      // mirror the root's initial claude config (empty hooks) into the actor's
-      // brain dir, exactly as an enroll would have left it before the sync
+      // seed a LEGACY actor brain dir: a real `settings.json` (empty hooks), as an enroll
+      //   left it before the settings layout. the sync must fold it into
+      //   `settings.of.repo.json` and keep the raw file aside (the snapshot pins that row)
+      // .note = the write lands in a dir this test just made, so no grove arrow sits at
+      //   `settings.json` for it to follow out to a home file
       await fs.writeFile(
         path.join(actorBrainClaudeDir, 'settings.json'),
         JSON.stringify({ hooks: {} }, null, 2),
@@ -339,7 +401,7 @@ module.exports = { getRoleRegistry };
       );
 
       // re-run init --hooks — this is the per-actor pass under test
-      const result = invokeRhachetCliBinary({
+      const result = invokeWithoutGrove({
         args: ['init', '--hooks'],
         cwd: r.path,
       });
@@ -353,9 +415,10 @@ module.exports = { getRoleRegistry };
       });
 
       then('stdout names the actor in the per-actor apply tree', () => {
-        // the row shows the abbreviated hash (7 chars), never the on-disk token
+        // the row shows the actor's whole exid, never the on-disk dir name
         expect(repo.result.stdout).toContain('apply hooks to enrolled actors');
-        expect(repo.result.stdout).toContain(actorHash.slice(0, 7));
+        expect(repo.result.stdout).toContain(`hash=${actorHash}`);
+        expect(repo.result.stdout).not.toContain(`actor.via.hash=${actorHash}`);
       });
 
       then('the per-actor apply tree stdout is locked', () => {
@@ -371,23 +434,23 @@ module.exports = { getRoleRegistry };
         async () => {
           const actorConfigPath = path.join(
             repo.actorBrainClaudeDir,
-            'settings.json',
+            'settings.of.repo.json',
           );
           const content = await fs.readFile(actorConfigPath, 'utf-8');
           const config = JSON.parse(content);
           expect(config.hooks.SessionStart).toBeDefined();
           expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
-          const matchers = config.hooks.SessionStart.map(
-            (h: { matcher: string }) => h.matcher,
+          const authors = asFlatHooks(config.hooks.SessionStart).map(
+            (h) => h.author,
           );
-          expect(matchers).toContainEqual(
+          expect(authors).toContainEqual(
             expect.stringContaining('role=tester'),
           );
         },
       );
 
       then('the repo root config ALSO still carries the role hooks', async () => {
-        const rootConfigPath = path.join(repo.path, '.claude', 'settings.json');
+        const rootConfigPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(rootConfigPath, 'utf-8');
         const config = JSON.parse(content);
         expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
@@ -439,9 +502,11 @@ module.exports = { getRoleRegistry };
         'utf-8',
       );
 
-      // settings.json as a prior rhachet left it: the role boot hook installed, plus a human hook
+      // settings.of.repo.json as a prior rhachet left it: the role boot hook installed, plus a
+      //   human hook. it is the repo's own file, so the migration moves it whole; a real
+      //   settings.json would be replaced by the grove arrow, its content never carried
       await fs.writeFile(
-        path.join(r.path, '.claude', 'settings.json'),
+        path.join(r.path, '.claude', 'settings.of.repo.json'),
         JSON.stringify(
           {
             hooks: {
@@ -465,7 +530,7 @@ module.exports = { getRoleRegistry };
 
     when('[t0] init --roles tester --hooks', () => {
       const result = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'tester', '--hooks'],
           cwd: repo.path,
         }),
@@ -473,12 +538,12 @@ module.exports = { getRoleRegistry };
       const commands = useBeforeAll(async () => {
         const config = JSON.parse(
           await fs.readFile(
-            path.join(repo.path, '.claude', 'settings.json'),
+            path.join(repo.path, '.claude', 'settings.of.repo.json'),
             'utf-8',
           ),
         );
         return {
-          list: (config.hooks.SessionStart as Array<{ command: string }>).map(
+          list: asFlatHooks(config.hooks.SessionStart).map(
             (hook) => hook.command,
           ),
         };
@@ -521,17 +586,17 @@ module.exports = { getRoleRegistry };
     when('[t0] both roles are linked and hooks applied', () => {
       const result = useBeforeAll(async () => {
         // link both roles
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'tester'],
           cwd: repo.path,
         });
-        invokeRhachetCliBinary({
+        invokeWithoutGrove({
           args: ['init', '--roles', 'reviewer'],
           cwd: repo.path,
         });
 
         // apply hooks
-        return invokeRhachetCliBinary({
+        return invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
@@ -542,7 +607,7 @@ module.exports = { getRoleRegistry };
       });
 
       then('claude settings.json has hooks from both roles', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
         // tester has 2 onBoot hooks, reviewer has 1
@@ -550,33 +615,32 @@ module.exports = { getRoleRegistry };
       });
 
       then('hooks have distinct author namespaces', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        const matchers = config.hooks.SessionStart.map(
-          (h: { matcher: string }) => h.matcher,
+        const authors = asFlatHooks(config.hooks.SessionStart).map(
+          (h) => h.author,
         );
-        expect(matchers).toContainEqual(
+        expect(authors).toContainEqual(
           expect.stringContaining('role=tester'),
         );
-        expect(matchers).toContainEqual(
+        expect(authors).toContainEqual(
           expect.stringContaining('role=reviewer'),
         );
       });
 
       then('each role has correct commands', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        const testerHooks = config.hooks.SessionStart.filter(
-          (h: { matcher: string }) => h.matcher.includes('role=tester'),
-        );
-        const reviewerHooks = config.hooks.SessionStart.filter(
-          (h: { matcher: string }) => h.matcher.includes('role=reviewer'),
+        const hooks = asFlatHooks(config.hooks.SessionStart);
+        const testerHooks = hooks.filter((h) => h.author.includes('role=tester'));
+        const reviewerHooks = hooks.filter((h) =>
+          h.author.includes('role=reviewer'),
         );
         expect(testerHooks).toHaveLength(2);
         expect(reviewerHooks).toHaveLength(1);
-        expect(reviewerHooks[0].command).toContain('reviewer-boot');
+        expect(reviewerHooks[0]!.command).toContain('reviewer-boot');
       });
     });
 
@@ -590,7 +654,7 @@ module.exports = { getRoleRegistry };
         await fs.rm(testerSymlink, { recursive: true, force: true });
 
         // re-run init --hooks
-        return invokeRhachetCliBinary({
+        return invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
@@ -601,23 +665,24 @@ module.exports = { getRoleRegistry };
       });
 
       then('tester hooks are removed', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        const matchers = config.hooks.SessionStart.map(
-          (h: { matcher: string }) => h.matcher,
+        const authors = asFlatHooks(config.hooks.SessionStart).map(
+          (h) => h.author,
         );
-        expect(matchers).not.toContainEqual(
+        expect(authors).not.toContainEqual(
           expect.stringContaining('role=tester'),
         );
       });
 
       then('reviewer hooks remain', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.json');
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        expect(config.hooks.SessionStart).toHaveLength(1);
-        expect(config.hooks.SessionStart[0].matcher).toContain('role=reviewer');
+        const hooks = asFlatHooks(config.hooks.SessionStart);
+        expect(hooks).toHaveLength(1);
+        expect(hooks[0]!.author).toContain('role=reviewer');
       });
     });
   });

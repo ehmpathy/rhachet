@@ -17,7 +17,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 export const computeBrainCliEnrollment = (input: {
   brain: BrainSlug;
   spec: BrainCliEnrollmentSpec;
-  rolesDefault: RoleSlug[];
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): BrainCliEnrollmentManifest => {
   // compute roles based on mode
@@ -29,7 +29,7 @@ export const computeBrainCliEnrollment = (input: {
         })
       : computeRolesForIncrementalMode({
           deltas: input.spec.deltas,
-          rolesDefault: input.rolesDefault,
+          rolesAmbient: input.rolesAmbient,
           rolesLinked: input.rolesLinked,
         });
 
@@ -68,11 +68,11 @@ const computeRolesForAbsoluteMode = (input: {
  */
 const computeRolesForIncrementalMode = (input: {
   deltas: BrainCliEnrollmentSpec['deltas'];
-  rolesDefault: RoleSlug[];
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): RoleSlug[] => {
   // start with defaults
-  const roles = new Set(input.rolesDefault);
+  const roles = new Set(input.rolesAmbient);
 
   for (const delta of input.deltas) {
     // validate role exists

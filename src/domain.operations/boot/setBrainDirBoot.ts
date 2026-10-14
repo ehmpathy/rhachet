@@ -13,6 +13,7 @@ import type {
   BrainDirBootScope,
 } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
+import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { getOneRoleBootContent } from './getOneRoleBootContent';
 import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
@@ -21,7 +22,8 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
  * .why = a clone boots from its brain dir; the corpus is written at render time, never
  *        per session, so every clone of one brain dir reads the same bytes
  *
- * .note = roles render from `repoPath`'s `.agent/`, in enrollment order
+ * .note = roles render from `repoPath`'s `.agent/`, in enrollment order, after the one
+ *         rhachet intro brief (`getOneRhachetBootIntro`)
  */
 export const setBrainDirBoot = async (input: {
   brainDir: string;
@@ -41,7 +43,10 @@ export const setBrainDirBoot = async (input: {
       }),
     ),
   );
-  const corpus = asBootCorpus({ contents });
+  // the rhachet intro leads, ahead of every role
+  const corpus = asBootCorpus({
+    contents: [getOneRhachetBootIntro(), ...contents],
+  });
 
   // write boot.md whole, then the pointer files; an fs fault names the brain dir
   const bootMdPath = join(input.brainDir, BRAIN_DIR_BOOT_FILENAMES.bootMd);

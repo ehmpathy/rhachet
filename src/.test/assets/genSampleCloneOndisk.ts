@@ -21,7 +21,7 @@ import { getHomeHash } from '@src/infra/host/getHomeHash';
  *   setCloneIdentity + setCloneSlugIndex, the fixture stays faithful to what
  *   enroll actually writes (no hand-rolled dir shape to drift)
  */
-export const genSampleCloneOndisk = (input: {
+export const genSampleCloneOndisk = async (input: {
   repoPath: string;
   brain?: BrainSlug;
   roles?: RoleSlug[];
@@ -36,28 +36,37 @@ export const genSampleCloneOndisk = (input: {
    * path that must fail loud from a different machine, criteria usecase.10)
    */
   hostHash?: string;
-}): {
+  /**
+   * the repo's ambient roles — defaults to none, so the fixture lands on a hash actor.
+   * set it equal to `roles` to provision a clone of the repo actor (`repo=ambient`)
+   */
+  rolesAmbient?: RoleSlug[];
+}): Promise<{
   repoPath: string;
   actorsRoot: string;
   actorDir: string;
-  actorHash: string;
+  actorExid: string;
   cloneDir: string;
   serial: string;
   slug: string | null;
-} => {
-  const actor = findsertActorOndisk({
-    repoPath: input.repoPath,
-    brain: input.brain ?? 'claude',
-    roles: input.roles ?? ['mechanic'],
-    delta: null,
-    reason: null,
-    logEnrollment: true,
-  });
+}> => {
+  // no ambient roles by default, so the fixture lands on a hash actor
+  const actor = await findsertActorOndisk(
+    {
+      repoPath: input.repoPath,
+      brain: input.brain ?? 'claude',
+      roles: input.roles ?? ['mechanic'],
+      delta: null,
+      reason: null,
+      logEnrollment: true,
+    },
+    { repo: { ambient: { roles: input.rolesAmbient ?? [] } } },
+  );
 
   const actorsRoot = `${actor.repoPath}/.agent/.actors`;
   const actorDir = getActorOndiskDir({
     repoPath: actor.repoPath,
-    hash: actor.hash,
+    exid: actor.exid,
   });
   const cloneDir = getCloneDir({ actorDir, serial: input.serial });
   mkdirSync(cloneDir, { recursive: true });
@@ -77,7 +86,7 @@ export const genSampleCloneOndisk = (input: {
   // the real genClone follows, so the fixture stays faithful to the reach path
   setCloneSerialIndex({
     actorsRoot,
-    actorHash: actor.hash,
+    actorExid: actor.exid,
     serial: input.serial,
   });
 
@@ -85,7 +94,7 @@ export const genSampleCloneOndisk = (input: {
     setCloneSlugIndex({
       actorsRoot,
       slug: input.slug,
-      actorHash: actor.hash,
+      actorExid: actor.exid,
       serial: input.serial,
     });
 
@@ -93,7 +102,7 @@ export const genSampleCloneOndisk = (input: {
     repoPath: actor.repoPath,
     actorsRoot,
     actorDir,
-    actorHash: actor.hash,
+    actorExid: actor.exid,
     cloneDir,
     serial: input.serial,
     slug: input.slug,

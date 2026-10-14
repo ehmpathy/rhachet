@@ -10,9 +10,14 @@ import {
 } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
-import { realpathSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  realpathSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
-import { relative } from 'node:path';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
 import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
@@ -695,39 +700,20 @@ describe('genCloneSocketServer.integration', () => {
     //   had just `close()`d. that is `rule.forbid.failhide` produced by the guard written
     //   to retire it, and it made the `'chmod'` allowlist entry unreachable by construction.
     //
-    // ✅ the fault is REAL, never stubbed, and it uses the mechanism that surfaced it. a
-    //   unix address is capped at ~107 bytes of `sun_path`; past that node does NOT report
-    //   `ENAMETOOLONG` — it fires its listen-success event, bound at a silently TRUNCATED
-    //   address. so the socket file never exists at the untruncated path, and the lockdown's
-    //   `chmodSync` on that path faults `ENOENT` with a structured `syscall` — a bind that
-    //   succeeded and a lockdown that then failed, which is exactly this row's subject.
+    // ✅ the fault is REAL, never stubbed. node binds a unix socket SYNCHRONOUSLY inside
+    //   `listen()` and emits its listen-success event on the next tick, and the lockdown runs
+    //   on that event. so a socket file removed in between — after the bind landed, before
+    //   the lockdown runs — leaves `chmodSync` to fault `ENOENT` with a structured `syscall`:
+    //   a bind that succeeded and a lockdown that then failed, which is exactly this row's
+    //   subject. the same fault reaches a real clone when a peer reaps its socket file in
+    //   that window.
+    //
+    // .note = this row once leaned on node TRUNCATING an address over the ~107-byte
+    //   `sun_path` cap, so the file never existed at the untruncated path. node 24 refuses
+    //   such a path at `listen` (`EINVAL`) instead — a bind fault, a different row's subject —
+    //   so the fixture now removes the file itself, with no premise on the host's path cap
     const scene = useBeforeAll(async () => {
-      // ⚠️ a CWD-RELATIVE path to the managed dir, never an absolute one. which side of the
-      //   cap the TRUNCATION lands on is the whole fixture: the base must be short enough
-      //   that the truncated address stays INSIDE this managed dir, so the row litters no
-      //   file. an absolute base embeds the host's repo dirname (`/tmp/test-fns/<repo>/…`),
-      //   so a long worktree name pushed it to 111 bytes and broke the premise on that host.
-      //   `sun_path` holds the relative string as given, so the relative form fixes the base
-      //   length at ~72 bytes on every host, whatever the repo is named
-      // ⚠️ a TERSE slug, and that matters: every slug byte eats the margin under the cap
-      const base = relative(process.cwd(), genTempDir({ slug: 'lock' }));
-      const socketPath = `${base}/clone.${getUuid()}.sock`;
-
-      // 🚨 both bounds asserted, never assumed. a host whose temp base is long enough to
-      //   push the truncation OUT of it would litter, and one whose full path fits under
-      //   the cap would bind cleanly and pass this row green over an unexercised path
-      //   (`rule.forbid.faked-or-quarantined-acceptance`)
-      if (Buffer.byteLength(base) >= 107)
-        throw new ConstraintError(
-          '[case15] needs a temp base under the ~107-byte sun_path cap, so the truncated bind stays inside it',
-          { base, baseBytes: Buffer.byteLength(base) },
-        );
-      if (Buffer.byteLength(socketPath) <= 107)
-        throw new ConstraintError(
-          '[case15] needs a socket path OVER the ~107-byte sun_path cap, so the bind truncates and the lockdown then faults',
-          { socketPath, socketBytes: Buffer.byteLength(socketPath) },
-        );
-
+      const socketPath = `${realpathSync(genTempDir({ slug: 'lock' }))}/c.sock`;
       const server = genCloneSocketServer({
         socketPath,
         write: () => undefined,
@@ -735,6 +721,18 @@ describe('genCloneSocketServer.integration', () => {
         read: () => ({ live: false, reason: 'feed-not-live' }),
         settle: async () => {},
       });
+
+      // 🚨 synchronous, before any await: the bind has landed, the lockdown has not run yet.
+      //   both are asserted, never assumed, so a node that bound late or locked down early
+      //   fails here by name rather than passes this row over an unexercised path
+      //   (`rule.forbid.faked-or-quarantined-acceptance`)
+      if (!existsSync(socketPath))
+        throw new ConstraintError(
+          '[case15] needs the bind to land inside listen(), so the socket file exists before the lockdown',
+          { socketPath },
+        );
+      unlinkSync(socketPath);
+
       const error = await getError(server.ready);
       return { server, error };
     });

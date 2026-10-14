@@ -10,6 +10,7 @@ import { getCloneReachState } from '@src/domain.operations/clone/getCloneReachSt
 import { getCloneSocketPath } from '@src/domain.operations/clone/getCloneSocketPath';
 import { getCloneSubmittedCount } from '@src/domain.operations/clone/getCloneSubmittedCount';
 import { getOneCloneByRef } from '@src/domain.operations/clone/getOneCloneByRef';
+import { getOneCloneTraceSinkToLog } from '@src/domain.operations/clone/getOneCloneTraceSinkToLog';
 import { isCloneSayToSelf } from '@src/domain.operations/clone/isCloneSayToSelf';
 import { asCloneSayAwaitTarget } from '@src/domain.operations/clone/socket/asCloneSayAwaitTarget';
 import { asCloneSayRecord } from '@src/domain.operations/clone/socket/asCloneSayRecord';
@@ -203,10 +204,13 @@ export const invokeCloneSay = ({ clone }: { clone: Command }): void => {
             // rows over a local socket, and it buys the BEFORE half of the failure log —
             // without it a reader sees the post-dispatch screen with no prior screen to
             // diff it against, which is half the instrument
+            // the degrade trace goes to the durable log alone — stderr is this verb's machine
+            // channel, and a probe fault is not a verdict (the observe loop does the same)
             const baselineProbe = await getCloneInputStateOrBlind({
               socketPath,
               message,
               debug: true,
+              traceFault: getOneCloneTraceSinkToLog({ repoPath }),
             });
             const baseline = computeCloneSayBaseline({
               transcriptCount: baselineTranscriptCount,

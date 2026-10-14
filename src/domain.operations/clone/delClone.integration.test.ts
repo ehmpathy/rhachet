@@ -12,10 +12,10 @@ import { getCloneHistoryDir } from './getCloneHistoryDir';
 
 describe('delClone.integration', () => {
   given('[case1] a named clone on disk with serial + slug indexes', () => {
-    const scene = useThen('it is provisioned', () => {
+    const scene = useThen('it is provisioned', async () => {
       const repoPath = genTempDir({ slug: 'delClone-named' });
       const serial = getUuid();
-      const on = genSampleCloneOndisk({
+      const on = await genSampleCloneOndisk({
         repoPath,
         serial,
         slug: 'doomed',
@@ -24,7 +24,7 @@ describe('delClone.integration', () => {
         actorDir: on.actorDir,
         actorsRoot: on.actorsRoot,
         repoPath: on.repoPath,
-        actorHash: on.actorHash,
+        actorExid: on.actorExid,
       });
       return { on, clone: clone! };
     });
@@ -61,10 +61,10 @@ describe('delClone.integration', () => {
   });
 
   given('[case2] a clone whose history holds a linked exid claim', () => {
-    const scene = useThen('it is provisioned with an exid claim', () => {
+    const scene = useThen('it is provisioned with an exid claim', async () => {
       const repoPath = genTempDir({ slug: 'delClone-exid' });
       const serial = getUuid();
-      const on = genSampleCloneOndisk({ repoPath, serial, slug: null });
+      const on = await genSampleCloneOndisk({ repoPath, serial, slug: null });
 
       // provision one transcript + its history link + its `.exids/` claim, the way
       // genCloneHistoryLink would — so delClone has an exid claim to free
@@ -87,7 +87,7 @@ describe('delClone.integration', () => {
         actorDir: on.actorDir,
         actorsRoot: on.actorsRoot,
         repoPath: on.repoPath,
-        actorHash: on.actorHash,
+        actorExid: on.actorExid,
       });
       return { on, clone: clone!, exid, exidsDir };
     });

@@ -1,7 +1,8 @@
 # define.enrollment-identity-is-the-roleset-hash
 
-> **an actor's identity IS `sha256({ brain, roles })`, truncated to 8 chars. every per-enrollment
-> artifact in this repo is keyed on that one hash.**
+> **an enrolled actor's identity IS `sha256({ brain, roles })`, truncated to 8 chars, and every
+> per-enrollment artifact is keyed on that one hash — save the ambient roleset, which is the repo
+> actor, `actor.via.repo=ambient`, never a hash.**
 
 `rhx enroll` is **identity-by-roleset**. it mints no id, asks for no name, and keeps no registry of
 allocations. the identity is **derived** from what the enrollment asks for — so the same
@@ -17,22 +18,35 @@ two properties the sort and the digest buy, both stated in its own docblock:
 - **a change to the hash SHAPE would orphan every extant actor dir** — so it is a versioned-prefix
   migration if ever touched, never an in-place edit
 
+🟡 **a delta actor digests its delta, never its concrete roles.** an enroll like `--roles -driver`
+stands for "the ambient roles, minus driver", so its hash is
+`genEnrollmentHashOfDelta` — `sha256({ brain, base: 'ambient', delta })`, delta tokens sorted. the
+ambient set may move under it (`rhx init --roles -xyz`) and it stays one actor: `actor.json` records
+the delta as `rolesDelta`, and every init, upgrade and `roles link` re-derives its roles from the
+current ambient set (`setDeltaActorsOndisk`). the `base` key keeps the two digest shapes apart, and
+the concrete-roles shape is unchanged (`inventory.of=requirements.case=2`).
+
 ⚠️ the hash is **one-way**. `brain` and `roles` cannot be recovered from it, which is exactly why
 `actor.json` persists them beside it (`findsertActorOndisk.ts:22-24`).
 
-## 🔴 .the two artifacts it keys — check BOTH before you invent a third
+## 🔴 .the one dir it keys — check it before you invent a second
 
 | artifact | path | owner |
 |---|---|---|
 | the actor's on-disk dir | `.agent/.actors/actor.via.hash=<hash>/` | `getActorOndiskDir.ts` |
-| the brain-cli config | `.claude/settings.enroll.<hash>.local.json` | `genBrainCliConfigArtifact.ts` |
+| the brain-cli config, inside it | `<actorDir>/brain/.claude/settings.of.repo.json` | `genBrainCliConfigArtifact.ts` |
 
-the dir holds `actor.json` (the identity manifest), the roles log, and the clones. the config file
-holds the hook set filtered to the enrolled roles, handed to the cli via
-`--setting-sources local --settings <path>` (`asBrainCliSpawnArgs.ts`).
+the dir holds `actor.json` (the identity manifest), the roles log, the clones, and the brain dir. the
+config file holds the repo actor's settings with the hooks narrowed to the enrolled roles, handed to
+the cli via `--setting-sources user --settings <path>` (`asBrainCliSpawnArgs.ts`).
 
-⇒ **a new per-enrollment artifact belongs under one of these two keys.** it does not need a new
-namespace, a new id, or a new collision scheme — those exist and are tested.
+⇒ **a new per-enrollment artifact belongs under this key.** it does not need a new namespace, a new
+id, or a new collision scheme — those exist and are tested.
+
+🟡 **the ambient roleset is the one exception to the hash.** `--roles` that equal the ambient set (and a
+bare enroll) collapse into the repo actor, `actor.via.repo=ambient`, never a hash twin of it
+(`term=ambient`, `getOneActorOndiskExid.ts`). an actor's identity string is its **exid**, the dir's
+`via=xyz` token: `repo=ambient` or `hash=<hash>`.
 
 ## 🟢 .the four properties you inherit for free
 

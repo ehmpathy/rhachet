@@ -128,9 +128,14 @@ in sync, and no stale-serial reap: findsert the clone dir, leave the socket, and
 for itself. (observe is read from the brain-cli's own transcripts in `history/`; a streamed stdout
 mirror is a **future todo**, not needed to reach a clone.)
 
-`rhx enroll` is **hash-only**: `rhx enroll claude -r -driver` (and bare `rhx enroll claude`) derives
-`actor.via.hash=genEnrollmentHash({brain, roles})` and never consults `actors.yml` — every enroll lands
-in the hash namespace. the **slug** namespace is `rhx clone`'s: a `slug:` entry declared in
+a bare `rhx enroll claude` enrolls the **ambient roles** (`term=ambient`) into the **repo actor**,
+`actor.via.repo=ambient` — bare means ambient, and the ambient roles live only there. an enroll with
+**absolute roles** (`rhx enroll claude -r mechanic`) derives `actor.via.hash=genEnrollmentHash({brain, roles})`;
+an enroll with a **delta** (`rhx enroll claude -r -driver`) derives
+`actor.via.hash=genEnrollmentHashOfDelta({brain, base: 'ambient', delta})`, so it stays one actor while the
+ambient set moves under it (`define.enrollment-identity-is-the-roleset-hash`). neither consults
+`actors.yml`; a `--roles` equal to the ambient set collapses into the repo actor, never a hash twin of it. (a repo from before the rename holds `actor.via.slug=.default`; the next `rhx init` moves
+it to `actor.via.repo=ambient`.) the **slug** namespace is `rhx clone`'s: a `slug:` entry declared in
 `.agent/repo=.this/actors.yml` (its roleset recorded as concrete roles, or a base peer actor `@<slug>`
 with deltas — never the repo default, an enroll-time concept actor scope cannot reference) is reached
 via `rhx clone actor://foreman`. no cli flag mints an actor — enroll derives the hash actor, clone reads

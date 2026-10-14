@@ -1,4 +1,5 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
+import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 
 import {
@@ -10,6 +11,18 @@ import {
   translateHookFromClaudeCode,
   translateHookToClaudeCode,
 } from './translateHook';
+
+/**
+ * .what = every claude event bucket a rhachet hook event may be written to
+ * .why = one rhachet event spans several claude buckets (onBoot: SessionStart and the
+ *   compact events; onTool: PreToolUse and PostToolUse), so a delete or a move must search all
+ */
+const getClaudeEventsForHookEvent = (event: BrainHookEvent): string[] => {
+  if (event === 'onBoot') return ['SessionStart', 'PreCompact', 'PostCompact'];
+  if (event === 'onTool') return ['PreToolUse', 'PostToolUse'];
+  if (event === 'onTalk') return ['UserPromptSubmit'];
+  return ['Stop'];
+};
 
 /**
  * .what = creates a claude code brain hooks adapter for a repo
@@ -59,10 +72,14 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
               const authorMatch = entry.matcher.match(/^#\s*author=([^\s]+)/);
               const entryAuthor = authorMatch?.[1] ?? 'unknown';
 
-              // translate each entry to BrainHook(s)
+              // translate each entry to BrainHook(s), with the author tag dropped from the
+              //   matcher: the tag is ours, not the hook's filter, and a hook read back with
+              //   it as its filter would differ from its declaration on every sync
+              const matcherUntagged =
+                entry.matcher.replace(/^#\s*author=\S+\s*/, '') || '*';
               const translated = translateHookFromClaudeCode({
                 event: eventName,
-                entry,
+                entry: { ...entry, matcher: matcherUntagged },
                 author: entryAuthor,
               });
 
@@ -109,6 +126,23 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
 
           // ensure hooks section exists
           let hooksSection = { ...settings.hooks } ?? {};
+
+          // drop this hook from every sibling bucket of its event: a hook whose `when` moved
+          //   (PreToolUse → PostToolUse) would otherwise stay behind in its old bucket, and fire twice
+          for (const bucketSibling of getClaudeEventsForHookEvent(hook.event)) {
+            if (bucketSibling === event) continue;
+            const entriesSibling =
+              hooksSection[bucketSibling as keyof typeof hooksSection] ?? [];
+            const entriesKept = entriesSibling.filter(
+              (e) =>
+                !(
+                  e.matcher.includes(`author=${hook.author}`) &&
+                  e.hooks.some((h) => h.command === hook.command)
+                ),
+            );
+            if (entriesKept.length !== entriesSibling.length)
+              hooksSection = { ...hooksSection, [bucketSibling]: entriesKept };
+          }
 
           // tag entry with author for later identification
           const taggedEntry = {
@@ -163,13 +197,7 @@ export const genBrainHooksAdapterForClaudeCode = (input: {
 
         // determine which claude code event buckets to search
         // for onBoot, search all boot event buckets (hook may be in any)
-        const claudeEvents: string[] = (() => {
-          if (event === 'onBoot')
-            return ['SessionStart', 'PreCompact', 'PostCompact'];
-          if (event === 'onTool') return ['PreToolUse'];
-          if (event === 'onTalk') return ['UserPromptSubmit'];
-          return ['Stop'];
-        })();
+        const claudeEvents = getClaudeEventsForHookEvent(event);
 
         // find and remove from all relevant buckets
         let hooksSection = { ...settings.hooks } ?? {};

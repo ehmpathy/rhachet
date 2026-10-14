@@ -8,29 +8,40 @@ import {
   when,
 } from 'test-fns';
 
+import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoAmbient';
+
 import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
 import { getOneActorOndiskByRef } from './getOneActorOndiskByRef';
+
+// every roleset here then lands on a hash actor, never the repo actor
+const contextNoAmbient = genSampleContextNoAmbient();
 
 describe('getOneActorOndiskByRef.integration', () => {
   given('[case1] two enrolled actors with distinct hashes', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genTempDir({ slug: 'actorByRef' });
-      const a = findsertActorOndisk({
-        repoPath,
-        brain: 'claude',
-        roles: ['mechanic'],
-        delta: null,
-        reason: null,
-        logEnrollment: true,
-      });
-      const b = findsertActorOndisk({
-        repoPath,
-        brain: 'claude',
-        roles: ['driver'],
-        delta: null,
-        reason: null,
-        logEnrollment: true,
-      });
+      const a = await findsertActorOndisk(
+        {
+          repoPath,
+          brain: 'claude',
+          roles: ['mechanic'],
+          delta: null,
+          reason: null,
+          logEnrollment: true,
+        },
+        contextNoAmbient,
+      );
+      const b = await findsertActorOndisk(
+        {
+          repoPath,
+          brain: 'claude',
+          roles: ['driver'],
+          delta: null,
+          reason: null,
+          logEnrollment: true,
+        },
+        contextNoAmbient,
+      );
       return { repoPath, a, b };
     });
 
@@ -38,9 +49,9 @@ describe('getOneActorOndiskByRef.integration', () => {
       then('it resolves to that exact actor', () => {
         const found = getOneActorOndiskByRef({
           repoPath: scene.repoPath,
-          ref: { hashPrefix: scene.a.hash },
+          ref: { hashPrefix: scene.a.exid },
         });
-        expect(found.hash).toEqual(scene.a.hash);
+        expect(found.exid).toEqual(scene.a.exid);
       });
     });
 
@@ -51,16 +62,16 @@ describe('getOneActorOndiskByRef.integration', () => {
           // find a prefix length at which A is unique vs B
           let len = 1;
           while (
-            len < scene.a.hash.length &&
-            scene.b.hash.startsWith(scene.a.hash.slice(0, len))
+            len < scene.a.exid.length &&
+            scene.b.exid.startsWith(scene.a.exid.slice(0, len))
           )
             len += 1;
-          const prefix = scene.a.hash.slice(0, len);
+          const prefix = scene.a.exid.slice(0, len);
           const found = getOneActorOndiskByRef({
             repoPath: scene.repoPath,
             ref: { hashPrefix: prefix },
           });
-          expect(found.hash).toEqual(scene.a.hash);
+          expect(found.exid).toEqual(scene.a.exid);
         });
       },
     );
@@ -122,8 +133,8 @@ describe('getOneActorOndiskByRef.integration', () => {
           metadata?: { candidates?: string[]; hint?: string };
         };
         const candidates = error.metadata?.candidates ?? [];
-        expect(candidates).toContain(`@${scene.a.hash}`);
-        expect(candidates).toContain(`@${scene.b.hash}`);
+        expect(candidates).toContain(`@${scene.a.exid}`);
+        expect(candidates).toContain(`@${scene.b.exid}`);
         expect(candidates).toHaveLength(2);
         expect(error.metadata?.hint).toContain('longer prefix');
       });

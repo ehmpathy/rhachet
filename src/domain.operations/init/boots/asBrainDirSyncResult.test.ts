@@ -9,7 +9,7 @@ import type {
 import { asBrainDirSyncResult } from './asBrainDirSyncResult';
 
 const renderA: BrainDirBootRender = {
-  scope: { kind: 'actor', actorHash: 'aaaaaaaa' },
+  scope: { kind: 'actor', actorExid: 'aaaaaaaa' },
   bootMdPath:
     '/repo/.agent/.actors/actor.via.hash=aaaaaaaa/brain/.claude/boot.md',
   stats: BOOT_STATS_ZERO,
@@ -17,7 +17,7 @@ const renderA: BrainDirBootRender = {
   bootMdCreated: false,
 };
 const renderC: BrainDirBootRender = {
-  scope: { kind: 'actor', actorHash: 'cccccccc' },
+  scope: { kind: 'actor', actorExid: 'cccccccc' },
   bootMdPath:
     '/repo/.agent/.actors/actor.via.hash=cccccccc/brain/.claude/boot.md',
   stats: BOOT_STATS_ZERO,
@@ -25,7 +25,7 @@ const renderC: BrainDirBootRender = {
   bootMdCreated: false,
 };
 const failureB: BrainDirBootFailure = {
-  scope: { kind: 'actor', actorHash: 'bbbbbbbb' },
+  scope: { kind: 'actor', actorExid: 'bbbbbbbb' },
   cause: new Error('EACCES'),
 };
 

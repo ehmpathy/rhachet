@@ -38,7 +38,7 @@ const asListGroup = async (input: {
     })),
   );
   return {
-    hash: input.actor.hash,
+    exid: input.actor.exid,
     brain: input.actor.brain,
     roles: input.actor.roles,
     clones,
@@ -46,7 +46,7 @@ const asListGroup = async (input: {
 };
 
 /**
- * .what = gather the list groups — one actor's clones when a `@<hash-prefix>` is
+ * .what = gather the list groups — one actor's clones when a `@<exid-prefix>` is
  *   given, else every actor's, each reach-enriched into a `CloneListGroup`
  * .why = the single-actor scope and the all-actors scope are two distinct paths;
  *   an early return keeps each a straight-line narrative (no ternary-with-side-
@@ -56,7 +56,7 @@ const getCloneListGroups = async (input: {
   repoPath: string;
   actor: string | undefined;
 }): Promise<CloneListGroup[]> => {
-  // scope to ONE actor when a `@<hash-prefix>` is given
+  // scope to ONE actor when a `@<exid-prefix>` is given
   if (input.actor !== undefined) {
     const found = getOneActorOndiskByRef({
       repoPath: input.repoPath,
@@ -65,11 +65,11 @@ const getCloneListGroups = async (input: {
     const clones = getAllClonesForActor({
       actorDir: getActorOndiskDir({
         repoPath: found.repoPath,
-        hash: found.hash,
+        exid: found.exid,
       }),
       actorsRoot: getActorsRootDir({ repoPath: found.repoPath }),
       repoPath: found.repoPath,
-      actorHash: found.hash,
+      actorExid: found.exid,
     });
     return [await asListGroup({ actor: found, clones })];
   }
@@ -93,7 +93,9 @@ const getCloneListGroups = async (input: {
 export const invokeCloneList = ({ clone }: { clone: Command }): void => {
   clone
     .command('list [actor]')
-    .description('list clones (all, or scoped to one actor by @<hash-prefix>)')
+    .description(
+      'list clones (all, or scoped to one actor by @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)',
+    )
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     .action(async (actor: string | undefined, opts: { output?: string }) => {
       await withCliOutputErrors({

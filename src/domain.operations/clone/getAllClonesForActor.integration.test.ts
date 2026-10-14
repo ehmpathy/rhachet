@@ -12,13 +12,13 @@ describe('getAllClonesForActor.integration', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genTempDir({ slug: 'clonesForActor-two' });
       // spawn the LATER clone first, to prove the sort (not insertion order)
-      const late = genSampleCloneOndisk({
+      const late = await genSampleCloneOndisk({
         repoPath,
         serial: 'ser-late',
         slug: null,
         spawnedAt: asIsoTimeStamp('2026-08-10T02:00:00Z'),
       });
-      genSampleCloneOndisk({
+      await genSampleCloneOndisk({
         repoPath,
         serial: 'ser-early',
         slug: null,
@@ -33,7 +33,7 @@ describe('getAllClonesForActor.integration', () => {
           actorDir: scene.actorDir,
           actorsRoot: scene.actorsRoot,
           repoPath: scene.repoPath,
-          actorHash: scene.actorHash,
+          actorExid: scene.actorExid,
         });
         expect(clones.map((c) => c.serial)).toEqual(['ser-early', 'ser-late']);
       });
@@ -44,7 +44,7 @@ describe('getAllClonesForActor.integration', () => {
     '[case2] an actor dir with a half-built serial dir (no identity.json)',
     () => {
       const scene = useBeforeAll(async () => {
-        const sample = genSampleCloneOndisk({
+        const sample = await genSampleCloneOndisk({
           repoPath: genTempDir({ slug: 'clonesForActor-halfbuilt' }),
           serial: 'ser-real',
           slug: null,
@@ -64,7 +64,7 @@ describe('getAllClonesForActor.integration', () => {
               actorDir: scene.actorDir,
               actorsRoot: scene.actorsRoot,
               repoPath: scene.repoPath,
-              actorHash: scene.actorHash,
+              actorExid: scene.actorExid,
             });
             expect(clones.map((c) => c.serial)).toEqual(['ser-real']);
           },
@@ -89,7 +89,7 @@ describe('getAllClonesForActor.integration', () => {
             actorDir,
             actorsRoot: join(repoPath, '.agent', '.actors'),
             repoPath,
-            actorHash: 'aaa',
+            actorExid: 'hash=aaa',
           }),
         ).toEqual([]);
       });

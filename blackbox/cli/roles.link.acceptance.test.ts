@@ -135,7 +135,7 @@ describe('rhachet roles link', () => {
         // the linked roles stay ignored from within .agent/repo=*; the root spares the default brain dir
         const content = readFileSync(join(repo.path, '.gitignore'), 'utf-8');
         expect(content.split('\n').filter((line) => line.includes('.agent'))).toEqual(
-          ['!.agent/.actors/actor.via.slug=.default/'],
+          ['!.agent/.actors/actor.via.repo=ambient/'],
         );
       });
 
@@ -155,7 +155,7 @@ describe('rhachet roles link', () => {
         const boot = readFileSync(
           join(
             repo.path,
-            '.agent/.actors/actor.via.slug=.default/brain/.claude/boot.md',
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
           ),
           'utf-8',
         );
@@ -429,7 +429,7 @@ describe('rhachet roles link', () => {
       then('the default brain dir boot.md still rendered', () => {
         const bootPath = resolve(
           repo.path,
-          '.agent/.actors/actor.via.slug=.default/brain/.claude/boot.md',
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
         );
         expect(existsSync(bootPath)).toBe(true);
         expect(readFileSync(bootPath, 'utf-8').length).toBeGreaterThan(0);

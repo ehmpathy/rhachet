@@ -38,7 +38,7 @@ export const delClone = (input: {
   const cloneDir = getCloneDir({
     actorDir: getActorOndiskDir({
       repoPath: input.clone.actor.repoPath,
-      hash: input.clone.actor.hash,
+      exid: input.clone.actor.exid,
     }),
     serial: input.clone.serial,
   });

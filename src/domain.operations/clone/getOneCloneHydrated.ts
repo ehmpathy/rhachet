@@ -10,7 +10,7 @@ import { getOneCloneSlugReconciled } from './getOneCloneSlugReconciled';
  * .why =
  *   - a CloneOndisk is more than its identity.json: its display slug is reconciled
  *     against the global index, its `actor` ref is derived from its location
- *     under `actor.via.hash=<hash>/`, and its `historyDir` from its dir. if each
+ *     under `actor.via.<exid>/`, and its `historyDir` from its dir. if each
  *     reader hand-assembled these, the enrichment would drift caller-to-caller
  *   - one seam means a `list`, a `say`, a `get`, and a `whoami` all see the SAME
  *     hydrated shape — the reconciled slug, the composite actor ref, the history
@@ -24,7 +24,7 @@ export const getOneCloneHydrated = (input: {
   cloneDir: string;
   actorsRoot: string;
   repoPath: string;
-  actorHash: string;
+  actorExid: string;
 }): CloneOndisk | null => {
   // read the durable record; an absent one is "no clone here"
   const record = getCloneIdentity({ cloneDir: input.cloneDir });
@@ -40,7 +40,7 @@ export const getOneCloneHydrated = (input: {
   return new CloneOndisk({
     serial: record.serial,
     slug,
-    actor: { repoPath: input.repoPath, hash: input.actorHash },
+    actor: { repoPath: input.repoPath, exid: input.actorExid },
     socketEligible: record.socketEligible,
     spawnedAt: record.spawnedAt,
     hostHash: record.hostHash,

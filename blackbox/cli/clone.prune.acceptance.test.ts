@@ -245,22 +245,22 @@ describe('rhx clone prune + reach-state lifecycle (acceptance)', () => {
 describe('rhx clone prune (acceptance)', () => {
   // provision two DEAD clones (a named `doomed` + a bare) and one DEAF `watcher`,
   // all under one actor. spawnedAt fixes the plan order (doomed, then the bare)
-  const provisionThreeClones = (dir: string): void => {
-    genSampleCloneOndisk({
+  const provisionThreeClones = async (dir: string): Promise<void> => {
+    await genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: 'doomed',
       socketEligible: true, // socket-eligible, no server → the reach probe reads DEAD
       spawnedAt: asIsoTimeStamp('2026-08-11T00:00:00Z'),
     });
-    genSampleCloneOndisk({
+    await genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: null, // a bare clone — reached by its full serial, not a slug
       socketEligible: true,
       spawnedAt: asIsoTimeStamp('2026-08-11T01:00:00Z'),
     });
-    genSampleCloneOndisk({
+    await genSampleCloneOndisk({
       repoPath: dir,
       serial: getUuid(),
       slug: 'watcher',
@@ -273,7 +273,7 @@ describe('rhx clone prune (acceptance)', () => {
     const scene = useBeforeAll(async () => {
       const dir = genTempDir({ slug: 'clone-prune-plan' });
       setupEnrollFixture({ dir });
-      provisionThreeClones(dir);
+      await provisionThreeClones(dir);
       return { dir, env: { PATH: process.env.PATH ?? '' } };
     });
 
@@ -335,7 +335,7 @@ describe('rhx clone prune (acceptance)', () => {
     const scene = useBeforeAll(async () => {
       const dir = genTempDir({ slug: 'clone-prune-apply' });
       setupEnrollFixture({ dir });
-      provisionThreeClones(dir);
+      await provisionThreeClones(dir);
       return { dir, env: { PATH: process.env.PATH ?? '' } };
     });
 
@@ -388,7 +388,7 @@ describe('rhx clone prune (acceptance)', () => {
     const scene = useBeforeAll(async () => {
       const dir = genTempDir({ slug: 'clone-prune-apply-json' });
       setupEnrollFixture({ dir });
-      provisionThreeClones(dir);
+      await provisionThreeClones(dir);
       return { dir, env: { PATH: process.env.PATH ?? '' } };
     });
 
@@ -428,7 +428,7 @@ describe('rhx clone prune (acceptance)', () => {
       const dir = genTempDir({ slug: 'clone-prune-age' });
       setupEnrollFixture({ dir });
       // one DEAD clone that died JUST NOW — younger than the 1h gate below
-      genSampleCloneOndisk({
+      await genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'fresh',
@@ -605,7 +605,7 @@ describe('rhx clone prune (acceptance)', () => {
       // is a FILE, not a dir, so delClone's readdir throws ENOTDIR mid-reap. this
       // is a deterministic, portable reap failure — no chmod (root bypasses it),
       // no race — the same plant-a-broken-artifact discipline as clone.get-advisory
-      const stubborn = genSampleCloneOndisk({
+      const stubborn = await genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'stubborn',
@@ -618,7 +618,7 @@ describe('rhx clone prune (acceptance)', () => {
         'utf8',
       );
 
-      genSampleCloneOndisk({
+      await genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'reapable',
@@ -697,7 +697,7 @@ describe('rhx clone prune (acceptance)', () => {
 
       // same plant as case4: the stubborn clone's `history/` is a FILE, so delClone's
       // readdir throws ENOTDIR mid-reap — a deterministic, portable reap failure
-      const stubborn = genSampleCloneOndisk({
+      const stubborn = await genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'stubborn',
@@ -710,7 +710,7 @@ describe('rhx clone prune (acceptance)', () => {
         'utf8',
       );
 
-      genSampleCloneOndisk({
+      await genSampleCloneOndisk({
         repoPath: dir,
         serial: getUuid(),
         slug: 'reapable',

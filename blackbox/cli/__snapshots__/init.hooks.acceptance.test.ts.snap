@@ -5,13 +5,12 @@ exports[`rhachet init --hooks given: [case7] a repo with an enrolled actor on di
    └─ test/tester
 
 🪝 apply hooks to brains...
-   └─ test/tester → anthropic/claude/code: ~3
 
 ✨ hooks
-   └─ 3 updated
+   └─ no changes needed
 
 🧢 apply hooks to enrolled actors...
-   └─ deadbeef: +3
+   └─ hash=deadbeef: +3
 
 "
 `;
@@ -36,11 +35,12 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.slug=.default/brain/.claude/settings.json
+   │  ├─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

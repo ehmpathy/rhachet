@@ -1,11 +1,14 @@
 import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
-import { genContextCli } from '@src/domain.objects/ContextCli';
+import { type ContextCli, genContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
+import { setPrepareRhachetRolesDelta } from '@src/domain.operations/init/prep/setPrepareRhachetRolesDelta';
 import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/getRoleSlugsForFlags';
 import { setIncrementalRoles } from '@src/domain.operations/init/roles/incremental/setIncrementalRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
@@ -15,6 +18,30 @@ import { getRoleDeltaMode } from '@src/domain.operations/roles/deltas/getRoleDel
 import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+
+/**
+ * .what = apply an incremental role delta to the `prepare:rhachet` replay; null when the
+ *   roles are absent or absolute (an absolute set is persisted by `--prep` itself)
+ * .why = removals apply always, so the next install never re-links a removed role
+ *   (critical: inventory.of=requirements.case=1); additions only under `--prep`, which
+ *   asks to persist them
+ */
+const setPrepareRhachetOfIncrementalOrNull = async (
+  input: { deltas: RoleDelta[] | null; prep: boolean },
+  context: ContextCli,
+): Promise<Awaited<ReturnType<typeof setPrepareRhachetRolesDelta>> | null> => {
+  if (input.deltas === null) return null;
+  const mode = getRoleDeltaMode({ deltas: input.deltas });
+  if (mode !== 'incremental') return null;
+  const additions = input.prep
+    ? getRoleDeltasOfKind({ deltas: input.deltas, kind: 'addition' })
+    : [];
+  const removals = getRoleDeltasOfKind({
+    deltas: input.deltas,
+    kind: 'subtraction',
+  });
+  return await setPrepareRhachetRolesDelta({ additions, removals }, context);
+};
 
 /**
  * .what = adds the "init" command to the CLI
@@ -85,6 +112,16 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             : null;
         const roleSlugsForFlags = getRoleSlugsForFlags({ deltas });
 
+        // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
+        //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
+        //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits
+        const layoutBeforeInits =
+          deltas !== null
+            ? await setRepoActorBrainDirLayoutBeforeInits({
+                repoPath: context.gitroot,
+              })
+            : null;
+
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
@@ -120,6 +157,13 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
           return false;
         })();
+
+        // an incremental delta reaches the `prepare:rhachet` replay, so the next install
+        // never re-links a removed role (critical: inventory.of=requirements.case=1)
+        const prepareDelta = await setPrepareRhachetOfIncrementalOrNull(
+          { deltas, prep: options.prep === true },
+          context,
+        );
 
         // flag: --keys => init keyrack manifest (after roles); plain slugs only
         if (options.keys && roleSlugsForFlags.length > 0) {
@@ -160,16 +204,20 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         const boots =
           deltas !== null || options.hooks !== undefined
             ? await syncAndReportBrainDirBoots(
-                { repoPath: context.gitroot, env: process.env },
+                {
+                  repoPath: context.gitroot,
+                  env: process.env,
+                  symlinkPrior: layoutBeforeInits?.symlink ?? null,
+                },
                 context,
               )
-            : { exitCode: 0 as const, defaultRendered: true };
+            : { exitCode: 0 as const, repoActorRendered: true };
 
         // flag: --hooks => apply hooks, only once the default boot.md rendered;
         // the iife yields a boolean so the error state stays an immutable const
         const hooksHaveErrors = await (async (): Promise<boolean> => {
           if (options.hooks === undefined) return false;
-          if (!boots.defaultRendered) return false;
+          if (!boots.repoActorRendered) return false;
           const brains =
             Array.isArray(options.hooks) && options.hooks.length > 0
               ? options.hooks
@@ -178,9 +226,17 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           return hookResult.errors.length > 0;
         })();
 
-        // flag: --prep => persist to package.json; plain slugs only
-        if (options.prep && roleSlugsForFlags.length > 0) {
-          persistPrepareEntries(
+        // flag: --prep => persist to package.json; plain slugs only.
+        // an incremental delta already applied itself to an extant entry above; a full
+        // write here would replace the extant roles with the additions alone
+        const isPrepareDeltaApplied =
+          prepareDelta !== null && prepareDelta.effect !== 'ABSENT';
+        if (
+          options.prep &&
+          roleSlugsForFlags.length > 0 &&
+          !isPrepareDeltaApplied
+        ) {
+          await persistPrepareEntries(
             {
               hooks: options.hooks !== undefined,
               roles: roleSlugsForFlags,

@@ -8,6 +8,7 @@ import {
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -19,7 +20,8 @@ import { join } from 'node:path';
  * .why =
  *   - usecase.5: a caller discovers the identities on disk before it reaches a clone
  *   - an empty state must name the get-started move (never a dead end); a populated
- *     state must show the hash actor (enroll is hash-only — never a slug actor)
+ *     state must show the enrolled actor — the repo actor (`repo=ambient`) for a bare
+ *     enroll, a hash actor for a specific-roles enroll, never a slug actor
  *   - `--output json` carries the machine shape a cron/supervisor reads
  */
 describe('rhx actor list (acceptance)', () => {
@@ -93,7 +95,7 @@ describe('rhx actor list (acceptance)', () => {
 
     when('[t0] `actor list` after an enroll', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinaryAsync({
           args: ['actor', 'list'],
           cwd: scene.dir,
           env: scene.env,
@@ -101,7 +103,7 @@ describe('rhx actor list (acceptance)', () => {
         }),
       );
 
-      then('the enrolled hash actor appears with its brain + roles', () => {
+      then('the enrolled repo actor appears with its brain + roles', () => {
         expect(run.status).toEqual(0);
         expect(run.stdout).toContain('brain=claude');
         // the roleset the fixture links (each present, order-independent)
@@ -119,7 +121,7 @@ describe('rhx actor list (acceptance)', () => {
 
     when('[t1] `actor list --output json` after an enroll', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinaryAsync({
           args: ['actor', 'list', '--output', 'json'],
           cwd: scene.dir,
           env: scene.env,
@@ -127,15 +129,15 @@ describe('rhx actor list (acceptance)', () => {
         }),
       );
 
-      then('the machine shape carries the full hash + brain + roles', () => {
+      then('the machine shape carries the full exid + brain + roles', () => {
         expect(run.status).toEqual(0);
         const parsed = JSON.parse(run.stdout) as {
-          actors: { hash: string; brain: string; roles: string[] }[];
+          actors: { exid: string; brain: string; roles: string[] }[];
         };
         expect(parsed.actors).toHaveLength(1);
         const actor = parsed.actors[0]!;
-        // the full hash (not the abbreviated human form) is machine-reachable
-        expect(actor.hash.length).toBeGreaterThan(7);
+        // a bare enroll lands in the repo actor; its whole exid is machine-reachable
+        expect(actor.exid).toEqual('repo=ambient');
         expect(actor.brain).toEqual('claude');
         expect(actor.roles).toEqual(
           expect.arrayContaining(['driver', 'mechanic', 'architect']),
@@ -331,6 +333,80 @@ describe('rhx actor list (acceptance)', () => {
         // so it is deterministic — the json twin of the tree error above, the last
         // `actor list` output variant per rule.require.contract-snapshot-exhaustiveness
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  // the HASH-actor path — an enroll with a specific roleset lands in a hash actor, never
+  // the repo actor, and its json must carry the whole content-addressed exid
+  given('[case6] a linked repo with ONE hash actor enrolled (--roles -driver)', () => {
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'actor-list-hash' });
+      const configDir = genTempDir({ slug: 'actor-list-hash-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = { PATH: stubPath, CLAUDE_CONFIG_DIR: configDir };
+      const { bg } = await enrollCloneAndWaitReady({
+        dir,
+        env,
+        as: '@:reviewer',
+        extraArgs: ['--roles', '-driver'],
+      });
+      return { dir, env, bg };
+    });
+    afterAll(async () => {
+      await scene.bg.kill();
+    });
+
+    when('[t0] `actor list --output json` after the enroll', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['actor', 'list', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the machine shape carries the whole hash exid, and no driver', () => {
+        expect(run.status).toEqual(0);
+        const parsed = JSON.parse(run.stdout) as {
+          actors: { exid: string; brain: string; roles: string[] }[];
+        };
+        expect(parsed.actors).toHaveLength(1);
+        const actor = parsed.actors[0]!;
+        // the whole 8-hex hash, namespaced — never an elided or bare form
+        expect(actor.exid).toMatch(/^hash=[0-9a-f]{8}$/);
+        expect(actor.brain).toEqual('claude');
+        expect(actor.roles).not.toContain('driver');
+      });
+
+      then('the machine shape is locked, beside its repo-actor peer', () => {
+        // a `--roles -driver` enroll is a delta actor, so the hash is a content address of
+        //   `{ brain, base: 'ambient', delta }`; it holds still per delta and needs no mask
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] `actor list` (the tree a human reads) after the enroll', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['actor', 'list'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the tree names the hash actor by its `@hash=` address', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stdout).toMatch(/@hash=[0-9a-f]{8}/);
+      });
+
+      then('the hash-actor tree is locked, beside its repo-actor peer', () => {
+        // the human twin of [t0]: a hash actor renders `@hash=<8hex>`, a different address
+        //   shape than the repo actor's `@repo=ambient` ([case2])
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
       });
     });
   });

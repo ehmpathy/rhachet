@@ -13,6 +13,7 @@ describe('asCloneSayRefusalObservation', () => {
           transcriptRose: false,
           screen: null,
           probeReason: null,
+          exitAsked: false,
         });
       });
     });
@@ -28,6 +29,7 @@ describe('asCloneSayRefusalObservation', () => {
           transcriptRose: false,
           screen: null,
           probeReason: null,
+          exitAsked: false,
         });
       });
     });

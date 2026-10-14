@@ -3,6 +3,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   readlinkSync,
   realpathSync,
@@ -15,7 +16,10 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import { asBrainDirReportBlock } from '@/blackbox/.test/infra/asBrainDirReportBlock';
 import { asBrainDirReportSnapshot } from '@/blackbox/.test/infra/asBrainDirReportSnapshot';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the BARE `rhx upgrade` journey — no flags — over a repo whose `<repo>/.claude`
@@ -48,7 +52,7 @@ import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliB
 const DEFAULT_BRAIN_DIR = join(
   '.agent',
   '.actors',
-  'actor.via.slug=.default',
+  'actor.via.repo=ambient',
   'brain',
   '.claude',
 );
@@ -175,12 +179,28 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
 
       // ── the three dispositions: MOVE, MOVE, DROP ────────────────────────────
 
-      then('the non-boot settings.json MOVED, with its human hook intact', () => {
+      // the moved settings.json is a real file in claude's arrow slot, so the layout
+      // replaces it with the grove arrow: one answer, rhachet's. settings.of.repo.json holds
+      // only what the roles derive, so the hand hook does not ride into it
+      then('the non-boot settings.json MOVED, then the grove arrow replaced it', () => {
+        expect(
+          lstatSync(join(scene.defaultBrainDir, 'settings.json'), {
+            throwIfNoEntry: false,
+          })?.isFile() ?? false,
+        ).toBe(false);
         const settings = readFileSync(
-          join(scene.defaultBrainDir, 'settings.json'),
+          join(scene.defaultBrainDir, 'settings.of.repo.json'),
           'utf-8',
         );
-        expect(settings).toContain(HUMAN_HOOK);
+        expect(settings).not.toContain(HUMAN_HOOK);
+      });
+
+      then('no copy of the replaced file is kept aside', () => {
+        expect(
+          readdirSync(scene.defaultBrainDir).filter((name) =>
+            name.includes('.forked.'),
+          ),
+        ).toEqual([]);
       });
 
       then('the second non-boot entry MOVED, byte-identical', () => {
@@ -226,18 +246,32 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
 
       // ── the two gitignore edits ─────────────────────────────────────────────
 
-      then('the brain dir .gitignore holds boot.md and *.local.json', () => {
-        const ignore = readFileSync(
-          join(scene.defaultBrainDir, '.gitignore'),
-          'utf-8',
-        );
-        expect(ignore).toContain('boot.md');
-        expect(ignore).toContain('*.local.json');
-      });
+      then(
+        'the brain dir .gitignore is the allowlist: the doors and the four settings names',
+        () => {
+          const ignore = readFileSync(
+            join(scene.defaultBrainDir, '.gitignore'),
+            'utf-8',
+          );
+          expect(ignore).toEqual(
+            [
+              '/*',
+              '!/.gitignore',
+              '!/AGENTS.md',
+              '!/CLAUDE.md',
+              '!/settings.json',
+              '!/settings.of.repo.json',
+              '!/settings.of.grove.json',
+              '!/settings.local.json',
+              '',
+            ].join('\n'),
+          );
+        },
+      );
 
       then('the root .gitignore negates the default actor dir', () => {
         expect(readFileSync(join(scene.repo.path, '.gitignore'), 'utf-8')).toContain(
-          '!.agent/.actors/actor.via.slug=.default/',
+          '!.agent/.actors/actor.via.repo=ambient/',
         );
       });
 
@@ -263,7 +297,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
         expect(upgrade.stdout).not.toContain('boot.md (default):');
 
         const block = asBrainDirReportBlock({ stdout: upgrade.stdout });
-        expect(block).toContain('🧠 brain dir (default)');
+        expect(block).toContain('🧠 brain://repo=ambient');
         expect(block).toContain(`→ ${DEFAULT_BRAIN_DIR}/`);
         expect(block).toContain(`linked`);
       });
@@ -281,14 +315,18 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
     });
 
     when('[t2] rhx upgrade a SECOND time — bare again', () => {
-      const again = useBeforeAll(async () =>
-        invokeRhachetCliBinary({
+      const again = useBeforeAll(async () => {
+        const result = invokeRhachetCliBinary({
           binary: 'rhx',
           args: ['upgrade'],
           cwd: scene.repo.path,
           logOnError: false,
-        }),
-      );
+        });
+        const forkedAfter = readdirSync(scene.defaultBrainDir).filter((name) =>
+          name.includes('.forked.'),
+        );
+        return { ...result, forkedAfter };
+      });
 
       then('exits 0 — the migration is idempotent', () => {
         expect({
@@ -311,9 +349,6 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
         expect(
           readFileSync(join(scene.defaultBrainDir, 'keep.json'), 'utf-8'),
         ).toEqual(KEPT_FILE_BODY);
-        expect(
-          readFileSync(join(scene.defaultBrainDir, 'settings.json'), 'utf-8'),
-        ).toContain(HUMAN_HOOK);
       });
 
       then('the boot context is still the rhachet-owned trio', () => {
@@ -326,6 +361,30 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
         expect(
           readFileSync(join(scene.defaultBrainDir, 'boot.md'), 'utf-8'),
         ).toContain('<brief.say');
+      });
+
+      then('stdout reports no brain dir change — a no-op sync is silent', () => {
+        // the FOUND branch: the real dir is gone, so the re-run moves, drops and links
+        //   naught. the role init rewrote claude's name again, and the layout replaced it
+        //   with the arrow, which is no news. a sync with no news emits no block
+        //   (`asBrainDirSyncReportLines`: success is not news)
+        expect(again.stdout).not.toContain('boot.md (default):');
+        expect(again.stdout).not.toContain('kept aside');
+        expect(again.stdout).not.toContain(`→ ${DEFAULT_BRAIN_DIR}/`);
+        expect(asBrainDirReportBlock({ stdout: again.stdout })).toEqual('');
+      });
+
+      then('no forked copy accrues — the re-run keeps none in the brain dir', () => {
+        expect(again.forkedAfter).toEqual([]);
+      });
+
+      then('the re-run tree is locked to a snapshot', () => {
+        // the idempotent run's own report: a reader sees in a pr diff that the second
+        //   pass reports naught, paired with the asserts above
+        //   (`rule.require.contract-snapshot-exhaustiveness`)
+        expect(
+          asSnapshotSafe(asBrainDirReportBlock({ stdout: again.stdout })),
+        ).toMatchSnapshot();
       });
     });
   });

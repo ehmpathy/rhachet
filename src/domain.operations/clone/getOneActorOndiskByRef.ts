@@ -4,15 +4,17 @@ import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 
 import { getAllActorsOndisk } from '../actor/enrolled/getAllActorsOndisk';
 import type { ActorRef } from './asActorRef';
+import { isActorExidMatchedByPrefix } from './isActorExidMatchedByPrefix';
 
 const CANDIDATE_CAP = 8;
 
 /**
- * .what = look up the ONE enrolled actor an actor ref (`@<hash-prefix>`) names —
+ * .what = look up the ONE enrolled actor an actor ref (`@<exid-prefix>`) names —
  *   git-style, a unique prefix wins
  * .why =
- *   - a full 8-char enrollment hash is a mouthful at a keyboard, so a human
- *     reaches an actor by a short prefix — exactly as `git` names a commit by a
+ *   - a full exid (`hash=9c1e0a7b`) is a mouthful at a keyboard, so a human
+ *     reaches an actor by a short prefix of the exid or of its value (`@9c1e`,
+ *     `@repo=ambient`) — exactly as `git` names a commit by a
  *     short prefix. this is the lookup behind `rhx clone list @<actor>`
  *   - an AMBIGUOUS prefix must never silently pick one actor: it fails loud,
  *     names the candidate actors, and asks for a longer prefix. a NO-match fails
@@ -27,7 +29,10 @@ export const getOneActorOndiskByRef = (input: {
 }): ActorOndisk => {
   const actors = getAllActorsOndisk({ repoPath: input.repoPath });
   const matches = actors.filter((actor) =>
-    actor.hash.startsWith(input.ref.hashPrefix),
+    isActorExidMatchedByPrefix({
+      exid: actor.exid,
+      prefix: input.ref.hashPrefix,
+    }),
   );
 
   // exactly one — the unique-prefix win
@@ -44,7 +49,7 @@ export const getOneActorOndiskByRef = (input: {
     );
 
   // ambiguous — name the candidates, ask for a longer prefix
-  const candidates = matches.slice(0, CANDIDATE_CAP).map((a) => `@${a.hash}`);
+  const candidates = matches.slice(0, CANDIDATE_CAP).map((a) => `@${a.exid}`);
   return ConstraintError.throw(
     `'@${input.ref.hashPrefix}' is ambiguous — it matches ${matches.length} actors`,
     {

@@ -3,7 +3,7 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
-import { getOneActorOndiskByHash } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByHash';
+import { getOneActorOndiskByExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskByExid';
 import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddressHuman';
 import { asCloneReachError } from '@src/domain.operations/clone/asCloneReachError';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
@@ -191,7 +191,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             // comes off the clone's own actor (canonical), never the cwd
             const actorDir = getActorOndiskDir({
               repoPath: cloneFound.actor.repoPath,
-              hash: cloneFound.actor.hash,
+              exid: cloneFound.actor.exid,
             });
             const cloneDir = getCloneDir({
               actorDir,
@@ -213,11 +213,11 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
             // spawn-time link already ran), so without this a fresh clone's history
             // stays empty forever. findsert + idempotent: an already-claimed exid is
             // a no-op (genClone.ts note: "a later `get` re-links"). the brain +
-            // spawn-cwd come off the actor record, read O(1) by the clone's own hash
+            // spawn-cwd come off the actor record, read O(1) by the clone's own exid
             // (not an O(actors) enumerate-then-find scan on this hot reach path)
-            const actorRecord = getOneActorOndiskByHash({
+            const actorRecord = getOneActorOndiskByExid({
               repoPath,
-              hash: cloneFound.actor.hash,
+              exid: cloneFound.actor.exid,
             });
             if (actorRecord)
               genCloneHistoryLink({

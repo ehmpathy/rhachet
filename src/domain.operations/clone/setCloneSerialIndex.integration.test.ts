@@ -12,7 +12,7 @@ describe('setCloneSerialIndex.integration', () => {
         '.actors',
       );
       mkdirSync(actorsRoot, { recursive: true });
-      setCloneSerialIndex({ actorsRoot, actorHash: 'aaa', serial: 's1' });
+      setCloneSerialIndex({ actorsRoot, actorExid: 'hash=aaa', serial: 's1' });
       return { actorsRoot };
     });
 
@@ -33,8 +33,8 @@ describe('setCloneSerialIndex.integration', () => {
       );
       mkdirSync(actorsRoot, { recursive: true });
       // two writes of the same serial — a self-heal / a retry, never a fault
-      setCloneSerialIndex({ actorsRoot, actorHash: 'aaa', serial: 's1' });
-      setCloneSerialIndex({ actorsRoot, actorHash: 'aaa', serial: 's1' });
+      setCloneSerialIndex({ actorsRoot, actorExid: 'hash=aaa', serial: 's1' });
+      setCloneSerialIndex({ actorsRoot, actorExid: 'hash=aaa', serial: 's1' });
       return { actorsRoot };
     });
 

@@ -2,6 +2,8 @@ import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 
 import { genCloneHistoryRelink } from '../genCloneHistoryRelink';
 import { getCloneSubmittedCount } from '../getCloneSubmittedCount';
+import { getOneCloneTraceSinkToLog } from '../getOneCloneTraceSinkToLog';
+import { isBrainCliExitCommand } from '../isBrainCliExitCommand';
 import { asCloneObservationScreen } from './asCloneObservationScreen';
 import { asCloneProbeReason } from './asCloneProbeReason';
 import type { CloneSayDebugCycle } from './computeCloneSayDebugReport';
@@ -76,6 +78,15 @@ export const getCloneSayObservation = async (input: {
   //   alter a verdict. bounded by the poll deadline (~60 cycles at the 250ms floor)
   const trail: CloneSayDebugCycle[] = [];
 
+  // a per-poll probe degrade is traced to the durable log alone, never to stderr: stderr is the
+  // say's machine channel, and a degrade that self-heals on the next poll is not a verdict. a
+  // fault that persists still reaches the caller — as the verdict itself, with its cause
+  const traceFault = getOneCloneTraceSinkToLog({ repoPath: input.repoPath });
+
+  // a fact about the message, never a read: did it ask the clone to end? the verdict reads a
+  // gone socket after such a say as the asked exit, never as a probe fault
+  const exitAsked = isBrainCliExitCommand({ message: input.message });
+
   for (;;) {
     // the transcript rise is the `released` basis — the strongest observation. relink the
     // transcript (a lazily-written jsonl is picked up), then read the pure count
@@ -102,6 +113,7 @@ export const getCloneSayObservation = async (input: {
       message: input.message,
       debug: true,
       replyTimeoutMs: CLONE_SAY_PROBE_REPLY_MS,
+      traceFault,
     });
     const screen = asCloneObservationScreen({
       reply,
@@ -129,7 +141,8 @@ export const getCloneSayObservation = async (input: {
       cyclesElapsed,
       deadlineReached: Date.now() >= deadline,
     });
-    if (step.done) return { observation: step.observation, trail };
+    if (step.done)
+      return { observation: { ...step.observation, exitAsked }, trail };
 
     await new Promise<void>((done) => setTimeout(done, pollMs));
     cyclesElapsed += 1;

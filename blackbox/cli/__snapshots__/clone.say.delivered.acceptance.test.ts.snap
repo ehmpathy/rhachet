@@ -1,0 +1,77 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone reach (acceptance) given: [case11] a clone mid-turn (busy) that holds the message when: [t0] a say to the busy clone (default --await enqueue) then: the enqueued json envelope is locked — the machine twin a retry policy reads 1`] = `
+"{
+  "delivered": true,
+  "verdict": "enqueued",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "busybrain"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case11] a clone mid-turn (busy) that holds the message when: [t0] a say to the busy clone (default --await enqueue) then: the enqueued stdout format is locked (visual spot-check) 1`] = `
+"😶🎙️ enqueued for @:busybrain — mid-turn; lands next
+   └─ 🟡 held behind the active turn, not yet taken — if that turn is aborted (ctrl-C, crash, prune) the hold dies with it, unsent
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case12] a clone whose write reached the box but did not submit when: [t0] a say whose bytes reach the box but never submit then: the buffered/holds-text stderr envelope is locked (visual spot-check) 1`] = `
+"{
+  "class": "MalfunctionError",
+  "message": "the message sits in the clone input box but the submit did not take",
+  "hint": "do NOT re-send (it would append) — verify the clone accepts a submit, or retry with --await release",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": true,
+    "verdict": "buffered",
+    "reason": "input-region-holds-text",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "bufferbox",
+    "hint": "do NOT re-send (it would append) — verify the clone accepts a submit, or retry with --await release",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case12] a clone whose write reached the box but did not submit when: [t1] the same un-submitted say, on the HUMAN tree channel then: the buffered human frame is locked (visual spot-check) 1`] = `
+"
+💥 MalfunctionError: the message sits in the clone input box but the submit did not take
+
+{
+  "hint": "do NOT re-send (it would append) — verify the clone accepts a submit, or retry with --await release",
+  "delivered": true,
+  "verdict": "buffered",
+  "reason": "input-region-holds-text",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "bufferbox-tree",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case13b] a SUCCESS verdict with --debug — the other half of the stream when: [t0] a say that SUCCEEDS, with --debug then: the capture NOTICE is a caller-faced contract, so it is snapped 1`] = `"🔍 clone say capture appended → /TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"`;
+
+exports[`rhx clone reach (acceptance) given: [case15] an idle clone asked for the STRONGEST await target when: [t0] a say with an EXPLICIT \`--await release\` then: the released json envelope under \`--await release\` is locked 1`] = `
+"{
+  "delivered": true,
+  "verdict": "released",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "awaitrel"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case16] a live clone asked to end (\`/exit\`) when: [t0] a say of \`/exit\` to the clone then: the exited stdout is locked, end to end through the cli 1`] = `
+"😶🎙️ said to @:exitme — the clone exited as asked
+"
+`;

@@ -3,7 +3,7 @@ import { ACTORS_GITIGNORE_LINE } from '@src/domain.operations/actor/enrolled/con
 /**
  * .what = one repo `.gitignore` line → the children form, if it excludes the `.actors` dir
  * .why = git never re-includes a path beneath an excluded dir, so a `.agent/.actors/` line
- *        blocks the default dir's negation; `.agent/.actors/*` ignores the same actors and
+ *        blocks the repo actor dir's negation; `.agent/.actors/*` ignores the same actors and
  *        leaves room for the negation (D10)
  *
  * .note = a lead `/` is kept; every other line comes back as it was

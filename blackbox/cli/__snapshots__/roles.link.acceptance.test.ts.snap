@@ -17,9 +17,9 @@ exports[`rhachet roles link given: [case1] repo with link sources when: [t0] rol
       ├─ 1 brief(s)
       └─ 1 skill(s)
 
-🧠 brain dir (default)
+🧠 brain://repo=ambient
    ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=.default/brain/.claude
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

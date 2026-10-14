@@ -20,10 +20,8 @@ import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
  * .note = pure: the invoker reads the actors off disk AND probes whether the repo is
  *   linked (impure), then hands both here
  *
- * .note = the hash renders WHOLE. `genEnrollmentHash` mints 8 chars, so that value IS
- *   the actor's entire name — an elision would hide one char, spend a glyph on the
- *   ellipsis, and break the one contract this view owes: `@<hash>` must be copyable
- *   off the list and re-typable by hand (define.address-sigils)
+ * .note = the exid renders WHOLE (`repo=ambient`, or `hash=` and its 8 chars), so `@<exid>`
+ *   copies off the list and re-types by hand (define.address-sigils)
  */
 export const asActorListView = (input: {
   actors: ActorOndisk[];
@@ -57,7 +55,7 @@ export const asActorListView = (input: {
     lines.push(
       // roles are shown sorted so the display is deterministic (it matches the
       // sorted roleset the identity hash is derived from) — never incidental order
-      `${prefix} @${actor.hash}  brain=${actor.brain}  roles=${[...actor.roles].sort().join(',')}`,
+      `${prefix} @${actor.exid}  brain=${actor.brain}  roles=${[...actor.roles].sort().join(',')}`,
     );
   });
 

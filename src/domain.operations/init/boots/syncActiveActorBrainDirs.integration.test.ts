@@ -1,73 +1,19 @@
 import { ConstraintError } from 'helpful-errors';
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import { given, then, useBeforeAll, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { genSampleActorWithClone } from '@src/.test/assets/genSampleActorWithClone';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
-import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { getDefaultActorOndiskDir } from '@src/domain.operations/actor/enrolled/getDefaultActorOndiskDir';
+import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
 
-/**
- * .what = a git repo with synthetic roles linked under `.agent/`
- */
-const genRepoWithRoles = (input: {
-  slug: string;
-  roles: { repo: string; role: string }[];
-}): string => {
-  const repoPath = realpathSync(genTempDir({ slug: input.slug, git: true }));
-  for (const role of input.roles) {
-    const roleDir = join(
-      repoPath,
-      '.agent',
-      `repo=${role.repo}`,
-      `role=${role.role}`,
-    );
-    mkdirSync(join(roleDir, 'briefs'), { recursive: true });
-    writeFileSync(join(roleDir, 'readme.md'), `${role.role} readme`);
-    writeFileSync(
-      join(roleDir, 'briefs', 'core.md'),
-      `${role.role} brief body`,
-    );
-  }
-  return repoPath;
-};
-
-/**
- * .what = seed one actor with one clone; `live` makes the clone DEAF (a live pid), else DEAD
- */
-const genActorWithClone = (input: {
-  repoPath: string;
-  roles: string[];
-  live: boolean;
-}): { actorHash: string; brainDir: string } => {
-  const seeded = genSampleCloneOndisk({
-    repoPath: input.repoPath,
-    roles: input.roles,
-    serial: getUuid(),
-    slug: null,
-    // socketless + this live test process's pid → DEAF; a socket with no server → DEAD
-    socketEligible: !input.live,
-  });
-  return {
-    actorHash: seeded.actorHash,
-    brainDir: getBrainOndiskDir({
-      actorDir: getActorOndiskDir({
-        repoPath: seeded.repoPath,
-        hash: seeded.actorHash,
-      }),
-    }),
-  };
-};
+// a git repo with synthetic roles linked under `.agent/`
+const genRepoWithRoles = genSampleRepoWithRoles;
 
 const REFS_LINKED = [
   { repo: '.this', role: 'any' },
@@ -82,15 +28,19 @@ describe('syncActiveActorBrainDirs', () => {
         slug: 'sync-active-actors',
         roles: [...REFS_LINKED, { repo: 'fixture', role: 'wide' }],
       });
-      const zeta = genActorWithClone({ repoPath, roles: ['zeta'], live: true });
-      const anyZeta = genActorWithClone({
+      const zeta = await genSampleActorWithClone({
+        repoPath,
+        roles: ['zeta'],
+        live: true,
+      });
+      const anyZeta = await genSampleActorWithClone({
         repoPath,
         roles: ['any', 'zeta'],
         live: true,
       });
 
       // a dead actor: its brain dir holds a stale boot.md that must stay as is
-      const dead = genActorWithClone({
+      const dead = await genSampleActorWithClone({
         repoPath,
         roles: ['omega'],
         live: false,
@@ -126,10 +76,10 @@ describe('syncActiveActorBrainDirs', () => {
           expect(
             scene.result.renders
               .map((render) =>
-                render.scope.kind === 'actor' ? render.scope.actorHash : null,
+                render.scope.kind === 'actor' ? render.scope.actorExid : null,
               )
               .sort(),
-          ).toEqual([scene.zeta.actorHash, scene.anyZeta.actorHash].sort());
+          ).toEqual([scene.zeta.actorExid, scene.anyZeta.actorExid].sort());
         },
       );
 
@@ -164,9 +114,9 @@ describe('syncActiveActorBrainDirs', () => {
         );
       });
 
-      then('the default brain dir is untouched', () => {
+      then('the repo actor brain dir is untouched', () => {
         expect(
-          existsSync(getDefaultActorOndiskDir({ repoPath: scene.repoPath })),
+          existsSync(getOneRepoActorOndiskDir({ repoPath: scene.repoPath })),
         ).toBe(false);
       });
     });
@@ -210,8 +160,16 @@ describe('syncActiveActorBrainDirs', () => {
         slug: 'sync-active-actors-unlinked',
         roles: REFS_LINKED,
       });
-      const gone = genActorWithClone({ repoPath, roles: ['gone'], live: true });
-      const zeta = genActorWithClone({ repoPath, roles: ['zeta'], live: true });
+      const gone = await genSampleActorWithClone({
+        repoPath,
+        roles: ['gone'],
+        live: true,
+      });
+      const zeta = await genSampleActorWithClone({
+        repoPath,
+        roles: ['zeta'],
+        live: true,
+      });
       const result = await syncActiveActorBrainDirs({
         repoPath,
         refsLinked: REFS_LINKED,
@@ -224,7 +182,7 @@ describe('syncActiveActorBrainDirs', () => {
         expect(scene.result.failures).toHaveLength(1);
         expect(scene.result.failures[0]!.scope).toEqual({
           kind: 'actor',
-          actorHash: scene.gone.actorHash,
+          actorExid: scene.gone.actorExid,
         });
         expect(scene.result.failures[0]!.cause).toBeInstanceOf(ConstraintError);
         expect(scene.result.failures[0]!.cause.message).toContain('gone');
@@ -232,7 +190,7 @@ describe('syncActiveActorBrainDirs', () => {
 
       then('the rest still render', () => {
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'actor', actorHash: scene.zeta.actorHash },
+          { kind: 'actor', actorExid: scene.zeta.actorExid },
         ]);
         expect(existsSync(join(scene.gone.brainDir, 'boot.md'))).toBe(false);
       });
@@ -257,9 +215,67 @@ describe('syncActiveActorBrainDirs', () => {
         expect(scene.result).toEqual({ renders: [], failures: [] });
       });
 
-      then('the default brain dir is untouched', () => {
+      then('the repo actor brain dir is untouched', () => {
         expect(
-          existsSync(getDefaultActorOndiskDir({ repoPath: scene.repoPath })),
+          existsSync(getOneRepoActorOndiskDir({ repoPath: scene.repoPath })),
+        ).toBe(false);
+      });
+    });
+  });
+
+  given('[case5] a live clone of the repo actor, beside a hash actor', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genRepoWithRoles({
+        slug: 'sync-active-actors-repo-actor',
+        roles: REFS_LINKED,
+      });
+      const repoActor = await genSampleCloneOndisk({
+        repoPath,
+        roles: ['zeta'],
+        rolesAmbient: ['zeta'],
+        serial: getUuid(),
+        slug: null,
+        socketEligible: false,
+      });
+      const zeta = await genSampleActorWithClone({
+        repoPath,
+        roles: ['omega'],
+        live: true,
+      });
+      const result = await syncActiveActorBrainDirs({
+        repoPath,
+        refsLinked: REFS_LINKED,
+      });
+      return { repoPath, repoActor, zeta, result };
+    });
+
+    when('[t0] the active actors are swept', () => {
+      then('the fixture did seed the repo actor', () => {
+        expect(scene.repoActor.actorExid).toEqual('repo=ambient');
+      });
+
+      then(
+        'only the hash actor renders; the repo actor is left to its own sync',
+        () => {
+          expect(scene.result.failures).toEqual([]);
+          expect(scene.result.renders.map((render) => render.scope)).toEqual([
+            { kind: 'actor', actorExid: scene.zeta.actorExid },
+          ]);
+        },
+      );
+
+      then('the repo actor brain dir holds no boot.md from this sweep', () => {
+        expect(
+          existsSync(
+            join(
+              getBrainOndiskDir({
+                actorDir: getOneRepoActorOndiskDir({
+                  repoPath: scene.repoPath,
+                }),
+              }),
+              'boot.md',
+            ),
+          ),
         ).toBe(false);
       });
     });

@@ -17,7 +17,7 @@ import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExpo
  * .note = `configTargetDir` re-roots ONLY the adapter's config write path (the
  *   `.claude/settings.json` the dao owns); package discovery + brain detection
  *   stay rooted at `context.cwd`. init uses this to apply the same hooks into each
- *   enrolled actor's `brain/` dir (`actor.via.hash=<hash>/brain/`) without a second package scan.
+ *   enrolled actor's `brain/` dir (`actor.via.<exid>/brain/`) without a second package scan.
  *   absent => the write path is `context.cwd` (the extant repo-root behavior)
  */
 export const getBrainHooksAdapterByConfigImplicit = async (

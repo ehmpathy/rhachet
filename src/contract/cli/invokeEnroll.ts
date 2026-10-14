@@ -4,14 +4,19 @@ import { ConstraintError } from 'helpful-errors';
 import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
+import { asBrainGroveAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainGroveAbsentLine';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
-import { genEnrollmentHash } from '@src/domain.operations/actor/enrolled/genEnrollmentHash';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskExid';
+import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
+import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
 import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
@@ -38,16 +43,21 @@ import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
+import { asEnrollBareRoleDeltas } from '@src/domain.operations/enroll/asEnrollBareRoleDeltas';
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
+import { assertCloneSettingsLayersHoldOnlyEnrolledRoles } from '@src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { computeBrainCliInput } from '@src/domain.operations/enroll/computeBrainCliInput';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
 import { getBrainCliPassthroughArgs } from '@src/domain.operations/enroll/getBrainCliPassthroughArgs';
 import { getRolesSpaceFormCollision } from '@src/domain.operations/enroll/getRolesSpaceFormCollision';
 import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPrintMode';
+import { isEnrollBareRoleDelta } from '@src/domain.operations/enroll/isEnrollBareRoleDelta';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
 import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs';
+import { setRepoActorDirFromLegacy } from '@src/domain.operations/init/boots/setRepoActorDirFromLegacy';
+import { setRepoBrainDirSymlink } from '@src/domain.operations/init/boots/setRepoBrainDirSymlink';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
@@ -99,6 +109,36 @@ const readStdin = async (): Promise<string> => {
 };
 
 /**
+ * .what = the enroll motive: read off stdin for `@stdin`, null when absent, else the text
+ * .note = a one-word reason shaped like a remove delta (`--reason -hotfix`) arrives
+ *   sentinel-encoded from the argv preprocess, so it is decoded back
+ */
+const getOneEnrollReasonOrNull = async (input: {
+  raw: string | undefined;
+}): Promise<string | null> => {
+  if (input.raw === '@stdin') return readStdin();
+  if (input.raw === undefined) return null;
+  return getDecodedRoleDeltaToken({ token: input.raw });
+};
+
+/**
+ * .what = the positional operand as a brain, or null when it is a bare role delta
+ * .why = commander buckets the first operand into the brain's slot whatever its shape, so
+ *   `rhx enroll -driver` puts a role there (`inventory.of=requirements.case=4`)
+ */
+const asPositionalBrainOrNull = (input: {
+  token: string | null;
+  rolesLinked: RoleSlug[];
+}): string | null => {
+  if (input.token === null) return null;
+  const isRoleDelta = isEnrollBareRoleDelta({
+    token: input.token,
+    rolesLinked: input.rolesLinked,
+  });
+  return isRoleDelta ? null : input.token;
+};
+
+/**
  * .what = validate an `--as` value and pull out the clone slug it names
  * .why = `--as` names the CLONE (the `@:` grain, mandated in address form). we
  *   route it through asCloneRef so a dropped `@:` marker fails loud with a
@@ -142,12 +182,19 @@ const asValidatedSlug = (input: { as: string }): string => {
  */
 const asEnrollmentSpec = (input: {
   rolesSpec: string | undefined;
+  bareDeltas: string[];
   rawArgs: string[];
   rolesLinked: RoleSlug[];
   brain: string;
 }): BrainCliEnrollmentSpec => {
-  // absent → take the default roleset unchanged
-  if (input.rolesSpec === undefined) return { mode: 'incremental', deltas: [] };
+  // absent `--roles` and no bare delta → the ambient roleset, unchanged. the grammar
+  //   refuses an empty token list, so this case never reaches it
+  if (input.rolesSpec === undefined && input.bareDeltas.length === 0)
+    return { mode: 'incremental', deltas: [] };
+
+  // absent `--roles` → the bare deltas alone patch the ambient roleset
+  if (input.rolesSpec === undefined)
+    return parseBrainCliEnrollmentSpec({ tokens: input.bareDeltas });
 
   // fail loud on the unquoted multi-delta space form: enroll's `--roles` is
   // single-valued, so a second space-separated role is left raw and commander
@@ -170,7 +217,11 @@ const asEnrollmentSpec = (input: {
 
   // flatten via the shared tokenizer (accepts the comma + quoted-space forms,
   // decodes the argv sentinel so `-role` survives), then parse the grammar
-  const tokens = getRoleDeltaTokens({ raw: [input.rolesSpec] });
+  //   — the bare deltas join them, so `-driver --roles +architect` reads as one spec
+  const tokens = [
+    ...getRoleDeltaTokens({ raw: [input.rolesSpec] }),
+    ...input.bareDeltas,
+  ];
   return parseBrainCliEnrollmentSpec({ tokens });
 };
 
@@ -219,17 +270,41 @@ const performEnroll = async (input: {
       hint: 'run `rhachet roles link` first to link roles',
     });
 
+  // the repo's ambient roles — the linked roles a bare enroll inherits. a memoized
+  //   prefetch of repo facts each downstream operation would otherwise look up itself,
+  //   so it is threaded through as context, never passed as an input
+  const context: ContextOfRepoRoles = {
+    repo: { ambient: { roles: rolesLinked } },
+  };
+
+  // a bare delta in the brain's slot (`rhx enroll -driver`) is a role, not a brain
+  const positionalBrain = asPositionalBrainOrNull({
+    token: input.positionalBrain,
+    rolesLinked,
+  });
+
   // one brain from the three forms (absent → default, flag, positional)
   const brain = computeBrainCliInput({
-    positional: input.positionalBrain,
+    positional: positionalBrain,
     flag: input.flagBrain,
     default: DEFAULT_BRAIN,
   });
 
-  // the roleset: an absent `--roles` takes the linked default; a present one patches it
+  // the brain's own passthrough, less the bare role deltas it carries — `rhx enroll
+  //   claude -driver` is an alias of `--roles -driver` (`inventory.of=requirements.case=4`).
+  //   it is refused before any write if it would override the system prompt rhachet owns
   const rawArgs = getRawArgsAfterEnroll();
+  const bare = asEnrollBareRoleDeltas({
+    passthrough: getBrainCliPassthroughArgs({ args: rawArgs, positionalBrain }),
+    rolesLinked,
+  });
+  const passthrough = bare.passthrough;
+  assertBrainCliPassthroughLeavesSystemPromptOwned({ passthrough });
+
+  // the roleset: `--roles` and the bare deltas patch the linked default; none takes it whole
   const spec = asEnrollmentSpec({
     rolesSpec: input.rolesSpec,
+    bareDeltas: bare.deltas,
     rawArgs,
     rolesLinked,
     brain,
@@ -237,17 +312,13 @@ const performEnroll = async (input: {
   const enrollment = computeBrainCliEnrollment({
     brain,
     spec,
-    rolesDefault: rolesLinked,
+    rolesAmbient: rolesLinked,
     rolesLinked,
   });
 
-  // the brain's own passthrough — refused before any write if it would override the
-  //   system prompt rhachet owns, then handed to the spawn args as-is
-  const passthrough = getBrainCliPassthroughArgs({
-    args: rawArgs,
-    positionalBrain: input.positionalBrain,
-  });
-  assertBrainCliPassthroughLeavesSystemPromptOwned({ passthrough });
+  // a delta enrollment is keyed by its delta, so it stays one actor while the ambient
+  //   set moves under it (`inventory.of=requirements.case=2`)
+  const rolesDelta = asActorRolesDelta({ spec });
 
   // the `--as` handle (optional) — validated to the safe clone-slug charset
   const slug =
@@ -260,8 +331,7 @@ const performEnroll = async (input: {
     console.error(
       'ℹ reason expected on stdin — pipe it in, or pass --reason <text>',
     );
-  const reason =
-    input.reason === '@stdin' ? await readStdin() : (input.reason ?? null);
+  const reason = await getOneEnrollReasonOrNull({ raw: input.reason });
 
   // where in the enroll chain the clone this call mints would sit — 0 for a human's
   // own clone, 1 for a peer that clone enrolls. an over-budget enroll is refused
@@ -383,12 +453,25 @@ const performEnroll = async (input: {
   // .note = the brain dir is prepared HERE, after the async caller has detached — the
   //   host re-enters this path and prepares it, so a caller that also did would render
   //   the boot twice and print each notice twice
+  // carry a legacy repo actor dir over to its current name, before any actor dir is made.
+  //   an everyday `claude` can run before the first `rhx init` on an upgraded repo; were the
+  //   current dir made first, the move would skip forever and strand the tracked config
+  //   a move dangles `<repo>/.claude`, which aimed at the legacy dir, so it is repointed at once
+  const legacy = setRepoActorDirFromLegacy({ repoPath });
+  if (legacy.effect === 'MOVED')
+    await setRepoBrainDirSymlink({
+      repoPath,
+      repoActorBrainDir: getBrainOndiskDir({
+        actorDir: getOneRepoActorOndiskDir({ repoPath }),
+      }),
+    });
+
   // the actor's brain dir — the one config dir every clone of this actor reads
-  const hash = genEnrollmentHash({
-    brain: enrollment.brain,
-    roles: enrollment.roles,
-  });
-  const actorDir = getActorOndiskDir({ repoPath, hash });
+  const exid = getOneActorOndiskExid(
+    { brain: enrollment.brain, roles: enrollment.roles, rolesDelta },
+    context,
+  );
+  const actorDir = getActorOndiskDir({ repoPath, exid });
   const brainDir = getBrainOndiskDir({ actorDir });
   mkdirSync(brainDir, { recursive: true });
 
@@ -400,12 +483,12 @@ const performEnroll = async (input: {
   await setBrainDirBoot({
     brainDir,
     roles: asRoleRefsForEnrolledSlugs({
-      actorHash: hash,
+      actorExid: exid,
       slugs: enrollment.roles,
       refsLinked,
     }),
     repoPath,
-    scope: { kind: 'actor', actorHash: hash },
+    scope: { kind: 'actor', actorExid: exid },
   });
 
   // observe the shared login every clone reads, to say plainly when there is none (D13)
@@ -428,7 +511,7 @@ const performEnroll = async (input: {
           actorDir,
           actorsRoot,
           repoPath,
-          actorHash: hash,
+          actorExid: exid,
         }),
     },
   );
@@ -448,30 +531,51 @@ const performEnroll = async (input: {
     asBrainAuthState({ content: brainAuthContent }) === 'absent';
 
   // settle first-run state before any spawn, so no clone meets a prompt (D11)
-  findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
+  await findsertBrainFirstRunState({ brainDir, repoPath, home: getHomeDir() });
 
-  // write the per-enrollment config, then derive the child passthrough
+  // findsert the brain dir's settings layout (grove arrows; a real file at an arrow name replaced)
+  const layout = await setBrainDirSettingsLayout({
+    repoPath,
+    brainDir,
+    home: getHomeDir(),
+  });
+
+  // write the actor's settings.of.repo.json, then derive the child passthrough
   const { configPath } = await genBrainCliConfigArtifact({
     enrollment,
+    exid,
     repoPath,
   });
   const args = asBrainCliSpawnArgs({ configPath, passthrough });
 
-  // findsert the clone: reuse a live slug, rebind a dead one, or bake fresh
-  const result = await genCloneOndisk({
-    repoPath,
-    brain: enrollment.brain,
-    roles: enrollment.roles,
-    delta: input.rolesSpec ?? null,
-    reason,
-    command,
+  // refuse a spawn whose clone would load a hook from a role it is not enrolled in
+  assertCloneSettingsLayersHoldOnlyEnrolledRoles({
     args,
+    brainDir,
     cwd: repoPath,
-    slug,
-    mode: watchMode,
-    noSocket: input.noSocket,
-    depth,
+    roles: enrollment.roles,
+    home: getHomeDir(),
   });
+
+  // findsert the clone: reuse a live slug, rebind a dead one, or bake fresh
+  const result = await genCloneOndisk(
+    {
+      repoPath,
+      brain: enrollment.brain,
+      roles: enrollment.roles,
+      rolesDelta,
+      delta: input.rolesSpec ?? null,
+      reason,
+      command,
+      args,
+      cwd: repoPath,
+      slug,
+      mode: watchMode,
+      noSocket: input.noSocket,
+      depth,
+    },
+    context,
+  );
 
   // say there is no login to share only once a brain was actually spawned
   //
@@ -480,6 +584,11 @@ const performEnroll = async (input: {
   //   on a refusal it would land ahead of the json error a machine parses off stderr
   if (isBrainAuthAbsent && result.spawn !== null)
     console.error(asBrainAuthAbsentLine({ brainAuthPath }));
+
+  // say the box has no grove, so its defaults did not reach the clone (vision case=4),
+  //   under the same gate and for the same reason
+  if (!layout.grove.isPresent && result.spawn !== null)
+    console.error(asBrainGroveAbsentLine({ groveSource: layout.grove.source }));
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
   // a `--output json` caller (the idempotent-cron-retry path) still gets the
@@ -520,7 +629,7 @@ const performEnroll = async (input: {
     actorDir,
     actorsRoot,
     repoPath,
-    actorHash: hash,
+    actorExid: exid,
   });
   const accrual = computeCloneAccrualWarn({
     liveCount,
@@ -580,7 +689,7 @@ const performEnroll = async (input: {
   }
   if (mode === 'tree' && !isDetachedHost && accrual.warn)
     console.error(
-      asCloneAccrualWarnLine({ liveCount: accrual.liveCount, actorHash: hash }),
+      asCloneAccrualWarnLine({ liveCount: accrual.liveCount, actorExid: exid }),
     );
 
   // 🔴 a detached HOST must not await the child either — a brain-cli does not exit,
@@ -618,7 +727,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(
       '-r, --roles <spec>',
-      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer")',
+      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer"). a bare delta is an alias (rhx enroll claude -driver ≡ --roles -driver)',
     )
     .option('--as <address>', 'name the clone with a stable handle (@:<slug>)')
     .option('--no-socket', 'enroll without a managed reach socket')

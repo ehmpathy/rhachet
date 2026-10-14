@@ -54,7 +54,7 @@ const asPruneMode = (input: { raw: string }): 'plan' | 'apply' => {
 };
 
 /**
- * .what = the clones in scope — one actor's when a `@<hash-prefix>` is given, else
+ * .what = the clones in scope — one actor's when a `@<exid-prefix>` is given, else
  *   every actor's, flattened to a single list
  * .why = the scoped and the all-actors paths are distinct; an early return keeps
  *   each a straight-line narrative (rule.require.narrative-flow)
@@ -71,11 +71,11 @@ const getClonesInScope = (input: {
     return getAllClonesForActor({
       actorDir: getActorOndiskDir({
         repoPath: found.repoPath,
-        hash: found.hash,
+        exid: found.exid,
       }),
       actorsRoot: getActorsRootDir({ repoPath: found.repoPath }),
       repoPath: found.repoPath,
-      actorHash: found.hash,
+      actorExid: found.exid,
     });
   }
 
@@ -102,7 +102,7 @@ export const invokeClonePrune = ({ clone }: { clone: Command }): void => {
   clone
     .command('prune [actor]')
     .description(
-      'reap dead clones (all, or scoped to one actor by @<hash-prefix>)',
+      'reap dead clones (all, or scoped to one actor by @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)',
     )
     .option(
       '--older-than <dur>',

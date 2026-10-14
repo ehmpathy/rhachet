@@ -35,14 +35,14 @@ Options:
 
 Commands:
   list [options] [actor]   list clones (all, or scoped to one actor by
-                           @<hash-prefix>)
+                           @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
   say [options] <address>  dispatch a message into a live clone (by
                            @:<slug|serial>)
   get [options] <address>  observe a clone's recent output (by @:<slug|serial>)
   whoami [options]         show THIS clone's own address (run from within a
                            clone)
   prune [options] [actor]  reap dead clones (all, or scoped to one actor by
-                           @<hash-prefix>)
+                           @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
   help [command]           display help for command
 "
 `;
@@ -50,7 +50,8 @@ Commands:
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t3] clone list --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone list [options] [actor]
 
-list clones (all, or scoped to one actor by @<hash-prefix>)
+list clones (all, or scoped to one actor by @<exid-prefix>, e.g. @repo=ambient
+or @hash=9c1e)
 
 Options:
   --output <mode>  output mode: tree (default) or json (default: "tree")
@@ -115,7 +116,8 @@ Options:
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t7] clone prune --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone prune [options] [actor]
 
-reap dead clones (all, or scoped to one actor by @<hash-prefix>)
+reap dead clones (all, or scoped to one actor by @<exid-prefix>, e.g.
+@repo=ambient or @hash=9c1e)
 
 Options:
   --older-than <dur>  only reap clones spawned at least this long ago (e.g. 1h,

@@ -1,3 +1,5 @@
+import { given, then } from 'test-fns';
+
 import { computeCloneSayReport } from './computeCloneSayReport';
 import type { CloneSayOutcome } from './computeCloneSayVerdict';
 
@@ -204,35 +206,78 @@ const TEST_CASES: {
       treeIncludes: 're-enroll',
     },
   },
+  {
+    description:
+      'exited → success, names the asked exit — never a probe fault on a clone gone on purpose',
+    given: {
+      verdict: 'exited',
+      reason: null,
+      probe: 'unsupported',
+      delivered: true,
+    },
+    givenMessage: '/exit',
+    expect: {
+      channel: 'success',
+      tree: '😶🎙️ said to @:x — the clone exited as asked',
+    },
+  },
+  {
+    description:
+      'unreadable socket-gone → failure, malfunction, names wake (a wait never clears a gone socket)',
+    given: {
+      verdict: 'unreadable',
+      reason: 'socket-gone',
+      probe: 'unsupported',
+      delivered: true,
+    },
+    expect: {
+      channel: 'failure',
+      klass: 'malfunction',
+      treeIncludes: 'rhx enroll',
+    },
+  },
+  {
+    description:
+      'released + socket-gone → success, transcript-only degrade names enroll',
+    given: {
+      verdict: 'released',
+      reason: 'socket-gone',
+      probe: 'unsupported',
+      delivered: true,
+    },
+    expect: { channel: 'success', treeIncludes: 'rhx enroll' },
+  },
 ];
 
 describe('computeCloneSayReport', () => {
   TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      const report = computeCloneSayReport({
-        outcome: thisCase.given,
-        addressShown: '@:x',
-        // a plain prompt unless the case names otherwise — the class every row but the
-        // client-command one exercises
-        message: thisCase.givenMessage ?? 'reply with exactly PONG',
+    given(thisCase.description, () => {
+      then('the report renders the expected channel and copy', () => {
+        const report = computeCloneSayReport({
+          outcome: thisCase.given,
+          addressShown: '@:x',
+          // a plain prompt unless the case names otherwise — the class every row but the
+          // client-command one exercises
+          message: thisCase.givenMessage ?? 'reply with exactly PONG',
+        });
+        expect(report.channel).toEqual(thisCase.expect.channel);
+        // lock the EXACT rendered copy a caller reads — every success tree line and every
+        // failure class/message/hint — so any drift in a user-faced line ships loud (r9.b2)
+        expect(report).toMatchSnapshot();
+        if (report.channel === 'success' && thisCase.expect.tree)
+          expect(report.tree).toEqual(thisCase.expect.tree);
+        if (report.channel === 'success' && thisCase.expect.treeIncludes)
+          expect(report.tree).toContain(thisCase.expect.treeIncludes);
+        if (report.channel === 'failure') {
+          expect(report.klass).toEqual(thisCase.expect.klass);
+          // every failure names a fix (rule.require.errors-name-the-fix)
+          expect(report.hint.length).toBeGreaterThan(0);
+          if (thisCase.expect.treeIncludes)
+            expect(`${report.message} ${report.hint}`).toContain(
+              thisCase.expect.treeIncludes,
+            );
+        }
       });
-      expect(report.channel).toEqual(thisCase.expect.channel);
-      // lock the EXACT rendered copy a caller reads — every success tree line and every
-      // failure class/message/hint — so any drift in a user-faced line ships loud (r9.b2)
-      expect(report).toMatchSnapshot();
-      if (report.channel === 'success' && thisCase.expect.tree)
-        expect(report.tree).toEqual(thisCase.expect.tree);
-      if (report.channel === 'success' && thisCase.expect.treeIncludes)
-        expect(report.tree).toContain(thisCase.expect.treeIncludes);
-      if (report.channel === 'failure') {
-        expect(report.klass).toEqual(thisCase.expect.klass);
-        // every failure names a fix (rule.require.errors-name-the-fix)
-        expect(report.hint.length).toBeGreaterThan(0);
-        if (thisCase.expect.treeIncludes)
-          expect(`${report.message} ${report.hint}`).toContain(
-            thisCase.expect.treeIncludes,
-          );
-      }
     }),
   );
 });

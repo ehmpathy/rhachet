@@ -33,11 +33,15 @@ const BRIEF_OVERGROWN = [
 ].join('\n');
 
 // the Stop entries the fixture's test brain adapter relays — flat `{ matcher: author, command }`
+//
+// .note = read from `settings.of.repo.json`, the repo actor's file that holds the roles' hooks.
+//   `settings.json` is claude's name for the grove arrow into the host's home settings, so a
+//   read by that name would see the human's file, never this repo's hooks
 const getSettingsHooksStop = async (input: {
   repoPath: string;
 }): Promise<Array<{ matcher: string; command: string }>> => {
   const content = await fs.readFile(
-    path.join(input.repoPath, '.claude', 'settings.json'),
+    path.join(input.repoPath, '.claude', 'settings.of.repo.json'),
     'utf-8',
   );
   return JSON.parse(content).hooks.Stop ?? [];
@@ -84,7 +88,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         expect(isHooksYmlPresent).toEqual(false);
       });
 
-      then('settings.json relays the Stop hook, authored by the repo role', async () => {
+      then('settings.of.repo.json relays the Stop hook, authored by the repo role', async () => {
         const stops = await getSettingsHooksStop({ repoPath: repo.path });
         expect(stops).toContainEqual(
           expect.objectContaining({
@@ -195,7 +199,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         expect(result.stdout).not.toContain('+ boot.yml');
       });
 
-      then('the owner budget arms the Stop hook in settings.json', async () => {
+      then('the owner budget arms the Stop hook in settings.of.repo.json', async () => {
         const stops = await getSettingsHooksStop({ repoPath: repo.path });
         expect(stops).toContainEqual(
           expect.objectContaining({

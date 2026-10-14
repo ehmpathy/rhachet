@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { Command } from 'commander';
 import { genTempDir, given, then, when } from 'test-fns';
 
+import { setSampleRepoCommitted } from '@src/.test/assets/setSampleRepoCommitted';
 import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
 
 import {
@@ -92,6 +93,14 @@ const asMaskedInitReport = (input: {
       .join('\n')
   );
 };
+
+/**
+ * .what = a file's content, or an empty string when it is absent
+ * .why = a repo whose roles declare no hook has no settings.of.repo.json; an absent file holds
+ *   no key, which is the claim a "does not contain" assert makes
+ */
+const asFileContentOrEmpty = (input: { path: string }): string =>
+  existsSync(input.path) ? readFileSync(input.path, 'utf8') : '';
 
 describe('invokeInit (integration)', () => {
   given('a CLI program with invokeInit registered', () => {
@@ -597,8 +606,8 @@ describe('invokeInit (integration)', () => {
   });
 
   given('[case2] init against the brain dirs', () => {
-    const DEFAULT_BRAIN_DIR_REL =
-      '.agent/.actors/actor.via.slug=.default/brain/.claude';
+    const REPO_ACTOR_BRAIN_DIR_REL =
+      '.agent/.actors/actor.via.repo=ambient/brain/.claude';
     const originalCwd = process.cwd();
     const program = new Command('rhachet');
     invokeInit({ program });
@@ -643,20 +652,6 @@ describe('invokeInit (integration)', () => {
       return repoPath;
     };
 
-    /**
-     * .what = stage and commit every path in the repo
-     * .why = the migration drops a boot file ONLY where git could hand it back, so a case
-     *   that asserts a DROP must first put that file where git can reach it. the identity
-     *   rides on `-c`, so the test needs no global git config to exist
-     */
-    const commitWholeTree = (input: { repoPath: string }): void => {
-      execSync('git add -A', { cwd: input.repoPath, stdio: 'pipe' });
-      execSync(
-        'git -c user.email=test@example.com -c user.name=test commit -q -m seed',
-        { cwd: input.repoPath, stdio: 'pipe' },
-      );
-    };
-
     beforeEach(() => {
       logSpy.mockClear();
       errorSpy.mockClear();
@@ -683,7 +678,7 @@ describe('invokeInit (integration)', () => {
 
             // the boot file is COMMITTED, so its drop is recoverable from git — the one
             // ground S11 rests on, and now the one state a drop proceeds from
-            commitWholeTree({ repoPath });
+            setSampleRepoCommitted({ repoPath });
 
             await program.parseAsync(['init', '--roles', 'mechanic'], {
               from: 'user',
@@ -691,15 +686,28 @@ describe('invokeInit (integration)', () => {
 
             expect(exitSpy).not.toHaveBeenCalled();
             expect(readlinkSync(join(repoPath, '.claude'))).toEqual(
-              DEFAULT_BRAIN_DIR_REL,
+              REPO_ACTOR_BRAIN_DIR_REL,
             );
-            // the role's own init merged its permissions in; the file then moved whole
+            // the dir moved first (the layout runs before the role inits), so only the hand
+            //   settings.json moved; the role's own init then wrote its permissions into
+            //   claude's settings.json, and the layout replaced it with the grove arrow. one answer,
+            //   rhachet's: the role init's write never reaches settings.of.repo.json (that waits
+            //   on ehmpathy/rhachet-roles-ehmpathy#895, a role init that writes it by name)
             expect(
-              readFileSync(
-                join(repoPath, DEFAULT_BRAIN_DIR_REL, 'settings.json'),
-                'utf8',
-              ),
-            ).toContain('"permissions"');
+              asFileContentOrEmpty({
+                path: join(
+                  repoPath,
+                  REPO_ACTOR_BRAIN_DIR_REL,
+                  'settings.of.repo.json',
+                ),
+              }),
+            ).not.toContain('"permissions"');
+            expect(
+              lstatSync(
+                join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
+                { throwIfNoEntry: false },
+              )?.isFile() ?? false,
+            ).toBe(false);
             expect(
               readFileSync(join(repoPath, '.claude', 'AGENTS.md'), 'utf8'),
             ).toEqual('@boot.md\n');
@@ -708,7 +716,7 @@ describe('invokeInit (integration)', () => {
             ).toContain('repo=ehmpathy/role=mechanic');
             const lines = logSpy.mock.calls.map((call) => String(call[0]));
             expect(
-              lines.filter((line) => line === '🧠 brain dir (default)'),
+              lines.filter((line) => line === '🧠 brain://repo=ambient'),
             ).toHaveLength(1);
             // stdout names the drop and the move, so the human can commit the rename —
             //   and each is a ROW of the brain dir tree, never a bare line wedged between
@@ -717,7 +725,7 @@ describe('invokeInit (integration)', () => {
               '   │  └─ .claude/AGENTS.md — rhachet owns the boot context',
             );
             expect(lines).toContain(
-              `   │  └─ .claude/settings.json → ${DEFAULT_BRAIN_DIR_REL}/settings.json`,
+              `   │  └─ .claude/settings.json → ${REPO_ACTOR_BRAIN_DIR_REL}/settings.json`,
             );
             // the asserts above prove the two lines a human ACTS on are present; they
             // cannot catch a reordered block, a lost blank, or a reworded neighbour in
@@ -773,11 +781,11 @@ describe('invokeInit (integration)', () => {
               join(repoPath, '.claude', 'settings.json'),
               '{"repoSide":true}\n',
             );
-            mkdirSync(join(repoPath, DEFAULT_BRAIN_DIR_REL), {
+            mkdirSync(join(repoPath, REPO_ACTOR_BRAIN_DIR_REL), {
               recursive: true,
             });
             writeFileSync(
-              join(repoPath, DEFAULT_BRAIN_DIR_REL, 'settings.json'),
+              join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
               '{"stale":true}\n',
             );
 
@@ -785,19 +793,29 @@ describe('invokeInit (integration)', () => {
               from: 'user',
             });
 
-            // rhachet owns the default brain dir, so a shared name is overwritten rather
+            // rhachet owns the repo actor brain dir, so a shared name is overwritten rather
             //   than refused — `<repo>/.claude/settings.json` is the copy the role init
-            //   just merged permissions into, so it is the live one and it wins
+            //   just merged permissions into, so it is the live one and it wins. the
+            //   layout findsert then replaces that real file with the grove arrow
             expect(exitSpy).not.toHaveBeenCalled();
             expect(lstatSync(join(repoPath, '.claude')).isSymbolicLink()).toBe(
               true,
             );
-            expect(
-              readFileSync(
-                join(repoPath, DEFAULT_BRAIN_DIR_REL, 'settings.json'),
-                'utf8',
+            const settingsRepo = asFileContentOrEmpty({
+              path: join(
+                repoPath,
+                REPO_ACTOR_BRAIN_DIR_REL,
+                'settings.of.repo.json',
               ),
-            ).toContain('"repoSide": true');
+            });
+            expect(settingsRepo).not.toContain('repoSide');
+            expect(settingsRepo).not.toContain('stale');
+            expect(
+              lstatSync(
+                join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
+                { throwIfNoEntry: false },
+              )?.isFile() ?? false,
+            ).toBe(false);
 
             // the overwritten row is marked, so a human knows which file to diff
             const lines = logSpy.mock.calls.map((call) => String(call[0]));
@@ -844,7 +862,7 @@ describe('invokeInit (integration)', () => {
           from: 'user',
         });
         const bootBefore = readFileSync(
-          join(repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md'),
+          join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md'),
           'utf8',
         );
         expect(bootBefore).toContain('repo=ehmpathy/role=mechanic');
@@ -857,7 +875,7 @@ describe('invokeInit (integration)', () => {
 
         expect(exitSpy).not.toHaveBeenCalled();
         const bootAfter = readFileSync(
-          join(repoPath, DEFAULT_BRAIN_DIR_REL, 'boot.md'),
+          join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md'),
           'utf8',
         );
         expect(bootAfter).not.toContain('repo=ehmpathy/role=mechanic');

@@ -16,7 +16,7 @@ exports[`rhx actor list (acceptance) given: [case1] a linked repo with NO actors
 
 exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor enrolled when: [t0] \`actor list\` after an enroll then: the populated-actor format is locked (visual spot-check) 1`] = `
 "🎭 actors
-   └─ @ee65f291  brain=claude  roles=architect,driver,mechanic
+   └─ @repo=ambient  brain=claude  roles=architect,driver,mechanic
 "
 `;
 
@@ -25,7 +25,7 @@ exports[`rhx actor list (acceptance) given: [case2] a linked repo with ONE actor
   "actors": [
     {
       "repoPath": "__REPO__",
-      "hash": "ee65f291",
+      "exid": "repo=ambient",
       "brain": "claude",
       "roles": [
         "driver",
@@ -69,7 +69,7 @@ exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on 
 
 {
   "manifestPath": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=deadbeefdeadbeef/actor.json",
-  "hash": "deadbeefdeadbeef",
+  "exid": "hash=deadbeefdeadbeef",
   "cause": {
     "class": "SyntaxError",
     "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
@@ -88,12 +88,35 @@ exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on 
   "reachCause": null,
   "metadata": {
     "manifestPath": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=deadbeefdeadbeef/actor.json",
-    "hash": "deadbeefdeadbeef",
+    "exid": "hash=deadbeefdeadbeef",
     "cause": {
       "class": "SyntaxError",
       "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
     }
   }
 }
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case6] a linked repo with ONE hash actor enrolled (--roles -driver) when: [t0] \`actor list --output json\` after the enroll then: the machine shape is locked, beside its repo-actor peer 1`] = `
+"{
+  "actors": [
+    {
+      "repoPath": "/TMP_TEST_DIR",
+      "exid": "hash=2e77f741",
+      "brain": "claude",
+      "roles": [
+        "architect",
+        "mechanic"
+      ]
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx actor list (acceptance) given: [case6] a linked repo with ONE hash actor enrolled (--roles -driver) when: [t1] \`actor list\` (the tree a human reads) after the enroll then: the hash-actor tree is locked, beside its repo-actor peer 1`] = `
+"🎭 actors
+   └─ @hash=2e77f741  brain=claude  roles=architect,mechanic
 "
 `;

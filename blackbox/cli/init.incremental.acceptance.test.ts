@@ -4,11 +4,13 @@ import { resolve } from 'node:path';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
 import { asSummaryBlock } from '@/blackbox/.test/infra/asSummaryBlock';
+import { getOneFixturePrepareRhachet } from '@/blackbox/.test/infra/getOneFixturePrepareRhachet';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import {
-  isRoleLinked,
+  getOneIsRoleLinked,
   setupRoleFixtureRepo,
 } from '@/blackbox/.test/infra/roleFixtureRepo';
+import { setFixturePrepareRhachet } from '@/blackbox/.test/infra/setFixturePrepareRhachet';
 
 /**
  * .what = slices the `--roles` option help lines out of `init --help` stdout
@@ -84,8 +86,8 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('both roles are linked', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'behaver' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'behaver' })).toEqual(true);
       });
 
       then(
@@ -142,8 +144,8 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('architect is added and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the incremental summary tree matches snapshot', () => {
@@ -171,10 +173,10 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('architect is removed and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
           false,
         );
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the incremental summary tree matches snapshot', () => {
@@ -188,6 +190,51 @@ describe('rhx init --roles incremental (acceptance)', () => {
         // snapshot the sliced summary block (from the 🔧 marker) so every tree
         // snapshot starts at 🔧 — no head-newline asymmetry vs the add-path
         // cases that slice via asSummaryBlock
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3.1] a repo whose prepare:rhachet replays architect (🔴 inventory case=1)', () => {
+    const testDir = genTempDir({ slug: 'init-remove-prepare' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic', 'architect'],
+        cwd: testDir,
+      });
+      setFixturePrepareRhachet({
+        dir: testDir,
+        command: 'rhachet init --hooks --roles mechanic architect',
+      });
+    });
+
+    when('[t0] `init --roles -architect`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '-architect'],
+          cwd: testDir,
+        }),
+      );
+
+      then('architect leaves the replay; mechanic and --hooks stay', () => {
+        // the critical clamp: without it, the next install re-links architect
+        expect(run.status).toEqual(0);
+        expect(getOneFixturePrepareRhachet({ dir: testDir })).toEqual(
+          'rhachet init --hooks --roles mechanic',
+        );
+      });
+
+      then('the report names the updated replay', () => {
+        expect(run.stdout).toContain('↻ [updated] scripts["prepare:rhachet"]');
+        expect(run.stdout).toContain('└─ rhachet init --hooks --roles mechanic');
+      });
+
+      then('the remove-path summary, with its replay row, matches snapshot', () => {
+        // the `↻ [updated] scripts["prepare:rhachet"]` row is a new output variant;
+        //   the snapshot locks its glyph, indent and order beside the summary tree
         expect(
           asSummaryBlock({ stdout: run.stdout, dir: testDir }),
         ).toMatchSnapshot();
@@ -214,9 +261,9 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('architect added, reviewer removed, mechanic kept', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the incremental summary tree matches snapshot', () => {
@@ -379,7 +426,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('is a no-op, mechanic still linked', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the incremental summary tree matches snapshot', () => {
@@ -407,7 +454,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('the repo dir is cleaned and no warn', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
           false,
         );
         expect(existsSync(resolve(testDir, '.agent', 'repo=ehmpathy'))).toEqual(
@@ -460,7 +507,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('architect is linked once, no duplicate-add error', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
       });
 
       then('the incremental summary tree matches snapshot', () => {
@@ -555,7 +602,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
         'the second add is an idempotent no-op, architect still linked',
         () => {
           expect(run.status).toEqual(0);
-          expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+          expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
             true,
           );
         },
@@ -619,17 +666,17 @@ describe('rhx init --roles incremental (acceptance)', () => {
         'both produce the identical target set (architect, not mechanic)',
         () => {
           // findsert result
-          expect(isRoleLinked({ dir: dirFindsert, role: 'architect' })).toEqual(
+          expect(getOneIsRoleLinked({ dir: dirFindsert, role: 'architect' })).toEqual(
             true,
           );
-          expect(isRoleLinked({ dir: dirFindsert, role: 'mechanic' })).toEqual(
+          expect(getOneIsRoleLinked({ dir: dirFindsert, role: 'mechanic' })).toEqual(
             false,
           );
           // upsert result — must match findsert exactly (mode does not sway set-math)
-          expect(isRoleLinked({ dir: dirUpsert, role: 'architect' })).toEqual(
+          expect(getOneIsRoleLinked({ dir: dirUpsert, role: 'architect' })).toEqual(
             true,
           );
-          expect(isRoleLinked({ dir: dirUpsert, role: 'mechanic' })).toEqual(
+          expect(getOneIsRoleLinked({ dir: dirUpsert, role: 'mechanic' })).toEqual(
             false,
           );
         },
@@ -703,9 +750,9 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('both roles are added and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the multi-add summary tree matches snapshot', () => {
@@ -735,11 +782,11 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('both roles are removed and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
           false,
         );
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the multi-remove summary tree matches snapshot', () => {
@@ -776,9 +823,9 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('both are added and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the comma-form add summary tree matches snapshot', () => {
@@ -808,11 +855,11 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('both are removed and mechanic is untouched', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(
           false,
         );
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the comma-form remove summary tree matches snapshot', () => {
@@ -842,9 +889,9 @@ describe('rhx init --roles incremental (acceptance)', () => {
       );
       then('architect added, reviewer removed, mechanic kept', () => {
         expect(run.status).toEqual(0);
-        expect(isRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
-        expect(isRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
-        expect(isRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'reviewer' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
 
       then('the comma-form mixed summary tree matches snapshot', () => {

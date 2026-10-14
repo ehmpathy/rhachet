@@ -19,12 +19,14 @@ export interface CloneListRow {
  * .what = one actor and its clones, grouped for the list view
  */
 export interface CloneListGroup {
-  // .note = plain `hash`, not `actorHash` — this group renders under the `actors[]`
-  //   array (json) / an `actor <hash>` header (tree), so the element IS an actor and
-  //   `actorHash` would stutter (`actors[].actorHash`). whoami/enroll json keep the
-  //   `actorHash` name deliberately — there it disambiguates the actor's hash from the
-  //   clone's serial in a clone-centric object (rule.forbid.ambiguous-labels).
-  hash: string;
+  // .note = plain `exid`, not `actorExid` — this group renders under the `actors[]`
+  //   array (json) / an `actor <exid>` header (tree), so the element IS an actor and
+  //   `actorExid` would stutter (`actors[].actorExid`). the same key `actor list` json
+  //   uses. a hash is one kind of exid (`hash=<h>`), the repo actor another
+  //   (`repo=ambient`). whoami/enroll json keep the `actorExid` name deliberately —
+  //   there it disambiguates the actor's exid from the clone's serial in a clone-centric
+  //   object (rule.forbid.ambiguous-labels).
+  exid: string;
   brain: string;
   roles: string[];
   clones: CloneListRow[];
@@ -131,7 +133,9 @@ export const asCloneListView = (input: {
     lines.push(
       // roles sorted so the display is deterministic (matches the sorted roleset
       // the identity hash derives from) — never incidental store order
-      `${groupPrefix} actor ${group.hash} (brain=${group.brain} roles=${[...group.roles].sort().join(',')})`,
+      // .note = the actor renders as its address `@<exid>`, the same token `actor list` leads
+      //   with and `clone whoami` prints, so a human copies one form from every surface
+      `${groupPrefix} actor @${group.exid} (brain=${group.brain} roles=${[...group.roles].sort().join(',')})`,
     );
 
     if (group.clones.length === 0) {

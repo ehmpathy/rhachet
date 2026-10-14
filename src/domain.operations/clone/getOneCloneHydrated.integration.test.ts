@@ -9,7 +9,7 @@ import { getOneCloneHydrated } from './getOneCloneHydrated';
 describe('getOneCloneHydrated.integration', () => {
   given('[case1] a named clone on disk with a live slug claim', () => {
     const scene = useBeforeAll(async () => {
-      const sample = genSampleCloneOndisk({
+      const sample = await genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'hydrate-named' }),
         serial: 'ser-1',
         slug: 'driver',
@@ -25,14 +25,14 @@ describe('getOneCloneHydrated.integration', () => {
             cloneDir: scene.cloneDir,
             actorsRoot: scene.actorsRoot,
             repoPath: scene.repoPath,
-            actorHash: scene.actorHash,
+            actorExid: scene.actorExid,
           });
           expect(clone).not.toBeNull();
           expect(clone!.serial).toEqual('ser-1');
           expect(clone!.slug).toEqual('driver');
           expect(clone!.actor).toEqual({
             repoPath: scene.repoPath,
-            hash: scene.actorHash,
+            exid: scene.actorExid,
           });
         },
       );
@@ -42,7 +42,7 @@ describe('getOneCloneHydrated.integration', () => {
           cloneDir: scene.cloneDir,
           actorsRoot: scene.actorsRoot,
           repoPath: scene.repoPath,
-          actorHash: scene.actorHash,
+          actorExid: scene.actorExid,
         });
         expect(clone!.historyDir).toEqual(join(scene.cloneDir, 'history'));
       });
@@ -60,7 +60,7 @@ describe('getOneCloneHydrated.integration', () => {
             cloneDir,
             actorsRoot: join(repoPath, '.agent', '.actors'),
             repoPath,
-            actorHash: 'aaa',
+            actorExid: 'hash=aaa',
           }),
         ).toBeNull();
       });

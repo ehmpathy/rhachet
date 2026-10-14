@@ -1,8 +1,9 @@
+import { isCodeDefectError } from '@src/utils/isCodeDefectError';
+
 import { getCloneTraceSink } from '../getCloneTraceSink';
 import type { CloneWithheldReason } from './computeCloneDispatchPrecheck';
 import type { CloneOperationalRejectReason } from './computeCloneOperationalRejectClass';
 import { CLONE_WRITE_QUEUE_MAX_DEPTH } from './constants';
-import { isCodeDefectError } from './isCodeDefectError';
 
 /**
  * .what = the result of one dequeued write — the bytes reached the pty, or the dequeue
@@ -41,6 +42,8 @@ export interface CloneWriteQueue {
   enqueue: (item: CloneWriteQueueItem) => void;
   drain: (reason: CloneOperationalRejectReason) => void;
   depth: () => number;
+  /** resolves once no write is in flight — so a teardown can let the current ack land */
+  idle: () => Promise<void>;
 }
 
 /**
@@ -97,6 +100,8 @@ export const genCloneWriteQueue = (input: {
   const queue: CloneWriteQueueItem[] = [];
   let closed = false;
   let active = false;
+  // .note = deliberate mutation — the in-flight write, so `idle()` can await its ack
+  let inflight: Promise<unknown> | null = null;
 
   // process one message per tick, so a synchronous burst can build real depth
   // (the cap is meaningful) and a slow child never interleaves two writes
@@ -121,10 +126,11 @@ export const genCloneWriteQueue = (input: {
     //   either one MUST still ack and fall through to the queue-continue below, or a
     //   refused write would leave the clone alive, healthy on reach, yet deaf to `say`
     try {
-      const outcome = await input.write({
-        message: item.message,
-        force: item.force,
-      });
+      const pending = Promise.resolve(
+        input.write({ message: item.message, force: item.force }),
+      );
+      inflight = pending;
+      const outcome = await pending;
       if (outcome.delivered) item.onDelivered();
       else item.onRejected(outcome.reason);
     } catch (error) {
@@ -139,7 +145,7 @@ export const genCloneWriteQueue = (input: {
       // demote to `pty-write-fault` and release the latch — but the defect no longer
       // hides behind the mildest server-fault trace (rule.forbid.failhide, r002-i010-n2)
       const message = error instanceof Error ? error.message : String(error);
-      const isDefect = isCodeDefectError(error);
+      const isDefect = isCodeDefectError({ error });
       traceToStderr(
         isDefect
           ? `💥 clone write DEFECT — a code bug in the write path, not a pty fault; demoted to pty-write-fault to release the drain latch (V15), but FIX THE BUG: ${message}\n`
@@ -147,6 +153,7 @@ export const genCloneWriteQueue = (input: {
       );
       item.onRejected('pty-write-fault');
     }
+    inflight = null;
 
     if (queue.length > 0) setImmediate(runOne);
     else active = false;
@@ -176,5 +183,12 @@ export const genCloneWriteQueue = (input: {
       while (queue.length > 0) queue.shift()!.onRejected(reason);
     },
     depth: () => queue.length,
+    idle: async () => {
+      // await the in-flight write's settle; its ack fires before `inflight` clears
+      await inflight?.then(
+        () => undefined,
+        () => undefined,
+      );
+    },
   };
 };

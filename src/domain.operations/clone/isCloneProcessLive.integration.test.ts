@@ -17,7 +17,7 @@ const genSampleClone = (input: {
   new CloneOndisk({
     serial: getUuid(),
     slug: null,
-    actor: { repoPath: '/repo', hash: 'aaa' },
+    actor: { repoPath: '/repo', exid: 'hash=aaa' },
     socketEligible: false,
     spawnedAt: asIsoTimeStamp('2026-08-10T00:00:00Z'),
     hostHash: input.hostHash,

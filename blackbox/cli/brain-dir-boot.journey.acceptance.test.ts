@@ -1,4 +1,4 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
@@ -58,7 +58,7 @@ jest.setTimeout(600_000);
  */
 const NONCE = getUuid().replace(/-/g, '').slice(0, 10);
 const sentinelOf = (of: string): string => asSentinel({ of, nonce: NONCE });
-const DEFAULT_DIR = join('.agent', '.actors', 'actor.via.slug=.default');
+const DEFAULT_DIR = join('.agent', '.actors', 'actor.via.repo=ambient');
 const DEFAULT_BRAIN_DIR = join(DEFAULT_DIR, 'brain', '.claude');
 
 // end a process by pid; one already gone is the goal met, never a fault
@@ -108,7 +108,7 @@ const invokeRhachetCliBinary = (
 const askClaudePrintForSentinels = (
   input: Parameters<typeof askClaudePrintForSentinelsUnbounded>[0],
 ): ReturnType<typeof askClaudePrintForSentinelsUnbounded> =>
-  budget.withBudgetSync(
+  budget.withBudget(
     {
       // an enrolled launch carries an actor's whole corpus, so it draws the dearer budget
       kind: input.env['CLAUDE_CONFIG_DIR']
@@ -131,17 +131,21 @@ const askClaudePrintForSentinels = (
  * .why = a direct `claude -p` into an actor brain dir that omits this prefix skips the
  *   enroll config and its claudeMdExcludes, so the cwd walk also loads the repo corpus. a
  *   launch that means to measure what a clone sees must carry the same prefix a clone does
- * .note = the path is read off the actor dir name, never recomputed, so the blackbox
- *   imports no hash logic from src
+ * .note = the path is the actor's own `settings.of.repo.json`, found by the actor dir name,
+ *   so the blackbox imports no hash logic from src
  */
 const asEnrollConfigArgs = (input: { dir: string; actorName: string }): string[] => [
   '--setting-sources',
-  'user,local',
+  'user',
   '--settings',
   join(
     input.dir,
+    '.agent',
+    '.actors',
+    input.actorName,
+    'brain',
     '.claude',
-    `settings.enroll.${input.actorName.replace('actor.via.hash=', '')}.local.json`,
+    'settings.of.repo.json',
   ),
 ];
 
@@ -180,13 +184,18 @@ const asBrainDirFileContents = (input: {
  * .why = test-fns `useWhen` wraps no describe, so its label never reaches the test
  *   names; a `when` runs its fn at collection, so the holder is set on return
  */
-const useWhenLabeled = <T>(label: string, fn: () => T): T => {
+const useWhenLabeled = <T>(input: { label: string; fn: () => T }): T => {
+  // .note = deliberate mutation — `when` registers its fn and returns naught, so the step's
+  //   value can only leave through a holder; the holder never escapes this function
   const held: { value: T | null } = { value: null };
-  when(label, () => {
-    held.value = fn();
+  when(input.label, () => {
+    held.value = input.fn();
   });
   if (held.value === null)
-    throw new MalfunctionError('when step returned no value', { label });
+    throw new MalfunctionError('when step returned no value', {
+      label: input.label,
+      hint: 'the step fn must return its value synchronously; an async fn returns a promise, never null',
+    });
   return held.value;
 };
 
@@ -227,9 +236,9 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         expect(existsSync(join(scene.dir, DEFAULT_BRAIN_DIR))).toBe(false);
       });
 
-      then('settings.json holds the prior role boot hook and the human hook', () => {
+      then('settings.of.repo.json holds the prior role boot hook and the human hook', () => {
         const settings = readFileSync(
-          join(scene.dir, '.claude', 'settings.json'),
+          join(scene.dir, '.claude', 'settings.of.repo.json'),
           'utf-8',
         );
         expect(settings).toContain(ROLES_BOOT_COMMAND_WAXER);
@@ -275,13 +284,13 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         expect(status).toContain(`${DEFAULT_BRAIN_DIR}/.gitignore`);
         expect(status).not.toContain(`${DEFAULT_BRAIN_DIR}/boot.md`);
         expect(readFileSync(join(scene.dir, '.gitignore'), 'utf-8')).toContain(
-          '!.agent/.actors/actor.via.slug=.default/',
+          '!.agent/.actors/actor.via.repo=ambient/',
         );
       });
 
       then('the role boot hook is gone; the adhoc and human hooks stay', () => {
         const settings = readFileSync(
-          join(scene.dir, '.claude', 'settings.json'),
+          join(scene.dir, '.claude', 'settings.of.repo.json'),
           'utf-8',
         );
         expect(settings).not.toContain(ROLES_BOOT_COMMAND_WAXER);
@@ -304,10 +313,17 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       );
 
       then('a bare claude -p quotes the default roles, head to tail (M5)', () => {
-        // status beside stderr, so a failed ask names its cause
-        expect({ status: ask.status, stderr: ask.stderr }).toMatchObject({
-          status: 0,
-        });
+        // a failed ask names its cause: `claude -p` prints its errors to stdout, so both
+        //   streams ride the received value, which `toEqual` prints whole on a mismatch
+        expect(
+          ask.status === 0
+            ? { status: 0 }
+            : {
+                status: ask.status,
+                stdout: ask.stdout.slice(-500),
+                stderr: ask.stderr.slice(-500),
+              },
+        ).toEqual({ status: 0 });
         expect(ask.sentinels).toEqual(
           expect.arrayContaining([
             sentinelOf('shaperhead'),
@@ -411,7 +427,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       });
     });
 
-    const t3 = useWhenLabeled('[t3] rhx enroll claude --roles shaper, real cli, temp HOME', () => {
+    const t3 = useWhenLabeled({ label: '[t3] rhx enroll claude --roles shaper, real cli, temp HOME', fn: () => {
       const enrolled = useThen('enroll reaches a live clone', async () => {
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
         const clone = await enrollRealClaudeAndWaitReach({
@@ -426,6 +442,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         if (!actorName)
           throw new MalfunctionError('enroll made no actor dir', {
             actorsBefore,
+            hint: 'read the enroll stderr above; a refused enroll (floor, flag) writes no actor dir',
           });
         const brainDir = join(
           scene.dir,
@@ -497,7 +514,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         expect(ask.sentinels).not.toContain(sentinelOf('local'));
       });
 
-      const relaunch = useThen('a second launch of the actor answers', () => {
+      const relaunch = useThen('a second launch of the actor answers', async () => {
         // two identical launches: the first writes the cache, the second reads it (M2)
         // .note = each launch carries the argv every enrolled clone spawns with, so M2
         //   measures the prompt a clone actually runs under
@@ -514,8 +531,8 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
               'json',
             ],
           });
-        launch();
-        const asked = launch();
+        await launch();
+        const asked = await launch();
         const envelope = JSON.parse(asked.stdout) as {
           usage?: { cache_read_input_tokens?: number };
         };
@@ -547,9 +564,9 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       //   default prompt, one with the empty prompt a clone spawns with. both carry the
       //   enroll config prefix (its claudeMdExcludes keep the repo corpus out), so the
       //   prompt flag is the ONE variable. the difference in billed input IS the default prompt
-      const prompts = useThen('a default-prompt launch and an empty-prompt launch answer', () => {
-        const launch = (args: string[]) => {
-          const asked = askClaudePrintForSentinels({
+      const prompts = useThen('a default-prompt launch and an empty-prompt launch answer', async () => {
+        const launch = async (args: string[]) => {
+          const asked = await askClaudePrintForSentinels({
             dir: scene.dir,
             env: { ...scene.env, CLAUDE_CONFIG_DIR: enrolled.brainDir },
             binPath: scene.binPath,
@@ -574,10 +591,10 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
             (envelope.usage?.cache_read_input_tokens ?? 0);
           return { ...asked, inputBilled };
         };
-        return {
-          vendor: launch([]),
-          empty: launch(['--system-prompt', '']),
-        };
+        // one after the other, so the two launches never contend for the cache they measure
+        const vendor = await launch([]);
+        const empty = await launch(['--system-prompt', '']);
+        return { vendor, empty };
       });
 
       then('the cli accepts the empty system prompt — exit 0', () => {
@@ -619,7 +636,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       });
 
       return enrolled;
-    });
+    }});
 
     when('[t3.1] the repo brain dir opens every door, then a new shaper clone', () => {
       const doors = useThen('the doors open and a new clone answers', async () => {
@@ -629,6 +646,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         if (readlinkSync(join(repoBrainDir, 'CLAUDE.md')) !== 'AGENTS.md')
           throw new MalfunctionError('door 1 is not open: CLAUDE.md -> AGENTS.md', {
             repoBrainDir,
+            hint: 'the prior init step should open this door; read its stdout for a brain dir failure',
           });
 
         // door 2: a rules file
@@ -639,7 +657,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         );
 
         // door 3: an unenrolled role's boot hook that echoes a sentinel
-        const settingsPath = join(repoBrainDir, 'settings.json');
+        const settingsPath = join(repoBrainDir, 'settings.of.repo.json');
         const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
         settings.hooks.SessionStart.push({
           matcher: '# author=repo=.this/role=glasser *',
@@ -729,9 +747,10 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           if (hostPid) killQuietly(hostPid);
         }
       });
-      const result = useThen('enroll returns', () => {
+      const result = useThen('enroll returns', async () => {
         const homeBare = genTempDir({ slug: 'brain-dir-boot-home-bare' });
-        return invokeRhachetCliBinary({
+        // async, never sync: the [t3] clone's pty is live (rule.forbid.sync-invoke-while-a-pty-is-live)
+        return invokeRhachetCliBinaryAsync({
           args: [
             'enroll',
             'claude',
@@ -798,10 +817,40 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           .filter((path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined);
         expect(brainDirLogins).toEqual([]);
       });
+
+      then('stderr names the absent grove, and the brain dir holds no grove arrow (vision case=4)', () => {
+        const line =
+          result.stderr
+            .split('\n')
+            .find((row) => row.includes('no grove at')) ?? '';
+        // the whole line is pinned; only the temp HOME prefix of the path may vary
+        expect(line).toMatch(
+          /^ℹ no grove at \S+\/\.claude\/settings\.json — box defaults did not apply; create it to share them with every clone$/,
+        );
+        // every actor brain dir is checked, and at least one must exist, so an absent dir can
+        //   never pass the checks below vacuously
+        const actorsDir = join(scene.dir, '.agent', '.actors');
+        const brainDirs = readdirSync(actorsDir)
+          .filter((name) => name.startsWith('actor.via.'))
+          .map((name) => join(actorsDir, name, 'brain', '.claude'))
+          .filter((path) => existsSync(path));
+        expect(brainDirs.length).toBeGreaterThan(0);
+        for (const brainDir of brainDirs) {
+          expect(
+            lstatSync(join(brainDir, 'settings.json'), { throwIfNoEntry: false }),
+          ).toBeUndefined();
+          expect(
+            lstatSync(join(brainDir, 'settings.of.grove.json'), {
+              throwIfNoEntry: false,
+            }),
+          ).toBeUndefined();
+          expect(existsSync(join(brainDir, 'settings.of.repo.json'))).toBe(true);
+        }
+      });
     });
 
     when('[t4] shaper brief changes; rhx init while the [t3] clone lives', () => {
-      const changed = useThen('init re-renders every live corpus', () => {
+      const changed = useThen('init re-renders every live corpus', async () => {
         const headPath = join(
           scene.dir,
           '.agent',
@@ -815,11 +864,16 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           `${readFileSync(headPath, 'utf-8')}\nthe shaper new sentinel is ${sentinelOf('shapernew')}.\n`,
         );
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
-        const init = invokeRhachetCliBinary({
-          args: ['init', '--hooks'],
-          cwd: scene.dir,
-          env: scene.env,
-        });
+        const init = await budget.withBudget(
+          { kind: 'cli', detail: 'rhx init --hooks' },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['init', '--hooks'],
+              cwd: scene.dir,
+              env: scene.env,
+              timeoutMs: budgetMs,
+            }),
+        );
         return { init, actorsBefore };
       });
 
@@ -874,8 +928,13 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           (budgetMs) =>
             t3.bg
               .waitForOutput({ pattern: /Compacted/, timeoutMs: budgetMs })
+              // a catch, not a wrap: the screen is read at the failure, never before it.
+              //   only the wait's own two refusals are rebranded — its bound passed, or the
+              //   clone exited first, both ConstraintErrors. any other fault keeps its class
               .catch((cause: Error) => {
+                if (!(cause instanceof ConstraintError)) throw cause;
                 throw new MalfunctionError('the [t3] clone never compacted', {
+                  cause,
                   reason: cause.message,
                   say: { status: said.status, stderr: said.stderr },
                   // stripped BEFORE the slice, the same convention both other dump
@@ -883,6 +942,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
                   // almost entirely on escapes, so the dump shows a few hundred
                   // chars of real text
                   screen: asLegibleScreen(t3.bg.getOutput()).slice(-4000),
+                  hint: 'read the screen tail: a credit or auth notice there means the brain never ran /compact',
                 });
               }),
         );
@@ -934,7 +994,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       });
     });
 
-    const t5 = useWhenLabeled('[t5] a lifeguard actor lives; lifeguard is unlinked; rhx init', () => {
+    const t5 = useWhenLabeled({ label: '[t5] a lifeguard actor lives; lifeguard is unlinked; rhx init', fn: () => {
       const run = useThen('init returns', async () => {
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
         const clone = await enrollRealClaudeAndWaitReach({
@@ -949,13 +1009,19 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         if (!actorName)
           throw new MalfunctionError('enroll of lifeguard made no actor dir', {
             actorsBefore,
+            hint: 'read the enroll stderr above; a refused enroll (floor, flag) writes no actor dir',
           });
-        const init = invokeRhachetCliBinary({
-          args: ['init', '--roles', '-lifeguard', '--hooks'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        });
+        const init = await budget.withBudget(
+          { kind: 'cli', detail: 'rhx init --roles -lifeguard --hooks' },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['init', '--roles', '-lifeguard', '--hooks'],
+              cwd: scene.dir,
+              env: scene.env,
+              logOnError: false,
+              timeoutMs: budgetMs,
+            }),
+        );
         return { init, actorName };
       });
 
@@ -988,23 +1054,33 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       });
 
       return run;
-    });
+    }});
 
     when('[t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init', () => {
-      const run = useThen('init returns', () => {
-        const link = invokeRhachetCliBinary({
-          args: ['roles', 'link', '--repo', 'surfshop', '--role', 'lifeguard'],
-          cwd: scene.dir,
-          env: scene.env,
-        });
+      const run = useThen('init returns', async () => {
+        const link = await budget.withBudget(
+          { kind: 'cli', detail: 'rhx roles link --repo surfshop --role lifeguard' },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['roles', 'link', '--repo', 'surfshop', '--role', 'lifeguard'],
+              cwd: scene.dir,
+              env: scene.env,
+              timeoutMs: budgetMs,
+            }),
+        );
         chmodSync(t3.brainDir, 0o555);
         try {
-          const init = invokeRhachetCliBinary({
-            args: ['init', '--hooks'],
-            cwd: scene.dir,
-            env: scene.env,
-            logOnError: false,
-          });
+          const init = await budget.withBudget(
+            { kind: 'cli', detail: 'rhx init --hooks' },
+            (budgetMs) =>
+              invokeRhachetCliBinaryAsync({
+                args: ['init', '--hooks'],
+                cwd: scene.dir,
+                env: scene.env,
+                logOnError: false,
+                timeoutMs: budgetMs,
+              }),
+          );
           return { link, init };
         } finally {
           chmodSync(t3.brainDir, 0o755);
@@ -1109,11 +1185,16 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
 
     when('[t7] rhx clone get on the [t3] clone', () => {
       const got = useThen('get returns', () =>
-        invokeRhachetCliBinary({
-          args: ['clone', 'get', t3.address, '--output', 'json', '--tail', 'all'],
-          cwd: scene.dir,
-          env: scene.env,
-        }),
+        budget.withBudget(
+          { kind: 'cli', detail: `rhx clone get ${t3.address} --output json --tail all` },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['clone', 'get', t3.address, '--output', 'json', '--tail', 'all'],
+              cwd: scene.dir,
+              env: scene.env,
+              timeoutMs: budgetMs,
+            }),
+        ),
       );
 
       then('its transcript is found, under the actor brain dir', () => {
@@ -1157,12 +1238,17 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
           roles: ['glasser'],
         });
         clonesLive.push(clone.bg);
-        return invokeRhachetCliBinary({
-          args: ['clone', 'get', clone.address],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        });
+        return budget.withBudget(
+          { kind: 'cli', detail: `rhx clone get ${clone.address}` },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['clone', 'get', clone.address],
+              cwd: scene.dir,
+              env: scene.env,
+              logOnError: false,
+              timeoutMs: budgetMs,
+            }),
+        );
       });
 
       then('the decoy is not returned', () => {
@@ -1206,7 +1292,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
     });
 
     when('[t8.1] a git clone of the tree; claude -p; rhx init; claude -p', () => {
-      const run = useThen('both launches answer', () => {
+      const run = useThen('both launches answer', async () => {
         spawnSync('git', ['add', '-A'], { cwd: scene.dir });
         spawnSync('git', ['commit', '-q', '-m', 'journey tree'], {
           cwd: scene.dir,
@@ -1217,17 +1303,22 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         const bootPresent = existsSync(
           join(cloneDir, DEFAULT_BRAIN_DIR, 'boot.md'),
         );
-        const before = askClaudePrintForSentinels({
+        const before = await askClaudePrintForSentinels({
           dir: cloneDir,
           env: scene.env,
           binPath: scene.binPath,
         });
-        const init = invokeRhachetCliBinary({
-          args: ['init', '--hooks'],
-          cwd: cloneDir,
-          env: scene.env,
-        });
-        const after = askClaudePrintForSentinels({
+        const init = await budget.withBudget(
+          { kind: 'cli', detail: 'rhx init --hooks' },
+          (budgetMs) =>
+            invokeRhachetCliBinaryAsync({
+              args: ['init', '--hooks'],
+              cwd: cloneDir,
+              env: scene.env,
+              timeoutMs: budgetMs,
+            }),
+        );
+        const after = await askClaudePrintForSentinels({
           dir: cloneDir,
           env: scene.env,
           binPath: scene.binPath,
@@ -1251,6 +1342,7 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         console.log('M7 measure', {
           status: run.before.status,
           sentinels: run.before.sentinels,
+          stdout: run.before.stdout.slice(-500),
           stderr: run.before.stderr.slice(-500),
         });
         expect({ status: run.before.status, stderr: run.before.stderr }).toMatchObject({

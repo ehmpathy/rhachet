@@ -1,7 +1,20 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`setBrainDirBoot given: [case1] a repo with two linked roles when: [t0] one brain dir is rendered then: boot.md holds both roles, no stats block, and the pointer files are set 1`] = `
-"<readme path=".agent/repo=.this/role=any/readme.md">
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
 any readme
 </readme>
 

@@ -15,14 +15,14 @@ describe('getBrainOndiskDir', () => {
     });
   });
 
-  given('[case2] the default actor dir', () => {
+  given('[case2] the repo actor dir', () => {
     when('[t0] its brain dir is computed', () => {
       then('it is <actorDir>/brain/.claude', () => {
         expect(
           getBrainOndiskDir({
-            actorDir: '/repo/.agent/.actors/actor.via.slug=.default',
+            actorDir: '/repo/.agent/.actors/actor.via.repo=ambient',
           }),
-        ).toEqual('/repo/.agent/.actors/actor.via.slug=.default/brain/.claude');
+        ).toEqual('/repo/.agent/.actors/actor.via.repo=ambient/brain/.claude');
       });
     });
   });

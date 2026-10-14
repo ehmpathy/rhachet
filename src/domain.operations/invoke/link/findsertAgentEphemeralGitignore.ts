@@ -1,6 +1,6 @@
 import {
   ACTORS_GITIGNORE_LINE,
-  DEFAULT_ACTOR_DIR_NAME,
+  REPO_ACTOR_DIR_NAME,
 } from '@src/domain.operations/actor/enrolled/constants';
 
 import { findsertDirGitignore } from './findsertDirGitignore';
@@ -17,15 +17,26 @@ const GITIGNORE_CONTENT = `${GITIGNORE_HEADER}*
 `;
 
 /**
- * .what = the `.actors` self-ignore: every direct child ignored, save the default
- *   actor dir, which holds the repo's tracked brain config (D10)
+ * .what = the `.actors` self-ignore: every direct child ignored, save the repo
+ *   actor's brain dir, which holds the repo's tracked brain config (D10)
  * .why = the patterns are anchored (`/*`), so the root `.gitignore` patterns
- *   (`*.local.json`, `*.bak.*`) still apply inside the default dir
+ *   (`*.local.json`, `*.bak.*`) still apply inside the repo actor dir. the file converges
+ *   whole, so the legacy `!/actor.via.slug=.default/` line drops on the next write
+ * .why = only `brain/.claude/` is re-included, and its own allowlist `.gitignore` picks
+ *   the tracked names. a bare enroll lands on the repo actor, so its runtime records
+ *   (`actor.json`, `roles/`, `clones/`) are written there on every everyday `claude` —
+ *   they stay ignored, as in every other actor dir
+ * .note = git never re-includes a path under an excluded dir, so each level is
+ *   re-included, then its children ignored, one level at a time
  */
-const GITIGNORE_CONTENT_ACTORS = `${GITIGNORE_HEADER}# .note = the default actor dir is the one exception: it holds the repo brain dir
+const GITIGNORE_CONTENT_ACTORS = `${GITIGNORE_HEADER}# .note = the repo actor's brain dir is the one exception: it holds the ambient roles' brain config
 /*
 !/.gitignore
-${ACTORS_GITIGNORE_LINE.selfDefaultNegation}
+${ACTORS_GITIGNORE_LINE.selfRepoActorNegation}
+/${REPO_ACTOR_DIR_NAME}/*
+!/${REPO_ACTOR_DIR_NAME}/brain/
+/${REPO_ACTOR_DIR_NAME}/brain/*
+!/${REPO_ACTOR_DIR_NAME}/brain/.claude/
 `;
 
 /**
@@ -35,7 +46,7 @@ ${ACTORS_GITIGNORE_LINE.selfDefaultNegation}
  *   keeps them out of git history in every repo `.agent` lands in, and leaves the
  *   consumer's root .gitignore untouched
  *
- * .note = `.actors` spares its default actor dir from both the ignore and the
+ * .note = `.actors` spares its repo actor dir from both the ignore and the
  *   create-time untrack; every other dir ignores all it holds
  */
 export const findsertAgentEphemeralGitignore = (input: {
@@ -46,7 +57,7 @@ export const findsertAgentEphemeralGitignore = (input: {
     ? findsertDirGitignore({
         dir: input.dir,
         content: GITIGNORE_CONTENT_ACTORS,
-        spare: [DEFAULT_ACTOR_DIR_NAME],
+        spare: [REPO_ACTOR_DIR_NAME],
       })
     : findsertDirGitignore({
         dir: input.dir,

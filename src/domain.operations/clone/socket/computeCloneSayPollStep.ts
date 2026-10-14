@@ -55,8 +55,15 @@ export interface CloneSayPollRead {
  *   never observed here
  */
 export type CloneSayPollStep =
-  | { done: true; observation: CloneSayObservation }
+  | { done: true; observation: CloneSayPollObservation }
   | { done: false };
+
+/**
+ * .what = the observation a poll yields — every read fact, save the one the loop adds
+ * .why = `exitAsked` is a fact about the MESSAGE, never a read, so the poll that decides only on
+ *   reads does not carry it; the I/O loop that holds the message adds it (getCloneSayObservation)
+ */
+export type CloneSayPollObservation = Omit<CloneSayObservation, 'exitAsked'>;
 
 /**
  * .what = decide whether a poll cycle is terminal, from one cycle's read — the pure
@@ -126,6 +133,20 @@ export const computeCloneSayPollStep = (
         //   behavior. the verdict's `released` branch is itself gated on an empty queue, so a
         //   `true` here cannot reach it: either the rise is false, or the queue is non-empty
         //   (else the branch above would have terminated first)
+        transcriptRose: input.transcriptRose,
+        screen: input.screen,
+        probeReason: input.probeReason,
+      },
+    };
+
+  // the socket is gone — no listener is left, so no later poll can read more than this one. a
+  // wait to the bound would only print a fault per poll and then judge the same close, so stop
+  // now: the verdict reads the close as `exited` after an asked `/exit`, else `unreadable`
+  if (input.probeReason === 'socket-gone')
+    return {
+      done: true,
+      observation: {
+        refusal: null,
         transcriptRose: input.transcriptRose,
         screen: input.screen,
         probeReason: input.probeReason,

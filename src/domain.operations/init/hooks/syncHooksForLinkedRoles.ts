@@ -1,15 +1,23 @@
+import { HelpfulError, MalfunctionError } from 'helpful-errors';
+
+import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
+import { withBrainDirSettingsShield } from '@src/domain.operations/actor/enrolled/withBrainDirSettingsShield';
+import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { setActorSettingsDerived } from '@src/domain.operations/enroll/setActorSettingsDerived';
+import { getHomeDir } from '@src/infra/getHomeDir';
 import { asErrorClassText } from '@src/utils/asErrorClassText';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
-import { getOneTreeElbow } from '@src/utils/getOneTreeElbow';
-import { getOneTreeSpine } from '@src/utils/getOneTreeSpine';
+import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
+import { lstatSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
+import { asEnrolledActorsHookSyncLines } from './asEnrolledActorsHookSyncLines';
 import { asHookChangeSummary } from './asHookChangeSummary';
+import { asHookChangeTally } from './asHookChangeTally';
 import { asHookFaultRows } from './asHookFaultRows';
 import { asHookSyncTotalRows } from './asHookSyncTotalRows';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
@@ -98,17 +106,31 @@ export const syncHooksForLinkedRoles = async (
   console.log('');
   console.log('🪝 apply hooks to brains...');
 
-  // prune orphans, then sync every role into the root brains. the root write meets the same
-  // fs and classified faults an actor's does, so it takes the same allowlist: reported and
-  // tallied, while the sweep continues to the actors (`isActorHookSyncFault`)
+  // prune orphans, then sync every role into the repo actor's brains. the root write meets
+  // the same fs and classified faults an actor's does, so it takes the same allowlist:
+  // reported and tallied, while the sweep continues to the actors (`isActorHookSyncFault`)
+  //
+  // 🔴 an adapter that predates the layout writes `<repo>/.claude/settings.json` by name — an
+  //   arrow to the human's home settings — so the pair runs inside the shield, which keeps
+  //   that write in the repo
+  //
+  // .note = the brains are detected BEFORE the shield opens: the shield puts a real
+  //   settings.json in claude's slot, which detection would read as a claude repo
+  // .note = a detected brain no installed package supplies is skipped; a named one is not
+  const brainsTarget = brains ?? (await getBrainsDetectedAndSupplied(context));
+  const syncIntoRoot = () =>
+    syncRoleHooksIntoTarget(
+      { authorsDesired, roles, brains: brainsTarget, configTargetDir: null },
+      context,
+    );
+  const isClaudeCodeTargeted = brainsTarget.includes('anthropic/claude/code');
   const {
     pruneResult,
     syncResult,
     faults: faultsForRoot,
-  } = await syncRoleHooksIntoTarget(
-    { authorsDesired, roles, brains: brains ?? null, configTargetDir: null },
-    context,
-  );
+  } = isClaudeCodeTargeted
+    ? await withRepoBrainDirShield({ repoPath: context.cwd }, syncIntoRoot)
+    : await syncIntoRoot();
   const errorsForRoot = faultsForRoot.map(({ error }) => ({
     source: 'root',
     error,
@@ -186,123 +208,54 @@ export const syncHooksForLinkedRoles = async (
     for (const line of asTreeBranchLines({ rows: summaryLines, indent: '   ' }))
       console.log(line);
   }
+
+  // a clean sync that moved no hook says so once, as a subbranch (rule.forbid.colons-in-stdout)
   const countRootFaults = syncResult.errors.length + errorsForRoot.length;
-  if (!hasChanges && countRootFaults === 0)
-    console.log('✨ hooks: no changes needed');
+  if (!hasChanges && countRootFaults === 0) {
+    console.log('✨ hooks');
+    console.log('   └─ no changes needed');
+  }
   // close the summary only where one printed, so a fault-only run leaves one blank, not two
   if (hasChanges || countRootFaults === 0) console.log('');
 
-  // apply the SAME hooks into every enrolled actor's brain dir, so an
-  // actor's own brain/.claude/settings.json never drifts from the repo root
-  // (usecase.9 — one boot/link keeps root AND all actors in sync)
+  // derive every enrolled actor's settings.of.repo.json from the repo actor's, narrowed
+  // to THAT actor's own roles — the same derivation enroll runs at spawn, so an
+  // actor's settings never drift from the repo actor's, and never carry a hook of a
+  // role the actor was not enrolled in (usecase.9)
+  //
+  // 🔴 never a second sync into each actor's brain dir: there `settings.json` is the grove
+  //   arrow into the human's home settings, so a write by that name would land the roles'
+  //   hooks in `~/.claude/settings.json` (inventory.of=requirements.case=9)
+  //
+  // 🟡 .note = the repo actor is included: this pass is init's one writer of its
+  //   `claudeMdExcludes` (enroll writes them only at spawn). its hooks come back unchanged,
+  //   since `genBrainCliConfigArtifact` never narrows the source
   const actorsEnrolled = getAllActorsOndisk({ repoPath: context.cwd });
   if (actorsEnrolled.length > 0) {
-    console.log('🧢 apply hooks to enrolled actors...');
-    // .note = a classified fault (`isActorHookSyncFault`) stays scoped to its actor's row and
-    //   the sweep continues. an unclassified throw is our own defect, so it exits the sweep
-    //   loud, and the actors after it are not synced this run. each write is idempotent, so
-    //   the next init or upgrade re-converges every actor once the defect is fixed
-    // .note = deliberate mutation — `i` is a loop induction index; the tree render
-    //   needs the position to know which actor is last (└─ vs ├─); bounded to the loop
-    for (let i = 0; i < actorsEnrolled.length; i++) {
-      const actor = actorsEnrolled[i]!;
-      const prefix = getOneTreeElbow({
-        index: i,
-        length: actorsEnrolled.length,
+    // derive each actor's settings, one at a time and in order; a fault is collected, so one
+    //   broken actor never skips the rest. the actor row carries the SAME +N/~N/-N summary
+    //   the brain rows do (rule.forbid.snapshot-visual-blemishes: the two rows share a shape)
+    const actorRows: Parameters<
+      typeof asEnrolledActorsHookSyncLines
+    >[0]['actors'] = [];
+    // .note = deliberate mutation — the actors derive one at a time, in order, so the rows
+    //   print in the order the actors were read; the list is local to this block
+    for (const actor of actorsEnrolled) {
+      const { outcome, fault } = await getOneEnrolledActorSettingsOutcome({
+        actor,
+        repoPath: context.cwd,
       });
-
-      // the config write path is the actor's brain dir; package discovery + brain
-      // detection still root at context.cwd (only the write target moves)
-      const configTargetDir = join(
-        getActorOndiskDir({ repoPath: context.cwd, hash: actor.hash }),
-        'brain',
-      );
-
-      // 🔴 the three fault sources below land HERE first, never straight into `errors`.
-      //   they are reported beneath this actor's own row and THEN aggregated, so the
-      //   render and the tally read the same set. a push straight to `errors` is what
-      //   made them unprintable: the shared array carries every actor's faults at once,
-      //   so this loop could no longer tell which of them were its own to report
-      // 🟡 .note = deliberate mutation — a per-actor accumulator, scoped to this loop turn and
-      //   read only after the try settles, so no shared reference ever observes a partial set
-      const errorsForActor: { source: string; error: Error }[] = [];
-
-      // 🔴 narrow to the actor's OWN roleset. an actor enrolled `-driver` must never carry the
-      //   driver's hooks: its clones read this brain dir at user scope, so a foreign Stop hook
-      //   fires inside them — a reviewer clone loops on `route.drive` and never ends its turn.
-      //   the prune takes the same narrowed set, so a hook this sync once wrote is removed.
-      //   the match is by slug, as the actor model records it: two linked suppliers that ship
-      //   one slug would both match
-      const rolesForActor = roles.filter((role) =>
-        actor.roles.includes(role.slug),
-      );
-      const authorsForActor = new Set(
-        rolesForActor.map((role) => `repo=${role.repo}/role=${role.slug}`),
-      );
-      const { syncResult: actorSync, faults: faultsForActor } =
-        await syncRoleHooksIntoTarget(
-          {
-            authorsDesired: authorsForActor,
-            roles: rolesForActor,
-            brains: brains ?? null,
-            configTargetDir,
-          },
-          context,
-        );
-
-      // tally created/updated/deleted across every role→brain apply, so the actor
-      // row carries the SAME +N/~N/-N summary the brain rows do — never a bare hash
-      // (rule.forbid.snapshot-visual-blemishes: the two rows share a shape)
-      const changes = asHookChangeSummary(
-        getOneHookChangeTally({ applied: actorSync.applied }),
-      );
-      for (const err of actorSync.errors) {
-        errorsForActor.push({
-          source: `${err.role.repo}/${err.role.slug}→${err.brain}`,
-          error: err.error,
-        });
-      }
-      for (const fault of faultsForActor)
-        errorsForActor.push({ source: 'actor', error: fault.error });
-
-      // aggregate, with the actor coordinate restored — the render below sits UNDER this
-      // actor's row so it needs no prefix, while `errors` is read by a caller with no such
-      // context (`invokeInit.ts`, `execUpgrade.ts`), so its `source` must stand alone
-      for (const err of errorsForActor) {
-        errors.push({
-          source: `sync:actor=${actor.hash}:${err.source}`,
-          error: err.error,
-        });
-      }
-
-      // the actor hash is rendered WHOLE — it is already the actor's entire name
-      // (genEnrollmentHash mints 8 chars), so an elision here would hide one char,
-      // spend a glyph on the ellipsis, and cost the reader a copyable `@<hash>`
-      // address (define.address-sigils). the change summary mirrors the brain row
-      // so the reader sees WHAT changed per actor
-      console.log(`   ${prefix} ${actor.hash}${changes ? `: ${changes}` : ''}`);
-
-      // 🔴 a per-actor fault is REPORTED, never merely tallied. `invokeInit.ts:166` counts
-      //   `errors.length` to set the exit code and prints none of them, so an unprinted one
-      //   here is an `init --hooks` that exits 1 and tells nobody why — while the root-level
-      //   loop three screens up prints its own faults with this exact `✗` row. one operation,
-      //   two grades of the same fault, and only the quieter half reaches an actor's hooks
-      //   (`rule.require.failloud`)
-      //
-      // ⚠️ and the actor half is the half that matters most: a role's hooks are installed
-      //   into each actor's own brain config, so a silent fault here leaves that actor with a
-      //   role whose guards, boots, and permission checks are absent — while the command
-      //   reports success
-      const spine = getOneTreeSpine({
-        index: i,
-        length: actorsEnrolled.length,
+      if (fault)
+        errors.push({ source: `sync:actor=${actor.exid}`, error: fault });
+      actorRows.push({
+        actorExid: actor.exid,
+        outcome,
+        hint: asErrorHintOrNull({ error: fault }),
       });
-      for (const line of asTreeBranchLines({
-        rows: asHookFaultRows({ faults: errorsForActor }),
-        indent: `   ${spine}`,
-      }))
-        console.log(line);
     }
+    asEnrolledActorsHookSyncLines({ actors: actorRows }).forEach((line) =>
+      console.log(line),
+    );
     console.log('');
   }
 
@@ -314,3 +267,96 @@ export const syncHooksForLinkedRoles = async (
 
   return { errors };
 };
+
+/**
+ * .what = derive one enrolled actor's settings, and settle it into the shape its report row
+ *   reads: the change summary or the fault, and the fault itself (always an Error) for the
+ *   caller's error list
+ * .why = a fault is collected, never thrown, so one broken actor never skips the rest
+ */
+const getOneEnrolledActorSettingsOutcome = async (input: {
+  actor: ActorOndisk;
+  repoPath: string;
+}): Promise<{
+  outcome: { changes: string } | { error: Error };
+  fault: Error | null;
+}> => {
+  try {
+    const derived = await setActorSettingsDerived(input);
+    const tally = asHookChangeTally(derived.hooks);
+    const changes = asHookChangeSummary({
+      created: tally.created.length,
+      updated: tally.updated.length,
+      deleted: tally.deleted.length,
+    });
+    return { outcome: { changes }, fault: null };
+  } catch (error) {
+    // an allowlist: a classed or fs fault is this actor's row; a code defect surfaces loud
+    if (isCodeDefectError({ error })) throw error;
+    const fault =
+      error instanceof Error
+        ? error
+        : new MalfunctionError('actor settings derivation rejected', {
+            actorExid: input.actor.exid,
+            reason: error,
+            hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
+          });
+    return { outcome: { error: fault }, fault };
+  }
+};
+
+/**
+ * .what = run logic inside the settings shield of the brain dir `<repo>/.claude` reaches,
+ *         when that dir is in the layout; else run it bare
+ * .why = the arrow is the only way an adapter's write by name can reach the grove
+ */
+const withRepoBrainDirShield = async <T>(
+  input: { repoPath: string },
+  logic: () => Promise<T>,
+): Promise<T> => {
+  // resolve `<repo>/.claude` once, then probe and shield that one dir — so a swap of the
+  //   reach path between the probe and the shield cannot point them at two different dirs
+  const brainDir = getRealpathOrNull({
+    path: join(input.repoPath, '.claude'),
+  });
+  // 🔴 the layout reach path is the signal, never the grove arrow: a box with no
+  //   `~/.claude/settings.json` has no arrow, and there an old adapter's write by name
+  //   would land in a real `settings.json` the clone never reads
+  const isLayoutReach =
+    isSymlinkAt({ path: join(input.repoPath, '.claude') }) ||
+    (!!brainDir && isSymlinkAt({ path: join(brainDir, 'settings.json') }));
+  if (!brainDir || !isLayoutReach) return logic();
+  return withBrainDirSettingsShield(
+    { repoPath: input.repoPath, brainDir, home: getHomeDir() },
+    logic,
+  );
+};
+
+/**
+ * .what = a path's realpath, or null when it is absent
+ * .note = only ENOENT means absent; every other errno surfaces (failhide)
+ */
+const getRealpathOrNull = (input: { path: string }): string | null => {
+  try {
+    return realpathSync(input.path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') return null;
+    throw error;
+  }
+};
+
+/**
+ * .what = the `hint` a HelpfulError carries, or null
+ * .why = an actor row names the fault's class; the hint beneath it names the fix
+ */
+const asErrorHintOrNull = (input: { error: Error | null }): string | null => {
+  if (!(input.error instanceof HelpfulError)) return null;
+  const hint: unknown = input.error.metadata?.hint;
+  return typeof hint === 'string' ? hint : null;
+};
+
+/**
+ * .what = whether a symlink sits at a path (absent reads as no)
+ */
+const isSymlinkAt = (input: { path: string }): boolean =>
+  !!lstatSync(input.path, { throwIfNoEntry: false })?.isSymbolicLink();

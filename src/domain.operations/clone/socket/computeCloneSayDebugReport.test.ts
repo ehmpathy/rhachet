@@ -110,6 +110,7 @@ describe('computeCloneSayDebugReport', () => {
             queued: false,
           },
           probeReason: null,
+          exitAsked: false,
         },
         outcome: {
           verdict: 'absent',
@@ -239,6 +240,7 @@ describe('computeCloneSayDebugReport', () => {
           transcriptRose: false,
           screen: null,
           probeReason: null,
+          exitAsked: false,
         },
         outcome: {
           verdict: 'withheld',
@@ -303,6 +305,7 @@ describe('computeCloneSayDebugReport', () => {
           transcriptRose: false,
           screen: null,
           probeReason: 'peer-probe-blind',
+          exitAsked: false,
         },
         outcome: {
           verdict: 'unreadable',
@@ -378,6 +381,7 @@ describe('computeCloneSayDebugReport', () => {
             queued: false,
           },
           probeReason: null,
+          exitAsked: false,
         },
         outcome: {
           verdict: 'absent',
@@ -470,6 +474,7 @@ describe('computeCloneSayDebugReport', () => {
           transcriptRose: false,
           screen: null,
           probeReason: null,
+          exitAsked: false,
         },
         outcome: {
           verdict: 'withheld',
@@ -688,6 +693,7 @@ describe('isCloneSayReachFaultCapture', () => {
             refusal: null,
             transcriptRose: true,
             probeReason: null,
+            exitAsked: false,
             screen: {
               focus: 'input',
               input: 'clear',

@@ -4,25 +4,27 @@ import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
 
 /**
  * .what = locks the enroll spawn argv contract — the exact `--setting-sources
- *   user,local --settings <path>` flag ORDER, then the brain's passthrough
+ *   user --settings <path>` flag ORDER, then the brain's passthrough
  * .why = the flag order is a contract with the brain cli; a reorder or a dropped
- *   flag silently breaks enrollment. this restores the coverage the deleted
- *   enrollBrainCli.test.ts held once its array-build moved into a named
- *   transformer (rule.require.clamp-edge-cases: a previously-locked failure mode
- *   regains its guard). DOGFOOD: drop `user` or `local`, or swap the two flags, and
- *   the asserts below go red. `user` carries the actor's boot corpus (D9, M1)
+ *   flag silently breaks enrollment. DOGFOOD: drop `user`, re-add `local` or
+ *   `project`, or swap the two flags, and the asserts below go red. `user` carries
+ *   the actor's boot corpus and the grove; `local` and `project` would reach the
+ *   repo actor's brain dir through the cwd (define.brain-dir-repo-vs-actor)
  */
 describe('asBrainCliSpawnArgs', () => {
   given('[case1] a config path with no passthrough', () => {
-    const configPath = '/path/to/settings.enroll.abc123.local.json';
+    const configPath = '/path/to/actor/brain/.claude/settings.of.repo.json';
 
     when('[t0] the spawn args are built', () => {
       const args = asBrainCliSpawnArgs({ configPath, passthrough: [] });
 
-      then('it includes the `--setting-sources user,local` flag', () => {
-        const sourcesIndex = args.indexOf('--setting-sources');
-        expect(args[sourcesIndex + 1]).toEqual('user,local');
-      });
+      then(
+        'it includes the `--setting-sources user` flag, and only user',
+        () => {
+          const sourcesIndex = args.indexOf('--setting-sources');
+          expect(args[sourcesIndex + 1]).toEqual('user');
+        },
+      );
 
       then('it includes `--settings` with the config path right after', () => {
         expect(args).toContain('--settings');
@@ -39,7 +41,7 @@ describe('asBrainCliSpawnArgs', () => {
       then('the exact prefix order is locked', () => {
         expect(args).toEqual([
           '--setting-sources',
-          'user,local',
+          'user',
           '--settings',
           configPath,
           '--system-prompt',
@@ -70,7 +72,7 @@ describe('asBrainCliSpawnArgs', () => {
       then('the passthrough comes AFTER `--settings <path>`', () => {
         expect(args).toEqual([
           '--setting-sources',
-          'user,local',
+          'user',
           '--settings',
           configPath,
           '--system-prompt',

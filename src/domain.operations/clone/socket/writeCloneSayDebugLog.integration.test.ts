@@ -30,6 +30,7 @@ const asCapture = (): CloneSayDebugCapture => ({
     transcriptRose: false,
     screen: null,
     probeReason: 'peer-probe-blind',
+    exitAsked: false,
   },
   outcome: {
     verdict: 'unreadable',

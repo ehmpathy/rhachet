@@ -1,5 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
+import { getOneGitMainCheckoutOrNull } from '@src/infra/git/getOneGitMainCheckoutOrNull';
+import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -43,23 +45,38 @@ const getClaudeJsonRecord = (input: {
  * .why = a relocated clone reads its first-run state from its own config dir, so
  *   with none it meets the trust and api-key prompts with no keyboard behind it (D11)
  * .note = a write lands only when a key is absent; a re-run makes no write
+ * .note = the read and the write share one `.claude.json` mutex, so two enrolls of one actor
+ *   never both read the same prior and drop each other's keys
  */
-export const findsertBrainFirstRunState = (input: {
+export const findsertBrainFirstRunState = async (input: {
   brainDir: string;
   repoPath: string;
   home: string;
-}): { status: 'written' | 'unchanged'; path: string } => {
+}): Promise<{ status: 'written' | 'unchanged'; path: string }> => {
   const path = join(input.brainDir, '.claude.json');
+  const repoPathMain = getOneGitMainCheckoutOrNull({
+    repoRoot: input.repoPath,
+  });
 
-  // read the brain dir's state and the human's
-  const prior = getClaudeJsonRecord({ path });
-  const human = getClaudeJsonRecord({ path: join(input.home, '.claude.json') });
+  return withRepoMutex({ repoPath: input.repoPath, path }, async () => {
+    // read the brain dir's state and the human's
+    const prior = getClaudeJsonRecord({ path });
+    const human = getClaudeJsonRecord({
+      path: join(input.home, '.claude.json'),
+    });
 
-  // compute the next state; null means no key is absent
-  const next = asBrainFirstRunState({ prior, human, repoPath: input.repoPath });
-  if (!next) return { status: 'unchanged', path };
+    // compute the next state; null means no key is absent
+    //   .note = trust rides under the main checkout too — claude keys it there in a worktree
+    const next = asBrainFirstRunState({
+      prior,
+      human,
+      repoPath: input.repoPath,
+      repoPathMain,
+    });
+    if (!next) return { status: 'unchanged' as const, path };
 
-  // write the whole file at once
-  setFileAtomic({ path, content: `${JSON.stringify(next, null, 2)}\n` });
-  return { status: 'written', path };
+    // write the whole file at once
+    setFileAtomic({ path, content: `${JSON.stringify(next, null, 2)}\n` });
+    return { status: 'written' as const, path };
+  });
 };

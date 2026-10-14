@@ -3,11 +3,11 @@ import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants'
 const NAMES_DROPPED: string[] = Object.values(BRAIN_DIR_BOOT_FILENAMES);
 
 /**
- * .what = the entry names of a real `<repo>/.claude` and of the default brain dir →
+ * .what = the entry names of a real `<repo>/.claude` and of the repo actor's brain dir →
  *         which entries to drop, which to move, and which of those moves replace
  * .why = rhachet owns the boot context (S11), so the boot files are dropped, never moved.
  *        every other name MOVES — `<repo>/.claude` is the live dir a human and a role's init
- *        have just written, so where the default dir already holds that name, the repo-side
+ *        have just written, so where the repo actor's dir already holds that name, the repo-side
  *        copy is the current one and it wins. a name in both dirs is reported as an
  *        `overwrites` row, never refused
  */

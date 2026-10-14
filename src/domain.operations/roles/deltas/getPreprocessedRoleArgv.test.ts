@@ -228,6 +228,43 @@ describe('getPreprocessedRoleArgv', () => {
   );
 
   given(
+    '[case10] enroll reads a bare role delta outside a `--roles` run',
+    () => {
+      // `rhx enroll claude -driver` is an alias of `--roles -driver`
+      // (inventory.of=requirements.case=4). the bare delta must survive commander,
+      // whose combo-short branch would read `-reviewer` as `-r eviewer`
+      when('[t0] `enroll claude -reviewer` is preprocessed', () => {
+        then('the bare delta encodes', () => {
+          const out = getPreprocessedRoleArgv({
+            args: ['enroll', 'claude', '-reviewer'],
+          });
+          expect(out).toEqual([
+            'enroll',
+            'claude',
+            `${INCREMENTAL_REMOVE_SENTINEL}reviewer`,
+          ]);
+        });
+      });
+
+      when('[t1] `enroll claude -c -p hi` is preprocessed', () => {
+        then('the one-letter brain flags are left intact', () => {
+          const out = getPreprocessedRoleArgv({
+            args: ['enroll', 'claude', '-c', '-p', 'hi'],
+          });
+          expect(out).toEqual(['enroll', 'claude', '-c', '-p', 'hi']);
+        });
+      });
+
+      when('[t2] `init -reviewer` is preprocessed', () => {
+        then('init reads no bare delta, so the token is left intact', () => {
+          const out = getPreprocessedRoleArgv({ args: ['init', '-reviewer'] });
+          expect(out).toEqual(['init', '-reviewer']);
+        });
+      });
+    },
+  );
+
+  given(
     "[case9] init's variadic `--roles` encodes across many `-role` values",
     () => {
       // contrast to case8: init/upgrade declare `--roles <roles...>` (variadic),

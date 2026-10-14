@@ -1,3 +1,5 @@
+import { asTreeBranch } from '@src/utils/asTreeBranch';
+
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
 import type { BrainDirBootRender } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
@@ -39,9 +41,9 @@ type ReportGroup = { label: string; rows: string[] };
 export const asBrainDirSyncReportLines = (input: {
   render: BrainDirBootRender;
   symlink: BrainDirSyncSymlink | null;
-  defaultBrainDirRel: string;
+  repoActorBrainDirRel: string;
 }): string[] => {
-  const { render, symlink, defaultBrainDirRel } = input;
+  const { render, symlink, repoActorBrainDirRel } = input;
 
   const groups: ReportGroup[] = [];
 
@@ -52,7 +54,7 @@ export const asBrainDirSyncReportLines = (input: {
       label: 'moved',
       rows: symlink.moves.map(
         (name) =>
-          `.claude/${name} → ${defaultBrainDirRel}/${name}${symlink.overwrites.includes(name) ? ' (replaced)' : ''}`,
+          `.claude/${name} → ${repoActorBrainDirRel}/${name}${symlink.overwrites.includes(name) ? ' (replaced)' : ''}`,
       ),
     });
   if (symlink?.drops.length)
@@ -68,7 +70,7 @@ export const asBrainDirSyncReportLines = (input: {
   if (symlink && symlink.effect !== 'FOUND')
     groups.push({
       label: 'linked',
-      rows: [`.claude → ${defaultBrainDirRel}`],
+      rows: [`.claude → ${repoActorBrainDirRel}`],
     });
 
   // the corpus. `created` and `upgraded` are different facts to a human: one says a
@@ -94,15 +96,19 @@ export const asBrainDirSyncReportLines = (input: {
   if (isBootOnly && !render.bootMdCreated) return [];
 
   return [
-    `🧠 brain dir (${asBrainDirBootScopeLabel({ scope: render.scope })})`,
+    `🧠 ${asBrainDirBootScopeLabel({ scope: render.scope })}`,
     ...groups.flatMap((group, groupIndex) => {
-      const isLastGroup = groupIndex === groups.length - 1;
-      const groupBranch = isLastGroup ? '└─' : '├─';
-      const groupStem = isLastGroup ? '   ' : '│  ';
+      const { branch: groupBranch, stem: groupStem } = asTreeBranch({
+        index: groupIndex,
+        count: groups.length,
+      });
       return [
         `   ${groupBranch} ${group.label}`,
         ...group.rows.map((row, rowIndex) => {
-          const rowBranch = rowIndex === group.rows.length - 1 ? '└─' : '├─';
+          const { branch: rowBranch } = asTreeBranch({
+            index: rowIndex,
+            count: group.rows.length,
+          });
           return `   ${groupStem}${rowBranch} ${row}`;
         }),
       ];

@@ -16,6 +16,22 @@ import { asSnapshotSafe } from './invokeRhachetCliBinary';
  *   the value closed, and the snapshot renders malformed output the producer never emitted.
  *   the second failure is the quiet one — it looks like a defect in the code under test.
  */
+describe('asSnapshotSafe atomic temp mask', () => {
+  given('[case0] an atomic write temp name in a refusal', () => {
+    when('[t0] the line is masked', () => {
+      then('the pid and the random draw are masked, the name stays', () => {
+        expect(
+          asSnapshotSafe(
+            "EACCES: permission denied, open 'brain/.claude/.settings.of.repo.json.2751960.ade0dcb9.tmp'",
+          ),
+        ).toEqual(
+          "EACCES: permission denied, open 'brain/.claude/.settings.of.repo.json.__PID__.__HEX__.tmp'",
+        );
+      });
+    });
+  });
+});
+
 describe('asSnapshotSafe path mask', () => {
   given('[case1] a path that ends the way a STACK FRAME ends', () => {
     when('[t0] the frame is masked', () => {

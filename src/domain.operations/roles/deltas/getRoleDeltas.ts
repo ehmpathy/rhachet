@@ -2,6 +2,7 @@ import { ConstraintError } from 'helpful-errors';
 
 import { RoleDelta } from '@src/domain.objects/RoleDelta';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
+import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
 
 /**
@@ -98,25 +99,15 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
   // compare at the role-slug level so `+architect -ehmpathy/architect` is caught:
   // an unqualified token could match any repo, so it conflicts with any
   // same-slug token; two qualified tokens conflict only within the same repo.
-  // reuse the shared parseRoleSpecifier so the repo/role split stays in one place.
-  const additionParts = additionsUnique.map((delta) =>
-    parseRoleSpecifier({ specifier: delta.role }),
-  );
-  const subtractionParts = subtractionsUnique.map((delta) =>
-    parseRoleSpecifier({ specifier: delta.role }),
-  );
-  const contradiction = additionParts.find((addition) =>
-    subtractionParts.some(
-      (subtraction) =>
-        addition.role === subtraction.role &&
-        (addition.repo === null ||
-          subtraction.repo === null ||
-          addition.repo === subtraction.repo),
+  // reuse the shared isRoleSpecifierMatch so the match rule stays in one place.
+  const contradiction = additionsUnique.find((addition) =>
+    subtractionsUnique.some((subtraction) =>
+      isRoleSpecifierMatch({ left: addition.role, right: subtraction.role }),
     ),
   );
   if (contradiction)
     throw new ConstraintError(
-      `cannot both add and remove role "${contradiction.role}" in one call`,
+      `cannot both add and remove role "${parseRoleSpecifier({ specifier: contradiction.role }).role}" in one call`,
       {
         additions: additionsUnique.map((delta) => delta.role),
         subtractions: subtractionsUnique.map((delta) => delta.role),

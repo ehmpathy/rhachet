@@ -1,7 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
-import { asActorOndiskHashFromDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskHashFromDirName';
+import { asActorOndiskExidFromDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskExidFromDirName';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsIndexDir } from '@src/domain.operations/actor/enrolled/getActorsIndexDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
@@ -14,6 +14,7 @@ import { asCloneSerialFromDirName } from './asCloneSerialFromDirName';
 import { getAllClonesGroupedByActor } from './getAllClonesGroupedByActor';
 import { getCloneDir } from './getCloneDir';
 import { getOneCloneHydrated } from './getOneCloneHydrated';
+import { isCloneSerialMatchedByPrefix } from './isCloneSerialMatchedByPrefix';
 
 /**
  * .what = look up ONE clone by its address (`@:<slug|serial>`), hydrated — or
@@ -107,10 +108,15 @@ const getOneCloneBySerialPrefix = (input: {
   prefix: string;
   repoPath: string;
 }): CloneOndisk | null => {
-  const prefix = input.prefix.toLowerCase();
-  const matches = getAllClonesGroupedByActor({ repoPath: input.repoPath })
-    .flatMap((group) => group.clones)
-    .filter((clone) => clone.serial.replace(/-/g, '').startsWith(prefix));
+  const clones = getAllClonesGroupedByActor({
+    repoPath: input.repoPath,
+  }).flatMap((group) => group.clones);
+  const matches = clones.filter((clone) =>
+    isCloneSerialMatchedByPrefix({
+      serial: clone.serial,
+      prefix: input.prefix,
+    }),
+  );
 
   if (matches.length === 0) return null;
   if (matches.length === 1) return matches[0]!;
@@ -153,16 +159,16 @@ const getOneCloneByIndexLink = (input: {
   // read the owner actor + serial out of the index target, then hydrate the dir —
   // the SAME paired parse-direction transformers the enumerators use, so the
   // dir-name format is single-owned whether it is built, listed, or parsed here
-  const actorHash = asActorOndiskHashFromDirName({ dirName: target });
+  const actorExid = asActorOndiskExidFromDirName({ dirName: target });
   const serial = asCloneSerialFromDirName({ dirName: target });
-  if (actorHash === null || serial === null) return null;
+  if (actorExid === null || serial === null) return null;
 
   // compose the canonical builders so the dir-name format is single-owned — the
-  // actor dir off { repoPath, hash }, then the clone dir off { actorDir, serial }
+  // actor dir off { repoPath, exid }, then the clone dir off { actorDir, serial }
   const cloneDir = getCloneDir({
     actorDir: getActorOndiskDir({
       repoPath: input.repoPath,
-      hash: actorHash,
+      exid: actorExid,
     }),
     serial,
   });
@@ -170,6 +176,6 @@ const getOneCloneByIndexLink = (input: {
     cloneDir,
     actorsRoot: input.actorsRoot,
     repoPath: input.repoPath,
-    actorHash,
+    actorExid,
   });
 };

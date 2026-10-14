@@ -1000,7 +1000,7 @@ describe('rhachet upgrade', () => {
           existsSync(
             join(
               scene.repo.path,
-              '.agent/.actors/actor.via.slug=.default/brain/.claude/boot.md',
+              '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
             ),
           ),
         ).toEqual(true);
@@ -1040,7 +1040,7 @@ describe('rhachet upgrade', () => {
         repo.path,
         '.agent',
         '.actors',
-        'actor.via.slug=.default',
+        'actor.via.repo=ambient',
         'brain',
         '.claude',
       );
@@ -1070,12 +1070,14 @@ describe('rhachet upgrade', () => {
         // `{"b":2}` was the default dir's copy. the migration carried the repo-side file
         //   over it, so what remains is what `<repo>/.claude` held at sync time — the
         //   role init's merge, never the stale `b`
-        const settings = readFileSync(
-          join(scene.defaultDir, 'settings.json'),
-          'utf8',
-        );
-        expect(settings).not.toEqual('{"b":2}\n');
-        expect(settings).not.toContain('"b"');
+        // .note = on a box with no grove (`~/.claude/settings.json` absent), the layout
+        //   drops claude's name outright, so the stale copy is gone with the file
+        //   (inventory.of=requirements.case=7). either shape, no `b` survives anywhere
+        for (const name of ['settings.json', 'settings.of.repo.json']) {
+          const path = join(scene.defaultDir, name);
+          if (!existsSync(path)) continue;
+          expect(readFileSync(path, 'utf8')).not.toContain('"b"');
+        }
       });
 
       then('the overwritten row is marked, so a human knows what to diff', () => {

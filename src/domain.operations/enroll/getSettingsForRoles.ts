@@ -1,4 +1,6 @@
-import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
+import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+
+import { asRoleSlugOfHookAuthor } from './asRoleSlugOfHookAuthor';
 
 /**
  * .what = returns a settings object whose hooks are narrowed to only those
@@ -19,8 +21,11 @@ export const getSettingsForRoles = (input: {
 
   if (!settings.hooks) return settings;
 
-  // author format is `repo=X/role=Y`, so match on the `role=Y` fragment
-  const rolePatterns = roles.map((role) => `role=${role}`);
+  // author format is `repo=X/role=Y`, so match on the whole `role=Y` segment.
+  //   🔴 a segment, never a substring: `role=architect` is a prefix of `role=architect-ops`,
+  //   so a substring match would hand an `architect` actor the hooks of `architect-ops` —
+  //   the cross-role leak this narrow exists to prevent
+  const rolesEnrolled = new Set(roles);
 
   // narrow each hook event category to entries with at least one role-authored hook
   const hooksFiltered: ClaudeCodeSettings['hooks'] = {};
@@ -36,7 +41,8 @@ export const getSettingsForRoles = (input: {
           // read it directly — no cast; the guard narrows it to string below
           const author = hook.author;
           if (!author) return false;
-          return rolePatterns.some((pattern) => author.includes(pattern));
+          const roleOfAuthor = asRoleSlugOfHookAuthor({ author });
+          return roleOfAuthor !== null && rolesEnrolled.has(roleOfAuthor);
         });
 
         // drop the entry entirely when no inner hook survived

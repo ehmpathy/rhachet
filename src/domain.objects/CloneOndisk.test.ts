@@ -14,7 +14,10 @@ const genSampleCloneOndisk = (
   new CloneOndisk({
     serial: input.serial,
     slug: input.slug ?? null,
-    actor: input.actor ?? { repoPath: '/home/dev/repo', hash: '9c1e0af3' },
+    actor: input.actor ?? {
+      repoPath: '/home/dev/repo',
+      exid: 'hash=9c1e0af3',
+    },
     socketEligible: input.socketEligible ?? true,
     spawnedAt: input.spawnedAt ?? asIsoTimeStamp('2026-08-07T00:00:00.000Z'),
     hostHash: input.hostHash ?? 'host0001',
@@ -46,7 +49,7 @@ describe('CloneOndisk', () => {
         expect(clone.slug).toEqual('driver');
         expect(clone.actor).toEqual({
           repoPath: '/home/dev/repo',
-          hash: '9c1e0af3',
+          exid: 'hash=9c1e0af3',
         });
       });
 

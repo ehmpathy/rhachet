@@ -172,6 +172,23 @@ const stubMode = process.env.RHACHET_STUB_MODE || 'default';
 const rule = '─'.repeat(40);
 const renderClearBox = () => `${rule}\n❯ Try "a message"\n${rule}\n`;
 
+/**
+ * .what = park the cursor inside the box just drawn, at the start of its `❯` row; and the
+ *   inverse, step out below the box once a submit has landed
+ * .why = a real brain-cli keeps its cursor in the input row, so what the pty echoes lands IN
+ *   the box. the stub's pty is cooked: the stub sees no byte until the submit, so the pty's own
+ *   echo is the only render of a pending message. parked below the box, that echo landed under
+ *   it, the daemon's submit-ready watch never saw the message commit, and every say waited out
+ *   the whole 5s budget before its submit (CLONE_SUBMIT_READY_BUDGET_MS). parked in the box, the
+ *   echo is seen within one poll
+ * .note = the echo overwrites the `Try "…"` placeholder in place; this box is left behind once
+ *   the submit lands, and a fresh one is drawn below it, so the band the daemon reads is always
+ *   the newest box
+ */
+const PARK_IN_BOX = '\x1b[2A\r\x1b[2C';
+const LEAVE_BOX = '\x1b[1B\r';
+const renderParkedBox = () => `${renderClearBox()}${PARK_IN_BOX}`;
+
 // the initial screen per mode. `default`/`busy` open on a clear box; `dirty` opens on a
 // box that holds a human's half-typed text (never the placeholder, so it classifies
 // `dirty`); `modal` opens on a `❯`-led option menu with a confirm footer ABOVE the box
@@ -190,7 +207,7 @@ const renderInitialScreen = () => {
   if (stubMode === 'modal')
     return `❯ 1. Yes\n  2. No\nDo you want to proceed?\n${renderClearBox()}`;
   if (stubMode === 'nobox') return `a screen with no input band\n`;
-  return renderClearBox();
+  return renderParkedBox();
 };
 process.stdout.write(renderInitialScreen());
 
@@ -213,13 +230,20 @@ const handleOne = (raw) => {
     return;
   }
 
+  // `/exit` or `/quit` — the clone ends as asked, the way claude does, so its socket closes
+  //   and a say that asked for it reads `exited`
+  if (message === '/exit' || message === '/quit') {
+    process.exit(0);
+    return;
+  }
+
   // `busy` mode — a brain mid-turn HOLDS the message above the input line: echo it as a
   // scrolled-up queued turn (so countOnScreen rises) atop a still-clear box, and write
   // NEITHER the transcript NOR a reply. so no `released` (the transcript never rises) and
   // the box stays `clear` — the `enqueued` shape (focus input, region clear, screen count
   // rose). a genuinely busy brain holds the message with no transcript write, exactly this
   if (stubMode === 'busy') {
-    process.stdout.write(`❯ ${message}\n${renderClearBox()}`);
+    process.stdout.write(`${LEAVE_BOX}❯ ${message}\n${renderParkedBox()}`);
     return;
   }
 
@@ -229,7 +253,7 @@ const handleOne = (raw) => {
   // its count rose in the band, so the verdict is `buffered` (do not re-send — it would
   // append). the initial box is clear, so the pre-check proceeds before this redraw
   if (stubMode === 'bufferedhold') {
-    process.stdout.write(`${rule}\n❯ ${message}\n${rule}\n`);
+    process.stdout.write(`${LEAVE_BOX}${rule}\n❯ ${message}\n${rule}\n`);
     return;
   }
 
@@ -237,18 +261,16 @@ const handleOne = (raw) => {
   // submit self-verify sees the message left the input buffer, then reply below
   appendUser(message);
 
-  // `poke <nonce>` — a TRANSFORMED reply, so a pass proves the say reached here
+  // `poke <nonce>` — a TRANSFORMED reply, so a pass proves the say reached here; any other
+  //   input — a transformed acknowledgement. the reply renders below the submitted box, then
+  //   a fresh clear box takes the cursor, as a real brain-cli's does after a turn
+  // .note = `dirty` opened with its cursor OUTSIDE the box (the human's draft holds it), so it
+  //   has no box to step out of; only a parked box does
   const pokeMatch = /^poke\s+(.+)$/.exec(message);
-  if (pokeMatch) {
-    const reply = `ack:${pokeMatch[1]}`;
-    process.stdout.write(`${reply}\n`);
-    appendAssistant(reply);
-    return;
-  }
-
-  // any other input — a transformed acknowledgement
-  const reply = `got:${message}`;
-  process.stdout.write(`${reply}\n`);
+  const reply = pokeMatch ? `ack:${pokeMatch[1]}` : `got:${message}`;
+  const leave = stubMode === 'dirty' ? '' : LEAVE_BOX;
+  const after = stubMode === 'dirty' ? '' : renderParkedBox();
+  process.stdout.write(`${leave}${reply}\n${after}`);
   appendAssistant(reply);
 };
 

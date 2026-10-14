@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`init role delta → a delta actor with a live clone (acceptance) given: [case1] a live clone of a \`--roles -architect\` actor when: [t1] \`rhx init --roles -driver\` while the clone lives then: the init report a human reads is locked 1`] = `
+"🔧 init roles (incremental)
+   ├─ subtractions
+   │  └─ - bhrain/driver
+   └─ untouched (2)
+
+"
+`;

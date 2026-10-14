@@ -14,7 +14,7 @@ describe('getActorsRootDir', () => {
     const root = getActorsRootDir({ repoPath: '/repo' });
     const actorDir = getActorOndiskDir({
       repoPath: '/repo',
-      hash: 'abcd1234',
+      exid: 'hash=abcd1234',
     });
     expect(actorDir.startsWith(root)).toBe(true);
   });

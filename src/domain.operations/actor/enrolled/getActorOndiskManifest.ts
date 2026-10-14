@@ -9,19 +9,20 @@ import { ACTOR_MANIFEST_SCHEMA_VERSION } from './constants';
  *   - the tolerant-read policy (corrupt => loud, a future schema => loud with an
  *     upgrade hint, older/absent schema => accepted) must read the SAME way at
  *     every caller. one owner means `getAllActorsOndisk` (the enumerate path)
- *     and `getOneActorOndiskByHash` (the O(1) direct path) never drift on how a
+ *     and `getOneActorOndiskByExid` (the O(1) direct path) never drift on how a
  *     manifest is validated
- *   - returns only the load-critical fields (brain, roles); the repoPath + hash of
+ *   - returns only the load-critical fields (brain, roles); the repoPath + exid of
  *     the actor come from the dir location the caller already holds
  *
  * .note = throws a MalfunctionError (server-fix) on a corrupt or too-new manifest;
- *   a caller that wants "absent => null" checks the file exists FIRST (an absent
- *   manifest is a benign half-built dir, not a corruption)
+ *   an absent manifest throws the read's own ENOENT, so a caller that wants
+ *   "absent => null" wraps the call in `withAbsentAsNull` (an absent manifest is a
+ *   benign half-built dir, not a corruption)
  */
 export const getActorOndiskManifest = (input: {
   manifestPath: string;
-  hash: string;
-}): { brain: string; roles: string[] } => {
+  exid: string;
+}): { brain: string; roles: string[]; rolesDelta: string[] | null } => {
   const raw = readFileSync(input.manifestPath, 'utf8');
 
   const parsed = (() => {
@@ -30,13 +31,14 @@ export const getActorOndiskManifest = (input: {
         schemaVersion?: number;
         brain?: string;
         roles?: string[];
+        rolesDelta?: string[] | null;
       };
     } catch (error) {
       return MalfunctionError.throw(
         'enrolled actor manifest is corrupt — actor.json is not valid JSON',
         {
           manifestPath: input.manifestPath,
-          hash: input.hash,
+          exid: input.exid,
           cause: error instanceof Error ? error : undefined,
         },
       );
@@ -61,8 +63,14 @@ export const getActorOndiskManifest = (input: {
   if (typeof parsed.brain !== 'string' || !Array.isArray(parsed.roles))
     return MalfunctionError.throw(
       'enrolled actor manifest is corrupt — brain or roles is absent',
-      { manifestPath: input.manifestPath, hash: input.hash },
+      { manifestPath: input.manifestPath, exid: input.exid },
     );
 
-  return { brain: parsed.brain, roles: parsed.roles };
+  // a delta is optional: a manifest written before deltas were recorded, or by an
+  //   absolute or bare enroll, holds none
+  const rolesDelta = Array.isArray(parsed.rolesDelta)
+    ? parsed.rolesDelta
+    : null;
+
+  return { brain: parsed.brain, roles: parsed.roles, rolesDelta };
 };

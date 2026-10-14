@@ -1,0 +1,167 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is DIRTY (a human mid-type) when: [t0] an UNFORCED say into the dirty box then: the withheld/dirty JSON envelope is locked too — the MACHINE twin 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "the clone input box holds uncommitted text (a human mid-type) — the say was withheld",
+  "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": false,
+    "verdict": "withheld",
+    "reason": "input-region-dirty",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "dirtybox",
+    "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is DIRTY (a human mid-type) when: [t0] an UNFORCED say into the dirty box then: the withheld/dirty stderr format is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: the clone input box holds uncommitted text (a human mid-type) — the say was withheld
+
+{
+  "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+  "delivered": false,
+  "verdict": "withheld",
+  "reason": "input-region-dirty",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "dirtybox",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is DIRTY (a human mid-type) when: [t1] a --force say into the SAME dirty box then: the forced-release JSON envelope is locked — the SUCCESS machine twin 1`] = `
+"{
+  "delivered": true,
+  "verdict": "released",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "dirtybox"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is DIRTY (a human mid-type) when: [t2] a \`clone get --what buffer\` read of that SAME dirty box then: the \`--output json\` twin carries the content, for a MACHINE caller 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "dirty",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "HUMAN-DRAFT-half-typed-and-uncommitted"
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is DIRTY (a human mid-type) when: [t2] a \`clone get --what buffer\` read of that SAME dirty box then: the buffer read format is locked (visual spot-check) 1`] = `
+"😶 @:dirtybox — the input box holds 1 row(s)
+   │
+   │  0 │ HUMAN-DRAFT-half-typed-and-uncommitted
+   │
+   └─ read it twice a second apart: rows that GREW are a human mid-type; rows that
+      held still are either a human who paused or stale output awaiting a redraw
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open (a permission prompt) when: [t0] a say while a modal holds focus then: the withheld/modal JSON envelope is locked too — the MACHINE twin 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "the clone has a modal open (a prompt or menu) — a say would answer it, so it was withheld",
+  "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": false,
+    "verdict": "withheld",
+    "reason": "modal-holds-focus",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "modalbox",
+    "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open (a permission prompt) when: [t0] a say while a modal holds focus then: the withheld/modal stderr format is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: the clone has a modal open (a prompt or menu) — a say would answer it, so it was withheld
+
+{
+  "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+  "delivered": false,
+  "verdict": "withheld",
+  "reason": "modal-holds-focus",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "modalbox",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open (a permission prompt) when: [t2] a \`clone get --what buffer\` read while the modal holds focus then: the modal-blind read format is locked (visual spot-check) 1`] = `
+"😶 @:modalbox — the buffer could not be read
+   ├─ cause: the screen is on modal, so the input band is not locatable
+   └─ fix: read what the modal asks with --debug; it must be cleared at the clone's own tty
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case14] a clone whose screen has NO input band (unrecognized) when: [t0] a say against a screen with no readable input band then: the withheld/unrecognized JSON envelope is locked too — the MACHINE twin 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "the clone screen is unrecognized — the say was withheld rather than pasted blind",
+  "hint": "an unrecognized screen is never force-able. read it with --debug; the measured causes are permanent (a 0x0 pty geometry, or a detached host with no tty), so a wait never clears them — tear the clone down and re-enroll it",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": false,
+    "verdict": "withheld",
+    "reason": "focus-unrecognized",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "noboxscreen",
+    "hint": "an unrecognized screen is never force-able. read it with --debug; the measured causes are permanent (a 0x0 pty geometry, or a detached host with no tty), so a wait never clears them — tear the clone down and re-enroll it",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case14] a clone whose screen has NO input band (unrecognized) when: [t0] a say against a screen with no readable input band then: the withheld/unrecognized stderr format is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: the clone screen is unrecognized — the say was withheld rather than pasted blind
+
+{
+  "hint": "an unrecognized screen is never force-able. read it with --debug; the measured causes are permanent (a 0x0 pty geometry, or a detached host with no tty), so a wait never clears them — tear the clone down and re-enroll it",
+  "delivered": false,
+  "verdict": "withheld",
+  "reason": "focus-unrecognized",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "noboxscreen",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+"
+`;

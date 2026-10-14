@@ -8,7 +8,7 @@ import { computeBrainCliEnrollment } from './computeBrainCliEnrollment';
 
 describe('computeBrainCliEnrollment', () => {
   const rolesLinked = ['mechanic', 'driver', 'ergonomist', 'architect'];
-  const rolesDefault = ['mechanic', 'driver', 'ergonomist'];
+  const rolesAmbient = ['mechanic', 'driver', 'ergonomist'];
   const brain = 'claude';
 
   given('[case1] absolute mode with single role', () => {
@@ -21,7 +21,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.brain).toEqual('claude');
@@ -43,7 +43,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.roles).toEqual(['mechanic', 'architect']);
@@ -61,7 +61,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.roles).toContain('mechanic');
@@ -83,7 +83,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.roles).toContain('mechanic');
@@ -107,7 +107,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.roles).toContain('mechanic');
@@ -130,7 +130,7 @@ describe('computeBrainCliEnrollment', () => {
           computeBrainCliEnrollment({
             brain,
             spec,
-            rolesDefault,
+            rolesAmbient,
             rolesLinked,
           }),
         );
@@ -150,7 +150,7 @@ describe('computeBrainCliEnrollment', () => {
           computeBrainCliEnrollment({
             brain,
             spec,
-            rolesDefault,
+            rolesAmbient,
             rolesLinked,
           }),
         );
@@ -172,7 +172,7 @@ describe('computeBrainCliEnrollment', () => {
           computeBrainCliEnrollment({
             brain,
             spec,
-            rolesDefault,
+            rolesAmbient,
             rolesLinked,
           }),
         );
@@ -193,10 +193,10 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
-        expect(result.roles).toEqual(rolesDefault);
+        expect(result.roles).toEqual(rolesAmbient);
       });
     });
   });
@@ -211,10 +211,10 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
-        expect(result.roles).toEqual(rolesDefault);
+        expect(result.roles).toEqual(rolesAmbient);
       });
     });
   });
@@ -229,7 +229,7 @@ describe('computeBrainCliEnrollment', () => {
         const result = computeBrainCliEnrollment({
           brain,
           spec,
-          rolesDefault,
+          rolesAmbient,
           rolesLinked,
         });
         expect(result.roles).toEqual(['architect']);
@@ -251,7 +251,7 @@ describe('computeBrainCliEnrollment', () => {
           computeBrainCliEnrollment({
             brain,
             spec,
-            rolesDefault: [],
+            rolesAmbient: [],
             rolesLinked: [],
           }),
         );

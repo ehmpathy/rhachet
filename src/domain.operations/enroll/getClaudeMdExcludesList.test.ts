@@ -9,29 +9,29 @@ import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
  *   constant here too would make the assertion tautological and the tripwire inert
  */
 describe('getClaudeMdExcludesList', () => {
-  const defaultBrainDir =
-    '/repo/.agent/.actors/actor.via.slug=.default/brain/.claude';
+  const repoActorBrainDir =
+    '/repo/.agent/.actors/actor.via.repo=ambient/brain/.claude';
 
-  given('[case1] a repo, a default brain dir, and a home', () => {
+  given('[case1] a repo, a repo actor brain dir, and a home', () => {
     when('[t0] the excludes list is built', () => {
       then(
-        'both repo doors in both spellings, the user CLAUDE.md, the repo CLAUDE.local.md, and both rules globs, in order',
+        'both repo doors in both spellings, the user CLAUDE.md, every CLAUDE.local.md by glob, and both rules globs, in order',
         () => {
           expect(
             getClaudeMdExcludesList({
               repoPath: '/repo',
-              defaultBrainDir,
+              repoActorBrainDir,
               home: '/home/h',
             }),
           ).toEqual([
             '/repo/.claude/AGENTS.md',
             '/repo/.claude/CLAUDE.md',
-            `${defaultBrainDir}/AGENTS.md`,
-            `${defaultBrainDir}/CLAUDE.md`,
+            `${repoActorBrainDir}/AGENTS.md`,
+            `${repoActorBrainDir}/CLAUDE.md`,
             '/home/h/.claude/CLAUDE.md',
-            '/repo/CLAUDE.local.md',
+            '**/CLAUDE.local.md',
             '/repo/.claude/rules/**',
-            `${defaultBrainDir}/rules/**`,
+            `${repoActorBrainDir}/rules/**`,
           ]);
         },
       );
@@ -42,7 +42,7 @@ describe('getClaudeMdExcludesList', () => {
         const build = () =>
           getClaudeMdExcludesList({
             repoPath: '/repo',
-            defaultBrainDir,
+            repoActorBrainDir,
             home: '/home/h',
           });
         expect(build()).toEqual(build());
@@ -55,7 +55,7 @@ describe('getClaudeMdExcludesList', () => {
       then('no entry holds a double slash', () => {
         const list = getClaudeMdExcludesList({
           repoPath: '/repo/',
-          defaultBrainDir,
+          repoActorBrainDir,
           home: '/home/h',
         });
         expect(list.filter((entry) => entry.includes('//'))).toEqual([]);

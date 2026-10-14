@@ -1,13 +1,13 @@
 import type { BootStats } from './BootStats';
 
 /**
- * .what = the scope of one brain dir render — the repo default, one actor, or the
+ * .what = the scope of one brain dir render — the repo actor, one hash actor, or the
  *         actor enumeration itself
  * .why = a census line and a failure line each name which brain dir they speak of
  */
 export type BrainDirBootScope =
-  | { kind: 'default' }
-  | { kind: 'actor'; actorHash: string }
+  | { kind: 'repo' }
+  | { kind: 'actor'; actorExid: string }
   | { kind: 'actors' };
 
 /**
