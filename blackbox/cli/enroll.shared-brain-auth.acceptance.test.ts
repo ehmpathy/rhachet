@@ -128,10 +128,11 @@ describe('rhx enroll vs a real claude-code: one shared login store', () => {
           logOnError: false,
         });
 
-        // the one brain dir the enroll prepared for its actor
+        // the one brain dir the enroll prepared for its actor — a bare enroll is the repo
+        //   actor's (`actor.via.repo=ambient`), never a hash twin of it
         const actorsDir = join(scene.dir, '.agent', '.actors');
         const actorDirNames = readdirSync(actorsDir).filter((name) =>
-          name.startsWith('actor.via.hash='),
+          name.startsWith('actor.via.'),
         );
         const brainDirs = actorDirNames.map((name) =>
           join(actorsDir, name, 'brain', '.claude'),
@@ -259,7 +260,7 @@ describe('rhx enroll vs a real claude-code: one shared login store', () => {
         // the 1.48.0 leftover: a live login of the actor's own, beside a dead shared one
         const actorsDir = join(scene.dir, '.agent', '.actors');
         const actorDirName = readdirSync(actorsDir).find((name) =>
-          name.startsWith('actor.via.hash='),
+          name.startsWith('actor.via.'),
         )!;
         const brainDirAuthPath = join(
           actorsDir,
@@ -309,7 +310,7 @@ describe('rhx enroll vs a real claude-code: one shared login store', () => {
 const asCloneDirNames = (input: { dir: string }): string[] => {
   const actorsDir = join(input.dir, '.agent', '.actors');
   return readdirSync(actorsDir)
-    .filter((name) => name.startsWith('actor.via.hash='))
+    .filter((name) => name.startsWith('actor.via.'))
     .flatMap((name) => {
       const clonesDir = join(actorsDir, name, 'clones');
       if (!existsSync(clonesDir)) return [];

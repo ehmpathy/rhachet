@@ -246,3 +246,13 @@ export const CLONE_CONNECT_TIMEOUT_MS = 2_000;
  *   each const above tunes the WIRE; a bind bound and its fault marker answer a different
  *   question and share no reader with these.
  */
+
+/**
+ * .what = how long a socket server close waits for the in-flight dispatch to ack
+ * .why = a `/exit` ends the child mid submit; the close must let that `delivered` reach the
+ *   caller, or the caller waits out its whole wedge window. the bound outlasts the submit
+ *   watch (a window per send, plus the resends) so a healthy dispatch always lands, and keeps
+ *   a stuck write from a hold on the close
+ */
+export const CLONE_CLOSE_INFLIGHT_BOUND_MS =
+  CLONE_SUBMIT_TAKEN_WINDOW_MS * (CLONE_SUBMIT_RESEND_MAX + 1) + 1_000;

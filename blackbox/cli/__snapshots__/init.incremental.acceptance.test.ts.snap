@@ -60,9 +60,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  ├─ .claude/settings.$TIMESTAMP.bak.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.$TIMESTAMP.bak.json
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md

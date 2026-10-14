@@ -24,6 +24,7 @@ import { computeCloneAcceptRoute } from './computeCloneAcceptRoute';
 import { computeCloneScreenDispatchGate } from './computeCloneScreenDispatchGate';
 import {
   CLONE_AUTH_GATE_TIMEOUT_MS,
+  CLONE_CLOSE_INFLIGHT_BOUND_MS,
   CLONE_LOOP_LAG_THRESHOLD_MS,
   CLONE_LOOP_LAG_TICK_MS,
   CLONE_SUBMIT,
@@ -184,12 +185,20 @@ export const genCloneSocketServer = (
       // confirm the Enter was TAKEN — a fresh TUI mid boot animation can swallow the one
       // `\r`, which left the message in the box, unsent. re-send a bounded count of times
       // while the box still holds it (awaitCloneSubmitTaken)
+      // 🔴 a brain-cli that EXITS on the submit (a `/exit`) took it — its exit is the proof.
+      //   so a dead child reads as an unfed screen, which ends the watch at once and acks
+      //   `delivered`, rather than re-send a `\r` into a defunct pty
       await awaitCloneSubmitTaken({
-        read: input.read,
+        read: () =>
+          input.isBrainCliAlive()
+            ? input.read()
+            : { live: false as const, reason: 'feed-not-live' as const },
         message,
         countBefore,
         observedReady: ready.observed,
-        resubmit: () => input.write(CLONE_SUBMIT),
+        resubmit: () => {
+          if (input.isBrainCliAlive()) input.write(CLONE_SUBMIT);
+        },
       });
       return { delivered: true as const };
     },
@@ -670,15 +679,28 @@ export const genCloneSocketServer = (
     );
   }
 
-  const close = (): Promise<void> =>
-    new Promise((done) => {
-      loopLagWatch.stop();
-      queue.drain('clone-drained');
-      // destroy any still-open connection so server.close() can actually settle — a
+  const close = async (): Promise<void> => {
+    loopLagWatch.stop();
+    queue.drain('clone-drained');
+
+    // 🔴 let the IN-FLIGHT dispatch ack before the teardown. a `/exit` ends the child mid
+    //   submit; a destroy here dropped its `delivered`, and the caller sat out its whole
+    //   wedge window on a clone that had already done what it asked. bounded, so a stuck
+    //   write can never hold the close
+    await Promise.race([
+      queue.idle(),
+      new Promise<void>((done) =>
+        setTimeout(done, CLONE_CLOSE_INFLIGHT_BOUND_MS).unref(),
+      ),
+    ]);
+
+    await new Promise<void>((done) => {
+      // end, then destroy once the ack flushed — destroy alone discards a queued write. a
       // peer that never disconnects would otherwise hold the close callback forever
-      for (const socket of openSockets) socket.destroy();
+      for (const socket of openSockets) socket.end(() => socket.destroy());
       server.close(() => done());
     });
+  };
 
   return { server, queue, ready, close };
 };
