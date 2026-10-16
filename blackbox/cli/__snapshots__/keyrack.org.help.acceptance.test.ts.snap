@@ -12,8 +12,8 @@ Options:
   --for <owner>    alias for --owner
   --prikey <path>  ssh private key for manifest decryption
   --env <env>      filter by env: prod, prep, test, all, sudo, or camp
-  --org <org>      filter by provenance: @all (machine-wide keys) or @this (repo
-                   keys); default: no filter
+  --org <org>      filter by provenance: @all (machine-wide keys), @this (the
+                   first org in keyrack.yml), or any org; default: no filter
   --json           output as json (robot mode)
   -h, --help       display help for command
 "
@@ -29,8 +29,9 @@ output export statements for shell eval
 Options:
   --key <keyname>    single key to source (omit for all repo keys)
   --env <env>        target env: prod, prep, test, all, sudo, camp
-  --org <org>        filter by provenance: @all (machine-wide keys) or @this
-                     (repo keys); default: no filter
+  --org <org>        filter by provenance: @all (machine-wide keys), @this (the
+                     first org in keyrack.yml), or an allowlisted org; default:
+                     no filter
   --owner <owner>    owner identity (e.g., mechanic, foreman)
   --for <owner>      alias for --owner
   --strict           fail if any key not granted (default)
@@ -53,8 +54,8 @@ Options:
   --owner <owner>  owner identity (e.g., mechanic, foreman)
   --for <owner>    alias for --owner
   --env <env>      filter by env: prod, prep, test, all, sudo, or camp
-  --org <org>      filter by provenance: @all (machine-wide keys) or @this (repo
-                   keys); default: no filter
+  --org <org>      filter by provenance: @all (machine-wide keys), @this (the
+                   first org in keyrack.yml), or any org; default: no filter
   --json           output as json (robot mode)
   -h, --help       display help for command
 "
@@ -71,8 +72,9 @@ Options:
   --owner <owner>        owner identity (e.g., mechanic, foreman)
   --for <owner>          alias for --owner
   --env <env>            target env: prod, prep, test, all, sudo, or camp
-  --org <org>            filter by provenance: @all (machine-wide keys) or @this
-                         (repo keys); default: no filter
+  --org <org>            filter by provenance: @all (machine-wide keys), @this
+                         (the first org in keyrack.yml), or an allowlisted org;
+                         default: no filter
   --key <key>            specific key to unlock (required for --env sudo)
   --reach <exid>         reach to unlock (e.g., beav@ehmpathy.com,
                          github://org=ehmpathy); requires --key
@@ -96,7 +98,8 @@ Options:
   --key <keyname>  key name to remove (e.g., AWS_PROFILE)
   --env <env>      target env: prod, prep, test, all, sudo, or camp (default:
                    "all")
-  --org <org>      target org: @this or @all (default: "@this")
+  --org <org>      target org: @this (the first org in keyrack.yml), @all, or an
+                   allowlisted org (default: "@this")
   --owner <owner>  owner identity (e.g., mechanic, foreman)
   --for <owner>    alias for --owner
   --prikey <path>  ssh private key for manifest decryption
@@ -119,7 +122,8 @@ Options:
   --owner <owner>    owner identity (e.g., mechanic, foreman)
   --key <keyname>    raw key name to grant (e.g., AWS_PROFILE)
   --env <env>        target env: prod, prep, test, all, sudo, or camp
-  --org <org>        target org: @this or @all (default: "@this")
+  --org <org>        target org: @this (the first org in keyrack.yml), @all, or
+                     an allowlisted org (default: "@this")
   --reach <exid>     reach to fetch (e.g., beav@ehmpathy.com,
                      github://org=ehmpathy); requires --key
   --allow-dangerous  bypass firewall for blocked long-lived tokens
@@ -148,7 +152,8 @@ Options:
   --for <owner>              alias for --owner
   --env <env>                target env: prod, prep, test, all, sudo, or camp
                              (inferred from manifest if unambiguous)
-  --org <org>                target org: @this or @all (default: "@this")
+  --org <org>                target org: @this (the first org in keyrack.yml),
+                             @all, or an allowlisted org (default: "@this")
   --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
                              github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)

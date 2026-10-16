@@ -2,6 +2,7 @@ import { ConstraintError } from 'helpful-errors';
 
 import { asKeyrackOrgMismatchRefusal } from '@src/domain.operations/keyrack/asKeyrackOrgMismatchRefusal';
 import { asKeyrackSlugFullOrNull } from '@src/domain.operations/keyrack/asKeyrackSlugFullOrNull';
+import { asKeyrackSlugOrgConflictRefusal } from '@src/domain.operations/keyrack/asKeyrackSlugOrgConflictRefusal';
 
 /**
  * .what = reduce a mutation ask (`--key` plus its resolved org/env) to the `org.env.key` triple
@@ -46,6 +47,16 @@ export const asKeyrackAskSlugParts = (input: {
   /** .what = the org the ask resolved to, before the slug was read */
   org: string;
 
+  /**
+   * .what = the org the human SPELLED via `--org <member>`, or null when they spelled none
+   * .why = a slug that names another member is admitted when no org was spelled (the slug
+   *        picks its member), and refused as a conflict when the flag named a different one
+   */
+  orgAsked: string | null;
+
+  /** .what = the manifest's org allowlist; a slug org off this list is refused */
+  orgsOfManifest: string[];
+
   /** .what = the env the ask resolved to, before the slug was read */
   env: string;
 
@@ -67,12 +78,20 @@ export const asKeyrackAskSlugParts = (input: {
   // ⚠️ ORG FIRST — see `.why.order` above
   // .note = the guard skips when the ask resolved to `@all`, which is what keeps `--org @all` a
   //         deliberate override on a repo slug rather than a refusal
-  if (input.org !== '@all' && parts.org !== input.org)
+  // .note = a slug org off the allowlist is refused; a member slug org is admitted unless the
+  //         human spelled a different member via --org, which is a conflict
+  if (input.org !== '@all' && !input.orgsOfManifest.includes(parts.org))
     throw asKeyrackOrgMismatchRefusal({
       givenBy: 'slug',
       orgRejected: parts.org,
-      orgOfManifest: input.org,
+      orgsOfManifest: input.orgsOfManifest,
       key: input.key,
+    });
+  if (input.org !== '@all' && input.orgAsked && parts.org !== input.orgAsked)
+    throw asKeyrackSlugOrgConflictRefusal({
+      key: input.key,
+      orgAsked: input.orgAsked,
+      orgOfSlug: parts.org,
     });
 
   if (

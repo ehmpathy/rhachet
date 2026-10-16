@@ -72,6 +72,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t0] full slug org does not match manifest org', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'orgA',
+        orgs: ['orgA'],
         envs: [],
         keys: {},
       });
@@ -90,7 +91,7 @@ describe('getOneKeyrackGrantByKey', () => {
           } catch (error) {
             expect(error).toBeInstanceOf(ConstraintError);
             expect((error as ConstraintError).message).toContain(
-              'does not match manifest org',
+              "slug org 'orgB' is not on this manifest's org allowlist",
             );
           }
         },
@@ -100,6 +101,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t1] @all org is specified', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'orgA',
+        orgs: ['orgA'],
         envs: [],
         keys: {},
       });
@@ -125,6 +127,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t2] no org override and manifest exists', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'myorg',
+        orgs: ['myorg'],
         envs: ['test'],
         keys: {
           'myorg.test.API_KEY': {
@@ -206,6 +209,7 @@ describe('getOneKeyrackGrantByKey', () => {
     when('[t6] org param does not match manifest org', () => {
       const manifest = new KeyrackRepoManifest({
         org: 'orgA',
+        orgs: ['orgA'],
         envs: ['test'],
         keys: {},
       });
@@ -222,7 +226,7 @@ describe('getOneKeyrackGrantByKey', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(ConstraintError);
           expect((error as ConstraintError).message).toContain(
-            "org 'orgB' does not match manifest org 'orgA'",
+            "--org 'orgB' is not on this manifest's org allowlist",
           );
         }
       });

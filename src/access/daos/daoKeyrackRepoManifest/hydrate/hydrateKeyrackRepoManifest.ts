@@ -375,8 +375,10 @@ export const hydrateKeyrackRepoManifest = (
     sectionKeys: Object.keys(explicit.envSections),
   });
 
+  // the allowlist is the root's alone; an extended manifest's orgs never join it (F1)
   return new KeyrackRepoManifest({
     org: explicit.org,
+    orgs: explicit.orgs,
     envs: envNames,
     keys: finalKeys,
     extends: extendsChain.length > 0 ? extendsChain : undefined,

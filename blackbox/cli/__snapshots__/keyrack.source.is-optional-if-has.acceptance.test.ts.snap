@@ -12,10 +12,10 @@ exports[`keyrack.source CLI is-optional-if-has given: [case1] absent key with al
 🔐 keyrack
    ├─ testorg.test.__TEST_OPT_AWS_PROFILE__
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_PROFILE__ --env test
+   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_PROFILE__ --env test --vault <vault>
    └─ testorg.test.__TEST_OPT_AWS_ACCESS_KEY_ID__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_ACCESS_KEY_ID__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_AWS_ACCESS_KEY_ID__ --env test --vault <vault>
 
 
 ✋ some keys were not granted, yet are strictly required
@@ -38,7 +38,7 @@ exports[`keyrack.source CLI is-optional-if-has given: [case3] alternative key wi
 🔐 keyrack
    ├─ testorg.test.__TEST_OPT_EMPTY_PRIMARY__
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_EMPTY_PRIMARY__ --env test
+   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_EMPTY_PRIMARY__ --env test --vault <vault>
    └─ testorg.test.__TEST_OPT_EMPTY_ALT__
       ├─ status: blocked 🚫
       │  └─ no value to validate
@@ -68,7 +68,7 @@ exports[`keyrack.source CLI is-optional-if-has given: [case5] alternative key NO
 🔐 keyrack
    └─ testorg.test.__TEST_OPT_ENV_ONLY_PRIMARY__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_ENV_ONLY_PRIMARY__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_OPT_ENV_ONLY_PRIMARY__ --env test --vault <vault>
 
 
 ✋ some keys were not granted, yet are strictly required

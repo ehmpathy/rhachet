@@ -69,7 +69,7 @@ describe('keyrack unlock-requires-env', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -88,7 +88,7 @@ describe('keyrack unlock-requires-env', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -120,7 +120,7 @@ describe('keyrack unlock-requires-env', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -138,7 +138,7 @@ describe('keyrack unlock-requires-env', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -164,7 +164,7 @@ describe('keyrack unlock-requires-env', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });

@@ -43,6 +43,8 @@ describe('asKeyrackOmittedKeyTip', () => {
         slug: '@all.prep.BRAINS_AUTH',
         reason: 'absent',
         hostManifest,
+        orgDefault: null,
+        owner: null,
       });
 
       // ⛔ THE CLAMP. the extant unconditional tip renders the `set` form here, so this is RED
@@ -88,6 +90,8 @@ describe('asKeyrackOmittedKeyTip', () => {
             slug: '@all.prep.BRAINS_AUTH',
             reason: 'absent',
             hostManifest,
+            orgDefault: null,
+            owner: null,
           }),
         ).toEqual(tip);
       });
@@ -106,6 +110,8 @@ describe('asKeyrackOmittedKeyTip', () => {
                 slug: '@all.prep.BRAINS_AUTH',
                 reason,
                 hostManifest,
+                orgDefault: null,
+                owner: null,
               }),
             ).not.toContain('keyrack unlock');
         },
@@ -135,9 +141,11 @@ describe('asKeyrackOmittedKeyTip', () => {
               reason: 'lost',
               reach: { exid: 'casey@ahction.com' },
               hostManifest,
+              orgDefault: null,
+              owner: null,
             }),
           ).toEqual(
-            'rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@ahction.com  # also cut at: casey@ahbode.com',
+            'rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@ahction.com --vault os.direct  # also cut at: casey@ahbode.com',
           );
         },
       );
@@ -148,9 +156,11 @@ describe('asKeyrackOmittedKeyTip', () => {
             slug: '@all.prep.BRAINS_AUTH',
             reason: 'remote',
             hostManifest,
+            orgDefault: null,
+            owner: null,
           }),
         ).toEqual(
-          'rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@ahbode.com  # also cut at: casey@ahction.com',
+          'rhx keyrack set --key BRAINS_AUTH --env prep --org @all --reach casey@ahbode.com --vault os.direct  # also cut at: casey@ahction.com',
         );
       });
     });
@@ -181,6 +191,8 @@ describe('asKeyrackOmittedKeyTip', () => {
           slug: '@all.prep.ENVVAR_KEY',
           reason: 'absent',
           hostManifest,
+          orgDefault: null,
+          owner: null,
         });
 
         then('it never tips a reach the vault cannot serve', () => {
@@ -192,7 +204,7 @@ describe('asKeyrackOmittedKeyTip', () => {
         //    would be harmful on an ADDRESSED vault is correct on this one
         then('it tips `set`, at the machine-wide grain', () => {
           expect(tip).toEqual(
-            'rhx keyrack set --key ENVVAR_KEY --env prep --org @all',
+            'rhx keyrack set --key ENVVAR_KEY --env prep --org @all --vault os.envvar',
           );
         });
       });
@@ -212,8 +224,12 @@ describe('asKeyrackOmittedKeyTip', () => {
               reason: 'lost',
               reach: { exid: 'casey@ahction.com' },
               hostManifest,
+              orgDefault: null,
+              owner: null,
             }),
-          ).toEqual('rhx keyrack set --key ENVVAR_KEY --env prep --org @all');
+          ).toEqual(
+            'rhx keyrack set --key ENVVAR_KEY --env prep --org @all --vault os.envvar',
+          );
         });
       });
     },
@@ -246,6 +262,8 @@ describe('asKeyrackOmittedKeyTip', () => {
               slug: '@all.prep.SSO_KEY',
               reason: 'absent',
               hostManifest,
+              orgDefault: null,
+              owner: null,
             }),
           ).toEqual(
             'rhx keyrack unlock --key SSO_KEY --env prep --reach casey@ahction.com',
@@ -264,14 +282,18 @@ describe('asKeyrackOmittedKeyTip', () => {
       // ⚠️ the guard against an over-broad repair: a genuinely absent key must STILL be tipped
       //    toward `set`. a change that suppressed every tip would swap one
       //    `rule.require.errors-name-the-fix` breach for another
-      then('it keeps the extant `set` tip, byte-identical', () => {
+      then('it keeps the `set` tip, with a `--vault` the human fills', () => {
         expect(
           asKeyrackOmittedKeyTip({
             slug: 'testorg.prep.MISSING_KEY',
             reason: 'absent',
             hostManifest,
+            orgDefault: null,
+            owner: null,
           }),
-        ).toEqual('rhx keyrack set --key MISSING_KEY --env prep');
+        ).toEqual(
+          'rhx keyrack set --key MISSING_KEY --env prep --vault <vault>',
+        );
       });
     });
   });
@@ -284,14 +306,19 @@ describe('asKeyrackOmittedKeyTip', () => {
     when('[t0] the tip is built', () => {
       // a reachless entry omitted for some other cause (lost/remote) is not a reach problem,
       // so the `set` tip remains the right one — the reach branch must not capture it
-      then('it keeps the `set` tip', () => {
+      // the key is already filed, so the tip names the vault the rack holds it in
+      then('it keeps the `set` tip, at the vault the rack holds', () => {
         expect(
           asKeyrackOmittedKeyTip({
             slug: 'testorg.prep.REPO_KEY',
             reason: 'lost',
             hostManifest,
+            orgDefault: null,
+            owner: null,
           }),
-        ).toEqual('rhx keyrack set --key REPO_KEY --env prep');
+        ).toEqual(
+          'rhx keyrack set --key REPO_KEY --env prep --vault os.direct',
+        );
       });
     });
   });
@@ -313,9 +340,11 @@ describe('asKeyrackOmittedKeyTip', () => {
             slug: '@all.prep.BOOTSTRAP_TOKEN',
             reason: 'absent',
             hostManifest: null,
+            orgDefault: null,
+            owner: null,
           }),
         ).toEqual(
-          'rhx keyrack set --key BOOTSTRAP_TOKEN --env prep --org @all',
+          'rhx keyrack set --key BOOTSTRAP_TOKEN --env prep --org @all --vault <vault>',
         );
       });
     });
@@ -329,8 +358,95 @@ describe('asKeyrackOmittedKeyTip', () => {
             slug: 'testorg.prep.REPO_KEY',
             reason: 'absent',
             hostManifest: null,
+            orgDefault: null,
+            owner: null,
           }),
-        ).toEqual('rhx keyrack set --key REPO_KEY --env prep');
+        ).toEqual('rhx keyrack set --key REPO_KEY --env prep --vault <vault>');
+      });
+    });
+
+    // ⛔ case=8. a member of the allowlist that is not the default must be spelled, or the
+    //    tip lands on the default org's key and the member stays absent
+    when('[t2] the slug is under a non-default allowlist member', () => {
+      then('the `set` tip carries `--org <member>`', () => {
+        expect(
+          asKeyrackOmittedKeyTip({
+            slug: 'bhanya.camp.AWS_PROFILE',
+            reason: 'absent',
+            hostManifest: null,
+            orgDefault: 'ahbode',
+            owner: null,
+          }),
+        ).toEqual(
+          'rhx keyrack set --key AWS_PROFILE --env camp --org bhanya --vault aws.config',
+        );
+      });
+    });
+
+    when('[t3] the slug is under the default org', () => {
+      then(
+        'the `set` tip carries no org flag, and the vault the key name names',
+        () => {
+          expect(
+            asKeyrackOmittedKeyTip({
+              slug: 'ahbode.camp.AWS_PROFILE',
+              reason: 'absent',
+              hostManifest: null,
+              orgDefault: 'ahbode',
+              owner: null,
+            }),
+          ).toEqual(
+            'rhx keyrack set --key AWS_PROFILE --env camp --vault aws.config',
+          );
+        },
+      );
+    });
+  });
+
+  given('[case5] the unlock ran as a named owner', () => {
+    const hostManifest = genMockKeyrackHostManifest({
+      hosts: {
+        '@all.prep.BRAINS_AUTH@casey@ahction.com': {
+          slug: '@all.prep.BRAINS_AUTH',
+          org: '@all',
+          env: 'prep',
+          reach: { exid: 'casey@ahction.com' },
+        },
+      },
+    });
+
+    // ⛔ THE OWNER CLAMP. a tip obeyed without its owner lands on the DEFAULT owner's rack —
+    //    for a robot owner, a human's rack — so the key stays absent where it was asked for.
+    //    RED before the repair: the sweep tip carried no `--owner`, while the keyed `get` tip did
+    when('[t0] the tip is a `set`', () => {
+      then('it carries `--owner <owner>`', () => {
+        expect(
+          asKeyrackOmittedKeyTip({
+            slug: 'ahbode.prep.XAI_API_KEY',
+            reason: 'absent',
+            hostManifest: null,
+            orgDefault: 'ehmpathy',
+            owner: 'ehmpath',
+          }),
+        ).toEqual(
+          'rhx keyrack set --owner ehmpath --key XAI_API_KEY --env prep --org ahbode --vault <vault>',
+        );
+      });
+    });
+
+    when('[t1] the tip is an `unlock --reach`', () => {
+      then('it carries `--owner <owner>`', () => {
+        expect(
+          asKeyrackOmittedKeyTip({
+            slug: '@all.prep.BRAINS_AUTH',
+            reason: 'absent',
+            hostManifest,
+            orgDefault: null,
+            owner: 'ehmpath',
+          }),
+        ).toEqual(
+          'rhx keyrack unlock --owner ehmpath --key BRAINS_AUTH --env prep --reach casey@ahction.com',
+        );
       });
     });
   });

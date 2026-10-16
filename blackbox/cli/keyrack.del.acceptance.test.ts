@@ -237,7 +237,9 @@ describe('keyrack del', () => {
 
       then('error mentions org mismatch', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toMatch(/org.*mismatch|does not match/i);
+        expect(output).toContain(
+          "slug org 'wrongorg' is not on this manifest's org allowlist",
+        );
       });
 
       // ⚠️ THE clamp. every assertion above this point passed while `del` dumped a raw
@@ -278,10 +280,20 @@ describe('keyrack del', () => {
 
       // a refusal that only names the symptom has done half its job
       // (`rule.require.errors-name-the-fix`)
+      // .note = a slug names its own org, so the fix is a member org or an allowlist edit;
+      //         `--org @all` would not reach a slug that already carries an org (fulcrum F7)
       then('the refusal names the fix', () => {
         const output = result.stdout + result.stderr;
         expect(output).toContain('hint:');
-        expect(output).toContain('--org @all');
+        expect(output).toContain("use one of 'testorg'");
+        expect(output).toContain(
+          "or add 'wrongorg' to org: in .agent/keyrack.yml",
+        );
+        expect(output).not.toContain('--org @all');
+      });
+
+      then('the human-seen refusal matches snapshot', () => {
+        expect(asSnapshotSafe(result.stdout + result.stderr)).toMatchSnapshot();
       });
     });
   });

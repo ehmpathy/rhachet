@@ -22,31 +22,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "granted",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prep.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prep",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prep",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.MIXED_KEY",
     "status": "absent",
@@ -82,31 +82,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "locked",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prep.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prep",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prep",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.MIXED_KEY",
     "status": "absent",
@@ -142,31 +142,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "granted",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prod.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prod",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prod",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.MIXED_KEY",
     "status": "absent",
@@ -202,31 +202,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "locked",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prod.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prod",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prod",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.MIXED_KEY",
     "status": "absent",
@@ -243,73 +243,73 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
 exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct vault configured when: [t2] unlock all then get --for repo --env all --json then: stdout matches snapshot 1`] = `
 [
   {
-    "fix": "rhx keyrack set --key SHARED_API_KEY --env all",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.all.SHARED_API_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env all",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.all.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env all",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.all.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env all",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.all.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env all",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.all.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env all",
+    "fix": "rhx keyrack set --key MIXED_KEY --env all --vault <vault>",
     "message": "credential 'testorg.all.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.all.MIXED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key SHARED_API_KEY --env test",
+    "fix": "rhx keyrack set --key SHARED_API_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.SHARED_API_KEY' does not exist. set it first.",
     "slug": "testorg.test.SHARED_API_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env test",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.test.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env test",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.test.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env test",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.test.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env test",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.test.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env test",
+    "fix": "rhx keyrack set --key MIXED_KEY --env test --vault <vault>",
     "message": "credential 'testorg.test.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.test.MIXED_KEY",
     "status": "absent",
@@ -334,31 +334,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "granted",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prod.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prod.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prod",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prod",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prod --vault <vault>",
     "message": "credential 'testorg.prod.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prod.MIXED_KEY",
     "status": "absent",
@@ -402,31 +402,31 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
     "status": "granted",
   },
   {
-    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep",
+    "fix": "rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.ALL_ENV_KEY' does not exist. set it first.",
     "slug": "testorg.prep.ALL_ENV_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep",
+    "fix": "rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.UNIVERSAL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.UNIVERSAL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep",
+    "fix": "rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.DEFAULT_ALL_KEY' does not exist. set it first.",
     "slug": "testorg.prep.DEFAULT_ALL_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key LOCKED_KEY --env prep",
+    "fix": "rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.LOCKED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.LOCKED_KEY",
     "status": "absent",
   },
   {
-    "fix": "rhx keyrack set --key MIXED_KEY --env prep",
+    "fix": "rhx keyrack set --key MIXED_KEY --env prep --vault <vault>",
     "message": "credential 'testorg.prep.MIXED_KEY' does not exist. set it first.",
     "slug": "testorg.prep.MIXED_KEY",
     "status": "absent",
@@ -458,25 +458,25 @@ exports[`keyrack vault-osdirect given: [case2] repo with multi-env and os.direct
 🔐 keyrack
    ├─ testorg.prep.SHARED_API_KEY
    │  ├─ status: locked 🔒
-   │  └─ [2mtip: rhx keyrack unlock --env prep --key SHARED_API_KEY[0m
+   │  └─ tip: rhx keyrack unlock --env prep --key SHARED_API_KEY
    ├─ testorg.prep.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>
    ├─ testorg.prep.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>
    ├─ testorg.prep.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>
    ├─ testorg.prep.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>
    ├─ testorg.prep.MIXED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key MIXED_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key MIXED_KEY --env prep --vault <vault>
    └─ testorg.prep.AWS_PROFILE
       ├─ status: locked 🔒
-      └─ [2mtip: rhx keyrack unlock --env prep --key AWS_PROFILE[0m
+      └─ tip: rhx keyrack unlock --env prep --key AWS_PROFILE
 
 "
 `;

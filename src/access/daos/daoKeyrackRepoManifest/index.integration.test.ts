@@ -1,6 +1,12 @@
 import { getError, given, then, when } from 'test-fns';
 
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import { daoKeyrackRepoManifest } from './index';
 
@@ -213,6 +219,108 @@ env.test:
         const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
         expect(manifest!.keys['testorg.prod.PROD_KEY']).toBeDefined();
       });
+    });
+  });
+
+  given('[case6b] writers over a list org: [ahbode, bhanya] (case=3)', () => {
+    const keyrackPath = join(testDir, '.agent', 'keyrack.yml');
+    beforeEach(() => {
+      mkdirSync(join(testDir, '.agent'), { recursive: true });
+      writeFileSync(
+        keyrackPath,
+        `org:
+  - ahbode
+  - bhanya
+
+env.test:
+  - OLD_KEY
+`,
+      );
+    });
+
+    when('[t0] findsertKeyToEnv adds a key', () => {
+      then('the list org: is kept as written, in order', async () => {
+        await daoKeyrackRepoManifest.set.findsertKeyToEnv({
+          gitroot: testDir,
+          env: 'test',
+          key: 'NEW_KEY',
+        });
+        const content = readFileSync(keyrackPath, 'utf8');
+        expect(content).toContain('org:\n  - ahbode\n  - bhanya\n');
+        const manifest = await daoKeyrackRepoManifest.get({ gitroot: testDir });
+        expect(manifest!.orgs).toEqual(['ahbode', 'bhanya']);
+        expect(manifest!.keys['ahbode.test.NEW_KEY']).toBeDefined();
+      });
+    });
+
+    when('[t1] del.keyFromEnv removes a key', () => {
+      then('the list org: is kept as written, in order', async () => {
+        await daoKeyrackRepoManifest.del.keyFromEnv({
+          gitroot: testDir,
+          env: 'test',
+          key: 'OLD_KEY',
+        });
+        const content = readFileSync(keyrackPath, 'utf8');
+        expect(content).toContain('org:\n  - ahbode\n  - bhanya\n');
+        expect(content).not.toContain('OLD_KEY');
+      });
+    });
+
+    when('[t2] init finds the manifest', () => {
+      then(
+        'it reports the list as a list, never an array cast to text',
+        async () => {
+          const result = await daoKeyrackRepoManifest.init({
+            gitroot: testDir,
+            org: 'fallback',
+          });
+          expect(result.effect).toEqual('found');
+          expect(result.org).not.toContain('ahbode,bhanya');
+          expect(result.org).toContain('ahbode');
+          expect(result.org).toContain('bhanya');
+          const content = readFileSync(keyrackPath, 'utf8');
+          expect(content).toContain('org:\n  - ahbode\n  - bhanya\n');
+        },
+      );
+    });
+  });
+
+  given('[case6c] a peer holds the keyrack.yml write lock', () => {
+    const agentDir = join(testDir, '.agent');
+    const keyrackPath = join(agentDir, 'keyrack.yml');
+    const lockPath = join(agentDir, '.keyrack.yml.lock');
+    beforeEach(() => {
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(keyrackPath, 'org: testorg\n\nenv.test:\n  - OLD_KEY\n');
+      mkdirSync(lockPath);
+    });
+
+    when('[t0] findsertKeyToEnv runs while the peer holds it', () => {
+      then(
+        'it waits for the release, then writes the whole file and leaves no temp',
+        async () => {
+          // start the write while the peer holds the lock
+          const written = daoKeyrackRepoManifest.set.findsertKeyToEnv({
+            gitroot: testDir,
+            env: 'test',
+            key: 'NEW_KEY',
+          });
+
+          // the writer waits: the file is untouched while the lock is held
+          await new Promise((done) => setTimeout(done, 250));
+          expect(readFileSync(keyrackPath, 'utf8')).not.toContain('NEW_KEY');
+
+          // the peer releases; the writer lands its key on the peer's file
+          rmSync(lockPath, { recursive: true });
+          await written;
+          const content = readFileSync(keyrackPath, 'utf8');
+          expect(content).toContain('OLD_KEY');
+          expect(content).toContain('NEW_KEY');
+
+          // the lock is released and no temp file is left beside the manifest
+          expect(readdirSync(agentDir).sort()).toEqual(['keyrack.yml']);
+        },
+      );
     });
   });
 

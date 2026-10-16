@@ -6,10 +6,12 @@ import { KeyrackKeySpec, KeyrackRepoManifest } from '@src/domain.objects/keyrack
  */
 export const genMockKeyrackRepoManifest = (input?: {
   org?: string;
+  orgs?: string[];
   envs?: string[];
   keys?: Record<string, Partial<KeyrackKeySpec>>;
 }): KeyrackRepoManifest => {
-  const org = input?.org ?? 'testorg';
+  const org = input?.orgs?.[0] ?? input?.org ?? 'testorg';
+  const orgs = input?.orgs ?? [org];
   const envs = input?.envs ?? [];
   const keys: Record<string, KeyrackKeySpec> = {};
 
@@ -30,5 +32,5 @@ export const genMockKeyrackRepoManifest = (input?: {
     });
   }
 
-  return new KeyrackRepoManifest({ org, envs, keys });
+  return new KeyrackRepoManifest({ org, orgs, envs, keys });
 };

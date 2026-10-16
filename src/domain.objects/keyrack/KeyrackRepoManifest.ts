@@ -10,11 +10,24 @@ import type { KeyrackKeySpec } from './KeyrackKeySpec';
  */
 export interface KeyrackRepoManifest {
   /**
-   * .what = org name that owns this keyrack
-   * .why = org prefix in slugs isolates credentials across orgs
+   * .what = the default org — the first member of the allowlist
+   * .why = a bare read, `@this`, and every declared key slug fall under it, so a repo with
+   *        one org reads exactly as it did before the allowlist existed
+   * .note = a member view (`asKeyrackRepoManifestUnderOrg`) sets `org` to the member it
+   *         re-slugs under, so there `org !== orgs[0]`. code that needs the declared default
+   *         reads `orgs[0]`
    * .example = 'ehmpathy', 'ahbode'
    */
   org: string;
+
+  /**
+   * .what = every org this repo may address — the allowlist; `orgs[0]` is the declared default
+   * .why = a repo whose fleet spans orgs names each one here, and `--org <member>` reaches
+   *        it. an org absent from this list is refused at every gate
+   * .note = `org:` in the file may be a scalar (a one-member list) or a list
+   * .example = ['ahbode', 'bhanya']
+   */
+  orgs: string[];
 
   /**
    * .what = declared env names derived from env.* sections (except env.all)

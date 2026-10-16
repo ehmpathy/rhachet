@@ -13,10 +13,10 @@ exports[`keyrack.source SDK is-optional-if-has given: [case1] absent key with al
 🔐 keyrack
    ├─ testorg.test.__TEST_SDK_OPT_PRIMARY__
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_PRIMARY__ --env test
+   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_PRIMARY__ --env test --vault <vault>
    └─ testorg.test.__TEST_SDK_OPT_ALTERNATIVE__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ALTERNATIVE__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ALTERNATIVE__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -30,10 +30,10 @@ exports[`keyrack.source SDK is-optional-if-has given: [case1] absent key with al
 🔐 keyrack
    ├─ testorg.test.__TEST_SDK_OPT_PRIMARY__
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_PRIMARY__ --env test
+   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_PRIMARY__ --env test --vault <vault>
    └─ testorg.test.__TEST_SDK_OPT_ALTERNATIVE__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ALTERNATIVE__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ALTERNATIVE__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -55,7 +55,7 @@ exports[`keyrack.source SDK is-optional-if-has given: [case3] alternative key wi
 🔐 keyrack
    ├─ testorg.test.__TEST_SDK_OPT_EMPTY_PRIMARY__
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_EMPTY_PRIMARY__ --env test
+   │  └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_EMPTY_PRIMARY__ --env test --vault <vault>
    └─ testorg.test.__TEST_SDK_OPT_EMPTY_ALT__
       ├─ status: blocked 🚫
       │  └─ no value to validate
@@ -88,7 +88,7 @@ exports[`keyrack.source SDK is-optional-if-has given: [case5] alternative key NO
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_OPT_ENV_ONLY_PRIMARY__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ENV_ONLY_PRIMARY__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_OPT_ENV_ONLY_PRIMARY__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again

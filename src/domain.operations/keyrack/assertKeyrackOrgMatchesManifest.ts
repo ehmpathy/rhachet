@@ -3,18 +3,18 @@ import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 import { asKeyrackOrgMismatchRefusal } from './asKeyrackOrgMismatchRefusal';
 
 /**
- * .what = fail fast if --org does not match the manifest org
- * .why = prevent cross-org credential configuration
+ * .what = fail fast if --org is not on the manifest's org allowlist
+ * .why = prevent cross-org credential configuration; a member org may be set and deleted
  */
 export const assertKeyrackOrgMatchesManifest = (input: {
   manifest: KeyrackRepoManifest;
   org: string;
 }): string => {
-  // @this resolves to manifest org
+  // @this means the default org
   if (input.org === '@this') return input.manifest.org;
 
-  // exact match passes
-  if (input.org === input.manifest.org) return input.org;
+  // a member of the allowlist passes
+  if (input.manifest.orgs.includes(input.org)) return input.org;
 
   // mismatch
   // .note = the refusal is BUILT rather than written here. this site used to render its own
@@ -24,7 +24,7 @@ export const assertKeyrackOrgMatchesManifest = (input: {
   throw asKeyrackOrgMismatchRefusal({
     givenBy: 'flag',
     orgRejected: input.org,
-    orgOfManifest: input.manifest.org,
+    orgsOfManifest: input.manifest.orgs,
     key: null,
   });
 };

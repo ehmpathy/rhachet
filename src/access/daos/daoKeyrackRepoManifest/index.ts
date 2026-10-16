@@ -2,16 +2,21 @@ import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { asKeyrackManifestOrgText } from './hydrate/asKeyrackManifestOrgText';
 import { loadManifestHydrated } from './hydrate/loadManifestHydrated';
+import { withKeyrackManifestWriteLock } from './withKeyrackManifestWriteLock';
 
 /**
  * .what = reads the per-repo keyrack manifest
  * .why = discovers credential requirements from @gitroot/.agent/keyrack.yml
  *
  * .note = phase 1 will rewrite hydration for env-scoped format
+ * .note = every write holds the manifest's dir lock and lands via temp + rename, so
+ *   a reader never sees a partial file and two parallel writers never lose an edit
  */
 export const daoKeyrackRepoManifest = {
   /**
@@ -43,31 +48,29 @@ export const daoKeyrackRepoManifest = {
       return join(input.gitroot, input.at);
     })();
 
-    // if already present, return found
-    if (existsSync(path)) {
-      const content = readFileSync(path, 'utf8');
-      const parsed = parseYaml(content) as Record<string, unknown>;
+    // check and create under one lock, so two racers never both create
+    return withKeyrackManifestWriteLock({ path }, () => {
+      // if already present, return found
+      if (existsSync(path)) {
+        const parsed = getManifestFileParsed({ path });
+        return {
+          manifestPath: path,
+          org: asKeyrackManifestOrgText({
+            org: parsed.org,
+            fallback: input.org,
+          }),
+          effect: 'found' as const,
+        };
+      }
+
+      // create minimal keyrack.yml with org, whole or not at all
+      setFileAtomic({ path, content: stringifyYaml({ org: input.org }) });
       return {
         manifestPath: path,
-        org: (parsed.org as string) ?? input.org,
-        effect: 'found',
+        org: input.org,
+        effect: 'created' as const,
       };
-    }
-
-    // create minimal keyrack.yml with org
-    const manifest = { org: input.org };
-
-    // ensure parent directory present
-    mkdirSync(dirname(path), { recursive: true });
-
-    // write yaml
-    writeFileSync(path, stringifyYaml(manifest), 'utf8');
-
-    return {
-      manifestPath: path,
-      org: input.org,
-      effect: 'created',
-    };
+    });
   },
 
   /**
@@ -115,53 +118,10 @@ export const daoKeyrackRepoManifest = {
         );
       }
 
-      // read and parse current yaml
-      const content = readFileSync(path, 'utf8');
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = parseYaml(content) as Record<string, unknown>;
-      } catch (error) {
-        throw new ConstraintError('keyrack.yml has invalid yaml', {
-          path,
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-
-      // validate org declaration
-      if (!parsed.org || typeof parsed.org !== 'string') {
-        throw new ConstraintError(
-          'cannot add key to keyrack.yml: org declaration absent',
-          { path, note: 'add org: <your-org> to keyrack.yml first' },
-        );
-      }
-
-      // determine section name (env.all for 'all', env.prod for 'prod', etc)
-      const sectionName = `env.${input.env}`;
-
-      // get current section or create empty array
-      const section = parsed[sectionName];
-      const keys: unknown[] = Array.isArray(section) ? [...section] : [];
-
-      // check if key already present (findsert semantics)
-      const keyFound = keys.some((entry) => {
-        if (typeof entry === 'string') return entry === input.key;
-        if (typeof entry === 'object' && entry !== null) {
-          return Object.keys(entry).includes(input.key);
-        }
-        return false;
-      });
-
-      if (keyFound) return; // already present, no-op
-
-      // add key to section
-      keys.push(input.key);
-      parsed[sectionName] = keys;
-
-      // ensure parent directory exists
-      mkdirSync(dirname(path), { recursive: true });
-
-      // write updated yaml
-      writeFileSync(path, stringifyYaml(parsed), 'utf8');
+      // read, edit, and write under one lock, so a peer write is never lost
+      await withKeyrackManifestWriteLock({ path }, () =>
+        setKeyIntoManifestFile({ path, key: input.key, env: input.env }),
+      );
     },
   },
 
@@ -186,46 +146,107 @@ export const daoKeyrackRepoManifest = {
       // if file doesn't exist, no key to remove
       if (!existsSync(path)) return;
 
-      // read and parse current yaml
-      const content = readFileSync(path, 'utf8');
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = parseYaml(content) as Record<string, unknown>;
-      } catch (error) {
-        throw new ConstraintError('keyrack.yml has invalid yaml', {
-          path,
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-
-      // determine section name
-      const sectionName = `env.${input.env}`;
-
-      // get current section
-      const section = parsed[sectionName];
-      if (!Array.isArray(section)) return; // no section, no key to remove
-
-      // filter out the key
-      const keysUpdated = section.filter((entry) => {
-        if (typeof entry === 'string') return entry !== input.key;
-        if (typeof entry === 'object' && entry !== null) {
-          return !Object.keys(entry).includes(input.key);
-        }
-        return true;
-      });
-
-      // if count unchanged, key was not present — no-op
-      if (keysUpdated.length === section.length) return;
-
-      // update section (remove section entirely if empty)
-      if (keysUpdated.length === 0) {
-        delete parsed[sectionName];
-      } else {
-        parsed[sectionName] = keysUpdated;
-      }
-
-      // write updated yaml
-      writeFileSync(path, stringifyYaml(parsed), 'utf8');
+      // read, edit, and write under one lock, so a peer write is never lost
+      await withKeyrackManifestWriteLock({ path }, () =>
+        delKeyFromManifestFile({ path, key: input.key, env: input.env }),
+      );
     },
   },
+};
+
+/**
+ * .what = read and parse a manifest file as a yaml record
+ * .why = a malformed file fails loud with its path, never as a bare parse error
+ */
+const getManifestFileParsed = (input: {
+  path: string;
+}): Record<string, unknown> => {
+  const content = readFileSync(input.path, 'utf8');
+  try {
+    return parseYaml(content) as Record<string, unknown>;
+  } catch (error) {
+    throw new ConstraintError('keyrack.yml has invalid yaml', {
+      path: input.path,
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
+};
+
+/**
+ * .what = is this env section entry the given key
+ * .why = an entry is a bare key name, or a one-key map that carries its options
+ */
+const isEntryOfKey = (input: { entry: unknown; key: string }): boolean => {
+  if (typeof input.entry === 'string') return input.entry === input.key;
+  if (typeof input.entry === 'object' && input.entry !== null)
+    return Object.keys(input.entry).includes(input.key);
+  return false;
+};
+
+/**
+ * .what = findsert a key into one env section of a manifest file
+ * .why = the read-edit-write body of set.findsertKeyToEnv; the caller holds the lock
+ */
+const setKeyIntoManifestFile = (input: {
+  path: string;
+  key: string;
+  env: string;
+}): void => {
+  const parsed = getManifestFileParsed({ path: input.path });
+
+  // validate org declaration — a scalar or a list; the list is written back as it was read
+  const isOrgDeclared =
+    (typeof parsed.org === 'string' && parsed.org !== '') ||
+    (Array.isArray(parsed.org) && parsed.org.length > 0);
+  if (!isOrgDeclared) {
+    throw new ConstraintError(
+      'cannot add key to keyrack.yml: org declaration absent',
+      { path: input.path, note: 'add org: <your-org> to keyrack.yml first' },
+    );
+  }
+
+  // get current section (env.all for 'all', env.prod for 'prod', etc) or an empty one
+  const sectionName = `env.${input.env}`;
+  const section = parsed[sectionName];
+  const keys: unknown[] = Array.isArray(section) ? [...section] : [];
+
+  // findsert semantics: a key already present is a no-op
+  if (keys.some((entry) => isEntryOfKey({ entry, key: input.key }))) return;
+
+  // add key to section and write the whole file back
+  setFileAtomic({
+    path: input.path,
+    content: stringifyYaml({ ...parsed, [sectionName]: [...keys, input.key] }),
+  });
+};
+
+/**
+ * .what = remove a key from one env section of a manifest file
+ * .why = the read-edit-write body of del.keyFromEnv; the caller holds the lock
+ */
+const delKeyFromManifestFile = (input: {
+  path: string;
+  key: string;
+  env: string;
+}): void => {
+  const parsed = getManifestFileParsed({ path: input.path });
+
+  // get current section; no section means no key to remove
+  const sectionName = `env.${input.env}`;
+  const section = parsed[sectionName];
+  if (!Array.isArray(section)) return;
+
+  // filter out the key; an unchanged count means the key was not present
+  const keysUpdated = section.filter(
+    (entry) => !isEntryOfKey({ entry, key: input.key }),
+  );
+  if (keysUpdated.length === section.length) return;
+
+  // drop the section entirely when it empties, and write the whole file back
+  const { [sectionName]: _sectionPrior, ...parsedWithout } = parsed;
+  const parsedUpdated =
+    keysUpdated.length === 0
+      ? parsedWithout
+      : { ...parsed, [sectionName]: keysUpdated };
+  setFileAtomic({ path: input.path, content: stringifyYaml(parsedUpdated) });
 };

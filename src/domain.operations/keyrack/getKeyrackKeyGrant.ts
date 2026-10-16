@@ -15,6 +15,7 @@ import { daemonAccessGet } from './daemon/sdk';
 import { decideIsKeySlugEqual } from './decideIsKeySlugEqual';
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { inferKeyrackKeyStatusWhenNotGranted } from './inferKeyrackKeyStatusWhenNotGranted';
+import { inferKeyrackVaultFromKey } from './inferKeyrackVaultFromKey';
 import { isKeyrackSlugMachineWide } from './isKeyrackSlugMachineWide';
 
 /**
@@ -124,9 +125,17 @@ const attemptGrantKey = async (
     //    a DIFFERENT key than the one asked for, since `set` defaults org to the repo's.
     //    a fix line that lands where the ask cannot reach is worse than no fix line at all
     //    (`rule.require.errors-name-the-fix`, `term=peer`)
-    // .note = only `@all` is spelled. a real org (`ehmpathy.prep.FOO`) is already what `set`
-    //         defaults to from the manifest, so to spell it would add noise, never reach
-    const orgFlag = isKeyrackSlugMachineWide({ slug }) ? ' --org @all' : '';
+    // .note = the default org is never spelled — it is what `set` and `unlock` default to from
+    //         the manifest, so to spell it would add noise, never reach, and the common render
+    //         stays byte-identical. a non-default member of the allowlist IS spelled, or the
+    //         fix line lands on the default org's key and a locked member read loops (case=8)
+    const orgFlag = (() => {
+      const orgDefault = context.repoManifest?.org ?? null;
+      if (orgFromSlug === orgDefault) return '';
+      if (isKeyrackSlugMachineWide({ slug })) return ' --org @all';
+      if (orgDefault) return ` --org ${orgFromSlug}`;
+      return '';
+    })();
     const atReach = reach
       ? ` at reach '${asKeyrackKeyReachExid({ reach })}'`
       : '';
@@ -156,12 +165,13 @@ const attemptGrantKey = async (
       // .note = the reach itself needs NO branch — `atReach` above already interpolates to ''
       //         when absent, exactly as `reachFlag` does. only the closing WHY differs, so
       //         only the closing WHY is conditional (`rule.avoid.unnecessary-ifs`)
-      // .note = the reachless render is byte-identical to its prior form, deliberately — it is
-      //         the common path, carried in 8 snapshot files
       message: `credential '${slug}'${atReach} does not exist.${
         reach ? ' each reach needs its own key.' : ' set it first.'
       }`,
-      fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}${orgFlag}${reachFlag}`,
+      // .note = `set` declares `--vault` a required option, so a fix line without it refuses on
+      //         paste. the vault is inferred where the key name names one, else a placeholder
+      //         the human must fill — same shape as the unlock-time fix (`asResolvedAttempt`)
+      fix: `rhx keyrack set ${ownerFlag}--key ${asKeyrackKeyName({ slug })} --env ${envFromSlug}${orgFlag}${reachFlag} --vault ${inferKeyrackVaultFromKey({ keyName: asKeyrackKeyName({ slug }) }) ?? '<vault>'}`,
     };
   }
 

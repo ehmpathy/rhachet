@@ -1,7 +1,10 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 describe('keyrack vault os.direct', () => {
@@ -161,7 +164,7 @@ describe('keyrack vault os.direct', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -265,7 +268,7 @@ describe('keyrack vault os.direct', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -350,7 +353,7 @@ describe('keyrack vault os.direct', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
 
@@ -436,7 +439,8 @@ describe('keyrack vault os.direct', () => {
       });
 
       then('stdout matches snapshot', () => {
-        const parsed = JSON.parse(result.stdout);
+        // mask the fixture's createdAt/updatedAt stamps, so the snapshot holds no raw timestamp
+        const parsed = JSON.parse(asSnapshotSafe(result.stdout));
         expect(parsed).toMatchSnapshot();
       });
     });

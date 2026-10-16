@@ -1,4 +1,4 @@
-import { getError, given, then, when } from 'test-fns';
+import { getError, given, then, useThen, when } from 'test-fns';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,6 +20,7 @@ describe('hydrateKeyrackRepoManifest', () => {
   given('[case1] explicit manifest without extends', () => {
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       envSections: {
         'env.test': ['KEY_A', 'KEY_B'],
         'env.prod': [{ KEY_C: 'encrypted' }],
@@ -27,11 +28,14 @@ describe('hydrateKeyrackRepoManifest', () => {
     };
 
     when('[t0] hydrateKeyrackRepoManifest called', () => {
-      then('returns manifest with hydrated keys', () => {
-        const result = hydrateKeyrackRepoManifest(
+      const result = useThen('the hydrate returns', async () =>
+        hydrateKeyrackRepoManifest(
           { explicit, manifestPath: '/fake/path' },
           { gitroot: testDir },
-        );
+        ),
+      );
+
+      then('returns manifest with hydrated keys', () => {
         expect(result.org).toEqual('testorg');
         expect(result.keys['testorg.test.KEY_A']).toBeDefined();
         expect(result.keys['testorg.test.KEY_B']).toBeDefined();
@@ -39,20 +43,12 @@ describe('hydrateKeyrackRepoManifest', () => {
       });
 
       then('grade is parsed from shorthand', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: '/fake/path' },
-          { gitroot: testDir },
-        );
         expect(result.keys['testorg.prod.KEY_C']?.grade?.protection).toEqual(
           'encrypted',
         );
       });
 
       then('extends is undefined', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: '/fake/path' },
-          { gitroot: testDir },
-        );
         expect(result.extends).toBeUndefined();
       });
     });
@@ -61,6 +57,7 @@ describe('hydrateKeyrackRepoManifest', () => {
   given('[case2] explicit manifest with env.all expansion', () => {
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       envSections: {
         'env.all': ['SHARED_KEY'],
         'env.test': ['TEST_ONLY'],
@@ -69,21 +66,20 @@ describe('hydrateKeyrackRepoManifest', () => {
     };
 
     when('[t0] hydrateKeyrackRepoManifest called', () => {
-      then('env.all keys are directly resolvable with .all. slug', () => {
-        const result = hydrateKeyrackRepoManifest(
+      const result = useThen('the hydrate returns', async () =>
+        hydrateKeyrackRepoManifest(
           { explicit, manifestPath: '/fake/path' },
           { gitroot: testDir },
-        );
+        ),
+      );
+
+      then('env.all keys are directly resolvable with .all. slug', () => {
         // SHARED_KEY should be accessible via .all. slug
         expect(result.keys['testorg.all.SHARED_KEY']).toBeDefined();
         expect(result.keys['testorg.all.SHARED_KEY']?.env).toEqual('all');
       });
 
       then('env.all keys are also expanded to all declared envs', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: '/fake/path' },
-          { gitroot: testDir },
-        );
         // SHARED_KEY should also appear in both test and prod envs
         expect(result.keys['testorg.test.SHARED_KEY']).toBeDefined();
         expect(result.keys['testorg.prod.SHARED_KEY']).toBeDefined();
@@ -97,6 +93,7 @@ describe('hydrateKeyrackRepoManifest', () => {
   given('[case2b] env.all with no other declared envs', () => {
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       envSections: {
         'env.all': ['ONLY_ALL_KEY'],
       },
@@ -130,6 +127,7 @@ env.test:
 
     const explicit: KeyrackManifestExplicit = {
       org: 'rootorg',
+      orgs: ['rootorg'],
       extends: ['extended.yml'],
       envSections: {
         'env.test': ['ROOT_KEY'],
@@ -137,11 +135,14 @@ env.test:
     };
 
     when('[t0] hydrateKeyrackRepoManifest called', () => {
-      then('merges keys from extended manifest with root org', () => {
-        const result = hydrateKeyrackRepoManifest(
+      const result = useThen('the hydrate returns', async () =>
+        hydrateKeyrackRepoManifest(
           { explicit, manifestPath: join(testDir, 'root.yml') },
           { gitroot: testDir },
-        );
+        ),
+      );
+
+      then('merges keys from extended manifest with root org', () => {
         // root key with root org
         expect(result.keys['rootorg.test.ROOT_KEY']).toBeDefined();
         // extended key RE-SLUGGED to root org (all keys use root manifest's org)
@@ -150,15 +151,63 @@ env.test:
         expect(result.keys['extendorg.test.EXTENDED_KEY']).toBeUndefined();
       });
 
+      then(
+        'the allowlist is the root org alone — extendorg does not join it (F1)',
+        () => {
+          expect(result.orgs).toEqual(['rootorg']);
+        },
+      );
+
       then('includes extends in result', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: join(testDir, 'root.yml') },
-          { gitroot: testDir },
-        );
         expect(result.extends).toContain('extended.yml');
       });
     });
   });
+
+  given(
+    '[case3b] a root allowlist extends a manifest whose org: is a list',
+    () => {
+      const extendedPath = join(testDir, 'extended-list.yml');
+
+      const explicit: KeyrackManifestExplicit = {
+        org: 'ahbode',
+        orgs: ['ahbode', 'bhanya'],
+        extends: ['extended-list.yml'],
+        envSections: {},
+      };
+
+      when('[t0] hydrateKeyrackRepoManifest called', () => {
+        // write the extended manifest, then hydrate once; each then reads the one result
+        const result = useThen('the hydrate returns', async () => {
+          writeFileSync(
+            extendedPath,
+            `org:
+  - ehmpathy
+  - otherorg
+env.prep:
+  - XAI_API_KEY
+`,
+          );
+          return hydrateKeyrackRepoManifest(
+            { explicit, manifestPath: join(testDir, 'root-list.yml') },
+            { gitroot: testDir },
+          );
+        });
+
+        then(
+          'the allowlist is the root list, in order — no extended org joins it',
+          () => {
+            expect(result.orgs).toEqual(['ahbode', 'bhanya']);
+          },
+        );
+
+        then('the extended key is re-slugged to the default org', () => {
+          expect(result.keys['ahbode.prep.XAI_API_KEY']).toBeDefined();
+          expect(result.keys['ehmpathy.prep.XAI_API_KEY']).toBeUndefined();
+        });
+      });
+    },
+  );
 
   given('[case4] root key overrides extended key (root wins)', () => {
     const extendedPath = join(testDir, 'extended-override.yml');
@@ -175,6 +224,7 @@ env.test:
 
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       extends: ['extended-override.yml'],
       envSections: {
         'env.test': [{ SHARED_KEY: 'ephemeral' }],
@@ -226,6 +276,7 @@ env.test:
       then('throws error about circular extends', async () => {
         const explicit: KeyrackManifestExplicit = {
           org: 'testorg',
+          orgs: ['testorg'],
           extends: ['circularA.yml'],
           envSections: {
             'env.test': ['ROOT_KEY'],
@@ -267,6 +318,7 @@ env.test:
 
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       extends: ['extendsA.yml', 'extendsB.yml'],
       envSections: {
         'env.test': [],
@@ -315,6 +367,7 @@ env.test:
 
     const explicit: KeyrackManifestExplicit = {
       org: 'alpha',
+      orgs: ['alpha'],
       extends: ['nestedB.yml'],
       envSections: {
         'env.test': ['ALPHA_KEY'],
@@ -354,6 +407,7 @@ env.test:
 
     const explicit: KeyrackManifestExplicit = {
       org: 'sameorg',
+      orgs: ['sameorg'],
       extends: ['same-org-extended.yml'],
       envSections: {
         'env.test': ['ROOT_SAME_KEY'],
@@ -375,6 +429,7 @@ env.test:
   given('[case9] key with is-optional-if-has declaration', () => {
     const explicit: KeyrackManifestExplicit = {
       org: 'testorg',
+      orgs: ['testorg'],
       envSections: {
         'env.test': [
           { key: 'AWS_PROFILE', 'is-optional-if-has': 'AWS_ACCESS_KEY_ID' },
@@ -389,21 +444,20 @@ env.test:
     };
 
     when('[t0] hydrateKeyrackRepoManifest called', () => {
-      then('isOptionalIfHas is set on key with declaration', () => {
-        const result = hydrateKeyrackRepoManifest(
+      const result = useThen('the hydrate returns', async () =>
+        hydrateKeyrackRepoManifest(
           { explicit, manifestPath: '/fake/path' },
           { gitroot: testDir },
-        );
+        ),
+      );
+
+      then('isOptionalIfHas is set on key with declaration', () => {
         expect(
           result.keys['testorg.test.AWS_PROFILE']?.flags.isOptionalIfHas,
         ).toEqual('AWS_ACCESS_KEY_ID');
       });
 
       then('grade is still parsed from object form', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: '/fake/path' },
-          { gitroot: testDir },
-        );
         expect(
           result.keys['testorg.test.GRADED_KEY']?.flags.isOptionalIfHas,
         ).toEqual('ALT_KEY');
@@ -413,10 +467,6 @@ env.test:
       });
 
       then('isOptionalIfHas is null for bare string keys', () => {
-        const result = hydrateKeyrackRepoManifest(
-          { explicit, manifestPath: '/fake/path' },
-          { gitroot: testDir },
-        );
         expect(
           result.keys['testorg.test.NORMAL_KEY']?.flags.isOptionalIfHas,
         ).toBeNull();
@@ -427,6 +477,7 @@ env.test:
   given('[case10] a key that declares reaches', () => {
     const explicit: KeyrackManifestExplicit = {
       org: 'ahbode',
+      orgs: ['ahbode'],
       envSections: {
         'env.prep': [
           'PLAIN_KEY',
@@ -445,14 +496,15 @@ env.test:
     };
 
     when('[t0] the manifest is hydrated', () => {
-      const genResult = () =>
+      const result = useThen('the hydrate returns', async () =>
         hydrateKeyrackRepoManifest(
           { explicit, manifestPath: '/fake/path' },
           { gitroot: testDir },
-        );
+        ),
+      );
 
       then('each declared reach lands on the key, in declared order', () => {
-        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        const reaches = result.keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
         expect(reaches).toEqual([
           { exid: 'github://org=ahbode' },
           { exid: 'beav@ehmpathy.com' },
@@ -460,7 +512,7 @@ env.test:
       });
 
       then('a reach exid is carried verbatim, never interpreted here', () => {
-        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        const reaches = result.keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
         expect(reaches?.[1]?.exid).toEqual('beav@ehmpathy.com');
       });
 
@@ -468,12 +520,12 @@ env.test:
         // the list is flat by design: a repo that declares a reach declares the
         // checkout does not work without it, so there is no softer tier to record. a
         // field added beside `exid` would show here
-        const reaches = genResult().keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
+        const reaches = result.keys['ahbode.prep.BEAVER_TOKEN']?.reaches;
         expect(Object.keys(reaches?.[0] ?? {})).toEqual(['exid']);
       });
 
       then('e1: a key that declares none carries an empty list', () => {
-        expect(genResult().keys['ahbode.prep.PLAIN_KEY']?.reaches).toEqual([]);
+        expect(result.keys['ahbode.prep.PLAIN_KEY']?.reaches).toEqual([]);
       });
     });
   });
@@ -481,6 +533,7 @@ env.test:
   given('[case11] a manifest that declares a malformed reach', () => {
     const genExplicit = (exid: string): KeyrackManifestExplicit => ({
       org: 'ahbode',
+      orgs: ['ahbode'],
       envSections: {
         'env.prep': [{ BEAVER_TOKEN: { reaches: [exid] } }],
       },
@@ -521,6 +574,7 @@ env.test:
             {
               explicit: {
                 org: 'ahbode',
+                orgs: ['ahbode'],
                 envSections: {
                   'env.prep': [
                     {
@@ -548,6 +602,7 @@ env.test:
           {
             explicit: {
               org: 'ahbode',
+              orgs: ['ahbode'],
               envSections: {
                 'env.prep': [{ BEAVER_TOKEN: { reaches } }],
               },
@@ -575,6 +630,7 @@ env.test:
           {
             explicit: {
               org: 'ahbode',
+              orgs: ['ahbode'],
               envSections: {
                 'env.prep': [
                   {
