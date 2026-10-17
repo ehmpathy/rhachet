@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { daoKeyrackRepoManifest } from './index';
+import { withKeyrackManifestWriteLock } from './withKeyrackManifestWriteLock';
 
 describe('daoKeyrackRepoManifest', () => {
   const testDir = resolve(__dirname, './.temp/daoKeyrackRepoManifest');
@@ -288,17 +289,30 @@ env.test:
   given('[case6c] a peer holds the keyrack.yml write lock', () => {
     const agentDir = join(testDir, '.agent');
     const keyrackPath = join(agentDir, 'keyrack.yml');
-    const lockPath = join(agentDir, '.keyrack.yml.lock');
     beforeEach(() => {
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(keyrackPath, 'org: testorg\n\nenv.test:\n  - OLD_KEY\n');
-      mkdirSync(lockPath);
     });
 
     when('[t0] findsertKeyToEnv runs while the peer holds it', () => {
       then(
         'it waits for the release, then writes the whole file and leaves no temp',
         async () => {
+          // a peer takes the manifest's write lock and holds it until released
+          let release: () => void = () => undefined;
+          const held = new Promise<void>((done) => {
+            release = done;
+          });
+          let isPeerHeld = false;
+          const peer = withKeyrackManifestWriteLock(
+            { gitroot: testDir, path: keyrackPath },
+            async () => {
+              isPeerHeld = true;
+              await held;
+            },
+          );
+          while (!isPeerHeld) await new Promise((done) => setTimeout(done, 10));
+
           // start the write while the peer holds the lock
           const written = daoKeyrackRepoManifest.set.findsertKeyToEnv({
             gitroot: testDir,
@@ -311,14 +325,19 @@ env.test:
           expect(readFileSync(keyrackPath, 'utf8')).not.toContain('NEW_KEY');
 
           // the peer releases; the writer lands its key on the peer's file
-          rmSync(lockPath, { recursive: true });
+          release();
+          await peer;
           await written;
           const content = readFileSync(keyrackPath, 'utf8');
           expect(content).toContain('OLD_KEY');
           expect(content).toContain('NEW_KEY');
 
-          // the lock is released and no temp file is left beside the manifest
-          expect(readdirSync(agentDir).sort()).toEqual(['keyrack.yml']);
+          // no temp file is left beside the manifest (.actors holds the mutex keys)
+          expect(
+            readdirSync(agentDir)
+              .filter((name) => name !== '.actors')
+              .sort(),
+          ).toEqual(['keyrack.yml']);
         },
       );
     });

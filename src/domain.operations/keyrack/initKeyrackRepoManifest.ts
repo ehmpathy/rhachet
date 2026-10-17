@@ -64,10 +64,12 @@ export const initKeyrackRepoManifest = async (
   );
 
   // read, merge, and write under one lock, so a parallel keyrack write is never lost
-  return withKeyrackManifestWriteLock({ path: manifestPath }, () =>
-    existsSync(manifestPath)
-      ? setExtendsIntoManifestFile({ manifestPath, org, roleKeyracks })
-      : genManifestFile({ manifestPath, org, roleKeyracks }),
+  return withKeyrackManifestWriteLock(
+    { gitroot: context.gitroot, path: manifestPath },
+    () =>
+      existsSync(manifestPath)
+        ? setExtendsIntoManifestFile({ manifestPath, org, roleKeyracks })
+        : genManifestFile({ manifestPath, org, roleKeyracks }),
   );
 };
 

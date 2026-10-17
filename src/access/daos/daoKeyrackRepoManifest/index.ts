@@ -49,28 +49,31 @@ export const daoKeyrackRepoManifest = {
     })();
 
     // check and create under one lock, so two racers never both create
-    return withKeyrackManifestWriteLock({ path }, () => {
-      // if already present, return found
-      if (existsSync(path)) {
-        const parsed = getManifestFileParsed({ path });
+    return withKeyrackManifestWriteLock(
+      { gitroot: input.gitroot, path },
+      () => {
+        // if already present, return found
+        if (existsSync(path)) {
+          const parsed = getManifestFileParsed({ path });
+          return {
+            manifestPath: path,
+            org: asKeyrackManifestOrgText({
+              org: parsed.org,
+              fallback: input.org,
+            }),
+            effect: 'found' as const,
+          };
+        }
+
+        // create minimal keyrack.yml with org, whole or not at all
+        setFileAtomic({ path, content: stringifyYaml({ org: input.org }) });
         return {
           manifestPath: path,
-          org: asKeyrackManifestOrgText({
-            org: parsed.org,
-            fallback: input.org,
-          }),
-          effect: 'found' as const,
+          org: input.org,
+          effect: 'created' as const,
         };
-      }
-
-      // create minimal keyrack.yml with org, whole or not at all
-      setFileAtomic({ path, content: stringifyYaml({ org: input.org }) });
-      return {
-        manifestPath: path,
-        org: input.org,
-        effect: 'created' as const,
-      };
-    });
+      },
+    );
   },
 
   /**
@@ -119,7 +122,7 @@ export const daoKeyrackRepoManifest = {
       }
 
       // read, edit, and write under one lock, so a peer write is never lost
-      await withKeyrackManifestWriteLock({ path }, () =>
+      await withKeyrackManifestWriteLock({ gitroot: input.gitroot, path }, () =>
         setKeyIntoManifestFile({ path, key: input.key, env: input.env }),
       );
     },
@@ -147,7 +150,7 @@ export const daoKeyrackRepoManifest = {
       if (!existsSync(path)) return;
 
       // read, edit, and write under one lock, so a peer write is never lost
-      await withKeyrackManifestWriteLock({ path }, () =>
+      await withKeyrackManifestWriteLock({ gitroot: input.gitroot, path }, () =>
         delKeyFromManifestFile({ path, key: input.key, env: input.env }),
       );
     },

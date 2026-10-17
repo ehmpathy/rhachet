@@ -1,26 +1,16 @@
-import { withDirLock } from '@src/infra/withDirLock';
-
-import { basename, dirname, join } from 'node:path';
+import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 /**
- * .what = run a procedure while it holds the dir lock of one keyrack manifest file
+ * .what = run a procedure while it holds this repo's mutex over one keyrack manifest file
  * .why = a read-edit-write of keyrack.yml races a parallel `keyrack set`, `del`, or
- *   init; inside the lock, the second writer reads the first writer's file
- * .note = the lock is a dot dir beside the manifest (`.keyrack.yml.lock`), empty and
- *   transient, so git never tracks it
+ *   init; inside the mutex, the second writer reads the first writer's file
+ * .note = the mutex is `withRepoMutex`, the one lock protocol in rhachet, keyed on the
+ *   manifest's path; its keys live in the repo's gitignored `.agent/.actors/.locks/`
  */
 export const withKeyrackManifestWriteLock = <T>(
-  input: { path: string },
+  input: { gitroot: string; path: string },
   procedure: () => T | Promise<T>,
 ): Promise<T> =>
-  withDirLock(
-    {
-      lockPath: join(dirname(input.path), `.${basename(input.path)}.lock`),
-      refusal: {
-        message:
-          'the keyrack.yml write lock stayed held; the file was not touched',
-        hint: 'a parallel keyrack write holds the lock past the wait; retry. a lock dir older than 15s is stale, and is cleared on the next try',
-      },
-    },
-    procedure,
+  withRepoMutex({ repoPath: input.gitroot, path: input.path }, async () =>
+    procedure(),
   );
