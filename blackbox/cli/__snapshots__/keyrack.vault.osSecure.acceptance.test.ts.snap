@@ -135,7 +135,7 @@ exports[`keyrack vault os.secure given: [case6] key lost from vault when: [t0] u
 🔓 keyrack unlock
    └─ testorg.test.SECURE_API_KEY
       ├─ status: lost 👻
-      └─ [2mtip: rhx keyrack set --key SECURE_API_KEY --env test[0m
+      └─ tip: rhx keyrack set --key SECURE_API_KEY --env test --vault os.secure
 
 "
 `;

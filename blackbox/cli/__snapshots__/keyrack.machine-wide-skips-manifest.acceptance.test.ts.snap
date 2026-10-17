@@ -470,7 +470,7 @@ exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyra
 🔐 keyrack
    └─ @all.camp.ABSENT_KEY
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key ABSENT_KEY --env camp --org @all
+      └─ tip: rhx keyrack set --key ABSENT_KEY --env camp --org @all --vault <vault>
 
 "
 `;

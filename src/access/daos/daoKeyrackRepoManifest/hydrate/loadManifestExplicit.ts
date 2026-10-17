@@ -3,6 +3,7 @@ import { parse as parseYaml } from 'yaml';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { schemaKeyrackRepoManifest } from '../schema';
+import { asKeyrackManifestOrgs } from './asKeyrackManifestOrgs';
 
 /**
  * .what = raw keyrack manifest without extends resolution
@@ -10,6 +11,7 @@ import { schemaKeyrackRepoManifest } from '../schema';
  */
 export interface KeyrackManifestExplicit {
   org: string;
+  orgs: string[];
   extends?: string[];
   envSections: Record<string, unknown[]>;
 }
@@ -47,8 +49,12 @@ export const loadManifestExplicit = (input: {
     });
   }
 
-  // extract org and extends
-  const org = result.data.org;
+  // extract the org allowlist (a scalar is a one-member list) and extends
+  const orgs = asKeyrackManifestOrgs({
+    org: result.data.org,
+    path: input.path,
+  });
+  const org = orgs[0]!; // asKeyrackManifestOrgs refuses an empty list, so position 0 is held
   const extendsArr = result.data.extends;
 
   // extract env sections
@@ -68,6 +74,7 @@ export const loadManifestExplicit = (input: {
 
   return {
     org,
+    orgs,
     extends: extendsArr,
     envSections,
   };

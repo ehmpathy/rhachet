@@ -36,7 +36,7 @@ exports[`keyrack vault os.direct given: [case2] repo with single key configured 
 🔐 keyrack
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ status: locked 🔒
-      └─ [2mtip: rhx keyrack unlock --env test --key DIRECT_TEST_KEY[0m
+      └─ tip: rhx keyrack unlock --env test --key DIRECT_TEST_KEY
 
 "
 `;
@@ -96,14 +96,14 @@ exports[`keyrack vault os.direct given: [case5] key lost from vault when: [t0] u
 🔓 keyrack unlock
    └─ testorg.test.DIRECT_TEST_KEY
       ├─ status: lost 👻
-      └─ [2mtip: rhx keyrack set --key DIRECT_TEST_KEY --env test[0m
+      └─ tip: rhx keyrack set --key DIRECT_TEST_KEY --env test --vault os.direct
 
 "
 `;
 
 exports[`keyrack vault os.direct given: [case6] findsert semantics when: [t0] set key that already exists with same attrs then: stdout matches snapshot 1`] = `
 {
-  "createdAt": "2026-01-01T00:00:00.000Z",
+  "createdAt": "__TIMESTAMP__",
   "env": "test",
   "exid": null,
   "maxDuration": null,
@@ -111,7 +111,7 @@ exports[`keyrack vault os.direct given: [case6] findsert semantics when: [t0] se
   "meta": null,
   "org": "testorg",
   "slug": "testorg.test.DIRECT_TEST_KEY",
-  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "__TIMESTAMP__",
   "vault": "os.direct",
 }
 `;

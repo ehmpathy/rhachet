@@ -9,7 +9,10 @@ import {
   genFakeGithubApiServer,
 } from '@/blackbox/.test/infra/genFakeGithubApiServer';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -254,7 +257,7 @@ describe('keyrack.vault.githubSecrets', () => {
       });
 
       then('stdout shows remote status', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -291,7 +294,7 @@ describe('keyrack.vault.githubSecrets', () => {
       });
 
       then('stdout matches snapshot', () => {
-        expect(result.stdout).toMatchSnapshot();
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
     });
   });

@@ -59,7 +59,7 @@ exports[`keyrack sudo given: [case2] sudo unlock requires --key when: [t3] sourc
 🔐 keyrack
    └─ testorg.sudo.TEST_KEY
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key TEST_KEY --env sudo
+      └─ tip: rhx keyrack set --key TEST_KEY --env sudo --vault <vault>
 
 ",
   "stdout": "",

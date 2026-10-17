@@ -10,6 +10,7 @@ import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilt
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { asKeyrackKeyOrg } from '@src/domain.operations/keyrack/asKeyrackKeyOrg';
+import { asKeyrackRepoManifestForOrgFilter } from '@src/domain.operations/keyrack/asKeyrackRepoManifestForOrgFilter';
 import { emitKeyrackDurationCapWarn } from '@src/domain.operations/keyrack/cli/emitKeyrackDurationCapWarn';
 import { computeExpiresAt } from '@src/domain.operations/keyrack/computeExpiresAt';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
@@ -115,7 +116,7 @@ export const unlockKeyrackKeys = async (
   });
 
   // determine which keys to unlock
-  const repoManifest = context.repoManifest;
+  const repoManifestDeclared = context.repoManifest;
 
   // env from input (null if not provided; assertKeyrackEnvIsSpecified will validate)
   const env = input.env ?? null;
@@ -132,7 +133,18 @@ export const unlockKeyrackKeys = async (
   //         (rule.require.org-scope-grain-hardcut)
   const orgFilter = asKeyrackFilterOrg({
     org: input.org ?? null,
-    orgOfRepo: repoManifest?.org ?? null,
+    orgOfRepo: repoManifestDeclared?.org ?? null,
+  });
+
+  // with a manifest loaded, a real org filter must be on its allowlist — a typo refuses loud
+  // here, before any vault or passphrase prompt, with the same render the keyed verbs use (case=5).
+  // a member filter then re-slugs the declared keys under that member BEFORE the sweep, so the
+  // sweep asks for that member's slugs and the filter-miss guard sees them; a bare sweep, or the
+  // default org, leaves the manifest untouched (case=4, F2)
+  const repoManifest = asKeyrackRepoManifestForOrgFilter({
+    repoManifest: repoManifestDeclared ?? null,
+    orgFilter,
+    key: input.key ?? null,
   });
 
   // the swept set — sudo, machine-wide-without-a-manifest, or repo ∪ machine-wide

@@ -8,6 +8,7 @@ import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 import { asKeyrackAttemptSlug } from '../asKeyrackAttemptSlug';
 import { asKeyrackKeyEnv } from '../asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '../asKeyrackKeyName';
+import { asKeyrackRepoManifestForOrgFilter } from '../asKeyrackRepoManifestForOrgFilter';
 import { genContextKeyrack } from '../genContextKeyrack';
 import { genContextKeyrackGrantGet } from '../genContextKeyrackGrantGet';
 import { getAllKeyrackGrantsByRepo } from '../getAllKeyrackGrantsByRepo';
@@ -74,9 +75,20 @@ export const getKeyrackKeyGrants = async (input: {
    */
   reach?: KeyrackKeyReach;
 
+  /**
+   * .what = the `--org` FILTER of a repo sweep, already expanded (`@this` → the default org)
+   * .why = a repo sweep builds its slugs from the declared keys, which carry the default org. a
+   *        member filter must re-slug them, and a non-member must refuse, or the sweep answers an
+   *        empty rack (case=4, case=5). distinct from `org`, which SELECTS a keyed slug segment
+   * .note = OPTIONAL for the published sdk surface; absent means no filter, so every extant
+   *         caller is byte-identical
+   */
+  orgFilter?: string | null;
+
   allow?: { dangerous?: boolean };
 }): Promise<KeyrackGrantAttempt[]> => {
   const { for: selector, owner, env, org, reach, allow } = input;
+  const orgFilter = selector.repo ? (input.orgFilter ?? null) : null;
 
   // a reach names ONE reach of ONE key, so it cannot ride a whole-repo sweep (q2). the cli
   // guards this too, but an sdk caller reaches this operation directly — and without a guard
@@ -108,12 +120,23 @@ export const getKeyrackKeyGrants = async (input: {
   // (a credential helper from a bare clone) — a null gitroot yields a null repo manifest, and
   // the @all read path needs no repo manifest.
   const gitroot = await getGitRepoRootOrNull({ from: process.cwd() });
-  const contextGet = await genContextKeyrackGrantGet({
+  const contextGetDeclared = await genContextKeyrackGrantGet({
     gitroot,
     owner,
     for: selector,
     org,
   });
+
+  // a repo sweep under a member org asks for that member's slugs; a non-member refuses here,
+  // before any key is read or unlocked (case=4, case=5)
+  const contextGet = {
+    ...contextGetDeclared,
+    repoManifest: asKeyrackRepoManifestForOrgFilter({
+      repoManifest: contextGetDeclared.repoManifest,
+      orgFilter,
+      key: null,
+    }),
+  };
 
   // first pass: get every selected key from already-unlocked sources
   const attemptsInitial = await (async (): Promise<KeyrackGrantAttempt[]> => {
@@ -175,10 +198,16 @@ export const getKeyrackKeyGrants = async (input: {
   //         first (genContextKeyrackGrantGet): a null gitroot, or a machine-wide ask. to fix
   //         only the first would leave the reported repro dead, since that repro passes
   //         --unlock and this branch runs precisely when a key comes back locked
-  const repoManifest = await getOneKeyrackRepoManifestForAsk({
-    gitroot,
-    for: selector ?? null,
-    org: org ?? null,
+  // .note = re-slugged under the same filter as the first pass, so each locked key unlocks
+  //         under the org it was asked for
+  const repoManifest = asKeyrackRepoManifestForOrgFilter({
+    repoManifest: await getOneKeyrackRepoManifestForAsk({
+      gitroot,
+      for: selector ?? null,
+      org: org ?? null,
+    }),
+    orgFilter,
+    key: null,
   });
   const contextUnlock = genContextKeyrack({ owner, repoManifest, gitroot });
 

@@ -1,8 +1,12 @@
 import { ConstraintError } from 'helpful-errors';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { asKeyrackManifestOrgText } from '@src/access/daos/daoKeyrackRepoManifest/hydrate/asKeyrackManifestOrgText';
+import { withKeyrackManifestWriteLock } from '@src/access/daos/daoKeyrackRepoManifest/withKeyrackManifestWriteLock';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
+
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { discoverRoleKeyracks } from './discoverRoleKeyracks';
 import { getOrgFromPackageJson } from './getOrgFromPackageJson';
 
@@ -59,75 +63,98 @@ export const initKeyrackRepoManifest = async (
     context,
   );
 
-  // check if manifest already present
-  if (existsSync(manifestPath)) {
-    // read and parse current yaml
-    const content = readFileSync(manifestPath, 'utf8');
-    const parsed = parseYaml(content) as Record<string, unknown>;
+  // read, merge, and write under one lock, so a parallel keyrack write is never lost
+  return withKeyrackManifestWriteLock(
+    { gitroot: context.gitroot, path: manifestPath },
+    () =>
+      existsSync(manifestPath)
+        ? setExtendsIntoManifestFile({ manifestPath, org, roleKeyracks })
+        : genManifestFile({ manifestPath, org, roleKeyracks }),
+  );
+};
 
-    // get current extends (if any)
-    const extendsCurrent = Array.isArray(parsed.extends)
-      ? (parsed.extends as string[])
-      : [];
+/**
+ * .what = merge role keyracks into the extends of an extant manifest file
+ * .why = findsert semantics: add the absent, preserve the extant; the caller holds the lock
+ */
+const setExtendsIntoManifestFile = (input: {
+  manifestPath: string;
+  org: string;
+  roleKeyracks: string[];
+}): {
+  effect: 'found' | 'updated';
+  manifestPath: string;
+  org: string;
+  extends: string[];
+} => {
+  // read and parse current yaml
+  const content = readFileSync(input.manifestPath, 'utf8');
+  const parsed = parseYaml(content) as Record<string, unknown>;
+  const orgText = asKeyrackManifestOrgText({
+    org: parsed.org,
+    fallback: input.org,
+  });
 
-    // merge extends: findsert semantics (add absent, preserve extant)
-    const extendsSet = new Set([...extendsCurrent, ...roleKeyracks]);
-    const extendsMerged = [...extendsSet].sort();
+  // merge extends: findsert semantics (add absent, preserve extant)
+  const extendsCurrent = Array.isArray(parsed.extends)
+    ? (parsed.extends as string[])
+    : [];
+  const extendsMerged = [
+    ...new Set([...extendsCurrent, ...input.roleKeyracks]),
+  ].sort();
 
-    // check if extends changed
-    const extendsChanged =
-      extendsMerged.length !== extendsCurrent.length ||
-      extendsMerged.some((path, i) => path !== extendsCurrent[i]);
-
-    if (!extendsChanged) {
-      // no changes needed
-      return {
-        effect: 'found',
-        manifestPath,
-        org: (parsed.org as string) ?? org,
-        extends: extendsMerged,
-      };
-    }
-
-    // update extends in manifest
-    parsed.extends = extendsMerged;
-
-    // write updated yaml
-    writeFileSync(manifestPath, stringifyYaml(parsed), 'utf8');
-
+  // no change needed when the merge equals what is on disk
+  const extendsChanged =
+    extendsMerged.length !== extendsCurrent.length ||
+    extendsMerged.some((path, i) => path !== extendsCurrent[i]);
+  if (!extendsChanged)
     return {
-      effect: 'updated',
-      manifestPath,
-      org: (parsed.org as string) ?? org,
+      effect: 'found',
+      manifestPath: input.manifestPath,
+      org: orgText,
       extends: extendsMerged,
     };
-  }
 
-  // create new manifest
-  const manifest: Record<string, unknown> = {
-    org,
+  // write the whole file back, with the merged extends
+  setFileAtomic({
+    path: input.manifestPath,
+    content: stringifyYaml({ ...parsed, extends: extendsMerged }),
+  });
+  return {
+    effect: 'updated',
+    manifestPath: input.manifestPath,
+    org: orgText,
+    extends: extendsMerged,
   };
+};
 
-  // add extends if any role keyracks discovered
-  if (roleKeyracks.length > 0) {
-    manifest.extends = roleKeyracks;
-  }
-
-  // add env sections (empty for user to populate)
-  manifest['env.prod'] = null;
-  manifest['env.prep'] = null;
-  manifest['env.test'] = null;
-
-  // ensure parent directory present
-  mkdirSync(dirname(manifestPath), { recursive: true });
-
-  // write yaml
-  writeFileSync(manifestPath, stringifyYaml(manifest), 'utf8');
-
+/**
+ * .what = create a new manifest file with org, extends, and empty env sections
+ * .why = the env sections are present for the human to populate; the caller holds the lock
+ */
+const genManifestFile = (input: {
+  manifestPath: string;
+  org: string;
+  roleKeyracks: string[];
+}): {
+  effect: 'created';
+  manifestPath: string;
+  org: string;
+  extends: string[];
+} => {
+  // extends only when role keyracks were discovered
+  const manifest: Record<string, unknown> = {
+    org: input.org,
+    ...(input.roleKeyracks.length > 0 ? { extends: input.roleKeyracks } : {}),
+    'env.prod': null,
+    'env.prep': null,
+    'env.test': null,
+  };
+  setFileAtomic({ path: input.manifestPath, content: stringifyYaml(manifest) });
   return {
     effect: 'created',
-    manifestPath,
-    org,
-    extends: roleKeyracks,
+    manifestPath: input.manifestPath,
+    org: input.org,
+    extends: input.roleKeyracks,
   };
 };

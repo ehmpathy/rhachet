@@ -3,6 +3,7 @@ import { ConstraintError } from 'helpful-errors';
 import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import { asKeyrackKeyName } from './asKeyrackKeyName';
+import { asKeyrackSlugFullOrNull } from './asKeyrackSlugFullOrNull';
 
 /**
  * .what = infers env for keyrack set when --env not provided
@@ -14,6 +15,12 @@ export const inferKeyrackEnvForSet = (input: {
   key: string;
   manifest: KeyrackRepoManifest | null;
 }): string => {
+  // a full slug names its own env, so it needs no inference
+  // .why = the manifest scan below compares bare key names; a full slug never matches one, so
+  //        `set --key org.env.KEY` with no --env was refused as "not found in manifest"
+  const slugParts = asKeyrackSlugFullOrNull({ key: input.key });
+  if (slugParts) return slugParts.env;
+
   // if no manifest, cannot infer
   if (!input.manifest) {
     throw new ConstraintError(

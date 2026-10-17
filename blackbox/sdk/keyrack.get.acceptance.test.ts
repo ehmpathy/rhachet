@@ -430,7 +430,8 @@ try {
       });
 
       then('error message mentions org mismatch', () => {
-        expect(result.stdout).toContain("org 'wrongorg' does not match manifest org 'testorg'");
+        expect(result.stdout).toContain("org 'wrongorg' is not on this manifest's org allowlist");
+        expect(result.stdout).toContain('testorg');
       });
     });
   });
@@ -745,6 +746,98 @@ console.log(JSON.stringify(result, null, 2));
       then('secret value matches env var', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.attempt?.grant?.key?.secret).toEqual(envValue);
+      });
+
+      then('emit.stdout matches snapshot', () => {
+        const parsed = JSON.parse(result.stdout);
+        // redact the secret + any volatile fields for a stable contract snapshot
+        const snapped = asSnapshotSafe(
+          parsed.emit.stdout.split(envValue).join('__SECRET__'),
+        );
+        expect(snapped).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = a member of the org allowlist read via the sdk
+   * .why = the sdk is a consumer surface like the cli; a member read must re-slug to the
+   *        member org and grant, never refuse as a mismatch nor fall back to the default
+   */
+  given('[case8] a manifest whose org: is [testorg, bhanya]', () => {
+    const envKey = '__TEST_SDK_MEMBER_KEY__';
+    const envValue = 'member-secret-value';
+
+    when('[t0] keyrack.get with org=bhanya, a non-default member', () => {
+      const result = useBeforeAll(async () => {
+        // create temp repo with node_modules symlink and git init
+        const testDir = genTempDir({
+          slug: 'keyrack-sdk-member',
+          symlink: [{ at: 'node_modules', to: 'node_modules' }],
+          git: true,
+        });
+
+        // create .agent/keyrack.yml with an org allowlist
+        const agentDir = join(testDir, '.agent');
+        spawnSync('mkdir', ['-p', agentDir]);
+        writeFileSync(
+          join(agentDir, 'keyrack.yml'),
+          `org:
+  - testorg
+  - bhanya
+
+env.prep:
+  - ${envKey}
+`,
+        );
+
+        // commit keyrack.yml so git root detection works
+        spawnSync('git', ['add', '.'], { cwd: testDir });
+        spawnSync('git', ['commit', '-m', 'add keyrack.yml'], { cwd: testDir });
+
+        // create test module that calls keyrack.get with the member org
+        const modulePath = join(testDir, 'test-member.mjs');
+        writeFileSync(
+          modulePath,
+          `
+import { keyrack } from '${rhachetDistPath}';
+
+const result = await keyrack.get({ for: { key: '${envKey}' }, env: 'prep', org: 'bhanya' });
+console.log(JSON.stringify(result, null, 2));
+`,
+        );
+
+        // run module with env var set
+        const spawnResult = spawnSync('node', [modulePath], {
+          cwd: testDir,
+          encoding: 'utf8', // eslint-disable-line @cspell/spellchecker -- node api
+          env: {
+            ...process.env,
+            HOME: testDir,
+            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            [envKey]: envValue,
+          },
+        });
+
+        return {
+          status: spawnResult.status,
+          stdout: spawnResult.stdout,
+          stderr: spawnResult.stderr,
+        };
+      });
+
+      then('exits with code 0, never an org mismatch', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('slug uses the member org, never the default', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.grant?.slug).toEqual(`bhanya.prep.${envKey}`);
+      });
+
+      then('status is granted', () => {
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.attempt?.status).toEqual('granted');
       });
 
       then('emit.stdout matches snapshot', () => {

@@ -24,19 +24,19 @@ exports[`keyrack unlock-requires-env given: [case5] unlock with env filter when:
    │  └─ expires in: 540m
    ├─ testorg.prep.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>
    ├─ testorg.prep.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>
    ├─ testorg.prep.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>
    ├─ testorg.prep.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>
    └─ testorg.prep.MIXED_KEY
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key MIXED_KEY --env prep[0m
+      └─ tip: rhx keyrack set --key MIXED_KEY --env prep --vault <vault>
 
 "
 `;
@@ -66,70 +66,70 @@ exports[`keyrack unlock-requires-env given: [case5] unlock with env filter when:
    │  └─ expires in: 540m
    ├─ testorg.all.SHARED_API_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key SHARED_API_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key SHARED_API_KEY --env all --vault <vault>
    ├─ testorg.all.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env all --vault <vault>
    ├─ testorg.all.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env all --vault <vault>
    ├─ testorg.all.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env all --vault <vault>
    ├─ testorg.all.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env all --vault <vault>
    ├─ testorg.all.MIXED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key MIXED_KEY --env all[0m
+   │  └─ tip: rhx keyrack set --key MIXED_KEY --env all --vault <vault>
    ├─ testorg.test.SHARED_API_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key SHARED_API_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key SHARED_API_KEY --env test --vault <vault>
    ├─ testorg.test.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env test --vault <vault>
    ├─ testorg.test.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env test --vault <vault>
    ├─ testorg.test.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env test --vault <vault>
    ├─ testorg.test.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env test --vault <vault>
    ├─ testorg.test.MIXED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key MIXED_KEY --env test[0m
+   │  └─ tip: rhx keyrack set --key MIXED_KEY --env test --vault <vault>
    ├─ testorg.prod.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env prod[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env prod --vault <vault>
    ├─ testorg.prod.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env prod[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env prod --vault <vault>
    ├─ testorg.prod.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env prod[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env prod --vault <vault>
    ├─ testorg.prod.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env prod[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env prod --vault <vault>
    ├─ testorg.prod.MIXED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key MIXED_KEY --env prod[0m
+   │  └─ tip: rhx keyrack set --key MIXED_KEY --env prod --vault <vault>
    ├─ testorg.prep.ALL_ENV_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key ALL_ENV_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key ALL_ENV_KEY --env prep --vault <vault>
    ├─ testorg.prep.UNIVERSAL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key UNIVERSAL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key UNIVERSAL_KEY --env prep --vault <vault>
    ├─ testorg.prep.DEFAULT_ALL_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key DEFAULT_ALL_KEY --env prep --vault <vault>
    ├─ testorg.prep.LOCKED_KEY
    │  ├─ status: absent 🫧
-   │  └─ [2mtip: rhx keyrack set --key LOCKED_KEY --env prep[0m
+   │  └─ tip: rhx keyrack set --key LOCKED_KEY --env prep --vault <vault>
    └─ testorg.prep.MIXED_KEY
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key MIXED_KEY --env prep[0m
+      └─ tip: rhx keyrack set --key MIXED_KEY --env prep --vault <vault>
 
 "
 `;

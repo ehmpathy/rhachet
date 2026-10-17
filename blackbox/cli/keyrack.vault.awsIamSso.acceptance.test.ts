@@ -5,7 +5,10 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -1727,7 +1730,8 @@ describe('keyrack vault aws.config', () => {
         const clean = stripped
           .slice(treeStart >= 0 ? treeStart : 0)
           .trim();
-        expect(clean).toMatchSnapshot();
+        // mask the cached session's expiry stamp, so the snapshot holds no raw timestamp
+        expect(asSnapshotSafe(clean)).toMatchSnapshot();
       });
     });
   });

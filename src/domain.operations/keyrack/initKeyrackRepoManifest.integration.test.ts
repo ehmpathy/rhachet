@@ -391,6 +391,51 @@ describe('initKeyrackRepoManifest', () => {
     });
   });
 
+  given(
+    '[case4b] manifest whose org: is a list, new role keyrack added (case=3 [t3])',
+    () => {
+      when('[t0] initKeyrackRepoManifest merges a new extends entry', () => {
+        then(
+          'the org: list and its ORDER survive the rewrite, while extends is sorted',
+          async () => {
+            // a list in reverse alpha order: a sort that drifted from extends onto org would flip it
+            writeFileSync(
+              join(testDir, 'package.json'),
+              JSON.stringify({ name: '@zeta/my-project' }),
+            );
+            const manifestPath = join(testDir, '.agent', 'keyrack.yml');
+            mkdirSync(join(manifestPath, '..'), { recursive: true });
+            writeFileSync(
+              manifestPath,
+              'org:\n  - zeta\n  - alpha\nextends:\n  - .agent/repo=gamma/role=first/keyrack.yml\nenv.prod:\nenv.test:\n',
+            );
+            const keyrackPath = join(
+              testDir,
+              '.agent/repo=beta/role=second/keyrack.yml',
+            );
+            mkdirSync(join(keyrackPath, '..'), { recursive: true });
+            writeFileSync(keyrackPath, 'org: beta\n');
+
+            const result = await initKeyrackRepoManifest(
+              { roles: ['second'] },
+              { gitroot: testDir },
+            );
+
+            expect(result.effect).toEqual('updated');
+            expect(result.extends).toEqual([
+              '.agent/repo=beta/role=second/keyrack.yml',
+              '.agent/repo=gamma/role=first/keyrack.yml',
+            ]);
+            const content = readFileSync(manifestPath, 'utf8');
+            expect(content).toContain('org:\n  - zeta\n  - alpha\n');
+            expect(result.org).toContain('zeta');
+            expect(result.org).toContain('alpha');
+          },
+        );
+      });
+    },
+  );
+
   given('[case5] manifest present and up-to-date', () => {
     when('[t0] initKeyrackRepoManifest called with same role', () => {
       then('returns found effect', async () => {

@@ -15,7 +15,8 @@ Options:
   --for <owner>              alias for --owner
   --env <env>                target env: prod, prep, test, all, sudo, or camp
                              (inferred from manifest if unambiguous)
-  --org <org>                target org: @this or @all (default: "@this")
+  --org <org>                target org: @this (the first org in keyrack.yml),
+                             @all, or an allowlisted org (default: "@this")
   --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
                              github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)

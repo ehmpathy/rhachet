@@ -25,7 +25,7 @@ exports[`keyrack reach on the os.envvar vault given: [case1] an os.envvar key wh
 🔐 keyrack
    └─ testorg.test.API_KEY
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com
+      └─ tip: rhx keyrack set --key API_KEY --env test --reach beav@ehmpathy.com --vault <vault>
 
 "
 `;

@@ -41,7 +41,7 @@ exports[`keyrack vault os.daemon given: [case1] repo with os.daemon vault when: 
 
 exports[`keyrack vault os.daemon given: [case3] daemon restart clears ephemeral keys when: [t0] set key then relock then get then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key DAEMON_EPHEMERAL_KEY --env test",
+  "fix": "rhx keyrack set --key DAEMON_EPHEMERAL_KEY --env test --vault <vault>",
   "message": "credential 'testorg.test.DAEMON_EPHEMERAL_KEY' does not exist. set it first.",
   "slug": "testorg.test.DAEMON_EPHEMERAL_KEY",
   "status": "absent",
@@ -53,7 +53,7 @@ exports[`keyrack vault os.daemon given: [case4] unlock reports lost for cleared 
 🔓 keyrack unlock
    └─ testorg.test.DAEMON_LOST_KEY
       ├─ status: lost 👻
-      └─ [2mtip: rhx keyrack set --key DAEMON_LOST_KEY --env test[0m
+      └─ tip: rhx keyrack set --key DAEMON_LOST_KEY --env test --vault os.daemon
 
 "
 `;

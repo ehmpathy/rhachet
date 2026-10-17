@@ -67,22 +67,25 @@ export const getOneKeyrackGrantByKey = async (
 
     // if manifest exists, use asKeyrackKeySlug for full validation
     if (context.repoManifest) {
-      // fail fast if org param doesn't match manifest org
-      if (input.org && input.org !== context.repoManifest.org) {
+      // fail fast if the org param is not on the manifest's allowlist
+      if (input.org && !context.repoManifest.orgs.includes(input.org)) {
         // .note = `key: null` deliberately, so the two FLAG sites render the same tree. the key
         //   is not lost to the human — the `ran:` line echoes the whole command, `--key` and
         //   all. a `key:` leaf is reserved for the SLUG sites, where the org came FROM the key
         throw asKeyrackOrgMismatchRefusal({
           givenBy: 'flag',
           orgRejected: input.org,
-          orgOfManifest: context.repoManifest.org,
+          orgsOfManifest: context.repoManifest.orgs,
           key: null,
         });
       }
+
+      // a bare key slugs under the asked member; absent, under the default org
       return asKeyrackKeySlug({
         key: input.key,
         env: input.env,
         manifest: context.repoManifest,
+        org: input.org ?? null,
       });
     }
 

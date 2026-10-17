@@ -32,7 +32,8 @@ export const asKeyrackFilterOrg = (input: {
   org: string | null;
 
   /**
-   * .what = the org this repo's manifest declares, or null when there is no manifest to read
+   * .what = the repo manifest's default org (`orgs[0]`, what `@this` names), or null when
+   *         there is no manifest to read
    * .why = passed IN rather than read here, so this stays pure and one rule serves both a
    *        caller who already holds a manifest and one who must load it
    */

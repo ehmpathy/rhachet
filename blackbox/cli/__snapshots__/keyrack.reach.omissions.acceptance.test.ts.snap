@@ -11,14 +11,14 @@ exports[`keyrack reach omissions — the tip a human pastes given: [case1] a rac
    ├─ @all.prep.LOST_AT_REACH
    │  ├─ reach: casey@ahbode.com
    │  ├─ status: lost 👻
-   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com  # also cut at: casey@ahction.com
+   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com --vault os.direct  # also cut at: casey@ahction.com
    ├─ @all.prep.LOST_AT_REACH
    │  ├─ reach: casey@ahction.com
    │  ├─ status: lost 👻
-   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahction.com  # also cut at: casey@ahbode.com
+   │  └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahction.com --vault os.direct  # also cut at: casey@ahbode.com
    └─ @all.prep.ENVVAR_AT_REACH
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key ENVVAR_AT_REACH --env prep --org @all
+      └─ tip: rhx keyrack set --key ENVVAR_AT_REACH --env prep --org @all --vault os.envvar
 
 "
 `;
@@ -52,7 +52,7 @@ exports[`keyrack reach omissions — the tip a human pastes given: [case1] a rac
    └─ @all.prep.LOST_AT_REACH
       ├─ reach: casey@ahbode.com
       ├─ status: lost 👻
-      └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com  # also cut at: casey@ahction.com
+      └─ tip: rhx keyrack set --key LOST_AT_REACH --env prep --org @all --reach casey@ahbode.com --vault os.direct  # also cut at: casey@ahction.com
 
 "
 `;
@@ -71,7 +71,7 @@ exports[`keyrack reach omissions — the tip a human pastes given: [case2] a rac
    │  └─ tip: mech mismatch: host manifest and blob disagree — fix: update host manifest or blob to match
    └─ @all.prep.REMOTE_KEY
       ├─ status: remote 🌐
-      └─ tip: rhx keyrack set --key REMOTE_KEY --env prep --org @all
+      └─ tip: rhx keyrack set --key REMOTE_KEY --env prep --org @all --vault github.secrets
 
 "
 `;
@@ -103,7 +103,7 @@ exports[`keyrack reach omissions — the tip a human pastes given: [case3] a rac
    └─ @all.prep.FAULTED_AT_REACH
       ├─ reach: casey@ahbode.com
       ├─ status: errored 💥
-      └─ tip: no adapter for mech: EPHEMERAL_VIA_GITHUB_APP — retry: rhx keyrack unlock --env prep
+      └─ tip: no adapter for mech: EPHEMERAL_VIA_GITHUB_APP — retry: rhx keyrack unlock --env prep --key FAULTED_AT_REACH --org @all
 
 "
 `;

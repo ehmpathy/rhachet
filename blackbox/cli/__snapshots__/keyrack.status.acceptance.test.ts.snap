@@ -2,7 +2,7 @@
 
 exports[`keyrack status: locked vs absent given: [case1] key was never set (truly absent) when: [t0] get --key NONEXISTENT_KEY --env sudo --json then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env sudo --org @all",
+  "fix": "rhx keyrack set --key NONEXISTENT_KEY --env sudo --org @all --vault <vault>",
   "message": "credential '@all.sudo.NONEXISTENT_KEY' does not exist. set it first.",
   "slug": "@all.sudo.NONEXISTENT_KEY",
   "status": "absent",
@@ -149,14 +149,14 @@ exports[`keyrack status: locked vs absent given: [case4] aws.config vault status
 🔐 keyrack
    └─ testorg.test.AWS_PROFILE
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --key AWS_PROFILE --env test[0m
+      └─ tip: rhx keyrack set --key AWS_PROFILE --env test --vault aws.config
 
 "
 `;
 
 exports[`keyrack status: locked vs absent given: [case4] aws.config vault status journey when: [t0] get before set → absent (inventory-only) then: stdout matches snapshot 1`] = `
 {
-  "fix": "rhx keyrack set --key AWS_PROFILE --env test",
+  "fix": "rhx keyrack set --key AWS_PROFILE --env test --vault aws.config",
   "message": "credential 'testorg.test.AWS_PROFILE' does not exist. set it first.",
   "slug": "testorg.test.AWS_PROFILE",
   "status": "absent",
@@ -168,7 +168,7 @@ exports[`keyrack status: locked vs absent given: [case4] aws.config vault status
 🔐 keyrack
    └─ testorg.test.AWS_PROFILE
       ├─ status: locked 🔒
-      └─ [2mtip: rhx keyrack unlock --env test --key AWS_PROFILE[0m
+      └─ tip: rhx keyrack unlock --env test --key AWS_PROFILE
 
 "
 `;

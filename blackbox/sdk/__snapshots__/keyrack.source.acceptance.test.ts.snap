@@ -28,7 +28,7 @@ exports[`keyrack.source given: [case2] some keys absent (not in env, not hosted)
    │  └─ status: granted 🔑
    └─ testorg.test.__TEST_SOURCE_ABSENT__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key __TEST_SOURCE_ABSENT__ --env test
+      └─ tip: rhx keyrack set --key __TEST_SOURCE_ABSENT__ --env test --vault <vault>
 
 "
 `;
@@ -52,7 +52,7 @@ exports[`keyrack.source given: [case4] key truly absent (never set, no env var) 
 🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_NOTAVAIL__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key __TEST_SOURCE_NOTAVAIL__ --env test
+      └─ tip: rhx keyrack set --key __TEST_SOURCE_NOTAVAIL__ --env test --vault <vault>
 
 "
 `;
@@ -87,7 +87,7 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -101,7 +101,7 @@ exports[`keyrack.source given: [case7] keyrack.source() SDK with absent keys (st
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_STRICT_ABSENT__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -137,7 +137,7 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
@@ -151,7 +151,7 @@ exports[`keyrack.source given: [case8] keyrack.source() SDK with key filter when
 🔐 keyrack
    └─ testorg.test.__TEST_SDK_KEY_FILTER_1__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SDK_KEY_FILTER_1__ --env test --vault <vault>
 
 ✋ some keys were not granted, yet are strictly required
    └─ ask a human to set the keys, then try again
