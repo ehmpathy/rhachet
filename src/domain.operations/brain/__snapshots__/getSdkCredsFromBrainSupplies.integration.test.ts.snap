@@ -35,7 +35,7 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
 🔐 keyrack
    └─ ehmpathy.test.NONEXISTENT_KEY_FOR_TEST
       ├─ status: absent 🫧
-      └─ [2mtip: rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test[0m
+      └─ [2mtip: rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test --vault <vault>[0m
 
 
 {
@@ -43,7 +43,7 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
     {
       "key": "NONEXISTENT_KEY_FOR_TEST",
       "status": "absent",
-      "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test"
+      "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test --vault <vault>"
     }
   ],
   "env": "test",
@@ -52,7 +52,7 @@ exports[`getSdkCredsFromBrainSupplies.integration given: [case2] keyrack mode wi
   "metadata": {
     "attempts": [
       {
-        "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test",
+        "fix": "rhx keyrack set --owner ehmpathy --key NONEXISTENT_KEY_FOR_TEST --env test --vault <vault>",
         "key": "NONEXISTENT_KEY_FOR_TEST",
         "status": "absent",
       },

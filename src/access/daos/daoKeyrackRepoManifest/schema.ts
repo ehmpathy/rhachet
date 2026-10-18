@@ -17,7 +17,10 @@ const schemaKeyrackKeyEntry = z.union([
  */
 export const schemaKeyrackRepoManifest = z
   .object({
-    org: z.string(),
+    // org is an allowlist, and ⚠️ the FIRST member is the default (what @this names); a scalar
+    // org is a one-member allowlist. the members are checked in loadManifestExplicit
+    // (see .agent/repo=.this/role=keyrack/briefs/define.keyrack-org-allowlist.md)
+    org: z.union([z.string(), z.array(z.unknown())]),
     extends: z.array(z.string()).optional(),
   })
   .catchall(z.unknown())

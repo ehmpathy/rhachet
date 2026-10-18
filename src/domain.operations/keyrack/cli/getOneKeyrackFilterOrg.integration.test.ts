@@ -119,4 +119,43 @@ env.prep:
       });
     });
   });
+
+  given('[case4] a repo whose org: is the allowlist [ahbode, bhanya]', () => {
+    const scene = useBeforeAll(async () => {
+      const gitroot = join(testDir.path, 'case4');
+      mkdirSync(join(gitroot, '.agent'), { recursive: true });
+      execSync('git init -q', { cwd: gitroot });
+      writeFileSync(
+        join(gitroot, '.agent', 'keyrack.yml'),
+        `org:
+  - ahbode
+  - bhanya
+env.camp:
+  - AWS_PROFILE
+`,
+      );
+      return { gitroot };
+    });
+
+    when('[t0] the flag is a non-default member', () => {
+      then('it passes through as the filter', async () => {
+        expect(
+          await getOneKeyrackFilterOrg({ org: 'bhanya', from: scene.gitroot }),
+        ).toEqual('bhanya');
+      });
+    });
+
+    when('[t1] the flag is an org off the allowlist', () => {
+      // .why = `status` and `list` narrow the HOST rack, which may hold keys of any org this
+      //        box was ever set for. the allowlist governs what a repo may READ, so it is not
+      //        consulted here — an off-list org narrows the host rack, and an empty narrow names
+      //        its own cause (`define.invariant.empty-render-names-its-cause`). the repo sweeps
+      //        `get --for repo`, `source`, `unlock` refuse it instead (asKeyrackRepoManifestForOrgFilter)
+      then('it passes through unchanged, with no allowlist check', async () => {
+        expect(
+          await getOneKeyrackFilterOrg({ org: 'bhnya', from: scene.gitroot }),
+        ).toEqual('bhnya');
+      });
+    });
+  });
 });

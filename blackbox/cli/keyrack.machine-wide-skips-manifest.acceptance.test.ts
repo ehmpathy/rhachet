@@ -1254,7 +1254,7 @@ env.test:
       // ⚠️ .why = the SELECTOR twin of [t2]'s filter row. on a keyed ask
       //        `@this` must arrive at the lookup ABSENT, because absent is how that lookup
       //        spells "take the manifest's org". handed the sigil verbatim it hits the mismatch
-      //        guard and throws `org '@this' does not match manifest org 'testorg'` — for the
+      //        guard and throws `--org '@this' is not on this manifest's org allowlist` — for the
       //        one value that names that very manifest
       //
       //        BOTH verbs ride this row on purpose: `get` hand-rolled the expansion inline and

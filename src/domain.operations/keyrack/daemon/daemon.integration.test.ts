@@ -22,6 +22,13 @@ import {
 } from './sdk';
 import { createKeyrackDaemonServer, spawnKeyrackDaemonBackground } from './svc';
 
+/**
+ * .what = the max polls (100ms apart) a test waits for a spawned daemon to answer
+ * .why = a cold daemon spawn under a full parallel suite takes seconds; 5s (50 polls)
+ *        timed out there while 20s rides it out, and a healthy spawn exits the loop early
+ */
+const DAEMON_REACHABLE_POLL_LIMIT = 200;
+
 describe('keyrack daemon integration', () => {
   // use a unique socket path for tests to avoid conflicts
   const testSocketPath = `/tmp/keyrack-test-${process.pid}.sock`;
@@ -498,7 +505,7 @@ describe('keyrack daemon integration', () => {
 
         // wait for daemon to become reachable
         let reachable = false;
-        for (let i = 0; i < 50 && !reachable; i++) {
+        for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
           reachable = await isDaemonReachable({
             socketPath: autoTermSocketPath,
           });
@@ -631,7 +638,7 @@ describe('keyrack daemon integration', () => {
 
         // wait for daemon to become reachable
         let reachable = false;
-        for (let i = 0; i < 50 && !reachable; i++) {
+        for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
           reachable = await isDaemonReachable({
             socketPath: expectedSocketPath,
           });
@@ -674,7 +681,7 @@ describe('keyrack daemon integration', () => {
 
         // wait for daemon to become reachable
         let reachable = false;
-        for (let i = 0; i < 50 && !reachable; i++) {
+        for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
           reachable = await isDaemonReachable({ socketPath: ownerSocketPath });
           if (!reachable) await sleep(100);
         }
@@ -714,7 +721,7 @@ describe('keyrack daemon integration', () => {
         // wait for both to be reachable
         for (const socketPath of [defaultSocketPath, ownerSocketPath]) {
           let reachable = false;
-          for (let i = 0; i < 50 && !reachable; i++) {
+          for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
             reachable = await isDaemonReachable({ socketPath });
             if (!reachable) await sleep(100);
           }
@@ -727,9 +734,12 @@ describe('keyrack daemon integration', () => {
         const defaultPid = parseInt(readFileSync(defaultPidPath, 'utf-8'), 10);
         const ownerPid = parseInt(readFileSync(ownerPidPath, 'utf-8'), 10);
 
-        // prune @all
+        // prune @all — the runtime dir is this pid's own, so the total is exact
         const result = pruneKeyrackDaemon({ owner: '@all' });
+        const pidsPruned = result.pruned.map((one) => one.pid);
         expect(result.pruned.length).toBe(2);
+        expect(pidsPruned).toContain(defaultPid);
+        expect(pidsPruned).toContain(ownerPid);
 
         // verify both daemons are gone
         expect(await awaitProcessGone({ pid: defaultPid })).toBe(true);
@@ -760,7 +770,7 @@ describe('keyrack daemon integration', () => {
           spawnKeyrackDaemonBackground({ socketPath });
 
           let reachable = false;
-          for (let i = 0; i < 50 && !reachable; i++) {
+          for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
             reachable = await isDaemonReachable({ socketPath });
             if (!reachable) await sleep(100);
           }
@@ -779,8 +789,11 @@ describe('keyrack daemon integration', () => {
         process.env['HOME'] = homeOriginal;
         expect(new Set(spawned.map((one) => one.socketPath)).size).toBe(3);
 
+        // the runtime dir is this pid's own, so the three spawned are the whole total
         const result = pruneKeyrackDaemon({ owner: '@all' });
+        const pidsPruned = result.pruned.map((one) => one.pid);
         expect(result.pruned.length).toBe(3);
+        for (const one of spawned) expect(pidsPruned).toContain(one.pid);
 
         for (const one of spawned) {
           expect(await awaitProcessGone({ pid: one.pid })).toBe(true);
@@ -858,7 +871,11 @@ describe('keyrack daemon integration', () => {
 
               for (const socketPath of socketPaths) {
                 let reachable = false;
-                for (let i = 0; i < 50 && !reachable; i++) {
+                for (
+                  let i = 0;
+                  i < DAEMON_REACHABLE_POLL_LIMIT && !reachable;
+                  i++
+                ) {
                   await sleep(100);
                   reachable = await isDaemonReachable({ socketPath });
                 }
@@ -953,7 +970,7 @@ describe('keyrack daemon integration', () => {
           spawnKeyrackDaemonBackground({ socketPath: chunkedSocketPath });
 
           let reachable = false;
-          for (let i = 0; i < 50 && !reachable; i++) {
+          for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
             await sleep(100);
             reachable = await isDaemonReachable({
               socketPath: chunkedSocketPath,
@@ -1052,7 +1069,7 @@ describe('keyrack daemon integration', () => {
         // the earlier daemon takes the path
         spawnKeyrackDaemonBackground({ socketPath: racedSocketPath });
         let reachable = false;
-        for (let i = 0; i < 50 && !reachable; i++) {
+        for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
           await sleep(100);
           reachable = await isDaemonReachable({ socketPath: racedSocketPath });
         }

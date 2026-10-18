@@ -52,6 +52,26 @@ describe('keyrack --org help', () => {
           expect(result.stdout).toContain('@this');
         });
 
+        then('help says which org @this names, since a list org: holds several', () => {
+          // .why = once `org:` may list several orgs, `@this` reads as "this repo's keys" — and a
+          //        member org's keys are this repo's keys too, yet `@this` never selects them.
+          //        the help must name the one org it does select
+          expect(result.stdout).toMatch(/@this\s+\(the\s+first\s+org\s+in\s+keyrack\.yml\)/);
+        });
+
+        then('help names the third value a human may pass, and claims only the gate it holds', () => {
+          // .why = a help that names only the two sigils hides the third value a human may
+          //        pass. a REPO sweep (source, unlock) re-slugs the manifest's keys under a
+          //        member and refuses a non-member, so its help names the allowlist. a HOST
+          //        sweep (status, list) filters the slugs this host holds with no gate, so its
+          //        help names any org — a claim of an allowlist there would be a gate it lacks.
+          //        `\s+` because commander wraps the description at the term width
+          const isRepoSweep = command === 'source' || command === 'unlock';
+          if (isRepoSweep) return expect(result.stdout).toMatch(/allowlisted\s+org/);
+          expect(result.stdout).toMatch(/any\s+org/);
+          expect(result.stdout).not.toMatch(/allowlisted\s+org/);
+        });
+
         // ⚠️ .why = THE ROW THAT MATTERS. the union default is this wish's backwards-compat
         //         guarantee: a caller who passes no `--org` must observe exactly the scope
         //         the verb always had. `[case9][t0]` clamps that the CODE honors it; this
@@ -59,7 +79,9 @@ describe('keyrack --org help', () => {
         //         help must run the command to discover its scope — and on `unlock` that
         //         experiment mutates a session
         then('help states the default is NO filter', () => {
-          expect(result.stdout).toContain('default: no filter');
+          // `\s+` because commander wraps the description at the term width, and may break
+          // after `default:` (it does on `source`)
+          expect(result.stdout).toMatch(/default:\s+no\s+filter/);
         });
 
         then('the reply is snapped', () => {
@@ -103,9 +125,22 @@ describe('keyrack --org help', () => {
           //    description used to hand-author a `(default: @this)` twin beside it, so the help
           //    printed the default TWICE and this row matched the hand-authored copy. with the
           //    twin gone the row asserts the real, generated one, which is the string a human
-          //    actually reads (`rule.forbid.snapshot-visual-blemishes`)
-          expect(result.stdout).toContain('default: "@this"');
-          expect(result.stdout).not.toContain('default: no filter');
+          //    actually reads (`rule.forbid.snapshot-visual-blemishes`). `\s+` because commander
+          //    wraps the description at the term width, and may break after `default:`
+          expect(result.stdout).toMatch(/default:\s+"@this"/);
+          expect(result.stdout).not.toMatch(/default:\s+no\s+filter/);
+        });
+
+        then('help names the org allowlist, so a member is a known door', () => {
+          // .why = `--org <member>` selects any org the manifest lists. a help that names only
+          //        `@this` and `@all` hides the member door the allowlist opens
+          expect(result.stdout).toMatch(/allowlisted\s+org/);
+        });
+
+        then('help says which org the @this default names', () => {
+          // .why = the default is `@this`, and with a list `org:` a human must know which member
+          //        a bare ask reads — the first, never a union
+          expect(result.stdout).toMatch(/@this\s+\(the\s+first\s+org\s+in\s+keyrack\.yml\)/);
         });
 
         // ⚠️ .why = `--help` is a published, human-read contract, and [case1] snaps it for all

@@ -19,6 +19,7 @@ describe('asResolvedAttempt', () => {
   // a repo manifest that declares ONE testorg key — deliberately NOT the @all key under test
   const repoManifest = new KeyrackRepoManifest({
     org: 'testorg',
+    orgs: ['testorg'],
     envs: ['test'],
     keys: {
       'testorg.test.REPO_KEY': {
@@ -122,7 +123,60 @@ describe('asResolvedAttempt', () => {
     });
   });
 
-  given('[case5] a granted attempt (any slug)', () => {
+  given('[case5] a manifest whose org: is [testorg, bhanya]', () => {
+    const repoManifestAllowlist = new KeyrackRepoManifest({
+      ...repoManifest,
+      orgs: ['testorg', 'bhanya'],
+    });
+
+    when('[t0] a locked member key whose key IS declared', () => {
+      then('it stays locked — the member slug is declared via its key', () => {
+        const resolved = asResolvedAttempt({
+          attempt: lockedAttempt('bhanya.test.REPO_KEY'),
+          slug: 'bhanya.test.REPO_KEY',
+          keyName: 'REPO_KEY',
+          env: 'test',
+          repoManifest: repoManifestAllowlist,
+        });
+        expect(resolved.status).toEqual('locked');
+      });
+    });
+
+    when('[t1] a member key whose key is NOT declared', () => {
+      then('it is absent, and the fix line spells --org for the member', () => {
+        const resolved = asResolvedAttempt({
+          attempt: lockedAttempt('bhanya.test.UNDECLARED_KEY'),
+          slug: 'bhanya.test.UNDECLARED_KEY',
+          keyName: 'UNDECLARED_KEY',
+          env: 'test',
+          repoManifest: repoManifestAllowlist,
+        });
+        expect(resolved.status).toEqual('absent');
+        if (resolved.status !== 'absent')
+          throw new Error('expected an absent attempt');
+        expect(resolved.fix).toContain(
+          'rhx keyrack set --key UNDECLARED_KEY --env test --org bhanya',
+        );
+      });
+    });
+
+    when('[t2] a default-org key whose key is NOT declared', () => {
+      then('the fix line spells no --org, since the default needs none', () => {
+        const resolved = asResolvedAttempt({
+          attempt: lockedAttempt('testorg.test.UNDECLARED_KEY'),
+          slug: 'testorg.test.UNDECLARED_KEY',
+          keyName: 'UNDECLARED_KEY',
+          env: 'test',
+          repoManifest: repoManifestAllowlist,
+        });
+        if (resolved.status !== 'absent')
+          throw new Error('expected an absent attempt');
+        expect(resolved.fix).not.toContain('--org');
+      });
+    });
+  });
+
+  given('[case6] a granted attempt (any slug)', () => {
     when('[t0] a granted attempt is resolved', () => {
       then('it passes through untouched (only locked/absent are gated)', () => {
         const granted = {

@@ -39,7 +39,8 @@ Options:
   --for <owner>              alias for --owner
   --env <env>                target env: prod, prep, test, all, sudo, or camp
                              (inferred from manifest if unambiguous)
-  --org <org>                target org: @this or @all (default: "@this")
+  --org <org>                target org: @this (the first org in keyrack.yml),
+                             @all, or an allowlisted org (default: "@this")
   --reach <exid>             reach this key is cut for (e.g., beav@ehmpathy.com,
                              github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)
@@ -67,10 +68,10 @@ exports[`keyrack vault aws.params (cli) given: [case5] unlock exits non-zero whe
 🔓 keyrack unlock
    ├─ testorg.test.XAI_API_KEY
    │  ├─ status: absent 🫧
-   │  └─ tip: rhx keyrack set --key XAI_API_KEY --env test
+   │  └─ tip: rhx keyrack set --owner mechanic --key XAI_API_KEY --env test --vault <vault>
    └─ @all.test.XAI_API_KEY
       ├─ status: errored 💥
-      └─ tip: aws.params ssm read failed — retry: rhx keyrack unlock --env test
+      └─ tip: aws.params ssm read failed — retry: rhx keyrack unlock --owner mechanic --env test --key XAI_API_KEY --org @all
 
 "
 `;

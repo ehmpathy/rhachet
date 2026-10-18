@@ -10,6 +10,7 @@ import { asKeyrackKeySlug } from './asKeyrackKeySlug';
  */
 const genMockManifest = (): KeyrackRepoManifest => ({
   org: 'ehmpathy',
+  orgs: ['ehmpathy', 'bhanya'],
   envs: ['test', 'prod'],
   keys: {
     'ehmpathy.test.AWS_PROFILE': {
@@ -52,6 +53,7 @@ describe('asKeyrackKeySlug', () => {
           key: 'ehmpathy.test.AWS_PROFILE',
           env: null,
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.test.AWS_PROFILE');
         expect(result.env).toEqual('test');
@@ -64,6 +66,7 @@ describe('asKeyrackKeySlug', () => {
           key: 'ehmpathy.prep.SOME_KEY',
           env: null,
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.prep.SOME_KEY');
         expect(result.env).toEqual('prep');
@@ -78,12 +81,62 @@ describe('asKeyrackKeySlug', () => {
               key: 'other-org.test.SOME_KEY',
               env: null,
               manifest,
+              org: null,
             }),
           ),
         );
         expect(error).toBeInstanceOf(ConstraintError);
         expect(error!.message).toContain('other-org');
-        expect(error!.message).toContain('ehmpathy');
+        expect(error!.message).toContain('org allowlist');
+        // the refusal names the manifest's members, so a typo meets its correct spell
+        expect(error!.message).toContain('ehmpathy, bhanya');
+      });
+    });
+
+    when('[t2b] slug org is a non-default member of the allowlist', () => {
+      then('returns slug as-is (a member is admitted)', () => {
+        const result = asKeyrackKeySlug({
+          key: 'bhanya.prep.SOME_KEY',
+          env: null,
+          manifest,
+          org: null,
+        });
+        expect(result.slug).toEqual('bhanya.prep.SOME_KEY');
+        expect(result.env).toEqual('prep');
+      });
+    });
+
+    when('[t2c] slug names one member and --org names another', () => {
+      then(
+        'throws the slug-org conflict, never the slug of another org',
+        async () => {
+          const error = await getError(
+            Promise.resolve().then(() =>
+              asKeyrackKeySlug({
+                key: 'ehmpathy.prep.SOME_KEY',
+                env: null,
+                manifest,
+                org: 'bhanya',
+              }),
+            ),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error!.message).toContain(
+            '--org bhanya conflicts with org in slug ehmpathy.prep.SOME_KEY',
+          );
+        },
+      );
+    });
+
+    when('[t2d] slug names a member and --org names the same member', () => {
+      then('returns the slug as-is', () => {
+        const result = asKeyrackKeySlug({
+          key: 'bhanya.prep.SOME_KEY',
+          env: null,
+          manifest,
+          org: 'bhanya',
+        });
+        expect(result.slug).toEqual('bhanya.prep.SOME_KEY');
       });
     });
 
@@ -95,6 +148,7 @@ describe('asKeyrackKeySlug', () => {
               key: 'ehmpathy.test.AWS_PROFILE',
               env: 'prod',
               manifest,
+              org: null,
             }),
           ),
         );
@@ -110,6 +164,7 @@ describe('asKeyrackKeySlug', () => {
           key: 'ehmpathy.test.AWS_PROFILE',
           env: 'test',
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.test.AWS_PROFILE');
         expect(result.env).toEqual('test');
@@ -126,8 +181,22 @@ describe('asKeyrackKeySlug', () => {
           key: 'AWS_PROFILE',
           env: 'test',
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.test.AWS_PROFILE');
+        expect(result.env).toEqual('test');
+      });
+    });
+
+    when('[t1] a member org is asked', () => {
+      then('constructs the slug under the asked member', () => {
+        const result = asKeyrackKeySlug({
+          key: 'AWS_PROFILE',
+          env: 'test',
+          manifest,
+          org: 'bhanya',
+        });
+        expect(result.slug).toEqual('bhanya.test.AWS_PROFILE');
         expect(result.env).toEqual('test');
       });
     });
@@ -142,6 +211,7 @@ describe('asKeyrackKeySlug', () => {
           key: 'GITHUB_TOKEN',
           env: null,
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.test.GITHUB_TOKEN');
         expect(result.env).toEqual('test');
@@ -160,6 +230,7 @@ describe('asKeyrackKeySlug', () => {
               key: 'AWS_PROFILE',
               env: null,
               manifest,
+              org: null,
             }),
           ),
         );
@@ -180,6 +251,7 @@ describe('asKeyrackKeySlug', () => {
           key: '@all.prep.PROBE',
           env: null,
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('@all.prep.PROBE');
         expect(result.env).toEqual('prep');
@@ -192,6 +264,7 @@ describe('asKeyrackKeySlug', () => {
           key: '@all.prep.PROBE',
           env: 'prep',
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('@all.prep.PROBE');
         expect(result.env).toEqual('prep');
@@ -206,6 +279,7 @@ describe('asKeyrackKeySlug', () => {
               key: '@all.prep.PROBE',
               env: 'test',
               manifest,
+              org: null,
             }),
           ),
         );
@@ -228,6 +302,7 @@ describe('asKeyrackKeySlug', () => {
           key: '@this.prep.PROBE',
           env: null,
           manifest,
+          org: null,
         });
         expect(result.slug).toEqual('ehmpathy.prep.PROBE');
         expect(result.env).toEqual('prep');
@@ -246,6 +321,7 @@ describe('asKeyrackKeySlug', () => {
               key: 'UNKNOWN_KEY',
               env: null,
               manifest,
+              org: null,
             }),
           ),
         );

@@ -68,6 +68,22 @@ exports[`keyrack del given: [case-reach-json] an addressed del, read as json whe
 "
 `;
 
+exports[`keyrack del given: [case4] del with full slug org mismatch when: [t0] del with full slug from different org then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack del
+   └─ ✋ ConstraintError: slug org 'wrongorg' is not on this manifest's org allowlist
+      ├─ key: wrongorg.test.SOME_KEY
+      ├─ org
+      │  ├─ given: wrongorg
+      │  └─ avail: testorg
+      ├─ ran: keyrack del --key wrongorg.test.SOME_KEY
+      └─ hint:
+         ├─ use one of 'testorg'
+         └─ or add 'wrongorg' to org: in .agent/keyrack.yml
+
+"
+`;
+
 exports[`keyrack del given: [case6] del with raw key and --env camp when: [t0] del with raw key and --env camp then: stdout matches snapshot 1`] = `
 "
 🔐 keyrack del

@@ -9,3 +9,13 @@ exports[`keyrack.get given: [case7] slug construction for env=camp when: [t0] ke
       └─ status: granted 🔑
 "
 `;
+
+exports[`keyrack.get given: [case8] a manifest whose org: is [testorg, bhanya] when: [t0] keyrack.get with org=bhanya, a non-default member then: emit.stdout matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ bhanya.prep.__TEST_SDK_MEMBER_KEY__
+      ├─ vault: os.envvar
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ status: granted 🔑
+"
+`;

@@ -1,0 +1,21 @@
+{
+  "uri": "file://~/.rhachet/keyrack.manifest.json",
+  "hosts": {
+    "testorg.prep.SHARED_API_KEY": {
+      "slug": "testorg.prep.SHARED_API_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01",
+      "updatedAt": "2026-01-01"
+    },
+    "bhanya.prep.SHARED_API_KEY": {
+      "slug": "bhanya.prep.SHARED_API_KEY",
+      "mech": "PERMANENT_VIA_REPLICA",
+      "vault": "os.direct",
+      "exid": null,
+      "createdAt": "2026-01-01",
+      "updatedAt": "2026-01-01"
+    }
+  }
+}

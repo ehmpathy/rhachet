@@ -26,10 +26,11 @@
  * real temp HOME. the vault is faked precisely so the daemon can be real — every
  * assertion below reads daemon state, never vault state.
  */
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
+import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import { withTempHome } from '@src/.test/infra/withTempHome';
@@ -369,19 +370,25 @@ describe('unlockKeyrackKeys.integration', () => {
           },
         };
 
+        // bracket the call: the expiry is stamped somewhere inside it, and a daemon spawn
+        // on a loaded host can take seconds, so a clock read after the call would drift
+        const askedAtMs = Date.now();
         const result = await unlockKeyrackKeys({ owner: 'case2' }, context);
+        const answeredAtMs = Date.now();
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
 
-        // verify TTL is approximately 9 hours (allow 5s tolerance)
+        // verify TTL is 9 hours from a moment within the call
         const nineHoursMs = 9 * 60 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
           : 0;
-        const expiresIn = expiresAtMs - Date.now();
-        expect(expiresIn).toBeGreaterThan(nineHoursMs - 5000);
-        expect(expiresIn).toBeLessThanOrEqual(nineHoursMs);
+        // 1s of slack below: the iso stamp may carry second precision only
+        expect(expiresAtMs).toBeGreaterThanOrEqual(
+          askedAtMs + nineHoursMs - 1000,
+        );
+        expect(expiresAtMs).toBeLessThanOrEqual(answeredAtMs + nineHoursMs);
       });
     });
   });
@@ -1221,6 +1228,103 @@ describe('unlockKeyrackKeys.integration', () => {
           new Date(result.unlocked[0]!.expiresAt!).getTime() - Date.now();
         expect(expiresIn).toBeGreaterThan(9 * 60 * 60 * 1000 - 5000);
         expect(expiresIn).toBeLessThanOrEqual(9 * 60 * 60 * 1000);
+      });
+    });
+  });
+
+  /**
+   * .what = the clamp for a member sweep (case=4)
+   * .why = a manifest declares its keys under the default org. a sweep under a non-default
+   *        member must re-slug those declared keys under the member, or it unlocks the
+   *        default org's keys — the very wall the allowlist exists to remove
+   * .note = it runs here, against the real daemon in a temp HOME, so the member unlock
+   *         lands in a real daemon and is read back from it
+   */
+  given('[case11b] a manifest whose org: is [ahbode, bhanya]', () => {
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'ahbode.camp.AWS_PROFILE': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'camp',
+            org: 'ahbode',
+          },
+          'bhanya.camp.AWS_PROFILE': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'camp',
+            org: 'bhanya',
+          },
+        },
+      }),
+      repoManifest: genMockKeyrackRepoManifest({
+        orgs: ['ahbode', 'bhanya'],
+        envs: ['camp'],
+        keys: {
+          'ahbode.camp.AWS_PROFILE': { env: 'camp', name: 'AWS_PROFILE' },
+        },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter({
+          storage: {
+            'ahbode.camp.AWS_PROFILE': 'ahbode-profile',
+            'bhanya.camp.AWS_PROFILE': 'bhanya-profile',
+          },
+        }),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] the sweep names no org', () => {
+      then('the default org key unlocks, byte-identical', async () => {
+        const result = await unlockKeyrackKeys({ env: 'camp' }, context);
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          'ahbode.camp.AWS_PROFILE',
+        ]);
+      });
+    });
+
+    when('[t1] the sweep names the non-default member --org bhanya', () => {
+      then('the member key unlocks, never the default', async () => {
+        const result = await unlockKeyrackKeys(
+          { env: 'camp', org: 'bhanya' },
+          context,
+        );
+        expect(result.unlocked.map((k) => k.slug)).toEqual([
+          'bhanya.camp.AWS_PROFILE',
+        ]);
+      });
+
+      then('the real daemon holds the member key', async () => {
+        const daemonResult = await daemonAccessGet({
+          socketPath: getKeyrackDaemonSocketPath({ owner: null }),
+          slugs: ['bhanya.camp.AWS_PROFILE'],
+        });
+        expect(daemonResult?.keys.map((k) => k.slug)).toEqual([
+          'bhanya.camp.AWS_PROFILE',
+        ]);
+      });
+    });
+
+    when('[t2] the sweep names a typo --org bhnya', () => {
+      then('it refuses, and names both members', async () => {
+        const error = await getError(
+          unlockKeyrackKeys({ env: 'camp', org: 'bhnya' }, context),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('ahbode, bhanya');
       });
     });
   });

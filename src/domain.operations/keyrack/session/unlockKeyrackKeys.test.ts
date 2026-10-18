@@ -1,5 +1,5 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
-import { getError, given, then, when } from 'test-fns';
+import { getError, given, then, useThen, when } from 'test-fns';
 
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
@@ -558,22 +558,21 @@ describe('unlockKeyrackKeys', () => {
       };
 
       when('[t0] unlock is called for the whole batch', () => {
-        then(
-          'the batch does NOT abort — the healthy key still unlocks',
-          async () => {
-            const result = await unlockKeyrackKeys({}, context);
-            const healthy = result.unlocked.find(
-              (k) => k.slug === 'testorg.all.HEALTHY_KEY',
-            );
-            expect(healthy).toBeDefined();
-            expect(healthy?.key.secret).toEqual('healthy-secret');
-          },
+        const result = useThen('the unlock returns', async () =>
+          unlockKeyrackKeys({}, context),
         );
+
+        then('the batch does NOT abort — the healthy key still unlocks', () => {
+          const healthy = result.unlocked.find(
+            (k) => k.slug === 'testorg.all.HEALTHY_KEY',
+          );
+          expect(healthy).toBeDefined();
+          expect(healthy?.key.secret).toEqual('healthy-secret');
+        });
 
         then(
           'the flaky key is omitted with reason errored and its cause',
-          async () => {
-            const result = await unlockKeyrackKeys({}, context);
+          () => {
             const flaky = result.omitted.find(
               (o) => o.slug === 'testorg.all.FLAKY_KEY',
             );
@@ -891,10 +890,13 @@ describe('unlockKeyrackKeys', () => {
       };
 
       when('[t0] unlock is called for the whole batch', () => {
+        const result = useThen('the unlock returns', async () =>
+          unlockKeyrackKeys({}, context),
+        );
+
         then(
           'the batch does NOT abort — the healthy os.direct key still unlocks',
-          async () => {
-            const result = await unlockKeyrackKeys({}, context);
+          () => {
             const healthy = result.unlocked.find(
               (k) => k.slug === 'testorg.all.HEALTHY_KEY',
             );
@@ -904,9 +906,8 @@ describe('unlockKeyrackKeys', () => {
         );
 
         then(
-          'the os.secure key is omitted with reason errored, never batch-aborting',
-          async () => {
-            const result = await unlockKeyrackKeys({}, context);
+          'the os.secure key is omitted with reason errored, and the batch never aborts',
+          () => {
             const secure = result.omitted.find(
               (o) => o.slug === 'testorg.all.SECURE_KEY',
             );
@@ -923,25 +924,9 @@ describe('unlockKeyrackKeys', () => {
     const context = {} as ContextKeyrack;
 
     when('[t0] unlock called for a whole env', () => {
-      then(
-        'e14: it throws rather than scope every key in the env',
-        async () => {
-          const error = await getError(
-            unlockKeyrackKeys(
-              {
-                owner: 'ehmpath',
-                env: 'prep',
-                reach: { exid: 'github://org=ehmpathy' },
-              },
-              context,
-            ),
-          );
-          expect(error.message).toContain('--reach requires a key');
-        },
-      );
-
-      then('e14: the error names the fix, reach echoed back', async () => {
-        const error = await getError(
+      // .note = the error rides in a plain record; the useThen proxy carries neither an Error's class nor its own props
+      const thrown = useThen('the unlock throws', async () => ({
+        error: await getError(
           unlockKeyrackKeys(
             {
               owner: 'ehmpath',
@@ -950,9 +935,16 @@ describe('unlockKeyrackKeys', () => {
             },
             context,
           ),
-        );
-        expect(error.message).toContain('--env prep --key $KEY');
-        expect(error.message).toContain('--reach github://org=ehmpathy');
+        ),
+      }));
+
+      then('e14: it throws rather than scope every key in the env', () => {
+        expect(thrown.error.message).toContain('--reach requires a key');
+      });
+
+      then('e14: the error names the fix, reach echoed back', () => {
+        expect(thrown.error.message).toContain('--env prep --key $KEY');
+        expect(thrown.error.message).toContain('--reach github://org=ehmpathy');
       });
     });
   });
@@ -996,27 +988,9 @@ describe('unlockKeyrackKeys', () => {
     };
 
     when('[t0] unlock called at a reach no key was cut for', () => {
-      then(
-        'e6: it throws rather than hand back the reachless key',
-        async () => {
-          const error = await getError(
-            unlockKeyrackKeys(
-              {
-                env: 'test',
-                key: 'API_KEY',
-                reach: { exid: 'github://org=ehmpathy' },
-              },
-              context,
-            ),
-          );
-          expect(error.message).toContain(
-            "credential at reach 'github://org=ehmpathy' does not exist",
-          );
-        },
-      );
-
-      then('e6: the error names the `set` that would cut the key', async () => {
-        const error = await getError(
+      // .note = the error rides in a plain record; the useThen proxy carries neither an Error's class nor its own props
+      const thrown = useThen('the unlock throws', async () => ({
+        error: await getError(
           unlockKeyrackKeys(
             {
               env: 'test',
@@ -1025,8 +999,17 @@ describe('unlockKeyrackKeys', () => {
             },
             context,
           ),
+        ),
+      }));
+
+      then('e6: it throws rather than hand back the reachless key', () => {
+        expect(thrown.error.message).toContain(
+          "credential at reach 'github://org=ehmpathy' does not exist",
         );
-        expect(error.message).toContain(
+      });
+
+      then('e6: the error names the `set` that would cut the key', () => {
+        expect(thrown.error.message).toContain(
           'rhx keyrack set --key API_KEY --env test --reach github://org=ehmpathy',
         );
       });
@@ -1052,19 +1035,9 @@ describe('unlockKeyrackKeys', () => {
        *         wording change can reproduce that, which is precisely why the text clamp
        *         was the wrong instrument (`rule.require.clamp-edge-cases`)
        */
-      then('it throws the class `fill` absorbs as a probe miss', async () => {
-        const error = await getError(
-          unlockKeyrackKeys(
-            {
-              env: 'test',
-              key: 'API_KEY',
-              reach: { exid: 'github://org=ehmpathy' },
-            },
-            context,
-          ),
-        );
-        expect(error).toBeInstanceOf(ConstraintError);
-        expect(isKeyrackFillProbeMiss({ error })).toBe(true);
+      then('it throws the class `fill` absorbs as a probe miss', () => {
+        expect(thrown.error).toBeInstanceOf(ConstraintError);
+        expect(isKeyrackFillProbeMiss({ error: thrown.error })).toBe(true);
       });
     });
 
@@ -1190,15 +1163,17 @@ describe('unlockKeyrackKeys', () => {
     });
 
     when('[t4] the sweep names a literal org that is NOT this repo', () => {
-      // .why = the honest answer to "unlock otherorg's keys" from a testorg repo is an empty
-      //        set. a per-sigil branch could not say this — every non-@all org fell to the
-      //        repo side, so a human who named the wrong org got THIS repo's keys under it
-      then('none unlock — the filter does not mis-serve', async () => {
-        const result = await unlockKeyrackKeys(
-          { env: 'camp', org: 'otherorg' },
-          context,
+      // .why = an org off this manifest's allowlist is refused loud (case=5), never served an
+      //        empty set. an empty sweep read as "no keys" when the truth was "wrong org", and
+      //        a typo of a member cannot be told apart from a stranger by a silent empty set
+      then('it refuses, and names the allowlist', async () => {
+        const error = await getError(
+          unlockKeyrackKeys({ env: 'camp', org: 'otherorg' }, context),
         );
-        expect(result.unlocked.map((k) => k.slug)).toEqual([]);
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain(
+          "--org 'otherorg' is not on this manifest's org allowlist",
+        );
       });
     });
   });

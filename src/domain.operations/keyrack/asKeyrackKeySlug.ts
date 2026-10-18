@@ -5,6 +5,7 @@ import type { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { asKeyrackOrgMismatchRefusal } from './asKeyrackOrgMismatchRefusal';
 import { asKeyrackSlugFullOrNull } from './asKeyrackSlugFullOrNull';
+import { asKeyrackSlugOrgConflictRefusal } from './asKeyrackSlugOrgConflictRefusal';
 
 /**
  * .what = find all envs that contain a given raw key name
@@ -32,18 +33,22 @@ const findEnvsForKey = (input: {
  * .why = cli accepts both formats; need to extract env and validate org
  *
  * rules:
- * - full slug: extract env, validate org matches manifest
- * - raw key with --env: construct slug from manifest.org + env + key
+ * - full slug: extract env, validate its org is on the manifest allowlist
+ * - raw key with --env: construct slug from the asked org (else manifest.org) + env + key
  * - raw key, no --env, unique env: infer env
  * - raw key, no --env, multiple envs: fail fast
  * - raw key, no --env, zero envs: passthrough (downstream fails)
+ *
+ * .note = `org` is the member the caller asked for; the caller owns the check that it is on
+ *         the allowlist. absent, a bare key slugs under the default org, as before
  */
 export const asKeyrackKeySlug = (input: {
   key: string;
   env: string | null;
   manifest: KeyrackRepoManifest;
+  org: string | null;
 }): { slug: string; env: string } => {
-  const org = input.manifest.org;
+  const org = input.org ?? input.manifest.org;
 
   // check if full slug format
   const parsed = asKeyrackSlugFullOrNull({ key: input.key });
@@ -55,15 +60,26 @@ export const asKeyrackKeySlug = (input: {
     const isMachineWide = parsed.org === '@all';
     const slugOrg = parsed.org === '@this' ? org : parsed.org;
 
-    // validate org matches manifest (the machine-wide @all sigil is exempt)
-    if (!isMachineWide && slugOrg !== org) {
+    // validate the slug's org is on the allowlist (the machine-wide @all sigil is exempt)
+    if (!isMachineWide && !input.manifest.orgs.includes(slugOrg)) {
       throw asKeyrackOrgMismatchRefusal({
         givenBy: 'slug',
         orgRejected: parsed.org,
-        orgOfManifest: org,
+        orgsOfManifest: input.manifest.orgs,
         key: input.key,
       });
     }
+
+    // a slug that names one member conflicts with a --org that named another — the same
+    // refusal set and del give, so one ask draws one answer on every verb
+    // .note = input.org is set only when the human spelled a real org; @this arrives absent
+    const isSlugOrgLiteral = !isMachineWide && parsed.org !== '@this';
+    if (input.org && isSlugOrgLiteral && parsed.org !== input.org)
+      throw asKeyrackSlugOrgConflictRefusal({
+        key: input.key,
+        orgAsked: input.org,
+        orgOfSlug: parsed.org,
+      });
 
     // validate --env matches slug env (if both provided)
     if (input.env && input.env !== parsed.env) {

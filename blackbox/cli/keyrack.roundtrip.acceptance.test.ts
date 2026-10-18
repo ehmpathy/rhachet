@@ -712,8 +712,8 @@ describe('keyrack roundtrip', () => {
       );
 
       then('does NOT throw ORG_MISMATCH (F1: @all is exempt from the manifest-org check)', () => {
-        expect(result.stdout).not.toContain('does not match manifest org');
-        expect(result.stderr).not.toContain('does not match manifest org');
+        expect(result.stdout).not.toContain("is not on this manifest's org allowlist");
+        expect(result.stderr).not.toContain("is not on this manifest's org allowlist");
       });
 
       then('status is locked (readable, just not yet unlocked)', () => {

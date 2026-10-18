@@ -18,6 +18,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'API_KEY',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: 'prep',
           }),
@@ -34,6 +36,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'my.api.KEY',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: null,
           }),
@@ -52,6 +56,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'testorg.prep.API_KEY',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: 'prep',
           }),
@@ -65,6 +71,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'testorg.prep.API.KEY.V2',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: null,
           }),
@@ -74,11 +82,13 @@ describe('asKeyrackAskSlugParts', () => {
   });
 
   given('[case3] a full slug that conflicts on ONE axis', () => {
-    when('[t0] the slug org differs from the resolved org', () => {
+    when('[t0] the slug org is off the allowlist', () => {
       const error = getError(() =>
         asKeyrackAskSlugParts({
           key: 'foreignorg.prep.API_KEY',
           org: 'testorg',
+          orgAsked: null,
+          orgsOfManifest: ['testorg'],
           env: 'prep',
           envAsked: 'prep',
         }),
@@ -88,8 +98,8 @@ describe('asKeyrackAskSlugParts', () => {
         expect(error).toBeInstanceOf(ConstraintError);
       });
 
-      then('the refusal names both orgs and the fix', () => {
-        expect(error.message).toContain('does not match manifest org');
+      then('the refusal names the org, the allowlist, and the fix', () => {
+        expect(error.message).toContain('is not on this manifest');
         expect(error.message).toContain('foreignorg');
         expect(error.message).toContain('testorg');
       });
@@ -104,6 +114,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'foreignorg.prep.API_KEY',
             org: '@all',
+            orgAsked: '@all',
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: null,
           }),
@@ -116,6 +128,8 @@ describe('asKeyrackAskSlugParts', () => {
         asKeyrackAskSlugParts({
           key: 'testorg.prod.API_KEY',
           org: 'testorg',
+          orgAsked: null,
+          orgsOfManifest: ['testorg'],
           env: 'prod',
           envAsked: 'test',
         }),
@@ -136,6 +150,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'testorg.prod.API_KEY',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'prep',
             envAsked: null,
           }),
@@ -149,6 +165,8 @@ describe('asKeyrackAskSlugParts', () => {
           asKeyrackAskSlugParts({
             key: 'testorg.prod.API_KEY',
             org: 'testorg',
+            orgAsked: null,
+            orgsOfManifest: ['testorg'],
             env: 'all',
             envAsked: 'all',
           }),
@@ -170,14 +188,72 @@ describe('asKeyrackAskSlugParts', () => {
         asKeyrackAskSlugParts({
           key: 'foreignorg.prod.API_KEY',
           org: 'testorg',
+          orgAsked: null,
+          orgsOfManifest: ['testorg'],
           env: 'prep',
           envAsked: 'test',
         }),
       );
 
       then('the ORG refusal wins, and the env one is never raised', () => {
-        expect(error.message).toContain('does not match manifest org');
+        expect(error.message).toContain('is not on this manifest');
         expect(error.message).not.toContain('conflicts with env in slug');
+      });
+    });
+  });
+
+  given('[case5] a manifest whose org: lists several members', () => {
+    when(
+      '[t0] the slug names a non-default member and no --org was spelled',
+      () => {
+        // .why = the slug picks its member; a member of the allowlist is a legal target
+        then('the slug is admitted under its own member', () => {
+          expect(
+            asKeyrackAskSlugParts({
+              key: 'bhanya.prep.API_KEY',
+              org: 'ahbode',
+              orgAsked: null,
+              orgsOfManifest: ['ahbode', 'bhanya'],
+              env: 'prep',
+              envAsked: null,
+            }),
+          ).toEqual({ key: 'API_KEY', org: 'bhanya', env: 'prep' });
+        });
+      },
+    );
+
+    when('[t1] --org names one member and the slug names another', () => {
+      const error = getError(() =>
+        asKeyrackAskSlugParts({
+          key: 'bhanya.prep.API_KEY',
+          org: 'ahbode',
+          orgAsked: 'ahbode',
+          orgsOfManifest: ['ahbode', 'bhanya'],
+          env: 'prep',
+          envAsked: null,
+        }),
+      );
+
+      then('it refuses as a conflict between the flag and the slug', () => {
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain(
+          '--org ahbode conflicts with org in slug',
+        );
+      });
+    });
+
+    when('[t2] --org and the slug name the same member', () => {
+      then('the slug is admitted', () => {
+        expect(
+          asKeyrackAskSlugParts({
+            key: 'bhanya.prep.API_KEY',
+            org: 'bhanya',
+            orgAsked: 'bhanya',
+            orgsOfManifest: ['ahbode', 'bhanya'],
+            env: 'prep',
+            envAsked: 'prep',
+          }),
+        ).toEqual({ key: 'API_KEY', org: 'bhanya', env: 'prep' });
       });
     });
   });

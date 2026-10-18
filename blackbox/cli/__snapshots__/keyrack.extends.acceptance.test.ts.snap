@@ -6,13 +6,13 @@ exports[`keyrack extends given: [case1] repo with keyrack that extends role keyr
     "status": "absent",
     "slug": "testorg.test.ROLE_KEY",
     "message": "credential 'testorg.test.ROLE_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key ROLE_KEY --env test"
+    "fix": "rhx keyrack set --key ROLE_KEY --env test --vault <vault>"
   },
   {
     "status": "absent",
     "slug": "testorg.test.LOCAL_KEY",
     "message": "credential 'testorg.test.LOCAL_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key LOCAL_KEY --env test"
+    "fix": "rhx keyrack set --key LOCAL_KEY --env test --vault <vault>"
   }
 ]
 "
@@ -24,13 +24,13 @@ exports[`keyrack extends given: [case2] repo with keyrack that extends keyrack w
     "status": "absent",
     "slug": "testorg.test.GRADED_KEY",
     "message": "credential 'testorg.test.GRADED_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key GRADED_KEY --env test"
+    "fix": "rhx keyrack set --key GRADED_KEY --env test --vault <vault>"
   },
   {
     "status": "absent",
     "slug": "testorg.test.LOCAL_KEY",
     "message": "credential 'testorg.test.LOCAL_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key LOCAL_KEY --env test"
+    "fix": "rhx keyrack set --key LOCAL_KEY --env test --vault <vault>"
   }
 ]
 "
@@ -42,13 +42,13 @@ exports[`keyrack extends given: [case3] repo with multiple extends and duplicate
     "status": "absent",
     "slug": "testorg.test.CONFLICT_KEY",
     "message": "credential 'testorg.test.CONFLICT_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key CONFLICT_KEY --env test"
+    "fix": "rhx keyrack set --key CONFLICT_KEY --env test --vault <vault>"
   },
   {
     "status": "absent",
     "slug": "testorg.test.ROOT_ONLY_KEY",
     "message": "credential 'testorg.test.ROOT_ONLY_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key ROOT_ONLY_KEY --env test"
+    "fix": "rhx keyrack set --key ROOT_ONLY_KEY --env test --vault <vault>"
   }
 ]
 "
@@ -60,7 +60,7 @@ exports[`keyrack extends given: [case3] repo with multiple extends and duplicate
     "status": "absent",
     "slug": "testorg.test.ROOT_OVERRIDE_KEY",
     "message": "credential 'testorg.test.ROOT_OVERRIDE_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key ROOT_OVERRIDE_KEY --env test"
+    "fix": "rhx keyrack set --key ROOT_OVERRIDE_KEY --env test --vault <vault>"
   }
 ]
 "
@@ -72,19 +72,19 @@ exports[`keyrack extends given: [case4] repo with deep extends chain (A extends 
     "status": "absent",
     "slug": "testorg.test.DEEP_KEY",
     "message": "credential 'testorg.test.DEEP_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key DEEP_KEY --env test"
+    "fix": "rhx keyrack set --key DEEP_KEY --env test --vault <vault>"
   },
   {
     "status": "absent",
     "slug": "testorg.test.PATH_A_KEY",
     "message": "credential 'testorg.test.PATH_A_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key PATH_A_KEY --env test"
+    "fix": "rhx keyrack set --key PATH_A_KEY --env test --vault <vault>"
   },
   {
     "status": "absent",
     "slug": "testorg.test.ROOT_KEY",
     "message": "credential 'testorg.test.ROOT_KEY' does not exist. set it first.",
-    "fix": "rhx keyrack set --key ROOT_KEY --env test"
+    "fix": "rhx keyrack set --key ROOT_KEY --env test --vault <vault>"
   }
 ]
 "

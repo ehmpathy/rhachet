@@ -1,0 +1,518 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t0] unlock --env prep, no --org (case=1) then: the output matches snapshot 1`] = `
+"
+{
+  "unlocked": [
+    {
+      "slug": "testorg.prep.SHARED_API_KEY",
+      "key": {
+        "secret": "$SECRET_TESTORG",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "prep",
+      "org": "testorg",
+      "expiresAt": "__TIMESTAMP__"
+    }
+  ],
+  "omitted": []
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t1] unlock --env prep --org bhanya (case=4) then: the output matches snapshot 1`] = `
+"
+{
+  "unlocked": [
+    {
+      "slug": "bhanya.prep.SHARED_API_KEY",
+      "key": {
+        "secret": "$SECRET_AETHER",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "prep",
+      "org": "bhanya",
+      "expiresAt": "__TIMESTAMP__"
+    }
+  ],
+  "omitted": []
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t2] get --key SHARED_API_KEY --env prep --org bhanya (case=2) then: the output matches snapshot, with the secret masked 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "bhanya.prep.SHARED_API_KEY",
+    "key": {
+      "secret": "$SECRET_AETHER",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "bhanya"
+  }
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t2b] get --org bhanya --key SHARED_API_KEY --value, the grove consumer form (wish) then: the output matches snapshot, with the secret masked 1`] = `"$SECRET_AETHER"`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t3] get --key SHARED_API_KEY --env prep, no --org (case=1) then: the output matches snapshot, with the secret masked 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "testorg.prep.SHARED_API_KEY",
+    "key": {
+      "secret": "$SECRET_TESTORG",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "testorg"
+  }
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t4] get --org bhnya, a typo off the allowlist (case=5) then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: --org 'bhnya' is not on this manifest's org allowlist
+      ├─ org
+      │  ├─ given: bhnya
+      │  └─ avail: testorg, bhanya
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep --org bhnya
+      └─ hint:
+         ├─ use one of 'testorg', 'bhanya'
+         ├─ or add 'bhnya' to org: in .agent/keyrack.yml
+         └─ or, for a key that belongs to no org, use --org @all
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t4b] get --key testorg.prep.SHARED_API_KEY --org bhanya, a slug of another member then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: --org bhanya conflicts with org in slug testorg.prep.SHARED_API_KEY
+      ├─ key: testorg.prep.SHARED_API_KEY
+      ├─ org
+      │  ├─ given: bhanya
+      │  └─ ofSlug: testorg
+      ├─ ran: keyrack get --key testorg.prep.SHARED_API_KEY --org bhanya
+      └─ hint: drop --org, or pass --org testorg to match the slug
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t4c] set --key testorg.prep.SHARED_API_KEY --org bhanya, a slug of another member then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack set
+   └─ ✋ ConstraintError: --org bhanya conflicts with org in slug testorg.prep.SHARED_API_KEY
+      ├─ key: testorg.prep.SHARED_API_KEY
+      ├─ org
+      │  ├─ given: bhanya
+      │  └─ ofSlug: testorg
+      ├─ ran: keyrack set --key testorg.prep.SHARED_API_KEY --org bhanya --vault os.direct
+      └─ hint: drop --org, or pass --org testorg to match the slug
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t4d] del --key testorg.prep.SHARED_API_KEY --org bhanya, a slug of another member then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack del
+   └─ ✋ ConstraintError: --org bhanya conflicts with org in slug testorg.prep.SHARED_API_KEY
+      ├─ key: testorg.prep.SHARED_API_KEY
+      ├─ org
+      │  ├─ given: bhanya
+      │  └─ ofSlug: testorg
+      ├─ ran: keyrack del --key testorg.prep.SHARED_API_KEY --org bhanya
+      └─ hint: drop --org, or pass --org testorg to match the slug
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t5] unlock --env prep --org bhnya (case=5) then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack unlock
+   └─ ✋ ConstraintError: --org 'bhnya' is not on this manifest's org allowlist
+      ├─ org
+      │  ├─ given: bhnya
+      │  └─ avail: testorg, bhanya
+      ├─ ran: keyrack unlock --env prep --org bhnya
+      └─ hint:
+         ├─ use one of 'testorg', 'bhanya'
+         ├─ or add 'bhnya' to org: in .agent/keyrack.yml
+         └─ or, for a key that belongs to no org, use --org @all
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t6] get --for repo --env prep --org bhanya (case=4) then: the output matches snapshot, with the secret masked 1`] = `
+"[
+  {
+    "status": "granted",
+    "grant": {
+      "slug": "bhanya.prep.SHARED_API_KEY",
+      "key": {
+        "secret": "$SECRET_AETHER",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "prep",
+      "org": "bhanya"
+    }
+  }
+]
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t7] source --env prep --org bhanya (case=4) then: the output matches snapshot, with the secret masked 1`] = `
+"export SHARED_API_KEY='$SECRET_AETHER'
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8] status --env prep --org bhanya (case=4) then: the output matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ test-key (age)
+   ├─ daemon: active ✨
+   └─ bhanya.prep.SHARED_API_KEY
+      ├─ env: prep
+      ├─ org: bhanya
+      └─ expires in: __TIMESTAMP__
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8b] list --org bhanya (case=4) then: the output matches snapshot 1`] = `
+"
+🔐 keyrack list
+   └─ bhanya.prep.SHARED_API_KEY
+      ├─ env: prep
+      ├─ org: bhanya
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.direct
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8c] unlock --env prep --key SHARED_API_KEY --org bhanya, a keyed member unlock (case=4 [t4]) then: the output matches snapshot 1`] = `
+"
+{
+  "unlocked": [
+    {
+      "slug": "bhanya.prep.SHARED_API_KEY",
+      "key": {
+        "secret": "$SECRET_AETHER",
+        "grade": {
+          "protection": "plaintext",
+          "duration": "permanent"
+        }
+      },
+      "source": {
+        "vault": "os.direct",
+        "mech": "PERMANENT_VIA_REPLICA"
+      },
+      "env": "prep",
+      "org": "bhanya",
+      "expiresAt": "__TIMESTAMP__"
+    }
+  ],
+  "omitted": []
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8d] two clones overlap: unlock --env prep, beside unlock --env prep --org bhanya (case=4 [t5]) then: the member read matches snapshot, with the secret masked 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "bhanya.prep.SHARED_API_KEY",
+    "key": {
+      "secret": "$SECRET_AETHER",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "bhanya"
+  }
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8e] a locked member key: get --org bhanya, then its fix line run verbatim (case=8 [t0], [t1]) then: the locked member read render matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ bhanya.prep.SHARED_API_KEY
+      ├─ status: locked 🔒
+      └─ tip: rhx keyrack unlock --env prep --key SHARED_API_KEY --org bhanya
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t8e] a locked member key: get --org bhanya, then its fix line run verbatim (case=8 [t0], [t1]) then: the member grant render after the fix matches snapshot 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "bhanya.prep.SHARED_API_KEY",
+    "key": {
+      "secret": "$SECRET_AETHER",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "bhanya"
+  }
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t9] get --for repo --org bhnya (case=5) then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: --org 'bhnya' is not on this manifest's org allowlist
+      ├─ org
+      │  ├─ given: bhnya
+      │  └─ avail: testorg, bhanya
+      ├─ ran: keyrack get --for repo --env prep --org bhnya
+      └─ hint:
+         ├─ use one of 'testorg', 'bhanya'
+         ├─ or add 'bhnya' to org: in .agent/keyrack.yml
+         └─ or, for a key that belongs to no org, use --org @all
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case1] a manifest whose org: is [testorg, bhanya] when: [t9] source --org bhnya (case=5) then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack source
+   └─ ✋ ConstraintError: --org 'bhnya' is not on this manifest's org allowlist
+      ├─ org
+      │  ├─ given: bhnya
+      │  └─ avail: testorg, bhanya
+      ├─ ran: keyrack source --env prep --org bhnya
+      └─ hint:
+         ├─ use one of 'testorg', 'bhanya'
+         ├─ or add 'bhnya' to org: in .agent/keyrack.yml
+         └─ or, for a key that belongs to no org, use --org @all
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case2] a manifest whose org: list names @all (case=6) when: [t0] get --key SHARED_API_KEY --env prep then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: '@all' cannot be an org: member — it names no org
+      ├─ path: /TMP_REPO/.agent/keyrack.yml
+      ├─ member: @all
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep
+      └─ hint:
+         ├─ remove '@all' from org: in /TMP_REPO/.agent/keyrack.yml
+         └─ to reach a key that belongs to no org, pass --org @all at ask time
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case2b] a manifest whose org: list is empty or repeats a member (case=6) when: [t1] org: [] — no default for @this then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: keyrack manifest org: lists no org
+      ├─ path: /TMP_REPO/.agent/keyrack.yml
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep
+      └─ hint: name at least one org in /TMP_REPO/.agent/keyrack.yml, e.g. org: ahbode
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case2b] a manifest whose org: list is empty or repeats a member (case=6) when: [t2] org: [testorg, testorg] — a repeat then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: org 'testorg' is listed more than once
+      ├─ path: /TMP_REPO/.agent/keyrack.yml
+      ├─ member: testorg
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep
+      └─ hint: remove the repeat of 'testorg' from org: in /TMP_REPO/.agent/keyrack.yml
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case2c] a manifest whose org: list names @this (case=6) when: [t0] get --key SHARED_API_KEY --env prep then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: '@this' cannot be an org: member — it names no org
+      ├─ path: /TMP_REPO/.agent/keyrack.yml
+      ├─ member: @this
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep
+      └─ hint:
+         ├─ remove '@this' from org: in /TMP_REPO/.agent/keyrack.yml
+         └─ to reach a key that belongs to no org, pass --org @all at ask time
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case3] a declared key held under no member (case=8) when: [t0] get --key UNHELD_KEY --env prep --org bhanya then: the human-seen absent render matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ bhanya.prep.UNHELD_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key UNHELD_KEY --env prep --org bhanya --vault <vault>
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case3] a declared key held under no member (case=8) when: [t1] get --key UNHELD_KEY --env prep, no --org then: the human-seen absent render matches snapshot 1`] = `
+"
+🔐 keyrack
+   └─ testorg.prep.UNHELD_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --key UNHELD_KEY --env prep --vault <vault>
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case3] a declared key held under no member (case=8) when: [t2] unlock --env prep --org bhanya --owner mechanic, a member sweep then: the human-seen sweep render matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   ├─ bhanya.prep.SHARED_API_KEY
+   │  ├─ status: absent 🫧
+   │  └─ tip: rhx keyrack set --owner mechanic --key SHARED_API_KEY --env prep --org bhanya --vault <vault>
+   └─ bhanya.prep.UNHELD_KEY
+      ├─ status: absent 🫧
+      └─ tip: rhx keyrack set --owner mechanic --key UNHELD_KEY --env prep --org bhanya --vault <vault>
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case4] a member key set, then deleted, via --org bhanya (case=3) when: [t0] set --key MEMBER_KEY --env prep --org bhanya then: the output matches snapshot 1`] = `
+"{
+  "slug": "bhanya.prep.MEMBER_KEY",
+  "mech": "PERMANENT_VIA_REPLICA",
+  "vault": "os.direct",
+  "exid": null,
+  "env": "prep",
+  "org": "bhanya",
+  "meta": null,
+  "maxDuration": null,
+  "createdAt": "__TIMESTAMP__",
+  "updatedAt": "__TIMESTAMP__"
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case4] a member key set, then deleted, via --org bhanya (case=3) when: [t1] get --key MEMBER_KEY --env prep --org bhanya, after unlock then: the output matches snapshot, with the secret masked 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "bhanya.prep.MEMBER_KEY",
+    "key": {
+      "secret": "$SECRET_MEMBER",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "bhanya"
+  }
+}
+"
+`;
+
+exports[`keyrack org allowlist given: [case4] a member key set, then deleted, via --org bhanya (case=3) when: [t2] del --key MEMBER_KEY --env prep --org bhanya then: the output matches snapshot 1`] = `
+"
+🔐 keyrack del
+   └─ bhanya.prep.MEMBER_KEY removed
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case5] a root allowlist extends a manifest of another org (case=7) when: [t0] get --key SHARED_API_KEY --env prep --org ehmpathy, the extended org then: the human-seen refusal matches snapshot 1`] = `
+"
+🔐 keyrack get
+   └─ ✋ ConstraintError: --org 'ehmpathy' is not on this manifest's org allowlist
+      ├─ org
+      │  ├─ given: ehmpathy
+      │  └─ avail: testorg, bhanya
+      ├─ ran: keyrack get --key SHARED_API_KEY --env prep --org ehmpathy
+      └─ hint:
+         ├─ use one of 'testorg', 'bhanya'
+         ├─ or add 'ehmpathy' to org: in .agent/keyrack.yml
+         └─ or, for a key that belongs to no org, use --org @all
+
+"
+`;
+
+exports[`keyrack org allowlist given: [case5] a root allowlist extends a manifest of another org (case=7) when: [t1] get --key SHARED_API_KEY --env prep --org bhanya, a root member, after unlock then: the output matches snapshot, with the secret masked 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "bhanya.prep.SHARED_API_KEY",
+    "key": {
+      "secret": "$SECRET_AETHER",
+      "grade": {
+        "protection": "plaintext",
+        "duration": "permanent"
+      }
+    },
+    "source": {
+      "vault": "os.direct",
+      "mech": "PERMANENT_VIA_REPLICA"
+    },
+    "env": "prep",
+    "org": "bhanya"
+  }
+}
+"
+`;

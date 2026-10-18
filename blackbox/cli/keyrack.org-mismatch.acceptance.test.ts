@@ -73,7 +73,9 @@ describe('keyrack org-mismatch', () => {
         //        where that is exactly what an args echo buys
         //        (`rule.require.refusals-carry-context`)
         const output = result.stdout + result.stderr;
-        expect(output).toContain("org 'foreign-org' does not match manifest org");
+        expect(output).toContain(
+          "--org 'foreign-org' is not on this manifest's org allowlist",
+        );
       });
 
       then('the human-seen refusal matches snapshot', () => {
@@ -138,7 +140,7 @@ describe('keyrack org-mismatch', () => {
         // ⚠️ .note.one-sentence = all three org-mismatch sites route through
         //        `asKeyrackOrgMismatchRefusal`, so one concept renders as one sentence. left
         //        apart, `set`'s FLAG guard says `org "x" does not match keyrack.yml org "y"`
-        //        while its full-SLUG guard says `slug org 'x' does not match manifest org 'y'`
+        //        while its full-SLUG guard says `slug org 'x' is not on this manifest's org allowlist`
         //        — one concept, two sentences, on one verb — and this file is where the faces
         //        of one refusal sit side by side, so a divergence shows here first
         // ⚠️ .why.subject-kept = the sentence still names WHICH input was rejected — `--org`
@@ -146,7 +148,7 @@ describe('keyrack org-mismatch', () => {
         //        different fixes. the FORMAT converged; the subject deliberately did not
         const output = result.stdout + result.stderr;
         expect(output).toContain(
-          `--org 'foreign-org' does not match manifest org`,
+          `--org 'foreign-org' is not on this manifest's org allowlist`,
         );
       });
 
@@ -245,7 +247,9 @@ describe('keyrack org-mismatch', () => {
 
       then('it refuses on the ORG axis, never the env one', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toContain('does not match manifest org');
+        expect(output).toContain(
+          "slug org 'foreign-org' is not on this manifest's org allowlist",
+        );
         expect(output).not.toContain('conflicts with env in slug');
       });
 
@@ -272,7 +276,9 @@ describe('keyrack org-mismatch', () => {
 
       then('it refuses on the ORG axis too — the two verbs agree', () => {
         const output = result.stdout + result.stderr;
-        expect(output).toContain('does not match manifest org');
+        expect(output).toContain(
+          "slug org 'foreign-org' is not on this manifest's org allowlist",
+        );
         expect(output).not.toContain('conflicts with env in slug');
       });
 

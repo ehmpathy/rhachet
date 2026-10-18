@@ -2,6 +2,7 @@ import type { KeyrackHostManifest } from '@src/domain.objects/keyrack/KeyrackHos
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 
 import { asKeyrackSlugParts } from './asKeyrackSlugParts';
+import { inferKeyrackVaultFromKey } from './inferKeyrackVaultFromKey';
 import { asKeyrackKeyReachExid } from './reach/asKeyrackKeyReachExid';
 import { getAllKeyrackReachesForSlug } from './reach/getAllKeyrackReachesForSlug';
 
@@ -31,8 +32,25 @@ export const asKeyrackOmittedKeyTip = (input: {
   reason: KeyrackKeyOmission['reason'];
   reach?: KeyrackKeyOmission['reach'];
   hostManifest: KeyrackHostManifest | null;
+
+  /**
+   * .what = the repo manifest's default org (`orgs[0]`), or null outside a repo
+   * .why = a member of the allowlist that is NOT the default must be spelled `--org <member>`,
+   *        or the tip lands on the default org's key and the unlock loops (case=8)
+   */
+  orgDefault: string | null;
+
+  /**
+   * .what = the owner the unlock ran as, or null for the default owner
+   * .why = a tip obeyed without its owner lands on the DEFAULT owner's rack — for a robot
+   *        owner that is a human's rack, so the key stays absent where it was asked for
+   */
+  owner: string | null;
 }): string => {
   const { org, env, keyName } = asKeyrackSlugParts({ slug: input.slug });
+
+  // the owner rides on every tip, as every other keyrack tip spells it
+  const ownerFlag = input.owner ? ` --owner ${input.owner}` : '';
 
   // the reaches an `unlock --reach` could ACTUALLY serve for this slug, sorted so one rack
   // renders one tip, every run
@@ -98,6 +116,15 @@ export const asKeyrackOmittedKeyTip = (input: {
     ? `  # also cut at: ${reachesPeer.join(', ')}`
     : '';
 
+  // the org of a non-default allowlist member rides on every tip. the default org is never
+  // spelled — `set` and `unlock` default to it — so the common render stays byte-identical
+  const orgMemberFlag = (() => {
+    if (org === '@all') return '';
+    if (!input.orgDefault) return '';
+    if (org === input.orgDefault) return '';
+    return ` --org ${org}`;
+  })();
+
   // held at a reach, and the cause is that the ASK could not see it — the key is present, so
   // the fix is to ASK at a reach, never to cut a twin
   //
@@ -108,7 +135,7 @@ export const asKeyrackOmittedKeyTip = (input: {
   //    transformer exists to end, merely aimed at a different cause
   //    (`rule.require.errors-name-the-fix`). those causes want a `set` — re-store the value
   if (reachToName && input.reason === 'absent')
-    return `rhx keyrack unlock --key ${keyName} --env ${env} --reach ${reachToName}${disclosure}`;
+    return `rhx keyrack unlock${ownerFlag} --key ${keyName} --env ${env}${orgMemberFlag} --reach ${reachToName}${disclosure}`;
 
   // otherwise the fix is to cut (or re-cut) the key.
   //
@@ -129,7 +156,21 @@ export const asKeyrackOmittedKeyTip = (input: {
   //         yields none and this stays a bare `set` — which is CORRECT there: such a vault holds
   //         one value per bare name, so its reachless value IS the value. a rack with no reaches
   //         at all likewise yields none, so every extant tip is byte-identical
-  const orgFlag = org === '@all' ? ' --org @all' : '';
+  const orgFlag = org === '@all' ? ' --org @all' : orgMemberFlag;
   const reachFlag = reachToName ? ` --reach ${reachToName}` : '';
-  return `rhx keyrack set --key ${keyName} --env ${env}${orgFlag}${reachFlag}${disclosure}`;
+
+  // `set` declares `--vault` a required option, so a tip without it refuses on paste. a `lost`
+  // or `remote` key is already filed, so its own vault is named; else the key name may name
+  // one; else a placeholder the human fills
+  const hostsOfSlug = Object.values(input.hostManifest?.hosts ?? {}).filter(
+    (host) => host.slug === input.slug,
+  );
+  const hostOfTip =
+    hostsOfSlug.find(
+      (host) =>
+        (host.reach ? asKeyrackKeyReachExid({ reach: host.reach }) : null) ===
+        (reachToName ?? null),
+    ) ?? hostsOfSlug[0];
+  const vaultFlag = ` --vault ${hostOfTip?.vault ?? inferKeyrackVaultFromKey({ keyName }) ?? '<vault>'}`;
+  return `rhx keyrack set${ownerFlag} --key ${keyName} --env ${env}${orgFlag}${reachFlag}${vaultFlag}${disclosure}`;
 };

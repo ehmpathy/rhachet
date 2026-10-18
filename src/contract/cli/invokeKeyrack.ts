@@ -28,12 +28,14 @@ import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilt
 import { asKeyrackFirewallSource } from '@src/domain.operations/keyrack/asKeyrackFirewallSource';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { asKeyrackOmittedKeyTip } from '@src/domain.operations/keyrack/asKeyrackOmittedKeyTip';
+import { asKeyrackRepoManifestForOrgFilter } from '@src/domain.operations/keyrack/asKeyrackRepoManifestForOrgFilter';
 import { asKeyrackSelectorOrg } from '@src/domain.operations/keyrack/asKeyrackSelectorOrg';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { asResolvedAttempt } from '@src/domain.operations/keyrack/asResolvedAttempt';
 import { asResolvedEnvForSet } from '@src/domain.operations/keyrack/asResolvedEnvForSet';
 import { asSortedHostSlugs } from '@src/domain.operations/keyrack/asSortedHostSlugs';
 import { assertKeyrackExportNamesDistinct } from '@src/domain.operations/keyrack/assertKeyrackExportNamesDistinct';
+import { assertKeyrackFilterOrgOnAllowlist } from '@src/domain.operations/keyrack/assertKeyrackFilterOrgOnAllowlist';
 import { assertKeyrackOrgMatchesManifest } from '@src/domain.operations/keyrack/assertKeyrackOrgMatchesManifest';
 import { asKeyrackAskSlugParts } from '@src/domain.operations/keyrack/cli/asKeyrackAskSlugParts';
 import { asKeyrackDelReport } from '@src/domain.operations/keyrack/cli/asKeyrackDelReport';
@@ -468,7 +470,11 @@ export const invokeKeyrack = ({
     //    own from the third `.option()` arg, so a hand-authored twin printed the default TWICE:
     //    `target org: @this or @all (default: @this) (default: "@this")`. one source of that
     //    string, and it is commander's (`rule.forbid.snapshot-visual-blemishes`)
-    .option('--org <org>', 'target org: @this or @all', '@this')
+    .option(
+      '--org <org>',
+      'target org: @this (the first org in keyrack.yml), @all, or an allowlisted org',
+      '@this',
+    )
     .option(
       '--reach <exid>',
       'reach to fetch (e.g., beav@ehmpathy.com, github://org=ehmpathy); requires --key',
@@ -632,12 +638,26 @@ export const invokeKeyrack = ({
           //         "this repo holds one key" while it holds three. the flat surfaces
           //         (`source`, the secrets map) opt out for the opposite reason: one slot per
           //         bare name, so they announce what they cannot carry instead
+          // expand the `--org` filter ONCE, above the grant core, so the core can re-slug the
+          // declared keys under a member and refuse a non-member before any key is read
+          // (case=4, case=5). the same value narrows the attempts below
+          // ⚠️ .note.order = with no repo manifest the expansion is deferred past the sweep, so
+          //         the sweep's own `--for repo requires keyrack.yml` fault is what a human meets
+          //         first — `--org` defaults to `@this` here, and its expansion guard would
+          //         otherwise shadow that fault on every bare `get --for repo`
+          const orgFilterForSweep = context.repoManifest
+            ? asKeyrackFilterOrg({
+                org: opts.org ?? null,
+                orgOfRepo: context.repoManifest.org,
+              })
+            : null;
           const attemptsForAsk = await getAllKeyrackGrantsOrEmitBlocked(
             {
               for: { repo: true },
               with: { unlock: !!opts.unlock, reaches: true },
               owner: opts.owner ?? null,
               env: opts.env ?? null,
+              orgFilter: orgFilterForSweep,
               allow: { dangerous: opts.allowDangerous },
             },
             { command: 'keyrack get' },
@@ -671,20 +691,21 @@ export const invokeKeyrack = ({
           //         the common path, since `get --org` defaults to `@this`. the RULE is shared
           //         either way, so the two ways in cannot answer differently
           //         (`asKeyrackFilterOrg.why.pure`)
-          const orgFilterForSweep = asKeyrackFilterOrg({
-            org: opts.org ?? null,
-            orgOfRepo: context.repoManifest?.org ?? null,
-          });
+          // .note = a member filter matches every row here, since the core re-slugged the
+          //         declared keys under it; the filter still drops what `@all` must drop
+          const orgFilter =
+            orgFilterForSweep ??
+            asKeyrackFilterOrg({ org: opts.org ?? null, orgOfRepo: null });
           const attempts = getAllKeyrackAttemptsForOrg({
             attempts: attemptsForAsk,
-            org: orgFilterForSweep,
+            org: orgFilter,
           });
 
           // a repo sweep narrowed to `@all` is empty by construction — say so, and name the fix
           // .why = the filter above is what MAKES this case reachable, so the notice ships with
           //        it. to add the filter alone would mint the exact silent-empty answer the
           //        notice exists to prevent
-          if (orgFilterForSweep === '@all' && attempts.length === 0)
+          if (orgFilter === '@all' && attempts.length === 0)
             emitKeyrackEmptyMachineWideSweepNotice({
               env: opts.env ?? null,
               verb: 'get',
@@ -843,7 +864,7 @@ export const invokeKeyrack = ({
       //         FILTERS the swept set rather than SELECTS one slug's segment — and a filter's
       //         default is "no filter", the verb's extant scope. a '@this' default here would
       //         silently drop every machine-wide key from a bare sweep
-      'filter by provenance: @all (machine-wide keys) or @this (repo keys); default: no filter',
+      'filter by provenance: @all (machine-wide keys), @this (the first org in keyrack.yml), or an allowlisted org; default: no filter',
     )
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
@@ -1000,6 +1021,46 @@ export const invokeKeyrack = ({
         //         return type names it so this exit cannot be forgotten
         if (opts.key && !attemptOneForKey) return;
 
+        // `--org` FILTERS the swept set, exactly as it does on `list` and `status`
+        // ⚠️ .why = the SWEEP path is what needs this. the key-scoped path threads the flag into
+        //         getOneKeyrackGrantByKey, which honors it; the sweep called
+        //         getAllKeyrackGrantsByRepo, which never reads it — so the help advertised a
+        //         filter that a bare `source --org <x>` silently ignored. a flag a human can
+        //         read but the code never consults is a promise the contract does not keep
+        // .note = a repo sweep yields only slugs the MANIFEST declares, so `--org @all` over it
+        //         honestly selects an empty set. that is the true answer, not a defect: a repo
+        //         manifest can never declare a machine-wide key (getAllKeyrackSlugsForEnv), so
+        //         the machine-wide export is reached with `--key @all.<env>.<name>` instead
+        // ⚠️ .note = the KEY-scoped path is deliberately EXCLUDED. there `--org` is a SELECTOR,
+        //         already threaded into getOneKeyrackGrantByKey above to pick the slug — so to
+        //         filter on it again would apply one flag twice under two senses, and silently
+        //         empty a legitimate result: `source --key ehmpathy.prep.FOO --org @all`
+        //         resolves a valid repo slug that an `@all` filter would then drop with no
+        //         message. one sense per path (`term=sweep._.choice.example=org-filter-vs-selector`)
+        // ⚠️ .note.order = the filter is expanded BEFORE the sweep only when a repo manifest is
+        //         present, since the member re-slug needs it. with no manifest the expansion
+        //         waits until after the sweep, so the sweep's own `--for repo requires
+        //         keyrack.yml` fault is what a human meets first, never the `@this` guard
+        const orgFilterForReslug =
+          opts.key || !context.repoManifest
+            ? null
+            : await getOneKeyrackFilterOrg({
+                org: opts.org ?? null,
+                from: process.cwd(),
+              });
+
+        // a member filter re-slugs the declared keys under that member, and a non-member
+        // refuses, so the sweep never answers an empty rack for a member (case=4, case=5)
+        // .note = the strict gate below reads this same manifest, so a re-slugged key keeps its
+        //         `is-optional-if-has` waiver — specs are keyed by full slug
+        const repoManifest = opts.key
+          ? context.repoManifest
+          : asKeyrackRepoManifestForOrgFilter({
+              repoManifest: context.repoManifest,
+              orgFilter: orgFilterForReslug,
+              key: null,
+            });
+
         const attemptsForAsk = attemptOneForKey
           ? [attemptOneForKey]
           : // .note = `reaches: true` — the sweep ENUMERATES every declared reach even
@@ -1013,32 +1074,18 @@ export const invokeKeyrack = ({
                 allow: { dangerous: opts.allowDangerous },
                 with: { reaches: true },
               },
-              context,
+              { ...context, repoManifest },
             );
 
-        // `--org` FILTERS the swept set, exactly as it does on `list` and `status`
-        // ⚠️ .why = the SWEEP path is what needs this. the key-scoped path threads the flag into
-        //         getOneKeyrackGrantByKey, which honors it; the sweep called
-        //         getAllKeyrackGrantsByRepo, which never reads it — so the help advertised a
-        //         filter that a bare `source --org <x>` silently ignored. a flag a human can
-        //         read but the code never consults is a promise the contract does not keep
-        // .note = a repo sweep yields only slugs the MANIFEST declares, so `--org @all` over it
-        //         honestly selects an empty set. that is the true answer, not a defect: a repo
-        //         manifest can never declare a machine-wide key (getAllKeyrackSlugsForEnv), so
-        //         the machine-wide export is reached with `--key @all.<env>.<name>` instead
-        // .note = routed through the blocked render, like every peer refusal on this verb
-        // ⚠️ .note = the KEY-scoped path is deliberately EXCLUDED. there `--org` is a SELECTOR,
-        //         already threaded into getOneKeyrackGrantByKey above to pick the slug — so to
-        //         filter on it again would apply one flag twice under two senses, and silently
-        //         empty a legitimate result: `source --key ehmpathy.prep.FOO --org @all`
-        //         resolves a valid repo slug that an `@all` filter would then drop with no
-        //         message. one sense per path (`term=sweep._.choice.example=org-filter-vs-selector`)
+        // narrow the swept set by the filter — expanded above when a manifest was present,
+        // else here, once the sweep has had its chance to fault first
         const orgFilterForSweep = opts.key
           ? null
-          : await getOneKeyrackFilterOrg({
+          : (orgFilterForReslug ??
+            (await getOneKeyrackFilterOrg({
               org: opts.org ?? null,
               from: process.cwd(),
-            });
+            })));
         const attempts = getAllKeyrackAttemptsForOrg({
           attempts: attemptsForAsk,
           org: orgFilterForSweep,
@@ -1090,7 +1137,8 @@ export const invokeKeyrack = ({
         //     it for a manifest it never needed
         // .note = this is why the refusal is conditional rather than unconditional. it fires
         //         for every repo-scoped ask exactly as before (e1)
-        const { repoManifest } = context;
+        // .note = `repoManifest` is the sweep's manifest from above — under a member filter, the
+        //         re-slugged one — so this refusal and the strict gate read what the sweep read
         const isAskMachineWide = isKeyrackAskMachineWide({
           // .note = the SAME binding the context above was built from — not a re-derivation of
           //         it — so the two cannot disagree about what this invocation asked for
@@ -1241,7 +1289,11 @@ export const invokeKeyrack = ({
       'target env: prod, prep, test, all, sudo, or camp (inferred from manifest if unambiguous)',
     )
     // ⚠️ no hand-authored `(default: …)` — see the twin note on `get`
-    .option('--org <org>', 'target org: @this or @all', '@this')
+    .option(
+      '--org <org>',
+      'target org: @this (the first org in keyrack.yml), @all, or an allowlisted org',
+      '@this',
+    )
     .option(
       '--reach <exid>',
       'reach this key is cut for (e.g., beav@ehmpathy.com, github://org=ehmpathy)',
@@ -1500,6 +1552,8 @@ export const invokeKeyrack = ({
         const written = asKeyrackAskSlugParts({
           key: opts.key,
           org: resolvedOrg,
+          orgAsked: opts.org === '@this' ? null : resolvedOrg,
+          orgsOfManifest: repoManifest?.orgs ?? [resolvedOrg],
           env: resolvedEnv,
           // ⚠️ `--env` is OPTIONAL on `set` and required on `del`, and that is the one way the
           //    two asks differ. stated as an input, it is one presence check inside the shared
@@ -1616,7 +1670,11 @@ export const invokeKeyrack = ({
       'all',
     )
     // ⚠️ --org sits DIRECTLY under --env here and on every verb — see the twin note on `unlock`
-    .option('--org <org>', 'target org: @this or @all', '@this')
+    .option(
+      '--org <org>',
+      'target org: @this (the first org in keyrack.yml), @all, or an allowlisted org',
+      '@this',
+    )
     .option('--owner <owner>', 'owner identity (e.g., mechanic, foreman)')
     .option('--for <owner>', 'alias for --owner')
     .option('--prikey <path>', 'ssh private key for manifest decryption')
@@ -1773,6 +1831,9 @@ export const invokeKeyrack = ({
             const written = asKeyrackAskSlugParts({
               key: opts.key,
               org: derivedOrg,
+              orgAsked: opts.org === '@this' ? null : derivedOrg,
+              // with no repo manifest (a sudo del), the org derived from the host is the one seat
+              orgsOfManifest: repoManifest?.orgs ?? [derivedOrg],
               env: opts.env,
               envAsked: opts.env,
             });
@@ -1882,7 +1943,7 @@ export const invokeKeyrack = ({
       //         FILTERS the swept set rather than SELECTS one slug's segment. a bare unlock
       //         already sweeps repo keys ∪ machine-wide keys (unlockKeyrackKeys.ts),
       //         so a '@this' default would silently drop every machine-wide key from it
-      'filter by provenance: @all (machine-wide keys) or @this (repo keys); default: no filter',
+      'filter by provenance: @all (machine-wide keys), @this (the first org in keyrack.yml), or an allowlisted org; default: no filter',
     )
     .option('--key <key>', 'specific key to unlock (required for --env sudo)')
     .option(
@@ -2016,9 +2077,15 @@ export const invokeKeyrack = ({
         //        before the blank is reached, rather than the blank made conditional
         // .note = the throw is caught and rendered by `KeyrackCommand`, so the blocked tree is
         //         byte-identical to the one the deeper guard produced
-        asKeyrackFilterOrg({
+        // .note = a real org off the allowlist refuses here too, for the same reason (case=5)
+        const orgFilterForUnlock = asKeyrackFilterOrg({
           org: opts.org ?? null,
           orgOfRepo: repoManifest?.org ?? null,
+        });
+        assertKeyrackFilterOrgOnAllowlist({
+          orgFilter: orgFilterForUnlock,
+          repoManifest: repoManifest ?? null,
+          key: opts.key ?? null,
         });
 
         // blank line before passphrase prompt (matches `set` output cadence)
@@ -2115,7 +2182,9 @@ export const invokeKeyrack = ({
                 slug: omission.slug,
                 tip: asKeyrackErroredKeyTip({
                   cause: omission.cause,
-                  env: opts.env ?? null,
+                  slug: omission.slug,
+                  orgDefault: repoManifest?.org ?? null,
+                  owner,
                 }),
                 ...(omission.reach ? { reach: omission.reach } : {}),
               },
@@ -2152,6 +2221,8 @@ export const invokeKeyrack = ({
                 reason: omission.reason,
                 reach: omission.reach,
                 hostManifest: context.hostManifest ?? null,
+                orgDefault: repoManifest?.org ?? null,
+                owner,
               }),
               ...(omission.reach ? { reach: omission.reach } : {}),
             },
@@ -2275,7 +2346,9 @@ export const invokeKeyrack = ({
       '--org <org>',
       // .note = a SWEEP verb, so --org filters the set exactly as --env does, and its
       //         default is "no filter" — the verb's extant scope
-      'filter by provenance: @all (machine-wide keys) or @this (repo keys); default: no filter',
+      // .note = a HOST sweep: it filters the slugs this host holds and applies no allowlist
+      //         gate, so the help names any org, never only an allowlisted one
+      'filter by provenance: @all (machine-wide keys), @this (the first org in keyrack.yml), or any org; default: no filter',
     )
     .option('--json', 'output as json (robot mode)')
     .action(
@@ -2451,7 +2524,9 @@ export const invokeKeyrack = ({
       '--org <org>',
       // .note = a SWEEP verb, so --org filters the set rather than selects one slug's
       //         segment, and its default is "no filter" — every host slug, as today
-      'filter by provenance: @all (machine-wide keys) or @this (repo keys); default: no filter',
+      // .note = a HOST sweep: it filters the slugs this host holds and applies no allowlist
+      //         gate, so the help names any org, never only an allowlisted one
+      'filter by provenance: @all (machine-wide keys), @this (the first org in keyrack.yml), or any org; default: no filter',
     )
     .option('--json', 'output as json (robot mode)')
     .action(

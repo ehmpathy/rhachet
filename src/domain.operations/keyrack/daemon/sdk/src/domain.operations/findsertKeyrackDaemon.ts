@@ -25,8 +25,10 @@ export const findsertKeyrackDaemon = async (input?: {
   // spawn daemon in background (pass socketPath for per-owner isolation)
   spawnKeyrackDaemonBackground({ socketPath });
 
-  // wait for daemon to become reachable (up to 5 seconds)
-  const maxWaitMs = 5000;
+  // wait for daemon to become reachable (up to 20 seconds)
+  // .why = a cold node spawn on a loaded host exceeds 5s; the poll returns the moment the
+  // daemon answers, so a wide window costs a fast host naught
+  const maxWaitMs = 20000;
   const pollIntervalMs = 100;
   const startTime = Date.now();
 

@@ -18,7 +18,7 @@ exports[`keyrack source CLI given: [case2] some keys not granted (strict mode) w
 🔐 keyrack
    └─ testorg.test.__TEST_SOURCE_STRICT_ABSENT__
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test
+      └─ tip: rhx keyrack set --owner testorg --key __TEST_SOURCE_STRICT_ABSENT__ --env test --vault <vault>
 
 
 ✋ some keys were not granted, yet are strictly required
@@ -64,8 +64,9 @@ output export statements for shell eval
 Options:
   --key <keyname>    single key to source (omit for all repo keys)
   --env <env>        target env: prod, prep, test, all, sudo, camp
-  --org <org>        filter by provenance: @all (machine-wide keys) or @this
-                     (repo keys); default: no filter
+  --org <org>        filter by provenance: @all (machine-wide keys), @this (the
+                     first org in keyrack.yml), or an allowlisted org; default:
+                     no filter
   --owner <owner>    owner identity (e.g., mechanic, foreman)
   --for <owner>      alias for --owner
   --strict           fail if any key not granted (default)
@@ -84,7 +85,7 @@ exports[`keyrack source CLI given: [case7] invalid inputs when: [t1] --key not i
 🔐 keyrack
    └─ testorg.test.INVALID_KEY
       ├─ status: absent 🫧
-      └─ tip: rhx keyrack set --key INVALID_KEY --env test
+      └─ tip: rhx keyrack set --key INVALID_KEY --env test --vault <vault>
 
 "
 `;
