@@ -359,4 +359,85 @@ describe('invokeRolesInit (integration)', () => {
       });
     });
   });
+
+  given(
+    '[case4] a repo whose <repo>/.claude is a file, so the layout refuses',
+    () => {
+      const testDir = resolve(
+        __dirname,
+        './.temp/invokeRolesInit-layout-fault',
+      );
+      const originalCwd = process.cwd();
+      const originalHome = process.env.HOME;
+
+      beforeAll(() => {
+        rmSync(testDir, { recursive: true, force: true });
+        mkdirSync(resolve(testDir, '.git'), { recursive: true });
+        writeFileSync(resolve(testDir, '.claude'), 'not a dir\n');
+        mkdirSync(resolve(testDir, 'home/.claude'), { recursive: true });
+        writeFileSync(resolve(testDir, 'home/.claude/settings.json'), '{}\n');
+        process.env.HOME = resolve(testDir, 'home');
+        process.chdir(testDir);
+      });
+
+      afterAll(() => {
+        process.env.HOME = originalHome;
+        process.chdir(originalCwd);
+      });
+
+      const mockRoleWithInit = new Role({
+        slug: 'mechanic',
+        name: 'Mechanic',
+        purpose: 'an init that writes a marker in the cwd',
+        readme: { uri: '.test/readme.md' },
+        traits: [],
+        skills: { dirs: [], refs: [] },
+        briefs: { dirs: [] },
+        inits: { exec: [{ cmd: 'echo "ran" > init-marker.txt' }] },
+      });
+      const rolesCommand = new Command('roles');
+      /**
+       * .mock = console.log, the cli's stdout sink, silenced and recorded
+       * .why = `invokeRolesInit` prints its report through console.log and takes no sink, so the
+       *        spy is the only way to read the warn row it prints in-process. no remote boundary
+       *        is faked: the layout step, the role init, and the fs all run for real
+       * .real = every effect under test is real; only the print is captured, not replaced
+       */
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      invokeRolesInit(
+        { command: rolesCommand },
+        genMockContextConfigOfUsage({
+          isExplicit: true,
+          registries: [
+            new RoleRegistry({
+              slug: 'test',
+              readme: { uri: '.test/readme.md' },
+              roles: [mockRoleWithInit],
+            }),
+          ],
+        }),
+      );
+
+      when('[t0] "roles init --role mechanic" runs', () => {
+        then(
+          'the inits still run, and a warn line names that the layout did not land',
+          async () => {
+            logSpy.mockClear();
+            await rolesCommand.parseAsync(['init', '--role', 'mechanic'], {
+              from: 'user',
+            });
+            expect(existsSync(resolve(testDir, 'init-marker.txt'))).toBe(true);
+            const lines = logSpy.mock.calls.map((call) => String(call[0]));
+            expect(lines).toContain(
+              '   └─ 🟡 the layout did not land; run `rhx init` to see why',
+            );
+
+            // the whole warn block is the contract a human reads, so pin its frame too
+            const at = lines.indexOf('🧠 brain://repo=ambient');
+            expect(lines.slice(at, at + 3)).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
 });

@@ -36,6 +36,8 @@ reviewer checks a change against it.
 | 7 | [a brain dir holds one answer, rhachet's — no kept-aside copies](./inventory.of=requirements.case=7.no-kept-aside-one-answer.md) | proven |
 | 8 | [role inits meet the split layout: `settings.of.repo.json` always present, the layout before the inits](./inventory.of=requirements.case=8.role-inits-meet-the-split-layout.md) | proven |
 | 9 | 🔴 [a clone loads no hook from a role it is not enrolled in, from any settings layer](./inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md) | proven |
+| 10 | [a plain `claude` at the repo root loads the repo actor's settings](./inventory.of=requirements.case=10.plain-claude-loads-repo-settings.md) | proven 2026-10-16 · real-claude rerun owed |
+| 11 | [the home `CLAUDE.md` never loads in a repo session, plain or enrolled](./inventory.of=requirements.case=11.home-claude-md-never-loads-in-a-repo.md) | proven 2026-10-16 · real-claude rerun owed |
 
 ## .how to add an entry
 

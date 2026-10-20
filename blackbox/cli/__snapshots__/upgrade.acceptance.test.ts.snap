@@ -67,10 +67,12 @@ exports[`rhachet upgrade given: [case11] --roles ehmpathy/* with linked role whe
 
 exports[`rhachet upgrade given: [case12.1] --roles ehmpathy/mechanic where <repo>/.claude and the default dir hold the same name when: [t0] rhachet upgrade --roles ehmpathy/mechanic then: the brain dir tree is locked to a snapshot 1`] = `
 "🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json (replaced)
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
+🧠 brain://repo=ambient
    └─ boot.md
       └─ created — 1 role"
 `;
@@ -86,8 +88,10 @@ exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked r
 
 exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked role when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: the brain dir tree is locked to a snapshot 1`] = `
 "🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
+🧠 brain://repo=ambient
    └─ boot.md
       └─ created — 1 role"
 `;

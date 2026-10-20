@@ -1,7 +1,9 @@
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
+import type { BrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBootRender';
+import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/BrainDirLayoutOutcome';
 import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
@@ -35,7 +37,7 @@ const BRAIN_DIR_GITIGNORE_LINES = [
   `!/${CLAUDE_SETTINGS_FILENAMES.claude}`,
   `!/${CLAUDE_SETTINGS_FILENAMES.repo}`,
   `!/${CLAUDE_SETTINGS_FILENAMES.grove}`,
-  '!/settings.local.json',
+  `!/${CLAUDE_SETTINGS_FILENAMES.local}`,
 ];
 
 /**
@@ -72,8 +74,9 @@ export const setRepoActorBrainDir = async (input: {
   refsLinked: RoleLinkRef[];
 }): Promise<{
   render: BrainDirBootRender;
-  symlink: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['symlink'];
-  settings: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['settings'];
+  symlink: BrainDirSyncSymlink;
+  settings: BrainDirSettingsLayout;
+  excludesDropped: string[];
   enrollConfigs: Awaited<ReturnType<typeof delStaleEnrollConfigs>>;
 }> => {
   // carry a legacy repo actor dir over to its current name, before any write
@@ -95,9 +98,10 @@ export const setRepoActorBrainDir = async (input: {
 
   // link <repo>/.claude to the rendered dir, and findsert the settings layout: the grove
   //   arrows and settings.of.repo.json; a real file at an arrow name is replaced, never merged
-  const { symlink, settings } = await setRepoActorBrainDirLayout({
-    repoPath: input.repoPath,
-  });
+  const { symlink, settings, excludesDropped } =
+    await setRepoActorBrainDirLayout({
+      repoPath: input.repoPath,
+    });
 
   // drop each retired per-enroll config whose actor has no clone left
   const enrollConfigs = await delStaleEnrollConfigs({
@@ -115,7 +119,7 @@ export const setRepoActorBrainDir = async (input: {
   });
   await genRepoActorGitignoreExclusion({ repoPath: input.repoPath });
 
-  return { render, symlink, settings, enrollConfigs };
+  return { render, symlink, settings, excludesDropped, enrollConfigs };
 };
 
 /**

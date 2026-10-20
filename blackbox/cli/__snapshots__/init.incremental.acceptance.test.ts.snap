@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo, absolute form (e16 no regression) when: [t0] \`init --roles mechanic behaver\` then: the absolute-form WHOLE SCREEN holds its shape 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=ehmpathy/role=mechanic
@@ -28,8 +31,9 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │ 🔧 init claude config for mechanic role...
       │
       │ 🔐 mechanic permissions configured successfully!
-      │    .claude/settings.json
-      │    .claude/settings.$TIMESTAMP.bak.json
+      │    .claude/settings.of.repo.json
+      │    .claude/settings.of.repo.$TIMESTAMP.bak.json
+      │    note: this clone's config dir is $REPO_ROOT/.agent/.actors/actor.via.repo=ambient/brain/.claude; its settings.of.repo.json is derived from this file. every actor picks up new allows at the next rhx init --hooks, rhx upgrade, or its own next rhx enroll. a delta actor also picks them up in the same rhx init --roles, when that init changed its roles
       │
       │ ✨ permissions applied:
       │    • allow: replaced entirely
@@ -60,8 +64,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 
@@ -214,8 +216,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
       └─ 45 brief(s)
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -286,8 +286,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
       └─ 45 brief(s)
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -319,8 +317,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case15] remove where 
    └─ untouched (0)
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 0 roles
 
@@ -398,8 +394,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;
@@ -445,8 +441,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;

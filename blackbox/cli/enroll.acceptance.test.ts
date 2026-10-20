@@ -948,6 +948,129 @@ describe('rhx enroll --roles (acceptance)', () => {
         ).toBeUndefined();
       });
     });
+
+    when('[t2] a real settings.local.json sits in the actor brain dir at the next enroll', () => {
+      // a real file at an arrow name is replaced (one answer, rhachet's), so its content is
+      //   gone. enroll lays the layout too, so it names the loss as init does — never silent
+      //   (`inventory.of=requirements.case=7`, fulcrum F10)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-replaces-real-local' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(
+          join(home, '.claude', 'settings.json'),
+          '{ "model": "haiku" }\n',
+          'utf-8',
+        );
+        const env = { PATH: setupStubBrainPath({ dir }), HOME: home };
+        const args = ['enroll', 'claude', '--roles', '-driver'];
+
+        // the first enroll lays the actor dir; a hand file then lands at the arrow name
+        const first = invokeRhachetCliBinary({
+          args,
+          cwd: dir,
+          env,
+          logOnError: false,
+        });
+        const actorDirName = getOneEnrolledActorDirName({ dir });
+        const brainDir = join(dir, '.agent', '.actors', actorDirName, 'brain', '.claude');
+        const localPath = join(brainDir, 'settings.local.json');
+        rmSync(localPath, { force: true });
+        writeFileSync(
+          localPath,
+          '{ "permissions": { "allow": ["Bash(echo:*)"] } }\n',
+          'utf-8',
+        );
+
+        // the second enroll meets the real file
+        const second = invokeRhachetCliBinary({
+          args,
+          cwd: dir,
+          env,
+          logOnError: false,
+        });
+        return { first, second, brainDir, localPath, actorDirName };
+      });
+
+      then('both enrolls exit 0', () => {
+        expect(scene.first.status).toEqual(0);
+        expect(scene.second.status).toEqual(0);
+      });
+
+      then('the first enroll took back no real file, so it names none', () => {
+        expect(scene.first.stderr).not.toContain('a real file was here');
+      });
+
+      then('the second enroll names the replaced file by its actor dir path', () => {
+        expect(scene.second.stderr).toContain('   └─ replaced');
+        expect(scene.second.stderr).toContain(
+          `.agent/.actors/${scene.actorDirName}/brain/.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone`,
+        );
+      });
+
+      then('the file is the arrow once more', () => {
+        expect(readlinkSync(scene.localPath)).toEqual('settings.of.repo.json');
+      });
+
+      then('the replace notice is locked to a snapshot', () => {
+        // the actor dir name is a roleset hash, stable for the fixture; only the credential
+        //   line goes, since an ANTHROPIC_API_KEY in the runner's env decides it
+        expect(asSnapshotSafeOfCredential(scene.second.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] a bare enroll meets a real <repo>/.claude/settings.local.json', () => {
+      // the everyday `claude` is a clone of the repo actor, and a hand `settings.local.json` in
+      //   `<repo>/.claude` is the population this fix serves. the repo actor's row names the
+      //   file by its reach path, `.claude/…`, never by the actor dir (fulcrum F10)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-repo-actor-replaces-local' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(
+          join(home, '.claude', 'settings.json'),
+          '{ "model": "haiku" }\n',
+          'utf-8',
+        );
+        const localPath = join(dir, '.claude', 'settings.local.json');
+        rmSync(localPath, { force: true });
+        writeFileSync(
+          localPath,
+          '{ "permissions": { "allow": ["Bash(echo:*)"] } }\n',
+          'utf-8',
+        );
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        return { run, localPath };
+      });
+
+      then('enroll exits 0', () => {
+        expect({ status: scene.run.status, stderr: scene.run.stderr }).toMatchObject({
+          status: 0,
+        });
+      });
+
+      then('stderr names the replaced file by its .claude reach path', () => {
+        expect(scene.run.stderr).toContain('   └─ replaced');
+        expect(scene.run.stderr).toContain(
+          '.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone',
+        );
+      });
+
+      then('the file is the arrow once more', () => {
+        expect(readlinkSync(scene.localPath)).toEqual('settings.of.repo.json');
+      });
+
+      then('the repo actor replace notice is locked to a snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+    });
   });
 
   given('[case2d] a repo still at the legacy repo actor dir, enrolled before any init', () => {

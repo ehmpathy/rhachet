@@ -2,8 +2,6 @@
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t1.2] a human hand-edits the default AGENTS.md, then rhx init then: stdout names the reset, and that rhachet owns the file 1`] = `
 "🧠 brain://repo=ambient
-   ├─ boot.md
-   │  └─ upgraded — 4 roles
    └─ AGENTS.md
       └─ reset — hand edits dropped; rhachet owns this file
 
@@ -42,7 +40,12 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t1] rhx init --roles waxer --hooks then: init stdout is locked 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=surfshop/role=waxer
@@ -62,10 +65,6 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 ✨ 1 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 4 roles
 
@@ -119,7 +118,7 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init then: stderr names the [t3] actor 1`] = `
-"✗ brain://hash=fddbc072/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written
+"✗ brain://hash=fddbc072 not synced: 💥 MalfunctionError: brain dir boot.md could not be written
    ├─ brainDir: /TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude
    └─ cause: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
 "
@@ -144,7 +143,7 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5] a lifeguard actor lives; lifeguard is unlinked; rhx init then: stderr names the lifeguard actor and both fixes, and offers no prune 1`] = `
-"✗ brain://hash=15cc47ca/boot.md not written: ✋ ConstraintError: actor hash=15cc47ca enrolled a role no longer linked: lifeguard
+"✗ brain://hash=15cc47ca not synced: ✋ ConstraintError: actor hash=15cc47ca enrolled a role no longer linked: lifeguard
    ├─ actorExid: hash=15cc47ca
    ├─ slugsUnlinked: ["lifeguard"]
    └─ hint: re-link the role (rhx roles link --role lifeguard), or end the actor's live clones so the sweep skips it
@@ -184,12 +183,49 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 }
 `;
 
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t8.1] a git clone of the tree; claude -p; rhx init; claude -p then: the fresh clone\`s first launches are locked 1`] = `
+{
+  "after": {
+    "sentinels": [
+      "sntlglasserhead__NONCE__",
+      "sntlglassertail__NONCE__",
+      "sntlroot__NONCE__",
+      "sntlsanderhead__NONCE__",
+      "sntlsandertail__NONCE__",
+      "sntlshaperhead__NONCE__",
+      "sntlshapernew__NONCE__",
+      "sntlshapertail__NONCE__",
+    ],
+    "status": 0,
+  },
+  "before": {
+    "sentinels": [
+      "sntlroot__NONCE__",
+    ],
+    "status": 0,
+  },
+}
+`;
+
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t8.1] a git clone of the tree; claude -p; rhx init; claude -p then: the init stdout between the launches is locked as its own string 1`] = `
+"🧠 brain://repo=ambient
+   └─ boot.md
+      └─ created — 3 roles
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+"
+`;
+
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t8] the journey is complete then: the addable tree of the brain dirs is locked 1`] = `
 [
   ".agent/.actors/.gitignore",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/.gitignore",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+  ".agent/.actors/actor.via.repo=ambient/brain/.claude/settings.local.json",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
   ".claude",
 ]

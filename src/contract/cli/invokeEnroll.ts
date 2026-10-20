@@ -9,6 +9,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
 import { asBrainGroveAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainGroveAbsentLine';
+import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
@@ -17,6 +18,7 @@ import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/get
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
+import { asBrainDirSettingsReplacedLines } from '@src/domain.operations/boot/asBrainDirSettingsReplacedLines';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
 import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
@@ -56,6 +58,7 @@ import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPri
 import { isEnrollBareRoleDelta } from '@src/domain.operations/enroll/isEnrollBareRoleDelta';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
 import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs';
+import { asSettingsReplacedOfLayout } from '@src/domain.operations/init/boots/asSettingsReplacedOfLayout';
 import { setRepoActorDirFromLegacy } from '@src/domain.operations/init/boots/setRepoActorDirFromLegacy';
 import { setRepoBrainDirSymlink } from '@src/domain.operations/init/boots/setRepoBrainDirSymlink';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
@@ -68,7 +71,7 @@ import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { asCliOutputMode } from './asCliOutputMode';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -539,6 +542,15 @@ const performEnroll = async (input: {
     brainDir,
     home: getHomeDir(),
   });
+
+  // name each real settings file the layout took back, at once: its content is gone, and an
+  //   enroll can be the first command to lay this dir (the repo actor's, before any `rhx init`)
+  //   .note = stderr, beside enroll's other notices; stdout stays the machine handoff
+  asBrainDirSettingsReplacedLines({
+    scope: { kind: 'actor', actorExid: exid },
+    settingsReplaced: asSettingsReplacedOfLayout({ settings: layout }),
+    dirRel: exid === REPO_ACTOR_EXID ? '.claude' : relative(repoPath, brainDir),
+  }).forEach((line) => console.error(line));
 
   // write the actor's settings.of.repo.json, then derive the child passthrough
   const { configPath } = await genBrainCliConfigArtifact({

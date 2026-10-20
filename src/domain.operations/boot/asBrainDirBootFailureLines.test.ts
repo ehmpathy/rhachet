@@ -22,7 +22,7 @@ describe('asBrainDirBootFailureLines', () => {
 
       then('the headline names the scope, the class and the reason', () => {
         expect(lines[0]).toEqual(
-          '✗ brain://hash=abc12345/boot.md not written: ✋ ConstraintError: actor abc12345 enrolled a role no longer linked: gone',
+          '✗ brain://hash=abc12345 not synced: ✋ ConstraintError: actor abc12345 enrolled a role no longer linked: gone',
         );
       });
 
@@ -52,7 +52,7 @@ describe('asBrainDirBootFailureLines', () => {
 
       then('the headline, then the brainDir field — no field dropped', () => {
         expect(lines).toEqual([
-          '✗ brain://repo=ambient/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written',
+          '✗ brain://repo=ambient not synced: 💥 MalfunctionError: brain dir boot.md could not be written',
           '   └─ brainDir: /repo/x',
         ]);
       });
@@ -76,7 +76,7 @@ describe('asBrainDirBootFailureLines', () => {
 
       then('the cause rides as its class and message, never as `{}`', () => {
         expect(lines).toEqual([
-          '✗ brain://repo=ambient/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written',
+          '✗ brain://repo=ambient not synced: 💥 MalfunctionError: brain dir boot.md could not be written',
           '   ├─ brainDir: /repo/x',
           '   └─ cause: Error: EACCES: permission denied',
         ]);
@@ -93,9 +93,7 @@ describe('asBrainDirBootFailureLines', () => {
       then(
         'the headline still names the bare class, so it stays findable',
         () => {
-          expect(lines).toEqual([
-            '✗ brain://*/boot.md not written: Error: EACCES',
-          ]);
+          expect(lines).toEqual(['✗ brain://* not synced: Error: EACCES']);
         },
       );
     });

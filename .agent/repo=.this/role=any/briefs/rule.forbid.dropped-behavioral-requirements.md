@@ -40,6 +40,7 @@ requirement (`inventory.of=requirements.case=1`).
 | a reviewer flags that a change narrows a behavior | check the inventory; if an entry covers it, it is a blocker |
 | you would write "by design" beside a gap in a behavior | stop. a gap is owed, or the wisher amends the entry |
 | an entry's proof is red | fix the code, never the proof |
+| you replace a design | 🔴 inventory what it did that no entry names, first — `rule.require.inventory-incidental-behaviors-before-a-redesign` |
 
 ## .enforcement
 

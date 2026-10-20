@@ -34,7 +34,7 @@ import {
 } from '@/blackbox/.test/infra/brainDirBootJourney';
 import { asLegibleScreen } from '@/blackbox/.test/infra/asLegibleScreen';
 import { enrollRealClaudeAndWaitReach as enrollRealClaudeAndWaitReachUnbounded } from '@/blackbox/.test/infra/enrollCloneHarness';
-import type { RhachetBackgroundHandle } from '@/blackbox/.test/infra/spawnRhachetCliBackground';
+import type { RhachetBackgroundHandle } from '@/blackbox/.test/infra/spawnPtyCliBackground';
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genIsolatedClaudeHome } from '@/blackbox/.test/infra/genIsolatedClaudeHome';
 import { genStepBudget } from '@/blackbox/.test/infra/genStepBudget';
@@ -353,15 +353,19 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
         });
       });
 
-      then('all three arrive — the default role beside the human two', () => {
+      then('the default role and the root CLAUDE.md arrive', () => {
         expect(ask.sentinels).toEqual(
-          expect.arrayContaining([
-            sentinelOf('shaperhead'),
-            sentinelOf('root'),
-            sentinelOf('local'),
-          ]),
+          expect.arrayContaining([sentinelOf('shaperhead'), sentinelOf('root')]),
         );
       });
+
+      then(
+        'the CLAUDE.local.md and the home CLAUDE.md stay out: a plain claude is an ambient clone (case=11)',
+        () => {
+          expect(ask.sentinels).not.toContain(sentinelOf('local'));
+          expect(ask.sentinels).not.toContain(sentinelOf('user'));
+        },
+      );
     });
 
     when('[t1.2] a human hand-edits the default AGENTS.md, then rhx init', () => {
@@ -1280,7 +1284,12 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       }));
 
       then('no boot.md and no per-host settings are addable', () => {
-        expect(git.rows.join('\n')).not.toMatch(/boot\.md|\.local\.json/);
+        expect(git.rows.join('\n')).not.toMatch(/boot\.md|\/\.home\//);
+        // the one addable `.local.json` is the repo actor's local arrow: a relative pointer to
+        //   settings.of.repo.json, the same on every box (inventory.of=requirements.case=10)
+        const locals = git.rows.filter((row: string) => /\.local\.json/.test(row));
+        expect(locals).toEqual([`${DEFAULT_BRAIN_DIR}/settings.local.json`]);
+        expect(readlinkSync(join(scene.dir, locals[0]!))).toEqual('settings.of.repo.json');
       });
 
       then('the addable tree of the brain dirs is locked', () => {
@@ -1354,6 +1363,22 @@ describe('brain dir boot journey (acceptance, real haiku)', () => {
       then('after init, the default sentinel arrives', () => {
         expect(run.init.status).toEqual(0);
         expect(run.after.sentinels).toContain(sentinelOf('shaperhead'));
+      });
+
+      then('the fresh clone`s first launches are locked', () => {
+        // .note = print mode has no screen, and the reply's words vary per turn; the lock holds
+        //   what a human meets on a first clone: each launch's exit and the sentinels it saw.
+        //   the nonce is fresh per run, so it is masked
+        const asStable = (sentinels: string[]): string[] =>
+          sentinels.map((sentinel) => sentinel.split(NONCE).join('__NONCE__')).sort();
+        expect({
+          before: { status: run.before.status, sentinels: asStable(run.before.sentinels) },
+          after: { status: run.after.status, sentinels: asStable(run.after.sentinels) },
+        }).toMatchSnapshot();
+      });
+
+      then('the init stdout between the launches is locked as its own string', () => {
+        expect(asSnapshotSafe(run.init.stdout)).toMatchSnapshot();
       });
     });
   });
