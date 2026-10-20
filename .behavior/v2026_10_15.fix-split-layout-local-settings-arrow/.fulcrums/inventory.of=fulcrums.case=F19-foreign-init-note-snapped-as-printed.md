@@ -25,5 +25,15 @@ the wisher may hold the merge until upstream ships.
 ## .where
 `blackbox/cli/__snapshots__/init.incremental.acceptance.test.ts.snap` [case1]
 
+## .correction (2026-10-20, pr #633 ci)
+the note was never printed for the test's repo. the mechanic init prints it only when
+`CLAUDE_CONFIG_DIR` is set, and the suite inherited that var from the runner, itself a claude
+clone; the note named the runner's own actor dir. ci has no such var and printed no note, so the
+snapshot failed there. the invoker now strips `CLAUDE_CONFIG_DIR` beside the clone identity vars
+(`asEnvWithoutCloneIdentity`), and [case1] is resnapped without the note, as ci prints it.
+
+the reword upstream still holds for a human who runs `rhx init` inside a clone, but no snapshot
+here locks the note any more, so this repo no longer waits on it.
+
 ## .verdict
-owed — for the wisher at the close.
+settled by the correction above — no merge hold needed for this repo.
