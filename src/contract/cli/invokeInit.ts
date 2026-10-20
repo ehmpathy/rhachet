@@ -114,13 +114,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
         //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
-        //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits
-        const layoutBeforeInits =
-          deltas !== null
-            ? await setRepoActorBrainDirLayoutBeforeInits({
-                repoPath: context.gitroot,
-              })
-            : null;
+        //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits.
+        //   the step names what it changed at once, so an abort later never hides a loss
+        if (deltas !== null)
+          await setRepoActorBrainDirLayoutBeforeInits({
+            repoPath: context.gitroot,
+          });
 
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
@@ -204,11 +203,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         const boots =
           deltas !== null || options.hooks !== undefined
             ? await syncAndReportBrainDirBoots(
-                {
-                  repoPath: context.gitroot,
-                  env: process.env,
-                  symlinkPrior: layoutBeforeInits?.symlink ?? null,
-                },
+                { repoPath: context.gitroot, env: process.env },
                 context,
               )
             : { exitCode: 0 as const, repoActorRendered: true };

@@ -22,16 +22,18 @@ describe('installed dependencies — the default peer reviewer brain', () => {
     when('[t0] its review default is read', () => {
       then('`rhx review` and `review.by` default to openrouter/deepseek/flash', () => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // .note = 0.42 renamed the constant `BRAIN_DEFAULT_OF_REVIEW` and moved it under
+        //   `domain.operations/brain/`; its value is unchanged
         const constant = require(
           join(
             dir,
             'dist',
             'domain.operations',
-            'review',
-            'DEFAULT_REVIEW_BRAIN.js',
+            'brain',
+            'BRAIN_DEFAULT_OF_REVIEW.js',
           ),
-        ) as { DEFAULT_REVIEW_BRAIN: string };
-        expect(constant.DEFAULT_REVIEW_BRAIN).toEqual(
+        ) as { BRAIN_DEFAULT_OF_REVIEW: string };
+        expect(constant.BRAIN_DEFAULT_OF_REVIEW).toEqual(
           'openrouter/deepseek/flash',
         );
       });
@@ -42,7 +44,7 @@ describe('installed dependencies — the default peer reviewer brain', () => {
             join(dir, 'dist', 'contract', 'cli', file),
             'utf-8',
           );
-          expect(source).toContain('DEFAULT_REVIEW_BRAIN');
+          expect(source).toContain('BRAIN_DEFAULT_OF_REVIEW');
         }
       });
     });

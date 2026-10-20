@@ -8,10 +8,8 @@ import {
   invokeRhachetCliBinaryAsync,
 } from './invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from './roleFixtureRepo';
-import {
-  spawnRhachetCliBackground,
-  type RhachetBackgroundHandle,
-} from './spawnRhachetCliBackground';
+import { type RhachetBackgroundHandle } from './spawnPtyCliBackground';
+import { spawnRhachetCliBackground } from './spawnRhachetCliBackground';
 
 import {
   chmodSync,

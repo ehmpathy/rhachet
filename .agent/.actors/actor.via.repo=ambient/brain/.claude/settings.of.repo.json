@@ -317,6 +317,7 @@
       "Bash(npx rhachet run --skill mkdirsafe --path 'src/domain')",
       "Bash(npx rhachet run --skill mkdirsafe:*)",
       "Bash(npx rhachet run --skill mvsafe:*)",
+      "Bash(npx rhachet run --skill permissions.get:*)",
       "Bash(npx rhachet run --skill rmsafe:*)",
       "Bash(npx rhachet run --skill sedreplace --old 'oldName' --new 'newName' --glob 'src/**/*.ts' --mode apply)",
       "Bash(npx rhachet run --skill sedreplace --old 'oldName' --new 'newName' --glob 'src/**/*.ts')",
@@ -388,6 +389,9 @@
       "Bash(rhx keyrack unlock --owner ehmpath --env:*)",
       "Bash(rhx mkdirsafe --path 'src' --path 'test' --path 'docs')",
       "Bash(rhx mkdirsafe:*)",
+      "Bash(rhx permissions.get --for 'ls src')",
+      "Bash(rhx permissions.get --head git)",
+      "Bash(rhx permissions.get:*)",
       "Bash(rhx set.package.install:*)",
       "Bash(rhx set.package.upgrade:*)",
       "Bash(rhx teesafe:*)",
@@ -520,5 +524,12 @@
     "type": "command",
     "command": "node -e \"import('rhachet-roles-bhrain/cli/route').then(m => m.routeStatusLine())\"",
     "padding": 0
-  }
+  },
+  "claudeMdExcludes": [
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md"
+  ]
 }

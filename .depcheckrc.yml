@@ -1,3 +1,9 @@
+# the brain dirs hold runtime state claude writes as a clone's CLAUDE_CONFIG_DIR — plugins, projects,
+# transcripts — never this repo's code. `.claude` is an arrow into the repo actor's brain dir, so
+# depcheck would follow it and read a plugin's own imports as ours
+ignore-patterns:
+  - .claude
+  - .agent/.actors
 ignores:
   - depcheck
   - declapract

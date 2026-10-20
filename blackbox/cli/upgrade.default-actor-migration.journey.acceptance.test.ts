@@ -7,6 +7,7 @@ import {
   readFileSync,
   readlinkSync,
   realpathSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
@@ -15,6 +16,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { asBrainDirReportBlock } from '@/blackbox/.test/infra/asBrainDirReportBlock';
 import { asBrainDirReportSnapshot } from '@/blackbox/.test/infra/asBrainDirReportSnapshot';
+import { genHomeWithGroveState } from '@/blackbox/.test/infra/genHomeWithGroveState';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -66,6 +68,9 @@ const STALE_CLAUDE_MD = '# a stale hand-authored CLAUDE.md the migration must dr
 /** .what = the body of the non-boot file the migration must MOVE, never drop */
 const KEPT_FILE_BODY = '{"keep":"upgrade-journey"}\n';
 
+/** .what = a per-box grant in the real settings.local.json the layout must replace */
+const LOCAL_GRANT = 'Bash(echo upgrade-journey-local-grant)';
+
 describe('upgrade — the default actor brain dir migration, under a BARE rhx upgrade', () => {
   const scene = useBeforeAll(async () => {
     const repo = await genTestTempRepo({
@@ -101,7 +106,24 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
       stdio: 'ignore',
     });
 
-    return { repo, repoClaudeDir, defaultBrainDir: join(repo.path, DEFAULT_BRAIN_DIR) };
+    // a real settings.local.json, untracked — claude's per-box log of "don't ask again"
+    //   grants. it MOVES with the rest, then the layout replaces it with the local arrow
+    //   (vision case=1 and case=5, inventory.of=requirements.case=10)
+    writeFileSync(
+      join(repoClaudeDir, 'settings.local.json'),
+      `${JSON.stringify({ permissions: { allow: [LOCAL_GRANT] } }, null, 2)}\n`,
+    );
+
+    // a HOME with a grove, one for the whole journey, so the `settings.json` row reads the
+    //   same on every box and a rerun meets the grove leaf the first run laid
+    const env = genHomeWithGroveState({ slug: 'upgrade-journey-home', grove: 'present' });
+
+    return {
+      repo,
+      repoClaudeDir,
+      defaultBrainDir: join(repo.path, DEFAULT_BRAIN_DIR),
+      env,
+    };
   });
 
   given('[case1] a repo whose <repo>/.claude is still a real dir', () => {
@@ -143,6 +165,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
           binary: 'rhx',
           args: ['upgrade'],
           cwd: scene.repo.path,
+          env: scene.env,
           logOnError: false,
         }),
       );
@@ -193,6 +216,26 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
           'utf-8',
         );
         expect(settings).not.toContain(HUMAN_HOOK);
+      });
+
+      then('the real settings.local.json MOVED, then the local arrow replaced it', () => {
+        // the arrow, relative, to the repo settings; the per-box grant rides nowhere
+        expect(
+          readlinkSync(join(scene.defaultBrainDir, 'settings.local.json')),
+        ).toEqual('settings.of.repo.json');
+        expect(
+          readFileSync(
+            join(scene.defaultBrainDir, 'settings.of.repo.json'),
+            'utf-8',
+          ),
+        ).not.toContain(LOCAL_GRANT);
+      });
+
+      then('stdout names the replaced settings.local.json, and says its content is gone', () => {
+        const block = asBrainDirReportBlock({ stdout: upgrade.stdout });
+        expect(block).toContain(
+          '.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone',
+        );
       });
 
       then('no copy of the replaced file is kept aside', () => {
@@ -320,6 +363,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
           binary: 'rhx',
           args: ['upgrade'],
           cwd: scene.repo.path,
+          env: scene.env,
           logOnError: false,
         });
         const forkedAfter = readdirSync(scene.defaultBrainDir).filter((name) =>
@@ -384,6 +428,129 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
         //   (`rule.require.contract-snapshot-exhaustiveness`)
         expect(
           asSnapshotSafe(asBrainDirReportBlock({ stdout: again.stdout })),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] the local arrow is absent — the split layout rhachet 1.49.2 left', () => {
+      // a 1.49.2 repo holds settings.of.repo.json and the grove arrow, and no local arrow.
+      //   the same arrow a hand-made stopgap holds is the one rhachet makes, so a repo with
+      //   the stopgap is the FOUND state [t2] already walks
+      const after = useBeforeAll(async () => {
+        unlinkSync(join(scene.defaultBrainDir, 'settings.local.json'));
+        const absentBefore =
+          lstatSync(join(scene.defaultBrainDir, 'settings.local.json'), {
+            throwIfNoEntry: false,
+          }) === undefined;
+        const result = invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['upgrade'],
+          cwd: scene.repo.path,
+          env: scene.env,
+          logOnError: false,
+        });
+        return { ...result, absentBefore };
+      });
+
+      then('the premise holds: no settings.local.json before the upgrade', () => {
+        expect(after.absentBefore).toBe(true);
+      });
+
+      then('exits 0', () => {
+        expect({
+          status: after.status,
+          stderr: after.status === 0 ? null : after.stderr,
+        }).toEqual({ status: 0, stderr: null });
+      });
+
+      then('the local arrow is back, relative, to the repo settings', () => {
+        expect(
+          readlinkSync(join(scene.defaultBrainDir, 'settings.local.json')),
+        ).toEqual('settings.of.repo.json');
+      });
+
+      then('a fresh arrow is silent — no file was lost, so no news (F8)', () => {
+        expect(asBrainDirReportBlock({ stdout: after.stdout })).toEqual('');
+      });
+
+      then('the fresh-arrow run is locked to a snapshot', () => {
+        expect(
+          asSnapshotSafe(asBrainDirReportBlock({ stdout: after.stdout })),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t4] a real settings.local.json is COMMITTED where the arrow belongs', () => {
+      // a human once committed a real file at the local name. the layout replaces it with
+      //   the arrow; the content is gone from the tree, and git still holds it in HEAD
+      const after = useBeforeAll(async () => {
+        const localPath = join(scene.defaultBrainDir, 'settings.local.json');
+        const localRel = `${DEFAULT_BRAIN_DIR}/settings.local.json`;
+        unlinkSync(localPath);
+        writeFileSync(
+          localPath,
+          `${JSON.stringify({ permissions: { allow: [LOCAL_GRANT] } }, null, 2)}\n`,
+        );
+        execSync(`git add -- ${localRel}`, { cwd: scene.repo.path, stdio: 'ignore' });
+        execSync('git -c commit.gpgsign=false commit -m "commit a real local file"', {
+          cwd: scene.repo.path,
+          stdio: 'ignore',
+        });
+        const result = invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['upgrade'],
+          cwd: scene.repo.path,
+          env: scene.env,
+          logOnError: false,
+        });
+        const gitStatus = execSync(`git status --porcelain -- ${localRel}`, {
+          cwd: scene.repo.path,
+        }).toString();
+        const atHead = execSync(`git show HEAD:${localRel}`, {
+          cwd: scene.repo.path,
+        }).toString();
+        return { ...result, gitStatus, atHead };
+      });
+
+      then('exits 0', () => {
+        expect({
+          status: after.status,
+          stderr: after.status === 0 ? null : after.stderr,
+        }).toEqual({ status: 0, stderr: null });
+      });
+
+      then('the real file is replaced by the local arrow', () => {
+        expect(
+          readlinkSync(join(scene.defaultBrainDir, 'settings.local.json')),
+        ).toEqual('settings.of.repo.json');
+      });
+
+      then('the grant does not ride into the repo settings', () => {
+        expect(
+          readFileSync(
+            join(scene.defaultBrainDir, 'settings.of.repo.json'),
+            'utf-8',
+          ),
+        ).not.toContain(LOCAL_GRANT);
+      });
+
+      then('git shows a typechange, so the human sees it in the diff', () => {
+        expect(after.gitStatus.trim()).toMatch(/^T /);
+      });
+
+      then('git still holds the content at HEAD, so it can be restored', () => {
+        expect(after.atHead).toContain(LOCAL_GRANT);
+      });
+
+      then('stdout names the replaced file, and says its content is gone', () => {
+        expect(asBrainDirReportBlock({ stdout: after.stdout })).toContain(
+          '.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone',
+        );
+      });
+
+      then('the replace run is locked to a snapshot', () => {
+        expect(
+          asBrainDirReportSnapshot({ stdout: after.stdout }),
         ).toMatchSnapshot();
       });
     });

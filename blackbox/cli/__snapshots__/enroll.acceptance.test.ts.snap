@@ -229,7 +229,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -284,7 +287,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }
@@ -316,6 +322,30 @@ exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a re
 
 exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t1] the HOME holds no \`.claude/settings.json\` then: the absent-grove notice is locked to a snapshot 1`] = `
 "ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t2] a real settings.local.json sits in the actor brain dir at the next enroll then: the replace notice is locked to a snapshot 1`] = `
+"🧠 brain://hash=2e77f741
+   └─ replaced
+      └─ .agent/.actors/actor.via.hash=2e77f741/brain/.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t3] a bare enroll meets a real <repo>/.claude/settings.local.json then: the repo actor replace notice is locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   └─ replaced
+      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
 
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
@@ -380,7 +410,10 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -426,7 +459,10 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }
@@ -464,7 +500,10 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -504,7 +543,10 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -544,7 +586,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -584,7 +629,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -614,7 +662,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"

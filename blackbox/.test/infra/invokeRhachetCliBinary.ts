@@ -55,12 +55,16 @@ export const asSnapshotSafe = (output: string): string => {
       // human's own claude config root. every other host path still falls through to the
       // generic mask below, where the catch-all token is the right answer — the path is
       // incidental there, and a token that named a root would over-claim.
+      // .note = a `*` segment is a glob, never a username: `**/home/*/.claude/CLAUDE.md` is
+      //   the same string on every box, so it stays literal in a snapshot. so does
+      //   `/github/home/.claude/CLAUDE.md`, the github actions home exclude — its `home` is
+      //   no `/home/<user>` root, hence the `(?<!\/github)` guard on both masks
       .replace(
-        /\/(?:home\/[^/]+|Users\/[^/]+)\/\.claude\/([^)\s"]+)/g,
+        /(?<!\/github)\/(?:home\/[^/*]+|Users\/[^/*]+)\/\.claude\/([^)\s"]+)/g,
         '/HOME_DIR/.claude/$1',
       )
       .replace(
-        /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
+        /(?<!\/github)\/(?:home\/[^/*]+|Users\/[^/*]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
       // strip temp test repo paths (vary by run)
@@ -273,6 +277,10 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *   serial leak is inert there — but `RHACHET_CLONE_DEPTH` is not: inherited from a
  *   depth-1 runner it spends the budget before the enroll starts, and every pty-backed
  *   reach test fails with `depth budget spent`. same divergence, a different var
+ *
+ * .note = `CLAUDE_CONFIG_DIR` names the actor dir the runner's own claude reads. a role init
+ *   that sees it reports on the runner's clone, so a suite run from a clone locked a line
+ *   ci never prints (`init.incremental` [case1]). same divergence, a third var
  */
 export const asEnvWithoutCloneIdentity = (
   env: NodeJS.ProcessEnv,
@@ -281,6 +289,7 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_SERIAL: _serial,
     RHACHET_CLONE_SOCKET: _socket,
     RHACHET_CLONE_DEPTH: _depth,
+    CLAUDE_CONFIG_DIR: _claudeConfigDir,
     ...rest
   } = env;
   return rest;

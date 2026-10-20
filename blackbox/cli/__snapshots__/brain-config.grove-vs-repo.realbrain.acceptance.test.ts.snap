@@ -1,0 +1,154 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brain config: auth, grove, repo (real claude) given: [case1] a repo whose layout rhx init built when: [t0] the brain dir is read then: the layout and the repo settings, locked to a snapshot (2, 3, 6) 1`] = `
+{
+  "layout": [
+    ".gitignore (file)",
+    ".home/",
+    ".home/.claude/",
+    ".home/.claude/settings.json → $HOME/.claude/settings.json",
+    ".home/.gitignore (file)",
+    "AGENTS.md (file)",
+    "CLAUDE.md → AGENTS.md",
+    "boot.md (file)",
+    "settings.json → settings.of.grove.json",
+    "settings.local.json → settings.of.repo.json",
+    "settings.of.grove.json → .home/.claude/settings.json",
+    "settings.of.repo.json (file)",
+  ],
+  "repoSettings": {
+    "claudeMdExcludes": [
+      "**/home/*/.claude/CLAUDE.md",
+      "**/Users/*/.claude/CLAUDE.md",
+      "/root/.claude/CLAUDE.md",
+      "/github/home/.claude/CLAUDE.md",
+      "**/CLAUDE.local.md",
+    ],
+    "hooks": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "author": "repo=test/role=tester",
+              "command": "touch tester-boot.marker",
+              "type": "command",
+            },
+          ],
+          "matcher": "*",
+        },
+      ],
+    },
+    "permissions": {
+      "allow": [
+        "Bash(bash probe-repo.sh)",
+      ],
+    },
+  },
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case2] a plain claude at the repo root when: [t0] it runs the repo probe and the grove probe then: the outcome, locked to a snapshot (2, 3) 1`] = `
+{
+  "prompted": false,
+  "ran": {
+    "probe-grove.sh.ran": true,
+    "probe-repo.sh.ran": true,
+    "tester-boot.marker": true,
+  },
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case2] a plain claude at the repo root when: [t1] it answers "yes, and don\`t ask again" for an unapproved probe then: the grant held for the session and persisted to neither file, locked to a snapshot (usecase 4, usecase 5) 1`] = `
+{
+  "grantPersisted": false,
+  "groveChanged": false,
+  "layout": [
+    ".gitignore (file)",
+    ".home/",
+    ".home/.claude/",
+    ".home/.claude/settings.json → $HOME/.claude/settings.json",
+    ".home/.gitignore (file)",
+    "AGENTS.md (file)",
+    "CLAUDE.md → AGENTS.md",
+    "boot.md (file)",
+    "settings.json → settings.of.grove.json",
+    "settings.local.json → settings.of.repo.json",
+    "settings.of.grove.json → .home/.claude/settings.json",
+    "settings.of.repo.json (file)",
+  ],
+  "prompted": false,
+  "ran": {
+    "probe-ask.sh.ran": true,
+  },
+  "repoSettingsChanged": false,
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case3] a claude launched with CLAUDE_CONFIG_DIR=<repo>/.claude — the explicit opt-in when: [t0] it answers "yes, and don\`t ask again" for an unapproved probe then: the outcome and the repo allows after the grant, locked to a snapshot (5) 1`] = `
+{
+  "prompted": false,
+  "ran": {
+    "probe-ask.sh.ran": true,
+  },
+  "repoAllows": [
+    "Bash(bash probe-repo.sh)",
+    "Bash(bash probe-ask.sh)",
+  ],
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case4] a clone enrolled via rhx enroll claude when: [t0] it runs the repo probe and the grove probe then: the outcome, locked to a snapshot (2, 3) 1`] = `
+{
+  "prompted": false,
+  "ran": {
+    "probe-grove.sh.ran": true,
+    "probe-repo.sh.ran": true,
+    "tester-boot.marker": true,
+  },
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case4] a clone enrolled via rhx enroll claude when: [t1] it answers "yes, and don\`t ask again" for an unapproved probe then: the outcome after the grant, locked to a snapshot (4, 5) 1`] = `
+{
+  "groveChanged": false,
+  "prompted": false,
+  "ran": {
+    "probe-ask.sh.ran": true,
+  },
+  "repoSettingsChanged": false,
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case4] a clone enrolled via rhx enroll claude when: [t2] it changes its model via /model then: the grove after the switch, locked to a snapshot (4) 1`] = `
+{
+  "forkModel": "sonnet",
+  "groveForked": true,
+  "homeGroveChanged": false,
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case4] a clone enrolled via rhx enroll claude when: [t3] it is asked for its codeword then: the outcome, locked to a snapshot (6) 1`] = `
+{
+  "homeCodewordNamed": false,
+  "replied": true,
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case5] a home CLAUDE.md that names a codeword when: [t1] a plain claude at the repo root is asked for its codeword then: the outcome, locked to a snapshot (6) 1`] = `
+{
+  "homeCodewordNamed": false,
+  "replied": true,
+  "status": 0,
+}
+`;
+
+exports[`brain config: auth, grove, repo (real claude) given: [case6] a plain claude at the root of a git worktree of the repo when: [t1] it runs the repo probe and the grove probe then: the outcome, locked to a snapshot (2, 3) 1`] = `
+{
+  "prompted": false,
+  "ran": {
+    "probe-grove.sh.ran": true,
+    "probe-repo.sh.ran": true,
+    "tester-boot.marker": true,
+  },
+}
+`;

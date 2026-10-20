@@ -8,13 +8,11 @@ import {
   readClaudeCodeSettings,
   writeClaudeCodeSettings,
 } from '@src/domain.operations/brains/claudeCodeSettings';
-import { getHomeDir } from '@src/infra/getHomeDir';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
-import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
-import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
+import { getAllClaudeMdExcludesForActor } from './getAllClaudeMdExcludesForActor';
 import { getSettingsForRoles } from './getSettingsForRoles';
 
 /**
@@ -116,19 +114,11 @@ const setActorSettingsRepoWithinLock = async (input: {
         roles: enrollment.roles,
       });
 
-  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
-  //   the repo actor's doors have two paths — its real dir, and `<repo>/.claude`, a
-  //   symlink to it — so neither path may be excluded for it
-  const ownDirs = isRepoActor
-    ? [actorBrainDir, join(repoPath, '.claude')]
-    : [actorBrainDir];
-  const claudeMdExcludes = asClaudeMdExcludesOutsideDirs({
-    excludes: getClaudeMdExcludesList({
-      repoPath,
-      repoActorBrainDir,
-      home: getHomeDir(),
-    }),
-    dirs: ownDirs,
+  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12)
+  const claudeMdExcludes = getAllClaudeMdExcludesForActor({
+    repoPath,
+    repoActorBrainDir,
+    actorBrainDir,
   });
 
   // write the actor's settings.of.repo.json
