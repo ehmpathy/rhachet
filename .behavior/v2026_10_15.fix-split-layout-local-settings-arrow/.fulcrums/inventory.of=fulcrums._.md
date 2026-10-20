@@ -22,6 +22,6 @@ axis = `case` (occurrence). one entry per fulcrum, appended as it is met.
 | [F16](./inventory.of=fulcrums.case=F16-playtest-finds-fixed-in-this-diff.md) | two defects the 5.3 playtest found at HEAD are fixed in this diff, each clamped | clean | owed | 90% |
 | [F17](./inventory.of=fulcrums.case=F17-clone-realbrain-rehome-is-its-own-pr.md) | the six clone realbrain suites move off the host HOME in their own pr | dirty | owed | 80% |
 | [F18](./inventory.of=fulcrums.case=F18-two-brain-trees-one-per-step.md) | `init --roles` and `upgrade` print one `🧠` tree per step, with no step label | clean | owed | 75% |
-| [F19](./inventory.of=fulcrums.case=F19-foreign-init-note-snapped-as-printed.md) | the mechanic init's false note is snapped as it prints, and fixed upstream | clean | owed | 80% |
+| [F19](./inventory.of=fulcrums.case=F19-foreign-init-note-snapped-as-printed.md) | the mechanic init's false note was a runner env leak; stripped, no snapshot locks it | clean | settled | 95% |
 | [F20](./inventory.of=fulcrums.case=F20-test-intents-moved-by-stated-requirements.md) | extant test intents flip; four follow a stated requirement, four are the driver's call (`upgraded` row, grove-less `REMOVED`, `settings.json` replaced, `not synced`) | clean | owed | 90% / 75% |
 | [F21](./inventory.of=fulcrums.case=F21-report-rows-reword-pass-is-its-own-pr.md) | the brain-dir report rows get one reword pass (`replaced` senses, `unexcluded`, committed-file `content is gone`, the cause-less layout warn) in its own pr | dirty | owed | 80% |

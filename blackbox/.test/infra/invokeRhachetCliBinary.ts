@@ -277,6 +277,10 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *   serial leak is inert there — but `RHACHET_CLONE_DEPTH` is not: inherited from a
  *   depth-1 runner it spends the budget before the enroll starts, and every pty-backed
  *   reach test fails with `depth budget spent`. same divergence, a different var
+ *
+ * .note = `CLAUDE_CONFIG_DIR` names the actor dir the runner's own claude reads. a role init
+ *   that sees it reports on the runner's clone, so a suite run from a clone locked a line
+ *   ci never prints (`init.incremental` [case1]). same divergence, a third var
  */
 export const asEnvWithoutCloneIdentity = (
   env: NodeJS.ProcessEnv,
@@ -285,6 +289,7 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_SERIAL: _serial,
     RHACHET_CLONE_SOCKET: _socket,
     RHACHET_CLONE_DEPTH: _depth,
+    CLAUDE_CONFIG_DIR: _claudeConfigDir,
     ...rest
   } = env;
   return rest;
