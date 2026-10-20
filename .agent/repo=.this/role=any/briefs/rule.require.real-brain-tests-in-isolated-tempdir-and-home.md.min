@@ -1,0 +1,12 @@
+# rule.require.real-brain-tests-in-isolated-tempdir-and-home
+
+a test that spawns a real brain-cli runs it in a `genTempDir` repo, with `HOME` = an isolated temp home
+(`genIsolatedClaudeHome`, which links only the host credential), and every inherited `CLAUDE*` env var
+dropped. never the host `~`, never the worktree as cwd.
+
+why: the host's settings, trust, and CLAUDE.md are not the subject, and a real claude WRITES them
+(trust, `/model`, "don't ask again"). a runner that is itself a claude leaks its session env into the
+spawn (measured 2026-10-15: an inherited `CLAUDE_CODE_CHILD_SESSION` turned transcripts off).
+
+blocker: host `HOME` · non-temp cwd · inherited `CLAUDE*` env · a write to the host `~/.claude.json` or `~/.claude/`.
+extant `*.realbrain.*` suites on the host home are fixed forward when touched.

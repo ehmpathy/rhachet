@@ -4,10 +4,7 @@ import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrai
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { getActorsManifestPath } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
-import {
-  asBrainDirSyncReportLines,
-  type BrainDirSyncSymlink,
-} from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import { asBrainDirSyncReportLines } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { asRoleModViewsChangedReadout } from '@src/domain.operations/mods/asRoleModViewsChangedReadout';
@@ -46,7 +43,6 @@ export const syncAndReportBrainDirBoots = async (
   input: {
     repoPath: string;
     env: NodeJS.ProcessEnv;
-    symlinkPrior?: BrainDirSyncSymlink | null;
   },
   context: ContextCli,
 ): Promise<{ exitCode: 0 | 1 | 2; repoActorRendered: boolean }> => {
@@ -79,13 +75,12 @@ export const syncAndReportBrainDirBoots = async (
     renders,
     failures,
     symlink,
+    settingsReplaced,
+    excludesDropped,
     modsChanged,
     modsReverted,
     modsUnplaced,
-  } = await syncBootsForBrainDirs(
-    { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
-    context,
-  );
+  } = await syncBootsForBrainDirs({ repoPath: input.repoPath }, context);
 
   // a rewritten modded view reaches a live clone only on re-enroll; say so, once (usecase 8).
   //   a mod no linked role carries is named here, since no boot raises it (usecase 6)
@@ -119,6 +114,8 @@ export const syncAndReportBrainDirBoots = async (
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
+      settingsReplaced: render.scope.kind === 'repo' ? settingsReplaced : [],
+      excludesDropped: render.scope.kind === 'repo' ? excludesDropped : [],
       repoActorBrainDirRel,
       isManifestRepo,
     });

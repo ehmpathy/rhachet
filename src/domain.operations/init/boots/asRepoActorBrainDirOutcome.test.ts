@@ -50,12 +50,19 @@ describe('asRepoActorBrainDirOutcome', () => {
                   render,
                   symlink,
                   settings,
+                  excludesDropped: ['docs/legacy/CLAUDE.md'],
                   enrollConfigs: { deleted: [], kept: [] },
                 },
               },
               actorExid: 'repo=ambient',
             }),
-          ).toEqual({ render, symlink, settings, failure: null });
+          ).toEqual({
+            render,
+            symlink,
+            settings,
+            excludesDropped: ['docs/legacy/CLAUDE.md'],
+            failure: null,
+          });
         },
       );
     });
@@ -74,6 +81,7 @@ describe('asRepoActorBrainDirOutcome', () => {
           render: null,
           symlink: null,
           settings: null,
+          excludesDropped: [],
           failure: {
             scope: { kind: 'repo', actorExid: 'repo=ambient' },
             cause,

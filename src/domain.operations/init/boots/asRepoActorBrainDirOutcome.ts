@@ -1,10 +1,10 @@
 import { MalfunctionError } from 'helpful-errors';
 
-import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import type {
   BrainDirBootFailure,
   BrainDirBootRender,
 } from '@src/domain.operations/boot/BrainDirBootRender';
+import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/BrainDirLayoutOutcome';
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
 import type { setRepoActorBrainDir } from './setRepoActorBrainDir';
@@ -31,6 +31,7 @@ export const asRepoActorBrainDirOutcome = (input: {
   render: BrainDirBootRender | null;
   symlink: BrainDirSyncSymlink | null;
   settings: Awaited<ReturnType<typeof setRepoActorBrainDir>>['settings'] | null;
+  excludesDropped: string[];
   failure: BrainDirBootFailure | null;
 } => {
   // a fulfilled sync yields its render, what the `<repo>/.claude` link did, and the layout
@@ -39,6 +40,7 @@ export const asRepoActorBrainDirOutcome = (input: {
       render: input.settled.value.render,
       symlink: input.settled.value.symlink,
       settings: input.settled.value.settings,
+      excludesDropped: input.settled.value.excludesDropped,
       failure: null,
     };
 
@@ -52,6 +54,7 @@ export const asRepoActorBrainDirOutcome = (input: {
     render: null,
     symlink: null,
     settings: null,
+    excludesDropped: [],
     failure: {
       scope: { kind: 'repo', actorExid: input.actorExid },
       cause:

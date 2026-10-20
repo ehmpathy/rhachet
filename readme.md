@@ -125,7 +125,29 @@ if the same role name exists in multiple packages, use `$repo/$role` syntax to d
 npx rhachet init --roles ehmpathy/mechanic bhuild/behaver bhrain/reviewer
 ```
 
-after init, any agents you spawn in the repo will boot with those roles. rhachet configures your brain-repls via hooks (e.g., in `.claude/settings.json`) so enrollment happens automatically and resiliently.
+after init, any agents you spawn in the repo will boot with those roles. rhachet configures your brain-repls via hooks (in `.claude/settings.of.repo.json`) so enrollment happens automatically and resiliently.
+
+#### what a plain `claude` session loads
+
+`<repo>/.claude` links to the repo actor's brain dir. init lays out its settings names as arrows:
+
+```
+.claude/
+  settings.of.repo.json                         # the repo's allows + hooks, from its roles
+  settings.local.json  → settings.of.repo.json  # claude's local layer reads the repo's
+  settings.json        → settings.of.grove.json
+  settings.of.grove.json → .home/.claude/settings.json  # tracked, relative: the same on every box
+  .home/.claude/settings.json → ~/.claude/settings.json # untracked: the one hop that names this box
+```
+
+so a plain `claude` at the repo root, with no `rhx enroll`, loads the repo's roles too:
+
+- **the repo's hooks fire**, and its allows apply, in every session at the repo root
+- **run `rhx init` once per clone.** the boot render stays out of git, so a fresh clone has no repo actor until init
+- **an "always allow" in a plain session does not last.** the local layer is the repo's; the next `rhx init` takes the name back. keep a durable allow in a role, or in `~/.claude/settings.json`
+- **`~/.claude/CLAUDE.md` and `**/CLAUDE.local.md` do not load in the repo.** the repo's boot is the one context (`claudeMdExcludes`)
+- **a real file at an arrow's name is replaced, and the command says so** — `rhx init`, `rhx upgrade` and `rhx enroll` each print it under `🧠 brain://…`, `replaced`. its content is gone; diff it against git if it was tracked
+- **a hand `claudeMdExcludes` entry is dropped, and init says so** — under `unexcluded`. rhachet owns that key
 
 #### why
 

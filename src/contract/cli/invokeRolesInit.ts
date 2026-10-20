@@ -69,8 +69,10 @@ export const invokeRolesInit = (
  * .what = put the repo actor's brain dir in the split layout, when the cwd is in a git repo
  * .why = a role init writes through `<repo>/.claude`; outside a repo there is no repo actor
  *   to lay out, and the cli must tolerate a non-repo cwd (rule.require.cli-tolerates-non-repo-cwd)
- * .note = a layout fault never blocks the inits; the next `rhx init` reports it
- *   (`setRepoActorBrainDirLayoutBeforeInits`)
+ * .note = a layout fault never blocks the inits; a warn line names it here, and the next
+ *   `rhx init` reports its cause (`setRepoActorBrainDirLayoutBeforeInits`)
+ * .note = the layout step names what it changed (a real settings file it took back above all),
+ *   since this command renders no boot and a later `rhx init` finds the arrow already in place
  */
 const setRepoActorBrainDirLayoutIfInRepo = async (): Promise<void> => {
   const { getGitRepoRootOrNull } = await import(
@@ -81,5 +83,17 @@ const setRepoActorBrainDirLayoutIfInRepo = async (): Promise<void> => {
   const { setRepoActorBrainDirLayoutBeforeInits } = await import(
     '../../domain.operations/init/boots/setRepoActorBrainDirLayout'
   );
-  await setRepoActorBrainDirLayoutBeforeInits({ repoPath });
+  const layout = await setRepoActorBrainDirLayoutBeforeInits({ repoPath });
+
+  // a layout fault never blocks the inits, but it is never silent: this command renders no
+  //   boot, so no later step here would name it
+  if (layout === null)
+    [
+      '🧠 brain://repo=ambient',
+      '   └─ 🟡 the layout did not land; run `rhx init` to see why',
+      '',
+    ].forEach((line) => console.log(line));
+
+  // the blank that closes a layout tree, since the role inits print no blank of their own first
+  if (layout?.isReported) console.log('');
 };

@@ -1,0 +1,19 @@
+{
+  "key": "95bc4c90d855a55e",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "feat(hooks): a role hook for claude's PermissionRequest event",
+  "description": "## .what\n\nrhachet's role hooks map `onBoot` · `onTool` · `onStop` to claude events (`howto.use.brain.hooks`);\nnone maps to claude's `PermissionRequest`. so a role cannot declare a permission-request hook, and a\nrepo that wants one registers it by hand in `settings.of.repo.json` — where the hook sync never writes\nit, an old-layout migration drops it, and a fresh layout never has it. nheuron holds one such hand\nentry (`permissionrequest.decide-permissions.sh`, of the mechanic role).\n\n## .bounded diff\n\n1. a role hook kind for the event (e.g. `hooks.onBrain.onPermission`) in the rhachet role contract\n2. the anthropic adapter (`src/_topublish/rhachet-brains-anthropic`) translates it to a\n   `PermissionRequest` entry, authored `role=<slug>` like every other role hook — so the hook sync\n   writes it into `settings.of.repo.json`, and requirement case 9's role filter narrows it per clone\n3. tests: the adapter's translate test, and the hook sync's integration test for the new kind\n4. a follow-up in `ehmpathy/rhachet-roles-ehmpathy`: the mechanic role declares its hook there, and\n   nheuron's hand entry goes\n\n## .origin\n\nrhachet route `v2026_10_15.fix-split-layout-local-settings-arrow`, fulcrum F7",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 6,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "624"
+}

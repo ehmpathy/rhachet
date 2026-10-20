@@ -30,7 +30,8 @@ export type BrainDirBootRender = {
    * .what = true where this render wrote bytes that differ from the boot.md it replaced
    *         (always true on a create)
    * .why = a corpus that changed under a live brain dir is news — its clones boot a new roleset;
-   *        an identical re-render is not. like `bootMdCreated`, it is knowable only at write time
+   *        an identical re-render is not, so the report never names it.
+   *        like `bootMdCreated`, it is knowable only at write time
    */
   bootMdChanged: boolean;
 };

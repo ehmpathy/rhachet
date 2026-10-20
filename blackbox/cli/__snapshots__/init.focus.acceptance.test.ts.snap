@@ -59,7 +59,7 @@ exports[`rhx init --roles <role>::<subject> (acceptance) given: [case4] a repo w
 `;
 
 exports[`rhx init --roles <role>::<subject> (acceptance) given: [case5] the repo record holds a focus mechanic no longer declares (U1 on init) when: [t0] an init that names another role, \`init --roles +architect\` then: the refusal matches its snapshot 1`] = `
-"✗ brain://repo=ambient/boot.md not written
+"✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: role 'mechanic' declares no subject 'gone'
    ├─ role = mechanic
    ├─ focus

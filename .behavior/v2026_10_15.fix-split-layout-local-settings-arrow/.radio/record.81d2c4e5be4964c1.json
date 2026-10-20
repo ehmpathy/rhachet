@@ -1,0 +1,19 @@
+{
+  "key": "81d2c4e5be4964c1",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-brains-openai"
+  },
+  "exid": null,
+  "title": "fix(codex): the openai/codex slug pins a model the test key cannot reach",
+  "description": "## .what\n\n`rhachet-brains-openai@0.3.1` pins the `openai/codex` slug to `gpt-5.1-codex-max`. the ehmpath test key gets a 404 for it:\n\n```\nunexpected status 404 Not Found: \"The model `gpt-5.1-codex-max` does not exist or you do not have access to it.\"\n  at invokeCodex (rhachet-brains-openai@0.3.1/dist/index.js:1459)\n```\n\n## .why\n\nrhachet keeps twelve `openai/codex` integration cases skipped (`actorAsk`, `actorAct`, `invokeAct`,\n`genActor.brain.*`). they cannot run until the slug resolves to a model the test key reaches.\n\n## .the shape of the fix\n\n1. pin `openai/codex` to a codex model that is generally available, or confirm the key needs a grant\n2. release; rhachet then bumps the dep, removes the twelve skips, and runs those files scoped\n\nseen in ehmpathy/rhachet, route `v2026_10_15.fix-split-layout-local-settings-arrow`, stone 5.3.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": null,
+  "heldSeq": 7,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "29"
+}

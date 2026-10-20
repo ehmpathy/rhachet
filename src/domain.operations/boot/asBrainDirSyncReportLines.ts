@@ -1,29 +1,20 @@
-import { asTreeBranch } from '@src/utils/asTreeBranch';
-
-import { basename } from 'node:path';
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
+import {
+  asBrainDirLayoutReportGroups,
+  type BrainDirReportGroup,
+} from './asBrainDirLayoutReportGroups';
+import { asBrainDirReportGroupLines } from './asBrainDirReportGroupLines';
 import type { BrainDirBootRender } from './BrainDirBootRender';
+import type {
+  BrainDirSyncSettingsReplaced,
+  BrainDirSyncSymlink,
+} from './BrainDirLayoutOutcome';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
 
 /**
- * .what = what a `<repo>/.claude` sync did to the link, if it touched it at all
- * .why = the effect is already computed by `setRepoBrainDirSymlink`; the report names
- *        it rather than re-derive it
- */
-export type BrainDirSyncSymlink = {
-  effect: 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
-  drops: string[];
-  moves: string[];
-  overwrites: string[];
-  carries: string[];
-};
-
-/** .what = one group of the sync tree — a label and the rows beneath it */
-type ReportGroup = { label: string; rows: string[] };
-
-/**
  * .what = the treestruct report for ONE brain dir sync: what moved, what was dropped,
- *         whether the link was made, and whether the corpus was created or upgraded
+ *         whether the link was made, which real settings files became arrows, and whether
+ *         the corpus was created or upgraded
  *
  * .why = every adjacent section of this stdout is a treestruct (`📚 link role`,
  *   `🔭 search for linked roles`, `🪝 apply hooks`). a bare one-liner wedged between two
@@ -43,49 +34,27 @@ type ReportGroup = { label: string; rows: string[] };
 export const asBrainDirSyncReportLines = (input: {
   render: BrainDirBootRender;
   symlink: BrainDirSyncSymlink | null;
+  settingsReplaced: BrainDirSyncSettingsReplaced[];
+  excludesDropped: string[];
   repoActorBrainDirRel: string;
   isManifestRepo: boolean;
 }): string[] => {
-  const { render, symlink, repoActorBrainDirRel, isManifestRepo } = input;
+  const { render, isManifestRepo } = input;
 
-  const groups: ReportGroup[] = [];
+  // what this sync's own layout step did — the same groups the layout step's report draws
+  const groups: BrainDirReportGroup[] = asBrainDirLayoutReportGroups({
+    symlink: input.symlink,
+    settingsReplaced: input.settingsReplaced,
+    excludesDropped: input.excludesDropped,
+    repoActorBrainDirRel: input.repoActorBrainDirRel,
+  });
 
-  // what the migration carried over, and which of those replaced a file already there.
-  //   the `(replaced)` suffix is the one row a human may want to diff against git
-  if (symlink?.moves.length)
-    groups.push({
-      label: 'moved',
-      rows: symlink.moves.map(
-        (name) =>
-          `.claude/${name} → ${repoActorBrainDirRel}/${name}${symlink.overwrites.includes(name) ? ' (replaced)' : ''}`,
-      ),
-    });
-  // what a change of repo actor carried from the former one — its own settings, kept
-  if (symlink?.carries.length)
-    groups.push({
-      label: 'carried',
-      rows: symlink.carries.map(
-        (path) => `${path} → ${repoActorBrainDirRel}/${basename(path)}`,
-      ),
-    });
-  if (symlink?.drops.length)
-    groups.push({
-      label: 'dropped',
-      rows: symlink.drops.map(
-        (name) => `.claude/${name} — rhachet owns the boot context`,
-      ),
-    });
-
-  // the link itself — named only when this run changed it. FOUND means it was already
-  //   the link we wanted, which is no news
-  if (symlink && symlink.effect !== 'FOUND')
-    groups.push({
-      label: 'linked',
-      rows: [`.claude → ${repoActorBrainDirRel}`],
-    });
+  // whether the layout step itself has news — the corpus alone, re-rendered, is none
+  const hasLayoutNews = groups.length > 0;
 
   // the corpus. `created` and `changed` are different facts to a human: one says a
-  //   brain dir is new, the other says a live one just changed under its clones
+  //   brain dir is new, the other says a live one just changed under its clones. a
+  //   byte-identical re-render is neither, so it gets no row
   //   .note = `changed — now N`, never `upgraded — N`: a change may add roles or remove them, and
   //     N is the total the corpus holds now, not the count that moved
   //   .note = a live corpus whose last role left reads `emptied`, never `changed — now 0 roles`
@@ -100,10 +69,11 @@ export const asBrainDirSyncReportLines = (input: {
     if (isEmptied) return 'emptied — 0 roles';
     return `changed — now ${render.stats.roles} ${roleWord}`;
   })();
-  groups.push({
-    label: BRAIN_DIR_BOOT_FILENAMES.bootMd,
-    rows: [corpusRow],
-  });
+  if (render.bootMdChanged)
+    groups.push({
+      label: BRAIN_DIR_BOOT_FILENAMES.bootMd,
+      rows: [corpusRow],
+    });
 
   // a reset is never silent (S11): the human's hand edits were dropped, and they learn
   //   it here rather than by a later diff
@@ -113,32 +83,18 @@ export const asBrainDirSyncReportLines = (input: {
       rows: ['reset — hand edits dropped; rhachet owns this file'],
     });
 
-  // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
+  // a corpus that merely re-rendered, with no migration, no link change and no reset, is no news.
   //   under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest edit just moved
-  //   the roleset every clone of this actor boots. with no manifest the report stays as it was,
-  //   news only on a created corpus, so an absent actors.yml keeps today's output (the wish)
-  const isBootOnly = groups.length === 1;
+  //   the roleset every clone of this actor boots. with no manifest a re-render alone is the
+  //   daily brief edit, news only on a created corpus, so an absent actors.yml keeps today's
+  //   output (the wish)
   const isNewsOfCorpus =
     render.bootMdCreated || (isManifestRepo && render.bootMdChanged);
-  if (isBootOnly && !isNewsOfCorpus) return [];
+  const isNews = hasLayoutNews || isNewsOfCorpus || render.agentsMdReset;
+  if (!isNews) return [];
 
   return [
     `🧠 ${asBrainDirBootScopeLabel({ scope: render.scope })}`,
-    ...groups.flatMap((group, groupIndex) => {
-      const { branch: groupBranch, stem: groupStem } = asTreeBranch({
-        index: groupIndex,
-        count: groups.length,
-      });
-      return [
-        `   ${groupBranch} ${group.label}`,
-        ...group.rows.map((row, rowIndex) => {
-          const { branch: rowBranch } = asTreeBranch({
-            index: rowIndex,
-            count: group.rows.length,
-          });
-          return `   ${groupStem}${rowBranch} ${row}`;
-        }),
-      ];
-    }),
+    ...asBrainDirReportGroupLines({ groups }),
   ];
 };

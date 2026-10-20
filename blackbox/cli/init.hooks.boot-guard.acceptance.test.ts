@@ -3,6 +3,7 @@ import * as path from 'path';
 
 import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
+import { genHomeWithGroveState } from '@/blackbox/.test/infra/genHomeWithGroveState';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   getAllHookDispatchManifestRows,
@@ -70,12 +71,22 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-boot-guard-unset' }),
     );
+
+    // a HOME with a grove, one per scene, so the replaced settings.json row reads the same
+    //   on every box
+    const home = useBeforeAll(async () => ({
+      env: genHomeWithGroveState({ slug: 'boot-guard-unset-home', grove: 'present' }),
+    }));
     const roleDir = () =>
       path.join(repo.path, '.agent', 'repo=.this', 'role=any');
 
     when('[t0] init --hooks', () => {
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: repo.path,
+          env: home.env,
+        }),
       );
 
       then('exits with status 0', () => {
@@ -176,7 +187,11 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
 
     when('[t3] init --hooks runs again', () => {
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: repo.path,
+          env: home.env,
+        }),
       );
 
       then('findserts naught new', () => {
@@ -205,6 +220,12 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-boot-guard-custom' }),
     );
+
+    // a HOME with a grove, one per scene, so the replaced settings.json row reads the same
+    //   on every box
+    const home = useBeforeAll(async () => ({
+      env: genHomeWithGroveState({ slug: 'boot-guard-custom-home', grove: 'present' }),
+    }));
     const bootYmlPath = () =>
       path.join(repo.path, '.agent', 'repo=.this', 'role=any', 'boot.yml');
 
@@ -214,7 +235,11 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         content: await fs.readFile(bootYmlPath(), 'utf-8'),
       }));
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: repo.path,
+          env: home.env,
+        }),
       );
 
       then('exits with status 0', () => {

@@ -16,7 +16,14 @@ exports[`rhachet init --hooks given: [case7] a repo with an enrolled actor on di
 `;
 
 exports[`rhachet init --hooks given: [case8] a role that declares a role boot hook (D3) when: [t0] init --roles tester --hooks then: the init stdout is locked 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=tester
@@ -36,11 +43,6 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 ✨ 1 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  ├─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
-   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

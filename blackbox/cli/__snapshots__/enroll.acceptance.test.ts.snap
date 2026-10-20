@@ -356,6 +356,30 @@ exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a re
 "
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t2] a real settings.local.json sits in the actor brain dir at the next enroll then: the replace notice is locked to a snapshot 1`] = `
+"🧠 brain://hash=2e77f741
+   └─ replaced
+      └─ .agent/.actors/actor.via.hash=2e77f741/brain/.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t3] a bare enroll meets a real <repo>/.claude/settings.local.json then: the repo actor replace notice is locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   └─ replaced
+      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case2d] a repo still at the legacy repo actor dir, enrolled before any init when: [t0] a bare enroll runs then: the enroll report is locked, so what a human reads on the move is reviewable 1`] = `
 "ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 

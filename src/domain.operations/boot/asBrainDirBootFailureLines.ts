@@ -6,9 +6,11 @@ import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
 import type { BrainDirBootFailure } from './BrainDirBootRender';
 
 /**
- * .what = the stderr lines for one brain dir that failed to render: the scope as the headline,
+ * .what = the stderr lines for one brain dir that failed to sync: the scope as the headline,
  *         the error class and message as the first branch, then every metadata field the throw
  *         site supplied, the hint last
+ * .note = the headline says `not synced`, never `boot.md not written`: the repo actor renders its
+ *   boot before its layout, so a layout fault leaves a boot.md already written
  * .why = a sweep continues past a failure, so each failure must be named where a human reads it,
  *        with all its context and its fix, and never as a raw stack
  *
@@ -22,7 +24,7 @@ export const asBrainDirBootFailureLines = (input: {
 }): string[] => {
   const { cause } = input.failure;
   const label = asBrainDirBootScopeLabel({ scope: input.failure.scope });
-  const headline = `✗ ${label}/boot.md not written`;
+  const headline = `✗ ${label} not synced`;
 
   // the class name is the one token a reader greps: a HelpfulError's message already opens with
   // its `<glyph> <ClassName>:`, and an unclassified cause gets its bare class so it stays findable
