@@ -414,4 +414,37 @@ describe('genBrainCliConfigArtifact', () => {
       );
     },
   );
+
+  given('[case7] repo settings whose env map resets the clone depth', () => {
+    // 🔴 claude hands a settings `env` map to every tool shell. were the reset copied
+    //   into the artifact, a depth-1 reviewer's shell would read depth 0 and spawn again
+    const scene = useBeforeAll(async () => {
+      const repoPath = await createTestRepo({
+        env: { RHACHET_CLONE_DEPTH: '0', DEBUG: 'surf:*' },
+      });
+      return { repoPath };
+    });
+
+    when('[t0] enroll with mechanic role', () => {
+      const result = useBeforeAll(async () =>
+        genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: HASH_EXID,
+          repoPath: scene.repoPath,
+        }),
+      );
+
+      then(
+        'the artifact carries no depth key, and keeps the foreign key',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings = JSON.parse(content) as ClaudeCodeSettings;
+          expect(settings.env).toEqual({ DEBUG: 'surf:*' });
+        },
+      );
+    });
+  });
 });

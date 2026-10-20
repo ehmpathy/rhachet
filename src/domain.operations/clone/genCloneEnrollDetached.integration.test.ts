@@ -1,3 +1,4 @@
+import { MalfunctionError } from 'helpful-errors';
 import { getError, given, then, useThen, when } from 'test-fns';
 
 import { spawnSync } from 'node:child_process';
@@ -24,6 +25,7 @@ describe('genCloneEnrollDetached', () => {
       const result = useThen('it returns', async () =>
         genCloneEnrollDetached({
           execPath: process.execPath,
+          depth: 1,
           argv: [
             '-e',
             `console.log(JSON.stringify({ outcome: 'baked', serial: 'abc', slug: null, socketEligible: true }))`,
@@ -39,7 +41,11 @@ describe('genCloneEnrollDetached', () => {
           expect(result.outcome).toEqual('addressed');
           // the caller re-emits this line as-is for a json consumer, so a reshape here
           // would silently rewrite the machine contract
-          if (result.outcome !== 'addressed') throw new Error('unreachable');
+          if (result.outcome !== 'addressed')
+            throw new MalfunctionError(
+              'the host was expected to report an address',
+              { outcome: result.outcome },
+            );
           expect(JSON.parse(result.handoff)).toEqual({
             outcome: 'baked',
             serial: 'abc',
@@ -60,6 +66,7 @@ describe('genCloneEnrollDetached', () => {
       const result = useThen('it returns rather than throws', async () =>
         genCloneEnrollDetached({
           execPath: process.execPath,
+          depth: 1,
           argv: ['-e', 'process.exit(2)'],
           cwd: process.cwd(),
           timeoutMs: 20_000,
@@ -68,7 +75,11 @@ describe('genCloneEnrollDetached', () => {
 
       then('the outcome is SPOKE and it wears the host\u2019s code', () => {
         expect(result.outcome).toEqual('spoke');
-        if (result.outcome !== 'spoke') throw new Error('unreachable');
+        if (result.outcome !== 'spoke')
+          throw new MalfunctionError(
+            'the host was expected to refuse with its own code',
+            { outcome: result.outcome },
+          );
         expect(result.code).toEqual(2);
       });
     });
@@ -87,6 +98,7 @@ describe('genCloneEnrollDetached', () => {
         const error = await getError(
           genCloneEnrollDetached({
             execPath: process.execPath,
+            depth: 1,
             argv: ['-e', 'process.exit(0)'],
             cwd: process.cwd(),
             timeoutMs: 20_000,
@@ -134,6 +146,7 @@ describe('genCloneEnrollDetached', () => {
         const error = await getError(
           genCloneEnrollDetached({
             execPath: process.execPath,
+            depth: 1,
             argv: ['-e', 'setTimeout(() => {}, 4000)'],
             cwd: process.cwd(),
             timeoutMs: 1_000,
@@ -169,7 +182,7 @@ describe('genCloneEnrollDetached', () => {
           const script = [
             `const { genCloneEnrollDetached } = require(${JSON.stringify(join(__dirname, 'genCloneEnrollDetached.ts'))});`,
             'genCloneEnrollDetached({',
-            '  execPath: process.execPath,',
+            '  execPath: process.execPath, depth: 1,',
             // the host speaks on stderr, hands off, then lives on past the caller
             `  argv: ['-e', "console.error('host.pre'); console.log(JSON.stringify({ outcome: 'baked' })); setTimeout(() => {}, 30000)"],`,
             '  cwd: process.cwd(),',
@@ -211,4 +224,32 @@ describe('genCloneEnrollDetached', () => {
       });
     },
   );
+
+  given('[case6] a caller that decided depth 0 at its tty', () => {
+    // 🔴 the host has no tty, so it must take the caller's decision, never re-read one.
+    //   a host that dropped `depthMinted` would mint a human's `--async` clone at depth 1
+    when('[t0] the host reports the depth env it was handed', () => {
+      const result = useThen('it returns', async () =>
+        genCloneEnrollDetached({
+          execPath: process.execPath,
+          depth: 0,
+          argv: [
+            '-e',
+            `console.log(JSON.stringify({ minted: process.env.RHACHET_CLONE_DEPTH_MINTED }))`,
+          ],
+          cwd: process.cwd(),
+          timeoutMs: 20_000,
+        }),
+      );
+
+      then('the host is handed the decided depth', () => {
+        if (result.outcome !== 'addressed')
+          throw new MalfunctionError(
+            'the host was expected to report an address',
+            { outcome: result.outcome },
+          );
+        expect(JSON.parse(result.handoff)).toEqual({ minted: '0' });
+      });
+    });
+  });
 });

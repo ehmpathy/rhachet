@@ -1,4 +1,4 @@
-import { ConstraintError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { asLegibleScreen } from './asLegibleScreen';
 import { genRealBrainSlot } from './genRealBrainSlot';
@@ -12,11 +12,13 @@ import {
   spawnRhachetCliBackground,
   type RhachetBackgroundHandle,
 } from './spawnRhachetCliBackground';
+import { waitForFile } from './waitForFile';
 
 import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -81,6 +83,112 @@ export const setupRichStubBrainPath = (input: { dir: string }): string => {
   );
   chmodSync(shimPath, 0o755);
   return `${binDir}:${process.env.PATH ?? ''}`;
+};
+
+/**
+ * .what = the clone-identity env the rich stub dumped into its actor's brain dir
+ * .why = a child's env is unobservable from outside — the pty owns its stdio — so the
+ *   stub writes its clone keys to `$CLAUDE_CONFIG_DIR/stub.env.json`, and enroll points
+ *   that var at the actor's brain dir. one reader for every suite that grades it
+ *
+ * .note = a specific roleset lands in its own hash actor; a bare enroll lands in the repo
+ *   actor (`actor.via.repo=ambient`). it reads the one hash actor, else the repo actor,
+ *   and fails loud when neither exists, so a test names the true cause, not an absent field
+ * .note = the stub may truncate then fill the dump, so the read retries a SyntaxError
+ *   (5ms, doubled, capped at 200ms) under a 10s bound; any other fault throws at once
+ */
+export const readStubEnvDumped = async (input: {
+  dir: string;
+}): Promise<{
+  serial: string | null;
+  socket: string | null;
+  depth: string | null;
+  depthMinted: string | null;
+  hostDetached: string | null;
+}> => {
+  // find the enrolled actor: the one hash actor, else the repo actor
+  const actorsDir = join(input.dir, '.agent/.actors');
+  const names = existsSync(actorsDir) ? readdirSync(actorsDir) : [];
+  const actor =
+    names.find((name) => name.startsWith('actor.via.hash=')) ??
+    names.find((name) => name === 'actor.via.repo=ambient');
+  if (!actor)
+    throw new MalfunctionError('no enrolled actor dir after enroll', {
+      actorsDir,
+      isActorsDirPresent: existsSync(actorsDir),
+      hint: 'the enroll must exit 0 and write its actor dir before this read; check the enroll stderr above',
+    });
+
+  // read the dump; a detached host hands off before the child dumps
+  const dumpPath = join(actorsDir, actor, 'brain/.claude/stub.env.json');
+  await waitForFile({ path: dumpPath });
+  const dump = await getOneJsonRecordOnceWhole({ path: dumpPath });
+
+  // coerce each field into the declared shape, so an omitted key reads as null
+  const asField = (key: string): string | null => {
+    const value = dump[key];
+    return typeof value === 'string' ? value : null;
+  };
+  return {
+    serial: asField('serial'),
+    socket: asField('socket'),
+    depth: asField('depth'),
+    depthMinted: asField('depthMinted'),
+    hostDetached: asField('hostDetached'),
+  };
+};
+
+/**
+ * .what = read a json object another process writes, once its content parses whole
+ * .why = the writer can truncate then fill the file, so a read right after it appears may
+ *   meet zero or half the bytes. only a SyntaxError retries
+ */
+const getOneJsonRecordOnceWhole = async (input: {
+  path: string;
+}): Promise<Record<string, unknown>> => {
+  const deadline = Date.now() + 10_000;
+  // .note = deliberate mutation — `delayMs` is the backoff induction variable; bounded to this loop
+  for (let delayMs = 5; ; delayMs = Math.min(delayMs * 2, 200)) {
+    try {
+      return JSON.parse(readFileSync(input.path, 'utf8'));
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      if (Date.now() >= deadline)
+        throw new MalfunctionError('the json file never parsed whole', {
+          path: input.path,
+          cause: error,
+          hint: 'the writer may have died mid-write; read the file to see what it holds',
+        });
+      await new Promise<void>((done) => setTimeout(done, delayMs));
+    }
+  }
+};
+
+/**
+ * .what = wait for the stub's ready line, and read a refusal as `ready: false`
+ * .why = a refused enroll exits in milliseconds with no ready line, so the wait is the
+ *   instrument: it resolves on the green path and rejects on the red. only the two
+ *   rejections the wait itself raises (an exit before the match, or its bound) mean
+ *   "not ready" — any other error is a harness fault, and it is rethrown
+ */
+export const waitForReadyOrRefusal = async (input: {
+  bg: RhachetBackgroundHandle;
+  timeoutMs: number;
+}): Promise<{ ready: boolean }> => {
+  try {
+    await input.bg.waitForOutput({
+      pattern: /ready serial=([0-9a-f-]{36})/,
+      timeoutMs: input.timeoutMs,
+    });
+    return { ready: true };
+  } catch (error) {
+    if (!(error instanceof ConstraintError)) throw error;
+    const isWaitOutcome =
+      error.message.includes('rhachet exited (code') ||
+      error.message.includes('timed out after');
+    if (!isWaitOutcome) throw error;
+    return { ready: false };
+  }
 };
 
 /**

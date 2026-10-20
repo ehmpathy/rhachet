@@ -78,11 +78,11 @@ export const genCloneSpawn = async (
     /** the loaded emulator, or null when the host could not load it */
     emulator: EmulatorModule | null;
     /**
-     * how deep in the enroll chain this clone is born (`asCloneEnrollDepth`)
+     * how deep in the spawn chain this clone is born (`asCloneSpawnDepth`)
      *
      * .why it reaches BOTH branches = the depth a clone carries is a fact about the
      *   clone, never about its socket. a plain-spawn clone still has a place in the
-     *   chain, so its own enroll must be bounded by the same budget
+     *   chain, so its own enroll must be bounded by the same spawn depth limit
      */
     depth: number;
   },

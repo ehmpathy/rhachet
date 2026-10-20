@@ -1,4 +1,5 @@
-import { given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockedBrainOutput } from '@src/.test.assets/genMockedBrainOutput';
@@ -6,6 +7,7 @@ import { genSampleBrainSpec } from '@src/.test.assets/genSampleBrainSpec';
 import { BrainAtom } from '@src/domain.objects/BrainAtom';
 import { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { ACTOR_ASK_DEFAULT_SCHEMA, actorAsk } from './actorAsk';
 
@@ -66,6 +68,29 @@ describe('actorAsk', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  // pin the caller to a no-tty depth-0 spawn, so the depth scope reads the var
+  // as a brain's tool shell does, whatever terminal or clone runs the suite
+  const ttyBefore = process.stdin.isTTY;
+  const depthBefore = process.env[CLONE_ENV_KEYS.depth];
+  beforeAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: false,
+      configurable: true,
+    });
+  });
+  beforeEach(() => {
+    process.env[CLONE_ENV_KEYS.depth] = '0';
+  });
+  afterAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: ttyBefore,
+      configurable: true,
+    });
+    delete process.env[CLONE_ENV_KEYS.depth];
+    if (depthBefore !== undefined)
+      process.env[CLONE_ENV_KEYS.depth] = depthBefore;
   });
 
   given('[case1] a valid role and brain', () => {
@@ -235,6 +260,72 @@ describe('actorAsk', () => {
         // @ts-expect-error - answer property does not exist on { count: number }
         const _answer = result.output.answer;
         expect(_answer).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case6] a caller at depth 1, as a review clone is', () => {
+    when('[t0] actorAsk is called with a repl, as `rhx ask` does', () => {
+      then('it is refused as a constraint, and no brain runs', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        const error = await getError(() =>
+          actorAsk({
+            role: testRole,
+            brain: mockBrainRepl,
+            prompt: 'hello',
+            schema: ACTOR_ASK_DEFAULT_SCHEMA,
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(mockBrainRepl.ask).not.toHaveBeenCalled();
+      });
+    });
+
+    when('[t1] actorAsk is called with an atom', () => {
+      then(
+        'it runs: an atom is one inference call, never a spawn',
+        async () => {
+          process.env[CLONE_ENV_KEYS.depth] = '1';
+          const result = await actorAsk({
+            role: testRole,
+            brain: mockBrainAtom,
+            prompt: 'hello',
+            schema: ACTOR_ASK_DEFAULT_SCHEMA,
+          });
+          expect(result.output).toEqual({ answer: 'hello from the atom' });
+          expect(mockBrainAtom.ask).toHaveBeenCalledTimes(1);
+        },
+      );
+    });
+  });
+
+  given('[case7] a caller at depth 0', () => {
+    when('[t0] actorAsk is called with a repl', () => {
+      then('the brain reads depth 1, the depth it is born at', async () => {
+        const seen: Array<string | undefined> = [];
+        const brainRecorder = new BrainRepl({
+          repo: 'test',
+          slug: 'test/recorder',
+          description: 'records the depth it runs at',
+          spec: genSampleBrainSpec(),
+          act: jest.fn(),
+          ask: (async () => {
+            seen.push(process.env[CLONE_ENV_KEYS.depth]);
+            return genMockedBrainOutput({
+              output: { answer: 'recorded' },
+              brainChoice: 'repl',
+            });
+          }) as unknown as BrainRepl['ask'],
+        });
+        await actorAsk({
+          role: testRole,
+          brain: brainRecorder,
+          prompt: 'hello',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
+        });
+        expect(seen).toEqual(['1']);
+        expect(process.env[CLONE_ENV_KEYS.depth]).toEqual('0');
       });
     });
   });

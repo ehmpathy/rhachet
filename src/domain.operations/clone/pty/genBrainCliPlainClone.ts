@@ -17,7 +17,7 @@ import { spawn } from 'node:child_process';
  *
  * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial) and its own
  *   depth, so even a socket-less clone can name itself via `clone whoami` and is bound
- *   by the same enroll-depth budget. the env-injection shape is WET across this +
+ *   by the same spawn depth limit. the env-injection shape is WET across this +
  *   genBrainCliPtyClone by design; a THIRD spawn branch (the dream's `wake`) is the
  *   rule-of-three trigger to extract a shared genCloneChildEnv
  */
@@ -26,7 +26,7 @@ export const genBrainCliPlainClone = (input: {
   args: string[];
   cwd: string;
   serial: string;
-  /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
+  /** how deep in the enroll chain this clone sits (`asCloneSpawnDepth`) */
   depth: number;
   brainDir: string;
 }): {

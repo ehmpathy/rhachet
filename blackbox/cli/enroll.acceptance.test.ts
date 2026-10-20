@@ -7,6 +7,7 @@ import {
   asCloneSayHeadSnapshotSafe,
   expectCloneSaySuccessTree,
   setupEnrollFixture,
+  readStubEnvDumped,
   setupRichStubBrainPath,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
@@ -1861,17 +1862,17 @@ describe('rhx enroll --roles (acceptance)', () => {
 });
 
 /**
- * .what = blackbox acceptance for the clone-enroll DEPTH BUDGET
+ * .what = blackbox acceptance for the clone spawn DEPTH LIMIT, at the enroll door
  *
  * .why = `rhx enroll` is now reachable by a clone (the `attended` axis), so a chain
- *   of clones could otherwise grow without bound. `CLONE_ENROLL_DEPTH_MAX` caps it at
+ *   of clones could otherwise grow without bound. `CLONE_SPAWN_DEPTH_MAX` caps it at
  *   one hop: a human's clone may enroll a peer; that peer may enroll no one.
  *
- * ⚠️ the budget is carried in the CHILD ENV (`RHACHET_CLONE_DEPTH`), never on disk or
+ * ⚠️ the depth is carried in the CHILD ENV (`RHACHET_CLONE_DEPTH`), never on disk or
  *   in a flag — so the only honest surface test is one that sets that env on the
  *   subprocess, which is exactly what the harness's `env` seam is for.
  *
- * ⚠️ the guard fires BEFORE any clone dir or child process exists, so an over-budget
+ * ⚠️ the guard fires BEFORE any clone dir or child process exists, so an over-limit
  *   enroll leaves no half-formed chain behind. that is why `[case1]` needs no stub
  *   brain on PATH — no child is ever spawned.
  *
@@ -1880,11 +1881,11 @@ describe('rhx enroll --roles (acceptance)', () => {
  *   | mutation of the guard              | this file |
  *   |------------------------------------|-----------|
  *   | the `depth > MAX` check is dropped  | 🔴 `[case1]` red — a depth-2 enroll is admitted |
- *   | `asCloneEnrollDepth` drops its `+1` | 🔴 `[case1]` red — the caller's depth is read as the child's |
- *   | the budget is cut to 0              | 🔴 `[case2]` red — a clone can enroll no peer at all |
+ *   | `asCloneSpawnDepth` drops its `+1` | 🔴 `[case1]` red — the caller's depth is read as the child's |
+ *   | the limit is cut to 0               | 🔴 `[case2]` red — a clone can enroll no peer at all |
  *   | restored                            | 🟢 both green |
  */
-describe('rhx enroll depth budget (acceptance)', () => {
+describe('rhx enroll depth limit (acceptance)', () => {
   const setupDepthFixture = (dir: string): void => {
     setupRoleFixtureRepo({ dir });
     invokeRhachetCliBinary({
@@ -1921,7 +1922,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
           hint: string | null;
         };
         expect(shape.class).toEqual('ConstraintError');
-        expect(shape.message).toContain('depth budget spent');
+        expect(shape.message).toContain('clone spawn depth limit reached');
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1945,7 +1946,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
      *   — was unsnapped, on the one channel a human sees.
      *
      * ⇒ a regression in the frame (a dropped glyph, an abridged class, a hint buried under
-     *   `depthRequested`) would ship green: `[t0]` reads json and never looks at stderr's
+     *   `depth`) would ship green: `[t0]` reads json and never looks at stderr's
      *   human shape. this is the clamp that reads it.
      *
      * .note = the frame is fully deterministic here — no serial, no temp path, no clock —
@@ -1974,18 +1975,21 @@ describe('rhx enroll depth budget (acceptance)', () => {
         //   here where a resnap cannot paper over them
         //   (`rule.require.unabridged-error-prefix`)
         expect(run.stderr).toContain(
-          '✋ ConstraintError: clone enroll depth budget spent',
+          '✋ ConstraintError: clone spawn depth limit reached',
         );
       });
 
       then('the hint sits ABOVE the bulk — the fix reads first', () => {
         // `asMetadataHintFirst` promotes `hint`; a regression that dropped it would bury
-        // the one sentence that names the fix under `depthRequested` / `depthMax`
+        // the one sentence that names the fix under `depth` / `depthMaxToSpawn`
         const out = run.stderr;
         expect(out.indexOf('"hint"')).toBeGreaterThan(-1);
-        expect(out.indexOf('"hint"')).toBeLessThan(
-          out.indexOf('"depthRequested"'),
-        );
+        expect(out.indexOf('"hint"')).toBeLessThan(out.indexOf('"depth"'));
+      });
+
+      then('the refusal names the caller depth and the limit', () => {
+        expect(run.stderr).toContain('"depth": 1');
+        expect(run.stderr).toContain('"depthMaxToSpawn": 0');
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1999,7 +2003,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
   });
 
   given('[case2] a linked repo, the caller is a clone at depth 0', () => {
-    // 🚨 the row the budget exists to PERMIT. a cap that refused this would make
+    // 🚨 the row the limit exists to PERMIT. a cap that refused this would make
     //   `rhx enroll` unreachable by a clone at all — the very defect the `attended`
     //   axis repaired — so the permit case carries as much weight as the refusal
     const dir = genTempDir({ slug: 'enroll-depth-left' });
@@ -2019,8 +2023,8 @@ describe('rhx enroll depth budget (acceptance)', () => {
         }),
       );
 
-      then('the budget does NOT refuse it', () => {
-        expect(run.stderr).not.toContain('depth budget spent');
+      then('the limit does NOT refuse it', () => {
+        expect(run.stderr).not.toContain('clone spawn depth limit reached');
         expect(run.status).toEqual(0);
       });
     });
@@ -2032,10 +2036,10 @@ describe('rhx enroll depth budget (acceptance)', () => {
    *   - a no-tty enroll takes the `async` mode, so the clone is not stood up by the
    *     caller at all — the caller re-execs itself as a detached host, and THAT process
    *     re-derives the depth from its own inherited env (`genCloneEnrollDetached`)
-   *   - 🔴 so the budget crosses a process seam, and its only carrier is one inherited
+   *   - 🔴 so the depth crosses a process seam, and its only carrier is one inherited
    *     env key. strip `RHACHET_CLONE_DEPTH` from the host's env and it reads 0, so a
    *     depth-0 clone's `--async` peer is minted at depth 0 too — every detached link
-   *     resets the counter, and the chain `CLONE_ENROLL_DEPTH_MAX` exists to bound
+   *     resets the counter, and the chain `CLONE_SPAWN_DEPTH_MAX` exists to bound
    *     becomes unbounded
    *   - case1/case2 cannot catch that: both grade the CALLER's refusal, which fires
    *     before the detach. this grades what the HOST handed the child
@@ -2050,6 +2054,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
    *   | mutation | result |
    *   |---|---|
    *   | `genCloneEnrollDetached` spawns with the depth key stripped | 🔴 red — depth reads `'0'`, never `'1'` |
+   *   | the host reads `hostDetached` and keeps it in its env | 🔴 red — the child dumps `hostDetached: '1'` |
    */
   given('[case3] a clone at depth 0 enrolls a peer with NO tty', () => {
     const dir = genTempDir({ slug: 'enroll-depth-detached' });
@@ -2097,10 +2102,10 @@ describe('rhx enroll depth budget (acceptance)', () => {
 
       then('the enroll succeeds', () => {
         expect(run.status).toEqual(0);
-        expect(run.stderr).not.toContain('depth budget spent');
+        expect(run.stderr).not.toContain('clone spawn depth limit reached');
       });
 
-      then('🔴 the child was minted at depth 1 — the budget crossed the seam', async () => {
+      then('🔴 the child was minted at depth 1 — the depth crossed the seam', async () => {
         const dumped = await readStubEnv();
         expect(dumped.depth).toEqual('1');
       });
@@ -2110,6 +2115,15 @@ describe('rhx enroll depth budget (acceptance)', () => {
         const handoff = JSON.parse(run.stdout) as { serial: string };
         expect(dumped.serial).toEqual(handoff.serial);
         expect(dumped.socket).toContain(handoff.serial);
+      });
+
+      // 🔴 the host consumes BOTH of its handoff keys before it spawns. a child that
+      //   inherits the host marker reads itself as a host, so its own `--async` enroll
+      //   for a peer never detaches (fulcrum F9)
+      then('the child inherits neither of the host’s handoff keys', async () => {
+        const dumped = await readStubEnv();
+        expect(dumped.hostDetached).toEqual(null);
+        expect(dumped.depthMinted).toEqual(null);
       });
     });
   });
@@ -2207,6 +2221,19 @@ describe('rhx enroll depth budget (acceptance)', () => {
 
         expect(reasons).toContain(motive);
         expect(reasons).not.toContain('@stdin');
+      });
+
+      // 🔴 a pipe is no tty, so the sanctioned `--reason @stdin` channel mints its clone
+      //   one level down (seed S1). this pins that cost, so a change to the tty rule
+      //   cannot move it in silence; the notice a human reads is clamped in
+      //   `getCloneSpawnDepthNotice.test.ts`, since a piped-stdio spawn has no tty on stderr
+      then('the piped enroll mints its child at depth 1 — a pipe is no tty', async () => {
+        const dumped = await readStubEnvDumped({ dir });
+        expect(dumped.depth).toEqual('1');
+      });
+
+      then('a headless caller reads no depth notice — its stderr is no tty', () => {
+        expect(run.stderr).not.toContain('minted at depth');
       });
     });
   });
@@ -2890,6 +2917,9 @@ describe('rhx enroll --help (acceptance)', () => {
         expect(run.stdout).toContain('--no-socket');
         expect(run.stdout).toContain('--reason');
         expect(run.stdout).toContain('--output');
+        expect(run.stdout).toContain('--watch');
+        expect(run.stdout).toContain('--async');
+        expect(run.stdout).toContain('--await');
       });
 
       then('the help names the bare-delta alias of --roles', () => {

@@ -18,13 +18,22 @@ export const CLONE_ENV_KEYS = {
   serial: 'RHACHET_CLONE_SERIAL',
   socket: 'RHACHET_CLONE_SOCKET',
   /**
-   * .what = how deep in the enroll chain this clone sits — `0` for one a human
-   *   enrolled, `1` for a peer that clone enrolled, and so on
-   * .why = the depth budget (`asCloneEnrollDepth`) reads it to bound the chain. an
-   *   ABSENT value is the honest signal for "no clone spawned this process", which
-   *   is what makes a human caller depth-free rather than depth-zero
+   * .what = how deep in the spawn chain this clone or repl brain sits — `0` for one a
+   *   human enrolled at a tty, `1` for any spawn below it
+   * .why = the depth limit (`asCloneSpawnDepth`) reads it to bound the chain. an
+   *   ABSENT value reads as a depth-0 caller, so its no-tty spawn is depth 1; a tty
+   *   enroll ignores the value, so an inherited var never demotes a human's clone
    */
   depth: 'RHACHET_CLONE_DEPTH',
+  /**
+   * .what = the depth an `--async` enroll's caller decided for the clone, handed to
+   *   the detached host it re-execs
+   * .why = the caller decides depth in the foreground, where the tty is. the host
+   *   runs with no tty, so a re-read there would mint a tty enroll's clone at depth 1
+   *
+   * .note = set on the host's env alone; the host drops it before it spawns a child
+   */
+  depthMinted: 'RHACHET_CLONE_DEPTH_MINTED',
   /**
    * .what = set on the re-exec'd enroll that HOSTS a detached clone — the one
    *   process that owns the pty master and the reach socket

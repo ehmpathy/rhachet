@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`replDoorRealSupplier.realnode.acceptance given: [case1] the real anthropic repl, chosen through the contract when: [t2] a depth-1 caller calls ask then: the refusal a caller reads matches the snapshot 1`] = `
+"✋ ConstraintError: clone spawn depth limit reached
+
+{
+  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
+  "depth": 1,
+  "depthMaxToSpawn": 0
+}"
+`;

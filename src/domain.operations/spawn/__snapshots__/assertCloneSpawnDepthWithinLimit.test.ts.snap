@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertCloneSpawnDepthWithinLimit given: [case2] a child that would sit at depth 2 when: [t0] a depth-1 clone tries to spawn then: it refuses as a constraint that names the limit 1`] = `
+"✋ ConstraintError: clone spawn depth limit reached
+
+{
+  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
+  "depth": 1,
+  "depthMaxToSpawn": 0
+}"
+`;

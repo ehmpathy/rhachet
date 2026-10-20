@@ -99,7 +99,7 @@ export const genBrainCliPtyClone = async (
     cwd: string;
     serial: string;
     socketPath: string;
-    /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
+    /** how deep in the enroll chain this clone sits (`asCloneSpawnDepth`) */
     depth: number;
     brainDir: string;
   },
@@ -122,7 +122,7 @@ export const genBrainCliPtyClone = async (
       ...process.env,
       [CLONE_ENV_KEYS.serial]: input.serial,
       [CLONE_ENV_KEYS.socket]: input.socketPath,
-      // its place in the enroll chain, so its OWN `rhx enroll` is bounded by the budget
+      // its place in the spawn chain, so its OWN `rhx enroll` is bounded by the spawn depth limit
       [CLONE_ENV_KEYS.depth]: String(input.depth),
     },
     brainDir: input.brainDir,

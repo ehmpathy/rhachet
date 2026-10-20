@@ -1,9 +1,11 @@
-import { given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { ActorRoleSkill } from '@src/domain.objects/ActorRoleSkill';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { actorAct } from './actorAct';
 
@@ -61,6 +63,29 @@ describe('actorAct', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  // pin the caller to a no-tty depth-0 spawn, so the depth scope reads the var
+  // as a brain's tool shell does, whatever terminal or clone runs the suite
+  const ttyBefore = process.stdin.isTTY;
+  const depthBefore = process.env[CLONE_ENV_KEYS.depth];
+  beforeAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: false,
+      configurable: true,
+    });
+  });
+  beforeEach(() => {
+    process.env[CLONE_ENV_KEYS.depth] = '0';
+  });
+  afterAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: ttyBefore,
+      configurable: true,
+    });
+    delete process.env[CLONE_ENV_KEYS.depth];
+    if (depthBefore !== undefined)
+      process.env[CLONE_ENV_KEYS.depth] = depthBefore;
   });
 
   given('[case1] a pre-resolved rigid skill', () => {
@@ -136,6 +161,48 @@ describe('actorAct', () => {
           }),
           undefined, // context is undefined when not provided
         );
+      });
+    });
+  });
+
+  given('[case3] a caller at depth 1, as a review clone is', () => {
+    when('[t0] actorAct is called, as `rhx act` and `clone.act` do', () => {
+      then('it is refused as a constraint, and no brain runs', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        const error = await getError(() =>
+          actorAct({
+            role: testRole,
+            brain: mockBrain,
+            skill: testSkill,
+            args: { content: 'hello' },
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(mockBrain.act).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  given('[case4] a caller at depth 0', () => {
+    when('[t0] actorAct is called', () => {
+      then('the brain reads depth 1, the depth it is born at', async () => {
+        const seen: Array<string | undefined> = [];
+        const brainRecorder = {
+          ...mockBrain,
+          act: async () => {
+            seen.push(process.env[CLONE_ENV_KEYS.depth]);
+            return { summary: 'test summary' };
+          },
+        } as unknown as BrainRepl;
+        await actorAct({
+          role: testRole,
+          brain: brainRecorder,
+          skill: testSkill,
+          args: { content: 'hello' },
+        });
+        expect(seen).toEqual(['1']);
+        expect(process.env[CLONE_ENV_KEYS.depth]).toEqual('0');
       });
     });
   });

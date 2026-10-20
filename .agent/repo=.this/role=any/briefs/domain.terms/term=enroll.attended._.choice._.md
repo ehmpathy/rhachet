@@ -71,7 +71,7 @@ the enroll read the second and called it the first. a clone invokes `rhx enroll`
 ## ⚠️ .the boundary — attended does not mean UNBOUNDED
 
 attendance says a socket is warranted. it says naught about how many hops of clone may enroll clone
-— that is `term=enroll.depth`, a separate budget, and the two are checked independently. an enroll
+— that is `term=spawn.depth`, a separate limit, and the two are checked independently. an enroll
 can be attended and still refused for depth.
 
 ## .refs

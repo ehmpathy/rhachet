@@ -96,7 +96,7 @@ export const genCloneOndisk = async (
      */
     mode: 'watch' | 'async' | 'await';
     noSocket: boolean;
-    /** how deep in the enroll chain this clone is born (`asCloneEnrollDepth`) */
+    /** how deep in the enroll chain this clone is born (`asCloneSpawnDepth`) */
     depth: number;
   },
   context: ContextOfRepoRoles & {

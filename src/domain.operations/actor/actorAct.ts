@@ -3,6 +3,7 @@ import type { BrainOutput } from '@src/domain.objects/BrainOutput';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import type { Role } from '@src/domain.objects/Role';
 import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
+import { asBrainReplWithSpawnDepthScope } from '@src/domain.operations/brain/asBrainReplWithSpawnDepthScope';
 import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
 
 /**
@@ -30,9 +31,9 @@ export const actorAct = async <TOutput, TContext = unknown>(
     },
   });
 
-  // execute rigid skill with brain
+  // execute rigid skill with brain; a repl brain is a spawn, so it runs inside the depth scope
   // note: cast context to any — actor passes through, brain validates at runtime
-  const result = await input.brain.act<TOutput>(
+  const result = await asBrainReplWithSpawnDepthScope(input.brain).act<TOutput>(
     {
       role: { briefs },
       prompt: `Execute skill "${input.skill.slug}" with args: ${JSON.stringify(input.args)}`,

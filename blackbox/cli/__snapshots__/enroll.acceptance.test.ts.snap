@@ -41,7 +41,9 @@ Options:
                       (rhx enroll claude -driver ≡ --roles -driver)
   --as <address>      name the clone with a stable handle (@:<slug>)
   --no-socket         enroll without a managed reach socket
-  --reason <text>     why this enrollment happened (or @stdin)
+  --reason <text>     why this enrollment happened (or @stdin — a pipe on stdin
+                      is no tty, so the clone is minted at depth 1 and cannot
+                      spawn)
   --watch             hold the clone in the foreground (default at a terminal)
   --async             report the clone address and exit (default with no
                       terminal)
@@ -774,30 +776,30 @@ exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`c
 "
 `;
 
-exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
+exports[`rhx enroll depth limit (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
 "{
   "class": "ConstraintError",
-  "message": "clone enroll depth budget spent",
-  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
+  "message": "clone spawn depth limit reached",
+  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
   "reachState": null,
   "reachCause": null,
   "metadata": {
-    "depthRequested": 2,
-    "depthMax": 1,
-    "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up"
+    "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
+    "depth": 1,
+    "depthMaxToSpawn": 0
   }
 }
 "
 `;
 
-exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
+exports[`rhx enroll depth limit (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: clone enroll depth budget spent
+✋ ConstraintError: clone spawn depth limit reached
 
 {
-  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
-  "depthRequested": 2,
-  "depthMax": 1
+  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
+  "depth": 1,
+  "depthMaxToSpawn": 0
 }
 
 "
