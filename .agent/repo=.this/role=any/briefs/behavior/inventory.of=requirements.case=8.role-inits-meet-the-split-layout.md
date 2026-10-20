@@ -9,6 +9,10 @@ stays.
 
 - every brain dir holds `settings.of.repo.json` as a real file: `{}` when absent, an extant one never
   touched, a symlink or a dir at that name refused before any change. the same for every actor
+- amended 2026-10-16, by the wisher's ask to always exclude the home `CLAUDE.md` (seed S5): the repo
+  actor's `settings.of.repo.json` gains one key, `claudeMdExcludes`, upserted at each layout step.
+  every other key it holds stays as written (`inventory.of=requirements.case=11`). the wisher
+  confirmed this amendment, 2026-10-16
 - `rhx init --roles …` and `rhx upgrade` put the repo actor's brain dir in the layout BEFORE the
   role inits run: the legacy repo actor dir moves, `<repo>/.claude` links to the brain dir, and the
   layout findsert runs. the boot render, the delta re-derive, the active actor sweep and the hook
@@ -43,7 +47,7 @@ stays.
 | tier | test | status |
 |---|---|---|
 | integration | `src/domain.operations/actor/enrolled/setBrainDirSettingsLayout.integration.test.ts` [case1] — a fresh brain dir gets `settings.of.repo.json` `{}`; [case8] — an extant one is untouched; [case9] — a symlink is refused and naught changes | ✅ green, 2026-10-12 |
-| integration | `src/domain.operations/init/boots/setRepoActorBrainDirLayout.integration.test.ts` [case1] — a fresh repo gets the repo actor dir, the `<repo>/.claude` link, the grove arrows and `settings.of.repo.json` `{}`, and a rerun is a no-op; [case2] — a legacy `actor.via.slug=.default` dir moves to `actor.via.repo=ambient`; [case3] — an extant `settings.of.repo.json` is untouched | ✅ green, 2026-10-12 |
+| integration | `src/domain.operations/init/boots/setRepoActorBrainDirLayout.integration.test.ts` [case1] — a fresh repo gets the repo actor dir, the `<repo>/.claude` link, the grove arrows and a `settings.of.repo.json` that holds only `claudeMdExcludes`, and a rerun is a no-op; [case2] — a legacy `actor.via.slug=.default` dir moves to `actor.via.repo=ambient`; [case3] — an extant `settings.of.repo.json` keeps every key, gains only `claudeMdExcludes`, and a rerun leaves it byte-identical | ✅ green, 2026-10-19 |
 | integration | `src/contract/cli/invokeRolesInit.integration.test.ts` [case3] — `rhx roles init` on a legacy repo: the init finds `settings.of.repo.json` in place, its write holds, and `settings.json` is the grove link | ✅ green, 2026-10-13 |
 | integration | `src/domain.operations/brains/getBrainsDetectedAndSupplied.integration.test.ts` [case1]–[case3] — claude kept when supplied or faulted, skipped when unsupplied | ✅ green, 2026-10-12 |
 | acceptance | `blackbox/cli/role-inits-meet-split-layout.acceptance.test.ts` [case1] — a legacy repo, one `rhx init --roles tester --hooks`: the init's allow and the synced hooks both sit in `settings.of.repo.json`, `settings.json` is the arrow, home untouched; [case2] — a migrated repo with no hook sync gets `settings.of.repo.json`; [case3] — the same as [case1] via one `rhx upgrade` | ✅ green, 2026-10-12 |

@@ -26,6 +26,13 @@ export type BrainDirBootRender = {
    *        distinction is knowable only at write time, so it is captured here
    */
   bootMdCreated: boolean;
+  /**
+   * .what = true where this render wrote bytes that differ from the prior boot.md
+   * .why = `upgraded` claims a live brain dir just changed under its clones; a
+   *        byte-identical re-render changed naught, so the report must not say so.
+   *        like `bootMdCreated`, it is knowable only at write time
+   */
+  bootMdChanged: boolean;
 };
 
 /**

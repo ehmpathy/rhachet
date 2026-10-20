@@ -1,8 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genHomeWithGroveState } from '@/blackbox/.test/infra/genHomeWithGroveState';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -24,7 +25,10 @@ const invokeWithoutGrove = (
 ): ReturnType<typeof invokeRhachetCliBinary> =>
   invokeRhachetCliBinary({
     ...input,
-    env: { HOME: genTempDir({ slug: 'init-hooks-home' }), ...input.env },
+    env: {
+      ...genHomeWithGroveState({ slug: 'init-hooks-home', grove: 'absent' }),
+      ...input.env,
+    },
   });
 
 /**

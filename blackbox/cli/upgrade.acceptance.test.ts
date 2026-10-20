@@ -6,6 +6,7 @@ import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { asBrainDirReportSnapshot } from '@/blackbox/.test/infra/asBrainDirReportSnapshot';
+import { genHomeWithGroveState } from '@/blackbox/.test/infra/genHomeWithGroveState';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -1046,7 +1047,10 @@ describe('rhachet upgrade', () => {
       );
       mkdirSync(defaultDir, { recursive: true });
       writeFileSync(join(defaultDir, 'settings.json'), '{"b":2}\n');
-      return { repo, defaultDir };
+
+      // a HOME with a grove, so the replaced `settings.json` row reads the same on every box
+      const env = genHomeWithGroveState({ slug: 'upgrade-case12-1-home', grove: 'present' });
+      return { repo, defaultDir, env };
     });
 
     when('[t0] rhachet upgrade --roles ehmpathy/mechanic', () => {
@@ -1054,6 +1058,7 @@ describe('rhachet upgrade', () => {
         const upgradeResult = invokeRhachetCliBinary({
           args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
           cwd: scene.repo.path,
+          env: scene.env,
           logOnError: false,
         });
         return { upgradeResult };
@@ -1082,9 +1087,10 @@ describe('rhachet upgrade', () => {
 
       then('the overwritten row is marked, so a human knows what to diff', () => {
         // an overwrite is silent harm unless the report names the row it replaced — the
-        //   one line a human may want to check against git
+        //   one line a human may want to check against git. a name moved in and then taken
+        //   by the layout reads once, under `replaced`, and says its content is gone
         expect(result.upgradeResult.stdout).toMatch(
-          /\.claude\/settings\.json → \S+ \(replaced\)/,
+          /└─ replaced\n\s+└─ \.claude\/settings\.json → \S+ — a real file was here; its content is gone/,
         );
       });
 
@@ -1094,7 +1100,7 @@ describe('rhachet upgrade', () => {
         // (`rule.require.contract-snapshot-exhaustiveness`,
         // `rule.require.test-coverage-by-grain` — a contract owes a snapshot). the
         // asserts above fix the substance; this pins the whole frame — the tree layout,
-        // the row order, the `(replaced)` marker — so a reword shows in the pr diff
+        // the row order, the `replaced` group — so a reword shows in the pr diff
         expect(
           asBrainDirReportSnapshot({ stdout: result.upgradeResult.stdout }),
         ).toMatchSnapshot();

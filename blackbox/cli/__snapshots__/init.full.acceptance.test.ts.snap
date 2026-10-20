@@ -1,7 +1,12 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet init (full output) given: [case1] repo with multiple roles, inits, and hooks when: [t0] init --roles tester reviewer --hooks then: full stdout matches snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=tester
@@ -44,10 +49,6 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 

@@ -179,8 +179,10 @@ export const genIsolatedClaudeHome = (input: {
   // the claude-code binary, shared across runs
   const { binDir, binPath } = getCachedClaudeCliBin();
 
-  // the temp HOME and its claude config dir
-  const home = genTempDir({ slug: input.slug });
+  // the temp HOME and its claude config dir. the home sits at `<tmp>/home/human`, the shape
+  //   of a real one, so a path rule keyed on a home's shape (the portable `claudeMdExcludes`
+  //   for `~/.claude/CLAUDE.md`) meets the run as it meets a real box
+  const home = join(genTempDir({ slug: input.slug }), 'home', 'human');
   mkdirSync(join(home, '.claude'), { recursive: true });
 
   // the credential, shared by symlink

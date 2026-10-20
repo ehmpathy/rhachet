@@ -39,19 +39,49 @@ exports[`asBrainDirSyncReportLines given: [case4b] a move that replaced an entry
   "   ├─ moved",
   "   │  ├─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json (replaced)",
   "   │  └─ .claude/rules → .agent/.actors/actor.via.repo=ambient/brain/.claude/rules",
-  "   ├─ linked",
-  "   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude",
-  "   └─ boot.md",
-  "      └─ upgraded — 2 roles",
+  "   └─ linked",
+  "      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude",
 ]
 `;
 
 exports[`asBrainDirSyncReportLines given: [case5] an AGENTS.md reset, with no other change when: [t0] the lines are rendered then: the reset is never silent — the human lost hand edits (S11) 1`] = `
 [
   "🧠 brain://repo=ambient",
-  "   ├─ boot.md",
-  "   │  └─ upgraded — 2 roles",
   "   └─ AGENTS.md",
   "      └─ reset — hand edits dropped; rhachet owns this file",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case6] a real settings.local.json the layout replaced with its arrow when: [t0] the lines are rendered for the repo actor then: the replacement is never silent — its content is gone 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ replaced",
+  "      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case7] a real settings.json removed on a box with no grove when: [t0] the lines are rendered for the repo actor then: the removal is never silent, and names why no arrow took its place 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ replaced",
+  "      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case8] a replaced settings file beside a corpus when: [t1] the corpus bytes differed from the prior boot.md then: the boot.md row says upgraded, after the replaced group 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ replaced",
+  "   │  └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+  "   └─ boot.md",
+  "      └─ upgraded — 2 roles",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case9] a hand claudeMdExcludes entry the derived list dropped when: [t0] the lines are rendered for the repo actor then: the drop is news: the tree prints and names the entry 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ unexcluded",
+  "      └─ docs/legacy/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped",
 ]
 `;
