@@ -671,11 +671,15 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     const scene = useBeforeAll(async () => {
       const found = await genBrainConfigScene({ slug: 'brain-cfg-optin' });
       const configDir = join(found.repo, '.claude');
-      // the opt-in config dir needs the shared login and the trusted first-run state
-      symlinkSync(
-        readlinkSync(join(found.home, '.claude', '.credentials.json')),
-        join(configDir, '.credentials.json'),
-      );
+      // the opt-in config dir needs the shared login and the trusted first-run state.
+      //   a box with a claude login has a credentials arrow in the isolated home; a ci box
+      //   has none and authenticates by ANTHROPIC_API_KEY, which the env already carries
+      const credentialsOfHome = join(found.home, '.claude', '.credentials.json');
+      if (lstatSync(credentialsOfHome, { throwIfNoEntry: false }))
+        symlinkSync(
+          readlinkSync(credentialsOfHome),
+          join(configDir, '.credentials.json'),
+        );
       writeFileSync(
         join(configDir, '.claude.json'),
         readFileSync(join(found.home, '.claude.json'), 'utf8'),

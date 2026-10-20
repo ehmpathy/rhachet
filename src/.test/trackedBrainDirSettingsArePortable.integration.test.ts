@@ -24,6 +24,18 @@ describe('this repo — tracked brain dir settings are portable', () => {
    */
   const HOME_PATH_WITH_USER = /\/(home|Users)\/[^*/"\s.][^*/"\s]*\//;
 
+  /**
+   * .what = the tracked names that sit on disk, as a file or an arrow
+   * .why = a box with no grove drops the tracked grove arrows (F12); a dropped arrow has no
+   *   target and holds no path, so it cannot break portability and is not read
+   */
+  const asPathsOnDisk = (input: { root: string; paths: string[] }): string[] =>
+    input.paths.filter(
+      (path) =>
+        lstatSync(join(input.root, path), { throwIfNoEntry: false }) !==
+        undefined,
+    );
+
   given('[case0] the home-path detector itself', () => {
     when('[t0] it reads a machine path and a portable glob', () => {
       then('a real user segment is caught; a glob segment is not', () => {
@@ -42,6 +54,20 @@ describe('this repo — tracked brain dir settings are portable', () => {
     });
   });
 
+  given('[case0b] a tracked name absent on disk, as on a grove-less box', () => {
+    when('[t0] the names are narrowed to those on disk', () => {
+      then('the absent name is dropped, and a present name is kept', () => {
+        // a ci runner has no ~/.claude/settings.json, so `rhx init` drops the grove arrows
+        expect(
+          asPathsOnDisk({
+            root: REPO_ROOT,
+            paths: ['package.json', '.agent/.actors/absent/settings.json'],
+          }),
+        ).toEqual(['package.json']);
+      });
+    });
+  });
+
   given('[case1] the tracked settings names under .agent/.actors', () => {
     const scene = useBeforeAll(async () => {
       const listed = spawnSync(
@@ -53,7 +79,11 @@ describe('this repo — tracked brain dir settings are portable', () => {
         .toString()
         .split('\n')
         .filter((path) => path.length > 0);
-      return { status: listed.status, paths };
+      return {
+        status: listed.status,
+        paths,
+        pathsOnDisk: asPathsOnDisk({ root: REPO_ROOT, paths }),
+      };
     });
 
     when('[t0] each is read from disk', () => {
@@ -65,7 +95,7 @@ describe('this repo — tracked brain dir settings are portable', () => {
       });
 
       then('every tracked arrow has a relative target', () => {
-        const arrowsAbsolute = scene.paths
+        const arrowsAbsolute = scene.pathsOnDisk
           .filter((path) => lstatSync(join(REPO_ROOT, path)).isSymbolicLink())
           .map((path) => ({ path, target: readlinkSync(join(REPO_ROOT, path)) }))
           .filter(({ target }) => isAbsolute(target));
@@ -73,7 +103,7 @@ describe('this repo — tracked brain dir settings are portable', () => {
       });
 
       then('no tracked settings file holds a home path with a real user', () => {
-        const filesWithHome = scene.paths
+        const filesWithHome = scene.pathsOnDisk
           .filter((path) => lstatSync(join(REPO_ROOT, path)).isFile())
           .filter((path) =>
             HOME_PATH_WITH_USER.test(readFileSync(join(REPO_ROOT, path), 'utf8')),
