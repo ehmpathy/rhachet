@@ -15,10 +15,10 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
    └─ + boot.yml  budget.tokens: 5_000
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ replaced
+   │  └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
    └─ boot.md
       └─ created — 1 role
 
@@ -77,10 +77,10 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 
 exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2] a repo whose own role already declares a budget when: [t0] init --hooks then: the render matches its snapshot: stdout-owner-budget 1`] = `
 "🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ replaced
+   │  └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
    └─ boot.md
       └─ created — 1 role
 

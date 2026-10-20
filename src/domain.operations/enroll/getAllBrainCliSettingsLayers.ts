@@ -1,3 +1,5 @@
+import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
+
 import { join } from 'node:path';
 
 /**
@@ -41,7 +43,7 @@ export const getAllBrainCliSettingsLayers = (input: {
       ? [
           {
             source: 'user' as const,
-            path: join(input.brainDir, 'settings.json'),
+            path: join(input.brainDir, CLAUDE_SETTINGS_FILENAMES.claude),
           },
         ]
       : []),
@@ -49,7 +51,7 @@ export const getAllBrainCliSettingsLayers = (input: {
       ? [
           {
             source: 'project' as const,
-            path: join(input.cwd, '.claude', 'settings.json'),
+            path: join(input.cwd, '.claude', CLAUDE_SETTINGS_FILENAMES.claude),
           },
         ]
       : []),
@@ -57,7 +59,7 @@ export const getAllBrainCliSettingsLayers = (input: {
       ? [
           {
             source: 'local' as const,
-            path: join(input.cwd, '.claude', 'settings.local.json'),
+            path: join(input.cwd, '.claude', CLAUDE_SETTINGS_FILENAMES.local),
           },
         ]
       : []),

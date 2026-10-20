@@ -21,7 +21,7 @@ describe('asBrainDirBootFailureLines', () => {
       });
 
       then('the headline names the scope alone, one glyph', () => {
-        expect(lines[0]).toEqual('✗ brain://hash=abc12345/boot.md not written');
+        expect(lines[0]).toEqual('✗ brain://hash=abc12345 not synced');
       });
 
       then('the class and the reason ride as the first branch', () => {
@@ -64,7 +64,7 @@ describe('asBrainDirBootFailureLines', () => {
 
         then('each item rides its own leaf; an empty list reads []', () => {
           expect(lines).toEqual([
-            '✗ brain://repo=ambient/boot.md not written',
+            '✗ brain://repo=ambient not synced',
             "   ├─ ✋ ConstraintError: role 'mechanic' declares no subject 'gone'",
             '   ├─ declared',
             '   │  ├─ code.prod',
@@ -95,7 +95,7 @@ describe('asBrainDirBootFailureLines', () => {
         'the headline, the class, then the brainDir field — no field dropped',
         () => {
           expect(lines).toEqual([
-            '✗ brain://repo=ambient/boot.md not written',
+            '✗ brain://repo=ambient not synced',
             '   ├─ 💥 MalfunctionError: brain dir boot.md could not be written',
             '   └─ brainDir = /repo/x',
           ]);
@@ -121,7 +121,7 @@ describe('asBrainDirBootFailureLines', () => {
 
       then('the cause rides as its class and message, never as `{}`', () => {
         expect(lines).toEqual([
-          '✗ brain://repo=ambient/boot.md not written',
+          '✗ brain://repo=ambient not synced',
           '   ├─ 💥 MalfunctionError: brain dir boot.md could not be written',
           '   ├─ brainDir = /repo/x',
           '   └─ cause = Error: EACCES: permission denied',
@@ -140,7 +140,7 @@ describe('asBrainDirBootFailureLines', () => {
         'the first branch still names the bare class, so it stays findable',
         () => {
           expect(lines).toEqual([
-            '✗ brain://*/boot.md not written',
+            '✗ brain://* not synced',
             '   └─ Error: EACCES',
           ]);
         },

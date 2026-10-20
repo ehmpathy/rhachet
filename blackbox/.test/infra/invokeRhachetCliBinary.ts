@@ -55,12 +55,16 @@ export const asSnapshotSafe = (output: string): string => {
       // human's own claude config root. every other host path still falls through to the
       // generic mask below, where the catch-all token is the right answer — the path is
       // incidental there, and a token that named a root would over-claim.
+      // .note = a `*` segment is a glob, never a username: `**/home/*/.claude/CLAUDE.md` is
+      //   the same string on every box, so it stays literal in a snapshot. so does
+      //   `/github/home/.claude/CLAUDE.md`, the github actions home exclude — its `home` is
+      //   no `/home/<user>` root, hence the `(?<!\/github)` guard on both masks
       .replace(
-        /\/(?:home\/[^/]+|Users\/[^/]+)\/\.claude\/([^)\s"]+)/g,
+        /(?<!\/github)\/(?:home\/[^/*]+|Users\/[^/*]+)\/\.claude\/([^)\s"]+)/g,
         '/HOME_DIR/.claude/$1',
       )
       .replace(
-        /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
+        /(?<!\/github)\/(?:home\/[^/*]+|Users\/[^/*]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
       // strip temp test repo paths (vary by run)

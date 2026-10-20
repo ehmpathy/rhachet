@@ -3,10 +3,7 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
-import {
-  asBrainDirSyncReportLines,
-  type BrainDirSyncSymlink,
-} from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import { asBrainDirSyncReportLines } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
@@ -43,7 +40,6 @@ export const syncAndReportBrainDirBoots = async (
   input: {
     repoPath: string;
     env: NodeJS.ProcessEnv;
-    symlinkPrior?: BrainDirSyncSymlink | null;
   },
   context: ContextCli,
 ): Promise<{ exitCode: 0 | 1 | 2; repoActorRendered: boolean }> => {
@@ -72,10 +68,8 @@ export const syncAndReportBrainDirBoots = async (
     console.log('');
   }
 
-  const { renders, failures, symlink } = await syncBootsForBrainDirs(
-    { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
-    context,
-  );
+  const { renders, failures, symlink, settingsReplaced, excludesDropped } =
+    await syncBootsForBrainDirs({ repoPath: input.repoPath }, context);
 
   // one treestruct per brain dir this run CHANGED, on stdout. only the repo actor's render has a
   //   `<repo>/.claude` link beneath it; an actor's brain dir is reached by its own path
@@ -94,6 +88,8 @@ export const syncAndReportBrainDirBoots = async (
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
+      settingsReplaced: render.scope.kind === 'repo' ? settingsReplaced : [],
+      excludesDropped: render.scope.kind === 'repo' ? excludesDropped : [],
       repoActorBrainDirRel,
     });
     if (lines.length === 0) continue;

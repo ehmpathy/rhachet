@@ -22,6 +22,8 @@ describe('installed dependencies — the default peer reviewer brain', () => {
     when('[t0] its review default is read', () => {
       then('`rhx review` and `review.by` default to openrouter/deepseek/flash', () => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // .note = 0.42 renamed the constant `BRAIN_DEFAULT_OF_REVIEW` and moved it under
+        //   `domain.operations/brain/`; its value is unchanged
         const constant = require(
           join(
             dir,

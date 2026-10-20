@@ -10,20 +10,24 @@ rendered, never the layout (`rule.forbid.brain-dir-layout-divergence`).
 | brain dir | path | who reads it | how it is reached |
 |---|---|---|---|
 | **the repo actor's** | `.agent/.actors/actor.via.repo=ambient/brain/.claude`, also reached as `<repo>/.claude` (a symlink) | a clone of the repo actor — a bare `rhx enroll claude`, which `claude` is aliased to | user scope — `CLAUDE_CONFIG_DIR=<actorDir>/brain/.claude` at spawn |
-| **a hash actor's** | `<actorDir>/brain/.claude` | a clone enrolled with specific roles | the same — user scope, at spawn |
+| **the repo actor's**, to a plain `claude` | the same dir, as `<repo>/.claude` | a `claude` that rhachet did not spawn — at the repo root, from an ide, in ci | claude's own `project` and `local` layers, looked up from the cwd: `settings.json` (the grove) and `settings.local.json` (the repo) |
+| **a hash actor's** | `<actorDir>/brain/.claude` | a clone enrolled with specific roles | user scope — `CLAUDE_CONFIG_DIR` at spawn, as for the repo actor's clone |
 
-every reader is a clone, so every brain dir is reached the same way. `<repo>/.claude` is a reach path for
-tools that look there by name; no clone reads through it.
+two kinds of reader reach a brain dir. a clone reaches its own actor's dir at spawn, and reads only that
+dir. a plain `claude` reaches the repo actor's dir through `<repo>/.claude`, and loads the repo's settings
+through the local arrow (`define.invariant.unenrolled-claude-is-ambiently-enrolled`).
 
-every brain dir holds the boot and the settings the same way:
+every brain dir holds the boot and the settings the same way (`define.brain-dir-layout-is-one-for-every-actor`):
 
 ```
 CLAUDE.md            -> AGENTS.md                  # the door the cli reads
 AGENTS.md                                          # @boot.md — the ref, the file rhachet writes
 boot.md                                            # the rendered role corpus — ours
 settings.of.repo.json                                 # this actor's roles' hooks + permissions — passed as --settings
-settings.of.grove.json  -> ~/.claude/settings.json    # the grove
+settings.of.grove.json  -> .home/.claude/settings.json  # the grove, via the untracked .home mirror
+.home/.claude/settings.json -> ~/.claude/settings.json  # the mirror's one leaf — untracked, per box
 settings.json        -> settings.of.grove.json        # claude's user layer is the grove
+settings.local.json  -> settings.of.repo.json         # claude's local layer is the repo — a plain claude's door
 ```
 
 ## .who writes which

@@ -1,5 +1,5 @@
 import { ConstraintError } from 'helpful-errors';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleActorWithClone } from '@src/.test/assets/genSampleActorWithClone';
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
@@ -142,13 +142,28 @@ describe('syncBootsForBrainDirs', () => {
   });
 
   given('[case2] an extant real <repo>/.claude with a hand AGENTS.md', () => {
+    // pin HOME to a temp home with a grove: `settings.json` takes the grove arrow only where
+    //   `~/.claude/settings.json` is present, so the box must not decide it
+    const homeBefore = process.env.HOME;
+    afterAll(() => {
+      process.env.HOME = homeBefore;
+    });
+
     const scene = useBeforeAll(async () => {
       const { repoPath, context } = genRepoWithRoles({
         slug: 'sync-boots-migrate',
       });
+      const home = genTempDir({ slug: 'sync-boots-migrate-home' });
+      mkdirSync(join(home, '.claude'), { recursive: true });
+      writeFileSync(join(home, '.claude', 'settings.json'), '{}\n');
+      process.env.HOME = home;
       mkdirSync(join(repoPath, '.claude'), { recursive: true });
       writeFileSync(join(repoPath, '.claude', 'AGENTS.md'), 'hand edit\n');
       writeFileSync(join(repoPath, '.claude', 'settings.json'), '{}\n');
+      writeFileSync(
+        join(repoPath, '.claude', 'settings.local.json'),
+        '{"permissions":{"allow":["Bash(pwd)"]}}\n',
+      );
 
       // the boot file is COMMITTED, so its drop is recoverable from git — the one ground
       // S11 rests on, and now the one state a drop proceeds from
@@ -170,9 +185,11 @@ describe('syncBootsForBrainDirs', () => {
       );
 
       then(
-        'the other files move under the repo actor dir, and a real settings.json lands in settings.of.repo.json',
+        'the moved settings.json becomes the grove arrow, its content never merged into settings.of.repo.json',
         () => {
-          expect(
+          // one answer, rhachet's (inventory.of=requirements.case=7): the repo file holds
+          //   only what rhachet writes — the claudeMdExcludes upsert — and no moved key
+          const settingsOfRepo = JSON.parse(
             readFileSync(
               join(
                 scene.repoPath,
@@ -181,7 +198,16 @@ describe('syncBootsForBrainDirs', () => {
               ),
               'utf8',
             ),
-          ).toEqual('{}\n');
+          );
+          expect(settingsOfRepo).toEqual({
+            claudeMdExcludes: [
+              '**/home/*/.claude/CLAUDE.md',
+              '**/Users/*/.claude/CLAUDE.md',
+              '/root/.claude/CLAUDE.md',
+              '/github/home/.claude/CLAUDE.md',
+              '**/CLAUDE.local.md',
+            ],
+          });
           expect(
             lstatSync(
               join(scene.repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
@@ -191,11 +217,36 @@ describe('syncBootsForBrainDirs', () => {
         },
       );
 
+      then(
+        'a moved real settings.local.json becomes the repo arrow (vision case=1)',
+        () => {
+          expect(
+            readlinkSync(
+              join(
+                scene.repoPath,
+                REPO_ACTOR_BRAIN_DIR_REL,
+                'settings.local.json',
+              ),
+            ),
+          ).toEqual('settings.of.repo.json');
+        },
+      );
+
+      then('the run reports each real settings file it replaced (S2)', () => {
+        const byName = [...scene.result.settingsReplaced].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
+        expect(byName).toEqual([
+          { name: 'settings.json', target: 'settings.of.grove.json' },
+          { name: 'settings.local.json', target: 'settings.of.repo.json' },
+        ]);
+      });
+
       then('the symlink names its effect, the drop and the move', () => {
         expect(scene.result.symlink).toEqual({
           effect: 'MIGRATED',
           drops: ['AGENTS.md'],
-          moves: ['settings.json'],
+          moves: ['settings.json', 'settings.local.json'],
           overwrites: [],
         });
       });

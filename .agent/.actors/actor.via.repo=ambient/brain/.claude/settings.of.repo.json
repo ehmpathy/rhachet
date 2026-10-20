@@ -526,7 +526,10 @@
     "padding": 0
   },
   "claudeMdExcludes": [
-    "/home/vlad/.claude/CLAUDE.md",
+    "**/home/*/.claude/CLAUDE.md",
+    "**/Users/*/.claude/CLAUDE.md",
+    "/root/.claude/CLAUDE.md",
+    "/github/home/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }

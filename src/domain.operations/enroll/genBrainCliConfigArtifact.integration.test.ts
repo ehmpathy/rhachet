@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import picomatch from 'picomatch';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
@@ -9,7 +10,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { EventEmitter, once } from 'node:events';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
-import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
+import { getAllClaudeMdExcludes } from './getAllClaudeMdExcludes';
 
 const HASH_EXID = 'hash=abc12345';
 const REPO_EXID = 'repo=ambient';
@@ -153,13 +154,12 @@ describe('genBrainCliConfigArtifact', () => {
             claudeMdExcludes?: string[];
           };
           expect(settings.claudeMdExcludes).toEqual(
-            getClaudeMdExcludesList({
+            getAllClaudeMdExcludes({
               repoPath: scene.repoPath,
               repoActorBrainDir: asBrainDir({
                 repoPath: scene.repoPath,
                 exid: REPO_EXID,
               }),
-              home: os.homedir(),
             }),
           );
         },
@@ -208,9 +208,53 @@ describe('genBrainCliConfigArtifact', () => {
           ),
         ).toEqual([]);
         expect(settings.claudeMdExcludes).toContain(
-          path.join(os.homedir(), '.claude', 'CLAUDE.md'),
+          '**/home/*/.claude/CLAUDE.md',
         );
       });
+
+      then(
+        'its portable globs match a home CLAUDE.md under each covered root',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
+          const isExcluded = (file: string): boolean =>
+            settings.claudeMdExcludes.some((glob) =>
+              picomatch(glob, { dot: true })(file),
+            );
+          const homeClaudeMds = [
+            '/home/kai/.claude/CLAUDE.md',
+            '/Users/kai/.claude/CLAUDE.md',
+            '/root/.claude/CLAUDE.md',
+            '/github/home/.claude/CLAUDE.md',
+          ];
+          expect(homeClaudeMds.filter((file) => !isExcluded(file))).toEqual([]);
+        },
+      );
+
+      // .note = deliberately reads the runner's real home: case=11 requires the home CLAUDE.md
+      //   never load on THIS box. a red here on a home outside the covered roots is the true
+      //   signal of the F11 gap, never a flake
+      then(
+        'its portable globs match this box`s real home CLAUDE.md (case=11)',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
+          const homeClaudeMd = path.join(os.homedir(), '.claude', 'CLAUDE.md');
+          expect(
+            settings.claudeMdExcludes.some((glob) =>
+              picomatch(glob, { dot: true })(homeClaudeMd),
+            ),
+          ).toBe(true);
+        },
+      );
+
+      then(
+        'names no machine-local home path: the file is tracked',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          expect(content).not.toContain(os.homedir());
+        },
+      );
     });
   });
 

@@ -128,6 +128,11 @@ describe('setActorSettingsDerived', () => {
           );
           expect(
             readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+          ).toEqual('.home/.claude/settings.json');
+          expect(
+            readlinkSync(
+              join(scene.brainDir, '.home', '.claude', 'settings.json'),
+            ),
           ).toEqual(join(scene.home, '.claude', 'settings.json'));
         });
 

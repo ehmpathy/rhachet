@@ -13,7 +13,7 @@ exports[`invokeInit (integration) given: [case2] init against the brain dirs whe
 `;
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0b] <repo>/.claude holds an UNTRACKED hand AGENTS.md then: it refuses with exit 2 and the hand file survives 1`] = `
-"✗ brain://repo=ambient/boot.md not written
+"✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: <repo>/.claude holds boot files git could not hand back
    ├─ path = /TMP_REPO/.claude
    ├─ unrestorable
@@ -22,7 +22,7 @@ exports[`invokeInit (integration) given: [case2] init against the brain dirs whe
 `;
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t2] <repo>/.claude is a file then: it refuses with exit 2 and names the fix 1`] = `
-"✗ brain://repo=ambient/boot.md not written
+"✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: <repo>/.claude is a file, not a dir
    ├─ path = /TMP_REPO/.claude
    └─ hint = move /TMP_REPO/.claude aside, then rerun \`rhx init\`"

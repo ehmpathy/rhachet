@@ -79,3 +79,7 @@ briefs:
     # tier fires only after the snapshot already pins it
     - briefs/rule.forbid.colons-in-stdout.md
     - briefs/rule.forbid.sync-invoke-while-a-pty-is-live.md
+    # real-brain isolation — the host HOME is reached for at the keyboard, the moment a real
+    # brain test is written, so a ref tier fires only after it already read or wrote the host.
+    # measured 2026-10-15 — a runner's inherited CLAUDE_CODE_CHILD_SESSION reached the probe
+    - briefs/rule.require.real-brain-tests-in-isolated-tempdir-and-home.md

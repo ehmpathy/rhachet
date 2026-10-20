@@ -164,6 +164,29 @@ describe('assertCloneSettingsLayersHoldOnlyEnrolledRoles', () => {
           ).not.toThrow();
         });
       });
+
+      when('[t1] the human passes `--setting-sources local` through', () => {
+        then(
+          'it fails as a constraint that names the flag, never a malfunction',
+          async () => {
+            const error = await getError(async () =>
+              assertCloneSettingsLayersHoldOnlyEnrolledRoles({
+                args: asBrainCliSpawnArgs({
+                  configPath: join(scene.brainDir, 'settings.of.repo.json'),
+                  passthrough: ['--setting-sources', 'local'],
+                }),
+                brainDir: scene.brainDir,
+                cwd: scene.repo,
+                roles: ['mechanic'],
+                home: scene.home,
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain('--setting-sources');
+            expect(error.message).toContain('repo=bhrain/role=driver');
+          },
+        );
+      });
     },
   );
 });

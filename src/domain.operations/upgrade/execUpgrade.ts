@@ -352,19 +352,14 @@ export const execUpgrade = async (
 
     // put the repo actor's brain dir in the split layout BEFORE the role inits, so an init
     //   that writes through `<repo>/.claude` meets the layout it lives in
-    //   (inventory.of=requirements.case=8)
-    const layoutBeforeInits = await setRepoActorBrainDirLayoutBeforeInits({
-      repoPath: context.gitroot,
-    });
+    //   (inventory.of=requirements.case=8). the step names what it changed at once, so an
+    //   abort later never hides a loss
+    await setRepoActorBrainDirLayoutBeforeInits({ repoPath: context.gitroot });
     await initRolesFromPackages({ specifiers }, context);
 
     // re-render the boots before the hook sync, so the boot hooks never go first
     const synced = await syncAndReportBrainDirBoots(
-      {
-        repoPath: context.gitroot,
-        env: process.env,
-        symlinkPrior: layoutBeforeInits?.symlink ?? null,
-      },
+      { repoPath: context.gitroot, env: process.env },
       context,
     );
     if (!synced.repoActorRendered)

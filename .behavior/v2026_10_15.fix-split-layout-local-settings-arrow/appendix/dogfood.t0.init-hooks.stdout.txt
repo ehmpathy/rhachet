@@ -1,0 +1,26 @@
+🔭 search for linked roles with hooks...
+   ├─ bhrain/driver
+   ├─ bhrain/learner
+   ├─ bhrain/librarian
+   ├─ bhrain/reviewer
+   ├─ bhrowser/playwright
+   ├─ bhuild/behaver
+   ├─ bhuild/dispatcher
+   ├─ ehmpathy/architect
+   ├─ ehmpathy/ergonomist
+   ├─ ehmpathy/mechanic
+   ├─ ghlitch/deployer
+   ├─ ghlitch/observer
+   ├─ ghlitch/operator
+   ├─ rhachet/enroller
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ ehmpathy/mechanic → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+🧢 apply hooks to enrolled actors...
+   ├─ hash=9366365e
+   └─ repo=ambient

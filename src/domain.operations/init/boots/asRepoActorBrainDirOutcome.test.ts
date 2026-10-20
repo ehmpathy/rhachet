@@ -13,6 +13,7 @@ const render: BrainDirBootRender = {
   stats: BOOT_STATS_ZERO,
   agentsMdReset: false,
   bootMdCreated: true,
+  bootMdChanged: true,
 };
 const symlink = {
   effect: 'CREATED' as const,
@@ -48,11 +49,18 @@ describe('asRepoActorBrainDirOutcome', () => {
                   render,
                   symlink,
                   settings,
+                  excludesDropped: ['docs/legacy/CLAUDE.md'],
                   enrollConfigs: { deleted: [], kept: [] },
                 },
               },
             }),
-          ).toEqual({ render, symlink, settings, failure: null });
+          ).toEqual({
+            render,
+            symlink,
+            settings,
+            excludesDropped: ['docs/legacy/CLAUDE.md'],
+            failure: null,
+          });
         },
       );
     });
@@ -70,6 +78,7 @@ describe('asRepoActorBrainDirOutcome', () => {
           render: null,
           symlink: null,
           settings: null,
+          excludesDropped: [],
           failure: { scope: { kind: 'repo' }, cause },
         });
       });

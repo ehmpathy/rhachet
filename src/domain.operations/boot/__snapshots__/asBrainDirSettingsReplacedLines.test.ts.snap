@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainDirSettingsReplacedLines given: [case2] an enroll that replaced the repo actor real local file when: [t0] the lines are rendered then: the tree matches the snapshot 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ replaced",
+  "      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
+
+exports[`asBrainDirSettingsReplacedLines given: [case3] an enroll that removed a hash actor real file, on a box with no grove when: [t0] the lines are rendered then: the tree matches the snapshot 1`] = `
+[
+  "🧠 brain://hash=051970ec",
+  "   └─ replaced",
+  "      └─ .agent/.actors/actor.via.hash=051970ec/brain/.claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
