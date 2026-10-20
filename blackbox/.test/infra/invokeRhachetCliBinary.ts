@@ -277,6 +277,10 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *   enroll is top-level whatever depth it inherits. what still bites there is the
  *   detached-host pair: a runner that carries `RHACHET_CLONE_HOST_DETACHED` and
  *   `RHACHET_CLONE_DEPTH_MINTED` makes the enroll replay that depth, tty or not
+ *
+ * .note = `CLAUDE_CONFIG_DIR` names the actor dir the runner's own claude reads. a role init
+ *   that sees it reports on the runner's clone, so a suite run from a clone locked a line
+ *   ci never prints (`init.incremental` [case1]). same divergence, another var
  */
 export const asEnvWithoutCloneIdentity = (
   env: NodeJS.ProcessEnv,
@@ -288,6 +292,7 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_DEPTH_MINTED: _depthMinted,
     RHACHET_CLONE_HOST_DETACHED: _hostDetached,
     RHACHET_CLONE_LEAF: _leaf,
+    CLAUDE_CONFIG_DIR: _claudeConfigDir,
     ...rest
   } = env;
   return rest;

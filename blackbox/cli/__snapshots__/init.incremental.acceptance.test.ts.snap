@@ -33,7 +33,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │ 🔐 mechanic permissions configured successfully!
       │    .claude/settings.of.repo.json
       │    .claude/settings.of.repo.$TIMESTAMP.bak.json
-      │    note: this clone's config dir is $REPO_ROOT/.agent/.actors/actor.via.repo=ambient/brain/.claude; its settings.of.repo.json is derived from this file. every actor picks up new allows at the next rhx init --hooks, rhx upgrade, or its own next rhx enroll. a delta actor also picks them up in the same rhx init --roles, when that init changed its roles
       │
       │ ✨ permissions applied:
       │    • allow: replaced entirely
