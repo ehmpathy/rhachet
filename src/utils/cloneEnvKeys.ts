@@ -29,11 +29,11 @@ export const CLONE_ENV_KEYS = {
   depth: 'RHACHET_CLONE_DEPTH',
   /**
    * .what = set to `1` on a LEAF — a clone or repl brain that may spawn no one
-   * .why = a reviewer is a leaf (ehmpathy/rhachet#577). the spawn that mints a reviewer
-   *   marks it: a print-mode enroll (`rhx enroll claude -p …`, a route guard's level-3
-   *   peer) and every repl brain (`rhx review`, `rhachet ask`, `rhachet act`). a process
-   *   that carries the mark is refused at both spawn doors (`assertCloneSpawnAllowed`),
-   *   so a review fan-out never grows a second tier
+   * .why = a leaf may spawn no one (ehmpathy/rhachet#577). the door that mints a leaf
+   *   marks it: a print-mode enroll (`rhx enroll claude -p …`) and every repl brain
+   *   (`rhachet ask`, `rhachet act`, or any skill built on the sdk). a process that
+   *   carries the mark is refused at both spawn doors (`assertCloneSpawnAllowed`), so a
+   *   fan-out of leaves never grows a second tier
    */
   leaf: 'RHACHET_CLONE_LEAF',
   /**

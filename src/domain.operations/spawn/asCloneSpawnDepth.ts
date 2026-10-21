@@ -20,8 +20,8 @@ import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
  *     the server's env rather than the caller's; that path is unmeasured and open (F13)
  *   - the value read is the CALLER's depth; the value returned is the CHILD's
  *
- * .note = the repl door never mints 0. a review brain is always a spawn, never a
- *   top-level clone, even when a human runs `rhx review` at a terminal. like the enroll
+ * .note = the repl door never mints 0. a repl brain is always a spawn, never a
+ *   top-level clone, even when a human runs its skill at a terminal. like the enroll
  *   door, it reads a depth var a tty carries, so a pane a clone opened stays below it
  *
  * .note = a detached enroll host has no tty, so it must not re-read one. its caller

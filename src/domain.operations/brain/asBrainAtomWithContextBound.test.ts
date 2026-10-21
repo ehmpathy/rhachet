@@ -71,7 +71,7 @@ describe('asBrainAtomWithContextBound', () => {
   };
 
   given(
-    '[case1] a reviewer clone at depth 1 — it carries the leaf mark',
+    '[case1] a leaf clone at depth 1 — it carries the leaf mark',
     () => {
       when('[t0] its skill calls one atom', () => {
         const result = useThen('the call completes', async () => {

@@ -206,7 +206,7 @@ describe('withCloneSpawnDepthScope', () => {
     },
   );
 
-  given('[case3b] a reviewer caller — it carries the leaf mark', () => {
+  given('[case3b] a leaf caller — it carries the leaf mark', () => {
     when('[t0] it runs a repl call', () => {
       const result = useThen('it is refused', async () => {
         setCaller({ depth: '1', leaf: '1' });
@@ -224,9 +224,9 @@ describe('withCloneSpawnDepthScope', () => {
         };
       });
 
-      then('it is refused as a constraint that names the reviewer', () => {
+      then('it is refused as a constraint that names the leaf', () => {
         expect(result.isConstraint).toEqual(true);
-        expect(result.message).toContain('a reviewer clone may not spawn');
+        expect(result.message).toContain('a leaf clone may not spawn');
       });
 
       then('the refusal renders whole, for review', () => {
@@ -314,9 +314,7 @@ describe('withCloneSpawnDepthScope', () => {
         'the call is refused as a constraint: a pty wrap is no reset',
         () => {
           expect(result.error).toBeInstanceOf(ConstraintError);
-          expect(result.error.message).toContain(
-            'a reviewer clone may not spawn',
-          );
+          expect(result.error.message).toContain('a leaf clone may not spawn');
         },
       );
 

@@ -14,7 +14,7 @@ describe('assertCloneSpawnAllowed', () => {
     });
 
     when('[t1] it runs a repl brain', () => {
-      then('it passes — a work clone may run its reviews', () => {
+      then('it passes — a work clone may run a repl brain', () => {
         expect(() =>
           assertCloneSpawnAllowed({ isCallerLeaf: false, door: 'repl' }),
         ).not.toThrow();
@@ -22,14 +22,14 @@ describe('assertCloneSpawnAllowed', () => {
     });
   });
 
-  given('[case2] a reviewer clone asks to spawn, at the enroll door', () => {
+  given('[case2] a leaf clone asks to spawn, at the enroll door', () => {
     when('[t0] it enrolls a clone', () => {
-      then('it refuses as a constraint that names the reviewer', async () => {
+      then('it refuses as a constraint that names the leaf', async () => {
         const error = await getError(() =>
           assertCloneSpawnAllowed({ isCallerLeaf: true, door: 'enroll' }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('a reviewer clone may not spawn');
+        expect(error.message).toContain('a leaf clone may not spawn');
         expect(error.message).toMatchSnapshot();
       });
 
@@ -56,16 +56,33 @@ describe('assertCloneSpawnAllowed', () => {
     });
   });
 
-  given('[case3] a reviewer clone asks to spawn, at the repl door', () => {
+  given('[case3] a leaf clone asks to spawn, at the repl door', () => {
     when('[t0] it runs a repl brain', () => {
-      then('the door line says a review brain is a spawn', async () => {
+      then('the door line says a repl brain is a spawn', async () => {
         const error = await getError(() =>
           assertCloneSpawnAllowed({ isCallerLeaf: true, door: 'repl' }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('`rhx review`');
+        expect(error.message).toContain('`rhachet ask`, `rhachet act`');
         expect(error.message).toMatchSnapshot();
       });
+    });
+  });
+
+  given('[case4] any refusal, at either door', () => {
+    when('[t0] its text is read', () => {
+      then(
+        'it names no supplier skill and no purpose — rhachet cannot see why a clone was spawned',
+        async () => {
+          for (const door of ['enroll', 'repl'] as const) {
+            const error = await getError(() =>
+              assertCloneSpawnAllowed({ isCallerLeaf: true, door }),
+            );
+            expect(error.message).not.toContain('rhx review');
+            expect(error.message).not.toMatch(/review/i);
+          }
+        },
+      );
     });
   });
 });

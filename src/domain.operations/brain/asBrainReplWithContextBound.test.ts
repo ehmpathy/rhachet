@@ -123,7 +123,7 @@ describe('asBrainReplWithContextBound', () => {
         const { brain, seen } = genRecorderRepl();
         const error = await getError(() => brain.ask(replInput));
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('a reviewer clone may not spawn');
+        expect(error.message).toContain('a leaf clone may not spawn');
         expect(seen).toEqual([]);
         // the refusal a review skill's caller reads, rendered whole for review
         expect(error.message).toMatchSnapshot();
@@ -137,7 +137,7 @@ describe('asBrainReplWithContextBound', () => {
         const { brain, seen } = genRecorderRepl();
         const error = await getError(() => brain.act(replInput));
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('a reviewer clone may not spawn');
+        expect(error.message).toContain('a leaf clone may not spawn');
         expect(seen).toEqual([]);
         // the refusal a review skill's caller reads, rendered whole for review
         expect(error.message).toMatchSnapshot();

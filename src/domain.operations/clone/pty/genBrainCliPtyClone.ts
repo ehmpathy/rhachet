@@ -122,8 +122,8 @@ export const genBrainCliPtyClone = async (
   // its actor's brain dir
   const env = asBrainCliSpawnEnv({
     env: {
-      // its place in the spawn chain: its depth, and its leaf mark when a reviewer, so its
-      //   OWN `rhx enroll` and `rhx review` are refused when it is a leaf (#577)
+      // its place in the spawn chain: its depth, and its leaf mark when a leaf, so its
+      //   OWN enroll and repl brain are refused when it is a leaf (#577)
       ...asCloneSpawnPlaceEnv({
         env: process.env,
         depth: input.depth,

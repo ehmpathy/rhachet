@@ -47,14 +47,14 @@ Options:
                       terminal)
   --await             hold until the clone answers its prompt and exits, then
                       forward its exit code (default with a prompt, e.g. -p
-                      "<prompt>"). a -p clone is a reviewer: it may enroll no
-                      clone of its own
+                      "<prompt>"). a -p clone is a leaf: it may enroll no clone
+                      of its own
   --output <mode>     output mode: tree (default) or json (default: "tree")
 "
 `;
 
 exports[`rhx enroll --reason (acceptance) given: [case1] a linked repo, \`--reason "<text>"\` (plain) when: [t0] \`enroll claude --reason "nightly cron refresh"\` runs then: the full persisted audit line is locked to a snapshot 1`] = `
-"{"schemaVersion":1,"at":"$AT","roles":["driver","architect","mechanic"],"delta":null,"reason":"nightly cron refresh"}
+"{"schemaVersion":1,"at":"$AT","roles":["mechanic"],"delta":null,"reason":"nightly cron refresh"}
 "
 `;
 
@@ -63,11 +63,9 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 ✋ ConstraintError: role 'ghostrole' not found
 
 {
-  "hint": "linked roles: driver, architect, mechanic",
+  "hint": "linked roles: mechanic",
   "role": "ghostrole",
   "rolesLinked": [
-    "driver",
-    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -80,18 +78,16 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 "{
   "class": "ConstraintError",
   "message": "role 'ghostrole' not found",
-  "hint": "linked roles: driver, architect, mechanic",
+  "hint": "linked roles: mechanic",
   "reachState": null,
   "reachCause": null,
   "metadata": {
     "role": "ghostrole",
     "rolesLinked": [
-      "driver",
-      "architect",
       "mechanic"
     ],
     "suggestion": null,
-    "hint": "linked roles: driver, architect, mechanic"
+    "hint": "linked roles: mechanic"
   }
 }
 "
@@ -99,14 +95,12 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t1] \`enroll claude --roles -ghostrole,+architect\` (comma form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'ghostrole' not found
+✋ ConstraintError: role 'architect' not found
 
 {
-  "hint": "linked roles: driver, architect, mechanic",
-  "role": "ghostrole",
+  "hint": "linked roles: mechanic",
+  "role": "architect",
   "rolesLinked": [
-    "driver",
-    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -117,14 +111,12 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t2] \`enroll claude --roles "-ghostrole +architect"\` (quoted space form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'ghostrole' not found
+✋ ConstraintError: role 'architect' not found
 
 {
-  "hint": "linked roles: driver, architect, mechanic",
-  "role": "ghostrole",
+  "hint": "linked roles: mechanic",
+  "role": "architect",
   "rolesLinked": [
-    "driver",
-    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -209,6 +201,16 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
           {
             "type": "command",
             "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
@@ -224,26 +226,23 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
         ]
       }
     ]
-  },
-  "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
-  ]
+  }
 }
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `
 "
-😶 clone enrolled
-   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
-   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+✋ ConstraintError: role 'driver' not found
+
+{
+  "hint": "linked roles: mechanic",
+  "role": "driver",
+  "rolesLinked": [
+    "mechanic"
+  ],
+  "suggestion": null
+}
 
 "
 `;
@@ -308,19 +307,32 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
 
 exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t0] the HOME holds a \`.claude/settings.json\` then: the grove-present output is locked to a snapshot 1`] = `
 "
-😶 clone enrolled
-   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
-   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+✋ ConstraintError: role 'driver' not found
+
+{
+  "hint": "linked roles: mechanic",
+  "role": "driver",
+  "rolesLinked": [
+    "mechanic"
+  ],
+  "suggestion": null
+}
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t1] the HOME holds no \`.claude/settings.json\` then: the absent-grove notice is locked to a snapshot 1`] = `
-"ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+"
+✋ ConstraintError: role 'driver' not found
 
-😶 clone enrolled
-   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
-   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+{
+  "hint": "linked roles: mechanic",
+  "role": "driver",
+  "rolesLinked": [
+    "mechanic"
+  ],
+  "suggestion": null
+}
 
 "
 `;
@@ -339,22 +351,15 @@ exports[`rhx enroll --roles (acceptance) given: [case2d] a repo still at the leg
 
 exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t1] the HOME grove carries a driver-authored hook (the layout main shipped) then: the refusal is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: a clone would load hooks from roles it is not enrolled in
+✋ ConstraintError: role 'driver' not found
 
 {
-  "hint": "your home claude settings hold role hooks; remove every hook whose \`author\` names a \`role=\` from the file(s) above, then enroll again",
-  "rolesEnrolled": [
-    "architect",
+  "hint": "linked roles: mechanic",
+  "role": "driver",
+  "rolesLinked": [
     "mechanic"
   ],
-  "leaks": [
-    {
-      "event": "SessionStart",
-      "author": "repo=bhrain/role=driver",
-      "source": "user",
-      "path": "/TMP_TEST_DIR/.home/.claude/settings.json"
-    }
-  ]
+  "suggestion": null
 }
 
 "
@@ -370,21 +375,35 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
           {
             "type": "command",
             "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
           }
         ]
       }
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/CLAUDE.local.md"
   ]
 }
 "
@@ -425,11 +444,7 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
         ]
       }
     ]
-  },
-  "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
-  ]
+  }
 }
 "
 `;
@@ -524,6 +539,16 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
           {
             "type": "command",
             "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
@@ -539,17 +564,7 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
         ]
       }
     ]
-  },
-  "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
-  ]
+  }
 }
 "
 `;
@@ -564,6 +579,16 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
           {
             "type": "command",
             "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
@@ -581,14 +606,8 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/CLAUDE.local.md"
   ]
 }
 "
@@ -604,22 +623,32 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
           {
             "type": "command",
             "command": "true",
+            "author": "repo=bhrain/role=driver"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "author": "repo=ehmpathy/role=architect"
           }
         ]
       }
     ]
-  },
-  "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
-  ]
+  }
 }
 "
 `;
@@ -653,11 +682,9 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 ✋ ConstraintError: role 'mechnic' not found, did you mean 'mechanic'?
 
 {
-  "hint": "linked roles: driver, architect, mechanic",
+  "hint": "linked roles: mechanic",
   "role": "mechnic",
   "rolesLinked": [
-    "driver",
-    "architect",
     "mechanic"
   ],
   "suggestion": "mechanic"
@@ -691,12 +718,15 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t3] \`enroll claude --roles -driver -architect\` (unquoted space, 2 deltas) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: enroll's --roles takes a single spec; saw an extra role token '-architect' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer")
+✋ ConstraintError: role 'driver' not found
 
 {
-  "brain": "claude",
-  "rolesSpec": "-driver",
-  "collision": "-architect"
+  "hint": "linked roles: mechanic",
+  "role": "driver",
+  "rolesLinked": [
+    "mechanic"
+  ],
+  "suggestion": null
 }
 
 "
@@ -775,6 +805,35 @@ exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`c
 "
 `;
 
+exports[`rhx enroll leaf clone (acceptance) given: [case1] a linked repo, the caller is a leaf clone when: [t0] it enrolls a peer then: the structured error is locked to a snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "a leaf clone may not spawn",
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+    "via": "a clone enroll (\`rhx enroll\`)",
+    "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
+  }
+}
+"
+`;
+
+exports[`rhx enroll leaf clone (acceptance) given: [case1] a linked repo, the caller is a leaf clone when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: a leaf clone may not spawn
+
+{
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
+}
+
+"
+`;
+
 exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t0] \`enroll claude\` (no passthrough) then: the recorded argv is locked to a snapshot 1`] = `
 [
   "--setting-sources",
@@ -795,35 +854,6 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   "overrides": [
     "--system-prompt"
   ]
-}
-
-"
-`;
-
-exports[`rhx enroll reviewer leaf (acceptance) given: [case1] a linked repo, the caller is a reviewer clone — a leaf when: [t0] it enrolls a peer then: the structured error is locked to a snapshot 1`] = `
-"{
-  "class": "ConstraintError",
-  "message": "a reviewer clone may not spawn",
-  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
-  "reachState": null,
-  "reachCause": null,
-  "metadata": {
-    "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
-    "via": "a clone enroll (\`rhx enroll\`)",
-    "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
-  }
-}
-"
-`;
-
-exports[`rhx enroll reviewer leaf (acceptance) given: [case1] a linked repo, the caller is a reviewer clone — a leaf when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
-"
-✋ ConstraintError: a reviewer clone may not spawn
-
-{
-  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
-  "via": "a clone enroll (\`rhx enroll\`)",
-  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
 }
 
 "

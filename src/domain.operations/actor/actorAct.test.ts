@@ -68,7 +68,7 @@ describe('actorAct', () => {
   // pin the caller to a no-tty depth-0 work clone, so the spawn scope reads the vars
   // as a brain's tool shell does, whatever terminal or clone runs the suite. it is
   // suite-wide on purpose: every case's repl call passes the leaf check, so a suite run
-  // inside a reviewer clone would refuse the extant cases too
+  // inside a leaf clone would refuse the extant cases too
   const ttyBefore = process.stdin.isTTY;
   const depthBefore = process.env[CLONE_ENV_KEYS.depth];
   const leafBefore = process.env[CLONE_ENV_KEYS.leaf];
@@ -185,7 +185,7 @@ describe('actorAct', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('a reviewer clone may not spawn');
+        expect(error.message).toContain('a leaf clone may not spawn');
         expect(mockBrain.act).not.toHaveBeenCalled();
       });
     });

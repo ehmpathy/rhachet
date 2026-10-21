@@ -1828,12 +1828,12 @@ describe('rhx enroll --roles (acceptance)', () => {
 });
 
 /**
- * .what = blackbox acceptance for the reviewer-leaf refusal, at the enroll door
+ * .what = blackbox acceptance for the leaf refusal, at the enroll door
  *
  * .why = `rhx enroll` is reachable by a clone (the `attended` axis). per the
  *   ehmpathy/rhachet#577 vision, every work clone may enroll one level below itself, at
- *   any depth, and a reviewer clone is a leaf that may enroll no one. a print-mode enroll
- *   (`-p`) and every repl-door child (`rhx review`, `rhachet ask`, `rhachet act`) mints a
+ *   any depth, and a leaf clone may enroll no one. a print-mode enroll
+ *   (`-p`) and every repl-door child (`rhachet ask`, `rhachet act`) mints a
  *   leaf; the mark rides the child env as `RHACHET_CLONE_LEAF`.
  *
  * ⚠️ the mark is carried in the CHILD ENV, never on disk or in a flag — so the only
@@ -1848,12 +1848,12 @@ describe('rhx enroll --roles (acceptance)', () => {
  *
  *   | mutation of the guard                    | this file |
  *   |------------------------------------------|-----------|
- *   | the leaf check is dropped                | 🔴 `[case1]` red — a reviewer's enroll is admitted |
+ *   | the leaf check is dropped                | 🔴 `[case1]` red — a leaf's enroll is admitted |
  *   | an absolute depth cap is restored at 1   | 🔴 `[case2]` red — a depth-1 work clone is refused |
  *   | a `-p` enroll mints its child as no leaf | 🔴 `[case5]` red — the child dumps no leaf mark |
  *   | restored                                 | 🟢 all green |
  */
-describe('rhx enroll reviewer leaf (acceptance)', () => {
+describe('rhx enroll leaf clone (acceptance)', () => {
   const setupDepthFixture = (dir: string): void => {
     setupRoleFixtureRepo({ dir });
     invokeRhachetCliBinary({
@@ -1862,7 +1862,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
     });
   };
 
-  given('[case1] a linked repo, the caller is a reviewer clone — a leaf', () => {
+  given('[case1] a linked repo, the caller is a leaf clone', () => {
     const dir = genTempDir({ slug: 'enroll-leaf-refused' });
     beforeAll(() => setupDepthFixture(dir));
 
@@ -1890,7 +1890,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
           hint: string | null;
         };
         expect(shape.class).toEqual('ConstraintError');
-        expect(shape.message).toContain('a reviewer clone may not spawn');
+        expect(shape.message).toContain('a leaf clone may not spawn');
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1943,7 +1943,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
         //   here where a resnap cannot paper over them
         //   (`rule.require.unabridged-error-prefix`)
         expect(run.stderr).toContain(
-          '✋ ConstraintError: a reviewer clone may not spawn',
+          '✋ ConstraintError: a leaf clone may not spawn',
         );
       });
 
@@ -1957,7 +1957,8 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
 
       then('the refusal names the door and why this process is a leaf', () => {
         expect(run.stderr).toContain('a clone enroll (`rhx enroll`)');
-        expect(run.stderr).toContain('this process is a reviewer');
+        expect(run.stderr).toContain('this process is a leaf');
+        expect(run.stderr).not.toMatch(/review/i);
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1992,7 +1993,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
       );
 
       then('no refusal fires — depth caps no spawn', () => {
-        expect(run.stderr).not.toContain('a reviewer clone may not spawn');
+        expect(run.stderr).not.toContain('a leaf clone may not spawn');
         expect(run.status).toEqual(0);
       });
     });
@@ -2064,7 +2065,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
 
       then('the enroll succeeds', () => {
         expect(run.status).toEqual(0);
-        expect(run.stderr).not.toContain('a reviewer clone may not spawn');
+        expect(run.stderr).not.toContain('a leaf clone may not spawn');
       });
 
       // one read of the dump, shared by the asserts below
@@ -2200,19 +2201,19 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
   });
 
   /**
-   * .what = a print-mode enroll (`-p`) mints a REVIEWER — a leaf
+   * .what = a print-mode enroll (`-p`) mints a LEAF
    * .why =
-   *   - per #577, the enroll that mints a reviewer marks the child leaf. a print-mode
-   *     child answers one prompt and exits, which is the shape of a reviewer
-   *   - 🔴 the mark must REACH the child env, else the reviewer could enroll reviewers of
-   *     its own — the fan-out that blew up the review conversations this route repairs
+   *   - per #577, the print-mode door marks its child a leaf: the child answers one
+   *     prompt and exits
+   *   - 🔴 the mark must REACH the child env, else the leaf could enroll clones of its
+   *     own — the fan-out this route repairs
    *
    * .note = DOGFOOD, the mutation that makes it bite:
    *   | mutation | result |
    *   |---|---|
    *   | `invokeEnroll` passes `leaf: false` for every enroll | 🔴 red — the child dumps leaf `null` |
    */
-  given('[case5] a work clone enrolls a print-mode reviewer', () => {
+  given('[case5] a work clone enrolls a print-mode leaf', () => {
     const dir = genTempDir({ slug: 'enroll-print-leaf' });
     const configDir = genTempDir({ slug: 'enroll-print-leaf-cfg' });
     let env: Record<string, string>;
@@ -2226,7 +2227,7 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
     });
 
     when('[t0] `enroll claude --await -p "<prompt>"` runs', () => {
-      const run = useThen('the reviewer answers and exits', () =>
+      const run = useThen('the leaf answers and exits', () =>
         invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--await', '-p', 'review this'],
           cwd: dir,
@@ -2244,30 +2245,30 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
         readStubEnvDumped({ dir }),
       );
 
-      then('🔴 the reviewer carries the leaf mark', () => {
+      then('🔴 the child carries the leaf mark', () => {
         expect(dumped.leaf).toEqual('1');
       });
 
-      then('the reviewer sits one level below its caller — depth 2', () => {
+      then('the child sits one level below its caller — depth 2', () => {
         expect(dumped.depth).toEqual('2');
       });
     });
   });
 
   /**
-   * .what = a print-mode reviewer enrolled `--async` keeps its leaf mark across the host
+   * .what = a print-mode leaf enrolled `--async` keeps its leaf mark across the host
    * .why =
    *   - the detached host re-derives the mark from the argv it replays, never from an
    *     inherited env key (it drops its own handoff keys before it spawns)
-   *   - 🔴 if a refactor dropped `-p` from that replay, the reviewer would boot unmarked and
-   *     could enroll reviewers of its own — the fan-out the leaf mark exists to stop
+   *   - 🔴 if a refactor dropped `-p` from that replay, the leaf would boot unmarked and
+   *     could enroll clones of its own — the fan-out the leaf mark exists to stop
    *
    * .note = DOGFOOD, the mutation that makes it bite:
    *   | mutation | result |
    *   |---|---|
    *   | the host replays the argv with `-p` and its prompt dropped | 🔴 red — the child dumps leaf `null` |
    */
-  given('[case6] a work clone enrolls a print-mode reviewer `--async`', () => {
+  given('[case6] a work clone enrolls a print-mode leaf `--async`', () => {
     const dir = genTempDir({ slug: 'enroll-print-leaf-async' });
     const configDir = genTempDir({ slug: 'enroll-print-leaf-async-cfg' });
     let env: Record<string, string>;
@@ -2307,15 +2308,15 @@ describe('rhx enroll reviewer leaf (acceptance)', () => {
         readStubEnvDumped({ dir }),
       );
 
-      then('🔴 the reviewer carries the leaf mark, re-derived by the host', () => {
+      then('🔴 the child carries the leaf mark, re-derived by the host', () => {
         expect(dumped.leaf).toEqual('1');
       });
 
-      then('the reviewer sits one level below its caller — depth 2', () => {
+      then('the child sits one level below its caller — depth 2', () => {
         expect(dumped.depth).toEqual('2');
       });
 
-      then('the reviewer inherits neither of the host’s handoff keys', () => {
+      then('the child inherits neither of the host’s handoff keys', () => {
         expect(dumped.hostDetached).toEqual(null);
         expect(dumped.depthMinted).toEqual(null);
       });

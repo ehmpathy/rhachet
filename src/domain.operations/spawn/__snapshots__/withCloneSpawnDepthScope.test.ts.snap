@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`withCloneSpawnDepthScope given: [case3b] a reviewer caller — it carries the leaf mark when: [t0] it runs a repl call then: the refusal renders whole, for review 1`] = `
-"✋ ConstraintError: a reviewer clone may not spawn
+exports[`withCloneSpawnDepthScope given: [case3b] a leaf caller — it carries the leaf mark when: [t0] it runs a repl call then: the refusal renders whole, for review 1`] = `
+"✋ ConstraintError: a leaf clone may not spawn
 
 {
-  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
-  "via": "a repl brain (\`rhx review\`, \`rhachet ask\`, \`rhachet act\`)",
-  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+  "via": "a repl brain (\`rhachet ask\`, \`rhachet act\`, or a skill built on the sdk)",
+  "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
 }"
 `;

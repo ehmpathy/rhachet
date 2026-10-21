@@ -1362,7 +1362,7 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
  *
  *   | mutation                                                   | this case |
  *   |------------------------------------------------------------|-----------|
- *   | `spawnRhachetCliBackground` merges raw process.env          | 🔴 red — refused, `a reviewer clone may not spawn` |
+ *   | `spawnRhachetCliBackground` merges raw process.env          | 🔴 red — refused, `a leaf clone may not spawn` |
  *   | the strip lets `RHACHET_CLONE_LEAF` through                 | 🔴 red — same refusal |
  *   | the strip lets BOTH host handoff keys through               | 🔴 red — the child records depth 2, never 0 |
  *   | the strip lets ONE handoff key through, the other stripped  | 🟢 green — the host replay needs both keys, so one alone is inert |
@@ -1423,7 +1423,7 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
 
     when('[t0] it enrolls a peer through the outer pty', () => {
       then('the leaf refusal does NOT fire', () => {
-        expect(scene.output).not.toContain('a reviewer clone may not spawn');
+        expect(scene.output).not.toContain('a leaf clone may not spawn');
       });
 
       then('the clone stands up — the runner identity never reached the enroll', () => {
@@ -1459,7 +1459,7 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
  *   | the leaf read is skipped at a tty                    | 🟢 green | 🔴 red — stands up |
  *   | restored                                            | 🟢 green | 🟢 green |
  */
-describe('a clone wraps its enroll in a fresh pty — a work clone sits one level below, a reviewer is refused (acceptance)', () => {
+describe('a clone wraps its enroll in a fresh pty — a work clone sits one level below, a leaf is refused (acceptance)', () => {
   /**
    * .what = enroll through the outer pty with a given inherited clone env
    */
@@ -1536,7 +1536,7 @@ describe('a clone wraps its enroll in a fresh pty — a work clone sits one leve
 
     when('[t0] `rhx enroll claude` runs at that tty', () => {
       then('🔴 it is refused — a pty wrap is no escape from the leaf rule', () => {
-        expect(scene.output).toContain('a reviewer clone may not spawn');
+        expect(scene.output).toContain('a leaf clone may not spawn');
       });
 
       then('no clone stands up', () => {

@@ -134,7 +134,7 @@ describe('replDoorRealSupplier.realnode.integration', () => {
 
       then('no refusal fires — the only error is the probe intercept', () => {
         expect(report.askAtDepth1Work.error?.message ?? '').not.toContain(
-          'a reviewer clone may not spawn',
+          'a leaf clone may not spawn',
         );
       });
     });
@@ -143,7 +143,7 @@ describe('replDoorRealSupplier.realnode.integration', () => {
       then('it is refused as a constraint that names the reviewer', () => {
         expect(report.askAsLeaf.error?.name).toEqual('ConstraintError');
         expect(report.askAsLeaf.error?.message).toContain(
-          'a reviewer clone may not spawn',
+          'a leaf clone may not spawn',
         );
       });
 

@@ -23,7 +23,7 @@ import {
  *   place in the chain
  * .note = the binary runs with no tty on stdin, as a clone's tool shell does
  */
-describe('rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance)', () => {
+describe('rhachet ask / rhachet act — a leaf caller refused, a work caller admitted (acceptance)', () => {
   const repo = useBeforeAll(async () =>
     genTestTempRepo({ fixture: 'with-repl-stub-config' }),
   );
@@ -63,9 +63,9 @@ describe('rhachet ask / rhachet act — a reviewer leaf refused, a work caller a
       });
 
       then('the refusal names the reviewer and the repl door', () => {
-        expect(result.stderr).toContain('a reviewer clone may not spawn');
+        expect(result.stderr).toContain('a leaf clone may not spawn');
         expect(result.stderr).toContain(
-          '`rhx review`, `rhachet ask`, `rhachet act`',
+          '`rhachet ask`, `rhachet act`',
         );
       });
 
@@ -93,9 +93,9 @@ describe('rhachet ask / rhachet act — a reviewer leaf refused, a work caller a
       });
 
       then('the refusal names the reviewer and the repl door', () => {
-        expect(result.stderr).toContain('a reviewer clone may not spawn');
+        expect(result.stderr).toContain('a leaf clone may not spawn');
         expect(result.stderr).toContain(
-          '`rhx review`, `rhachet ask`, `rhachet act`',
+          '`rhachet ask`, `rhachet act`',
         );
       });
 

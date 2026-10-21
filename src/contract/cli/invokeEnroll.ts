@@ -363,7 +363,7 @@ const performEnroll = async (input: {
     );
   const reason = await getOneEnrollReasonOrNull({ raw: input.reason });
 
-  // a reviewer may enroll no one (#577): its enroll is refused BEFORE any dir or child
+  // a leaf may enroll no one (#577): its enroll is refused BEFORE any dir or child
   //   exists, so a chain never half-forms. a work clone at any depth may enroll one more
   assertCloneSpawnAllowed({
     isCallerLeaf: isCloneSpawnCallerLeaf({ env: process.env }),
@@ -377,7 +377,7 @@ const performEnroll = async (input: {
     isTty: !!process.stdin.isTTY,
   });
 
-  // a print-mode enroll mints a reviewer: one prompt in, one answer out. it is a leaf, so
+  // a print-mode enroll mints a leaf: one prompt in, one answer out. a leaf
   //   it may enroll no one. a detached host re-derives this from the argv it replays
   const leaf = isCloneSpawnChildLeaf({
     door: 'enroll',
@@ -789,7 +789,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     // the mode (`term=enroll.mode`, `computeCloneEnrollMode`)
     .option(
       '--await',
-      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>"). a -p clone is a reviewer: it may enroll no clone of its own',
+      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>"). a -p clone is a leaf: it may enroll no clone of its own',
     )
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     // built-in --help is off so `rhx enroll <brain> --help` forwards to the brain
