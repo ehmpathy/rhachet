@@ -27,6 +27,7 @@ describe('genBrainCliPlainClone.integration', () => {
         cwd,
         serial,
         depth: 0,
+        leaf: false,
         brainDir,
       });
       const exitCode = await clone.waitForExit;
@@ -54,6 +55,52 @@ describe('genBrainCliPlainClone.integration', () => {
 
       then('it carries its own serial', () => {
         expect(scene.env.serial).toEqual(scene.serial);
+      });
+    });
+  });
+
+  given('[case2] a plain spawn of a work clone vs a reviewer leaf', () => {
+    // 🔴 the leaf mark must REACH the child — a reviewer whose env lacked it could spawn
+    //   its own reviewers, and a work clone whose env held it could run no review (#577)
+    const spawnAndReadPlace = async (input: {
+      depth: number;
+      leaf: boolean;
+    }): Promise<{ depth: string | null; leaf: string | null }> => {
+      const serial = getUuid();
+      const cwd = genTempDir({ slug: `plainclone-place-cwd-${serial}` });
+      const brainDir = genTempDir({ slug: `plainclone-place-brain-${serial}` });
+      const envOut = join(cwd, 'env.json');
+      const program = [
+        `const env = { depth: process.env[${JSON.stringify(CLONE_ENV_KEYS.depth)}] ?? null, leaf: process.env[${JSON.stringify(CLONE_ENV_KEYS.leaf)}] ?? null };`,
+        `require('fs').writeFileSync(${JSON.stringify(envOut)}, JSON.stringify(env));`,
+      ].join('\n');
+      const clone = genBrainCliPlainClone({
+        command: process.execPath,
+        args: ['-e', program],
+        cwd,
+        serial,
+        depth: input.depth,
+        leaf: input.leaf,
+        brainDir,
+      });
+      await clone.waitForExit;
+      return JSON.parse(readFileSync(envOut, 'utf8')) as {
+        depth: string | null;
+        leaf: string | null;
+      };
+    };
+    const scene = useBeforeAll(async () => ({
+      work: await spawnAndReadPlace({ depth: 2, leaf: false }),
+      leaf: await spawnAndReadPlace({ depth: 1, leaf: true }),
+    }));
+
+    when('[t0] each child reads its place in the chain', () => {
+      then('a work clone at depth 2 reads depth 2 and no leaf mark', () => {
+        expect(scene.work).toEqual({ depth: '2', leaf: null });
+      });
+
+      then('a reviewer reads its depth and the leaf mark', () => {
+        expect(scene.leaf).toEqual({ depth: '1', leaf: '1' });
       });
     });
   });

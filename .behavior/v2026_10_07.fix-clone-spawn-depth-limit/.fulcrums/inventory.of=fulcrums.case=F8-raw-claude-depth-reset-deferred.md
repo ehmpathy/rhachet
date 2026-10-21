@@ -19,7 +19,7 @@ options: (a) land all of F7 here, which includes a supplier release · (b) defer
 manual cure · (c) split: land the strip in rhachet now, which closes the live hole and makes premise
 (2) true, then land the supplier write as a planned dedicated pr · (d) drop the edge.
 
-**taken:** (c). the strip is rhachet code: `asSettingsWithoutCloneIdentityEnv` drops every
+**taken:** (c). the strip is rhachet code: `asSettingsWithoutCloneEnv` drops every
 `RHACHET_CLONE_*` key before the artifact is written, and it is clamped by a unit case list plus
 `genBrainCliConfigArtifact.integration.test.ts` [case7]. the supplier write is a planned pr, with a
 title and a bounded diff, in `.dream/v2026_10_19.feat.raw-claude-inherited-depth-reset.md`.
@@ -32,13 +32,15 @@ boundary, which is why it is its own pr, and that does not make the rework dirty
 
 **confidence:** 85%. the wisher ruled F7 itself, so its split is flagged here for the council. the
 cell still uncured until the supplier pr lands is case 7 [t3]–[t4], an inherited pane where a human
-runs a raw `claude`. the refusal hint names no manual cure for it: it says to ask the clone that
-spawned you or a human, and, for a human in a shell a clone opened, to run `rhx enroll` from a
-fresh terminal (the hint moved with F13). it never names the depth var, since an absent var reads
+runs a raw `claude`. the refusal hint names no manual cure for it: it tells a reviewer clone not
+to retry, a human in a shell a clone opened to run `rhx enroll` from a fresh terminal (the hint
+moved with F13), and a driver clone enrolled with no tty to ask its human to re-enroll it from a
+fresh terminal. it never names the depth var, nor tmux (a pane takes the server env, so it is the
+F13 bypass), since an absent var reads
 as depth 0 and "clear the var" was a bypass recipe (removed at r011 i005 blocker.1). until the
 supplier pr lands, that cell has no cure.
 
-**where:** `asSettingsWithoutCloneIdentityEnv.ts` · `genBrainCliConfigArtifact.ts` ·
+**where:** `asSettingsWithoutCloneEnv.ts` · `genBrainCliConfigArtifact.ts` ·
 `assertCloneSpawnDepthWithinLimit.ts` (the hint) · the planned pr in the dream above.
 
 **touched by #600:** yes — #600 (`d91e8270`) rewrote `genBrainCliConfigArtifact.ts`,
@@ -52,5 +54,17 @@ the narrow, for every actor, the repo actor included. its clamp is now
 `genBrainCliConfigArtifact.integration.test.ts` [case7] (#600 took [case6] for its mutex case),
 green in the rebased integration run. the grove (`~/.claude/settings.json`, the user layer) is the
 human's own file and stays out of scope, as before.
+
+**the repo actor is stripped too, which reverses the i005 r010 plan.** before the rebase, the plan
+was to strip only an enrolled actor's file and leave the repo actor's, as the home of the
+supplier's reset. #600 makes that wrong both ways:
+- a bare `rhx enroll claude -p` (a guard's reviewer) is a clone of the repo actor and reads its
+  `settings.of.repo.json` at `--settings`, so a reset key there resets that reviewer to depth 0
+- a raw `claude` reads `<repo>/.claude/settings.json`, which is the grove arrow, and never reads
+  `settings.of.repo.json`, so a reset there would not reach the raw session it was for
+
+so the strip covers every actor, and the supplier pr's write path is re-opened: under #600 the only
+file a raw `claude` reads and a clone does not is the grove, the human's own. the dream records that
+the pr asks the wisher before it writes there.
 
 **verdict:** —

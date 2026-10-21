@@ -1,4 +1,4 @@
-import { genBrainRepl } from 'rhachet-brains-openai';
+import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -24,9 +24,12 @@ describe('actorAct (integration)', () => {
 
   // create real brain via genBrainRepl
   // note: external brains from npm packages don't have spec yet; cast for compatibility
-  const brain = genBrainRepl({ slug: 'openai/codex' }) as unknown as BrainRepl;
+  // haiku: a real repl brain the test key reaches (rule.require.test-claude-cli-against-haiku)
+  const brain = genBrainRepl({
+    slug: 'claude/code/haiku',
+  }) as unknown as BrainRepl;
 
-  given.skip('[case1] a rigid skill in role.skills.rigid', () => {
+  given('[case1] a rigid skill in role.skills.rigid', () => {
     when('[t0] actorAct is called with pre-resolved skill', () => {
       then('executes the skill with the brain', async () => {
         // resolve skill first (as genActor would)

@@ -1,0 +1,99 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 5.3.verification
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  │   ├─ $route/5.3.verification.yield.md
+   │  │   └─ src/**/*
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 3 blockers 🔴
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: ergo-contract-snapshots (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r002._.given.by_peer.ergo-contract-snapshots.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r002._.taken.by_self.ergo-contract-snapshots.md
+   │  │   ├─ r3: mech-external-contracts (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r003._.given.by_peer.mech-external-contracts.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r003._.taken.by_self.mech-external-contracts.md
+   │  │   ├─ r4: ergo-acceptance-journey-coverage (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 2 nitpicks, 1 disputed → 1 tallied 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r004._.given.by_peer.ergo-acceptance-journey-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r004._.taken.by_self.ergo-acceptance-journey-coverage.md
+   │  │   ├─ r5: behavior-experience-coverage (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r005._.given.by_peer.behavior-experience-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r005._.taken.by_self.behavior-experience-coverage.md
+   │  │   ├─ r6: ergo-snapshot-visual-blemishes (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker, 1 disputed → 0 tallied ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r006._.given.by_peer.ergo-snapshot-visual-blemishes.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r006._.taken.by_self.ergo-snapshot-visual-blemishes.md
+   │  │   ├─ r7: mech-given-when-then (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r007._.given.by_peer.mech-given-when-then.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r007._.taken.by_self.mech-given-when-then.md
+   │  │   ├─ r8: mech-test-intent (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r008._.given.by_peer.mech-test-intent.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r008._.taken.by_self.mech-test-intent.md
+   │  │   ├─ r9: mech-test-scope-purity (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 1 nitpick, 1 disputed → 0 tallied ✓
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r009._.given.by_peer.mech-test-scope-purity.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i003.0d0f940023c0f729af.r009._.taken.by_self.mech-test-scope-purity.md
+   │  │   ├─ r10: enroll-verif-snapshot-coverage (l3, 3/3)
+   │  │   │   ├─ approved, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 3 nitpicks, 2 disputed → 1 tallied 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r010._.given.by_peer.enroll-verif-snapshot-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r010._.taken.by_self.enroll-verif-snapshot-coverage.md
+   │  │   ├─ r11: enroll-verif-snapshot-blemishes (l3, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 5 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r011._.given.by_peer.enroll-verif-snapshot-blemishes.md
+   │  │   │   └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r011._.taken.by_self.enroll-verif-snapshot-blemishes.md
+   │  │   └─ r12: enroll-verif-test-intent (l3, 3/3)
+   │  │       ├─ exhausted 🌙, cached — set aside by dispute
+   │  │       ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │       ├─ terminal — does not block higher levels
+   │  │       ├─ 3 blockers, 3 disputed → 0 tallied ✓
+   │  │       ├─ 3 nitpicks, 1 disputed → 2 tallied 🟠
+   │  │       ├─ given: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r012._.given.by_peer.enroll-verif-test-intent.md
+   │  │       └─ taken: .behavior/v2026_10_07.fix-clone-spawn-depth-limit/.reviews/peer/5.3.verification._.review.i006.a069e174534acfde3c.r012._.taken.by_self.enroll-verif-test-intent.md
+   │  └─ judges
+   │      └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │          └─ · cached
+   │             ├─ on $route/5.3.verification.yield.md
+   │             └─ on src/**/*
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

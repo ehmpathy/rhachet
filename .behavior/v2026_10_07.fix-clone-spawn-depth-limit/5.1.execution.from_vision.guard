@@ -163,7 +163,7 @@ reviews:
     # --- level 1: cheap reviewers (run first, in parallel) ---
 
     - slug: repo-rules
-      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --brain anthropic/claude/opus --focus pull --diffs since-main --paths-with '**/*.{ts,sh,md,snap}' --join intersect --conversation $conversation --output "$output"
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=.this/**/rule.*.md' --optional rules --diffs since-main --paths-with 'src/**/*.ts' --paths-with 'blackbox/**/*.ts' --paths-wout '**/__snapshots__/**' --paths-wout 'src/_topublish/**' --join intersect --conversation $conversation --output "$output"
       budget: 3
       level: 1
 
@@ -190,7 +190,7 @@ reviews:
       level: 1
 
     - slug: arch-hazards-maintenance
-      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.maintenance-hazards.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/rule.require.solve-at-cause.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.errors/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.typedefs/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.narrative/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.comments/*.md.min' --brain anthropic/claude/opus --focus pull --diffs since-main --paths-with '**/*.{ts,sh,md,snap}' --join intersect --conversation $conversation --output "$output"
+      run: $rhx review --repo bhrain --mode hard --rules '.agent/repo=bhuild/role=behaver/briefs/practices/behavior.execution/architect/rule.forbid.maintenance-hazards.md' --refs '.agent/repo=ehmpathy/role=architect/briefs/practices/rule.require.solve-at-cause.md' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.errors/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.procedures/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/pitofsuccess.typedefs/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.narrative/*.md.min' --refs '.agent/repo=ehmpathy/role=mechanic/briefs/practices/code.prod/readable.comments/*.md.min' --diffs since-main --paths-with 'src/**/*.ts' --paths-wout '**/*.test.ts' --paths-wout 'src/_topublish/**' --join intersect --conversation $conversation --output "$output"
       budget: 3
       level: 1
 
@@ -213,7 +213,7 @@ reviews:
 
     - slug: enroll-impl-behavior-intent
       run: $rhx enroll claude --model 'claude-sonnet-5-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'review the current implementation for omissions or divergences from the wished and envisioned behavioral intent. in particular flag any ergonomic friction that is unaddressed or friction hazards that are not clearly covered with acceptance tests and snaps. read the prior peer-review conversation at $conversation to catch up on context.'
-      budget: 3
+      budget: 6
       level: 3
 
     - slug: enroll-impl-arch-defects

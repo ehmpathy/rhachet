@@ -1,0 +1,81 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case1] a reviewer caller — a leaf at depth 1 when: [t0] it runs \`rhachet ask\` then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a repl brain (\`rhx review\`, \`rhachet ask\`, \`rhachet act\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+}
+
+[args] ask,--config,repl-stub-config.mjs,--role,any,--ask,hi
+
+"
+`;
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case1] a reviewer caller — a leaf at depth 1 when: [t1] it runs \`rhachet act\` then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a repl brain (\`rhx review\`, \`rhachet ask\`, \`rhachet act\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+}
+
+[args] act,--config,repl-stub-config.mjs,--role,any,--skill,stub
+
+"
+`;
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case2] a work caller at depth 1, with no leaf mark of its own when: [t0] it runs \`rhachet ask\` then: the output is locked to a snapshot 1`] = `
+"
+💧 ask fluid skill repo=stub/role=any
+
+REPL_STUB_RAN depth=2 leaf=1
+stub
+"
+`;
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case2] a work caller at depth 1, with no leaf mark of its own when: [t1] it runs \`rhachet act\` then: the output is locked to a snapshot 1`] = `
+"
+🔩 act rigid skill repo=stub/role=any/skill=stub
+
+REPL_STUB_RAN depth=2 leaf=1
+{
+  "output": {
+    "answer": "stub"
+  },
+  "metrics": null,
+  "episode": null,
+  "series": null
+}
+"
+`;
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case3] a top-level caller at depth 0, with no leaf mark of its own when: [t0] it runs \`rhachet ask\` then: the output is locked to a snapshot 1`] = `
+"
+💧 ask fluid skill repo=stub/role=any
+
+REPL_STUB_RAN depth=1 leaf=1
+stub
+"
+`;
+
+exports[`rhachet ask / rhachet act — a reviewer leaf refused, a work caller admitted (acceptance) given: [case3] a top-level caller at depth 0, with no leaf mark of its own when: [t1] it runs \`rhachet act\` then: the output is locked to a snapshot 1`] = `
+"
+🔩 act rigid skill repo=stub/role=any/skill=stub
+
+REPL_STUB_RAN depth=1 leaf=1
+{
+  "output": {
+    "answer": "stub"
+  },
+  "metrics": null,
+  "episode": null,
+  "series": null
+}
+"
+`;

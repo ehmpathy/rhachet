@@ -1,5 +1,8 @@
 import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
-import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
+import {
+  CLONE_ENV_KEYS_HANDOFF,
+  CLONE_ENV_KEYS_IDENTITY,
+} from '@src/utils/cloneEnvKeys';
 
 /**
  * .what = the settings with every clone identity key dropped from its `env` map
@@ -14,16 +17,22 @@ import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
  *
  * .note = an `env` map left empty is dropped, so a repo with no such key renders
  *   the same artifact as before
+ * .note = it drops the two handoff keys too: they are no identity, but a config that set
+ *   them would make every clone read as a detached host
  */
-export const asSettingsWithoutCloneIdentityEnv = (input: {
+export const asSettingsWithoutCloneEnv = (input: {
   settings: ClaudeCodeSettings;
 }): ClaudeCodeSettings => {
-  // a settings file with no env map has naught to strip
+  // a settings file with no env map has naught to strip. claude reads `env` only as a map,
+  // so an env in another shape sets no var a clone could inherit; it is left as found
   const env = input.settings.env;
   if (!isEnvMap(env)) return input.settings;
 
   // keep each key that is not a clone identity key
-  const identityKeys: string[] = Object.values(CLONE_ENV_KEYS);
+  const identityKeys: string[] = [
+    ...CLONE_ENV_KEYS_IDENTITY,
+    ...CLONE_ENV_KEYS_HANDOFF,
+  ];
   const envKept = Object.fromEntries(
     Object.entries(env).filter(([key]) => !identityKeys.includes(key)),
   );

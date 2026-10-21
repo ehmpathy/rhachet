@@ -2,7 +2,7 @@
 
 ## .etymology
 
-why `door`: the depth limit is a guard at an entrance, and a door is the plain word for an entrance
+why `door`: the spawn check is a guard at an entrance, and a door is the plain word for an entrance
 you can guard. the vision of `v2026_10_07.fix-clone-spawn-depth-limit` named the field
 (`asCloneSpawnDepth({ env, isTty, door })`), and its review rounds argued the rule as "two doors,
 one check", so the word was settled before code.
@@ -28,4 +28,6 @@ the rejected peers:
 
 ## .evidence
 - discovery: the vision's contract and its peer review rounds (i004–i011) each name "both doors"
-- invariant: the `repl` door never mints depth 0; the `enroll` door mints 0 only at a tty
+- invariant: the `repl` door never mints depth 0; the `enroll` door mints 0 only at a tty that carries no depth var
+- invariant: the door decides the leaf mark — every `repl` child is a leaf; an `enroll` child is a
+  leaf only from a print-mode (`-p`) enroll (`isCloneSpawnChildLeaf`, fulcrum F23)

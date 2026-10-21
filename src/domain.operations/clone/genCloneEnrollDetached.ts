@@ -102,9 +102,8 @@ export const genCloneEnrollDetached = async (input: {
     stdio: ['ignore', 'pipe', 'pipe'],
     // 🔴 the caller's env passes through WHOLE, plus the depth the caller DECIDED
     //   (`CLONE_ENV_KEYS.depthMinted`). the caller decided it in the foreground, where the
-    //   tty is; the host has `stdin: 'ignore'`, so a re-read there would mint a tty
-    //   enroll's clone at depth 1. drop the key and a top-level human's `--async` clone
-    //   is born one level down, its reviewers refused — the worst failure the limit has.
+    //   tty is; the host has `stdin: 'ignore'`, so the host must replay this key, never
+    //   re-read the depth.
     //
     //   `serial`, `socket`, and `depth` ride along and are INERT here — the host takes
     //   `depthMinted`, and the pty spawn overwrites all three for the child it stands up

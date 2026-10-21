@@ -4,6 +4,8 @@
 //         a real node child loads it for real. the spawn is the one call this probe replaces: it
 //         records the env the sdk hands the claude child, then throws, so no brain runs and no
 //         token is spent. so the probe reads the exact env a real supplier brain would boot with
+// .mock = `child_process.spawn`, and no other call: it counts spawns and reads each env, which a
+//         live boot cannot show. the live twin is probe.replDoorRealSupplierLive.cjs
 //
 // argv[2] = absolute path to the built dist contract artifact (dist/contract/sdk.brains.js)
 // cwd     = the repo whose package.json declares the rhachet-brains-* deps (the real registry)
@@ -18,6 +20,7 @@ const { z } = require('zod');
 const KEY_DEPTH = 'RHACHET_CLONE_DEPTH';
 const KEY_SERIAL = 'RHACHET_CLONE_SERIAL';
 const KEY_SOCKET = 'RHACHET_CLONE_SOCKET';
+const KEY_LEAF = 'RHACHET_CLONE_LEAF';
 
 // record each spawn the supplier attempts, then refuse it, so no real brain runs
 const spawnsSeen = [];
@@ -26,6 +29,7 @@ childProcess.spawn = (command, args, options) => {
   spawnsSeen.push({
     command: String(command),
     depth: env[KEY_DEPTH] ?? null,
+    leaf: env[KEY_LEAF] ?? null,
     serial: env[KEY_SERIAL] ?? null,
     socket: env[KEY_SOCKET] ?? null,
   });
@@ -46,9 +50,11 @@ const main = async () => {
     schema: { output: z.object({ content: z.string() }) },
   };
 
-  // run one door call from a caller at a given depth; report its error and the spawns it made
+  // run one door call from a caller at a given place; report its error and the spawns it made
   const runAt = async (input) => {
     process.env[KEY_DEPTH] = input.depth;
+    if (input.leaf) process.env[KEY_LEAF] = '1';
+    else delete process.env[KEY_LEAF];
     process.env[KEY_SERIAL] = 'serial-parent';
     process.env[KEY_SOCKET] = '/tmp/socket-parent';
     const spawnsBefore = spawnsSeen.length;
@@ -66,6 +72,7 @@ const main = async () => {
       spawns: spawnsSeen.slice(spawnsBefore),
       envAfter: {
         depth: process.env[KEY_DEPTH] ?? null,
+        leaf: process.env[KEY_LEAF] ?? null,
         serial: process.env[KEY_SERIAL] ?? null,
         socket: process.env[KEY_SOCKET] ?? null,
       },
@@ -74,10 +81,11 @@ const main = async () => {
 
   const report = {
     choiceRepo: context.brain.choice ? context.brain.choice.repo : null,
-    askAtDepth0: await runAt({ door: 'ask', depth: '0' }),
-    actAtDepth0: await runAt({ door: 'act', depth: '0' }),
-    askAtDepth1: await runAt({ door: 'ask', depth: '1' }),
-    actAtDepth1: await runAt({ door: 'act', depth: '1' }),
+    askAtDepth0: await runAt({ door: 'ask', depth: '0', leaf: false }),
+    actAtDepth0: await runAt({ door: 'act', depth: '0', leaf: false }),
+    askAtDepth1Work: await runAt({ door: 'ask', depth: '1', leaf: false }),
+    askAsLeaf: await runAt({ door: 'ask', depth: '1', leaf: true }),
+    actAsLeaf: await runAt({ door: 'act', depth: '1', leaf: true }),
   };
   process.stdout.write(`REPORT_START${JSON.stringify(report)}REPORT_END`);
 };

@@ -70,9 +70,9 @@ the enroll read the second and called it the first. a clone invokes `rhx enroll`
 
 ## ⚠️ .the boundary — attended does not mean UNBOUNDED
 
-attendance says a socket is warranted. it says naught about how many hops of clone may enroll clone
-— that is `term=spawn.depth`, a separate limit, and the two are checked independently. an enroll
-can be attended and still refused for depth.
+attendance says a socket is warranted. it says naught about whether the caller may spawn at all
+— that is `term=spawn.leaf`, a separate check, and the two are checked independently. an enroll
+can be attended and still refused, when its caller is a reviewer leaf.
 
 ## .refs
 

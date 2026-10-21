@@ -58,13 +58,17 @@ import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/get
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { asCloneSpawnDepth } from '@src/domain.operations/spawn/asCloneSpawnDepth';
-import { assertCloneSpawnDepthWithinLimit } from '@src/domain.operations/spawn/assertCloneSpawnDepthWithinLimit';
-import { getCloneSpawnDepthNotice } from '@src/domain.operations/spawn/getCloneSpawnDepthNotice';
+import { assertCloneSpawnAllowed } from '@src/domain.operations/spawn/assertCloneSpawnAllowed';
+import { isCloneSpawnCallerLeaf } from '@src/domain.operations/spawn/isCloneSpawnCallerLeaf';
+import { isCloneSpawnChildLeaf } from '@src/domain.operations/spawn/isCloneSpawnChildLeaf';
 import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
-import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
+import {
+  CLONE_ENV_KEYS,
+  CLONE_ENV_KEYS_HANDOFF,
+} from '@src/utils/cloneEnvKeys';
 
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -235,7 +239,7 @@ const asEnrollmentSpec = (input: {
  *   `--async` clone one level too deep
  * .note = deliberate mutation — the env IS the handoff channel to the child
  */
-const setCloneHostHandoffConsumed = (input: {
+const setCloneHostHandoffConsumedAfterDepthRead = (input: {
   isTty: boolean;
 }): { depth: number; isDetachedHost: boolean } => {
   // read first: the depth replays the minted key, the host marker names our part
@@ -247,8 +251,7 @@ const setCloneHostHandoffConsumed = (input: {
   const isDetachedHost = process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
 
   // then consume both keys, so no child inherits them
-  delete process.env[CLONE_ENV_KEYS.depthMinted];
-  delete process.env[CLONE_ENV_KEYS.hostDetached];
+  for (const key of CLONE_ENV_KEYS_HANDOFF) delete process.env[key];
   return { depth, isDetachedHost };
 };
 
@@ -360,22 +363,26 @@ const performEnroll = async (input: {
     );
   const reason = await getOneEnrollReasonOrNull({ raw: input.reason });
 
+  // a reviewer may enroll no one (#577): its enroll is refused BEFORE any dir or child
+  //   exists, so a chain never half-forms. a work clone at any depth may enroll one more
+  assertCloneSpawnAllowed({
+    isCallerLeaf: isCloneSpawnCallerLeaf({ env: process.env }),
+    door: 'enroll',
+  });
+
   // where in the spawn chain the clone this call mints would sit — 0 for a clone a
-  // human enrolls at a tty, 1 for any spawn with no tty. an over-limit enroll is
-  // refused BEFORE any dir or child exists, so a chain never half-forms
+  //   human enrolls at a tty, the caller's depth + 1 for any other spawn
   //   (and are WE the detached host?) — read once, then the handoff keys are consumed
-  const { depth, isDetachedHost } = setCloneHostHandoffConsumed({
+  const { depth, isDetachedHost } = setCloneHostHandoffConsumedAfterDepthRead({
     isTty: !!process.stdin.isTTY,
   });
-  assertCloneSpawnDepthWithinLimit({ depthChild: depth });
 
-  // a human who piped into the enroll learns now, not at a refusal stages later, that
-  //   the clone sits below top level (silent for a headless spawn)
-  const depthNotice = getCloneSpawnDepthNotice({
-    depth,
-    isTtyStderr: !!process.stderr.isTTY,
+  // a print-mode enroll mints a reviewer: one prompt in, one answer out. it is a leaf, so
+  //   it may enroll no one. a detached host re-derives this from the argv it replays
+  const leaf = isCloneSpawnChildLeaf({
+    door: 'enroll',
+    isPrintMode: isBrainCliPrintMode({ passthrough }),
   });
-  if (depthNotice) console.error(depthNotice);
 
   // refuse a brain cli below the floor before any write — it lacks the flags a clone needs
   const { command } = getSupportedBrainCommand({ brain: enrollment.brain });
@@ -605,6 +612,7 @@ const performEnroll = async (input: {
       mode: watchMode,
       noSocket: input.noSocket,
       depth,
+      leaf,
     },
     context,
   );
@@ -763,10 +771,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     )
     .option('--as <address>', 'name the clone with a stable handle (@:<slug>)')
     .option('--no-socket', 'enroll without a managed reach socket')
-    .option(
-      '--reason <text>',
-      'why this enrollment happened (or @stdin — a pipe on stdin is no tty, so the clone is minted at depth 1 and cannot spawn)',
-    )
+    .option('--reason <text>', 'why this enrollment happened (or @stdin)')
     // how the clone is WATCHED, never whether it can be REACHED — both modes take a
     // pty, a socket, and answer a `say`
     // (`define.invariant.clone-attendance-is-a-mode-never-a-reach`)
@@ -784,7 +789,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     // the mode (`term=enroll.mode`, `computeCloneEnrollMode`)
     .option(
       '--await',
-      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>")',
+      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>"). a -p clone is a reviewer: it may enroll no clone of its own',
     )
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     // built-in --help is off so `rhx enroll <brain> --help` forwards to the brain

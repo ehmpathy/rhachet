@@ -1,6 +1,8 @@
+import { given, then, when } from 'test-fns';
+
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
-import { asCloneSpawnDepth, CLONE_SPAWN_DEPTH_MAX } from './asCloneSpawnDepth';
+import { asCloneSpawnDepth } from './asCloneSpawnDepth';
 
 /**
  * .what = the depth a fresh spawn would mint, over every shape the caller's env, tty,
@@ -39,7 +41,7 @@ const TEST_CASES: {
   },
   {
     description:
-      'a tty enroll in a pty a depth-1 clone opened would mint depth 2 — over the limit (the tmux hole, F13)',
+      'a tty enroll in a pty a depth-1 clone opened mints depth 2 — a pty wrap that keeps the env is no reset (F13)',
     given: { depth: '1', isTty: true, door: 'enroll' },
     expect: 2,
   },
@@ -47,6 +49,18 @@ const TEST_CASES: {
     description:
       'a tty enroll under a smudged depth var still mints a top-level clone (0) — a smudge never locks a human out',
     given: { depth: 'deep', isTty: true, door: 'enroll' },
+    expect: 0,
+  },
+  {
+    description:
+      'a tty enroll under an empty depth var mints a top-level clone (0)',
+    given: { depth: '', isTty: true, door: 'enroll' },
+    expect: 0,
+  },
+  {
+    description:
+      'a tty enroll under a negative depth var mints a top-level clone (0)',
+    given: { depth: '-3', isTty: true, door: 'enroll' },
     expect: 0,
   },
 
@@ -63,8 +77,7 @@ const TEST_CASES: {
     expect: 1,
   },
   {
-    description:
-      'a no-tty enroll by a depth-1 clone would mint depth 2 — over the limit',
+    description: 'a no-tty enroll by a depth-1 clone mints depth 2',
     given: { depth: '1', isTty: false, door: 'enroll' },
     expect: 2,
   },
@@ -135,7 +148,7 @@ const TEST_CASES: {
   },
   {
     description:
-      'a repl call at a tty in a pty a depth-1 clone opened would mint depth 2 — over the limit',
+      'a repl call at a tty in a pty a depth-1 clone opened mints depth 2',
     given: { depth: '1', isTty: true, door: 'repl' },
     expect: 2,
   },
@@ -145,8 +158,7 @@ const TEST_CASES: {
     expect: 1,
   },
   {
-    description:
-      'a repl call by a depth-1 clone would mint depth 2 — over the limit',
+    description: 'a repl call by a depth-1 clone mints depth 2',
     given: { depth: '1', isTty: false, door: 'repl' },
     expect: 2,
   },
@@ -164,42 +176,48 @@ const TEST_CASES: {
 ];
 
 describe('asCloneSpawnDepth', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(
-        asCloneSpawnDepth({
-          env: {
-            [CLONE_ENV_KEYS.depth]: thisCase.given.depth,
-            [CLONE_ENV_KEYS.depthMinted]: thisCase.given.depthMinted,
-            [CLONE_ENV_KEYS.hostDetached]: thisCase.given.hostDetached,
-          },
-          isTty: thisCase.given.isTty,
-          door: thisCase.given.door,
+  given('[case1] each shape of env, tty and door', () => {
+    when('[t0] the depth a spawn would mint is read', () => {
+      TEST_CASES.map((thisCase) =>
+        then(thisCase.description, () => {
+          expect(
+            asCloneSpawnDepth({
+              env: {
+                [CLONE_ENV_KEYS.depth]: thisCase.given.depth,
+                [CLONE_ENV_KEYS.depthMinted]: thisCase.given.depthMinted,
+                [CLONE_ENV_KEYS.hostDetached]: thisCase.given.hostDetached,
+              },
+              isTty: thisCase.given.isTty,
+              door: thisCase.given.door,
+            }),
+          ).toEqual(thisCase.expect);
         }),
-      ).toEqual(thisCase.expect);
-    }),
-  );
-
-  test('the limit permits a top-level clone to spawn exactly one level', () => {
-    // a human's tty enroll, and that clone's no-tty spawn, both fit
-    expect(
-      asCloneSpawnDepth({ env: {}, isTty: true, door: 'enroll' }),
-    ).toBeLessThanOrEqual(CLONE_SPAWN_DEPTH_MAX);
-    expect(
-      asCloneSpawnDepth({
-        env: { [CLONE_ENV_KEYS.depth]: '0' },
-        isTty: false,
-        door: 'repl',
-      }),
-    ).toBeLessThanOrEqual(CLONE_SPAWN_DEPTH_MAX);
-
-    // the child's own spawn does not
-    expect(
-      asCloneSpawnDepth({
-        env: { [CLONE_ENV_KEYS.depth]: '1' },
-        isTty: false,
-        door: 'repl',
-      }),
-    ).toBeGreaterThan(CLONE_SPAWN_DEPTH_MAX);
+      );
+    });
   });
+
+  given(
+    '[case2] a chain of work clones, each one level below its caller',
+    () => {
+      when('[t0] each clone in the chain enrolls the next', () => {
+        then(
+          'the depth climbs one per hop, with no cap — depth is a record, never a limit',
+          () => {
+            // a human's tty enroll is top-level; each no-tty enroll below sits one deeper
+            const depths = [0, 1, 2, 3].map((depthCaller) =>
+              asCloneSpawnDepth({
+                env: { [CLONE_ENV_KEYS.depth]: String(depthCaller) },
+                isTty: false,
+                door: 'enroll',
+              }),
+            );
+            expect(
+              asCloneSpawnDepth({ env: {}, isTty: true, door: 'enroll' }),
+            ).toEqual(0);
+            expect(depths).toEqual([1, 2, 3, 4]);
+          },
+        );
+      });
+    },
+  );
 });

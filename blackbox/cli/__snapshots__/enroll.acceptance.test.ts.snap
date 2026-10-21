@@ -41,15 +41,14 @@ Options:
                       (rhx enroll claude -driver ≡ --roles -driver)
   --as <address>      name the clone with a stable handle (@:<slug>)
   --no-socket         enroll without a managed reach socket
-  --reason <text>     why this enrollment happened (or @stdin — a pipe on stdin
-                      is no tty, so the clone is minted at depth 1 and cannot
-                      spawn)
+  --reason <text>     why this enrollment happened (or @stdin)
   --watch             hold the clone in the foreground (default at a terminal)
   --async             report the clone address and exit (default with no
                       terminal)
   --await             hold until the clone answers its prompt and exits, then
                       forward its exit code (default with a prompt, e.g. -p
-                      "<prompt>")
+                      "<prompt>"). a -p clone is a reviewer: it may enroll no
+                      clone of its own
   --output <mode>     output mode: tree (default) or json (default: "tree")
 "
 `;
@@ -776,35 +775,6 @@ exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`c
 "
 `;
 
-exports[`rhx enroll depth limit (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
-"{
-  "class": "ConstraintError",
-  "message": "clone spawn depth limit reached",
-  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
-  "reachState": null,
-  "reachCause": null,
-  "metadata": {
-    "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
-    "depth": 1,
-    "depthMaxToSpawn": 0
-  }
-}
-"
-`;
-
-exports[`rhx enroll depth limit (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
-"
-✋ ConstraintError: clone spawn depth limit reached
-
-{
-  "hint": "a clone at depth 1 may not spawn another — ask the clone that spawned you, or a human, to stand this one up. a human in a shell a clone opened: run \`rhx enroll\` from a fresh terminal",
-  "depth": 1,
-  "depthMaxToSpawn": 0
-}
-
-"
-`;
-
 exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t0] \`enroll claude\` (no passthrough) then: the recorded argv is locked to a snapshot 1`] = `
 [
   "--setting-sources",
@@ -825,6 +795,35 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   "overrides": [
     "--system-prompt"
   ]
+}
+
+"
+`;
+
+exports[`rhx enroll reviewer leaf (acceptance) given: [case1] a linked repo, the caller is a reviewer clone — a leaf when: [t0] it enrolls a peer then: the structured error is locked to a snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "a reviewer clone may not spawn",
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+    "via": "a clone enroll (\`rhx enroll\`)",
+    "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+  }
+}
+"
+`;
+
+exports[`rhx enroll reviewer leaf (acceptance) given: [case1] a linked repo, the caller is a reviewer clone — a leaf when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
 }
 
 "

@@ -77,6 +77,6 @@ stand-in. the repair is to name the definition — which is what a term is for.
 ## .invariants
 
 - attended is **necessary, never sufficient** for a socket — `isCloneSocketEligible` still governs,
-  and the spawn depth limit still refuses independently
+  and the reviewer leaf check (`term=spawn.leaf`) still refuses independently
 - `byClone` is read from the **caller's own env**, never from a flag. a flag would let an unattended
   CI job claim attendance and idle a socket forever

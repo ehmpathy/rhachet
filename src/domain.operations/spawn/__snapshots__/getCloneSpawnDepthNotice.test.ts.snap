@@ -1,6 +1,0 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
-
-exports[`getCloneSpawnDepthNotice given: [case2] a clone minted at depth 1 when: [t0] a human watches stderr, as with \`echo why | rhx enroll\` then: the notice renders whole, for review 1`] = `
-"ℹ no tty on stdin, so this clone is minted at depth 1 — it cannot spawn clones or run repl reviews
-  to mint a top-level clone, enroll at a terminal with no pipe on stdin (e.g. --reason <text>, not @stdin)"
-`;

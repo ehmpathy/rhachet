@@ -27,6 +27,7 @@ describe('asBrainReplWithContextBound.integration', () => {
   const envBefore = { ...process.env };
   const keys = [
     CLONE_ENV_KEYS.depth,
+    CLONE_ENV_KEYS.leaf,
     CLONE_ENV_KEYS.serial,
     CLONE_ENV_KEYS.socket,
   ];
@@ -50,13 +51,13 @@ describe('asBrainReplWithContextBound.integration', () => {
   // a supplier stub that spawns a real child, as the installed suppliers do
   const genSpawnerRepl = () => {
     const mocked = genMockedBrainRepl();
-    const seen: Array<{ depth: string; serial: string }> = [];
+    const seen: Array<{ depth: string; leaf: string; serial: string }> = [];
     const readChildEnv = () => {
       const child = spawnSync(
         process.execPath,
         [
           '-e',
-          `process.stdout.write(JSON.stringify({ depth: process.env.${CLONE_ENV_KEYS.depth} ?? '', serial: process.env.${CLONE_ENV_KEYS.serial} ?? '' }))`,
+          `process.stdout.write(JSON.stringify({ depth: process.env.${CLONE_ENV_KEYS.depth} ?? '', leaf: process.env.${CLONE_ENV_KEYS.leaf} ?? '', serial: process.env.${CLONE_ENV_KEYS.serial} ?? '' }))`,
         ],
         // node's default is `env: process.env`; jest hands a test file a copy of
         // process.env that node's child_process never sees, so the default is spelled out
@@ -107,16 +108,16 @@ describe('asBrainReplWithContextBound.integration', () => {
       });
 
       then(
-        'the child process of ask reads depth 1 and no parent serial',
+        'the child process of ask reads depth 1, the leaf mark, and no parent serial',
         () => {
-          expect(result.seen[0]).toEqual({ depth: '1', serial: '' });
+          expect(result.seen[0]).toEqual({ depth: '1', leaf: '1', serial: '' });
         },
       );
 
       then(
-        'the child process of act reads depth 1 and no parent serial',
+        'the child process of act reads depth 1, the leaf mark, and no parent serial',
         () => {
-          expect(result.seen[1]).toEqual({ depth: '1', serial: '' });
+          expect(result.seen[1]).toEqual({ depth: '1', leaf: '1', serial: '' });
         },
       );
     });

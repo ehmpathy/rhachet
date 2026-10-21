@@ -712,8 +712,13 @@ describe('genCloneSocketServer.integration', () => {
     //   `sun_path` cap, so the file never existed at the untruncated path. node 24 refuses
     //   such a path at `listen` (`EINVAL`) instead — a bind fault, a different row's subject —
     //   so the fixture now removes the file itself, with no premise on the host's path cap
+    //
+    // ⚠️ the path is the real clone socket path, as in every other case here, never a temp
+    //   dir. a temp dir's length grows with the repo checkout's dir name, and a long one
+    //   (a worktree named for its branch) pushed it past the cap, where node 22 truncates the
+    //   address in silence — the bind landed at a shorter path and the guard below fired
     const scene = useBeforeAll(async () => {
-      const socketPath = `${realpathSync(genTempDir({ slug: 'lock' }))}/c.sock`;
+      const socketPath = getCloneSocketPath({ serial: getUuid() })!;
       const server = genCloneSocketServer({
         socketPath,
         write: () => undefined,

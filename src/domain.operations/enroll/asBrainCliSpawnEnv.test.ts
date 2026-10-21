@@ -124,4 +124,33 @@ describe('asBrainCliSpawnEnv', () => {
       });
     });
   });
+
+  given('[case6] a caller env that still holds a detached host handoff', () => {
+    // 🔴 a clone that inherits the host marker reads itself as a host, and its own
+    //   `--async` enroll never detaches (F9). the owner drops both keys, so no spawn
+    //   path depends on a caller that consumed them first
+    when('[t0] the spawn env is built', () => {
+      const env = asBrainCliSpawnEnv({
+        env: {
+          PATH: '/usr/bin',
+          RHACHET_CLONE_HOST_DETACHED: '1',
+          RHACHET_CLONE_DEPTH_MINTED: '0',
+          RHACHET_CLONE_DEPTH: '1',
+        },
+        brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+      });
+
+      then('neither handoff key reaches the clone', () => {
+        expect(env['RHACHET_CLONE_HOST_DETACHED']).toBeUndefined();
+        expect(env['RHACHET_CLONE_DEPTH_MINTED']).toBeUndefined();
+      });
+
+      then(
+        'the clone identity keys pass through to the caller that sets them',
+        () => {
+          expect(env['RHACHET_CLONE_DEPTH']).toEqual('1');
+        },
+      );
+    });
+  });
 });

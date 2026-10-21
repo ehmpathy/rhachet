@@ -115,6 +115,7 @@ fs.writeFileSync(
     socket: process.env.RHACHET_CLONE_SOCKET ?? null,
     depth: process.env.RHACHET_CLONE_DEPTH ?? null,
     depthMinted: process.env.RHACHET_CLONE_DEPTH_MINTED ?? null,
+    leaf: process.env.RHACHET_CLONE_LEAF ?? null,
     hostDetached: process.env.RHACHET_CLONE_HOST_DETACHED ?? null,
   }),
 );

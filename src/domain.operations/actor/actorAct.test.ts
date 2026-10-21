@@ -65,10 +65,13 @@ describe('actorAct', () => {
     jest.clearAllMocks();
   });
 
-  // pin the caller to a no-tty depth-0 spawn, so the depth scope reads the var
-  // as a brain's tool shell does, whatever terminal or clone runs the suite
+  // pin the caller to a no-tty depth-0 work clone, so the spawn scope reads the vars
+  // as a brain's tool shell does, whatever terminal or clone runs the suite. it is
+  // suite-wide on purpose: every case's repl call passes the leaf check, so a suite run
+  // inside a reviewer clone would refuse the extant cases too
   const ttyBefore = process.stdin.isTTY;
   const depthBefore = process.env[CLONE_ENV_KEYS.depth];
+  const leafBefore = process.env[CLONE_ENV_KEYS.leaf];
   beforeAll(() => {
     Object.defineProperty(process.stdin, 'isTTY', {
       value: false,
@@ -77,6 +80,7 @@ describe('actorAct', () => {
   });
   beforeEach(() => {
     process.env[CLONE_ENV_KEYS.depth] = '0';
+    delete process.env[CLONE_ENV_KEYS.leaf];
   });
   afterAll(() => {
     Object.defineProperty(process.stdin, 'isTTY', {
@@ -84,8 +88,10 @@ describe('actorAct', () => {
       configurable: true,
     });
     delete process.env[CLONE_ENV_KEYS.depth];
+    delete process.env[CLONE_ENV_KEYS.leaf];
     if (depthBefore !== undefined)
       process.env[CLONE_ENV_KEYS.depth] = depthBefore;
+    if (leafBefore !== undefined) process.env[CLONE_ENV_KEYS.leaf] = leafBefore;
   });
 
   given('[case1] a pre-resolved rigid skill', () => {
@@ -165,10 +171,11 @@ describe('actorAct', () => {
     });
   });
 
-  given('[case3] a caller at depth 1, as a review clone is', () => {
-    when('[t0] actorAct is called, as `rhx act` and `clone.act` do', () => {
+  given('[case3] a reviewer caller — it carries the leaf mark', () => {
+    when('[t0] actorAct is called, as `rhachet act` and `clone.act` do', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
         const error = await getError(() =>
           actorAct({
             role: testRole,
@@ -178,8 +185,36 @@ describe('actorAct', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(error.message).toContain('a reviewer clone may not spawn');
         expect(mockBrain.act).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  given('[case3b] a work clone at depth 1 — a driver with no tty', () => {
+    // 🔴 the #577 defect: the old absolute cap refused this caller's every act
+    when('[t0] actorAct is called', () => {
+      then('it runs, and the brain reads depth 2 as a leaf', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        const seen: Array<{ depth?: string; leaf?: string }> = [];
+        const brainRecorder = {
+          ...mockBrain,
+          act: async () => {
+            seen.push({
+              depth: process.env[CLONE_ENV_KEYS.depth],
+              leaf: process.env[CLONE_ENV_KEYS.leaf],
+            });
+            return { summary: 'test summary' };
+          },
+        } as unknown as BrainRepl;
+        await actorAct({
+          role: testRole,
+          brain: brainRecorder,
+          skill: testSkill,
+          args: { content: 'hello' },
+        });
+        expect(seen).toEqual([{ depth: '2', leaf: '1' }]);
+        expect(process.env[CLONE_ENV_KEYS.leaf]).toBeUndefined();
       });
     });
   });

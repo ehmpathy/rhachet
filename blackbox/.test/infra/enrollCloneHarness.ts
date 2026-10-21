@@ -105,13 +105,22 @@ export const readStubEnvDumped = async (input: {
   depth: string | null;
   depthMinted: string | null;
   hostDetached: string | null;
+  leaf: string | null;
 }> => {
   // find the enrolled actor: the one hash actor, else the repo actor
   const actorsDir = join(input.dir, '.agent/.actors');
   const names = existsSync(actorsDir) ? readdirSync(actorsDir) : [];
+  const hashActors = names.filter((name) => name.startsWith('actor.via.hash='));
+
+  // one enroll per case: a second hash actor means the case enrolled twice, so fail loud
+  if (hashActors.length > 1)
+    throw new MalfunctionError('more than one hash actor dir after enroll', {
+      actorsDir,
+      hashActors,
+      hint: 'each case must enroll once; a second enroll would make this read pick one at random',
+    });
   const actor =
-    names.find((name) => name.startsWith('actor.via.hash=')) ??
-    names.find((name) => name === 'actor.via.repo=ambient');
+    hashActors[0] ?? names.find((name) => name === 'actor.via.repo=ambient');
   if (!actor)
     throw new MalfunctionError('no enrolled actor dir after enroll', {
       actorsDir,
@@ -135,6 +144,7 @@ export const readStubEnvDumped = async (input: {
     depth: asField('depth'),
     depthMinted: asField('depthMinted'),
     hostDetached: asField('hostDetached'),
+    leaf: asField('leaf'),
   };
 };
 

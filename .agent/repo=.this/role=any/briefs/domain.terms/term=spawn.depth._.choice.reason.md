@@ -34,7 +34,20 @@ with this word. so `depth` is adopted, never coined — the term was theirs firs
 
 ⇒ archived in full at `.behavior/v2026_09_11.fix-clone-say/.seeds/`.
 
-## .why 1, and not 0 or 2
+## .disputes
+
+### dispute: depth as a limit — raised 2026-10-20 — status: RESOLVED (depth is a fact; the leaf mark bounds fan-out)
+- raised.by  = the commander, via the director (seed S68)
+- claim      = the depth-1 cap refused a work clone at depth 1 its own guard reviewer, so a fleet
+               worker stalled at every guarded stone. ehmpathy/rhachet#577 states the bound as a
+               per-clone spawn allowance: a work clone may spawn at any depth; a reviewer clone is
+               a leaf and spawns no one
+- counter    = a cap is the simplest bound on runaway fan-out, and the wisher named it
+- resolution = the #577 vision governs. `depth` stays the recorded distance from the root, carried
+               to every child, and bounds no spawn. the bound moved to `spawn.leaf`, a mark the
+               door that mints a reviewer sets. `CLONE_SPAWN_DEPTH_MAX` is retired
+
+## .why 1, and not 0 or 2 — *(superseded by the dispute above; kept as the record of the first bound)*
 
 | limit | what it buys | verdict |
 |---|---|---|
@@ -66,12 +79,12 @@ after the fact.
   | restore | 🟢 6 passed |
 
 - **files**: `asCloneSpawnDepth.test.ts` (unit) · `blackbox/cli/enroll.acceptance.test.ts`
-  `rhx enroll depth limit` `[case1]` refuse, `[case2]` permit
+  `rhx enroll reviewer leaf` `[case1]` a leaf is refused, `[case2]` a depth-1 work clone enrolls,
+  `[case5]` a `-p` child reads depth 2
 
 ## .invariants
 
-- the depth is carried in the **child env**, never on disk and never as a flag. a flag would let a
-  clone under-report its own depth and mint a chain the limit forbids
-- `[case2]` — the **permit** row — carries as much weight as the refusal. a limit that refused a
-  depth-0 caller would make `rhx enroll` unreachable by a clone at all, which is the exact defect
-  `term=enroll.attended` repaired
+- the depth is carried in the **child env**, never on disk and never as a flag, so the chain's
+  record stays the one the spawns wrote
+- a work clone is never refused for its depth. the permit rows carry as much weight as the leaf
+  refusal: a depth bound that refused a work clone is the exact stall S68 repaired

@@ -16,6 +16,7 @@ import {
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { spawnRhachetCliBackground } from '@/blackbox/.test/infra/spawnRhachetCliBackground';
 // the ONE owner of the crumb's text. an exact-text read through it beats a shape regex:
@@ -1345,12 +1346,12 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
  *   spawn seam answers it from whoever happened to run the suite, so the SAME file
  *   returns a different verdict on ci (a human's shell) than in a clone's shell.
  *
- * 🚨 a tty enroll reads the `RHACHET_CLONE_DEPTH` it inherits (fulcrum F13), so a leaked
- *   depth var of 1 makes a tty enroll refuse. the detached-host pair bites too: an
- *   enroll that sees
- *   `RHACHET_CLONE_HOST_DETACHED` replays `RHACHET_CLONE_DEPTH_MINTED` before it ever
- *   reads its tty. a runner that carries `minted=2` makes the enroll refuse BEFORE the
- *   spawn, with an error that names a limit rather than a harness.
+ * 🚨 an enroll reads the `RHACHET_CLONE_LEAF` it inherits at any tty, so a runner that is
+ *   itself a reviewer makes every enroll refuse BEFORE the spawn, with an error that names
+ *   a reviewer rather than a harness. the depth var and the detached-host pair leak too:
+ *   a tty enroll reads an inherited depth + 1 (fulcrum F13), and an enroll that sees
+ *   `RHACHET_CLONE_HOST_DETACHED` replays `RHACHET_CLONE_DEPTH_MINTED` — so a leaked
+ *   identity moves the depth the child records.
  *
  * ⚠️ the runner env is mutated ON PURPOSE and restored in `afterAll` — that mutation IS
  *   the instrument. no other surface can express "the process that runs jest carries a
@@ -1361,14 +1362,15 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
  *
  *   | mutation                                                   | this case |
  *   |------------------------------------------------------------|-----------|
- *   | `spawnRhachetCliBackground` merges raw process.env          | 🔴 red — refused, `clone spawn depth limit reached` |
- *   | the strip lets BOTH host handoff keys through               | 🔴 red — same refusal |
+ *   | `spawnRhachetCliBackground` merges raw process.env          | 🔴 red — refused, `a reviewer clone may not spawn` |
+ *   | the strip lets `RHACHET_CLONE_LEAF` through                 | 🔴 red — same refusal |
+ *   | the strip lets BOTH host handoff keys through               | 🔴 red — the child records depth 2, never 0 |
  *   | the strip lets ONE handoff key through, the other stripped  | 🟢 green — the host replay needs both keys, so one alone is inert |
  *   | the strip lets only `RHACHET_CLONE_DEPTH` through           | 🔴 red — a tty enroll reads that var + 1 (F13) |
  *   | restored                                                   | 🟢 green |
  *
- * ⇒ the reach is the depth var and the PAIR. this case guards that the strip drops both;
- *   it does not, and cannot, guard each handoff key alone
+ * ⇒ the reach is the leaf mark, the depth var and the PAIR. this case guards that the strip
+ *   drops all of them; it does not, and cannot, guard each handoff key alone
  */
 describe('the pty spawner strips the runner clone identity (acceptance)', () => {
   given('[case1] the process that runs the suite carries a clone identity', () => {
@@ -1376,6 +1378,7 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
       'RHACHET_CLONE_DEPTH',
       'RHACHET_CLONE_DEPTH_MINTED',
       'RHACHET_CLONE_HOST_DETACHED',
+      'RHACHET_CLONE_LEAF',
     ] as const;
     const envBefore = Object.fromEntries(
       KEYS.map((key) => [key, process.env[key]]),
@@ -1385,6 +1388,7 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
       process.env.RHACHET_CLONE_DEPTH = '1';
       process.env.RHACHET_CLONE_DEPTH_MINTED = '2';
       process.env.RHACHET_CLONE_HOST_DETACHED = '1';
+      process.env.RHACHET_CLONE_LEAF = '1';
     });
     afterAll(() => {
       // .note = deliberate mutation: restore each key exactly as it was found
@@ -1407,51 +1411,61 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
         env: { PATH: stubPath, CLAUDE_CONFIG_DIR: configDir },
       });
       const outcome = await waitForReadyOrRefusal({ bg, timeoutMs: 20000 });
+      const depthDumped = outcome.ready
+        ? (await readStubEnvDumped({ dir })).depth
+        : null;
 
-      return { bg, ready: outcome.ready, output: bg.getOutput() };
+      return { bg, ready: outcome.ready, output: bg.getOutput(), depthDumped };
     });
     afterAll(async () => {
       await scene.bg.kill();
     });
 
     when('[t0] it enrolls a peer through the outer pty', () => {
-      then('the depth limit does NOT refuse it', () => {
-        expect(scene.output).not.toContain('clone spawn depth limit reached');
+      then('the leaf refusal does NOT fire', () => {
+        expect(scene.output).not.toContain('a reviewer clone may not spawn');
       });
 
       then('the clone stands up — the runner identity never reached the enroll', () => {
         expect(scene.ready).toEqual(true);
+      });
+
+      then('the clone is top-level — no leaked depth moved it', () => {
+        expect(scene.depthDumped).toEqual('0');
       });
     });
   });
 });
 
 /**
- * .what = an enroll on a fresh pty that carries a clone's depth var — the tmux hole
+ * .what = an enroll on a fresh pty that carries a clone's env — a pty wrap that keeps it
  * .why =
- *   - a clone's tool shell holds `$TMUX`, so `tmux new-window 'rhx enroll …'` (or any pty
- *     wrap) runs the enroll on a fresh pty. a tty rule that minted 0 whatever var the pty
- *     carried let a depth-1 clone mint a depth-0 clone, which may spawn again: the
- *     unbounded chain the limit forbids (fulcrum F13)
- *   - 🔴 so a tty mints 0 only when it carries no depth var. a tty with a depth var is a
- *     pty a clone opened, and reads that var + 1. the outer pty here IS that fresh pty;
- *     the var is set back on purpose, through `env`, which merges after the harness strip
- *   - a pty whose env was scrubbed of the var still reads as a human: a guardrail, not a
- *     boundary, and the F13 entry names that residue for the wisher
+ *   - a clone can run `rhx enroll …` on a fresh pty through a pty wrap (`unbuffer`, node-pty)
+ *     that keeps its env. a tty is no reset: a reviewer that wrapped its enroll in a pty
+ *     must still be refused, else the leaf rule falls to one keystroke
+ *   - 🔴 the leaf mark is read from the env whatever the tty, so a reviewer's pty wrap is
+ *     refused. a work clone's pty wrap is admitted, and its child sits one level below
+ *     (fulcrum F13): a tty mints 0 only when it carries no depth var
+ *   - the var is set back on purpose, through `env`, which merges after the harness strip
+ *   - this case does NOT cover a pane of a tmux server a human started: such a pane may
+ *     take the server's env, which lacks the vars, so it would read as a human. that path
+ *     is unmeasured and open, and the F13 entry names it for the wisher
  *
  * ⚠️ the dogfood (`rule.require.clamp-edge-cases`):
  *
  *   | mutation                                            | [case1] | [case2] |
  *   |-----------------------------------------------------|---------|---------|
- *   | the enroll door mints 0 at any tty (the S1 clause)   | 🔴 red — stands up at 0 | 🔴 red — dumped 0 |
+ *   | the enroll door mints 0 at any tty (the S1 clause)   | 🔴 red — dumped 0 | 🟢 green |
+ *   | the leaf read is skipped at a tty                    | 🟢 green | 🔴 red — stands up |
  *   | restored                                            | 🟢 green | 🟢 green |
  */
-describe('an enroll on a fresh pty a clone opened stays below that clone (acceptance)', () => {
+describe('a clone wraps its enroll in a fresh pty — a work clone sits one level below, a reviewer is refused (acceptance)', () => {
   /**
-   * .what = enroll through the outer pty with a given inherited depth var
+   * .what = enroll through the outer pty with a given inherited clone env
    */
-  const enrollOnPtyWithDepth = async (input: {
+  const enrollOnPtyWithEnv = async (input: {
     depth: string;
+    leaf: string | undefined;
     slug: string;
   }): Promise<{
     bg: Awaited<ReturnType<typeof spawnRhachetCliBackground>>;
@@ -1471,6 +1485,7 @@ describe('an enroll on a fresh pty a clone opened stays below that clone (accept
         PATH: stubPath,
         CLAUDE_CONFIG_DIR: configDir,
         RHACHET_CLONE_DEPTH: input.depth,
+        RHACHET_CLONE_LEAF: input.leaf,
       },
     });
 
@@ -1484,40 +1499,181 @@ describe('an enroll on a fresh pty a clone opened stays below that clone (accept
     return { bg, ready: outcome.ready, output: bg.getOutput(), depthDumped };
   };
 
-  given('[case1] a fresh pty a depth-1 clone opened', () => {
+  given('[case1] a fresh pty a depth-1 work clone opened', () => {
     const scene = useBeforeAll(async () =>
-      enrollOnPtyWithDepth({ depth: '1', slug: 'enroll-pty-depth-one' }),
+      enrollOnPtyWithEnv({
+        depth: '1',
+        leaf: undefined,
+        slug: 'enroll-pty-work-one',
+      }),
     );
     afterAll(async () => {
       await scene.bg.kill();
     });
 
     when('[t0] `rhx enroll claude` runs at that tty', () => {
-      then('🔴 the depth limit refuses it — a pty wrap is no reset to 0', () => {
-        expect(scene.output).toContain('clone spawn depth limit reached');
+      then('the clone stands up — a work clone may spawn at any depth', () => {
+        expect(scene.ready).toEqual(true);
+      });
+
+      then('🔴 it was minted at depth 2, below its opener, never a fresh top level', () => {
+        expect(scene.depthDumped).toEqual('2');
+      });
+    });
+  });
+
+  given('[case2] a fresh pty a reviewer clone opened', () => {
+    const scene = useBeforeAll(async () =>
+      enrollOnPtyWithEnv({
+        depth: '1',
+        leaf: '1',
+        slug: 'enroll-pty-leaf',
+      }),
+    );
+    afterAll(async () => {
+      await scene.bg.kill();
+    });
+
+    when('[t0] `rhx enroll claude` runs at that tty', () => {
+      then('🔴 it is refused — a pty wrap is no escape from the leaf rule', () => {
+        expect(scene.output).toContain('a reviewer clone may not spawn');
       });
 
       then('no clone stands up', () => {
         expect(scene.ready).toEqual(false);
       });
+
+      then('the refusal frame is locked (visual spot-check)', () => {
+        const frame = asCliErrorFrameFromOutput({ output: scene.output });
+        expect(asSnapshotSafe(frame)).toMatchSnapshot();
+      });
+    });
+  });
+});
+
+/**
+ * .what = the depth a terminal's `--async` enroll mints its detached clone at
+ * .why =
+ *   - an `--async` enroll at a tty decides the depth in the FOREGROUND, then re-execs a
+ *     detached host with no tty. the host must replay the foreground's verdict
+ *     (`depthMinted`), never re-derive it from its own absent tty
+ *   - 🔴 a host that re-derived would mint a human's top-level `--async` clone at depth 1,
+ *     and the recorded chain would then lie about where that clone sits
+ *   - the depth-1 twin below proves the replay is no blanket mint of 0: a pane a clone
+ *     opened carries its var into the host as well
+ *
+ * .note = `invokeRhachetCliBinaryAsync` for the say that tears the clone down, beside a
+ *   pty (`rule.forbid.sync-invoke-while-a-pty-is-live`)
+ *
+ * ⚠️ the dogfood (`rule.require.clamp-edge-cases`):
+ *
+ *   | mutation                                         | [case1] | [case2] |
+ *   |--------------------------------------------------|---------|---------|
+ *   | the host ignores `depthMinted` and re-derives    | 🔴 red — dumped 1 | 🟢 green |
+ *   | the enroll door mints 0 at any tty (the S1 clause) | 🟢 green | 🔴 red — dumped 0 |
+ */
+describe('an `--async` enroll at a terminal hands its depth to the detached host (acceptance)', () => {
+  /**
+   * .what = an `--async` enroll through the outer pty, with an optional inherited depth var
+   */
+  const enrollAsyncOnPty = async (input: {
+    depth: string | undefined;
+    slug: string;
+    as: string;
+  }): Promise<{
+    dir: string;
+    env: Record<string, string | undefined>;
+    exitCode: number;
+    output: string;
+    depthDumped: string | null;
+    leafDumped: string | null;
+  }> => {
+    const dir = genTempDir({ slug: input.slug });
+    const configDir = genTempDir({ slug: `${input.slug}-cfg` });
+    setupEnrollFixture({ dir });
+    const env = {
+      PATH: setupRichStubBrainPath({ dir }),
+      CLAUDE_CONFIG_DIR: configDir,
+      RHACHET_CLONE_DEPTH: input.depth,
+    };
+
+    const bg = spawnRhachetCliBackground({
+      args: ['enroll', 'claude', '--async', '--as', input.as],
+      cwd: dir,
+      env,
+    });
+
+    // an async enroll hands back the address and exits on its own
+    const exitCode = await bg.waitForExit({ timeoutMs: 60_000 });
+    const dumped = exitCode === 0 ? await readStubEnvDumped({ dir }) : null;
+    return {
+      dir,
+      env,
+      exitCode,
+      output: bg.getOutput(),
+      depthDumped: dumped?.depth ?? null,
+      leafDumped: dumped?.leaf ?? null,
+    };
+  };
+
+  /**
+   * .what = tear down the detached clone via its socket
+   */
+  const sayExit = async (input: {
+    dir: string;
+    env: Record<string, string | undefined>;
+    as: string;
+  }): Promise<void> => {
+    await invokeRhachetCliBinaryAsync({
+      args: ['clone', 'say', input.as, '--what', 'exit 0'],
+      cwd: input.dir,
+      env: input.env,
+      logOnError: false,
+    });
+  };
+
+  given('[case1] a human terminal, no depth var', () => {
+    const scene = useBeforeAll(async () =>
+      enrollAsyncOnPty({
+        depth: undefined,
+        slug: 'enroll-pty-async-top',
+        as: '@:ttyasync',
+      }),
+    );
+    afterAll(async () => sayExit({ ...scene, as: '@:ttyasync' }));
+
+    when('[t0] `rhx enroll claude --async` runs at that tty', () => {
+      then('the enroll hands back and exits 0', () => {
+        expect(scene.exitCode).toEqual(0);
+      });
+
+      then('🔴 the detached clone is top-level — depth 0, the foreground verdict', () => {
+        expect(scene.depthDumped).toEqual('0');
+      });
     });
   });
 
-  given('[case2] a fresh pty a depth-0 clone opened', () => {
+  given('[case2] a pane a depth-0 clone opened', () => {
     const scene = useBeforeAll(async () =>
-      enrollOnPtyWithDepth({ depth: '0', slug: 'enroll-pty-depth-zero' }),
+      enrollAsyncOnPty({
+        depth: '0',
+        slug: 'enroll-pty-async-below',
+        as: '@:ttyasynckid',
+      }),
     );
-    afterAll(async () => {
-      await scene.bg.kill();
-    });
+    afterAll(async () => sayExit({ ...scene, as: '@:ttyasynckid' }));
 
-    when('[t0] `rhx enroll claude` runs at that tty', () => {
-      then('the clone stands up', () => {
-        expect(scene.ready).toEqual(true);
+    when('[t0] `rhx enroll claude --async` runs at that tty', () => {
+      then('the enroll hands back and exits 0', () => {
+        expect(scene.exitCode).toEqual(0);
       });
 
-      then('🔴 it was minted at depth 1, below its opener, never a fresh top level', () => {
+      then('🔴 the detached clone sits below its opener — depth 1', () => {
         expect(scene.depthDumped).toEqual('1');
+      });
+
+      then('the detached clone is a work clone — it carries no leaf mark', () => {
+        expect(scene.leafDumped).toEqual(null);
       });
     });
   });

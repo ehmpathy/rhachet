@@ -10,7 +10,7 @@ import { asBrainReplWithContextBound } from './asBrainReplWithContextBound';
 
 /**
  * .what = the repl door, as a role package reaches it: both `ask` and `act` pass the
- *   depth scope, so the supplier reads the child depth and a depth-1 caller is refused
+ *   depth scope, so the supplier reads the child depth and a reviewer caller is refused
  * .why = the scope itself is proven in `withCloneSpawnDepthScope.test.ts`; this pins the
  *   wire. `act` grants the brain a shell (Q4), so an `act` left outside the scope would
  *   reopen the door the wish closes, with every scope test still green
@@ -23,6 +23,7 @@ describe('asBrainReplWithContextBound', () => {
   const envBefore = { ...process.env };
   const keys = [
     CLONE_ENV_KEYS.depth,
+    CLONE_ENV_KEYS.leaf,
     CLONE_ENV_KEYS.serial,
     CLONE_ENV_KEYS.socket,
   ];
@@ -114,14 +115,15 @@ describe('asBrainReplWithContextBound', () => {
     });
   });
 
-  given('[case2] a caller at depth 1', () => {
+  given('[case2] a reviewer caller — it carries the leaf mark', () => {
     when('[t0] it calls ask', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
         const { brain, seen } = genRecorderRepl();
         const error = await getError(() => brain.ask(replInput));
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(error.message).toContain('a reviewer clone may not spawn');
         expect(seen).toEqual([]);
         // the refusal a review skill's caller reads, rendered whole for review
         expect(error.message).toMatchSnapshot();
@@ -131,13 +133,31 @@ describe('asBrainReplWithContextBound', () => {
     when('[t1] it calls act', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
         const { brain, seen } = genRecorderRepl();
         const error = await getError(() => brain.act(replInput));
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(error.message).toContain('a reviewer clone may not spawn');
         expect(seen).toEqual([]);
         // the refusal a review skill's caller reads, rendered whole for review
         expect(error.message).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3] a work clone at depth 1 — a driver with no tty', () => {
+    // 🔴 the #577 defect: the old absolute cap refused this caller's every review
+    when('[t0] it calls ask', () => {
+      const result = useThen('the call runs', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        delete process.env[CLONE_ENV_KEYS.leaf];
+        const { brain, seen } = genRecorderRepl();
+        await brain.ask(replInput);
+        return { seen };
+      });
+
+      then('the supplier reads depth 2', () => {
+        expect(result.seen[0]?.depth).toEqual('2');
       });
     });
   });

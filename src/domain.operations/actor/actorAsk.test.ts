@@ -70,10 +70,13 @@ describe('actorAsk', () => {
     jest.clearAllMocks();
   });
 
-  // pin the caller to a no-tty depth-0 spawn, so the depth scope reads the var
-  // as a brain's tool shell does, whatever terminal or clone runs the suite
+  // pin the caller to a no-tty depth-0 work clone, so the spawn scope reads the vars
+  // as a brain's tool shell does, whatever terminal or clone runs the suite. it is
+  // suite-wide on purpose: every repl case passes the leaf check, so a suite run
+  // inside a reviewer clone would refuse the extant cases too
   const ttyBefore = process.stdin.isTTY;
   const depthBefore = process.env[CLONE_ENV_KEYS.depth];
+  const leafBefore = process.env[CLONE_ENV_KEYS.leaf];
   beforeAll(() => {
     Object.defineProperty(process.stdin, 'isTTY', {
       value: false,
@@ -82,6 +85,7 @@ describe('actorAsk', () => {
   });
   beforeEach(() => {
     process.env[CLONE_ENV_KEYS.depth] = '0';
+    delete process.env[CLONE_ENV_KEYS.leaf];
   });
   afterAll(() => {
     Object.defineProperty(process.stdin, 'isTTY', {
@@ -89,8 +93,10 @@ describe('actorAsk', () => {
       configurable: true,
     });
     delete process.env[CLONE_ENV_KEYS.depth];
+    delete process.env[CLONE_ENV_KEYS.leaf];
     if (depthBefore !== undefined)
       process.env[CLONE_ENV_KEYS.depth] = depthBefore;
+    if (leafBefore !== undefined) process.env[CLONE_ENV_KEYS.leaf] = leafBefore;
   });
 
   given('[case1] a valid role and brain', () => {
@@ -264,10 +270,11 @@ describe('actorAsk', () => {
     });
   });
 
-  given('[case6] a caller at depth 1, as a review clone is', () => {
-    when('[t0] actorAsk is called with a repl, as `rhx ask` does', () => {
+  given('[case6] a reviewer caller — it carries the leaf mark', () => {
+    when('[t0] actorAsk is called with a repl, as `rhachet ask` does', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
         const error = await getError(() =>
           actorAsk({
             role: testRole,
@@ -277,7 +284,7 @@ describe('actorAsk', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('clone spawn depth limit reached');
+        expect(error.message).toContain('a reviewer clone may not spawn');
         expect(mockBrainRepl.ask).not.toHaveBeenCalled();
       });
     });
@@ -287,6 +294,7 @@ describe('actorAsk', () => {
         'it runs: an atom is one inference call, never a spawn',
         async () => {
           process.env[CLONE_ENV_KEYS.depth] = '1';
+          process.env[CLONE_ENV_KEYS.leaf] = '1';
           const result = await actorAsk({
             role: testRole,
             brain: mockBrainAtom,
@@ -326,6 +334,41 @@ describe('actorAsk', () => {
         });
         expect(seen).toEqual(['1']);
         expect(process.env[CLONE_ENV_KEYS.depth]).toEqual('0');
+      });
+    });
+  });
+
+  given('[case8] a work clone at depth 1 — a driver with no tty', () => {
+    // 🔴 the #577 defect: the old absolute cap refused this caller's every review
+    when('[t0] actorAsk is called with a repl', () => {
+      then('it runs, and the brain reads depth 2 as a leaf', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        const seen: Array<{ depth?: string; leaf?: string }> = [];
+        const brainRecorder = new BrainRepl({
+          repo: 'test',
+          slug: 'test/recorder',
+          description: 'records the place it runs at',
+          spec: genSampleBrainSpec(),
+          act: jest.fn(),
+          ask: (async () => {
+            seen.push({
+              depth: process.env[CLONE_ENV_KEYS.depth],
+              leaf: process.env[CLONE_ENV_KEYS.leaf],
+            });
+            return genMockedBrainOutput({
+              output: { answer: 'recorded' },
+              brainChoice: 'repl',
+            });
+          }) as unknown as BrainRepl['ask'],
+        });
+        await actorAsk({
+          role: testRole,
+          brain: brainRecorder,
+          prompt: 'hello',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
+        });
+        expect(seen).toEqual([{ depth: '2', leaf: '1' }]);
+        expect(process.env[CLONE_ENV_KEYS.leaf]).toBeUndefined();
       });
     });
   });

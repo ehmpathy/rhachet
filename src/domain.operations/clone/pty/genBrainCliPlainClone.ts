@@ -1,4 +1,5 @@
 import { asBrainCliSpawnEnv } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
+import { asCloneSpawnPlaceEnv } from '@src/domain.operations/spawn/asCloneSpawnPlaceEnv';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { spawn } from 'node:child_process';
@@ -15,9 +16,10 @@ import { spawn } from 'node:child_process';
  *     process, so genClone stays composable and the CALLER forwards the exit code —
  *     one owner of process lifecycle, not a spawn buried in a leaf
  *
- * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial) and its own
- *   depth, so even a socket-less clone can name itself via `clone whoami` and is bound
- *   by the same spawn depth limit. the env-injection shape is WET across this +
+ * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial), its own depth,
+ *   and its leaf mark when a reviewer, so even a socket-less clone can name itself via
+ *   `clone whoami` and is bound by the same spawn rule. the place keys share one owner
+ *   (`asCloneSpawnPlaceEnv`); the rest of the env-injection shape is WET across this +
  *   genBrainCliPtyClone by design; a THIRD spawn branch (the dream's `wake`) is the
  *   rule-of-three trigger to extract a shared genCloneChildEnv
  */
@@ -26,8 +28,10 @@ export const genBrainCliPlainClone = (input: {
   args: string[];
   cwd: string;
   serial: string;
-  /** how deep in the enroll chain this clone sits (`asCloneSpawnDepth`) */
+  /** how deep in the spawn chain this clone sits (`asCloneSpawnDepth`) */
   depth: number;
+  /** whether this clone is a reviewer that may spawn no one (`isCloneSpawnChildLeaf`) */
+  leaf: boolean;
   brainDir: string;
 }): {
   socketPath: null;
@@ -35,12 +39,15 @@ export const genBrainCliPlainClone = (input: {
   waitForExit: Promise<number>;
   dispose: () => Promise<void>;
 } => {
-  // the child reads its actor's brain dir, and carries its own serial + chain depth
+  // the child reads its actor's brain dir, and carries its own serial + chain place
   const env = asBrainCliSpawnEnv({
     env: {
-      ...process.env,
+      ...asCloneSpawnPlaceEnv({
+        env: process.env,
+        depth: input.depth,
+        leaf: input.leaf,
+      }),
       [CLONE_ENV_KEYS.serial]: input.serial,
-      [CLONE_ENV_KEYS.depth]: String(input.depth),
       // a socket-less clone owns no socket, so the key is ABSENT rather than the parent's path.
       // `spawn` omits an `undefined` value from the child env, which leaves the child in the same
       // state a non-clone shell is in — the state a future reader branches on correctly

@@ -36,6 +36,7 @@ every glyph fills exactly one slot:
 | **error-class** | names the fault owner — one of exactly two | `✋` caller-must-fix · `💥` server-must-fix |
 | **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse · `🟡` degraded |
 | **callout** | an actionable advisory | `💡` tip · `🟡` caution |
+| **notice** | a one-line stderr fact about the run, no fault | `ℹ` |
 | **connection** | a literal socket / port / connection | `🔌` reach a clone |
 | **lookup** | a discover/read operation | `🔭` |
 | **tree-branch** | structure | `├─` `└─` `│` |
@@ -77,6 +78,7 @@ root; a rhachet tree roots on its domain glyph.
 | `💡` | callout | an actionable tip (`💡 tip` header — see below) |
 | `🟡` | callout · status-leaf | a caution, and a **degraded** leaf — a step that succeeded on a weaker basis than the full one (`🟡 probe-blind (older clone) — verified by transcript`). registered here on purpose: it is the width-safe caution glyph, and `✨`/`🫧`/`♻️` cover only success, absence, and reuse, so a partial success had no leaf of its own |
 | `⚠️` | callout | a caution — **superseded by `🟡` for new output**, see `.forbidden` |
+| `ℹ` | notice | a one-line stderr fact about the run that is no fault: a state the human may want to know, often with its cure in the same line (`ℹ no grove at …`, `ℹ no tty on stdin, so this clone is minted at depth 1 …`, `ℹ another rhx process holds …`). registered on purpose: enroll, clone say, auth and the repo mutex already speak it, and no other slot fits a line that is neither a fault (`✋`/`💥`), a leaf of a tree, nor a callout node. every extant use is bare, with no U+FE0F selector, so new lines stay bare too |
 
 ## .forbidden
 

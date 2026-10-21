@@ -1,5 +1,15 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`a clone wraps its enroll in a fresh pty — a work clone sits one level below, a reviewer is refused (acceptance) given: [case2] a fresh pty a reviewer clone opened when: [t0] \`rhx enroll claude\` runs at that tty then: the refusal frame is locked (visual spot-check) 1`] = `
+"✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+}"
+`;
+
 exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the bare-enroll breadcrumb tree is locked (human variant) 1`] = `
 "😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"

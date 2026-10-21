@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertCloneSpawnAllowed given: [case2] a reviewer clone asks to spawn, at the enroll door when: [t0] it enrolls a clone then: it refuses as a constraint that names the reviewer 1`] = `
+"✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+}"
+`;
+
+exports[`assertCloneSpawnAllowed given: [case3] a reviewer clone asks to spawn, at the repl door when: [t0] it runs a repl brain then: the door line says a review brain is a spawn 1`] = `
+"✋ ConstraintError: a reviewer clone may not spawn
+
+{
+  "hint": "a reviewer is a leaf: it answers, and spawns no clone of its own. a reviewer clone, spawned to answer a review: do not retry — answer from your own read. a human in a shell a reviewer opened: run the same command from a fresh terminal",
+  "via": "a repl brain (\`rhx review\`, \`rhachet ask\`, \`rhachet act\`)",
+  "why": "this process is a reviewer: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a reviewer started"
+}"
+`;

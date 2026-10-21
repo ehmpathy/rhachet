@@ -265,8 +265,8 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *     assertions whose own comments read "no tty under spawnSync → no socket"
  *
  * .note = a test that WANTS the clone axis sets it back through the `env` option,
- *   which merges after this strip. `[case1]`/`[case2]` of the depth limit do exactly
- *   that, which is what makes the axis explicit instead of ambient
+ *   which merges after this strip. the leaf-refusal cases set `RHACHET_CLONE_LEAF` back
+ *   this way, which is what makes the axis explicit instead of ambient
  *
  * .note = exported because the OUTER-pty spawner needs the identical strip. that one
  *   runs `rhx enroll` on a real tty, so `attended` is true by its tty leg and a tty
@@ -283,6 +283,7 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_DEPTH: _depth,
     RHACHET_CLONE_DEPTH_MINTED: _depthMinted,
     RHACHET_CLONE_HOST_DETACHED: _hostDetached,
+    RHACHET_CLONE_LEAF: _leaf,
     ...rest
   } = env;
   return rest;

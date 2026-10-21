@@ -14,7 +14,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
 import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
-import { asSettingsWithoutCloneIdentityEnv } from './asSettingsWithoutCloneIdentityEnv';
+import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
 
@@ -120,7 +120,7 @@ const setActorSettingsRepoWithinLock = async (input: {
       });
 
   // drop any clone identity key from the env map, so the spawn alone sets the depth
-  const settings = asSettingsWithoutCloneIdentityEnv({
+  const settings = asSettingsWithoutCloneEnv({
     settings: settingsNarrowed,
   });
 
