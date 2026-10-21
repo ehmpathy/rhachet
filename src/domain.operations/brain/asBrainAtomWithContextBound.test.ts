@@ -70,29 +70,26 @@ describe('asBrainAtomWithContextBound', () => {
     schema: { output: z.object({ content: z.string() }) },
   };
 
-  given(
-    '[case1] a leaf clone at depth 1 — it carries the leaf mark',
-    () => {
-      when('[t0] its skill calls one atom', () => {
-        const result = useThen('the call completes', async () => {
-          process.env[CLONE_ENV_KEYS.depth] = '1';
-          process.env[CLONE_ENV_KEYS.leaf] = '1';
-          process.env[CLONE_ENV_KEYS.serial] = 'serial-reviewer';
-          const { brain, seen } = genRecorderAtom();
-          const reply = await brain.ask(atomInput);
-          return { reply, seen };
-        });
-
-        then('the atom replies — an atom is not a clone', () => {
-          expect(result.reply.output).toEqual({ content: 'reviewed' });
-        });
-
-        then('the supplier ran once, with the caller env as it was', () => {
-          expect(result.seen).toEqual([
-            { depth: '1', serial: 'serial-reviewer' },
-          ]);
-        });
+  given('[case1] a leaf clone at depth 1 — it carries the leaf mark', () => {
+    when('[t0] its skill calls one atom', () => {
+      const result = useThen('the call completes', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
+        process.env[CLONE_ENV_KEYS.serial] = 'serial-reviewer';
+        const { brain, seen } = genRecorderAtom();
+        const reply = await brain.ask(atomInput);
+        return { reply, seen };
       });
-    },
-  );
+
+      then('the atom replies — an atom is not a clone', () => {
+        expect(result.reply.output).toEqual({ content: 'reviewed' });
+      });
+
+      then('the supplier ran once, with the caller env as it was', () => {
+        expect(result.seen).toEqual([
+          { depth: '1', serial: 'serial-reviewer' },
+        ]);
+      });
+    });
+  });
 });
