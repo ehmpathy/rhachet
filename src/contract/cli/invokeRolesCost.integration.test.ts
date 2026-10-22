@@ -3,6 +3,7 @@ import { MalfunctionError } from 'helpful-errors';
 import { getError, given, then, useThen, when } from 'test-fns';
 
 import { asLogLines } from '@src/.test/infra/asLogLines';
+import { spyOnStdoutLines } from '@src/.test/infra/spyOnStdoutLines';
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -28,7 +29,7 @@ describe('invokeRolesCost (integration)', () => {
   given('[case1] a role whose boot emits a payload', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesCost');
     const cwdOriginal = process.cwd();
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     const commandCost = new Command('roles');
     const commandBoot = new Command('roles');
@@ -139,7 +140,7 @@ describe('invokeRolesCost (integration)', () => {
   given('[case5] a role whose boot.yml declares a budget', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesCost-budgeted');
     const cwdOriginal = process.cwd();
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     const commandCost = new Command('roles');
     const commandBoot = new Command('roles');
@@ -218,7 +219,7 @@ describe('invokeRolesCost (integration)', () => {
   given('[case2] a role directory with no resources in it', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesCost-empty');
     const cwdOriginal = process.cwd();
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     const rolesCommand = new Command('roles');
     invokeRolesCost({ command: rolesCommand });
@@ -354,7 +355,7 @@ describe('invokeRolesCost (integration)', () => {
   given('[case6] one repo carries the slug, and no --repo is named', () => {
     const testDir = resolve(__dirname, './.temp/invokeRolesCost-inferred');
     const cwdOriginal = process.cwd();
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     const rolesCommand = new Command('roles');
     invokeRolesCost({ command: rolesCommand });

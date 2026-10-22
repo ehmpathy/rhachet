@@ -3,6 +3,7 @@ import { getError, given, then, useThen, when } from 'test-fns';
 
 import { genSampleFileTree } from '@src/.test/assets/genSampleFileTree';
 import { asLogLines } from '@src/.test/infra/asLogLines';
+import { spyOnStdoutLines } from '@src/.test/infra/spyOnStdoutLines';
 
 import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -107,7 +108,7 @@ describe('invokeRolesBoot budget (integration)', () => {
   });
 
   const rolesCommand = new Command('roles');
-  const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  const logSpy = spyOnStdoutLines();
   const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
   beforeEach(() => {
