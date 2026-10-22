@@ -1,7 +1,10 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  invokeRhachetCliBinary,
+  invokeRhachetCliBinaryViaSlowPipe,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
  * .what = the block types THIS repo's renderer emits, and the only lines the mask keeps
@@ -139,6 +142,39 @@ describe('rhachet with published packages', () => {
         //   stats tree. it pins the block structure the `toContain` checks above do not
         //   (`rule.require.contract-snapshot-exhaustiveness`)
         expect(asBlockSkeleton(result.stdout)).toMatchSnapshot('skeleton');
+      });
+    });
+
+    when('[t2] roles boot, read through a pipe whose reader waits', () => {
+      const result = useBeforeAll(async () => {
+        // first link
+        invokeRhachetCliBinary({
+          args: ['roles', 'link', '--repo', 'ehmpathy', '--role', 'mechanic'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+
+        // then boot, into a reader that lets the pipe fill before it reads
+        return invokeRhachetCliBinaryViaSlowPipe({
+          args: ['roles', 'boot', '--repo', 'ehmpathy', '--role', 'mechanic'],
+          cwd: repo.path,
+          readerDelayMs: 2000,
+        });
+      });
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('🔴 every byte reaches a late reader, closed stats block and all', () => {
+        // a writer that drops on a full pipe delivers ~one pipe buffer (64KB) here and exits 0
+        expect(result.stdout.length).toBeGreaterThan(65536);
+        expect(result.stdout.trimEnd().endsWith('</stats>')).toEqual(true);
+        expect(result.stdout.split('<stats>').length - 1).toEqual(2);
+      });
+
+      then('the late reader sees the same block shape as a prompt one', () => {
+        expect(asBlockSkeleton(result.stdout)).toContain('<also>\n  <briefs.ref>');
       });
     });
   });

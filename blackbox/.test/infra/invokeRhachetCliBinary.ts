@@ -470,6 +470,38 @@ export const invokeRhachetCliBinaryChain = (input: {
 };
 
 /**
+ * .what = invokes the compiled CLI with its stdout piped into a reader that waits before it reads
+ * .why = a hook or a loaded harness drains a pipe late, and a writer that drops bytes on a full
+ *   pipe looks whole to a fast reader. a reader that waits fills the pipe first, so a dropped
+ *   write shows up as a short stdout on every run, never only under load
+ *
+ * .note = the status is the CLI's own (`PIPESTATUS[0]`), carried out through the reader's exit
+ */
+export const invokeRhachetCliBinaryViaSlowPipe = (input: {
+  /** CLI args after the binary name */
+  args: string[];
+  /** cwd for the command */
+  cwd: string;
+  /** how long the reader waits before its first read (ms) */
+  readerDelayMs: number;
+}): SpawnSyncReturns<string> => {
+  const command = [
+    `"${RHACHET_BIN}" ${input.args.map((arg) => `"${arg}"`).join(' ')}`,
+    `(sleep ${input.readerDelayMs / 1000}; cat)`,
+  ].join(' | ');
+  return spawnSync(
+    'bash',
+    ['-c', `set -o pipefail; ${command}; exit "\${PIPESTATUS[0]}"`],
+    {
+      cwd: input.cwd,
+      encoding: 'utf-8',
+      env: asEnvForSpawn({}),
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
+};
+
+/**
  * .what = asSnapshotSafe, minus the two enroll lines that depend on the host's own `~/.claude`
  * .why = enroll prints `ℹ no claude login at …` only on a host with no login, and
  *   `ℹ no grove at …` only on a host with no `~/.claude/settings.json`. so a snapshot of
