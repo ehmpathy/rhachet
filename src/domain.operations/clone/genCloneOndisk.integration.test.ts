@@ -86,6 +86,7 @@ const genCloneVia = (
       mode: 'watch',
       noSocket: false,
       depth: 0,
+      leaf: false,
     },
     {
       ...contextNoAmbient,

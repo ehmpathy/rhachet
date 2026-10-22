@@ -1,6 +1,6 @@
 import { ConstraintError } from 'helpful-errors';
 import * as path from 'path';
-import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
+import { genBrainRepl as genBrainReplAnthropic } from 'rhachet-brains-anthropic';
 import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
@@ -16,8 +16,6 @@ import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 // fail fast if api keys not available
 if (!process.env.XAI_API_KEY)
   throw new ConstraintError('XAI_API_KEY is required for integration tests');
-if (!process.env.OPENAI_API_KEY)
-  throw new ConstraintError('OPENAI_API_KEY is required for integration tests');
 
 /**
  * .what = integration test for actor.ask() with BrainAtom support
@@ -98,13 +96,13 @@ When writing about ocean themes:
       briefs: { dirs: { uri: '.agent/repo=.this/role=author/briefs' } },
     });
 
-    // create brains: BrainAtom (xAI) and BrainRepl (OpenAI)
+    // create brains: BrainAtom (xAI) and BrainRepl (claude haiku)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
     const brainAtom = genBrainAtomXAI({
       slug: 'xai/grok/3-mini',
     }) as unknown as ActorBrain;
-    const brainRepl = genBrainReplOpenAI({
-      slug: 'openai/codex',
+    const brainRepl = genBrainReplAnthropic({
+      slug: 'claude/code/haiku',
     }) as unknown as ActorBrain;
 
     // create actor with mixed brains (BrainAtom first)
@@ -141,7 +139,7 @@ When writing about ocean themes:
       );
     });
 
-    when.skip('[t1] author.ask() is called with BrainRepl', () => {
+    when('[t1] author.ask() is called with BrainRepl', () => {
       then(
         'also returns prose response (BrainRepl supports .ask())',
         async () => {

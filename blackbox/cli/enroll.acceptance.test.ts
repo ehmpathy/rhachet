@@ -7,6 +7,7 @@ import {
   asCloneSayHeadSnapshotSafe,
   expectCloneSaySuccessTree,
   setupEnrollFixture,
+  readStubEnvDumped,
   setupRichStubBrainPath,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import {
@@ -171,40 +172,6 @@ const setupArgvRecorderBrainPath = (input: {
  */
 const asSnapshotSafeOfCredential = (output: string): string =>
   asSnapshotSafe(output).replace(/^ℹ no claude login at .*\n?/gm, '');
-
-/**
- * .what = read a json file another process writes, once its content parses whole
- * .why = a writer can truncate then fill the file, so a read right after it appears may meet
- *   zero or half the bytes. only a SyntaxError retries; any other fault throws at once
- * .note = the wait backs off (5ms, doubled, capped at 200ms), so a fast writer is read at
- *   once and a slow box is polled less often, under one 10s bound
- */
-const getOneJsonOnceWhole = async (input: { path: string }): Promise<unknown> => {
-  const deadline = Date.now() + 10_000;
-  // .note = deliberate mutation — `delayMs` is the backoff induction variable: 5ms,
-  //   doubled per miss, capped at 200ms; bounded to this loop
-  for (let delayMs = 5; ; delayMs = Math.min(delayMs * 2, 200)) {
-    try {
-      return getOneJsonContent({ path: input.path });
-    } catch (error) {
-      if (!(error instanceof SyntaxError)) throw error;
-      if (Date.now() >= deadline)
-        throw new MalfunctionError('the json file never parsed whole', {
-          path: input.path,
-          cause: error,
-          hint: 'the writer may have died mid-write; read the file to see what it holds',
-        });
-      await new Promise<void>((done) => setTimeout(done, delayMs));
-    }
-  }
-};
-
-/**
- * .what = read a json file and parse it, once
- * .why = the leaf read, so the retry above is only the wait
- */
-const getOneJsonContent = (input: { path: string }): unknown =>
-  JSON.parse(readFileSync(input.path, 'utf8'));
 
 /**
  * .what = reads the argv the recorder stub captured, one entry per element
@@ -1861,30 +1828,32 @@ describe('rhx enroll --roles (acceptance)', () => {
 });
 
 /**
- * .what = blackbox acceptance for the clone-enroll DEPTH BUDGET
+ * .what = blackbox acceptance for the leaf refusal, at the enroll door
  *
- * .why = `rhx enroll` is now reachable by a clone (the `attended` axis), so a chain
- *   of clones could otherwise grow without bound. `CLONE_ENROLL_DEPTH_MAX` caps it at
- *   one hop: a human's clone may enroll a peer; that peer may enroll no one.
+ * .why = `rhx enroll` is reachable by a clone (the `attended` axis). per the
+ *   ehmpathy/rhachet#577 vision, every work clone may enroll one level below itself, at
+ *   any depth, and a leaf clone may enroll no one. a print-mode enroll
+ *   (`-p`) and every repl-door child (`rhachet ask`, `rhachet act`) mints a
+ *   leaf; the mark rides the child env as `RHACHET_CLONE_LEAF`.
  *
- * ⚠️ the budget is carried in the CHILD ENV (`RHACHET_CLONE_DEPTH`), never on disk or
- *   in a flag — so the only honest surface test is one that sets that env on the
- *   subprocess, which is exactly what the harness's `env` seam is for.
+ * ⚠️ the mark is carried in the CHILD ENV, never on disk or in a flag — so the only
+ *   honest surface test is one that sets that env on the subprocess, which is exactly
+ *   what the harness's `env` seam is for.
  *
- * ⚠️ the guard fires BEFORE any clone dir or child process exists, so an over-budget
- *   enroll leaves no half-formed chain behind. that is why `[case1]` needs no stub
- *   brain on PATH — no child is ever spawned.
+ * ⚠️ the guard fires BEFORE any clone dir or child process exists, so a refused enroll
+ *   leaves no half-formed chain behind. that is why `[case1]` needs no stub brain on
+ *   PATH — no child is ever spawned.
  *
  * ⚠️ the dogfood, with its reach stated (`rule.require.clamp-edge-cases`):
  *
- *   | mutation of the guard              | this file |
- *   |------------------------------------|-----------|
- *   | the `depth > MAX` check is dropped  | 🔴 `[case1]` red — a depth-2 enroll is admitted |
- *   | `asCloneEnrollDepth` drops its `+1` | 🔴 `[case1]` red — the caller's depth is read as the child's |
- *   | the budget is cut to 0              | 🔴 `[case2]` red — a clone can enroll no peer at all |
- *   | restored                            | 🟢 both green |
+ *   | mutation of the guard                    | this file |
+ *   |------------------------------------------|-----------|
+ *   | the leaf check is dropped                | 🔴 `[case1]` red — a leaf's enroll is admitted |
+ *   | an absolute depth cap is restored at 1   | 🔴 `[case2]` red — a depth-1 work clone is refused |
+ *   | a `-p` enroll mints its child as no leaf | 🔴 `[case5]` red — the child dumps no leaf mark |
+ *   | restored                                 | 🟢 all green |
  */
-describe('rhx enroll depth budget (acceptance)', () => {
+describe('rhx enroll leaf clone (acceptance)', () => {
   const setupDepthFixture = (dir: string): void => {
     setupRoleFixtureRepo({ dir });
     invokeRhachetCliBinary({
@@ -1893,17 +1862,17 @@ describe('rhx enroll depth budget (acceptance)', () => {
     });
   };
 
-  given('[case1] a linked repo, the caller is a clone at depth 1', () => {
-    const dir = genTempDir({ slug: 'enroll-depth-spent' });
+  given('[case1] a linked repo, the caller is a leaf clone', () => {
+    const dir = genTempDir({ slug: 'enroll-leaf-refused' });
     beforeAll(() => setupDepthFixture(dir));
 
-    when('[t0] it enrolls a peer — which would sit at depth 2', () => {
+    when('[t0] it enrolls a peer', () => {
       const run = useThen('it exits non-zero', () =>
         invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--output', 'json'],
           cwd: dir,
           logOnError: false,
-          env: { RHACHET_CLONE_DEPTH: '1' },
+          env: { RHACHET_CLONE_DEPTH: '1', RHACHET_CLONE_LEAF: '1' },
           // ⚠️ a cap on the guard: a REFUSED enroll returns in milliseconds, so this
           //   never bites on the green path. it bites when the guard is BROKEN — the
           //   enroll then reaches a real brain spawn and blocks forever, which would
@@ -1921,7 +1890,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
           hint: string | null;
         };
         expect(shape.class).toEqual('ConstraintError');
-        expect(shape.message).toContain('depth budget spent');
+        expect(shape.message).toContain('a leaf clone may not spawn');
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1945,7 +1914,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
      *   — was unsnapped, on the one channel a human sees.
      *
      * ⇒ a regression in the frame (a dropped glyph, an abridged class, a hint buried under
-     *   `depthRequested`) would ship green: `[t0]` reads json and never looks at stderr's
+     *   `via`) would ship green: `[t0]` reads json and never looks at stderr's
      *   human shape. this is the clamp that reads it.
      *
      * .note = the frame is fully deterministic here — no serial, no temp path, no clock —
@@ -1958,7 +1927,7 @@ describe('rhx enroll depth budget (acceptance)', () => {
           args: ['enroll', 'claude'],
           cwd: dir,
           logOnError: false,
-          env: { RHACHET_CLONE_DEPTH: '1' },
+          env: { RHACHET_CLONE_DEPTH: '1', RHACHET_CLONE_LEAF: '1' },
           // the same cap, for the same reason as [t0]
           timeoutMs: 20_000,
         }),
@@ -1974,18 +1943,22 @@ describe('rhx enroll depth budget (acceptance)', () => {
         //   here where a resnap cannot paper over them
         //   (`rule.require.unabridged-error-prefix`)
         expect(run.stderr).toContain(
-          '✋ ConstraintError: clone enroll depth budget spent',
+          '✋ ConstraintError: a leaf clone may not spawn',
         );
       });
 
       then('the hint sits ABOVE the bulk — the fix reads first', () => {
         // `asMetadataHintFirst` promotes `hint`; a regression that dropped it would bury
-        // the one sentence that names the fix under `depthRequested` / `depthMax`
+        // the one sentence that names the fix under `via` / `why`
         const out = run.stderr;
         expect(out.indexOf('"hint"')).toBeGreaterThan(-1);
-        expect(out.indexOf('"hint"')).toBeLessThan(
-          out.indexOf('"depthRequested"'),
-        );
+        expect(out.indexOf('"hint"')).toBeLessThan(out.indexOf('"via"'));
+      });
+
+      then('the refusal names the door and why this process is a leaf', () => {
+        expect(run.stderr).toContain('a clone enroll (`rhx enroll`)');
+        expect(run.stderr).toContain('this process is a leaf');
+        expect(run.stderr).not.toMatch(/review/i);
       });
 
       then('the refusal names who CAN stand the clone up', () => {
@@ -1998,29 +1971,29 @@ describe('rhx enroll depth budget (acceptance)', () => {
     });
   });
 
-  given('[case2] a linked repo, the caller is a clone at depth 0', () => {
-    // 🚨 the row the budget exists to PERMIT. a cap that refused this would make
-    //   `rhx enroll` unreachable by a clone at all — the very defect the `attended`
-    //   axis repaired — so the permit case carries as much weight as the refusal
-    const dir = genTempDir({ slug: 'enroll-depth-left' });
+  given('[case2] a linked repo, the caller is a WORK clone at depth 1', () => {
+    // 🚨 the row the #577 vision exists to PERMIT: a worker a top-level clone enrolled
+    //   must enroll a clone of its own. the old absolute cap refused exactly this, so a
+    //   worker clone could spawn no one at all
+    const dir = genTempDir({ slug: 'enroll-work-depth-one' });
     let stubPath: string;
     beforeAll(() => {
       setupDepthFixture(dir);
       stubPath = setupStubBrainPath({ dir });
     });
 
-    when('[t0] it enrolls a peer — which would sit at depth 1', () => {
+    when('[t0] it enrolls a peer — which would sit at depth 2', () => {
       const run = useThen('it runs to completion', () =>
         invokeRhachetCliBinary({
           args: ['enroll', 'claude'],
           cwd: dir,
           logOnError: false,
-          env: { RHACHET_CLONE_DEPTH: '0', PATH: stubPath },
+          env: { RHACHET_CLONE_DEPTH: '1', PATH: stubPath },
         }),
       );
 
-      then('the budget does NOT refuse it', () => {
-        expect(run.stderr).not.toContain('depth budget spent');
+      then('no refusal fires — depth caps no spawn', () => {
+        expect(run.stderr).not.toContain('a leaf clone may not spawn');
         expect(run.status).toEqual(0);
       });
     });
@@ -2032,12 +2005,13 @@ describe('rhx enroll depth budget (acceptance)', () => {
    *   - a no-tty enroll takes the `async` mode, so the clone is not stood up by the
    *     caller at all — the caller re-execs itself as a detached host, and THAT process
    *     re-derives the depth from its own inherited env (`genCloneEnrollDetached`)
-   *   - 🔴 so the budget crosses a process seam, and its only carrier is one inherited
+   *   - 🔴 so the depth crosses a process seam, and its only carrier is one inherited
    *     env key. strip `RHACHET_CLONE_DEPTH` from the host's env and it reads 0, so a
    *     depth-0 clone's `--async` peer is minted at depth 0 too — every detached link
-   *     resets the counter, and the chain `CLONE_ENROLL_DEPTH_MAX` exists to bound
-   *     becomes unbounded
-   *   - case1/case2 cannot catch that: both grade the CALLER's refusal, which fires
+   *     resets the counter, and the recorded chain stops to tell the truth
+   *   - the host re-derives the leaf mark from the argv it replays, so a work enroll's
+   *     detached child must carry NO leaf mark — else a worker's peer could run no review
+   *   - case1/case2 cannot catch that: both grade the CALLER's verdict, which fires
    *     before the detach. this grades what the HOST handed the child
    *
    * .note = the child's env is unobservable from outside — the pty owns its stdio, and
@@ -2050,20 +2024,14 @@ describe('rhx enroll depth budget (acceptance)', () => {
    *   | mutation | result |
    *   |---|---|
    *   | `genCloneEnrollDetached` spawns with the depth key stripped | 🔴 red — depth reads `'0'`, never `'1'` |
+   *   | the host reads `hostDetached` and keeps it in its env | 🔴 red — the child dumps `hostDetached: '1'` |
    */
   given('[case3] a clone at depth 0 enrolls a peer with NO tty', () => {
     const dir = genTempDir({ slug: 'enroll-depth-detached' });
     const configDir = genTempDir({ slug: 'enroll-depth-detached-cfg' });
     let env: Record<string, string>;
     // the child reads the actor's brain dir as its CLAUDE_CONFIG_DIR, so its dump lands there
-    const readStubEnv = async (): Promise<Record<string, string | null>> => {
-      // a bare enroll lands in the repo actor, so the dump lands in its brain dir
-      const actorsDir = join(dir, '.agent/.actors');
-      const dumpPath = join(actorsDir, getOneEnrolledActorDirName({ dir }), 'brain/.claude/stub.env.json');
-      await waitForFile({ path: dumpPath }); // the host hands off before the child dumps
-      // the file can exist before its bytes do — wait on whole json, never on the name alone
-      return getOneJsonOnceWhole({ path: dumpPath }) as Promise<Record<string, string | null>>;
-    };
+    const readStubEnv = () => readStubEnvDumped({ dir });
     beforeAll(() => {
       setupDepthFixture(dir);
       // ⚠️ the RICH stub, never this file's local `setupStubBrainPath` — that one is an
@@ -2097,19 +2065,32 @@ describe('rhx enroll depth budget (acceptance)', () => {
 
       then('the enroll succeeds', () => {
         expect(run.status).toEqual(0);
-        expect(run.stderr).not.toContain('depth budget spent');
+        expect(run.stderr).not.toContain('a leaf clone may not spawn');
       });
 
-      then('🔴 the child was minted at depth 1 — the budget crossed the seam', async () => {
-        const dumped = await readStubEnv();
+      // one read of the dump, shared by the asserts below
+      const dumped = useThen('the child reports its env', () => readStubEnv());
+
+      then('🔴 the child was minted at depth 1 — the depth crossed the seam', () => {
         expect(dumped.depth).toEqual('1');
       });
 
-      then('the child carries its OWN serial and socket, never the caller\u2019s', async () => {
-        const dumped = await readStubEnv();
+      then('the child is a work clone — it carries no leaf mark', () => {
+        expect(dumped.leaf).toEqual(null);
+      });
+
+      then('the child carries its OWN serial and socket, never the caller\u2019s', () => {
         const handoff = JSON.parse(run.stdout) as { serial: string };
         expect(dumped.serial).toEqual(handoff.serial);
         expect(dumped.socket).toContain(handoff.serial);
+      });
+
+      // 🔴 the host consumes BOTH of its handoff keys before it spawns. a child that
+      //   inherits the host marker reads itself as a host, so its own `--async` enroll
+      //   for a peer never detaches (fulcrum F9)
+      then('the child inherits neither of the host’s handoff keys', () => {
+        expect(dumped.hostDetached).toEqual(null);
+        expect(dumped.depthMinted).toEqual(null);
       });
     });
   });
@@ -2207,6 +2188,137 @@ describe('rhx enroll depth budget (acceptance)', () => {
 
         expect(reasons).toContain(motive);
         expect(reasons).not.toContain('@stdin');
+      });
+
+      // a pipe is no tty, so the sanctioned `--reason @stdin` channel mints its clone one
+      //   level down (seed S1). under #577 that costs no capacity — the child is a work
+      //   clone and may enroll its own — but the recorded depth must still tell the truth
+      then('the piped enroll mints its child at depth 1 — a pipe is no tty', async () => {
+        const dumped = await readStubEnvDumped({ dir });
+        expect(dumped.depth).toEqual('1');
+      });
+    });
+  });
+
+  /**
+   * .what = a print-mode enroll (`-p`) mints a LEAF
+   * .why =
+   *   - per #577, the print-mode door marks its child a leaf: the child answers one
+   *     prompt and exits
+   *   - 🔴 the mark must REACH the child env, else the leaf could enroll clones of its
+   *     own — the fan-out this route repairs
+   *
+   * .note = DOGFOOD, the mutation that makes it bite:
+   *   | mutation | result |
+   *   |---|---|
+   *   | `invokeEnroll` passes `leaf: false` for every enroll | 🔴 red — the child dumps leaf `null` |
+   */
+  given('[case5] a work clone enrolls a print-mode leaf', () => {
+    const dir = genTempDir({ slug: 'enroll-print-leaf' });
+    const configDir = genTempDir({ slug: 'enroll-print-leaf-cfg' });
+    let env: Record<string, string>;
+    beforeAll(() => {
+      setupDepthFixture(dir);
+      env = {
+        PATH: setupRichStubBrainPath({ dir }),
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_CLONE_DEPTH: '1',
+      };
+    });
+
+    when('[t0] `enroll claude --await -p "<prompt>"` runs', () => {
+      const run = useThen('the leaf answers and exits', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--await', '-p', 'review this'],
+          cwd: dir,
+          env,
+          timeoutMs: 60_000,
+          logOnError: false,
+        }),
+      );
+
+      then('the enroll succeeds — a depth-1 work clone may spawn', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      const dumped = useThen('the child reports its env', () =>
+        readStubEnvDumped({ dir }),
+      );
+
+      then('🔴 the child carries the leaf mark', () => {
+        expect(dumped.leaf).toEqual('1');
+      });
+
+      then('the child sits one level below its caller — depth 2', () => {
+        expect(dumped.depth).toEqual('2');
+      });
+    });
+  });
+
+  /**
+   * .what = a print-mode leaf enrolled `--async` keeps its leaf mark across the host
+   * .why =
+   *   - the detached host re-derives the mark from the argv it replays, never from an
+   *     inherited env key (it drops its own handoff keys before it spawns)
+   *   - 🔴 if a refactor dropped `-p` from that replay, the leaf would boot unmarked and
+   *     could enroll clones of its own — the fan-out the leaf mark exists to stop
+   *
+   * .note = DOGFOOD, the mutation that makes it bite:
+   *   | mutation | result |
+   *   |---|---|
+   *   | the host replays the argv with `-p` and its prompt dropped | 🔴 red — the child dumps leaf `null` |
+   */
+  given('[case6] a work clone enrolls a print-mode leaf `--async`', () => {
+    const dir = genTempDir({ slug: 'enroll-print-leaf-async' });
+    const configDir = genTempDir({ slug: 'enroll-print-leaf-async-cfg' });
+    let env: Record<string, string>;
+    beforeAll(() => {
+      setupDepthFixture(dir);
+      env = {
+        PATH: setupRichStubBrainPath({ dir }),
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_CLONE_DEPTH: '1',
+      };
+    });
+
+    when('[t0] `enroll claude --async -p "<prompt>"` runs', () => {
+      const run = useThen('the caller is handed an address and exits', () =>
+        invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--async',
+            '--output',
+            'json',
+            '-p',
+            'review this',
+          ],
+          cwd: dir,
+          env,
+          timeoutMs: 60_000,
+          logOnError: false,
+        }),
+      );
+
+      then('the enroll succeeds — a depth-1 work clone may spawn', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      const dumped = useThen('the detached child reports its env', () =>
+        readStubEnvDumped({ dir }),
+      );
+
+      then('🔴 the child carries the leaf mark, re-derived by the host', () => {
+        expect(dumped.leaf).toEqual('1');
+      });
+
+      then('the child sits one level below its caller — depth 2', () => {
+        expect(dumped.depth).toEqual('2');
+      });
+
+      then('the child inherits neither of the host’s handoff keys', () => {
+        expect(dumped.hostDetached).toEqual(null);
+        expect(dumped.depthMinted).toEqual(null);
       });
     });
   });
@@ -2890,6 +3002,9 @@ describe('rhx enroll --help (acceptance)', () => {
         expect(run.stdout).toContain('--no-socket');
         expect(run.stdout).toContain('--reason');
         expect(run.stdout).toContain('--output');
+        expect(run.stdout).toContain('--watch');
+        expect(run.stdout).toContain('--async');
+        expect(run.stdout).toContain('--await');
       });
 
       then('the help names the bare-delta alias of --roles', () => {

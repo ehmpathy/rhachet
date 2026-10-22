@@ -265,14 +265,14 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *     assertions whose own comments read "no tty under spawnSync → no socket"
  *
  * .note = a test that WANTS the clone axis sets it back through the `env` option,
- *   which merges after this strip. `[case1]`/`[case2]` of the depth budget do exactly
- *   that, which is what makes the axis explicit instead of ambient
+ *   which merges after this strip. the leaf-refusal cases set `RHACHET_CLONE_LEAF` back
+ *   this way, which is what makes the axis explicit instead of ambient
  *
  * .note = exported because the OUTER-pty spawner needs the identical strip. that one
- *   runs `rhx enroll` on a real tty, so `attended` is true by its tty leg and the
- *   serial leak is inert there — but `RHACHET_CLONE_DEPTH` is not: inherited from a
- *   depth-1 runner it spends the budget before the enroll starts, and every pty-backed
- *   reach test fails with `depth budget spent`. same divergence, a different var
+ *   runs `rhx enroll` on a real tty, so `attended` is true by its tty leg and a tty
+ *   enroll is top-level whatever depth it inherits. what still bites there is the
+ *   detached-host pair: a runner that carries `RHACHET_CLONE_HOST_DETACHED` and
+ *   `RHACHET_CLONE_DEPTH_MINTED` makes the enroll replay that depth, tty or not
  */
 export const asEnvWithoutCloneIdentity = (
   env: NodeJS.ProcessEnv,
@@ -281,6 +281,9 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_SERIAL: _serial,
     RHACHET_CLONE_SOCKET: _socket,
     RHACHET_CLONE_DEPTH: _depth,
+    RHACHET_CLONE_DEPTH_MINTED: _depthMinted,
+    RHACHET_CLONE_HOST_DETACHED: _hostDetached,
+    RHACHET_CLONE_LEAF: _leaf,
     ...rest
   } = env;
   return rest;

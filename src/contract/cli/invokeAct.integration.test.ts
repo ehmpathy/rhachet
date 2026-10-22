@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import { genBrainRepl } from 'rhachet-brains-openai';
+import { genBrainRepl as genBrainReplAnthropic } from 'rhachet-brains-anthropic';
+import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
@@ -198,7 +199,7 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  given.skip(
+  given(
     'a CLI program with invokeAct registered (happy path with real brain)',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
@@ -213,9 +214,13 @@ describe('invokeAct (integration)', () => {
         process.chdir(originalCwd);
       });
 
-      // create real brain via genBrainRepl
+      // create real brains via genBrainRepl: haiku is the default (the test key reaches it);
+      // codex is named explicitly, to prove --brain routes the call to the openai service
       // note: external brains from npm packages don't have spec yet; cast for compatibility
-      const brain = genBrainRepl({
+      const brainHaiku = genBrainReplAnthropic({
+        slug: 'claude/code/haiku',
+      }) as unknown as BrainRepl;
+      const brainCodex = genBrainReplOpenAI({
         slug: 'openai/codex',
       }) as unknown as BrainRepl;
 
@@ -227,7 +232,11 @@ describe('invokeAct (integration)', () => {
 
       const program = new Command();
       program.exitOverride();
-      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      // .mock = a passthrough `jest.spyOn(console, 'log')`; no behavior is replaced
+      // .why = invokeAct prints its run header through console.log and takes no log sink, so
+      //   the spy is the one seam that observes it
+      // .real = the brain, the skill and the cli all run for real; the spy only records
+      const logSpy = jest.spyOn(console, 'log');
 
       beforeEach(() => {
         logSpy.mockClear();
@@ -238,7 +247,7 @@ describe('invokeAct (integration)', () => {
         isExplicit: true,
         explicitPath: '/fake/rhachet.use.ts',
         registries: [testRegistry],
-        brains: [brain],
+        brains: [brainHaiku, brainCodex],
         hooks: null,
       });
       invokeAct({ program }, happyContext);
@@ -266,27 +275,63 @@ describe('invokeAct (integration)', () => {
       });
 
       when('act command is invoked with explicit --brain', () => {
-        then('it uses the specified brain from allowlist', async () => {
-          const args = [
-            'act',
-            '--role',
-            'tester',
-            '--skill',
-            'echo.review',
-            '--brain',
-            'openai/codex',
-            '--input',
-            '{"content":"hello world"}',
-          ];
-          await program.parseAsync(args, { from: 'user' });
+        // the ehmpath test key holds no codex model, so the openai service refuses the call.
+        // that refusal is the proof: only the specified brain reaches the openai service
+        then(
+          'it routes the call to the specified brain from allowlist',
+          async () => {
+            const args = [
+              'act',
+              '--role',
+              'tester',
+              '--skill',
+              'echo.review',
+              '--brain',
+              'openai/codex',
+              '--input',
+              '{"content":"hello world"}',
+            ];
+            const error = await getError(() =>
+              program.parseAsync(args, { from: 'user' }),
+            );
 
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'act rigid skill repo=.this/role=tester/skill=echo.review',
-            ),
-          );
-        });
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'act rigid skill repo=.this/role=tester/skill=echo.review',
+              ),
+            );
+            expect(error?.message).toContain('model_not_found');
+            expect(error?.message).toContain('codex');
+          },
+        );
       });
+
+      when(
+        'act command is invoked with --brain repo/slug for an anthropic brain',
+        () => {
+          // the anthropic slug does not open with its repo, so the flag reads as repo/rest
+          then('it executes the rigid skill with the named brain', async () => {
+            const args = [
+              'act',
+              '--role',
+              'tester',
+              '--skill',
+              'echo.review',
+              '--brain',
+              'anthropic/claude/code/haiku',
+              '--input',
+              '{"content":"hello world"}',
+            ];
+            await program.parseAsync(args, { from: 'user' });
+
+            expect(logSpy).toHaveBeenCalledWith(
+              expect.stringContaining(
+                'act rigid skill repo=.this/role=tester/skill=echo.review',
+              ),
+            );
+          });
+        },
+      );
 
       when('act command is invoked with brain not in allowlist', () => {
         then('it throws error about brain not in allowlist', async () => {

@@ -14,6 +14,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
 import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
+import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
 
@@ -26,6 +27,8 @@ import { getSettingsForRoles } from './getSettingsForRoles';
  *
  * .note = the source is the repo actor's `settings.of.repo.json` — the hook sync writes every
  *   ambient role's hooks there, and a role init that writes it by name adds its own keys
+ * .note = drops every clone identity key from the `env` map — a spawn mints a depth, a config
+ *   never does
  * .note = the repo actor is the source itself: its hooks are never narrowed (a narrow would
  *   drop any hook with no author), only its claudeMdExcludes are set
  * .note = the excludes never name the actor's own doors — for the repo actor, those are its
@@ -109,12 +112,17 @@ const setActorSettingsRepoWithinLock = async (input: {
   const settingsSource = await readClaudeCodeSettings({
     from: dirname(repoActorBrainDir),
   });
-  const settings = isRepoActor
+  const settingsNarrowed = isRepoActor
     ? settingsSource
     : getSettingsForRoles({
         settings: settingsSource,
         roles: enrollment.roles,
       });
+
+  // drop any clone identity key from the env map, so the spawn alone sets the depth
+  const settings = asSettingsWithoutCloneEnv({
+    settings: settingsNarrowed,
+  });
 
   // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
   //   the repo actor's doors have two paths — its real dir, and `<repo>/.claude`, a

@@ -96,8 +96,10 @@ export const genCloneOndisk = async (
      */
     mode: 'watch' | 'async' | 'await';
     noSocket: boolean;
-    /** how deep in the enroll chain this clone is born (`asCloneEnrollDepth`) */
+    /** how deep in the spawn chain this clone is born (`asCloneSpawnDepth`) */
     depth: number;
+    /** whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`) */
+    leaf: boolean;
   },
   context: ContextOfRepoRoles & {
     pty?: PtyModule | null;
@@ -265,6 +267,7 @@ export const genCloneOndisk = async (
       pty: ptyModule,
       emulator: emulatorModule,
       depth: input.depth,
+      leaf: input.leaf,
     },
     {
       // the mode's ONE consequence — which host wires the child to the world. a

@@ -203,6 +203,21 @@ rhx enroll claude --roles mechanic --as @:driver
 rhx enroll claude --reason "nightly cron" --output json
 ```
 
+### spawn allowance — a leaf spawns no one
+
+a work clone may spawn clones, at any depth. a leaf clone answers, and spawns no one. a leaf's
+spawn is refused with `a leaf clone may not spawn` (exit 2).
+
+| the clone was spawned by | it is |
+| --- | --- |
+| a session enroll (`rhx enroll claude`, `--watch`, `--async`) | a work clone — may spawn |
+| a print-mode enroll (`rhx enroll claude -p '<prompt>'`) | a leaf — may not spawn |
+| a repl brain (`rhachet ask`, `rhachet act`, or a skill built on the sdk) | a leaf — may not spawn |
+| a shell or a job a leaf started | a leaf — may not spawn |
+
+each clone also carries its spawn depth (`RHACHET_CLONE_DEPTH`): 0 from a fresh terminal, the
+caller's depth + 1 otherwise. depth is a record of the chain; it refuses no spawn.
+
 a bare `rhx enroll <brain>` with no `--as` still prints the clone's own `@:<serial>` to stderr,
 so you can reach your own clone without a second command. reach the spawned clone with
 `rhx clone say`/`get` (see the `clone` section below).

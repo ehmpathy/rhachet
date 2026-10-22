@@ -86,6 +86,7 @@ describe('genCloneSpawn', () => {
       pty: input.pty,
       emulator: null,
       depth: 0,
+      leaf: false,
     };
   };
 

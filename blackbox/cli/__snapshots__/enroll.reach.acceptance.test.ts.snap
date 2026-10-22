@@ -1,5 +1,15 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`a clone wraps its enroll in a fresh pty — a work clone sits one level below, a leaf is refused (acceptance) given: [case2] a fresh pty a leaf clone opened when: [t0] \`rhx enroll claude\` runs at that tty then: the refusal frame is locked (visual spot-check) 1`] = `
+"✋ ConstraintError: a leaf clone may not spawn
+
+{
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
+}"
+`;
+
 exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the bare-enroll breadcrumb tree is locked (human variant) 1`] = `
 "😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"

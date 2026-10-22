@@ -103,16 +103,20 @@ fs.writeFileSync(transcriptPath, ''); // an empty file, so the dir is discoverab
 //   .why = a child's env is unobservable from outside — the pty owns its stdio and
 //     `clone get` returns a classification, never screen content — so a test that must
 //     assert what the spawn injected has no other instrument. the depth key is the one
-//     that matters: it carries the enroll-depth budget across the detached-host seam
+//     that matters: it carries the spawn depth limit across the detached-host seam
 //     (`genCloneEnrollDetached`), and a strip there would leak an unbounded chain.
-//   .note = the three clone keys ONLY, never the whole env — a test asset that dumps
-//     every var to disk is a credential hazard for the sake of three strings
+//   .note = the clone keys ONLY, never the whole env — a test asset that dumps every
+//     var to disk is a credential hazard for the sake of a few strings. the two host
+//     keys are here so a test can prove the detached host consumed its own handoff
 fs.writeFileSync(
   path.join(configDir, 'stub.env.json'),
   JSON.stringify({
     serial: process.env.RHACHET_CLONE_SERIAL ?? null,
     socket: process.env.RHACHET_CLONE_SOCKET ?? null,
     depth: process.env.RHACHET_CLONE_DEPTH ?? null,
+    depthMinted: process.env.RHACHET_CLONE_DEPTH_MINTED ?? null,
+    leaf: process.env.RHACHET_CLONE_LEAF ?? null,
+    hostDetached: process.env.RHACHET_CLONE_HOST_DETACHED ?? null,
   }),
 );
 

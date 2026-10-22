@@ -15,6 +15,7 @@ import { performInIsolatedThreads } from '@src/domain.operations/invoke/performI
 
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { asBrainRefFromFlag } from './asBrainRefFromFlag';
 
 /**
  * .what = performs act via isolated threads for parallel attempts
@@ -103,20 +104,10 @@ const performActInCurrentThread = async (input: {
       availableRoles: input.registries.flatMap((r) => r.roles.map((rr) => rr)),
     });
 
-  // resolve brain reference if provided
-  // note: slug is the full namespaced identifier (e.g., 'openai/codex')
-  // repo is extracted from the first part of the slug
-  let brainRef: { repo: string; slug: string } | undefined;
-  if (input.opts.brain) {
-    const firstSlashIndex = input.opts.brain.indexOf('/');
-    if (firstSlashIndex === -1)
-      throw new ConstraintError(
-        `invalid brain format "${input.opts.brain}". expected: repo/slug`,
-      );
-    const repo = input.opts.brain.slice(0, firstSlashIndex);
-    const slug = input.opts.brain;
-    brainRef = { repo, slug };
-  }
+  // cast the brain flag, if provided (`openai/codex` or `anthropic/claude/code/haiku`)
+  const brainRef = input.opts.brain
+    ? asBrainRefFromFlag({ flag: input.opts.brain, brains: input.brains })
+    : undefined;
 
   // bake a clone from the actor (recipe) — the clone carries the engage methods
   const clone = genCloneInmem({

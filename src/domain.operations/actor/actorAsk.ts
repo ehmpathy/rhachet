@@ -2,8 +2,10 @@ import { z } from 'zod';
 
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import type { BrainOutput } from '@src/domain.objects/BrainOutput';
+import { isBrainRepl } from '@src/domain.objects/ContextBrain';
 import type { Role } from '@src/domain.objects/Role';
 import { asBrainOutput } from '@src/domain.operations/brain/asBrainOutput';
+import { asBrainReplWithSpawnDepthScope } from '@src/domain.operations/brain/asBrainReplWithSpawnDepthScope';
 import { getRoleBriefs } from '@src/domain.operations/role/getRoleBriefs';
 
 /**
@@ -41,9 +43,14 @@ export const actorAsk = async <TOutput, TContext = unknown>(
     },
   });
 
+  // a repl brain is a spawn: it runs inside the depth scope; an atom is no spawn
+  const brain = isBrainRepl(input.brain)
+    ? asBrainReplWithSpawnDepthScope(input.brain)
+    : input.brain;
+
   // execute fluid conversation with brain
   // note: cast context to any — actor passes through, brain validates at runtime
-  const result = await input.brain.ask(
+  const result = await brain.ask(
     {
       role: { briefs },
       prompt: input.prompt,

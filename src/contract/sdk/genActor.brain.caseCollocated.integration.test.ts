@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { genBrainRepl } from 'rhachet-brains-openai';
+import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
@@ -71,10 +71,10 @@ echo '{"summary":"summarized content"}'
       rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    // create scribe actor with openai brain
+    // create scribe actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
     const brain = genBrainRepl({
-      slug: 'openai/codex',
+      slug: 'claude/code/haiku',
     }) as unknown as ActorBrain;
     const scribe = genCloneInmem({
       actor: genActor({
@@ -95,7 +95,7 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when.skip('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
+    when('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await scribe.act({
           skill: {
@@ -108,7 +108,7 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when.skip('[t2] scribe.ask({ prompt })', () => {
+    when('[t2] scribe.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await scribe.ask({
           prompt: 'summarize the concept of brevity',

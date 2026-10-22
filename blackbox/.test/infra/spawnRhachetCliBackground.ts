@@ -84,10 +84,11 @@ export const spawnRhachetCliBackground = (input: {
   const pty = require('node-pty') as typeof import('node-pty');
 
   // merge env; an undefined value drops out below, so a test can unset an inherited var.
-  // the runner's OWN clone identity is stripped first — a depth inherited from a
-  // depth-1 runner spends the enroll budget before this spawn starts, so the same
-  // suite would pass on ci and fail in a clone's shell. a test that wants the axis
-  // sets it back through `input.env`, which merges after the strip
+  // the runner's OWN clone identity is stripped first — a leaf mark inherited from a
+  // leaf runner would refuse this spawn before it starts, and an inherited depth
+  // would shift every depth it records, so the same suite would pass on ci and fail in
+  // a clone's shell. a test that wants the axis sets it back through `input.env`, which
+  // merges after the strip
   const mergedEnv = { ...asEnvWithoutCloneIdentity(process.env), ...input.env };
   const envFiltered = Object.fromEntries(
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),

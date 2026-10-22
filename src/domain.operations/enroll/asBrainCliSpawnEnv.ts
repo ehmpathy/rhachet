@@ -1,3 +1,5 @@
+import { CLONE_ENV_KEYS_HANDOFF } from '@src/utils/cloneEnvKeys';
+
 /**
  * .what = the parent-session markers a claude process exports to its children
  * .why = a clone is its own top-level session, never a child of the process that
@@ -17,6 +19,12 @@ const PARENT_SESSION_MARKERS = [
   'CLAUDE_CODE_EXECPATH',
   'CLAUDE_PID',
 ];
+
+/**
+ * .what = a detached host's handoff keys, read as plain strings
+ * .why = no clone may inherit them, whichever caller spawns it (F9)
+ */
+const HANDOFF_KEYS: readonly string[] = CLONE_ENV_KEYS_HANDOFF;
 
 /**
  * .what = the startup work every clone skips by default: claude.ai connectors,
@@ -42,7 +50,9 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
  * .why = one owner for both spawn sites (pty and plain), so neither can drop the
  *        relocation and boot a clone from the human's `~/.claude` (D4), nor leak a
  *        parent session's markers into the clone (a clone run from inside claude
- *        would otherwise persist no transcript), nor pay spinup work it never uses
+ *        would otherwise persist no transcript), nor pay spinup work it never uses,
+ *        nor hand a clone a detached host's handoff keys — a clone that inherits
+ *        the host marker reads itself as a host (F9), whichever caller spawns it
  * .note = `CLAUDE_SECURESTORAGE_CONFIG_DIR=''` (empty, not unset) points claude-code's
  *         login store, its write lock, and its oauth refresh lock at `~/.claude`, while
  *         config stays per actor — one login file under one lock set for every clone.
@@ -55,7 +65,8 @@ export const asBrainCliSpawnEnv = (input: {
   ...BRAIN_CLI_SPINUP_ENV_DEFAULTS,
   ...Object.fromEntries(
     Object.entries(input.env).filter(
-      ([key]) => !PARENT_SESSION_MARKERS.includes(key),
+      ([key]) =>
+        !PARENT_SESSION_MARKERS.includes(key) && !HANDOFF_KEYS.includes(key),
     ),
   ),
   CLAUDE_CONFIG_DIR: input.brainDir,

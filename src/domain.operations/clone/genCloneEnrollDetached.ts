@@ -77,6 +77,8 @@ export const genCloneEnrollDetached = async (input: {
   execPath: string;
   /** the argv tail to replay verbatim — `process.argv.slice(1)` */
   argv: string[];
+  /** the depth the caller decided for the clone, handed to the host as `depthMinted` */
+  depth: number;
   cwd: string;
   /** how long to await the host's handoff before we call the detach failed */
   timeoutMs: number;
@@ -98,19 +100,19 @@ export const genCloneEnrollDetached = async (input: {
     //   this operation exists to free it from (measured 2026-09-26: every detached
     //   acceptance case sat its full 60s timeout on exactly that)
     stdio: ['ignore', 'pipe', 'pipe'],
-    // 🔴 the caller's env passes through WHOLE, and one key in it carries the budget:
-    //   `CLONE_ENV_KEYS.depth`. the host is a faithful REPLAY of the caller, so it
-    //   re-derives the child's depth from the same `asCloneEnrollDepth({ env })` read —
-    //   which returns the CALLER's depth + 1. strip that key and the host reads 0, so a
-    //   depth-1 clone's `--async` peer is minted at depth 0, and every detached link
-    //   resets the counter. ⇒ the enroll-depth budget would leak through this seam, and
-    //   an unbounded chain is exactly what `CLONE_ENROLL_DEPTH_MAX` exists to refuse.
+    // 🔴 the caller's env passes through WHOLE, plus the depth the caller DECIDED
+    //   (`CLONE_ENV_KEYS.depthMinted`). the caller decided it in the foreground, where the
+    //   tty is; the host has `stdin: 'ignore'`, so the host must replay this key, never
+    //   re-read the depth.
     //
-    //   `serial` and `socket` ride along and are INERT here — the host runs `enroll`,
-    //   whose path reads neither, and the pty spawn overwrites all three for the child
-    //   it stands up (`genBrainCliPtyClone`). so a tidy-the-env sweep looks free and is
-    //   not: the one key that reads as noise is the one the budget rests on.
-    env: { ...process.env, [CLONE_ENV_KEYS.hostDetached]: '1' },
+    //   `serial`, `socket`, and `depth` ride along and are INERT here — the host takes
+    //   `depthMinted`, and the pty spawn overwrites all three for the child it stands up
+    //   (`genBrainCliPtyClone`). the host drops `depthMinted` before it spawns a child.
+    env: {
+      ...process.env,
+      [CLONE_ENV_KEYS.hostDetached]: '1',
+      [CLONE_ENV_KEYS.depthMinted]: String(input.depth),
+    },
   });
 
   const pid = child.pid;

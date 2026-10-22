@@ -1,9 +1,11 @@
-import { given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { ActorRoleSkill } from '@src/domain.objects/ActorRoleSkill';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
+import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { actorAct } from './actorAct';
 
@@ -61,6 +63,35 @@ describe('actorAct', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  // pin the caller to a no-tty depth-0 work clone, so the spawn scope reads the vars
+  // as a brain's tool shell does, whatever terminal or clone runs the suite. it is
+  // suite-wide on purpose: every case's repl call passes the leaf check, so a suite run
+  // inside a leaf clone would refuse the extant cases too
+  const ttyBefore = process.stdin.isTTY;
+  const depthBefore = process.env[CLONE_ENV_KEYS.depth];
+  const leafBefore = process.env[CLONE_ENV_KEYS.leaf];
+  beforeAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: false,
+      configurable: true,
+    });
+  });
+  beforeEach(() => {
+    process.env[CLONE_ENV_KEYS.depth] = '0';
+    delete process.env[CLONE_ENV_KEYS.leaf];
+  });
+  afterAll(() => {
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: ttyBefore,
+      configurable: true,
+    });
+    delete process.env[CLONE_ENV_KEYS.depth];
+    delete process.env[CLONE_ENV_KEYS.leaf];
+    if (depthBefore !== undefined)
+      process.env[CLONE_ENV_KEYS.depth] = depthBefore;
+    if (leafBefore !== undefined) process.env[CLONE_ENV_KEYS.leaf] = leafBefore;
   });
 
   given('[case1] a pre-resolved rigid skill', () => {
@@ -136,6 +167,77 @@ describe('actorAct', () => {
           }),
           undefined, // context is undefined when not provided
         );
+      });
+    });
+  });
+
+  given('[case3] a leaf caller — it carries the leaf mark', () => {
+    when('[t0] actorAct is called, as `rhachet act` and `clone.act` do', () => {
+      then('it is refused as a constraint, and no brain runs', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        process.env[CLONE_ENV_KEYS.leaf] = '1';
+        const error = await getError(() =>
+          actorAct({
+            role: testRole,
+            brain: mockBrain,
+            skill: testSkill,
+            args: { content: 'hello' },
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('a leaf clone may not spawn');
+        expect(mockBrain.act).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  given('[case3b] a work clone at depth 1 — a driver with no tty', () => {
+    // 🔴 the #577 defect: the old absolute cap refused this caller's every act
+    when('[t0] actorAct is called', () => {
+      then('it runs, and the brain reads depth 2 as a leaf', async () => {
+        process.env[CLONE_ENV_KEYS.depth] = '1';
+        const seen: Array<{ depth?: string; leaf?: string }> = [];
+        const brainRecorder = {
+          ...mockBrain,
+          act: async () => {
+            seen.push({
+              depth: process.env[CLONE_ENV_KEYS.depth],
+              leaf: process.env[CLONE_ENV_KEYS.leaf],
+            });
+            return { summary: 'test summary' };
+          },
+        } as unknown as BrainRepl;
+        await actorAct({
+          role: testRole,
+          brain: brainRecorder,
+          skill: testSkill,
+          args: { content: 'hello' },
+        });
+        expect(seen).toEqual([{ depth: '2', leaf: '1' }]);
+        expect(process.env[CLONE_ENV_KEYS.leaf]).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case4] a caller at depth 0', () => {
+    when('[t0] actorAct is called', () => {
+      then('the brain reads depth 1, the depth it is born at', async () => {
+        const seen: Array<string | undefined> = [];
+        const brainRecorder = {
+          ...mockBrain,
+          act: async () => {
+            seen.push(process.env[CLONE_ENV_KEYS.depth]);
+            return { summary: 'test summary' };
+          },
+        } as unknown as BrainRepl;
+        await actorAct({
+          role: testRole,
+          brain: brainRecorder,
+          skill: testSkill,
+          args: { content: 'hello' },
+        });
+        expect(seen).toEqual(['1']);
+        expect(process.env[CLONE_ENV_KEYS.depth]).toEqual('0');
       });
     });
   });

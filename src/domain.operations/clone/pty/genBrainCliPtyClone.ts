@@ -1,6 +1,7 @@
 import type { IPty } from 'node-pty';
 
 import { asBrainCliSpawnEnv } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
+import { asCloneSpawnPlaceEnv } from '@src/domain.operations/spawn/asCloneSpawnPlaceEnv';
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
@@ -99,8 +100,10 @@ export const genBrainCliPtyClone = async (
     cwd: string;
     serial: string;
     socketPath: string;
-    /** how deep in the enroll chain this clone sits (`asCloneEnrollDepth`) */
+    /** how deep in the spawn chain this clone sits (`asCloneSpawnDepth`) */
     depth: number;
+    /** whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`) */
+    leaf: boolean;
     brainDir: string;
   },
   context: {
@@ -119,11 +122,15 @@ export const genBrainCliPtyClone = async (
   // its actor's brain dir
   const env = asBrainCliSpawnEnv({
     env: {
-      ...process.env,
+      // its place in the spawn chain: its depth, and its leaf mark when a leaf, so its
+      //   OWN enroll and repl brain are refused when it is a leaf (#577)
+      ...asCloneSpawnPlaceEnv({
+        env: process.env,
+        depth: input.depth,
+        leaf: input.leaf,
+      }),
       [CLONE_ENV_KEYS.serial]: input.serial,
       [CLONE_ENV_KEYS.socket]: input.socketPath,
-      // its place in the enroll chain, so its OWN `rhx enroll` is bounded by the budget
-      [CLONE_ENV_KEYS.depth]: String(input.depth),
     },
     brainDir: input.brainDir,
   });

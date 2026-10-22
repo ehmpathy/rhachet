@@ -78,13 +78,20 @@ export const genCloneSpawn = async (
     /** the loaded emulator, or null when the host could not load it */
     emulator: EmulatorModule | null;
     /**
-     * how deep in the enroll chain this clone is born (`asCloneEnrollDepth`)
+     * how deep in the spawn chain this clone is born (`asCloneSpawnDepth`)
      *
      * .why it reaches BOTH branches = the depth a clone carries is a fact about the
      *   clone, never about its socket. a plain-spawn clone still has a place in the
-     *   chain, so its own enroll must be bounded by the same budget
+     *   chain, so it must carry it the same way
      */
     depth: number;
+    /**
+     * whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`)
+     *
+     * .why it reaches BOTH branches = a socket-less leaf is still a leaf, so its
+     *   own enroll must be refused the same way (#577)
+     */
+    leaf: boolean;
   },
   context: { host: PtyCloneHost },
 ): Promise<CloneSpawnHandle> => {
@@ -99,6 +106,7 @@ export const genCloneSpawn = async (
       cwd: input.cwd,
       serial: input.serial,
       depth: input.depth,
+      leaf: input.leaf,
       brainDir: input.brainDir,
     });
     return {
@@ -116,6 +124,7 @@ export const genCloneSpawn = async (
         serial: input.serial,
         socketPath: input.socketPath,
         depth: input.depth,
+        leaf: input.leaf,
         brainDir: input.brainDir,
       },
       { pty: input.pty, host: context.host, emulator: input.emulator },

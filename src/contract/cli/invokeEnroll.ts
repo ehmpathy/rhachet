@@ -26,10 +26,6 @@ import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSuppor
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
 import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
 import { asCloneDetachHostArgv } from '@src/domain.operations/clone/asCloneDetachHostArgv';
-import {
-  asCloneEnrollDepth,
-  CLONE_ENROLL_DEPTH_MAX,
-} from '@src/domain.operations/clone/asCloneEnrollDepth';
 import { asCloneReachBreadcrumb } from '@src/domain.operations/clone/asCloneReachBreadcrumb';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { computeCloneAccrualWarn } from '@src/domain.operations/clone/computeCloneAccrualWarn';
@@ -61,11 +57,18 @@ import { setRepoBrainDirSymlink } from '@src/domain.operations/init/boots/setRep
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { asCloneSpawnDepth } from '@src/domain.operations/spawn/asCloneSpawnDepth';
+import { assertCloneSpawnAllowed } from '@src/domain.operations/spawn/assertCloneSpawnAllowed';
+import { isCloneSpawnCallerLeaf } from '@src/domain.operations/spawn/isCloneSpawnCallerLeaf';
+import { isCloneSpawnChildLeaf } from '@src/domain.operations/spawn/isCloneSpawnChildLeaf';
 import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
-import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
+import {
+  CLONE_ENV_KEYS,
+  CLONE_ENV_KEYS_HANDOFF,
+} from '@src/utils/cloneEnvKeys';
 
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -226,6 +229,33 @@ const asEnrollmentSpec = (input: {
 };
 
 /**
+ * .what = read the spawn depth and the host marker, then consume a detached host's two
+ *   handoff keys from this process's env
+ * .why = a child that inherited the host marker would read itself as a host, and its
+ *   own `--async` enroll would never detach (fulcrum F9). the brain child inherits
+ *   this env by spread, so a key left here reaches it
+ * .note = the reads and the consume share one body, so the order is structural: the
+ *   depth read replays `depthMinted`, and a consume first would mint a human's
+ *   `--async` clone one level too deep
+ * .note = deliberate mutation — the env IS the handoff channel to the child
+ */
+const setCloneHostHandoffConsumedAfterDepthRead = (input: {
+  isTty: boolean;
+}): { depth: number; isDetachedHost: boolean } => {
+  // read first: the depth replays the minted key, the host marker names our part
+  const depth = asCloneSpawnDepth({
+    env: process.env,
+    isTty: input.isTty,
+    door: 'enroll',
+  });
+  const isDetachedHost = process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
+
+  // then consume both keys, so no child inherits them
+  for (const key of CLONE_ENV_KEYS_HANDOFF) delete process.env[key];
+  return { depth, isDetachedHost };
+};
+
+/**
  * .what = enroll a brain: ensure the anonymous actor, findsert a clone through the
  *   managed pty (socket + history), and forward the child's exit
  * .why = this IS the invisible hot path — the human sees the brain open exactly as
@@ -333,16 +363,26 @@ const performEnroll = async (input: {
     );
   const reason = await getOneEnrollReasonOrNull({ raw: input.reason });
 
-  // where in the enroll chain the clone this call mints would sit — 0 for a human's
-  // own clone, 1 for a peer that clone enrolls. an over-budget enroll is refused
-  // BEFORE any dir or child exists, so a chain never half-forms
-  const depth = asCloneEnrollDepth({ env: process.env });
-  if (depth > CLONE_ENROLL_DEPTH_MAX)
-    throw new ConstraintError('clone enroll depth budget spent', {
-      depthRequested: depth,
-      depthMax: CLONE_ENROLL_DEPTH_MAX,
-      hint: `a clone at depth ${depth - 1} may not enroll another — ask the clone that enrolled you, or a human, to stand this one up`,
-    });
+  // a leaf may enroll no one (#577): its enroll is refused BEFORE any dir or child
+  //   exists, so a chain never half-forms. a work clone at any depth may enroll one more
+  assertCloneSpawnAllowed({
+    isCallerLeaf: isCloneSpawnCallerLeaf({ env: process.env }),
+    door: 'enroll',
+  });
+
+  // where in the spawn chain the clone this call mints would sit — 0 for a clone a
+  //   human enrolls at a tty, the caller's depth + 1 for any other spawn
+  //   (and are WE the detached host?) — read once, then the handoff keys are consumed
+  const { depth, isDetachedHost } = setCloneHostHandoffConsumedAfterDepthRead({
+    isTty: !!process.stdin.isTTY,
+  });
+
+  // a print-mode enroll mints a leaf: one prompt in, one answer out. a leaf
+  //   it may enroll no one. a detached host re-derives this from the argv it replays
+  const leaf = isCloneSpawnChildLeaf({
+    door: 'enroll',
+    isPrintMode: isBrainCliPrintMode({ passthrough }),
+  });
 
   // refuse a brain cli below the floor before any write — it lacks the flags a clone needs
   const { command } = getSupportedBrainCommand({ brain: enrollment.brain });
@@ -378,9 +418,6 @@ const performEnroll = async (input: {
     printMode: isBrainCliPrintMode({ passthrough }),
   });
 
-  // are WE the detached host, or the caller that must stand one up?
-  const isDetachedHost = process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
-
   // a detached host's stderr is a pipe its caller drops once the handoff lands, so a later
   //   write meets EPIPE. that is the caller gone, never a fault — and an unhandled EPIPE
   //   would crash the host and the clone it serves. any other write error still throws
@@ -403,6 +440,8 @@ const performEnroll = async (input: {
       //   answer with an empty read, and the audit records no motive at all. the pipe
       //   is the one input the host cannot re-derive, so the caller must hand it over
       argv: asCloneDetachHostArgv({ argv: process.argv.slice(1), reason }),
+      // the depth was decided here, where the tty is; the host has none to re-read
+      depth,
       cwd: repoPath,
       timeoutMs: CLONE_ENROLL_DETACH_TIMEOUT_MS,
     });
@@ -573,6 +612,7 @@ const performEnroll = async (input: {
       mode: watchMode,
       noSocket: input.noSocket,
       depth,
+      leaf,
     },
     context,
   );
@@ -749,7 +789,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     // the mode (`term=enroll.mode`, `computeCloneEnrollMode`)
     .option(
       '--await',
-      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>")',
+      'hold until the clone answers its prompt and exits, then forward its exit code (default with a prompt, e.g. -p "<prompt>"). a -p clone is a leaf: it may enroll no clone of its own',
     )
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     // built-in --help is off so `rhx enroll <brain> --help` forwards to the brain

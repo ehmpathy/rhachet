@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { genBrainRepl } from 'rhachet-brains-openai';
+import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { getError, given, then, when } from 'test-fns';
 
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
@@ -73,10 +73,10 @@ echo '{"content":"drafted content about $1"}'
       rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    // create author actor with openai brain
+    // create author actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
     const brain = genBrainRepl({
-      slug: 'openai/codex',
+      slug: 'claude/code/haiku',
     }) as unknown as ActorBrain;
     const author = genCloneInmem({
       actor: genActor({
@@ -97,7 +97,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when.skip('[t1] author.act({ skill: { draft: { topic } } })', () => {
+    when('[t1] author.act({ skill: { draft: { topic } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await author.act({
           skill: { draft: { topic: 'surfer turtles' } },
@@ -108,10 +108,10 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when.skip('[t2] author.act({ brain: { repo, slug }, skill })', () => {
+    when('[t2] author.act({ brain: { repo, slug }, skill })', () => {
       then('executes with explicit brain from allowlist', async () => {
         const result = await author.act({
-          brain: { repo: 'openai', slug: 'openai/codex' },
+          brain: { repo: 'anthropic', slug: 'claude/code/haiku' },
           skill: { draft: { topic: 'ocean waves' } },
         });
 
@@ -123,7 +123,7 @@ echo '{"content":"drafted content about $1"}'
       then('throws error', async () => {
         const error = await getError(() =>
           author.act({
-            brain: { repo: 'anthropic', slug: 'claude/code' },
+            brain: { repo: 'openai', slug: 'openai/codex' },
             skill: { draft: { topic: 'sunshine' } },
           }),
         );
@@ -133,7 +133,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when.skip('[t4] author.ask({ prompt })', () => {
+    when('[t4] author.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await author.ask({
           prompt: 'tell me about the turtles',

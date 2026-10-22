@@ -47,7 +47,8 @@ Options:
                       terminal)
   --await             hold until the clone answers its prompt and exits, then
                       forward its exit code (default with a prompt, e.g. -p
-                      "<prompt>")
+                      "<prompt>"). a -p clone is a leaf: it may enroll no clone
+                      of its own
   --output <mode>     output mode: tree (default) or json (default: "tree")
 "
 `;
@@ -774,30 +775,30 @@ exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`c
 "
 `;
 
-exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t0] it enrolls a peer — which would sit at depth 2 then: the structured error is locked to a snapshot 1`] = `
+exports[`rhx enroll leaf clone (acceptance) given: [case1] a linked repo, the caller is a leaf clone when: [t0] it enrolls a peer then: the structured error is locked to a snapshot 1`] = `
 "{
   "class": "ConstraintError",
-  "message": "clone enroll depth budget spent",
-  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
+  "message": "a leaf clone may not spawn",
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
   "reachState": null,
   "reachCause": null,
   "metadata": {
-    "depthRequested": 2,
-    "depthMax": 1,
-    "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up"
+    "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+    "via": "a clone enroll (\`rhx enroll\`)",
+    "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
   }
 }
 "
 `;
 
-exports[`rhx enroll depth budget (acceptance) given: [case1] a linked repo, the caller is a clone at depth 1 when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
+exports[`rhx enroll leaf clone (acceptance) given: [case1] a linked repo, the caller is a leaf clone when: [t1] the same enroll is refused in TREE mode, for a human then: the TREE render is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: clone enroll depth budget spent
+✋ ConstraintError: a leaf clone may not spawn
 
 {
-  "hint": "a clone at depth 1 may not enroll another — ask the clone that enrolled you, or a human, to stand this one up",
-  "depthRequested": 2,
-  "depthMax": 1
+  "hint": "a leaf answers, and spawns no clone of its own. a clone: do not retry — answer from your own read. a human in a shell a leaf opened: run the same command from a fresh terminal",
+  "via": "a clone enroll (\`rhx enroll\`)",
+  "why": "this process is a leaf: a print-mode enroll (\`rhx enroll -p\`) or a repl brain spawned it, or it runs in a shell or a job that such a leaf started"
 }
 
 "

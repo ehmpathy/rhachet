@@ -110,7 +110,7 @@ what this invariant does **not** cover:
   brain that cannot carry one (`isBrainSocketCapable`), and an explicit `--no-socket`. the claim is
   narrower — **attendance is not one of the gates**
 - **it does not govern the accrual budget.** a detached clone that outlives its enroller is exactly
-  the shape that accrues; the live-count warn and the depth budget remain the bound, untouched here
+  the shape that accrues; the live-count warn and the leaf mark (`term=spawn.leaf`) remain the bound, untouched here
 - **it does not make the two modes equal in cost.** an `--async` clone is billed until pruned. the
   invariant says it is *reachable*, never that it is *free*
 - **it does not apply to a one-shot pipe.** `rhx enroll claude --print 'hi'` passes a prompt through
