@@ -23,7 +23,7 @@ a human at a tty     depth —   (no depth var in a fresh terminal)
   └─ their clone     depth 0   a tty `rhx enroll` with no depth var, or a raw `claude`
        └─ a worker   depth 1   a work clone — may spawn
             └─ ...   depth N   a work clone at any depth may spawn
-                 └─ a reviewer depth N+1, a leaf — spawns no one (`spawn.leaf`)
+                 └─ a leaf   depth N+1 — spawns no one (`spawn.leaf`)
 ```
 
 two doors mint a depth: `rhx enroll`, and the repl seam (`asBrainReplWithContextBound`). a tty
@@ -63,7 +63,7 @@ foreground and hands it over as `CLONE_ENV_KEYS.depthMinted`, honored only on a 
 - `src/domain.operations/spawn/asCloneSpawnPlaceEnv.ts` # writes depth and the leaf mark into a child env
 - `src/domain.operations/spawn/withCloneSpawnDepthScope.ts`          # the repl door's scope
 - `src/contract/cli/invokeEnroll.ts`                    # the enroll door
-- `blackbox/cli/enroll.acceptance.test.ts`              # `rhx enroll reviewer leaf` — depth recorded, never refused
+- `blackbox/cli/enroll.acceptance.test.ts`              # `rhx enroll leaf clone` — depth recorded, never refused
 
 ## .reason
 see the ref-level cluster beside this choice:

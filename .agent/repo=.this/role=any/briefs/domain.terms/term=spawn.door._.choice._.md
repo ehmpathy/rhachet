@@ -23,7 +23,7 @@ the door changes two rules:
 - **depth** — a tty `enroll` with no depth var mints a top-level clone (0), and the `repl` door
   never mints 0. a tty `enroll` that carries a var mints var + 1, as every other spawn does
 - **leaf** — every `repl` child is a leaf; an `enroll` child is a leaf only when the enroll is
-  print-mode (`-p`). so the door, never the roleset, decides who is a reviewer (`spawn.leaf`)
+  print-mode (`-p`). so the door, never the roleset, decides who is a leaf (`spawn.leaf`)
 
 ## ⚠️ .the boundary — the word `door` carries a second sense here
 

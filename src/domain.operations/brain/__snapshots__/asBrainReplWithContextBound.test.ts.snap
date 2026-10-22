@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`asBrainReplWithContextBound given: [case2] a reviewer caller — it carries the leaf mark when: [t0] it calls ask then: it is refused as a constraint, and no brain runs 1`] = `
+exports[`asBrainReplWithContextBound given: [case2] a leaf caller — it carries the leaf mark when: [t0] it calls ask then: it is refused as a constraint, and no brain runs 1`] = `
 "✋ ConstraintError: a leaf clone may not spawn
 
 {
@@ -10,7 +10,7 @@ exports[`asBrainReplWithContextBound given: [case2] a reviewer caller — it car
 }"
 `;
 
-exports[`asBrainReplWithContextBound given: [case2] a reviewer caller — it carries the leaf mark when: [t1] it calls act then: it is refused as a constraint, and no brain runs 1`] = `
+exports[`asBrainReplWithContextBound given: [case2] a leaf caller — it carries the leaf mark when: [t1] it calls act then: it is refused as a constraint, and no brain runs 1`] = `
 "✋ ConstraintError: a leaf clone may not spawn
 
 {

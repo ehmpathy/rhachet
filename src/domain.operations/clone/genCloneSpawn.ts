@@ -86,9 +86,9 @@ export const genCloneSpawn = async (
      */
     depth: number;
     /**
-     * whether this clone is a reviewer that may spawn no one (`isCloneSpawnChildLeaf`)
+     * whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`)
      *
-     * .why it reaches BOTH branches = a socket-less reviewer is still a reviewer, so its
+     * .why it reaches BOTH branches = a socket-less leaf is still a leaf, so its
      *   own enroll must be refused the same way (#577)
      */
     leaf: boolean;

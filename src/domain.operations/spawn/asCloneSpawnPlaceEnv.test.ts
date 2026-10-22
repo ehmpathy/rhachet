@@ -30,7 +30,7 @@ describe('asCloneSpawnPlaceEnv', () => {
     });
   });
 
-  given('[case2] a reviewer child, spawned by a print-mode enroll', () => {
+  given('[case2] a leaf child, spawned by a print-mode enroll', () => {
     when('[t0] its env is built', () => {
       const env = asCloneSpawnPlaceEnv({
         env: { [CLONE_ENV_KEYS.depth]: '0' },

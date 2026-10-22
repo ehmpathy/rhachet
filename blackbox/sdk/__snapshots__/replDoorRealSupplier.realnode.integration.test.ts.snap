@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`replDoorRealSupplier.realnode.integration given: [case1] the real anthropic repl, chosen through the contract when: [t3] a reviewer (leaf) caller calls ask then: the refusal a caller reads matches the snapshot 1`] = `
+exports[`replDoorRealSupplier.realnode.integration given: [case1] the real anthropic repl, chosen through the contract when: [t3] a leaf caller calls ask then: the refusal a caller reads matches the snapshot 1`] = `
 "✋ ConstraintError: a leaf clone may not spawn
 
 {

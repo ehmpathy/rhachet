@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`a clone wraps its enroll in a fresh pty — a work clone sits one level below, a leaf is refused (acceptance) given: [case2] a fresh pty a reviewer clone opened when: [t0] \`rhx enroll claude\` runs at that tty then: the refusal frame is locked (visual spot-check) 1`] = `
+exports[`a clone wraps its enroll in a fresh pty — a work clone sits one level below, a leaf is refused (acceptance) given: [case2] a fresh pty a leaf clone opened when: [t0] \`rhx enroll claude\` runs at that tty then: the refusal frame is locked (visual spot-check) 1`] = `
 "✋ ConstraintError: a leaf clone may not spawn
 
 {

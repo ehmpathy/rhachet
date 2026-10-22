@@ -7,7 +7,7 @@ import {
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
 /**
- * .what = the reviewer-leaf refusal at the `rhachet ask` and `rhachet act` cli doors
+ * .what = the leaf refusal at the `rhachet ask` and `rhachet act` cli doors
  * .note = `rhx` routes `ask` and `act` to a skill lookup, so these doors are reached as
  *   `rhachet ask` / `rhachet act`; the refusal names them so, a command a reader can run
  * .why = both reach a repl brain through `actorAsk` / `actorAct`, the third spawn door.
@@ -15,7 +15,7 @@ import {
  *   (rule.require.test-coverage-by-grain)
  *
  * .rule = per the ehmpathy/rhachet#577 vision: every work clone may spawn one level below
- *   itself, at any depth; a reviewer clone is a leaf and may spawn no one. a repl brain's
+ *   itself, at any depth; a leaf clone may spawn no one. a repl brain's
  *   child is always a leaf
  *
  * .note = the fixture's repl brain is a stub that prints `REPL_STUB_RAN depth=<n> leaf=<m>`
@@ -47,7 +47,7 @@ describe('rhachet ask / rhachet act — a leaf caller refused, a work caller adm
     'stub',
   ];
 
-  given('[case1] a reviewer caller — a leaf at depth 1', () => {
+  given('[case1] a leaf caller at depth 1', () => {
     when('[t0] it runs `rhachet ask`', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -62,7 +62,7 @@ describe('rhachet ask / rhachet act — a leaf caller refused, a work caller adm
         expect(result.status).toEqual(2);
       });
 
-      then('the refusal names the reviewer and the repl door', () => {
+      then('the refusal names the leaf and the repl door', () => {
         expect(result.stderr).toContain('a leaf clone may not spawn');
         expect(result.stderr).toContain(
           '`rhachet ask`, `rhachet act`',
@@ -92,7 +92,7 @@ describe('rhachet ask / rhachet act — a leaf caller refused, a work caller adm
         expect(result.status).toEqual(2);
       });
 
-      then('the refusal names the reviewer and the repl door', () => {
+      then('the refusal names the leaf and the repl door', () => {
         expect(result.stderr).toContain('a leaf clone may not spawn');
         expect(result.stderr).toContain(
           '`rhachet ask`, `rhachet act`',

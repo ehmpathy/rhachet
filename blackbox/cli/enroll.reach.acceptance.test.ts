@@ -1347,8 +1347,8 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
  *   returns a different verdict on ci (a human's shell) than in a clone's shell.
  *
  * 🚨 an enroll reads the `RHACHET_CLONE_LEAF` it inherits at any tty, so a runner that is
- *   itself a reviewer makes every enroll refuse BEFORE the spawn, with an error that names
- *   a reviewer rather than a harness. the depth var and the detached-host pair leak too:
+ *   itself a leaf makes every enroll refuse BEFORE the spawn, with an error that names
+ *   a leaf rather than a harness. the depth var and the detached-host pair leak too:
  *   a tty enroll reads an inherited depth + 1 (fulcrum F13), and an enroll that sees
  *   `RHACHET_CLONE_HOST_DETACHED` replays `RHACHET_CLONE_DEPTH_MINTED` — so a leaked
  *   identity moves the depth the child records.
@@ -1441,9 +1441,9 @@ describe('the pty spawner strips the runner clone identity (acceptance)', () => 
  * .what = an enroll on a fresh pty that carries a clone's env — a pty wrap that keeps it
  * .why =
  *   - a clone can run `rhx enroll …` on a fresh pty through a pty wrap (`unbuffer`, node-pty)
- *     that keeps its env. a tty is no reset: a reviewer that wrapped its enroll in a pty
+ *     that keeps its env. a tty is no reset: a leaf that wrapped its enroll in a pty
  *     must still be refused, else the leaf rule falls to one keystroke
- *   - 🔴 the leaf mark is read from the env whatever the tty, so a reviewer's pty wrap is
+ *   - 🔴 the leaf mark is read from the env whatever the tty, so a leaf's pty wrap is
  *     refused. a work clone's pty wrap is admitted, and its child sits one level below
  *     (fulcrum F13): a tty mints 0 only when it carries no depth var
  *   - the var is set back on purpose, through `env`, which merges after the harness strip
@@ -1522,7 +1522,7 @@ describe('a clone wraps its enroll in a fresh pty — a work clone sits one leve
     });
   });
 
-  given('[case2] a fresh pty a reviewer clone opened', () => {
+  given('[case2] a fresh pty a leaf clone opened', () => {
     const scene = useBeforeAll(async () =>
       enrollOnPtyWithEnv({
         depth: '1',

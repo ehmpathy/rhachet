@@ -15,7 +15,7 @@ import { asBrainReplWithContextBound } from './asBrainReplWithContextBound';
  * .why = every installed repl supplier spawns its brain this way (Q5: the agent-sdk
  *   `query()` and codex `exec` both inherit `process.env` at spawn). the unit test pins the
  *   in-process read; this pins that the scope still holds when the os copies the env into
- *   a child, which is where a reviewer's own `rhx enroll` would run
+ *   a child, which is where a leaf's own `rhx enroll` would run
  *
  * .note = the caller's tty is pinned to "none" so the case reads the depth var, as a
  *   brain's tool shell does, whatever terminal runs the suite

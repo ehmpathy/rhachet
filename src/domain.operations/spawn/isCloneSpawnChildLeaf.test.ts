@@ -13,7 +13,7 @@ describe('isCloneSpawnChildLeaf', () => {
     });
 
     when("[t1] a print-mode enroll, `-p '<prompt>'`", () => {
-      then('the child is a reviewer leaf', () => {
+      then('the child is a leaf', () => {
         expect(
           isCloneSpawnChildLeaf({ door: 'enroll', isPrintMode: true }),
         ).toEqual(true);
@@ -23,7 +23,7 @@ describe('isCloneSpawnChildLeaf', () => {
 
   given('[case2] the repl door', () => {
     when('[t0] a repl brain is spawned', () => {
-      then('the child is a reviewer leaf', () => {
+      then('the child is a leaf', () => {
         expect(isCloneSpawnChildLeaf({ door: 'repl' })).toEqual(true);
       });
     });

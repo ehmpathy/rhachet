@@ -270,7 +270,7 @@ describe('actorAsk', () => {
     });
   });
 
-  given('[case6] a reviewer caller — it carries the leaf mark', () => {
+  given('[case6] a leaf caller — it carries the leaf mark', () => {
     when('[t0] actorAsk is called with a repl, as `rhachet ask` does', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';

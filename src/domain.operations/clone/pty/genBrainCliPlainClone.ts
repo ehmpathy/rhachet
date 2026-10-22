@@ -17,7 +17,7 @@ import { spawn } from 'node:child_process';
  *     one owner of process lifecycle, not a spawn buried in a leaf
  *
  * .note = the child still carries its own serial (CLONE_ENV_KEYS.serial), its own depth,
- *   and its leaf mark when a reviewer, so even a socket-less clone can name itself via
+ *   and its leaf mark when a leaf, so even a socket-less clone can name itself via
  *   `clone whoami` and is bound by the same spawn rule. the place keys share one owner
  *   (`asCloneSpawnPlaceEnv`); the rest of the env-injection shape is WET across this +
  *   genBrainCliPtyClone by design; a THIRD spawn branch (the dream's `wake`) is the
@@ -30,7 +30,7 @@ export const genBrainCliPlainClone = (input: {
   serial: string;
   /** how deep in the spawn chain this clone sits (`asCloneSpawnDepth`) */
   depth: number;
-  /** whether this clone is a reviewer that may spawn no one (`isCloneSpawnChildLeaf`) */
+  /** whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`) */
   leaf: boolean;
   brainDir: string;
 }): {

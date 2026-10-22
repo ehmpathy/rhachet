@@ -54,7 +54,7 @@ Options:
 `;
 
 exports[`rhx enroll --reason (acceptance) given: [case1] a linked repo, \`--reason "<text>"\` (plain) when: [t0] \`enroll claude --reason "nightly cron refresh"\` runs then: the full persisted audit line is locked to a snapshot 1`] = `
-"{"schemaVersion":1,"at":"$AT","roles":["mechanic"],"delta":null,"reason":"nightly cron refresh"}
+"{"schemaVersion":1,"at":"$AT","roles":["driver","architect","mechanic"],"delta":null,"reason":"nightly cron refresh"}
 "
 `;
 
@@ -63,9 +63,11 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 ✋ ConstraintError: role 'ghostrole' not found
 
 {
-  "hint": "linked roles: mechanic",
+  "hint": "linked roles: driver, architect, mechanic",
   "role": "ghostrole",
   "rolesLinked": [
+    "driver",
+    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -78,16 +80,18 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 "{
   "class": "ConstraintError",
   "message": "role 'ghostrole' not found",
-  "hint": "linked roles: mechanic",
+  "hint": "linked roles: driver, architect, mechanic",
   "reachState": null,
   "reachCause": null,
   "metadata": {
     "role": "ghostrole",
     "rolesLinked": [
+      "driver",
+      "architect",
       "mechanic"
     ],
     "suggestion": null,
-    "hint": "linked roles: mechanic"
+    "hint": "linked roles: driver, architect, mechanic"
   }
 }
 "
@@ -95,12 +99,14 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t1] \`enroll claude --roles -ghostrole,+architect\` (comma form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'architect' not found
+✋ ConstraintError: role 'ghostrole' not found
 
 {
-  "hint": "linked roles: mechanic",
-  "role": "architect",
+  "hint": "linked roles: driver, architect, mechanic",
+  "role": "ghostrole",
   "rolesLinked": [
+    "driver",
+    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -111,12 +117,14 @@ exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + a
 
 exports[`rhx enroll --roles (acceptance) given: [case1] a repo with mechanic + architect + driver linked when: [t2] \`enroll claude --roles "-ghostrole +architect"\` (quoted space form) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'architect' not found
+✋ ConstraintError: role 'ghostrole' not found
 
 {
-  "hint": "linked roles: mechanic",
-  "role": "architect",
+  "hint": "linked roles: driver, architect, mechanic",
+  "role": "ghostrole",
   "rolesLinked": [
+    "driver",
+    "architect",
     "mechanic"
   ],
   "suggestion": null
@@ -201,16 +209,6 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
           {
             "type": "command",
             "command": "true",
-            "author": "repo=bhrain/role=driver"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
@@ -226,23 +224,26 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ]
 }
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression path — \`-driver\` drops driver when: [t0] \`enroll claude --roles -driver\` (known role, delta subtract) then: the success output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'driver' not found
-
-{
-  "hint": "linked roles: mechanic",
-  "role": "driver",
-  "rolesLinked": [
-    "mechanic"
-  ],
-  "suggestion": null
-}
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
@@ -307,32 +308,19 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
 
 exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t0] the HOME holds a \`.claude/settings.json\` then: the grove-present output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'driver' not found
-
-{
-  "hint": "linked roles: mechanic",
-  "role": "driver",
-  "rolesLinked": [
-    "mechanic"
-  ],
-  "suggestion": null
-}
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case2c] the grove, through a real enroll, under a HOME the case pins when: [t1] the HOME holds no \`.claude/settings.json\` then: the absent-grove notice is locked to a snapshot 1`] = `
-"
-✋ ConstraintError: role 'driver' not found
+"ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
-{
-  "hint": "linked roles: mechanic",
-  "role": "driver",
-  "rolesLinked": [
-    "mechanic"
-  ],
-  "suggestion": null
-}
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
@@ -351,15 +339,22 @@ exports[`rhx enroll --roles (acceptance) given: [case2d] a repo still at the leg
 
 exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t1] the HOME grove carries a driver-authored hook (the layout main shipped) then: the refusal is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'driver' not found
+✋ ConstraintError: a clone would load hooks from roles it is not enrolled in
 
 {
-  "hint": "linked roles: mechanic",
-  "role": "driver",
-  "rolesLinked": [
+  "hint": "your home claude settings hold role hooks; remove every hook whose \`author\` names a \`role=\` from the file(s) above, then enroll again",
+  "rolesEnrolled": [
+    "architect",
     "mechanic"
   ],
-  "suggestion": null
+  "leaks": [
+    {
+      "event": "SessionStart",
+      "author": "repo=bhrain/role=driver",
+      "source": "user",
+      "path": "/TMP_TEST_DIR/.home/.claude/settings.json"
+    }
+  ]
 }
 
 "
@@ -375,35 +370,21 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
           {
             "type": "command",
             "command": "true",
-            "author": "repo=bhrain/role=driver"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
-            "author": "repo=ehmpathy/role=architect"
           }
         ]
       }
     ]
   },
   "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -444,7 +425,11 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md"
+  ]
 }
 "
 `;
@@ -539,16 +524,6 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
           {
             "type": "command",
             "command": "true",
-            "author": "repo=bhrain/role=driver"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
           }
         ]
@@ -564,7 +539,17 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -573,16 +558,6 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
 "{
   "hooks": {
     "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
-            "author": "repo=bhrain/role=driver"
-          }
-        ]
-      },
       {
         "matcher": "*",
         "hooks": [
@@ -606,8 +581,14 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
     ]
   },
   "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
     "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
   ]
 }
 "
@@ -623,32 +604,22 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
           {
             "type": "command",
             "command": "true",
-            "author": "repo=bhrain/role=driver"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
             "author": "repo=ehmpathy/role=mechanic"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "true",
-            "author": "repo=ehmpathy/role=architect"
           }
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ]
 }
 "
 `;
@@ -682,9 +653,11 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 ✋ ConstraintError: role 'mechnic' not found, did you mean 'mechanic'?
 
 {
-  "hint": "linked roles: mechanic",
+  "hint": "linked roles: driver, architect, mechanic",
   "role": "mechnic",
   "rolesLinked": [
+    "driver",
+    "architect",
     "mechanic"
   ],
   "suggestion": "mechanic"
@@ -718,15 +691,12 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t3] \`enroll claude --roles -driver -architect\` (unquoted space, 2 deltas) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: role 'driver' not found
+✋ ConstraintError: enroll's --roles takes a single spec; saw an extra role token '-architect' as a separate argument. to enroll multiple roles, separate them with commas (e.g. --roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer")
 
 {
-  "hint": "linked roles: mechanic",
-  "role": "driver",
-  "rolesLinked": [
-    "mechanic"
-  ],
-  "suggestion": null
+  "brain": "claude",
+  "rolesSpec": "-driver",
+  "collision": "-architect"
 }
 
 "

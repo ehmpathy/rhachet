@@ -79,7 +79,7 @@ after the fact.
   | restore | 🟢 6 passed |
 
 - **files**: `asCloneSpawnDepth.test.ts` (unit) · `blackbox/cli/enroll.acceptance.test.ts`
-  `rhx enroll reviewer leaf` `[case1]` a leaf is refused, `[case2]` a depth-1 work clone enrolls,
+  `rhx enroll leaf clone` `[case1]` a leaf is refused, `[case2]` a depth-1 work clone enrolls,
   `[case5]` a `-p` child reads depth 2
 
 ## .invariants

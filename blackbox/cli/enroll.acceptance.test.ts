@@ -1973,8 +1973,8 @@ describe('rhx enroll leaf clone (acceptance)', () => {
 
   given('[case2] a linked repo, the caller is a WORK clone at depth 1', () => {
     // 🚨 the row the #577 vision exists to PERMIT: a worker a top-level clone enrolled
-    //   must enroll its own reviewer. the old absolute cap refused exactly this, so a
-    //   worker clone could run no review at all
+    //   must enroll a clone of its own. the old absolute cap refused exactly this, so a
+    //   worker clone could spawn no one at all
     const dir = genTempDir({ slug: 'enroll-work-depth-one' });
     let stubPath: string;
     beforeAll(() => {

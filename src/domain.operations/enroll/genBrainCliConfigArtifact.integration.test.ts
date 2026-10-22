@@ -417,7 +417,7 @@ describe('genBrainCliConfigArtifact', () => {
 
   given('[case7] repo settings whose env map resets the clone depth', () => {
     // 🔴 claude hands a settings `env` map to every tool shell. were the reset copied
-    //   into the artifact, a depth-1 reviewer's shell would read depth 0 and spawn again
+    //   into the artifact, a depth-1 clone's shell would read depth 0 and spawn again
     const scene = useBeforeAll(async () => {
       const repoPath = await createTestRepo({
         env: { RHACHET_CLONE_DEPTH: '0', DEBUG: 'surf:*' },

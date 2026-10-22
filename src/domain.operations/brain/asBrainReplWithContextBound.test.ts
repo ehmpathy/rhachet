@@ -10,7 +10,7 @@ import { asBrainReplWithContextBound } from './asBrainReplWithContextBound';
 
 /**
  * .what = the repl door, as a role package reaches it: both `ask` and `act` pass the
- *   depth scope, so the supplier reads the child depth and a reviewer caller is refused
+ *   depth scope, so the supplier reads the child depth and a leaf caller is refused
  * .why = the scope itself is proven in `withCloneSpawnDepthScope.test.ts`; this pins the
  *   wire. `act` grants the brain a shell (Q4), so an `act` left outside the scope would
  *   reopen the door the wish closes, with every scope test still green
@@ -115,7 +115,7 @@ describe('asBrainReplWithContextBound', () => {
     });
   });
 
-  given('[case2] a reviewer caller — it carries the leaf mark', () => {
+  given('[case2] a leaf caller — it carries the leaf mark', () => {
     when('[t0] it calls ask', () => {
       then('it is refused as a constraint, and no brain runs', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';

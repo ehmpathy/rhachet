@@ -9,13 +9,13 @@ import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
 /**
  * .what = the repl spawn door against the REAL installed anthropic supplier, stopped at the
  *   agent-sdk's spawn call: the env it hands the claude child carries the scoped depth and the
- *   leaf mark, and a reviewer (leaf) caller is refused before the supplier spawns
+ *   leaf mark, and a leaf caller is refused before the supplier spawns
  * .why = the supplier spawns its brain with no `env` option, so the child boots with whatever
  *   the sdk copies from `process.env`. this suite reads that copy from the real sdk's own spawn
  *   call, counts the spawns, and checks the restore per call — facts a live boot cannot show.
  *   the sdk is esm, which jest cannot load, so a real node child drives it
  * .rule = per the ehmpathy/rhachet#577 vision: a work clone may spawn at any depth; a repl
- *   brain's child is a reviewer, a leaf, and may spawn no one
+ *   brain's child is a leaf, and may spawn no one
  * .note = an integration test: the probe (`probe.replDoorRealSupplier.cjs`) intercepts
  *   `child_process.spawn` alone, records the env, and throws, so no brain boots and no token is
  *   spent. the supplier, the agent-sdk and rhachet's scope all run for real. the live boot
@@ -125,8 +125,8 @@ describe('replDoorRealSupplier.realnode.integration', () => {
     });
 
     when('[t2] a depth-1 WORK caller calls ask', () => {
-      // 🔴 the #577 case: a worker clone runs its own review — depth refuses no one
-      then('it is admitted, and its reviewer reads depth 2', () => {
+      // 🔴 the #577 case: a worker clone runs its own repl brain — depth refuses no one
+      then('it is admitted, and its child reads depth 2', () => {
         expect(report.askAtDepth1Work.spawns).toHaveLength(1);
         expect(report.askAtDepth1Work.spawns[0]?.depth).toEqual('2');
         expect(report.askAtDepth1Work.spawns[0]?.leaf).toEqual('1');
@@ -139,8 +139,8 @@ describe('replDoorRealSupplier.realnode.integration', () => {
       });
     });
 
-    when('[t3] a reviewer (leaf) caller calls ask', () => {
-      then('it is refused as a constraint that names the reviewer', () => {
+    when('[t3] a leaf caller calls ask', () => {
+      then('it is refused as a constraint that names the leaf', () => {
         expect(report.askAsLeaf.error?.name).toEqual('ConstraintError');
         expect(report.askAsLeaf.error?.message).toContain(
           'a leaf clone may not spawn',
@@ -156,7 +156,7 @@ describe('replDoorRealSupplier.realnode.integration', () => {
       });
     });
 
-    when('[t4] a reviewer (leaf) caller calls act', () => {
+    when('[t4] a leaf caller calls act', () => {
       then('it is refused and the supplier never spawns a child', () => {
         expect(report.actAsLeaf.error?.name).toEqual('ConstraintError');
         expect(report.actAsLeaf.error?.message).toEqual(

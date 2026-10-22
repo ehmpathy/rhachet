@@ -6,9 +6,9 @@ import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 import { withCloneSpawnDepthScope } from './withCloneSpawnDepthScope';
 
 /**
- * .what = the env a repl child reads, and the refusal of a reviewer caller
- * .why = this is the second spawn door; a review brain must carry its depth and the leaf
- *   mark, carry no parent serial, and a reviewer caller's review must be refused before
+ * .what = the env a repl child reads, and the refusal of a leaf caller
+ * .why = this is the second spawn door; a repl brain must carry its depth and the leaf
+ *   mark, carry no parent serial, and a leaf caller's repl call must be refused before
  *   any brain runs (#577)
  *
  * .note = the caller's tty is pinned to "none" so the case reads the depth var, as a
@@ -69,12 +69,9 @@ describe('withCloneSpawnDepthScope', () => {
         expect(result.inside.depth).toEqual('1');
       });
 
-      then(
-        'the child carries the leaf mark — a review brain is a reviewer',
-        () => {
-          expect(result.inside.leaf).toEqual('1');
-        },
-      );
+      then('the child carries the leaf mark — a repl brain is a leaf', () => {
+        expect(result.inside.leaf).toEqual('1');
+      });
 
       then('the child carries no parent serial or socket', () => {
         expect(result.inside.serial).toBeUndefined();
@@ -248,7 +245,7 @@ describe('withCloneSpawnDepthScope', () => {
   given('[case4] a caller at depth 0 whose repl call throws', () => {
     // 🔴 a brain call that fails must still close the scope. a scope left open would hold
     //   the leaf mark in the top-level clone's own env, so its next spawn would be refused
-    //   as a reviewer's — the worst failure the bound has
+    //   as a leaf's — the worst failure the bound has
     when('[t0] the call throws, then a second call runs', () => {
       const result = useThen('the throw surfaces', async () => {
         setCaller({ depth: '0' });
@@ -284,8 +281,8 @@ describe('withCloneSpawnDepthScope', () => {
   });
 
   given('[case5] a caller at a tty with an inherited leaf mark', () => {
-    // 🔴 a tty that carries the leaf mark is a pty a reviewer opened with its env kept (a
-    //   pty wrap such as `unbuffer`). a reviewer may not reach a brain through a fresh pty
+    // 🔴 a tty that carries the leaf mark is a pty a leaf opened with its env kept (a
+    //   pty wrap such as `unbuffer`). a leaf may not reach a brain through a fresh pty
     when('[t0] it runs a repl call', () => {
       const result = useThen('it is refused', async () => {
         setCaller({ depth: '1', leaf: '1' });

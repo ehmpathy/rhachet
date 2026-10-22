@@ -12,7 +12,7 @@
  * .note = a session enroll (`--watch`, `--async`, no `-p`) is a WORK clone. it may
  *   enroll one more clone, at any depth
  * .note = the roleset is never the mark: an everyday `claude` carries the ambient roles,
- *   `reviewer` among them, and must stay a work clone
+ *   whatever their names, and must stay a work clone
  */
 export const isCloneSpawnChildLeaf = (
   input: { door: 'repl' } | { door: 'enroll'; isPrintMode: boolean },

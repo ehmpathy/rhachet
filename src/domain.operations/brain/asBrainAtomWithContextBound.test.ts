@@ -8,10 +8,10 @@ import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 import { asBrainAtomWithContextBound } from './asBrainAtomWithContextBound';
 
 /**
- * .what = the atom door passes for a reviewer too: an atom is one api request, with no process
+ * .what = the atom door passes for a leaf too: an atom is one api request, with no process
  *   and no tools, so it is not a spawn and the leaf bound does not apply (F3, ruled by the wisher)
- * .why = the repl door is clamped to refuse a reviewer caller. this clamps the other half: should
- *   the atom door ever be routed through the depth scope, every reviewer's atom call would be
+ * .why = the repl door is clamped to refuse a leaf caller. this clamps the other half: should
+ *   the atom door ever be routed through the depth scope, every leaf's atom call would be
  *   refused, and the vision's case=2 [t2] would break with no other test red
  *
  * .note = the caller's tty is pinned to "none" so the case reads the depth var, as a brain's
@@ -75,7 +75,7 @@ describe('asBrainAtomWithContextBound', () => {
       const result = useThen('the call completes', async () => {
         process.env[CLONE_ENV_KEYS.depth] = '1';
         process.env[CLONE_ENV_KEYS.leaf] = '1';
-        process.env[CLONE_ENV_KEYS.serial] = 'serial-reviewer';
+        process.env[CLONE_ENV_KEYS.serial] = 'serial-leaf';
         const { brain, seen } = genRecorderAtom();
         const reply = await brain.ask(atomInput);
         return { reply, seen };
@@ -86,9 +86,7 @@ describe('asBrainAtomWithContextBound', () => {
       });
 
       then('the supplier ran once, with the caller env as it was', () => {
-        expect(result.seen).toEqual([
-          { depth: '1', serial: 'serial-reviewer' },
-        ]);
+        expect(result.seen).toEqual([{ depth: '1', serial: 'serial-leaf' }]);
       });
     });
   });

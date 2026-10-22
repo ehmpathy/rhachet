@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`rhachet ask / rhachet act — a leaf caller refused, a work caller admitted (acceptance) given: [case1] a reviewer caller — a leaf at depth 1 when: [t0] it runs \`rhachet ask\` then: the refusal is locked to a snapshot 1`] = `
+exports[`rhachet ask / rhachet act — a leaf caller refused, a work caller admitted (acceptance) given: [case1] a leaf caller at depth 1 when: [t0] it runs \`rhachet ask\` then: the refusal is locked to a snapshot 1`] = `
 "
 ✋ ConstraintError: a leaf clone may not spawn
 
@@ -15,7 +15,7 @@ exports[`rhachet ask / rhachet act — a leaf caller refused, a work caller admi
 "
 `;
 
-exports[`rhachet ask / rhachet act — a leaf caller refused, a work caller admitted (acceptance) given: [case1] a reviewer caller — a leaf at depth 1 when: [t1] it runs \`rhachet act\` then: the refusal is locked to a snapshot 1`] = `
+exports[`rhachet ask / rhachet act — a leaf caller refused, a work caller admitted (acceptance) given: [case1] a leaf caller at depth 1 when: [t1] it runs \`rhachet act\` then: the refusal is locked to a snapshot 1`] = `
 "
 ✋ ConstraintError: a leaf clone may not spawn
 

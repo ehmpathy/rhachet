@@ -1,6 +1,6 @@
 // .what = a rhachet user-config with one role and one stub repl brain
 // .why  = the `rhachet ask` / `rhachet act` cli doors reach a repl through `actorAsk` / `actorAct`,
-//         which refuse a reviewer (leaf) caller before the brain runs. this config lets a
+//         which refuse a leaf caller before the brain runs. this config lets a
 //         blackbox test drive those doors with no real brain: a work clone's call reaches the
 //         stub and prints its sentinel; a leaf's call is refused before the stub is reached.
 //

@@ -85,7 +85,7 @@ export const spawnRhachetCliBackground = (input: {
 
   // merge env; an undefined value drops out below, so a test can unset an inherited var.
   // the runner's OWN clone identity is stripped first — a leaf mark inherited from a
-  // reviewer runner would refuse this spawn before it starts, and an inherited depth
+  // leaf runner would refuse this spawn before it starts, and an inherited depth
   // would shift every depth it records, so the same suite would pass on ci and fail in
   // a clone's shell. a test that wants the axis sets it back through `input.env`, which
   // merges after the strip

@@ -13,7 +13,7 @@ import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
  *   child boots with whatever the sdk copies from `process.env`. only the real supplier, the real
  *   sdk and the real service prove that copy falls inside the spawn scope end to end. the sdk is
  *   esm, which jest cannot load, so a real node child drives it
- * .rule = per the ehmpathy/rhachet#577 vision: a repl brain's child is a reviewer, a leaf
+ * .rule = per the ehmpathy/rhachet#577 vision: a repl brain's child is a leaf
  * .note = no mock: the probe (`probe.replDoorRealSupplierLive.cjs`) wraps `child_process.spawn`
  *   to record the env the live child booted with, then calls the real spawn. the spawn counts
  *   and the leaf refusal, which need the spawn stopped, are

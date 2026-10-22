@@ -59,9 +59,9 @@ describe('genBrainCliPlainClone.integration', () => {
     });
   });
 
-  given('[case2] a plain spawn of a work clone vs a reviewer leaf', () => {
-    // 🔴 the leaf mark must REACH the child — a reviewer whose env lacked it could spawn
-    //   its own reviewers, and a work clone whose env held it could run no review (#577)
+  given('[case2] a plain spawn of a work clone vs a leaf', () => {
+    // 🔴 the leaf mark must REACH the child — a leaf whose env lacked it could spawn
+    //   clones of its own, and a work clone whose env held it could spawn none (#577)
     const spawnAndReadPlace = async (input: {
       depth: number;
       leaf: boolean;
@@ -99,7 +99,7 @@ describe('genBrainCliPlainClone.integration', () => {
         expect(scene.work).toEqual({ depth: '2', leaf: null });
       });
 
-      then('a reviewer reads its depth and the leaf mark', () => {
+      then('a leaf reads its depth and the leaf mark', () => {
         expect(scene.leaf).toEqual({ depth: '1', leaf: '1' });
       });
     });

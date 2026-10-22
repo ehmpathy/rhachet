@@ -102,7 +102,7 @@ export const genBrainCliPtyClone = async (
     socketPath: string;
     /** how deep in the spawn chain this clone sits (`asCloneSpawnDepth`) */
     depth: number;
-    /** whether this clone is a reviewer that may spawn no one (`isCloneSpawnChildLeaf`) */
+    /** whether this clone is a leaf, which may spawn no one (`isCloneSpawnChildLeaf`) */
     leaf: boolean;
     brainDir: string;
   },

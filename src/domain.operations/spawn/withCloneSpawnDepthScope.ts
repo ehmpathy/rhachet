@@ -81,7 +81,7 @@ const setEnvKeyRestored = (input: {
  * .what = open the process-wide scope: record the env, then set the child's depth and
  *   leaf mark, and drop the caller's clone identity
  * .why = a repl child is no clone, so it carries its own depth and no serial or socket.
- *   it is a reviewer, so it carries the leaf mark: it may spawn no one (#577)
+ *   a repl child is a leaf, so it carries the leaf mark: it may spawn no one (#577)
  *
  * .note = deliberate mutation: the supplier's child reads `process.env` at spawn
  */
@@ -110,8 +110,8 @@ const setEnvScopeClosed = (): void => {
  * .what = run a repl call with the child's spawn depth and leaf mark set in
  *   `process.env`, after a refusal check on the caller's own leaf mark
  * .why =
- *   - the repl door is the second spawn door: a review skill's brain is a spawn, so it
- *     carries its depth, and it is a reviewer, so it is a leaf (#577). a caller that is
+ *   - the repl door is the second spawn door: a repl brain is a spawn, so it carries
+ *     its depth, and it is a leaf, so it may spawn no one (#577). a caller that is
  *     itself a leaf is refused, the same as at `rhx enroll`
  *   - 🔴 the caller is read ONCE, when the scope opens, and held. a call that starts
  *     while a peer's scope is open reuses the held child depth and skips the refusal,
