@@ -13,5 +13,6 @@ export const genSampleBootSpecCost = (
   tokens: 100,
   budget: null,
   isForeign: false,
+  subjects: [],
   ...input,
 });

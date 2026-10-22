@@ -43,6 +43,7 @@ describe('asBootRemedyMode', () => {
       always: {
         briefs: { say: ['briefs/**/*.md'], ref: [], not: [] },
         skills: null,
+        inherit: { always: true },
       },
       subjects: {},
       budget: { tokens: 5000 },
@@ -68,6 +69,7 @@ describe('asBootRemedyMode', () => {
         'subject.review': {
           briefs: { say: ['briefs/review/**/*.md'], ref: [], not: [] },
           skills: null,
+          inherit: { always: true },
         },
       },
       budget: { tokens: 5000 },

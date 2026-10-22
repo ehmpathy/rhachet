@@ -17,6 +17,8 @@ import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/get
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
+import { assertRoleFociDeclared } from '@src/domain.operations/boot/assertRoleFociDeclared';
+import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
 import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
@@ -40,6 +42,7 @@ import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asClone
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
 import { asEnrollBareRoleDeltas } from '@src/domain.operations/enroll/asEnrollBareRoleDeltas';
+import { asEnrollRoleFocusChanges } from '@src/domain.operations/enroll/asEnrollRoleFocusChanges';
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { assertCloneSettingsLayersHoldOnlyEnrolledRoles } from '@src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles';
@@ -57,6 +60,9 @@ import { setRepoBrainDirSymlink } from '@src/domain.operations/init/boots/setRep
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
+import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
+import { asRoleFocusReceiptLines } from '@src/domain.operations/roles/focus/asRoleFocusReceiptLines';
 import { asCloneSpawnDepth } from '@src/domain.operations/spawn/asCloneSpawnDepth';
 import { assertCloneSpawnAllowed } from '@src/domain.operations/spawn/assertCloneSpawnAllowed';
 import { isCloneSpawnCallerLeaf } from '@src/domain.operations/spawn/isCloneSpawnCallerLeaf';
@@ -300,11 +306,16 @@ const performEnroll = async (input: {
       hint: 'run `rhachet roles link` first to link roles',
     });
 
-  // the repo's ambient roles — the linked roles a bare enroll inherits. a memoized
-  //   prefetch of repo facts each downstream operation would otherwise look up itself,
-  //   so it is threaded through as context, never passed as an input
+  // the repo's ambient roles — the linked roles a bare enroll inherits, each at the focus
+  //   `rhx init` recorded for it. a memoized prefetch of repo facts each downstream
+  //   operation would otherwise look up itself, so it is threaded through as context,
+  //   never passed as an input
+  const rolesAmbient = asRoleSlugsAmbientAtFocus({
+    rolesLinked,
+    foci: getRepoAmbientRoleFoci({ repoPath }),
+  });
   const context: ContextOfRepoRoles = {
-    repo: { ambient: { roles: rolesLinked } },
+    repo: { ambient: { roles: rolesAmbient } },
   };
 
   // a bare delta in the brain's slot (`rhx enroll -driver`) is a role, not a brain
@@ -342,9 +353,19 @@ const performEnroll = async (input: {
   const enrollment = computeBrainCliEnrollment({
     brain,
     spec,
-    rolesAmbient: rolesLinked,
+    rolesAmbient,
     rolesLinked,
   });
+
+  // the enrolled refs, each at its focus; a focus the role does not declare halts here,
+  //   before any dir or manifest is written
+  // .note = every role was checked as linked above, so the actor label is never shown
+  const refsEnrolled = asRoleRefsForEnrolledSlugs({
+    actorExid: '(this enroll)',
+    slugs: enrollment.roles,
+    refsLinked,
+  });
+  assertRoleFociDeclared({ refs: refsEnrolled, repoPath });
 
   // a delta enrollment is keyed by its delta, so it stays one actor while the ambient
   //   set moves under it (`inventory.of=requirements.case=2`)
@@ -521,11 +542,7 @@ const performEnroll = async (input: {
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
   await setBrainDirBoot({
     brainDir,
-    roles: asRoleRefsForEnrolledSlugs({
-      actorExid: exid,
-      slugs: enrollment.roles,
-      refsLinked,
-    }),
+    roles: refsEnrolled,
     repoPath,
     scope: { kind: 'actor', actorExid: exid },
   });
@@ -559,6 +576,24 @@ const performEnroll = async (input: {
     brainAuthPath,
   });
   if (migratedLine) console.error(migratedLine);
+
+  // name each focus a delta narrowed, moved, or widened, and each `always` a focus shed (F6)
+  //   .note = stderr, as every enroll receipt is: stdout belongs to the brain-cli
+  //   .note = a detached host prints it too: it lands before the spawn, so before the
+  //     handoff, while the caller still forwards the host's stderr. an `--async` or
+  //     unattended enroll — a seat stood up by a command — must see its focus as well
+  if (mode === 'tree')
+    asRoleFocusReceiptLines({
+      changes: asEnrollRoleFocusChanges({
+        spec,
+        rolesAmbient,
+        rolesAfter: enrollment.roles,
+      }),
+      alwaysShed: getAllRolesAtFocusAlwaysShed({
+        refs: refsEnrolled,
+        repoPath,
+      }),
+    }).forEach((line) => console.error(line));
 
   // refuse a clone that would boot into a dead shared login, before any spawn (case 2)
   //   .note = this sits on the path a detached host re-enters, so an `--async` caller
@@ -767,7 +802,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(
       '-r, --roles <spec>',
-      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer"). a bare delta is an alias (rhx enroll claude -driver ≡ --roles -driver)',
+      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer"). a bare delta is an alias (rhx enroll claude -driver ≡ --roles -driver). role::<subject> boots one subject of the role, with all its hooks (mechanic::flow, +mechanic::flow)',
     )
     .option('--as <address>', 'name the clone with a stable handle (@:<slug>)')
     .option('--no-socket', 'enroll without a managed reach socket')

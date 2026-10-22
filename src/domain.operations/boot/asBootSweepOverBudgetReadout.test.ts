@@ -14,6 +14,7 @@ describe('asBootSweepOverBudgetReadout', () => {
             tokens: 29264,
             budget: 5000,
             isForeign: false,
+            subjects: [],
           },
         ],
       }).join('\n');
@@ -58,12 +59,14 @@ describe('asBootSweepOverBudgetReadout', () => {
             tokens: 300,
             budget: 20,
             isForeign: false,
+            subjects: [],
           },
           {
             pathToSpec: '/repo/.agent/repo=.this/role=user/boot.yml',
             tokens: 500,
             budget: 40,
             isForeign: false,
+            subjects: [],
           },
         ],
       }).join('\n');

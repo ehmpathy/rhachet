@@ -1,6 +1,6 @@
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
+import { asRolesUpsertedByDelta } from '@src/domain.operations/roles/deltas/asRolesUpsertedByDelta';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
-import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 /**
  * .what = apply a role delta to an extant `prepare:rhachet` command
@@ -54,20 +54,12 @@ export const asPrepareRhachetRolesDelta = (input: {
   ];
   const rolesExtant = getRoleDeltaTokens({ raw: runValues });
 
-  // drop each removed role, then append each addition not already present
-  const rolesKept = rolesExtant.filter(
-    (role) =>
-      !input.removals.some((removal) =>
-        isRoleSpecifierMatch({ left: role, right: removal }),
-      ),
-  );
-  const rolesAdded = input.additions.filter(
-    (addition) =>
-      !rolesKept.some((role) =>
-        isRoleSpecifierMatch({ left: role, right: addition }),
-      ),
-  );
-  const rolesNext = [...rolesKept, ...rolesAdded];
+  // upsert the run by the delta: one entry per role (fulcrum F6)
+  const rolesNext = asRolesUpsertedByDelta({
+    rolesHeld: rolesExtant,
+    additions: input.additions,
+    removals: input.removals,
+  });
 
   // no role moved → the command as the human wrote it
   const isUnchanged =

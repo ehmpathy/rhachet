@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleFocusReceiptLines given: [case2] a given, a narrow, a move, a widen, and a shed when: [t0] the receipt renders then: the receipt matches its snapshot 1`] = `
+"🧢 focus
+   ├─ reviewer focused at ::flow
+   ├─ mechanic narrowed to ::101
+   ├─ driver moved from ::flow to ::code.prod
+   ├─ architect widened to the whole role
+   └─ mechanic sheds its always block, as its focus declares"
+`;
+
+exports[`asRoleFocusReceiptLines given: [case3] a held focus re-typed as is (E2) when: [t0] the receipt renders then: the receipt matches its snapshot 1`] = `
+"🧢 focus
+   └─ mechanic unchanged at ::flow"
+`;

@@ -9,6 +9,8 @@ import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAll
 import { isRolesetEqual } from '@src/domain.operations/actor/enrolled/isRolesetEqual';
 import { setActorOndiskManifestWithinLock } from '@src/domain.operations/actor/enrolled/setActorOndiskManifest';
 import type { BrainDirBootFailure } from '@src/domain.operations/boot/BrainDirBootRender';
+import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
+import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
@@ -72,9 +74,16 @@ const getOneDeltaActorOutcome = async (input: {
 }): Promise<DeltaActorOutcome> => {
   const { actor } = input;
   try {
+    // the ambient set at its recorded focus — the same set a bare enroll inherits
+    const rolesAmbient = asRoleSlugsAmbientAtFocus({
+      rolesLinked: input.rolesLinked,
+      foci: getRepoAmbientRoleFoci({ repoPath: actor.repoPath }),
+    });
+
     // only a delta actor re-derives; any other holds the roles it named
     const rederive = getActorRolesRederivedOrNull({
       actor,
+      rolesAmbient,
       rolesLinked: input.rolesLinked,
     });
     if (rederive === null) return null;
@@ -127,6 +136,7 @@ const getOneDeltaActorOutcome = async (input: {
  */
 const getActorRolesRederivedOrNull = (input: {
   actor: ActorOndisk;
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): { rolesBefore: RoleSlug[]; rolesNext: RoleSlug[] } | null => {
   const manifest = getActorOndiskManifest({
@@ -137,7 +147,7 @@ const getActorRolesRederivedOrNull = (input: {
   const rolesNext = asActorRolesRederived({
     brain: input.actor.brain,
     rolesDelta: manifest.rolesDelta,
-    rolesAmbient: input.rolesLinked,
+    rolesAmbient: input.rolesAmbient,
     rolesLinked: input.rolesLinked,
   });
   const rolesBefore = manifest.roles as RoleSlug[];

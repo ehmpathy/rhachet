@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertRoleFocusDeclared given: [case1] a role that declares subjects when: [t2] the focus names an undeclared subject (wish 5) then: it fails loud and names the role, the focus, and the declared subjects 1`] = `
+"✋ ConstraintError: role 'mechanic' declares no subject '101'
+
+{
+  "role": "mechanic",
+  "focus": [
+    "101"
+  ],
+  "declared": [
+    "code.prod",
+    "flow"
+  ],
+  "hint": "focus one of: mechanic::code.prod, mechanic::flow"
+}"
+`;
+
+exports[`assertRoleFocusDeclared given: [case2] a role that declares no subjects when: [t0] the spec is simple mode then: a focus refuses as unfocusable 1`] = `
+"✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused
+
+{
+  "role": "driver",
+  "focus": [
+    "flow"
+  ],
+  "mode": "simple",
+  "hint": "enroll 'driver' whole, with no ::<subject>"
+}"
+`;
+
+exports[`assertRoleFocusDeclared given: [case2] a role that declares no subjects when: [t1] the role has no boot spec at all then: a focus refuses as unfocusable 1`] = `
+"✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused
+
+{
+  "role": "driver",
+  "focus": [
+    "flow"
+  ],
+  "mode": "none",
+  "hint": "enroll 'driver' whole, with no ::<subject>"
+}"
+`;

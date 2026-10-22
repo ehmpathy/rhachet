@@ -185,4 +185,122 @@ describe('getRoleDeltas', () => {
       });
     });
   });
+
+  given('[case8] a role at a subject focus', () => {
+    when('[t0] an exact set names a focus', () => {
+      then('the focus rides in the role token', () => {
+        expect(
+          getRoleDeltas({ tokens: ['any', 'director', 'mechanic::flow'] }),
+        ).toEqual([
+          new RoleDelta({ kind: 'absolute', role: 'any' }),
+          new RoleDelta({ kind: 'absolute', role: 'director' }),
+          new RoleDelta({ kind: 'absolute', role: 'mechanic::flow' }),
+        ]);
+      });
+    });
+
+    when('[t1] an exact set names two foci of one role (S2)', () => {
+      then('both pass, for the union downstream', () => {
+        expect(
+          getRoleDeltas({ tokens: ['mechanic::code.prod', 'mechanic::flow'] }),
+        ).toHaveLength(2);
+      });
+    });
+
+    when('[t2] an addition names a focus', () => {
+      then('it is an addition of the focused token', () => {
+        expect(getRoleDeltas({ tokens: ['+mechanic::flow'] })).toEqual([
+          new RoleDelta({ kind: 'addition', role: 'mechanic::flow' }),
+        ]);
+      });
+    });
+
+    when('[t3] a subtraction names a focus (P12)', () => {
+      then('it refuses and names the whole-role removal', async () => {
+        const error = await getError(() =>
+          getRoleDeltas({ tokens: ['-mechanic::flow'] }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('a subtraction removes a role whole');
+        expect(error.message).toContain('-mechanic removes the role whole');
+        expect(error.message).toMatchSnapshot();
+      });
+    });
+
+    when('[t4] an exact set names a role whole and focused (S1)', () => {
+      then('it refuses and names both choices', async () => {
+        const error = await getError(() =>
+          getRoleDeltas({ tokens: ['mechanic', 'mechanic::flow'] }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain(
+          "role 'mechanic' is named both whole and focused",
+        );
+        expect(error.message).toMatchSnapshot();
+      });
+
+      then(
+        'a repo-qualified whole role beside a bare focus refuses too (Q1)',
+        async () => {
+          const error = await getError(() =>
+            getRoleDeltas({ tokens: ['ehmpathy/mechanic', 'mechanic::flow'] }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            "role 'mechanic' is named both whole and focused",
+          );
+        },
+      );
+    });
+
+    when('[t4b] a delta adds a role whole and focused (F2)', () => {
+      then(
+        'it refuses as the exact set does, with the delta form',
+        async () => {
+          const error = await getError(() =>
+            getRoleDeltas({ tokens: ['+mechanic', '+mechanic::flow'] }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            "role 'mechanic' is named both whole and focused",
+          );
+          expect(error.message).toContain("'+mechanic::flow'");
+          expect(error.message).toMatchSnapshot();
+        },
+      );
+
+      then('two foci of one role still union, as in an exact set (S2)', () => {
+        expect(
+          getRoleDeltas({ tokens: ['+mechanic::flow', '+mechanic::lean'] }),
+        ).toEqual([
+          new RoleDelta({ kind: 'addition', role: 'mechanic::flow' }),
+          new RoleDelta({ kind: 'addition', role: 'mechanic::lean' }),
+        ]);
+      });
+    });
+
+    when('[t5] a focused addition and a subtraction of its role', () => {
+      then('it refuses as a contradiction', async () => {
+        const error = await getError(() =>
+          getRoleDeltas({ tokens: ['+mechanic::flow', '-mechanic'] }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain(
+          'cannot both add and remove role "mechanic"',
+        );
+        expect(error.message).toMatchSnapshot();
+      });
+    });
+
+    when('[t6] a malformed focus', () => {
+      then('it refuses and names the shape', async () => {
+        const error = await getError(() =>
+          getRoleDeltas({ tokens: ['+mechanic::'] }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('must read <role>::<subject>');
+        expect(error.message).toMatchSnapshot();
+      });
+    });
+  });
 });

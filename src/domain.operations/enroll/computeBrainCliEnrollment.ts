@@ -5,6 +5,9 @@ import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollme
 import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { asRolesUpsertedByDelta } from '@src/domain.operations/roles/deltas/asRolesUpsertedByDelta';
+import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 
 /**
  * .what = computes final enrollment from spec and available roles
@@ -13,6 +16,8 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
  * .note = absolute mode: deltas become final roles (defaults ignored)
  * .note = incremental mode: deltas patch defaults (+addition appends, -subtraction subtracts)
  * .note = validates all roles against rolesLinked, suggests on typo
+ * .note = a focus (`mechanic::flow`) is validated by its role; an addition upserts its role's
+ *         one entry, so a focus narrows, moves, or widens a held entry rather than sit beside it
  */
 export const computeBrainCliEnrollment = (input: {
   brain: BrainSlug;
@@ -71,24 +76,26 @@ const computeRolesForIncrementalMode = (input: {
   rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): RoleSlug[] => {
-  // start with defaults
-  const roles = new Set(input.rolesAmbient);
-
-  for (const delta of input.deltas) {
-    // validate role exists
+  // validate every role exists, before any patch
+  for (const delta of input.deltas)
     validateRoleExists({ role: delta.role, rolesLinked: input.rolesLinked });
 
-    if (delta.kind === 'addition') {
-      // +present role → no-op (idempotent)
-      roles.add(delta.role);
-    } else {
-      // -absent role → no-op (idempotent)
-      roles.delete(delta.role);
-    }
-  }
-
-  return [...roles];
+  // upsert the ambient set by the delta: one entry per role (fulcrum F6), the same rule
+  //   `prepare:rhachet` persists
+  return asRolesUpsertedByDelta({
+    rolesHeld: input.rolesAmbient,
+    additions: getRoleDeltasOfKind({ deltas: input.deltas, kind: 'addition' }),
+    removals: getRoleDeltasOfKind({
+      deltas: input.deltas,
+      kind: 'subtraction',
+    }),
+  });
 };
+
+/**
+ * .what = the role a token names, less its focus
+ */
+const asRoleOf = (token: string): string => asRoleFocusParts({ token }).role;
 
 /**
  * .what = validates role exists in linked roles
@@ -98,7 +105,9 @@ const validateRoleExists = (input: {
   role: RoleSlug;
   rolesLinked: RoleSlug[];
 }): void => {
-  if (input.rolesLinked.includes(input.role)) return;
+  // a focus is checked against its role; the subject is checked at the render
+  const role = asRoleOf(input.role);
+  if (input.rolesLinked.includes(role)) return;
 
   // find closest match for suggestion
   const suggestion = findClosestRole({

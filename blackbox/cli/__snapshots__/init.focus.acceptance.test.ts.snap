@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case1] an empty repo, and a focus mechanic does not declare when: [t0] \`init --roles mechanic::nope\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' declares no subject 'nope'
+
+{
+  "hint": "focus one of: mechanic::code.prod, mechanic::code.test, mechanic::arch, mechanic::flow",
+  "role": "mechanic",
+  "focus": [
+    "nope"
+  ],
+  "declared": [
+    "code.prod",
+    "code.test",
+    "arch",
+    "flow"
+  ]
+}
+
+[args] init,--roles,mechanic::nope
+
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case2] an empty repo, and a focus mechanic declares when: [t0] \`init --roles mechanic::flow --hooks claude-code\` then: the focus receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic focused at ::flow"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case3] a repo whose ambient foci record is not json when: [t0] \`init --roles +mechanic::flow\` then: the refusal matches its snapshot 1`] = `
+"
+💥 MalfunctionError: ambient role foci record is not json
+
+{
+  "hint": "repair /TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json to the shape {\\"<role>\\":[\\"<subject>\\"]}, or remove it to boot every ambient role whole; then rerun \`rhx init --roles <roles>\`",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
+  "cause": {
+    "class": "SyntaxError",
+    "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+  }
+}
+
+[args] init,--roles,+mechanic::flow
+
+"
+`;

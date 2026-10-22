@@ -176,6 +176,52 @@ describe('asPrepareRhachetRolesDelta', () => {
       expect:
         'npm run build && rhachet init --hooks --roles mechanic && echo done',
     },
+    {
+      description:
+        'a focused addition atop a held whole role narrows it in place (S3, [t4.b])',
+      given: {
+        command: 'rhachet init --roles any driver mechanic --hooks',
+        additions: ['mechanic::flow'],
+        removals: [],
+      },
+      expect: 'rhachet init --roles any driver mechanic::flow --hooks',
+    },
+    {
+      description: 'a focused addition atop a held focus moves it (E3)',
+      given: {
+        command: 'rhachet init --roles any,mechanic::flow,driver',
+        additions: ['mechanic::code.prod'],
+        removals: [],
+      },
+      expect: 'rhachet init --roles any,mechanic::code.prod,driver',
+    },
+    {
+      description: 'a removal drops a held focus of its role (P11)',
+      given: {
+        command: 'rhachet init --roles any mechanic::flow',
+        additions: [],
+        removals: ['mechanic'],
+      },
+      expect: 'rhachet init --roles any',
+    },
+    {
+      description: 'a focused addition of an absent role appends verbatim',
+      given: {
+        command: 'rhachet init --roles any driver',
+        additions: ['mechanic::flow'],
+        removals: [],
+      },
+      expect: 'rhachet init --roles any driver mechanic::flow',
+    },
+    {
+      description: 'a re-add of a held focus changes naught (E2)',
+      given: {
+        command: 'rhachet init --roles any mechanic::flow',
+        additions: ['mechanic::flow'],
+        removals: [],
+      },
+      expect: 'rhachet init --roles any mechanic::flow',
+    },
   ];
 
   cases.forEach((thisCase, index) =>

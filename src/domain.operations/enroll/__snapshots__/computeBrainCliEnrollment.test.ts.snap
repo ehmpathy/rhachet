@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeBrainCliEnrollment given: [case-focus] a role at a subject focus when: [t6] a focus on a role that is not linked (L2) then: it meets the unlinked refusal, named by its role 1`] = `
+"✋ ConstraintError: role 'reviewer::flow' not found
+
+{
+  "role": "reviewer::flow",
+  "rolesLinked": [
+    "mechanic",
+    "driver",
+    "ergonomist",
+    "architect"
+  ],
+  "suggestion": null,
+  "hint": "linked roles: mechanic, driver, ergonomist, architect"
+}"
+`;

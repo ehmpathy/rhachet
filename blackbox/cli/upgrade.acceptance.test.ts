@@ -282,6 +282,37 @@ describe('rhachet upgrade', () => {
     });
   });
 
+  given('[case2c] upgrade --roles mechanic::flow (a focus is no package)', () => {
+    const repo = useBeforeAll(async () =>
+      await genTestTempRepo({ fixture: 'without-roles-packages' }),
+    );
+
+    when('[t0] rhachet upgrade --roles mechanic::flow', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'mechanic::flow'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2 — the caller must name the package, not the focus', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('the refusal names the focus and the package form', () => {
+        expect(result.stderr).toContain('mechanic::flow');
+        expect(result.stderr).not.toContain('a requested package does not exist');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(
+          maskNodeVersion(stripAnsiCodes(asSnapshotSafe(result.stderr))),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
   // the unreadable-probe notice, as a human sees it through the compiled binary.
   //   three stubs prepended to PATH decide every ambient read this path makes, so the
   //   case reaches no network and writes no global store (`rule.require.hermetic-tests`)

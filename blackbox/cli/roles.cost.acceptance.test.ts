@@ -595,6 +595,11 @@ describe('rhachet roles cost', () => {
         expect(result.stdout).toContain('(no budget)');
       });
 
+      then('no spec here declares a subject, so no focus row renders', () => {
+        // an unfocused roster must print as it did before subjects were priced (wish bound)
+        expect(result.stdout).not.toContain('::');
+      });
+
       then('the mixed roster renders as snapshotted — on STDOUT', () => {
         // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
@@ -1061,6 +1066,44 @@ describe('rhachet roles cost', () => {
         // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
         expect(asSnapshotSafe(resultBoth.stdout)).toMatchSnapshot(
           'stdout-subject-two',
+        );
+      });
+    });
+
+    /**
+     * .what = the sweep prices each declared subject as its own row, beneath the spec (wish 4)
+     * .why = a seat enrolled at `any::review` spends the review focus, never the whole role, so
+     *        the roster a human reads to size that seat must name the focus and its cap
+     */
+    when('[t2] roles cost --all', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'cost', '--all'],
+          cwd: repo.path,
+        }),
+      );
+      // a focus row ends its cost with two spaces and the focus label
+      const asFocusRow = (focus: string): string | undefined =>
+        result.stdout.split('\n').find((line) => line.includes(`  ${focus}`));
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('each declared subject renders as a focus row', () => {
+        expect(asFocusRow('::review')).toBeDefined();
+        expect(asFocusRow('::fulcrums')).toBeDefined();
+      });
+
+      then('a focus under the cap carries no marker, one over it does', () => {
+        expect(asFocusRow('::review')).not.toContain('🟡');
+        expect(asFocusRow('::fulcrums')).toContain('🟡');
+      });
+
+      then('the focus roster renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-all-subject',
         );
       });
     });

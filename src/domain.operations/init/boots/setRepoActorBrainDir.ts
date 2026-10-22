@@ -5,6 +5,8 @@ import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBoo
 import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
+import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
+import { asRoleRefsAtFocus } from '@src/domain.operations/roles/focus/asRoleRefsAtFocus';
 import { asTextWithLinesConverged } from '@src/infra/asTextWithLinesConverged';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
@@ -85,10 +87,12 @@ export const setRepoActorBrainDir = async (input: {
   });
   mkdirSync(repoActorBrainDir, { recursive: true });
 
-  // render the corpus; a throw here stops the sync before the link
+  // render the corpus, each ambient role at its recorded focus; a throw here stops the
+  //   sync before the link
+  const foci = getRepoAmbientRoleFoci({ repoPath: input.repoPath });
   const render = await setBrainDirBoot({
     brainDir: repoActorBrainDir,
-    roles: input.refsLinked,
+    roles: asRoleRefsAtFocus({ refs: input.refsLinked, foci }),
     repoPath: input.repoPath,
     scope: { kind: 'repo' },
   });

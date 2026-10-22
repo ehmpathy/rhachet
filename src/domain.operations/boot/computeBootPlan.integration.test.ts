@@ -340,6 +340,7 @@ describe('computeBootPlan', () => {
           always: {
             briefs: { say: ['briefs/core.md'], ref: [], not: [] },
             skills: null,
+            inherit: { always: true },
           },
           subjects: {},
         });
@@ -368,6 +369,7 @@ describe('computeBootPlan', () => {
           always: {
             briefs: { say: null, ref: ['briefs/glossary.md'], not: [] },
             skills: null,
+            inherit: { always: true },
           },
           subjects: {},
         });
@@ -397,6 +399,7 @@ describe('computeBootPlan', () => {
             test: {
               briefs: { say: ['briefs/practices/**/*.md'], ref: [], not: [] },
               skills: null,
+              inherit: { always: true },
             },
           },
         });
@@ -427,10 +430,12 @@ describe('computeBootPlan', () => {
             test: {
               briefs: { say: ['briefs/practices/**/*.md'], ref: [], not: [] },
               skills: null,
+              inherit: { always: true },
             },
             prod: {
               briefs: { say: ['briefs/core.md'], ref: [], not: [] },
               skills: null,
+              inherit: { always: true },
             },
           },
         });
@@ -462,6 +467,7 @@ describe('computeBootPlan', () => {
           always: {
             briefs: { say: ['briefs/core.md'], ref: [], not: [] },
             skills: null,
+            inherit: { always: true },
           },
           subjects: {
             test: {
@@ -471,6 +477,7 @@ describe('computeBootPlan', () => {
                 not: [],
               },
               skills: null,
+              inherit: { always: true },
             },
           },
         });
@@ -504,6 +511,7 @@ describe('computeBootPlan', () => {
             test: {
               briefs: { say: ['briefs/core.md'], ref: [], not: [] },
               skills: null,
+              inherit: { always: true },
             },
             prod: {
               briefs: {
@@ -512,6 +520,7 @@ describe('computeBootPlan', () => {
                 not: [],
               },
               skills: null,
+              inherit: { always: true },
             },
           },
         });
@@ -541,11 +550,13 @@ describe('computeBootPlan', () => {
           always: {
             briefs: { say: null, ref: ['briefs/core.md'], not: [] },
             skills: null,
+            inherit: { always: true },
           },
           subjects: {
             test: {
               briefs: { say: ['briefs/core.md'], ref: [], not: [] },
               skills: null,
+              inherit: { always: true },
             },
           },
         });
@@ -575,6 +586,7 @@ describe('computeBootPlan', () => {
           test: {
             briefs: { say: ['briefs/core.md'], ref: [], not: [] },
             skills: null,
+            inherit: { always: true },
           },
         },
       });
@@ -704,6 +716,7 @@ describe('computeBootPlan', () => {
                     not: ['briefs/glossary.md'],
                   },
                   skills: null,
+                  inherit: { always: true },
                 },
               },
             });
@@ -726,5 +739,76 @@ describe('computeBootPlan', () => {
         );
       },
     );
+  });
+
+  given('[case17] subject mode: a subject that sheds always', () => {
+    const config = new RoleBootSpecSubjected({
+      mode: 'subject',
+      budget: null,
+      always: {
+        briefs: { say: ['briefs/core.md'], ref: [], not: [] },
+        skills: null,
+        inherit: { always: true },
+      },
+      subjects: {
+        lean: {
+          briefs: { say: ['briefs/glossary.md'], ref: [], not: [] },
+          skills: null,
+          inherit: { always: false },
+        },
+        test: {
+          briefs: { say: ['briefs/practices/**/*.md'], ref: [], not: [] },
+          skills: null,
+          inherit: { always: true },
+        },
+      },
+    });
+
+    when('[t0] the lean subject alone is booted', () => {
+      then('always is shed: only the subject is said', async () => {
+        const result = await computeBootPlan({
+          config,
+          briefRefs: getBriefRefs(),
+          skillPaths: getSkillPaths(),
+          cwd: tempDir,
+          subjects: ['lean'],
+        });
+        const pathsSaid = result.briefs.say.map((r) => r.pathToOriginal);
+        expect(pathsSaid).toHaveLength(1);
+        expect(pathsSaid.join()).toContain('glossary.md');
+        expect(pathsSaid.join()).not.toContain('core.md');
+      });
+    });
+
+    when('[t1] the lean subject is booted beside one that inherits', () => {
+      then(
+        'always is kept, since one selected subject relies on it',
+        async () => {
+          const result = await computeBootPlan({
+            config,
+            briefRefs: getBriefRefs(),
+            skillPaths: getSkillPaths(),
+            cwd: tempDir,
+            subjects: ['lean', 'test'],
+          });
+          const pathsSaid = result.briefs.say.map((r) => r.pathToOriginal);
+          expect(pathsSaid.join()).toContain('core.md');
+          expect(pathsSaid.join()).toContain('glossary.md');
+        },
+      );
+    });
+
+    when('[t2] every subject is booted', () => {
+      then('always is kept', async () => {
+        const result = await computeBootPlan({
+          config,
+          briefRefs: getBriefRefs(),
+          skillPaths: getSkillPaths(),
+          cwd: tempDir,
+        });
+        const pathsSaid = result.briefs.say.map((r) => r.pathToOriginal);
+        expect(pathsSaid.join()).toContain('core.md');
+      });
+    });
   });
 });

@@ -19,6 +19,22 @@ exports[`rhachet upgrade given: [case2b] upgrade --roles -ghostrole (lead-dash s
 "
 `;
 
+exports[`rhachet upgrade given: [case2c] upgrade --roles mechanic::flow (a focus is no package) when: [t0] rhachet upgrade --roles mechanic::flow then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: upgrade --roles names packages, and a package has no focus: 'mechanic::flow'
+
+{
+  "hint": "run: rhx upgrade --roles mechanic — every actor focused on it re-renders at its own focus",
+  "roleSpecs": [
+    "mechanic::flow"
+  ]
+}
+
+[args] upgrade,--roles,mechanic::flow
+
+"
+`;
+
 exports[`rhachet upgrade given: [case3] upgrade --help when: [t0] rhachet upgrade --help then: stdout matches snapshot 1`] = `
 "Usage: rhachet upgrade [options]
 

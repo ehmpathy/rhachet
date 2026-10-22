@@ -1,4 +1,5 @@
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 
 import { asRoleSlugOfHookAuthor } from './asRoleSlugOfHookAuthor';
 
@@ -15,7 +16,10 @@ export const getAllHooksOfUnenrolledRoles = (input: {
   settings: ClaudeCodeSettings;
   roles: string[];
 }): { event: string; author: string }[] => {
-  const rolesEnrolled = new Set(input.roles);
+  // a focus is stripped: hooks follow the role, so `mechanic::flow` enrolls mechanic's hooks
+  const rolesEnrolled = new Set(
+    input.roles.map((token) => asRoleFocusParts({ token }).role),
+  );
   return Object.entries(input.settings.hooks ?? {}).flatMap(
     ([event, entries]) =>
       (entries ?? []).flatMap((entry) =>

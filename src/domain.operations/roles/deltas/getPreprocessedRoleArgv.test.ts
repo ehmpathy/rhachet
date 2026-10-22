@@ -255,6 +255,19 @@ describe('getPreprocessedRoleArgv', () => {
         });
       });
 
+      when('[t3] `enroll claude -mechanic::flow` is preprocessed', () => {
+        then('the focused bare delta encodes whole, focus and all', () => {
+          const out = getPreprocessedRoleArgv({
+            args: ['enroll', 'claude', '-mechanic::flow'],
+          });
+          expect(out).toEqual([
+            'enroll',
+            'claude',
+            `${INCREMENTAL_REMOVE_SENTINEL}mechanic::flow`,
+          ]);
+        });
+      });
+
       when('[t2] `init -reviewer` is preprocessed', () => {
         then('init reads no bare delta, so the token is left intact', () => {
           const out = getPreprocessedRoleArgv({ args: ['init', '-reviewer'] });

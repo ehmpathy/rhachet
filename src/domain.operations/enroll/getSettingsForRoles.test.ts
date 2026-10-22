@@ -101,4 +101,40 @@ describe('getSettingsForRoles', () => {
       });
     });
   });
+
+  given(
+    '[case3] the actor is enrolled in a role at a subject focus (H1)',
+    () => {
+      const settings: ClaudeCodeSettings = {
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: 'Bash',
+              hooks: [
+                genHook({
+                  author: 'repo=ehmpathy/role=mechanic',
+                  command: 'check-permissions',
+                }),
+                genHook({
+                  author: 'repo=ehmpathy/role=mechanic',
+                  command: 'forbid-gerunds',
+                }),
+              ],
+            },
+          ],
+        },
+      };
+
+      when('[t0] enrolled as mechanic::flow', () => {
+        const narrowed = getSettingsForRoles({
+          settings,
+          roles: ['any', 'mechanic::flow'],
+        });
+
+        then('🔴 every hook of the role lands — hooks follow the role', () => {
+          expect(narrowed).toEqual(settings);
+        });
+      });
+    },
+  );
 });

@@ -456,6 +456,24 @@ exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subje
 "
 `;
 
+exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subjects when: [t2] roles cost --all then: the focus roster renders as snapshotted — on STDOUT: stdout-all-subject 1`] = `
+"🧢 1 boot spec — 1 budgeted, 1 over budget
+   ├─ 650 / 400 tokens (163%)  .agent/repo=.this/role=any/boot.yml 🟡
+   │  ├─ 289 / 400 tokens (72%)  ::review
+   │  └─ 604 / 400 tokens (151%)  ::fulcrums 🟡
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
 exports[`rhachet roles cost given: [case14] a role dir that holds no resources when: [t0] roles cost --repo .this --role empty then: the empty report renders as snapshotted — on STDOUT: stdout-role-empty 1`] = `
 "🧢 roles cost --repo .this --role empty
    └─ 🟡 no resources found — this boot emits naught

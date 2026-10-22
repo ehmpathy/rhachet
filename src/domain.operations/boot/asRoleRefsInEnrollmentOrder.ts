@@ -7,10 +7,11 @@ import { asRoleSlugsInEnrollmentOrder } from '@src/domain.operations/actor/enrol
  *        roleset renders to the same bytes whatever order it arrived in
  *
  * .note = one ref per role is assumed; asRoleRefsFirstSeenPerRole dedupes first
+ * .note = any extra field a ref carries (a focus) rides through the sort untouched
  */
-export const asRoleRefsInEnrollmentOrder = (input: {
-  refs: RoleLinkRef[];
-}): RoleLinkRef[] => {
+export const asRoleRefsInEnrollmentOrder = <TRef extends RoleLinkRef>(input: {
+  refs: TRef[];
+}): TRef[] => {
   const slugsOrdered = asRoleSlugsInEnrollmentOrder({
     slugs: input.refs.map((ref) => ref.role),
   });

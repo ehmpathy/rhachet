@@ -2,14 +2,15 @@ import { ConstraintError } from 'helpful-errors';
 
 import { asRoleBootBody } from '@src/domain.operations/boot/asRoleBootBody';
 import { asRoleBriefFiles } from '@src/domain.operations/boot/asRoleBriefFiles';
+import { asRoleFocusSummary } from '@src/domain.operations/boot/asRoleFocusSummary';
 import { asRoleSkillFiles } from '@src/domain.operations/boot/asRoleSkillFiles';
+import { assertRoleFocusDeclared } from '@src/domain.operations/boot/assertRoleFocusDeclared';
 import { computeBootPlan } from '@src/domain.operations/boot/computeBootPlan';
 import {
   type BootSayResource,
   getAllBootSayResources,
 } from '@src/domain.operations/boot/getAllBootSayResources';
-import { parseRoleBootYaml } from '@src/domain.operations/boot/parseRoleBootYaml';
-import { readOneBootSpecFile } from '@src/domain.operations/boot/readOneBootSpecFile';
+import { getOneRoleBootSpecFromRef } from '@src/domain.operations/boot/getOneRoleBootSpecFromRef';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
@@ -57,7 +58,6 @@ export const getOneRoleBootContent = async (input: {
   const briefsDir = resolve(roleDir, 'briefs');
   const skillsDir = resolve(roleDir, 'skills');
   const readmePath = resolve(roleDir, 'readme.md');
-  const bootYamlPath = resolve(roleDir, 'boot.yml');
 
   // keep the briefs, less the work-in-progress and deprecated brief dirs
   const readmeFile = allFiles.find((f) => f === readmePath) ?? null;
@@ -71,21 +71,20 @@ export const getOneRoleBootContent = async (input: {
   assertZeroOrphanMinifiedBriefs({ orphans });
   const skillFiles = asRoleSkillFiles({ allFiles, skillsDir });
 
-  // load boot.yml where present
-  const bootConfig = existsSync(bootYamlPath)
-    ? parseRoleBootYaml({
-        content: readOneBootSpecFile({ pathToSpec: bootYamlPath }),
-        path: bootYamlPath,
-      })
-    : null;
+  // load boot.yml where present, through the one reader the focus check also reads
+  const bootConfig = getOneRoleBootSpecFromRef({
+    ref: { repo: input.slugRepo, role: input.slugRole },
+    repoPath: input.cwd,
+  });
 
-  // --subject needs a boot.yml in subject mode
+  // a focus must name subjects the role declares; a role upgrade that drops one halts here,
+  //   loud, rather than re-render the actor whole or without the role (U1)
   const subjects = input.subjects ?? [];
-  if (subjects.length > 0 && (!bootConfig || bootConfig.mode !== 'subject'))
-    throw new ConstraintError('--subject requires boot.yml in subject mode', {
-      subjects,
-      mode: bootConfig?.mode ?? 'none',
-    });
+  assertRoleFocusDeclared({
+    slugRole: input.slugRole,
+    subjects: input.subjects,
+    config: bootConfig,
+  });
 
   // decide what to say and what to ref
   const bootPlan = await computeBootPlan({
@@ -111,6 +110,9 @@ export const getOneRoleBootContent = async (input: {
   const briefsSaid = asSaid('brief.say');
   const skillsSaid = asSaid('skill.say');
 
+  // a focused role names the subjects it was not given, and whether `always` was shed (V1)
+  const focus = asRoleFocusSummary({ config: bootConfig, subjects });
+
   // compose the body and its census
   return asRoleBootBody({
     slugRepo: input.slugRepo,
@@ -120,5 +122,6 @@ export const getOneRoleBootContent = async (input: {
     readme,
     briefsSaid,
     skillsSaid,
+    focus,
   });
 };

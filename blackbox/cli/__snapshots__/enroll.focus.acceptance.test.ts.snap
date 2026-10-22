@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case1] mechanic, architect and driver linked, and a focus mechanic declares when: [t0] \`enroll claude --roles +mechanic::flow\` then: the narrow receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic narrowed to ::flow"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case2] an exact set that names mechanic at a focus alone when: [t0] \`enroll claude --roles mechanic::flow\` then: the given receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic focused at ::flow"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case3] mechanic linked, and a focus mechanic does not declare when: [t0] \`enroll claude --roles +mechanic::nope\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' declares no subject 'nope'
+
+{
+  "hint": "focus one of: mechanic::code.prod, mechanic::code.test, mechanic::arch, mechanic::flow",
+  "role": "mechanic",
+  "focus": [
+    "nope"
+  ],
+  "declared": [
+    "code.prod",
+    "code.test",
+    "arch",
+    "flow"
+  ]
+}
+
+"
+`;
