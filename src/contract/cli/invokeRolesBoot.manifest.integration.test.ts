@@ -3,6 +3,7 @@ import { getError, given, then, useThen, when } from 'test-fns';
 
 import { genSampleFileTree } from '@src/.test/assets/genSampleFileTree';
 import { asLogLines } from '@src/.test/infra/asLogLines';
+import { spyOnStdoutLines } from '@src/.test/infra/spyOnStdoutLines';
 import { getOneGitRepoRootSync } from '@src/infra/git/getOneGitRepoRootSync';
 
 import { mkdirSync, rmSync } from 'node:fs';
@@ -84,7 +85,7 @@ describe('invokeRolesBoot --what (integration)', () => {
   });
 
   const rolesCommand = new Command('roles');
-  const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  const logSpy = spyOnStdoutLines();
 
   beforeEach(() => {
     logSpy.mockClear();

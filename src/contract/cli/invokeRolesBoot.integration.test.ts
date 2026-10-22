@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getError, given, then, when } from 'test-fns';
 
 import { asLogLines } from '@src/.test/infra/asLogLines';
+import { spyOnStdoutLines } from '@src/.test/infra/spyOnStdoutLines';
 
 import {
   existsSync,
@@ -79,7 +80,7 @@ describe('invokeRolesBoot (integration)', () => {
     });
 
     const rolesCommand = new Command('roles');
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     beforeEach(() => {
       logSpy.mockClear();
@@ -517,7 +518,7 @@ describe('invokeRolesBoot (integration)', () => {
     });
 
     const rolesCommand = new Command('roles');
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = spyOnStdoutLines();
 
     beforeEach(() => {
       logSpy.mockClear();

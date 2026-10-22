@@ -17,17 +17,24 @@ import { bootRoleResources } from './bootRoleResources';
  * .why = verifies boot.yml integration end-to-end
  */
 describe('bootRoleResources', () => {
-  // capture console.log output
+  // capture stdout: the payload arrives as one awaited stdout write, a notice as a console.log
   let output: string[] = [];
   const originalLog = console.log;
+  const originalWrite = process.stdout.write.bind(process.stdout);
 
   beforeEach(() => {
     output = [];
     console.log = (...args) => output.push(args.join(' '));
+    process.stdout.write = ((chunk: string, done?: () => void) => {
+      output.push(String(chunk).replace(/\n$/, ''));
+      done?.();
+      return true;
+    }) as typeof process.stdout.write; // .note = a test double for one overloaded node signature
   });
 
   afterEach(() => {
     console.log = originalLog;
+    process.stdout.write = originalWrite;
   });
 
   given('[case1] role with no boot.yml', () => {

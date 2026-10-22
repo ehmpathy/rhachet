@@ -1,8 +1,9 @@
 import type { PickOne } from 'type-fns';
 
-import { asBootPayloadLogged } from '@src/domain.operations/boot/asBootPayloadLogged';
+import { asBootEmittedPayload } from '@src/domain.operations/boot/asBootEmittedPayload';
 import { asBootSubjectFlagSuffix } from '@src/domain.operations/boot/asBootSubjectFlagSuffix';
 import { assertBootWithinBudget } from '@src/domain.operations/boot/assertBootWithinBudget';
+import { emitBootPayloadDrained } from '@src/domain.operations/boot/emitBootPayloadDrained';
 import { genBootPayload } from '@src/domain.operations/boot/genBootPayload';
 import { getOneBootBudgetRung } from '@src/domain.operations/boot/getOneBootBudgetRung';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
@@ -101,34 +102,15 @@ export const bootRoleResources = async ({
 
   // emit the payload: stats header, body, stats footer
   //
-  // .note = console.log, never `process.stdout.write`. both are equivalent on the wire, but
-  //         the extant test harness captures console.log, so a write would bypass every
-  //         assertion silently. each single-arg call appends exactly one '\n' and does no
-  //         format substitution.
+  // 🔴 .note = the bytes are `asBootEmittedPayload`, the exact string the gate counted, so
+  //         the wire and the count are one number (`0.wish.md` requirement 7).
   //
-  // 🔴 .note = the assembly is `asBootPayloadLogged`, never an inline join, because the
-  //         COUNTER must measure these exact bytes. its peer `asBootEmittedPayload` adds the
-  //         one '\n' console.log appends below — so the gate counts what the wire carries
-  //         rather than what this line passes in (`0.wish.md` requirement 7).
-  //
-  // 🔴 .note = one console.log PER LINE, never one call for the whole string. the bun binary
-  //         cut a single >64KB console.log off at the pipe buffer (65536 bytes, exit 0) when
-  //         stdout was a pipe, which is how every hook and harness reads a boot. per-line calls
-  //         put the same bytes on the wire, since each appends exactly the '\n' the join put
-  //         between them.
+  // 🔴 .note = one awaited `process.stdout.write`, never `console.log`. under bun a
+  //         `console.log` into a full pipe is dropped in silence once `process.stdout` has
+  //         been touched, so a reader that lags got ~64KB and an exit 0
+  //         (`emitBootPayloadDrained`).
   const linesStats = payload.genStatsLines({ counted });
-  getAllBootPayloadLinesLogged({
-    linesStats,
-    linesBody: payload.linesBody,
-  }).forEach((line) => console.log(line));
+  await emitBootPayloadDrained({
+    payload: asBootEmittedPayload({ linesStats, linesBody: payload.linesBody }),
+  });
 };
-
-/**
- * .what = the logged payload, as the lines one console.log call each emits
- * .why = the counter measures `asBootPayloadLogged`'s bytes, so the emit splits that exact
- *        string back into lines rather than rejoin the parts a second way
- */
-const getAllBootPayloadLinesLogged = (input: {
-  linesStats: Parameters<typeof asBootPayloadLogged>[0]['linesStats'];
-  linesBody: Parameters<typeof asBootPayloadLogged>[0]['linesBody'];
-}): string[] => asBootPayloadLogged(input).split('\n');
