@@ -38,7 +38,10 @@ Options:
                       +architect, -driver). for multiple use the comma form
                       (--roles -driver,-reviewer) or quote the space form
                       (--roles "-driver -reviewer"). a bare delta is an alias
-                      (rhx enroll claude -driver ≡ --roles -driver)
+                      (rhx enroll claude -driver ≡ --roles -driver).
+                      role::<subject> boots one subject of the role, with all
+                      its hooks (mechanic::flow, +mechanic::flow); list subjects
+                      via npx rhachet roles cost --all
   --as <address>      name the clone with a stable handle (@:<slug>)
   --no-socket         enroll without a managed reach socket
   --reason <text>     why this enrollment happened (or @stdin)

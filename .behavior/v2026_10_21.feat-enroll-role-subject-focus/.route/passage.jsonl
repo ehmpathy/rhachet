@@ -337,3 +337,5 @@
 {"stone":"5.3.verification","status":"absorbed","reason":"absorbed review.peer: mech-test-intent"}
 {"stone":"5.3.verification","status":"absorbed","reason":"absorbed review.peer: mech-test-scope-purity"}
 {"stone":"5.3.verification","status":"absorbed","reason":"absorbed review.peer: mech-given-when-then"}
+{"stone":"5.3.verification","status":"arrived","reason":"entered guard reviews"}
+{"stone":"5.3.verification","status":"blocked","blocker":"review.peer","reason":"blockers exceed threshold (3 > 0)"}
