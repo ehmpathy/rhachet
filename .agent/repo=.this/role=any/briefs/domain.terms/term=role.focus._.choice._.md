@@ -15,9 +15,9 @@ term.synonyms.forbidden:
 **the subjects of one role that an actor boots — the role's hooks stay whole.**
 
 ```
---roles mechanic::101        # mechanic, at focus 101
---roles +mechanic::101,flow  # one role, focus on two subjects (they union)
---roles mechanic             # mechanic whole — no focus
+--roles mechanic::101                    # mechanic, at focus 101
+--roles +mechanic::101,+mechanic::flow   # one role, two subjects (they union) — each token whole
+--roles mechanic                         # mechanic whole — no focus
 ```
 
 a focus names **declared subjects** (`subject.$slug` sections of the role's `boot.yml`). it

@@ -125,10 +125,13 @@ describe('unlockKeyrackKeys.integration', () => {
           },
         };
 
+        // bracket the call, so a slow unlock on a loaded box never reads as a short ttl
+        const unlockSinceMs = Date.now();
         const result = await unlockKeyrackKeys(
           { env: 'sudo', key: 'ADMIN_TOKEN' },
           context,
         );
+        const unlockUntilMs = Date.now();
 
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
@@ -136,15 +139,14 @@ describe('unlockKeyrackKeys.integration', () => {
         expect(key.env).toEqual('sudo');
         expect(key.org).toEqual('ehmpathy');
 
-        // verify TTL is approximately 30 minutes (allow 5s tolerance)
+        // verify TTL is approximately 30 minutes (allow 5s tolerance), from the unlock itself
         const thirtyMinMs = 30 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
           : 0;
-        const expiresIn = expiresAtMs - Date.now();
-        expect(expiresIn).toBeGreaterThan(thirtyMinMs - 5000);
-        expect(expiresIn).toBeLessThanOrEqual(thirtyMinMs);
+        expect(expiresAtMs - unlockSinceMs).toBeGreaterThan(thirtyMinMs - 5000);
+        expect(expiresAtMs - unlockUntilMs).toBeLessThanOrEqual(thirtyMinMs);
       });
 
       then('stores key in daemon', async () => {
@@ -461,28 +463,30 @@ describe('unlockKeyrackKeys.integration', () => {
           },
         };
 
-        // capture console.warn
-        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        // observe console.warn; the real implementation still runs, so naught is mocked
+        const warnSpy = jest.spyOn(console, 'warn');
 
+        // bracket the call, so a slow unlock on a loaded box never reads as a short ttl
+        const unlockSinceMs = Date.now();
         const result = await unlockKeyrackKeys(
           { owner: 'case3', env: 'sudo', key: 'SENSITIVE_KEY', duration: '1h' },
           context,
         );
+        const unlockUntilMs = Date.now();
 
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
 
-        // verify TTL is capped to 5 minutes (not 1 hour)
+        // verify TTL is capped to 5 minutes (not 1 hour), from the unlock itself
         const fiveMinMs = 5 * 60 * 1000;
         const oneHourMs = 60 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
           : 0;
-        const expiresIn = expiresAtMs - Date.now();
-        expect(expiresIn).toBeGreaterThan(fiveMinMs - 5000);
-        expect(expiresIn).toBeLessThanOrEqual(fiveMinMs);
-        expect(expiresIn).toBeLessThan(oneHourMs);
+        expect(expiresAtMs - unlockSinceMs).toBeGreaterThan(fiveMinMs - 5000);
+        expect(expiresAtMs - unlockUntilMs).toBeLessThanOrEqual(fiveMinMs);
+        expect(expiresAtMs - unlockSinceMs).toBeLessThan(oneHourMs);
 
         // verify warn was logged
         expect(warnSpy).toHaveBeenCalledWith(
@@ -562,6 +566,8 @@ describe('unlockKeyrackKeys.integration', () => {
           },
         };
 
+        // bracket the call, so a slow unlock on a loaded box never reads as a short ttl
+        const unlockSinceMs = Date.now();
         const result = await unlockKeyrackKeys(
           {
             owner: 'case4',
@@ -571,19 +577,19 @@ describe('unlockKeyrackKeys.integration', () => {
           },
           context,
         );
+        const unlockUntilMs = Date.now();
 
         expect(result.unlocked.length).toBe(1);
         const key = result.unlocked[0]!;
 
-        // verify TTL is approximately 15 minutes (not capped to maxDuration)
+        // verify TTL is approximately 15 minutes (not capped to maxDuration), from the unlock itself
         const fifteenMinMs = 15 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
           : 0;
-        const expiresIn = expiresAtMs - Date.now();
-        expect(expiresIn).toBeGreaterThan(fifteenMinMs - 5000);
-        expect(expiresIn).toBeLessThanOrEqual(fifteenMinMs);
+        expect(expiresAtMs - unlockSinceMs).toBeGreaterThan(fifteenMinMs - 5000);
+        expect(expiresAtMs - unlockUntilMs).toBeLessThanOrEqual(fifteenMinMs);
       });
     });
   });

@@ -54,14 +54,67 @@ export const setDeltaActorsOndisk = async (input: {
   if ('failure' in enumeration)
     return { rederived: [], failures: [enumeration.failure] };
 
+  // no actor to re-derive → naught to read
+  if (enumeration.actors.length === 0) return { rederived: [], failures: [] };
+
+  // the ambient set at its recorded focus, read once for the sweep — it is the same for every
+  //   actor, so a corrupt record is one failure, never one per actor
+  const ambient = getRolesAmbientOrFailure({
+    repoPath: input.repoPath,
+    rolesLinked: input.rolesLinked,
+  });
+  if ('failure' in ambient)
+    return { rederived: [], failures: [ambient.failure] };
+
   // one outcome per actor: rewritten, failed, or left as it was
   const outcomes = await Promise.all(
     enumeration.actors.map((actor) =>
-      getOneDeltaActorOutcome({ actor, rolesLinked: input.rolesLinked }),
+      getOneDeltaActorOutcome({
+        actor,
+        rolesAmbient: ambient.rolesAmbient,
+        rolesLinked: input.rolesLinked,
+      }),
     ),
   );
 
   return asDeltaActorOutcomes({ outcomes });
+};
+
+/**
+ * .what = the ambient roles at their recorded focus — the set a bare enroll inherits — or the
+ *   one failure that stopped the read
+ * .why = a corrupt ambient record is a sync failure to report once, never a throw
+ */
+const getRolesAmbientOrFailure = (input: {
+  repoPath: string;
+  rolesLinked: RoleSlug[];
+}): { rolesAmbient: RoleSlug[] } | { failure: BrainDirBootFailure } => {
+  try {
+    return {
+      rolesAmbient: asRoleSlugsAmbientAtFocus({
+        rolesLinked: input.rolesLinked,
+        foci: getRepoAmbientRoleFoci({ repoPath: input.repoPath }),
+      }),
+    };
+  } catch (error) {
+    // an allowlist: a classed or fs fault is the sweep's row; a code defect surfaces loud
+    if (isCodeDefectError({ error })) throw error;
+    return {
+      failure: {
+        scope: { kind: 'actors' },
+        cause:
+          error instanceof Error
+            ? error
+            : new MalfunctionError(
+                'ambient role foci read threw a non-Error value',
+                {
+                  reason: error,
+                  hint: 'rerun `rhx init`; if it fails again, report this output as a rhachet bug',
+                },
+              ),
+      },
+    };
+  }
 };
 
 /**
@@ -70,20 +123,15 @@ export const setDeltaActorsOndisk = async (input: {
  */
 const getOneDeltaActorOutcome = async (input: {
   actor: ActorOndisk;
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): Promise<DeltaActorOutcome> => {
   const { actor } = input;
   try {
-    // the ambient set at its recorded focus — the same set a bare enroll inherits
-    const rolesAmbient = asRoleSlugsAmbientAtFocus({
-      rolesLinked: input.rolesLinked,
-      foci: getRepoAmbientRoleFoci({ repoPath: actor.repoPath }),
-    });
-
     // only a delta actor re-derives; any other holds the roles it named
     const rederive = getActorRolesRederivedOrNull({
       actor,
-      rolesAmbient,
+      rolesAmbient: input.rolesAmbient,
       rolesLinked: input.rolesLinked,
     });
     if (rederive === null) return null;

@@ -16,10 +16,13 @@ export const asRoleFocusSummary = (input: {
   if (input.subjects.length === 0 || input.config?.mode !== 'subject')
     return null;
 
+  // the subjects given, in the spec's declaration order, so one focus typed in two orders
+  //   renders one line (O1)
+  const declared = Object.keys(input.config.subjects);
   return {
-    given: input.subjects,
+    given: declared.filter((slug) => input.subjects.includes(slug)),
     elsewhere: asSubjectsElsewhere({
-      declared: Object.keys(input.config.subjects),
+      declared,
       given: input.subjects,
     }),
     alwaysShed: isAlwaysShed({

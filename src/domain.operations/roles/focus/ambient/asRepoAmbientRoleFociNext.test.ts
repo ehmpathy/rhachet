@@ -15,15 +15,25 @@ const TEST_CASES: Array<{
   expect: { output: Record<string, string[]> };
 }> = [
   {
-    description: 'an exact set replaces the record with its foci',
+    description:
+      'an exact set records its foci and keeps the focus of a role it omits (it stays linked)',
     given: {
       fociPrior: { driver: ['flow'] },
       deltas: [abs('any'), abs('mechanic::101')],
     },
-    expect: { output: { mechanic: ['101'] } },
+    expect: { output: { driver: ['flow'], mechanic: ['101'] } },
   },
   {
-    description: 'an exact set with no focus empties the record',
+    description:
+      'an exact set that never names a focused role leaves its focus be (i005 r011.1)',
+    given: {
+      fociPrior: { mechanic: ['flow'] },
+      deltas: [abs('architect')],
+    },
+    expect: { output: { mechanic: ['flow'] } },
+  },
+  {
+    description: 'an exact set that names a role whole widens its focus',
     given: {
       fociPrior: { mechanic: ['101'] },
       deltas: [abs('any'), abs('mechanic')],
@@ -76,6 +86,15 @@ const TEST_CASES: Array<{
       deltas: [add('ehmpathy/mechanic::101')],
     },
     expect: { output: { mechanic: ['101'] } },
+  },
+  {
+    description:
+      'a repo-qualified and a bare focus of one role both record, none lost',
+    given: {
+      fociPrior: {},
+      deltas: [abs('ehmpathy/mechanic::flow'), abs('mechanic::lean')],
+    },
+    expect: { output: { mechanic: ['flow', 'lean'] } },
   },
 ];
 

@@ -21,6 +21,7 @@ describe('assertRoleFociDeclared', () => {
               { repo: '.this', role: 'any', subjects: ['flow', 'lean'] },
               { repo: 'fixture', role: 'zeta', subjects: null },
             ],
+            rolesFocusTyped: ['any', 'zeta'],
             repoPath: scene.repoPath,
           }),
         ).not.toThrow();
@@ -32,6 +33,7 @@ describe('assertRoleFociDeclared', () => {
         const error = await getError(() =>
           assertRoleFociDeclared({
             refs: [{ repo: '.this', role: 'any', subjects: ['nope'] }],
+            rolesFocusTyped: ['any', 'zeta'],
             repoPath: scene.repoPath,
           }),
         );
@@ -48,6 +50,7 @@ describe('assertRoleFociDeclared', () => {
         const error = await getError(() =>
           assertRoleFociDeclared({
             refs: [{ repo: 'fixture', role: 'zeta', subjects: ['flow'] }],
+            rolesFocusTyped: ['any', 'zeta'],
             repoPath: scene.repoPath,
           }),
         );
@@ -55,5 +58,27 @@ describe('assertRoleFociDeclared', () => {
         expect(error.message).toContain('cannot be focused');
       });
     });
+
+    when(
+      '[t3] an undeclared focus the caller never typed (inherited from the record)',
+      () => {
+        then(
+          'it refuses with the recorded hint, never the typo hint',
+          async () => {
+            const error = await getError(() =>
+              assertRoleFociDeclared({
+                refs: [{ repo: '.this', role: 'any', subjects: ['nope'] }],
+                rolesFocusTyped: [],
+                repoPath: scene.repoPath,
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain('the focus was recorded');
+            expect(error.message).toContain('rhx init --roles +any::');
+            expect(error.message).not.toContain('focus one of');
+          },
+        );
+      },
+    );
   });
 });

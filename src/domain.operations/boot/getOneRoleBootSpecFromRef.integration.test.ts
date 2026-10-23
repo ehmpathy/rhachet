@@ -89,7 +89,8 @@ describe('getOneRoleBootSpecFromRef', () => {
             const error = await getError(() =>
               getOneRoleBootSpecFromRef({ ref: REF, repoPath }),
             );
-            expect(error).toBeInstanceOf(Error);
+            // .note = an fs fault is a node-realm Error, so jest's realm fails `toBeInstanceOf`;
+            //   the errno is the claim
             expect((error as NodeJS.ErrnoException).code).toEqual('EACCES');
           } finally {
             chmodSync(roleDir, 0o755);

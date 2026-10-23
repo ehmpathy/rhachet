@@ -260,7 +260,9 @@ const computeSubjectModePlan = async (input: {
 
   // determine which subjects to process
   const subjectSlugs = Object.keys(input.config.subjects);
-  const selectedSlugs = input.subjects ?? subjectSlugs;
+  const selectedSlugs = input.subjects
+    ? subjectSlugs.filter((slug) => input.subjects?.includes(slug))
+    : subjectSlugs;
 
   // validate selected subjects exist
   if (input.subjects) {

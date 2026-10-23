@@ -37,6 +37,25 @@ const TEST_CASES = [
     tokens: ['mechanic::flow', 'mechanic'],
     expected: [{ role: 'mechanic', subjects: null }],
   },
+  {
+    description:
+      'a repo-qualified and a bare focus of one role union into one entry, qualified',
+    tokens: ['ehmpathy/mechanic::flow', 'mechanic::lean'],
+    expected: [{ role: 'ehmpathy/mechanic', subjects: ['flow', 'lean'] }],
+  },
+  {
+    description: 'a bare then a repo-qualified focus keep the qualified name',
+    tokens: ['mechanic::lean', 'ehmpathy/mechanic::flow'],
+    expected: [{ role: 'ehmpathy/mechanic', subjects: ['lean', 'flow'] }],
+  },
+  {
+    description: 'two repos of one slug stay two entries',
+    tokens: ['ehmpathy/mechanic::flow', 'other/mechanic::lean'],
+    expected: [
+      { role: 'ehmpathy/mechanic', subjects: ['flow'] },
+      { role: 'other/mechanic', subjects: ['lean'] },
+    ],
+  },
 ];
 
 describe('asRoleFocusMap', () => {

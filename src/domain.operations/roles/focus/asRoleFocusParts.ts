@@ -19,8 +19,19 @@ export const ROLE_FOCUS_SEPARATOR = '::';
 export const asRoleFocusParts = (input: {
   token: string;
 }): { role: string; subject: string | null } => {
-  // no separator → the whole role
+  // a lone `:` is a typo of `::`. no role path holds a `:`, so it never names a role, and the
+  //   nearest-role suggestion would steer the caller to the whole role the focus was meant to shed
   const parts = input.token.split(ROLE_FOCUS_SEPARATOR);
+  if (parts.length === 1 && input.token.includes(':'))
+    throw new ConstraintError(
+      `role focus '${input.token}' has one colon; a focus is written <role>::<subject>`,
+      {
+        token: input.token,
+        hint: `write ${input.token.replace(/:+/, ROLE_FOCUS_SEPARATOR)}`,
+      },
+    );
+
+  // no separator → the whole role
   if (parts.length === 1) return { role: input.token, subject: null };
 
   // a focus names exactly one role and one subject

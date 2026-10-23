@@ -47,4 +47,52 @@ describe('asEnrollRoleFocusChanges', () => {
       });
     });
   });
+
+  given(
+    '[case3] a delta that leaves a recorded focus untouched (`-driver`)',
+    () => {
+      when('[t0] the changes are read against the ambient set', () => {
+        then('it names the inherited focus as held — never silent', () => {
+          expect(
+            asEnrollRoleFocusChanges({
+              spec: new BrainCliEnrollmentSpec({
+                mode: 'incremental',
+                deltas: [
+                  new RoleDelta({ kind: 'subtraction', role: 'driver' }),
+                ],
+              }),
+              rolesAmbient: ['mechanic::flow', 'driver'],
+              rolesAfter: ['mechanic::flow'],
+            }),
+          ).toEqual([
+            { role: 'mechanic', kind: 'held', from: ['flow'], to: ['flow'] },
+          ]);
+        });
+      });
+
+      when('[t1] the call re-types the held focus', () => {
+        then('it names it unchanged, never twice', () => {
+          expect(
+            asEnrollRoleFocusChanges({
+              spec: new BrainCliEnrollmentSpec({
+                mode: 'incremental',
+                deltas: [
+                  new RoleDelta({ kind: 'addition', role: 'mechanic::flow' }),
+                ],
+              }),
+              rolesAmbient: ['mechanic::flow'],
+              rolesAfter: ['mechanic::flow'],
+            }),
+          ).toEqual([
+            {
+              role: 'mechanic',
+              kind: 'unchanged',
+              from: ['flow'],
+              to: ['flow'],
+            },
+          ]);
+        });
+      });
+    },
+  );
 });

@@ -19,6 +19,12 @@ const TEST_CASES: Array<{
     expect: 'mechanic',
   },
   { description: 'a focus with no role', token: '::flow', expect: '' },
+  {
+    description:
+      'a focus typo with one colon, so the parser refuses it by name',
+    token: 'mechanic:flow',
+    expect: 'mechanic',
+  },
 ];
 
 describe('asRoleOfTokenLenient', () => {

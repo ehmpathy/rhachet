@@ -2,12 +2,16 @@ import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocus
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 /**
- * .what = applies a role delta to a held roleset: a removal drops its role, an addition
- *         upserts its role's one entry, and an addition of an unheld role appends
- * .why = a `+` delta keeps one entry per role (fulcrum F6) — `+mechanic::flow` atop a held
- *        `mechanic` narrows it, atop `mechanic::code.prod` moves it, and `+mechanic` widens
- *        it. enroll and `prepare:rhachet` both persist that rule, so it lives here once
+ * .what = applies a role delta to a held roleset: a removal drops its role, the additions of a
+ *         held role replace what was held for it, and an addition of an unheld role appends
+ * .why = a `+` delta re-points its role rather than stack beside it (fulcrum F6) —
+ *        `+mechanic::flow` atop a held `mechanic` narrows it, atop `mechanic::code.prod` moves
+ *        it, and `+mechanic` widens it. enroll and `prepare:rhachet` both persist that rule, so
+ *        it lives here once
  *
+ * .note = the rule is one ROLE per delta, not one TOKEN: `+mechanic::a,+mechanic::b` atop a held
+ *         `mechanic` yields both tokens, which union into one entry wherever the set is read
+ *         (`asRoleFocusMap`, S2P)
  * .note = two tokens name one role by `isRoleSpecifierMatch` over the focus-stripped role,
  *         so `ehmpathy/mechanic` and `mechanic` match (Q1)
  * .note = an addition with the held entry's own focus changes naught, so the entry keeps

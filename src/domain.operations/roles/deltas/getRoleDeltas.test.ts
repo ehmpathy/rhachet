@@ -89,6 +89,24 @@ describe('getRoleDeltas', () => {
         expect(error.message).toContain('cannot mix');
       });
     });
+
+    when(
+      '[t1] a bare word beside a focused delta (`+mechanic::101,flow`)',
+      () => {
+        then(
+          'it names the one-subject-per-token form, never the generic mix',
+          async () => {
+            const error = await getError(() =>
+              getRoleDeltas({ tokens: ['+mechanic::101', 'flow'] }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain('one subject per token');
+            expect(error.message).toContain('+mechanic::flow');
+            expect(error.message).not.toContain('cannot mix');
+          },
+        );
+      },
+    );
   });
 
   given('[case5] same slug added and removed (e7)', () => {

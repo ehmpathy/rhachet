@@ -247,7 +247,13 @@ const assertNoInertInherit = (input: {
       if (!('always' in (inner as Record<string, unknown>))) continue;
       throw new ConstraintError(
         'boot.yml declares an `always` inheritance under a key no render reads — as written, the subject still boots `always`',
-        { path: input.path, section: key, key: field, expected: 'inherit' },
+        {
+          path: input.path,
+          section: key,
+          key: field,
+          expected: 'inherit',
+          hint: `rename \`${field}\` to \`inherit\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+        },
       );
     }
   }

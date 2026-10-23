@@ -54,9 +54,19 @@ const computeRolesForAbsoluteMode = (input: {
 }): RoleSlug[] => {
   const roles: RoleSlug[] = [];
 
+  // the roles this set focuses, so a bare word beside one reads as a lost subject
+  const rolesFocused = input.deltas
+    .map((delta) => asRoleFocusParts({ token: delta.role }))
+    .filter((parts) => parts.subject !== null)
+    .map((parts) => parts.role);
+
   for (const delta of input.deltas) {
     // validate role exists
-    validateRoleExists({ role: delta.role, rolesLinked: input.rolesLinked });
+    validateRoleExists({
+      role: delta.role,
+      rolesLinked: input.rolesLinked,
+      rolesFocused,
+    });
 
     // in absolute mode, all deltas are 'absolute' members (parser ensures this)
     if (delta.kind === 'absolute' && !roles.includes(delta.role)) {
@@ -78,7 +88,11 @@ const computeRolesForIncrementalMode = (input: {
 }): RoleSlug[] => {
   // validate every role exists, before any patch
   for (const delta of input.deltas)
-    validateRoleExists({ role: delta.role, rolesLinked: input.rolesLinked });
+    validateRoleExists({
+      role: delta.role,
+      rolesLinked: input.rolesLinked,
+      rolesFocused: [],
+    });
 
   // upsert the ambient set by the delta: one entry per role (fulcrum F6), the same rule
   //   `prepare:rhachet` persists
@@ -104,14 +118,28 @@ const asRoleOf = (token: string): string => asRoleFocusParts({ token }).role;
 const validateRoleExists = (input: {
   role: RoleSlug;
   rolesLinked: RoleSlug[];
+  rolesFocused: string[];
 }): void => {
   // a focus is checked against its role; the subject is checked at the render
   const role = asRoleOf(input.role);
   if (input.rolesLinked.includes(role)) return;
 
-  // find closest match for suggestion
+  // a bare unknown word beside a focus reads as a second subject typed without its role
+  //   (`mechanic::101,flow`): name the one-subject-per-token form
+  const roleFocused = input.rolesFocused[0];
+  if (roleFocused && role === input.role)
+    throw new ConstraintError(
+      `role '${input.role}' not found — one subject per token`,
+      {
+        role: input.role,
+        rolesLinked: input.rolesLinked,
+        hint: `to focus ${roleFocused} at a second subject, write ${roleFocused}::${input.role}; linked roles: ${input.rolesLinked.join(', ')}`,
+      },
+    );
+
+  // find closest match for suggestion, against the role a focused token names
   const suggestion = findClosestRole({
-    role: input.role,
+    role,
     rolesLinked: input.rolesLinked,
   });
 
@@ -127,8 +155,10 @@ const validateRoleExists = (input: {
       ? `linked roles: ${input.rolesLinked.join(', ')}`
       : 'no roles linked yet — run `rhx init --roles <role>` first';
 
-  throw new ConstraintError(`role '${input.role}' not found${suggestionText}`, {
-    role: input.role,
+  // name the role apart from its focus, so a reader never hunts a role called `reviewer::flow`
+  throw new ConstraintError(`role '${role}' not found${suggestionText}`, {
+    role,
+    ...(role === input.role ? {} : { token: input.role }),
     rolesLinked: input.rolesLinked,
     suggestion,
     hint,

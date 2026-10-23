@@ -7,7 +7,8 @@ exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\
   "path": "boot.yml",
   "section": "subject.101",
   "key": "inhert",
-  "expected": "inherit"
+  "expected": "inherit",
+  "hint": "rename \`inhert\` to \`inherit\` in boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file"
 }"
 `;
 

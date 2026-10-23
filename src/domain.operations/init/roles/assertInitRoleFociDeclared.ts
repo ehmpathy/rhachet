@@ -43,6 +43,7 @@ export const assertInitRoleFociDeclared = async (
       slugRole: entry.role,
       subjects: entry.subjects,
       config,
+      focusFrom: 'typed.init',
     });
   }
 };

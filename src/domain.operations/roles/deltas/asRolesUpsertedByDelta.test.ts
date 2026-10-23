@@ -61,6 +61,25 @@ const TEST_CASES: Array<{
     expect: { output: ['driver'] },
   },
   {
+    description:
+      'two foci of one role in one call replace the held entry together (S2P)',
+    given: {
+      rolesHeld: ['driver', 'mechanic'],
+      additions: ['mechanic::flow', 'mechanic::code.prod'],
+      removals: [],
+    },
+    expect: { output: ['driver', 'mechanic::flow', 'mechanic::code.prod'] },
+  },
+  {
+    description: 'two foci of an unheld role in one call both append (S2P)',
+    given: {
+      rolesHeld: ['driver'],
+      additions: ['mechanic::flow', 'mechanic::code.prod'],
+      removals: [],
+    },
+    expect: { output: ['driver', 'mechanic::flow', 'mechanic::code.prod'] },
+  },
+  {
     description: 'an addition of an unheld role appends, once',
     given: {
       rolesHeld: ['driver'],

@@ -16,7 +16,8 @@ export const asRoleFocusReceiptLines = (input: {
   const leaves = [
     ...input.changes.map(asRoleFocusChangeLeaf),
     ...input.alwaysShed.map(
-      (role) => `${role} sheds its always block, as its focus declares`,
+      (role) =>
+        `${role} sheds its always block, as its focus declares — its always briefs and skills do not boot`,
     ),
   ];
   // no focus touched → no block, so an unfocused call prints as it did
@@ -43,6 +44,8 @@ const asRoleFocusChangeLeaf = (change: RoleFocusChange): string => {
     return `${change.role} narrowed to ${asFocus(change.to)}`;
   if (change.kind === 'widen')
     return `${change.role} widened to ${asFocus(change.to)}`;
+  if (change.kind === 'held')
+    return `${change.role} held at ${asFocus(change.to)}, from the repo's record (rhx init --roles +${change.role} widens it)`;
   if (change.kind === 'unchanged')
     return `${change.role} unchanged at ${asFocus(change.to)}`;
   return `${change.role} moved from ${asFocus(change.from)} to ${asFocus(change.to)}`;

@@ -1,10 +1,26 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`computeBrainCliEnrollment given: [case-focus] a role at a subject focus when: [t6] a focus on a role that is not linked (L2) then: it meets the unlinked refusal, named by its role 1`] = `
-"✋ ConstraintError: role 'reviewer::flow' not found
+exports[`computeBrainCliEnrollment given: [case-focus] a role at a subject focus when: [t6.b] an exact set \`mechanic::101,flow\` — a subject typed without its role then: it names the one-subject-per-token form 1`] = `
+"✋ ConstraintError: role 'flow' not found — one subject per token
 
 {
-  "role": "reviewer::flow",
+  "role": "flow",
+  "rolesLinked": [
+    "mechanic",
+    "driver",
+    "ergonomist",
+    "architect"
+  ],
+  "hint": "to focus mechanic at a second subject, write mechanic::flow; linked roles: mechanic, driver, ergonomist, architect"
+}"
+`;
+
+exports[`computeBrainCliEnrollment given: [case-focus] a role at a subject focus when: [t6] a focus on a role that is not linked (L2) then: it meets the unlinked refusal, named by its role 1`] = `
+"✋ ConstraintError: role 'reviewer' not found
+
+{
+  "role": "reviewer",
+  "token": "reviewer::flow",
   "rolesLinked": [
     "mechanic",
     "driver",

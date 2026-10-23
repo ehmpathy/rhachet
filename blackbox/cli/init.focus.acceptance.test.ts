@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import { genTempDir, given, then, useThen, when } from 'test-fns';
@@ -105,11 +111,15 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         }),
       );
 
-      then('it exits non-zero, and never overwrites the record it could not read', () => {
-        expect(run.status).not.toEqual(0);
+      then('it exits 1, and never overwrites the record it could not read', () => {
+        expect(run.status).toEqual(1);
         expect(readFileSync(asFociPath({ dir: testDir }), 'utf8')).toEqual(
           '{ mechanic: flow',
         );
+      });
+
+      then('it halts before the first link — the repo is left as it was found', () => {
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(false);
       });
 
       then('it names the record and the repair', () => {
@@ -167,6 +177,72 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
           'role=mechanic',
         );
       });
+
+      then('the repo actor boot holds the flow subject and none of the others', () => {
+        const boot = readFileSync(
+          join(
+            testDir,
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
+          ),
+          'utf8',
+        );
+        expect(boot).toContain('work.flow/rule.require.trust-but-verify.md');
+        expect(boot).not.toContain('rule.require.hook-wrapper-pattern.md');
+        expect(boot).toContain('<focus given');
+      });
+
+    });
+
+    when('[t0.b] `init --prep --roles mechanic::flow` persists the replay', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--prep', '--roles', 'mechanic::flow'],
+          cwd: testDir,
+        }),
+      );
+
+      then('prepare:rhachet replays the focus, so a fresh install keeps it', () => {
+        expect(run.status).toEqual(0);
+        const pkg = JSON.parse(
+          readFileSync(join(testDir, 'package.json'), 'utf8'),
+        );
+        expect(pkg.scripts['prepare:rhachet']).toContain('mechanic::flow');
+      });
+    });
+
+    when('[t0.c] a fresh worktree replays `prepare:rhachet` with no record (T1)', () => {
+      // .note = the record is gitignored, so a fresh worktree holds none until the replay runs
+      const scene = useThen('the replay succeeds', () => {
+        const bootPath = join(
+          testDir,
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
+        );
+        const bootBefore = readFileSync(bootPath, 'utf8');
+        rmSync(asFociPath({ dir: testDir }));
+        const pkg = JSON.parse(
+          readFileSync(join(testDir, 'package.json'), 'utf8'),
+        );
+        const words: string[] = pkg.scripts['prepare:rhachet'].split(/\s+/);
+        const run = invokeRhachetCliBinary({
+          args: words.slice(words.indexOf('init')),
+          cwd: testDir,
+        });
+        return { run, bootBefore, bootAfter: readFileSync(bootPath, 'utf8') };
+      });
+
+      then('it exits 0', () => {
+        expect(scene.run.status).toEqual(0);
+      });
+
+      then('the record is restored from the replay', () => {
+        expect(
+          JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
+        ).toEqual({ mechanic: ['flow'] });
+      });
+
+      then('the repo actor boot is byte-identical — the replay never widens the role', () => {
+        expect(scene.bootAfter).toEqual(scene.bootBefore);
+      });
     });
 
     when('[t1] `init --roles +mechanic` widens it back', () => {
@@ -182,6 +258,234 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         expect(
           JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
         ).toEqual({});
+      });
+    });
+  });
+
+  given('[case4] a repo with mechanic focused at flow (E-init)', () => {
+    const testDir = genTempDir({ slug: 'init-focus-exact-omits' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      const seeded = invokeRhachetCliBinary({
+        args: ['init', '--roles', '+mechanic::flow'],
+        cwd: testDir,
+      });
+      if (seeded.status !== 0) throw new Error(seeded.stderr);
+    });
+
+    when('[t0] an exact `init --roles architect` that never names mechanic', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'architect'],
+          cwd: testDir,
+        }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('mechanic stays linked — an exact init links, never unlinks', () => {
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+      });
+
+      then('mechanic keeps its focus — the record follows the links', () => {
+        expect(
+          JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
+        ).toEqual({ mechanic: ['flow'] });
+      });
+
+      then('no receipt claims mechanic widened', () => {
+        expect(run.stdout).not.toContain('widened');
+      });
+
+      then('the repo actor boot still holds mechanic at flow alone', () => {
+        const boot = readFileSync(
+          join(
+            testDir,
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
+          ),
+          'utf8',
+        );
+        expect(boot).toContain('work.flow/rule.require.trust-but-verify.md');
+        expect(boot).not.toContain('rule.require.hook-wrapper-pattern.md');
+      });
+
+      then('the receipt and the held focus line render as snapshotted', () => {
+        // .note = an exact init that never names mechanic changes no focus, so its receipt is ''
+        const boot = readFileSync(
+          join(
+            testDir,
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
+          ),
+          'utf8',
+        );
+        expect({
+          receipt: getOneFocusReceiptBlock({ output: run.stdout }),
+          lineFocus: boot.split('\n').find((line) => line.startsWith('<focus given=')),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] the repo record holds a focus mechanic no longer declares (U1 on init)', () => {
+    const testDir = genTempDir({ slug: 'init-focus-stale-record' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setPackageBrainAnthropicDeclared({ dir: testDir });
+      const seeded = invokeRhachetCliBinary({
+        args: ['init', '--roles', '+mechanic::flow'],
+        cwd: testDir,
+      });
+      if (seeded.status !== 0) throw new Error(seeded.stderr);
+
+      // the role "dropped" the subject: the record now names one it never declared
+      writeFileSync(
+        asFociPath({ dir: testDir }),
+        JSON.stringify({ mechanic: ['gone'] }),
+      );
+    });
+
+    when('[t0] an init that names another role, `init --roles +architect`', () => {
+      const run = useThen('it is refused', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+architect'],
+          cwd: testDir,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, a constraint the caller must fix', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('it names the recorded focus, the declared subjects, and the fix with --hooks', () => {
+        expect(run.stderr).toContain("declares no subject 'gone'");
+        expect(run.stderr).toContain('recorded before the role dropped it');
+        expect(run.stderr).toContain('rhx init --roles +mechanic::<one of');
+        expect(run.stderr).toContain('--hooks');
+      });
+
+      then('the refusal matches its snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the hint is followed, `init --roles +mechanic::flow --hooks claude-code`', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+mechanic::flow', '--hooks', 'claude-code'],
+          cwd: testDir,
+        }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('the record holds the declared focus again', () => {
+        expect(
+          JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
+        ).toEqual({ mechanic: ['flow'] });
+      });
+
+      then("mechanic's hooks land in the repo actor's settings", () => {
+        expect(readFileSync(asRepoSettingsPath({ dir: testDir }), 'utf8')).toContain(
+          'role=mechanic',
+        );
+      });
+    });
+  });
+
+  given('[case6] the `prepare:rhachet` replay names a subject mechanic no longer declares (U6)', () => {
+    const testDir = genTempDir({ slug: 'init-focus-stale-replay' });
+
+    /**
+     * .what = runs the replay's own init command, as `pnpm install` would
+     */
+    const runReplay = () => {
+      const pkg = JSON.parse(readFileSync(join(testDir, 'package.json'), 'utf8'));
+      const words: string[] = pkg.scripts['prepare:rhachet'].split(/\s+/);
+      return invokeRhachetCliBinary({
+        args: words.slice(words.indexOf('init')),
+        cwd: testDir,
+        logOnError: false,
+      });
+    };
+
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      const seeded = invokeRhachetCliBinary({
+        args: ['init', '--prep', '--roles', 'mechanic::flow'],
+        cwd: testDir,
+      });
+      if (seeded.status !== 0) throw new Error(seeded.stderr);
+
+      // the role "dropped" the subject: the replay now names one it never declared
+      const packagePath = join(testDir, 'package.json');
+      const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
+      writeFileSync(
+        packagePath,
+        JSON.stringify(
+          {
+            ...pkg,
+            scripts: {
+              ...pkg.scripts,
+              'prepare:rhachet': pkg.scripts['prepare:rhachet'].replace(
+                'mechanic::flow',
+                'mechanic::gone',
+              ),
+            },
+          },
+          null,
+          2,
+        ),
+      );
+    });
+
+    when('[t0] the replay runs', () => {
+      const run = useThen('it is refused', () => runReplay());
+
+      then('it exits 2, a constraint the caller must fix', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('it names the replay and the fix that rewrites it, with --prep', () => {
+        expect(run.stderr).toContain("declares no subject 'gone'");
+        expect(run.stderr).toContain('prepare:rhachet');
+        expect(run.stderr).toContain('rhx init --prep --roles +mechanic::<one of');
+      });
+
+      then('the refusal matches its snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the hint is followed, `init --prep --roles +mechanic::flow`', () => {
+      const scene = useThen('it succeeds', () => {
+        const fix = invokeRhachetCliBinary({
+          args: ['init', '--prep', '--roles', '+mechanic::flow'],
+          cwd: testDir,
+        });
+        const pkg = JSON.parse(readFileSync(join(testDir, 'package.json'), 'utf8'));
+        return { fix, replay: pkg.scripts['prepare:rhachet'] as string };
+      });
+
+      then('it exits 0', () => {
+        expect(scene.fix.status).toEqual(0);
+      });
+
+      then('the replay names the declared focus, and the dropped one no more', () => {
+        expect(scene.replay).toContain('mechanic::flow');
+        expect(scene.replay).not.toContain('mechanic::gone');
+      });
+    });
+
+    when('[t2] the replay runs again', () => {
+      const run = useThen('it succeeds', () => runReplay());
+
+      then('it exits 0 — the next install is whole again', () => {
+        expect(run.status).toEqual(0);
       });
     });
   });

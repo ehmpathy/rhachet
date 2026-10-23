@@ -26,3 +26,12 @@ exports[`asRoleFocusParts given: [case2] a malformed focus when: [t0] the token 
   "hint": "name one role and one subject, e.g. mechanic::flow"
 }"
 `;
+
+exports[`asRoleFocusParts given: [case3] a focus written with one colon (P14) when: [t0] the token is 'mechanic:flow' then: it refuses, names the form, and hints the token with \`::\` — never the whole role 1`] = `
+"✋ ConstraintError: role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>
+
+{
+  "token": "mechanic:flow",
+  "hint": "write mechanic::flow"
+}"
+`;

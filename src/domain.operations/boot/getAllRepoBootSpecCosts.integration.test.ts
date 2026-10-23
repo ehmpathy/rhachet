@@ -30,6 +30,7 @@ describe('getAllRepoBootSpecCosts', () => {
             }),
           }),
           globs: null,
+          subjects: true,
         }),
       );
 
@@ -74,5 +75,32 @@ describe('getAllRepoBootSpecCosts', () => {
         },
       );
     });
+
+    when(
+      '[t1] the repo is swept with no subject price, as the gate does',
+      () => {
+        const result = useThen('the sweep succeeds', async () =>
+          getAllRepoBootSpecCosts({
+            cwd: genSampleRepoWithSubjects({
+              slug: 'getAllRepoBootSpecCosts-c1t1',
+            }),
+            globs: null,
+            subjects: false,
+          }),
+        );
+
+        then('the subject role still has its whole-spec row', () => {
+          const row = result.costs.find((cost) =>
+            cost.pathToSpec.includes('role=any'),
+          );
+          expect(row).toBeDefined();
+          expect(row!.tokens).toBeGreaterThan(0);
+        });
+
+        then('no subject is priced', () => {
+          result.costs.forEach((cost) => expect(cost.subjects).toEqual([]));
+        });
+      },
+    );
   });
 });

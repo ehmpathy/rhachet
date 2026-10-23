@@ -5,11 +5,15 @@ import {
   asRoleFocusChanges,
   type RoleFocusChange,
 } from '@src/domain.operations/roles/focus/asRoleFocusChanges';
+import { asRoleFocusMap } from '@src/domain.operations/roles/focus/asRoleFocusMap';
+import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 /**
- * .what = the focus changes an enroll's roles spec made
+ * .what = the focus changes an enroll's roles spec made, and each focus it inherited
  * .why = a delta patches the ambient set, so its foci narrow, move or widen what was held; an
- *        exact set replaces it, so it held naught and each focus it names is given fresh
+ *        exact set replaces it, so it held naught and each focus it names is given fresh.
+ *        a focus a delta enroll inherits from the repo's record, untouched, is named `held`,
+ *        so a seat never boots narrowed with no word of why
  *
  * .note = pure transformer — no i/o, deterministic
  */
@@ -27,7 +31,7 @@ export const asEnrollRoleFocusChanges = (input: {
     });
 
   // a delta is read against the ambient set it patched
-  return asRoleFocusChanges({
+  const changes = asRoleFocusChanges({
     rolesBefore: input.rolesAmbient,
     rolesAfter: input.rolesAfter,
     additions: getRoleDeltasOfKind({
@@ -35,4 +39,23 @@ export const asEnrollRoleFocusChanges = (input: {
       kind: 'addition',
     }),
   });
+
+  // each focus held after the call that no change names was inherited from the record
+  const held = asRoleFocusMap({ tokens: input.rolesAfter }).flatMap(
+    (entry): RoleFocusChange[] =>
+      entry.subjects === null ||
+      changes.some((change) =>
+        isRoleSpecifierMatch({ left: change.role, right: entry.role }),
+      )
+        ? []
+        : [
+            {
+              role: entry.role,
+              kind: 'held',
+              from: entry.subjects,
+              to: entry.subjects,
+            },
+          ],
+  );
+  return [...changes, ...held];
 };

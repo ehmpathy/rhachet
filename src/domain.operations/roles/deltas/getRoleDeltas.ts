@@ -99,6 +99,25 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
   // decide mode: any sigiled token => incremental
   const isIncremental = additions.length > 0 || subtractions.length > 0;
 
+  // a bare word beside a `+role::subject` reads as a second subject typed without its role
+  //   (`+mechanic::101,flow`): name the one-subject-per-token form, never the generic mix
+  const rolesAddedAtFocus = additions
+    .map((delta) => asRoleFocusParts({ token: delta.role }))
+    .filter((parts) => parts.subject !== null)
+    .map((parts) => parts.role);
+  const subjectBare = absolutes.find(
+    (delta) => asRoleFocusParts({ token: delta.role }).subject === null,
+  );
+  if (isIncremental && subjectBare && rolesAddedAtFocus.length > 0)
+    throw new ConstraintError(
+      `'${subjectBare.role}' has no sigil beside a focused delta — one subject per token`,
+      {
+        token: subjectBare.role,
+        tokens: input.tokens,
+        hint: `to focus at a second subject, give it its role and sigil: +${rolesAddedAtFocus[0]}::${subjectBare.role}; to add a role, give it a sigil: +${subjectBare.role}`,
+      },
+    );
+
   // reject mixed calls — all-absolute OR all-incremental, never both
   if (isIncremental && absolutes.length > 0)
     throw new ConstraintError(

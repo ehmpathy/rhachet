@@ -301,7 +301,10 @@ describe('rhachet upgrade', () => {
       });
 
       then('the refusal names the focus and the package form', () => {
-        expect(result.stderr).toContain('mechanic::flow');
+        // the sentence that holds the focus, never the bare token, which the [args] echo also carries
+        expect(result.stderr).toContain(
+          "upgrade --roles names packages, and a package has no focus: 'mechanic::flow'",
+        );
         expect(result.stderr).not.toContain('a requested package does not exist');
       });
 

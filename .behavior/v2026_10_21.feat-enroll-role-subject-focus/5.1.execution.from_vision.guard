@@ -213,7 +213,7 @@ reviews:
 
     - slug: enroll-impl-behavior-intent
       run: $rhx enroll claude --model 'claude-sonnet-5-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'review the current implementation for omissions or divergences from the wished and envisioned behavioral intent. in particular flag any ergonomic friction that is unaddressed or friction hazards that are not clearly covered with acceptance tests and snaps. read the prior peer-review conversation at $conversation to catch up on context.'
-      budget: 3
+      budget: 4
       level: 3
 
     - slug: enroll-impl-arch-defects

@@ -366,11 +366,37 @@ describe('computeBrainCliEnrollment', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain("role 'reviewer::flow' not found");
+        expect(error.message).toContain("role 'reviewer' not found");
         expect(error.message).toContain('linked roles: mechanic');
         expect(error.message).toMatchSnapshot();
       });
     });
+
+    when(
+      '[t6.b] an exact set `mechanic::101,flow` — a subject typed without its role',
+      () => {
+        then('it names the one-subject-per-token form', async () => {
+          const error = await getError(() =>
+            computeBrainCliEnrollment({
+              brain,
+              spec: new BrainCliEnrollmentSpec({
+                mode: 'absolute',
+                deltas: [
+                  new RoleDelta({ kind: 'absolute', role: 'mechanic::101' }),
+                  new RoleDelta({ kind: 'absolute', role: 'flow' }),
+                ],
+              }),
+              rolesAmbient,
+              rolesLinked,
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('one subject per token');
+          expect(error.message).toContain('mechanic::flow');
+          expect(error.message).toMatchSnapshot();
+        });
+      },
+    );
 
     when('[t7] +mechanic::flow atop a held ehmpathy/mechanic (Q1)', () => {
       then('the qualified entry narrows in place — one entry per role', () => {

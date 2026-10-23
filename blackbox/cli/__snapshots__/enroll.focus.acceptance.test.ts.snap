@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case1.b] the bare alias, with no --roles flag (S3, E3) when: [t0] \`enroll claude +mechanic::flow\` then: the focus line the clone reads renders as snapshotted 1`] = `"<focus given="flow" elsewhere="code.prod,code.test,arch" always="kept"/>"`;
+
 exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case1] mechanic, architect and driver linked, and a focus mechanic declares when: [t0] \`enroll claude --roles +mechanic::flow\` then: the narrow receipt renders as snapshotted 1`] = `
 "🧢 focus
    └─ mechanic narrowed to ::flow"
@@ -29,4 +31,136 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case3] mechan
 }
 
 "
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechanic linked, and a focus the set has no shape for when: [t0] \`--roles -mechanic::flow\` (P12) then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: a subtraction removes a role whole; '-mechanic::flow' names a focus
+
+{
+  "hint": "-mechanic removes the role whole; to change its focus, enroll the exact set or +mechanic::<subject>",
+  "token": "-mechanic::flow",
+  "tokens": [
+    "-mechanic::flow"
+  ]
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechanic linked, and a focus the set has no shape for when: [t1] \`--roles mechanic,mechanic::flow\` (S1) then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' is named both whole and focused
+
+{
+  "hint": "name 'mechanic' to boot every subject, or 'mechanic::flow' to boot that one — not both",
+  "tokens": [
+    "mechanic",
+    "mechanic::flow"
+  ]
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechanic linked, and a focus the set has no shape for when: [t2] \`--roles mechanic:flow\`, one colon (P14) then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>
+
+{
+  "hint": "write mechanic::flow",
+  "token": "mechanic:flow"
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechanic linked, and a focus the set has no shape for when: [t3] the bare alias \`+mechanic:flow\`, one colon (P14) then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>
+
+{
+  "hint": "write mechanic::flow",
+  "token": "mechanic:flow"
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case5] a repo whose ambient foci record is not json when: [t0] \`enroll claude --roles +mechanic::flow\` then: the refusal matches its snapshot 1`] = `
+"
+💥 MalfunctionError: ambient role foci record is not json
+
+{
+  "hint": "repair /TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json to the shape {\\"<role>\\":[\\"<subject>\\"]}, or remove it to boot every ambient role whole; then rerun \`rhx init --roles <roles>\`",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
+  "cause": {
+    "class": "SyntaxError",
+    "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+  }
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a native role whose small subject opts out of always when: [t0] \`enroll claude --roles +lean::tiny\` then: the shed receipt renders as snapshotted 1`] = `
+"🧢 focus
+   ├─ lean narrowed to ::tiny
+   └─ lean sheds its always block, as its focus declares — its always briefs and skills do not boot"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a native role whose small subject opts out of always when: [t1] the subject misspells the key as \`inherits\` (K2) then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: boot.yml declares an \`always\` inheritance under a key no render reads — as written, the subject still boots \`always\`
+
+{
+  "hint": "rename \`inherits\` to \`inherit\` in /TMP_TEST_DIR/.agent/repo=.this/role=lean/boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file",
+  "path": "/TMP_TEST_DIR/.agent/repo=.this/role=lean/boot.yml",
+  "section": "subject.tiny",
+  "key": "inherits",
+  "expected": "inherit"
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case7] the repo record holds mechanic at flow (A1) when: [t0] a bare \`enroll claude\` then: the held receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic held at ::flow, from the repo's record (rhx init --roles +mechanic widens it)"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case8] the repo record holds a focus mechanic no longer declares (U1 on enroll) when: [t0] a bare \`enroll claude\` inherits it then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' declares no subject 'gone'
+
+{
+  "hint": "the focus was recorded before the role dropped it. for the repo's record (a bare enroll inherits it), run \`rhx init --roles +mechanic::<one of code.prod, code.test, arch, flow> --hooks\` — it re-records the focus and lands the hooks a halted upgrade skipped; for an actor that holds it, end its live clones so the sweep skips it, then enroll at mechanic::<one of code.prod, code.test, arch, flow>",
+  "role": "mechanic",
+  "focus": [
+    "gone"
+  ],
+  "declared": [
+    "code.prod",
+    "code.test",
+    "arch",
+    "flow"
+  ]
+}
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case9] a delta actor at mechanic::flow, and the ambient set moves (D1) when: [t0] \`init --roles -driver\` re-derives every delta actor then: the init receipt and the re-derived focus line render as snapshotted 1`] = `
+{
+  "lineFocus": "<focus given="flow" elsewhere="code.prod,code.test,arch" always="kept"/>",
+  "receipt": "",
+}
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case10] an exact set with whole co-roles beside a focus (case=1) when: [t0] the whole set, then the same set with mechanic at flow then: the focused seat receipt and its focus line render as snapshotted 1`] = `
+{
+  "lineFocus": "<focus given="flow" elsewhere="code.prod,code.test,arch" always="kept"/>",
+  "receipt": "🧢 focus
+   └─ mechanic focused at ::flow",
+}
 `;

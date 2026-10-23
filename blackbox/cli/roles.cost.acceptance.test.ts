@@ -1091,13 +1091,13 @@ describe('rhachet roles cost', () => {
       });
 
       then('each declared subject renders as a focus row', () => {
-        expect(asFocusRow('::review')).toBeDefined();
-        expect(asFocusRow('::fulcrums')).toBeDefined();
+        expect(asFocusRow('any::review')).toBeDefined();
+        expect(asFocusRow('any::fulcrums')).toBeDefined();
       });
 
       then('a focus under the cap carries no marker, one over it does', () => {
-        expect(asFocusRow('::review')).not.toContain('🟡');
-        expect(asFocusRow('::fulcrums')).toContain('🟡');
+        expect(asFocusRow('any::review')).not.toContain('🟡');
+        expect(asFocusRow('any::fulcrums')).toContain('🟡');
       });
 
       then('the focus roster renders as snapshotted — on STDOUT', () => {

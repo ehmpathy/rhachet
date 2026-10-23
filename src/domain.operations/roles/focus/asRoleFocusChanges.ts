@@ -11,7 +11,7 @@ import { asRoleFocusParts } from './asRoleFocusParts';
  */
 export interface RoleFocusChange {
   role: string;
-  kind: 'given' | 'narrow' | 'move' | 'widen' | 'unchanged';
+  kind: 'given' | 'narrow' | 'move' | 'widen' | 'unchanged' | 'held';
 
   /** the subjects held before; null for the whole role */
   from: string[] | null;

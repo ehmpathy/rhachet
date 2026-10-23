@@ -321,8 +321,8 @@ describe('setBrainDirBoot', () => {
             );
             expect(error).toBeInstanceOf(ConstraintError);
             expect(error.message).toContain("declares no subject 'gone'");
-            expect(error.message).toContain('::flow');
-            expect(error.message).toContain('::lean');
+            expect(error.message).toContain('one of flow, lean');
+            expect(error.message).toContain('rhx init --roles +any::');
           },
         );
       },

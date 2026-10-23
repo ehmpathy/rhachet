@@ -7,9 +7,10 @@ import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/finds
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
+import { getRepoAmbientRoleFociPath } from '@src/domain.operations/actor/enrolled/getRepoAmbientRoleFociPath';
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { setDeltaActorsOndisk } from './setDeltaActorsOndisk';
 
 const asHookOfRole = genSampleHookOfRole;
@@ -348,4 +349,206 @@ describe('setDeltaActorsOndisk', () => {
       });
     },
   );
+
+  given(
+    '[case4] a `+omega::flow` delta actor, enrolled over [any, zeta, omega], then zeta leaves the repo (D1)',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'sync-delta-actors-focus',
+          roles: [
+            { repo: 'fixture', role: 'any' },
+            { repo: 'fixture', role: 'zeta' },
+            { repo: 'fixture', role: 'omega' },
+          ],
+        });
+        const repoBrainDir = getBrainOndiskDir({
+          actorDir: getOneRepoActorOndiskDir({ repoPath }),
+        });
+        mkdirSync(repoBrainDir, { recursive: true });
+        writeFileSync(
+          join(repoBrainDir, 'settings.of.repo.json'),
+          JSON.stringify({
+            hooks: {
+              SessionStart: [
+                asHookOfRole({ role: 'any' }),
+                asHookOfRole({ role: 'zeta' }),
+                asHookOfRole({ role: 'omega' }),
+              ],
+            },
+          }),
+        );
+        const deltaActor = await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['any', 'zeta', 'omega::flow'],
+            rolesDelta: ['+omega::flow'],
+            delta: '+omega::flow',
+            reason: null,
+            logEnrollment: false,
+          },
+          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+        );
+        return { repoPath, deltaActor };
+      });
+
+      when('[t0] the delta actors sync over [any, omega]', () => {
+        const result = useBeforeAll(async () =>
+          setDeltaActorsOndisk({
+            repoPath: scene.repoPath,
+            rolesLinked: ['any', 'omega'],
+          }),
+        );
+
+        then('the actor drops zeta and keeps omega at its focus', () => {
+          expect(result.failures).toEqual([]);
+          expect(result.rederived).toHaveLength(1);
+          expect([...result.rederived[0]!.after].sort()).toEqual([
+            'any',
+            'omega::flow',
+          ]);
+        });
+
+        then('its actor.json holds the focus and keeps its delta', () => {
+          const manifest = getOneActorManifest({
+            repoPath: scene.repoPath,
+            exid: scene.deltaActor.exid,
+          });
+          expect([...manifest.roles].sort()).toEqual(['any', 'omega::flow']);
+          expect(manifest.rolesDelta).toEqual(['+omega::flow']);
+        });
+
+        then(
+          "its settings keep all of omega's hooks — hooks follow the role, never the focus",
+          () => {
+            const settings = getOneActorSettings({
+              repoPath: scene.repoPath,
+              exid: scene.deltaActor.exid,
+            });
+            expect(settings).toContain('role=any');
+            expect(settings).toContain('role=omega');
+            expect(settings).not.toContain('role=zeta');
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case5] a `-omega` delta actor, and the ambient record focuses zeta at flow',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'sync-delta-actors-record',
+          roles: [
+            { repo: 'fixture', role: 'any' },
+            { repo: 'fixture', role: 'zeta' },
+            { repo: 'fixture', role: 'omega' },
+          ],
+        });
+        const repoBrainDir = getBrainOndiskDir({
+          actorDir: getOneRepoActorOndiskDir({ repoPath }),
+        });
+        mkdirSync(repoBrainDir, { recursive: true });
+        writeFileSync(join(repoBrainDir, 'settings.of.repo.json'), '{}');
+        const deltaActor = await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['any', 'zeta'],
+            rolesDelta: ['-omega'],
+            delta: '-omega',
+            reason: null,
+            logEnrollment: false,
+          },
+          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+        );
+        writeFileSync(
+          getRepoAmbientRoleFociPath({ repoPath }),
+          JSON.stringify({ zeta: ['flow'] }),
+        );
+        return { repoPath, deltaActor };
+      });
+
+      when('[t0] the delta actors sync over [any, zeta, omega]', () => {
+        const result = useBeforeAll(async () =>
+          setDeltaActorsOndisk({
+            repoPath: scene.repoPath,
+            rolesLinked: ['any', 'zeta', 'omega'],
+          }),
+        );
+
+        then(
+          'the actor inherits the recorded focus — the ambient set it stands on',
+          () => {
+            expect(result.failures).toEqual([]);
+            expect(result.rederived).toHaveLength(1);
+            expect([...result.rederived[0]!.after].sort()).toEqual([
+              'any',
+              'zeta::flow',
+            ]);
+          },
+        );
+      });
+    },
+  );
+
+  given('[case6] a delta actor, and the ambient record is not json', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genSampleRepoWithRoles({
+        slug: 'sync-delta-actors-corrupt',
+        roles: [
+          { repo: 'fixture', role: 'any' },
+          { repo: 'fixture', role: 'zeta' },
+          { repo: 'fixture', role: 'omega' },
+        ],
+      });
+      const deltaActor = await findsertActorOndisk(
+        {
+          repoPath,
+          brain: 'claude',
+          roles: ['any', 'zeta'],
+          rolesDelta: ['-omega'],
+          delta: '-omega',
+          reason: null,
+          logEnrollment: false,
+        },
+        { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+      );
+      const recordPath = getRepoAmbientRoleFociPath({ repoPath });
+      mkdirSync(dirname(recordPath), { recursive: true });
+      writeFileSync(recordPath, '{ not json');
+      return { repoPath, deltaActor };
+    });
+
+    when('[t0] the delta actors sync', () => {
+      const result = useBeforeAll(async () =>
+        setDeltaActorsOndisk({
+          repoPath: scene.repoPath,
+          rolesLinked: ['any', 'omega'],
+        }),
+      );
+
+      then(
+        'one failure is collected for the sweep, never one per actor',
+        () => {
+          expect(result.rederived).toEqual([]);
+          expect(result.failures).toHaveLength(1);
+          expect(result.failures[0]!.scope).toEqual({ kind: 'actors' });
+          expect(result.failures[0]!.cause.message).toContain(
+            'ambient role foci record is not json',
+          );
+        },
+      );
+
+      then('the actor keeps the roles its record holds', () => {
+        const manifest = getOneActorManifest({
+          repoPath: scene.repoPath,
+          exid: scene.deltaActor.exid,
+        });
+        expect(manifest.roles).toEqual(['any', 'zeta']);
+      });
+    });
+  });
 });

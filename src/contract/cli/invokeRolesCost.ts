@@ -130,7 +130,11 @@ const getAllTokensOfCosts = (input: { costs: BootSpecCost[] }): number[] =>
  */
 const invokeRolesCostForAll = async (): Promise<void> => {
   const cwd = process.cwd();
-  const { costs, globs } = await getAllRepoBootSpecCosts({ cwd, globs: null });
+  const { costs, globs } = await getAllRepoBootSpecCosts({
+    cwd,
+    globs: null,
+    subjects: true,
+  });
 
   // 🔴 the reach prints on BOTH arms, and the empty one is where it earns its lines: the sweep
   //    walks a glob POLICY rather than the whole repo, so *"none found"* is a claim

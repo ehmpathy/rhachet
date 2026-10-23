@@ -63,6 +63,7 @@ import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleD
 import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
 import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { asRoleFocusReceiptLines } from '@src/domain.operations/roles/focus/asRoleFocusReceiptLines';
+import { getAllRoleFociOfDeltas } from '@src/domain.operations/roles/focus/getAllRoleFociOfDeltas';
 import { asCloneSpawnDepth } from '@src/domain.operations/spawn/asCloneSpawnDepth';
 import { assertCloneSpawnAllowed } from '@src/domain.operations/spawn/assertCloneSpawnAllowed';
 import { isCloneSpawnCallerLeaf } from '@src/domain.operations/spawn/isCloneSpawnCallerLeaf';
@@ -365,7 +366,15 @@ const performEnroll = async (input: {
     slugs: enrollment.roles,
     refsLinked,
   });
-  assertRoleFociDeclared({ refs: refsEnrolled, repoPath });
+  //   a focus the caller typed gets the typo hint; one it inherited from the ambient record
+  //   gets the recorded hint, since the caller never typed it
+  assertRoleFociDeclared({
+    refs: refsEnrolled,
+    rolesFocusTyped: getAllRoleFociOfDeltas({ deltas: spec.deltas }).map(
+      (entry) => entry.role,
+    ),
+    repoPath,
+  });
 
   // a delta enrollment is keyed by its delta, so it stays one actor while the ambient
   //   set moves under it (`inventory.of=requirements.case=2`)
@@ -802,7 +811,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(
       '-r, --roles <spec>',
-      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer"). a bare delta is an alias (rhx enroll claude -driver ≡ --roles -driver). role::<subject> boots one subject of the role, with all its hooks (mechanic::flow, +mechanic::flow)',
+      'roles to enroll — a single spec (e.g. mechanic, +architect, -driver). for multiple use the comma form (--roles -driver,-reviewer) or quote the space form (--roles "-driver -reviewer"). a bare delta is an alias (rhx enroll claude -driver ≡ --roles -driver). role::<subject> boots one subject of the role, with all its hooks (mechanic::flow, +mechanic::flow); list subjects via npx rhachet roles cost --all',
     )
     .option('--as <address>', 'name the clone with a stable handle (@:<slug>)')
     .option('--no-socket', 'enroll without a managed reach socket')

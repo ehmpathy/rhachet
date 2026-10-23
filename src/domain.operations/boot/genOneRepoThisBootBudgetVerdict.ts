@@ -44,6 +44,7 @@ export const genOneRepoThisBootBudgetVerdict = async (input: {
   const { costs } = await getAllRepoBootSpecCosts({
     cwd: input.cwd,
     globs: GLOBS_REPO_THIS_BOOT,
+    subjects: false,
   });
   const over = getAllSpecsOverBudgetOwned({ costs });
 

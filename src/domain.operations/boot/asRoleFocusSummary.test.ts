@@ -53,6 +53,18 @@ const TEST_CASES = [
       },
     },
   },
+  {
+    description:
+      'a focus typed out of order names its subjects in declaration order (O1)',
+    given: { config: SPEC_SUBJECTED, subjects: ['reef', 'flow'] },
+    expect: {
+      output: {
+        given: ['flow', 'reef'],
+        elsewhere: ['lean'],
+        alwaysShed: false,
+      },
+    },
+  },
 ];
 
 describe('asRoleFocusSummary', () => {

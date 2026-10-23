@@ -77,7 +77,7 @@ print_leaves() {
   done <<< "$lines"
 }
 
-echo "🧪 test.acceptance.credfree --scope '$SCOPE'"
+echo "🧮 test.acceptance.credfree --scope '$SCOPE'"
 if [[ -n "$FAILED" ]]; then
   echo "   ├─ failed"
   print_leaves "$FAILED"

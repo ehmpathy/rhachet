@@ -798,7 +798,32 @@ describe('computeBootPlan', () => {
       );
     });
 
-    when('[t2] every subject is booted', () => {
+    when('[t2] the same subjects are typed in the reverse order', () => {
+      then(
+        'the plan is identical, in declaration order, not typed order',
+        async () => {
+          const planTyped = await computeBootPlan({
+            config,
+            briefRefs: getBriefRefs(),
+            skillPaths: getSkillPaths(),
+            cwd: tempDir,
+            subjects: ['test', 'lean'],
+          });
+          const planDeclared = await computeBootPlan({
+            config,
+            briefRefs: getBriefRefs(),
+            skillPaths: getSkillPaths(),
+            cwd: tempDir,
+            subjects: ['lean', 'test'],
+          });
+          expect(planTyped.briefs.say.map((r) => r.pathToOriginal)).toEqual(
+            planDeclared.briefs.say.map((r) => r.pathToOriginal),
+          );
+        },
+      );
+    });
+
+    when('[t3] every subject is booted', () => {
       then('always is kept', async () => {
         const result = await computeBootPlan({
           config,

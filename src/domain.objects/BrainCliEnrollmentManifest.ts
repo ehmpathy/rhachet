@@ -15,6 +15,7 @@ export interface BrainCliEnrollmentManifest {
 
   /**
    * .what = ordered list of role slugs to enroll
+   * .note = a slug may carry a focus (`mechanic::flow`); read the role alone via asRoleFocusParts
    */
   roles: RoleSlug[];
 }

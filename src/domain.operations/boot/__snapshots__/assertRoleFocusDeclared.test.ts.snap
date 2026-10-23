@@ -1,5 +1,21 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`assertRoleFocusDeclared given: [case1.b] a typed focus on init, which \`prepare:rhachet\` may have run (U6) when: [t0] the focus names an undeclared subject then: the hint names the typo fix and the replay fix with --prep 1`] = `
+"✋ ConstraintError: role 'mechanic' declares no subject 'gone'
+
+{
+  "role": "mechanic",
+  "focus": [
+    "gone"
+  ],
+  "declared": [
+    "code.prod",
+    "flow"
+  ],
+  "hint": "focus one of: mechanic::code.prod, mechanic::flow. if \`prepare:rhachet\` ran this init, its replay names a subject the role dropped; rewrite it with \`rhx init --prep --roles +mechanic::<one of code.prod, flow>\`"
+}"
+`;
+
 exports[`assertRoleFocusDeclared given: [case1] a role that declares subjects when: [t2] the focus names an undeclared subject (wish 5) then: it fails loud and names the role, the focus, and the declared subjects 1`] = `
 "✋ ConstraintError: role 'mechanic' declares no subject '101'
 
@@ -16,6 +32,22 @@ exports[`assertRoleFocusDeclared given: [case1] a role that declares subjects wh
 }"
 `;
 
+exports[`assertRoleFocusDeclared given: [case1] a role that declares subjects when: [t3] a recorded focus names a subject a role upgrade dropped (U1) then: it fails loud with the fix that works: end the live clones, or re-point the repo record 1`] = `
+"✋ ConstraintError: role 'mechanic' declares no subject '101'
+
+{
+  "role": "mechanic",
+  "focus": [
+    "101"
+  ],
+  "declared": [
+    "code.prod",
+    "flow"
+  ],
+  "hint": "the focus was recorded before the role dropped it. for the repo's record (a bare enroll inherits it), run \`rhx init --roles +mechanic::<one of code.prod, flow> --hooks\` — it re-records the focus and lands the hooks a halted upgrade skipped; for an actor that holds it, end its live clones so the sweep skips it, then enroll at mechanic::<one of code.prod, flow>"
+}"
+`;
+
 exports[`assertRoleFocusDeclared given: [case2] a role that declares no subjects when: [t0] the spec is simple mode then: a focus refuses as unfocusable 1`] = `
 "✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused
 
@@ -25,7 +57,7 @@ exports[`assertRoleFocusDeclared given: [case2] a role that declares no subjects
     "flow"
   ],
   "mode": "simple",
-  "hint": "enroll 'driver' whole, with no ::<subject>"
+  "hint": "name 'driver' whole, with no ::<subject>"
 }"
 `;
 
@@ -38,6 +70,6 @@ exports[`assertRoleFocusDeclared given: [case2] a role that declares no subjects
     "flow"
   ],
   "mode": "none",
-  "hint": "enroll 'driver' whole, with no ::<subject>"
+  "hint": "name 'driver' whole, with no ::<subject>"
 }"
 `;

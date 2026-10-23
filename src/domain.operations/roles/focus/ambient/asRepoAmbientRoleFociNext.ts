@@ -5,9 +5,12 @@ import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecif
 
 /**
  * .what = the ambient role foci after an `rhx init --roles` delta
- * .why = the ambient roleset follows the same rule an enroll does: an exact set replaces it
- *        whole, a `+` delta upserts its role's one entry, a `-` delta drops it (fulcrum F6)
+ * .why = the record follows the links. an init links each role it names and unlinks only a
+ *        `-` role, so each named role takes its new focus (or widens), a `-` role drops its
+ *        entry, and a role the delta does not name keeps its focus — it stays linked
  *
+ * .note = an exact set on init links, never unlinks; to clear the foci of the roles it omits
+ *         would widen a role the human never named (i005 r011 point 1)
  * .note = the record keys by the bare role slug — a link is per slug, so a repo-qualified
  *         token (`ehmpathy/mechanic::flow`) records under `mechanic`
  * .note = a whole-role entry is absent from the record, never an empty list
@@ -30,16 +33,11 @@ export const asRepoAmbientRoleFociNext = (input: {
       ),
     );
 
-  // an exact set replaces the record whole
-  const absolutes = input.deltas.filter((delta) => delta.kind === 'absolute');
-  if (absolutes.length > 0)
-    return asFociOf(absolutes.map((delta) => delta.role));
-
-  // a delta drops every role it names, then records the focus of each addition
-  const additions = input.deltas.filter((delta) => delta.kind === 'addition');
+  // drop every role the delta names, then record the focus of each role it links
+  const linked = input.deltas.filter((delta) => delta.kind !== 'subtraction');
   const rolesNamed = new Set(input.deltas.map((delta) => asSlugOf(delta.role)));
   const fociKept = Object.fromEntries(
     Object.entries(input.fociPrior).filter(([role]) => !rolesNamed.has(role)),
   );
-  return { ...fociKept, ...asFociOf(additions.map((delta) => delta.role)) };
+  return { ...fociKept, ...asFociOf(linked.map((delta) => delta.role)) };
 };

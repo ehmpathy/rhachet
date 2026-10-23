@@ -10,6 +10,7 @@ export interface ContextOfRepoRoles {
     ambient: {
       /**
        * .what = the repo's ambient roles — the roles every bare enroll inherits
+       * .note = a slug may carry a focus (`mechanic::flow`); read the role alone via asRoleFocusParts
        */
       roles: RoleSlug[];
     };

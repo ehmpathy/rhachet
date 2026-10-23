@@ -84,6 +84,7 @@ export const getOneRoleBootContent = async (input: {
     slugRole: input.slugRole,
     subjects: input.subjects,
     config: bootConfig,
+    focusFrom: 'recorded',
   });
 
   // decide what to say and what to ref

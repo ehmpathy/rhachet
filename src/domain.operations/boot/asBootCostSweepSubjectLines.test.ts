@@ -60,7 +60,7 @@ describe('asBootCostSweepSubjectLines', () => {
           one: asCost({ subjects: [{ slug: 'flow', tokens: 900 }] }),
           widthTokens: 4,
         });
-        expect(lines).toEqual(['   │  └─  900 tokens  ::flow']);
+        expect(lines).toEqual(['   │  └─  900 tokens  any::flow']);
       });
     });
   });

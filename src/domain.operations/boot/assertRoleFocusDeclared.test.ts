@@ -27,6 +27,7 @@ describe('assertRoleFocusDeclared', () => {
             slugRole: 'mechanic',
             subjects: ['flow'],
             config: SPEC_SUBJECTED,
+            focusFrom: 'typed',
           }),
         ).not.toThrow();
       });
@@ -39,6 +40,7 @@ describe('assertRoleFocusDeclared', () => {
             slugRole: 'mechanic',
             subjects: null,
             config: SPEC_SUBJECTED,
+            focusFrom: 'typed',
           }),
         ).not.toThrow();
       });
@@ -53,6 +55,7 @@ describe('assertRoleFocusDeclared', () => {
               slugRole: 'mechanic',
               subjects: ['flow', '101'],
               config: SPEC_SUBJECTED,
+              focusFrom: 'typed',
             }),
           );
           expect(error).toBeInstanceOf(ConstraintError);
@@ -66,7 +69,64 @@ describe('assertRoleFocusDeclared', () => {
         },
       );
     });
+
+    when(
+      '[t3] a recorded focus names a subject a role upgrade dropped (U1)',
+      () => {
+        then(
+          'it fails loud with the fix that works: end the live clones, or re-point the repo record',
+          async () => {
+            const error = await getError(() =>
+              assertRoleFocusDeclared({
+                slugRole: 'mechanic',
+                subjects: ['101'],
+                config: SPEC_SUBJECTED,
+                focusFrom: 'recorded',
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain(
+              "role 'mechanic' declares no subject '101'",
+            );
+            expect(error.message).toContain('end its live clones');
+            expect(error.message).toContain('rhx init --roles +mechanic::');
+            expect(error.message).not.toContain('focus one of');
+            expect(error.message).toMatchSnapshot();
+          },
+        );
+      },
+    );
   });
+
+  given(
+    '[case1.b] a typed focus on init, which `prepare:rhachet` may have run (U6)',
+    () => {
+      when('[t0] the focus names an undeclared subject', () => {
+        then(
+          'the hint names the typo fix and the replay fix with --prep',
+          async () => {
+            const error = await getError(() =>
+              assertRoleFocusDeclared({
+                slugRole: 'mechanic',
+                subjects: ['gone'],
+                config: SPEC_SUBJECTED,
+                focusFrom: 'typed.init',
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain(
+              'focus one of: mechanic::code.prod, mechanic::flow',
+            );
+            expect(error.message).toContain('prepare:rhachet');
+            expect(error.message).toContain(
+              'rhx init --prep --roles +mechanic::<one of code.prod, flow>',
+            );
+            expect(error.message).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
 
   given('[case2] a role that declares no subjects', () => {
     when('[t0] the spec is simple mode', () => {
@@ -76,13 +136,14 @@ describe('assertRoleFocusDeclared', () => {
             slugRole: 'driver',
             subjects: ['flow'],
             config: SPEC_SIMPLE,
+            focusFrom: 'typed',
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
         expect(error.message).toContain(
           "role 'driver' declares no subjects, so it cannot be focused",
         );
-        expect(error.message).toContain("enroll 'driver' whole");
+        expect(error.message).toContain("name 'driver' whole");
         expect(error.message).toMatchSnapshot();
       });
     });
@@ -94,6 +155,7 @@ describe('assertRoleFocusDeclared', () => {
             slugRole: 'driver',
             subjects: ['flow'],
             config: null,
+            focusFrom: 'typed',
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
@@ -109,6 +171,7 @@ describe('assertRoleFocusDeclared', () => {
             slugRole: 'driver',
             subjects: null,
             config: null,
+            focusFrom: 'typed',
           }),
         ).not.toThrow();
       });

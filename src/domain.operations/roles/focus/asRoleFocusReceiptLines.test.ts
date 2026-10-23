@@ -36,7 +36,7 @@ describe('asRoleFocusReceiptLines', () => {
 
       then('the shed is the last leaf, and closes the branch', () => {
         expect(lines[lines.length - 1]).toEqual(
-          '   └─ mechanic sheds its always block, as its focus declares',
+          '   └─ mechanic sheds its always block, as its focus declares — its always briefs and skills do not boot',
         );
       });
 

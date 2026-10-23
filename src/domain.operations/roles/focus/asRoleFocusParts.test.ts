@@ -49,4 +49,23 @@ describe('asRoleFocusParts', () => {
       }),
     );
   });
+
+  given('[case3] a focus written with one colon (P14)', () => {
+    when("[t0] the token is 'mechanic:flow'", () => {
+      then(
+        'it refuses, names the form, and hints the token with `::` — never the whole role',
+        async () => {
+          const error = await getError(() =>
+            asRoleFocusParts({ token: 'mechanic:flow' }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'a focus is written <role>::<subject>',
+          );
+          expect(error.message).toContain('write mechanic::flow');
+          expect(error.message).toMatchSnapshot();
+        },
+      );
+    });
+  });
 });
