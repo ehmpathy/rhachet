@@ -240,6 +240,23 @@ const assertNoInertInherit = (input: {
       continue;
     }
 
+    // by INNER NAME — an `inherit` whose own key is not `always` (e.g. `allways`)
+    const inherit = section.inherit;
+    if (inherit && typeof inherit === 'object') {
+      const keysInert = Object.keys(inherit).filter((one) => one !== 'always');
+      if (keysInert.length > 0)
+        throw new ConstraintError(
+          'boot.yml declares `inherit` with a key no render reads — as written, the subject still boots `always`',
+          {
+            path: input.path,
+            section: key,
+            keys: keysInert.join(', '),
+            expected: 'always',
+            hint: `write \`inherit: { always: false }\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+          },
+        );
+    }
+
     // by NAME — a misspelled `inherit` key
     for (const [field, inner] of Object.entries(section)) {
       if (field === 'inherit') continue;

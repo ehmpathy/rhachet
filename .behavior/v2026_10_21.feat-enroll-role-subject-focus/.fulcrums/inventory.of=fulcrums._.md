@@ -15,6 +15,10 @@ declared as they arise.
 | F8 | init's ambient focus lives in `actor.via.repo=ambient/roles.foci.json` | clean | open | 75% |
 | F9 | a focused role names its scope in one `<focus given elsewhere always/>` line | clean | open | 70% |
 | F10 | the focus rides as a token in `RoleSlug`, not a `RoleFocus` domain literal (deferred) | dirty | open | 60% |
+| F11 | enroll's focus refusals keep the extant echo-less frame (the echo deferred to all six wrapped verbs) | dirty | open | 70% |
+| F12 | the boot-fault row keeps its extant compact-array form (the branch form deferred) | dirty | open | 65% |
+| F13 | the default reviewer brain test stays a selection test; the real call belongs to the brain package | clean | open | 75% |
+| F14 | extant shapes this pr did not author stay until disturbed (quotes, temp-root tokens, caselists, `inherit` fixtures) | clean | open | 80% |
 
 ## .questions for the commander — vision calls, retracted
 

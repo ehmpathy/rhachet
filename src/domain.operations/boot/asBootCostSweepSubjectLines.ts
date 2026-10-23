@@ -16,7 +16,7 @@ const asRoleSlugOfSpecPath = (input: { pathToSpec: string }): string | null =>
  *
  * .note = each row is checked against the spec's own cap, as the gate checks a focused boot
  * .note = the label is the token an enroll takes (`mechanic::101`), so a reader can copy it.
- *         a spec whose path names no `role=` (a `.behavior` spec) shows the suffix alone
+ *         a spec whose path names no `role=` (a `.behavior` spec) shows the bare subject slug
  * .note = naught renders for a spec that declares no subject
  */
 export const asBootCostSweepSubjectLines = (input: {
@@ -30,11 +30,11 @@ export const asBootCostSweepSubjectLines = (input: {
     const tokensShown = formatTokens({ tokens: subject.tokens }).padStart(
       input.widthTokens,
     );
-    const label = `${role ?? ''}::${subject.slug}`;
+    const label = role === null ? subject.slug : `${role}::${subject.slug}`;
 
-    // a spec with no declared cap has no headroom to report, for a focus as for the whole
+    // a spec with no declared cap says so, on a focus row as on its spec row
     if (one.budget === null)
-      return `   │  ${elbow} ${tokensShown} tokens  ${label}`;
+      return `   │  ${elbow} ${tokensShown} tokens (no budget)  ${label}`;
 
     const percentUsed = calcBudgetPercentUsed({
       payload: { tokens: subject.tokens },

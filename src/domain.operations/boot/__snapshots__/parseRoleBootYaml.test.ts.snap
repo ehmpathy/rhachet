@@ -12,34 +12,15 @@ exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\
 }"
 `;
 
-exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\` inheritance when: [t2] the inner always key is misspelled then: it throws rather than inherit in silence 1`] = `
-"✋ ConstraintError: boot.yml has invalid schema for subject mode
+exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\` inheritance when: [t2] the inner always key is misspelled then: it throws rather than inherit in silence, and names the key 1`] = `
+"✋ ConstraintError: boot.yml declares \`inherit\` with a key no render reads — as written, the subject still boots \`always\`
 
 {
   "path": "boot.yml",
-  "errors": [
-    {
-      "expected": "boolean",
-      "code": "invalid_type",
-      "path": [
-        "subject.101",
-        "inherit",
-        "always"
-      ],
-      "message": "Invalid input: expected boolean, received undefined"
-    },
-    {
-      "code": "unrecognized_keys",
-      "keys": [
-        "allways"
-      ],
-      "path": [
-        "subject.101",
-        "inherit"
-      ],
-      "message": "Unrecognized key: \\"allways\\""
-    }
-  ]
+  "section": "subject.101",
+  "keys": "allways",
+  "expected": "always",
+  "hint": "write \`inherit: { always: false }\` in boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file"
 }"
 `;
 

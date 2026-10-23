@@ -120,7 +120,11 @@ no change to how a role with no focus boots.
 - the 1.vision peer reviewers were moved off the openrouter host that returned 400; retire that
   move once rhachet-ktlo's cure for the openrouter 400 ships, so the reviewers return to their
   declared host
-- execution fulcrums F8–F10 (`.fulcrums/inventory.of=fulcrums._.md`) await the council's verdict;
-  F10 alone is a dirty rework (it re-types roleset contracts)
+- the resolved boot spec gains a field: each `always` and `subject.*` section of a subject-mode
+  `RoleBootSpec` now carries `inherit: { always: boolean }` (the parser defaults it to `true`), so a
+  fixture that builds a spec by hand names it. a yaml with no `inherit` reads as before
+- execution fulcrums F8–F14 (`.fulcrums/inventory.of=fulcrums._.md`) await the council's verdict;
+  F10–F12 are dirty reworks (F10 re-types roleset contracts; F11 and F12 change shared error
+  renderers and their extant snapshots), each with a caught dream
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

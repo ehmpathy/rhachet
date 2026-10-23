@@ -1,4 +1,4 @@
-import { given, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { asRoleFocusMap } from './asRoleFocusMap';
 
@@ -60,12 +60,14 @@ const TEST_CASES = [
 
 describe('asRoleFocusMap', () => {
   given('[case1] an enrolled roleset', () => {
-    TEST_CASES.forEach((testCase) =>
-      then(testCase.description, () => {
-        expect(asRoleFocusMap({ tokens: testCase.tokens })).toEqual(
-          testCase.expected,
-        );
-      }),
-    );
+    when('[t0] its tokens are mapped to focus entries', () => {
+      TEST_CASES.forEach((testCase) =>
+        then(testCase.description, () => {
+          expect(asRoleFocusMap({ tokens: testCase.tokens })).toEqual(
+            testCase.expected,
+          );
+        }),
+      );
+    });
   });
 });

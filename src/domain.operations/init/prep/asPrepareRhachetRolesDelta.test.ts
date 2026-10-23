@@ -1,4 +1,4 @@
-import { given, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { asPrepareRhachetRolesDelta } from './asPrepareRhachetRolesDelta';
 
@@ -226,10 +226,12 @@ describe('asPrepareRhachetRolesDelta', () => {
 
   cases.forEach((thisCase, index) =>
     given(`[case${index + 1}] ${thisCase.description}`, () => {
-      then('the command matches', () => {
-        expect(asPrepareRhachetRolesDelta(thisCase.given)).toEqual(
-          thisCase.expect,
-        );
+      when('[t0] the delta is applied to the command', () => {
+        then('the command matches', () => {
+          expect(asPrepareRhachetRolesDelta(thisCase.given)).toEqual(
+            thisCase.expect,
+          );
+        });
       });
     }),
   );
