@@ -588,7 +588,9 @@ describe('unlockKeyrackKeys.integration', () => {
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
           : 0;
-        expect(expiresAtMs - unlockSinceMs).toBeGreaterThan(fifteenMinMs - 5000);
+        expect(expiresAtMs - unlockSinceMs).toBeGreaterThan(
+          fifteenMinMs - 5000,
+        );
         expect(expiresAtMs - unlockUntilMs).toBeLessThanOrEqual(fifteenMinMs);
       });
     });

@@ -67,16 +67,19 @@ describe('asBootCostSweepSubjectLines', () => {
 
   given('[case4] a spec whose path names no role', () => {
     when('[t0] the lines render', () => {
-      then('the row shows the bare subject slug, with no dangled separator', () => {
-        const lines = asBootCostSweepSubjectLines({
-          one: asCost({
-            pathToSpec: '/repo/.behavior/v2026_10_21.demo/boot.yml',
-            subjects: [{ slug: 'review', tokens: 900 }],
-          }),
-          widthTokens: 4,
-        });
-        expect(lines).toEqual(['   │  └─  900 tokens (no budget)  review']);
-      });
+      then(
+        'the row shows the bare subject slug, with no dangled separator',
+        () => {
+          const lines = asBootCostSweepSubjectLines({
+            one: asCost({
+              pathToSpec: '/repo/.behavior/v2026_10_21.demo/boot.yml',
+              subjects: [{ slug: 'review', tokens: 900 }],
+            }),
+            widthTokens: 4,
+          });
+          expect(lines).toEqual(['   │  └─  900 tokens (no budget)  review']);
+        },
+      );
     });
   });
 });

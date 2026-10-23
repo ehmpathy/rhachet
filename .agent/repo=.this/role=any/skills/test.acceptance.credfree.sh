@@ -19,6 +19,8 @@
 #
 # guarantee:
 #   - builds when stale, then runs jest with the acceptance config
+#   - runs with CLAUDE_CONFIG_DIR unset, as ci does, so a clone's env
+#     never reaches a snapshot
 #   - never unlocks the keyrack; a suite that truly reads a key fails
 #     in that test with a legible error
 #   - the full output lands in .log/role=any/skill=test.acceptance.credfree/;
@@ -47,6 +49,11 @@ cd "$REPO_ROOT"
 LOG_DIR=".log/role=any/skill=test.acceptance.credfree"
 mkdir -p "$LOG_DIR"
 LOG_PATH="$LOG_DIR/$(date -u +%Y-%m-%dT%H-%M-%SZ).log"
+
+# run as ci runs: a clone's own CLAUDE_CONFIG_DIR leaks into the cli under test (a role init
+#   prints a `note: this clone's config dir is …` line for it), which ci never sets, so a
+#   snapshot written here would fail there
+unset CLAUDE_CONFIG_DIR
 
 # resnap writes snapshots (the npm command reads RESNAP); the default verifies them under
 #   CI=true, which jest reads as --ci, so an unwritten snapshot fails as it does in ci

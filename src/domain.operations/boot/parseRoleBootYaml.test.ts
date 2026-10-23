@@ -938,18 +938,21 @@ subject.101:
       - core.md
 `;
 
-      then('it throws rather than inherit in silence, and names the key', () => {
-        const error = getError(() =>
-          parseRoleBootYaml({ content, path: 'boot.yml' }),
-        );
-        expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain(
-          'boot.yml declares `inherit` with a key no render reads',
-        );
-        expect(error.message).toMatch(/"keys":\s*"allways"/);
-        expect(error.message).not.toContain('invalid_type');
-        expect(error.message).toMatchSnapshot();
-      });
+      then(
+        'it throws rather than inherit in silence, and names the key',
+        () => {
+          const error = getError(() =>
+            parseRoleBootYaml({ content, path: 'boot.yml' }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'boot.yml declares `inherit` with a key no render reads',
+          );
+          expect(error.message).toMatch(/"keys":\s*"allways"/);
+          expect(error.message).not.toContain('invalid_type');
+          expect(error.message).toMatchSnapshot();
+        },
+      );
     });
 
     when('[t3] inherit sits on the always section itself', () => {
