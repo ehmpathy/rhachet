@@ -28,7 +28,7 @@ exports[`rhx init --roles <role>::<subject> (acceptance) given: [case2] an empty
    └─ mechanic focused at ::flow"
 `;
 
-exports[`rhx init --roles <role>::<subject> (acceptance) given: [case3] a repo whose ambient foci record is not json when: [t0] \`init --roles +mechanic::flow\` then: the refusal matches its snapshot 1`] = `
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case3] a repo whose ambient foci record is not json when: [t0] \`init --roles +mechanic::flow\` then: the refusal matches its snapshot, the v8 parse text masked 1`] = `
 "
 💥 MalfunctionError: ambient role foci record is not json
 
@@ -37,7 +37,7 @@ exports[`rhx init --roles <role>::<subject> (acceptance) given: [case3] a repo w
   "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
   "cause": {
     "class": "SyntaxError",
-    "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+    "message": "$JSON_PARSE_MESSAGE"
   }
 }
 

@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ConstraintError } from 'helpful-errors';
@@ -1104,6 +1104,94 @@ describe('rhachet roles cost', () => {
         // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
           'stdout-all-subject',
+        );
+      });
+    });
+  });
+
+  /**
+   * .what = the two focus rows [case13] cannot reach: a spec with subjects and no cap, and a
+   *   route spec whose path names no role
+   * .why = an unbudgeted role with subjects is a common real state, and a route spec may
+   *   declare subjects too; the roster must render both rows a human sizes a seat by
+   */
+  given('[case13.b] an unbudgeted role and a route spec, each with a subject', () => {
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-boot-budget-subject' });
+
+      // the role keeps its two subjects and drops its cap
+      writeFileSync(
+        join(r.path, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
+        [
+          'always:',
+          '  briefs:',
+          '    say:',
+          '      - briefs/shared.md',
+          'subject.review:',
+          '  briefs:',
+          '    say:',
+          '      - briefs/review.md',
+          'subject.fulcrums:',
+          '  briefs:',
+          '    say:',
+          '      - briefs/fulcrums.md',
+          '',
+        ].join('\n'),
+      );
+
+      // a route spec, which names no role, declares one subject
+      const routeDir = join(r.path, '.behavior', 'v2026_10_23.demo');
+      mkdirSync(routeDir, { recursive: true });
+      writeFileSync(join(routeDir, 'wish.md'), '# wish\n');
+      writeFileSync(join(routeDir, 'review.md'), '# review\n');
+      writeFileSync(
+        join(routeDir, 'boot.yml'),
+        [
+          'always:',
+          '  briefs:',
+          '    say:',
+          "      - 'wish.md'",
+          'subject.review:',
+          '  briefs:',
+          '    say:',
+          "      - 'review.md'",
+          '',
+        ].join('\n'),
+      );
+      return r;
+    });
+
+    when('[t0] roles cost --all', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'cost', '--all'],
+          cwd: repo.path,
+        }),
+      );
+      // a focus row ends its cost with two spaces and the focus label
+      const asFocusRow = (focus: string): string | undefined =>
+        result.stdout
+          .split('\n')
+          .find((line) => line.endsWith(`  ${focus}`));
+
+      then('exits with status 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('a focus of an uncapped spec states its absent cap, as its spec row does', () => {
+        expect(asFocusRow('any::review')).toContain('(no budget)');
+        expect(asFocusRow('any::fulcrums')).toContain('(no budget)');
+      });
+
+      then('a focus of a route spec reads as the bare subject, with no dangled separator', () => {
+        expect(asFocusRow('review')).toContain('(no budget)');
+        expect(result.stdout).not.toContain('  ::review');
+      });
+
+      then('the uncapped roster renders as snapshotted — on STDOUT', () => {
+        // .readout = `asSnapshotSafe` over raw STDOUT — no error-readout wrapper
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-all-subject-uncapped',
         );
       });
     });

@@ -1,46 +1,19 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
+import { getAllActorHashDirNames } from '@/blackbox/.test/infra/brainDirBootJourney';
 import { setupEnrollFixture } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { getOneFocusReceiptBlock } from '@/blackbox/.test/infra/getOneFocusReceiptBlock';
-import { seedRoleAuthoredHooks } from '@/blackbox/.test/infra/seedRoleAuthoredHooks';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
-
-/**
- * .what = writes a stub `claude` that answers the version floor and exits 0, and returns
- *   a PATH that finds it first
- * .why = enroll writes the actor dir before it spawns the brain, so a stub that exits 0
- *   lets the run complete and leaves the actor dir to assert on
- */
-const setupExitStubBrainPath = (input: { dir: string }): string => {
-  const binDir = join(input.dir, '.stub-bin');
-  mkdirSync(binDir, { recursive: true });
-  const stubPath = join(binDir, 'claude');
-  writeFileSync(
-    stubPath,
-    '#!/usr/bin/env bash\nif [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; fi\nexit 0\n',
-    'utf-8',
-  );
-  chmodSync(stubPath, 0o755);
-  return `${binDir}:${process.env.PATH ?? ''}`;
-};
-
-/**
- * .what = the hash actor dirs an enroll wrote, by name
- */
-const getAllActorHashDirNames = (input: { dir: string }): string[] => {
-  const actorsRoot = join(input.dir, '.agent', '.actors');
-  if (!existsSync(actorsRoot)) return [];
-  return readdirSync(actorsRoot).filter((name) =>
-    name.startsWith('actor.via.hash='),
-  );
-};
+import { maskJsonParseCause } from '@/blackbox/.test/infra/maskJsonParseCause';
+import { seedRoleAuthoredHooks } from '@/blackbox/.test/infra/seedRoleAuthoredHooks';
+import { setupStubBrainPath } from '@/blackbox/.test/infra/setupStubBrainPath';
 
 /**
  * .what = the brain dir of the one hash actor an enroll wrote
@@ -64,7 +37,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     beforeAll(() => {
       setupEnrollFixture({ dir });
       seedRoleAuthoredHooks({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     when('[t0] `enroll claude --roles +mechanic::flow`', () => {
@@ -119,7 +92,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     beforeAll(() => {
       setupEnrollFixture({ dir });
       seedRoleAuthoredHooks({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     when('[t0] `enroll claude +mechanic::flow`', () => {
@@ -157,7 +130,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     beforeAll(() => {
       setupEnrollFixture({ dir });
       seedRoleAuthoredHooks({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     when('[t0] `enroll claude --roles mechanic::flow`', () => {
@@ -197,7 +170,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     when('[t0] `enroll claude --roles +mechanic::nope`', () => {
@@ -235,7 +208,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     const cases = [
@@ -289,7 +262,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
       mkdirSync(join(fociPath, '..'), { recursive: true });
       writeFileSync(fociPath, '{ mechanic: flow');
     });
@@ -311,10 +284,11 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
 
       then('it names the record and the repair', () => {
         expect(run.stderr).toContain('roles.foci.json');
+        expect(run.stderr).toContain('"class": "SyntaxError"');
       });
 
-      then('the refusal matches its snapshot', () => {
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      then('the refusal matches its snapshot, the v8 parse text masked', () => {
+        expect(maskJsonParseCause(asSnapshotSafe(run.stderr))).toMatchSnapshot();
       });
     });
   });
@@ -325,7 +299,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
       mkdirSync(join(roleDir, 'briefs'), { recursive: true });
       writeFileSync(join(roleDir, 'readme.md'), '# lean\n');
       writeFileSync(join(roleDir, 'briefs/base.md'), '# base, always\n');
@@ -485,7 +459,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
       setRepoFociRecord({ dir, foci: { mechanic: ['flow'] } });
     });
 
@@ -530,7 +504,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
       setRepoFociRecord({ dir, foci: { mechanic: ['gone'] } });
     });
 
@@ -566,7 +540,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     let stubPath: string;
     beforeAll(() => {
       setupEnrollFixture({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
       const enrolled = invokeRhachetCliBinary({
         args: ['enroll', 'claude', '--roles', '+mechanic::flow'],
         cwd: dir,
@@ -625,7 +599,7 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
     beforeAll(() => {
       setupEnrollFixture({ dir });
       seedRoleAuthoredHooks({ dir });
-      stubPath = setupExitStubBrainPath({ dir });
+      stubPath = setupStubBrainPath({ dir });
     });
 
     when('[t0] the whole set, then the same set with mechanic at flow', () => {
@@ -694,6 +668,112 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
           receipt: getOneFocusReceiptBlock({ output: scene.focused.stderr }),
           lineFocus: boot.split('\n').find((line) => line.startsWith('<focus given=')),
         }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case11] a supervisor enrolls a focus and reads the handoff (machine channel)', () => {
+    const dir = genTempDir({ slug: 'enroll-focus-json' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture({ dir });
+      seedRoleAuthoredHooks({ dir });
+      stubPath = setupStubBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude --roles +mechanic::flow --output json`', () => {
+      const run = useThen('it hands back the address', () =>
+        invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--roles',
+            '+mechanic::flow',
+            '--output',
+            'json',
+          ],
+          cwd: dir,
+          env: { PATH: stubPath },
+          timeoutMs: 60_000,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0, and stdout is one parseable handoff', () => {
+        expect(run.status).toEqual(0);
+        const handoff = JSON.parse(run.stdout) as {
+          outcome: string;
+          serial: string;
+        };
+        expect(handoff.outcome).toEqual('baked');
+        expect(handoff.serial).toMatch(/^[0-9a-f-]{36}$/);
+      });
+
+      then('the human receipt never reaches stdout, the channel the machine parses', () => {
+        expect(run.stdout).not.toContain('🧢 focus');
+      });
+
+      then('the actor the handoff names boots at the focus and keeps every hook', () => {
+        const brainDir = getOneEnrolledBrainDir({ dir });
+        const boot = readFileSync(join(brainDir, 'boot.md'), 'utf-8');
+        expect(boot).toContain('<focus given="flow"');
+        expect(boot).not.toContain('rule.require.hook-wrapper-pattern.md');
+        const settings = readFileSync(
+          join(brainDir, 'settings.of.repo.json'),
+          'utf-8',
+        );
+        expect(settings).toContain('repo=ehmpathy/role=mechanic');
+      });
+
+      then('the focused handoff renders as snapshotted', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case12] a focus enrolled as a detached host (`--async`)', () => {
+    const dir = genTempDir({ slug: 'enroll-focus-async' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture({ dir });
+      seedRoleAuthoredHooks({ dir });
+      stubPath = setupStubBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude --async --roles +mechanic::flow`', () => {
+      const run = useThen('it terminates on its own', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--async', '--roles', '+mechanic::flow'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          timeoutMs: 60_000,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('stderr names the focus — a detached seat narrates it as an attended one does', () => {
+        expect(run.stderr).toContain('🧢 focus');
+        expect(run.stderr).toContain('mechanic narrowed to ::flow');
+      });
+
+      then('the detached actor boots at the focus and keeps every hook', () => {
+        const brainDir = getOneEnrolledBrainDir({ dir });
+        const boot = readFileSync(join(brainDir, 'boot.md'), 'utf-8');
+        expect(boot).toContain('<focus given="flow"');
+        const settings = readFileSync(
+          join(brainDir, 'settings.of.repo.json'),
+          'utf-8',
+        );
+        expect(settings).toContain('repo=ehmpathy/role=mechanic');
+        expect(settings).toContain('repo=bhrain/role=driver');
+      });
+
+      then('the detached receipt renders as snapshotted', () => {
+        expect(getOneFocusReceiptBlock({ output: run.stderr })).toMatchSnapshot();
       });
     });
   });

@@ -14,6 +14,7 @@ import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { maskJsonParseCause } from '@/blackbox/.test/infra/maskJsonParseCause';
 import {
   getOneIsRoleLinked,
   setupRoleFixtureRepo,
@@ -125,10 +126,11 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
       then('it names the record and the repair', () => {
         expect(run.stderr).toContain('roles.foci.json');
         expect(run.stderr).toContain('or remove it');
+        expect(run.stderr).toContain('"class": "SyntaxError"');
       });
 
-      then('the refusal matches its snapshot', () => {
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      then('the refusal matches its snapshot, the v8 parse text masked', () => {
+        expect(maskJsonParseCause(asSnapshotSafe(run.stderr))).toMatchSnapshot();
       });
     });
   });

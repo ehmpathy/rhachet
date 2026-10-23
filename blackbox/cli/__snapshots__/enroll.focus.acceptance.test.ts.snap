@@ -87,7 +87,7 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechan
 "
 `;
 
-exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case5] a repo whose ambient foci record is not json when: [t0] \`enroll claude --roles +mechanic::flow\` then: the refusal matches its snapshot 1`] = `
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case5] a repo whose ambient foci record is not json when: [t0] \`enroll claude --roles +mechanic::flow\` then: the refusal matches its snapshot, the v8 parse text masked 1`] = `
 "
 💥 MalfunctionError: ambient role foci record is not json
 
@@ -96,7 +96,7 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case5] a repo
   "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
   "cause": {
     "class": "SyntaxError",
-    "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+    "message": "$JSON_PARSE_MESSAGE"
   }
 }
 
@@ -163,4 +163,14 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case10] an ex
   "receipt": "🧢 focus
    └─ mechanic focused at ::flow",
 }
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case11] a supervisor enrolls a focus and reads the handoff (machine channel) when: [t0] \`enroll claude --roles +mechanic::flow --output json\` then: the focused handoff renders as snapshotted 1`] = `
+"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case12] a focus enrolled as a detached host (\`--async\`) when: [t0] \`enroll claude --async --roles +mechanic::flow\` then: the detached receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic narrowed to ::flow"
 `;

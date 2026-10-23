@@ -28,13 +28,15 @@ const TEST_CASES = [
 
 describe('asRoleFocusParts', () => {
   given('[case1] a well-formed token', () => {
-    TEST_CASES.forEach((testCase) =>
-      then(testCase.description, () => {
-        expect(asRoleFocusParts({ token: testCase.token })).toEqual(
-          testCase.expected,
-        );
-      }),
-    );
+    when('[t0] the token is split', () => {
+      TEST_CASES.forEach((testCase) =>
+        then(testCase.description, () => {
+          expect(asRoleFocusParts({ token: testCase.token })).toEqual(
+            testCase.expected,
+          );
+        }),
+      );
+    });
   });
 
   given('[case2] a malformed focus', () => {

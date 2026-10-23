@@ -64,7 +64,7 @@ describe('asEnrollBareRoleDeltas', () => {
     });
   });
 
-  given('[case7] a focused bare delta beside a brain flag', () => {
+  given('[case6] a focused bare delta beside a brain flag', () => {
     when('[t0] the passthrough is `+mechanic::flow -c`', () => {
       then(
         'the focus leaves as a delta, never reaches the brain as prompt text',
@@ -80,7 +80,7 @@ describe('asEnrollBareRoleDeltas', () => {
     });
   });
 
-  given('[case6] an unsigiled role name', () => {
+  given('[case7] an unsigiled role name', () => {
     when('[t0] the passthrough is `driver`', () => {
       then('it stays in the passthrough (a prompt word, not a delta)', () => {
         expect(
