@@ -2,6 +2,7 @@ import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
+import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSubjects';
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,8 +10,8 @@ import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
 
 const ROLES = [
-  { repo: '.this', role: 'any' },
-  { repo: 'fixture', role: 'zeta' },
+  { repo: '.this', role: 'any', subjects: null },
+  { repo: 'fixture', role: 'zeta', subjects: null },
 ];
 
 /**
@@ -163,7 +164,10 @@ describe('setBrainDirBoot', () => {
           const error = await getError(
             setBrainDirBoot({
               brainDir,
-              roles: [...ROLES, { repo: 'fixture', role: 'absent' }],
+              roles: [
+                ...ROLES,
+                { repo: 'fixture', role: 'absent', subjects: null },
+              ],
               repoPath,
               scope: { kind: 'repo' },
             }),
@@ -220,5 +224,108 @@ describe('setBrainDirBoot', () => {
         expect(error).toBeInstanceOf(ConstraintError);
       });
     });
+  });
+
+  given('[case5] a role that declares subjects (wish 2, 3)', () => {
+    // `always` holds base; `flow` inherits it; `lean` sheds it (genSampleRepoWithSubjects)
+    when('[t0] the role is rendered at the focus any::flow', () => {
+      then('boot.md holds always and flow, and no other subject', async () => {
+        const repoPath = genSampleRepoWithSubjects({
+          slug: 'setBrainDirBoot-c5t0',
+        });
+        const render = await setBrainDirBoot({
+          brainDir: join(repoPath, 'brain', '.claude'),
+          roles: [
+            { repo: '.this', role: 'any', subjects: ['flow'] },
+            { repo: 'fixture', role: 'zeta', subjects: null },
+          ],
+          repoPath,
+          scope: { kind: 'repo' },
+        });
+        const bootMd = readFileSync(render.bootMdPath, 'utf8');
+        expect(bootMd).toContain('any base body');
+        expect(bootMd).toContain('any flow body');
+        expect(bootMd).not.toContain('any lean body');
+        expect(bootMd).toContain('zeta brief body');
+      });
+
+      then('the focused subject brings its own skills (SK1)', async () => {
+        const repoPath = genSampleRepoWithSubjects({
+          slug: 'setBrainDirBoot-c5t0-skill',
+        });
+        const render = await setBrainDirBoot({
+          brainDir: join(repoPath, 'brain', '.claude'),
+          roles: [{ repo: '.this', role: 'any', subjects: ['flow'] }],
+          repoPath,
+          scope: { kind: 'repo' },
+        });
+        expect(readFileSync(render.bootMdPath, 'utf8')).toContain(
+          'skills/flow.sh',
+        );
+      });
+    });
+
+    when('[t1] the role is rendered at the focus any::lean', () => {
+      then('boot.md holds lean alone, since lean sheds always', async () => {
+        const repoPath = genSampleRepoWithSubjects({
+          slug: 'setBrainDirBoot-c5t1',
+        });
+        const render = await setBrainDirBoot({
+          brainDir: join(repoPath, 'brain', '.claude'),
+          roles: [{ repo: '.this', role: 'any', subjects: ['lean'] }],
+          repoPath,
+          scope: { kind: 'repo' },
+        });
+        const bootMd = readFileSync(render.bootMdPath, 'utf8');
+        expect(bootMd).toContain('any lean body');
+        expect(bootMd).not.toContain('any base body');
+        expect(bootMd).not.toContain('any flow body');
+        expect(bootMd).not.toContain('skills/flow.sh');
+      });
+    });
+
+    when('[t2] the role is rendered whole', () => {
+      then('boot.md holds always and every subject, as before', async () => {
+        const repoPath = genSampleRepoWithSubjects({
+          slug: 'setBrainDirBoot-c5t2',
+        });
+        const render = await setBrainDirBoot({
+          brainDir: join(repoPath, 'brain', '.claude'),
+          roles: [{ repo: '.this', role: 'any', subjects: null }],
+          repoPath,
+          scope: { kind: 'repo' },
+        });
+        const bootMd = readFileSync(render.bootMdPath, 'utf8');
+        expect(bootMd).toContain('any base body');
+        expect(bootMd).toContain('any flow body');
+        expect(bootMd).toContain('any lean body');
+      });
+    });
+
+    when(
+      '[t3] the recorded focus names a subject the spec no longer declares (U1)',
+      () => {
+        then(
+          'the render halts loud and names the declared subjects',
+          async () => {
+            const repoPath = genSampleRepoWithSubjects({
+              slug: 'setBrainDirBoot-c5t3',
+            });
+            const error = await getError(
+              setBrainDirBoot({
+                brainDir: join(repoPath, 'brain', '.claude'),
+                roles: [{ repo: '.this', role: 'any', subjects: ['gone'] }],
+                repoPath,
+                scope: { kind: 'repo' },
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain("declares no subject 'gone'");
+            expect(error.message).toContain('one of flow, lean');
+            expect(error.message).toContain('rhx init --roles +any::');
+          },
+        );
+      },
+    );
   });
 });

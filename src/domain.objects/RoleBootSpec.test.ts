@@ -278,11 +278,13 @@ describe('RoleBootSpec', () => {
         always: {
           briefs: { say: ['core.md'], ref: [], not: [] },
           skills: null,
+          inherit: { always: true },
         },
         subjects: {
           test: {
             briefs: { say: ['test-rules.md'], ref: [], not: [] },
             skills: { say: ['test-runner.sh'], ref: [], not: [] },
+            inherit: { always: true },
           },
         },
       });
@@ -310,6 +312,7 @@ describe('RoleBootSpec', () => {
           test: {
             briefs: { say: ['test-rules.md'], ref: [], not: [] },
             skills: null,
+            inherit: { always: true },
           },
         },
       });

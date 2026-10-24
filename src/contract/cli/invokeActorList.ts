@@ -6,6 +6,7 @@ import { asActorListView } from '@src/domain.operations/clone/cli/asActorListVie
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { asCliOutputMode } from './asCliOutputMode';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -22,6 +23,7 @@ export const invokeActorList = ({ actor }: { actor: Command }): void => {
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     .action(async (opts: { output?: string }) => {
       await withCliOutputErrors({
+        args: getCliInvocationArgs({ command: actor }),
         outputRaw: opts.output,
         run: async () => {
           const mode = asCliOutputMode({ raw: opts.output });

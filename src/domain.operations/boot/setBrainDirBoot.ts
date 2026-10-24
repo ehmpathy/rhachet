@@ -1,6 +1,6 @@
 import { MalfunctionError } from 'helpful-errors';
 
-import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -24,10 +24,12 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
  *
  * .note = roles render from `repoPath`'s `.agent/`, in enrollment order, after the one
  *         rhachet intro brief (`getOneRhachetBootIntro`)
+ * .note = a focused role renders its subjects alone; a whole one (`subjects: null`) renders
+ *         every subject, as it always has
  */
 export const setBrainDirBoot = async (input: {
   brainDir: string;
-  roles: RoleLinkRef[];
+  roles: RoleLinkRefAtFocus[];
   repoPath: string;
   scope: BrainDirBootScope;
 }): Promise<BrainDirBootRender> => {
@@ -38,7 +40,7 @@ export const setBrainDirBoot = async (input: {
       getOneRoleBootContent({
         slugRepo: ref.repo,
         slugRole: ref.role,
-        subjects: null,
+        subjects: ref.subjects,
         cwd: input.repoPath,
       }),
     ),

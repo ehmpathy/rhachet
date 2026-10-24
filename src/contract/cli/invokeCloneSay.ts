@@ -29,6 +29,7 @@ import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { asCliOutputMode } from './asCliOutputMode';
 import { asCloneSayReachFault } from './asCloneSayReachFault';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -93,6 +94,7 @@ export const invokeCloneSay = ({ clone }: { clone: Command }): void => {
         },
       ) => {
         await withCliOutputErrors({
+          args: getCliInvocationArgs({ command: clone }),
           outputRaw: opts.output,
           run: async () => {
             const mode = asCliOutputMode({ raw: opts.output });

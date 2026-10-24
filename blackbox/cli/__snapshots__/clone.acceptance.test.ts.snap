@@ -63,6 +63,8 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "hint": "list clones with \`rhx clone list\`"
 }
 
+[args] clone,say,@:ghostclone,--what,anyone home?
+
 "
 `;
 
@@ -83,6 +85,8 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 {
   "hint": "whoami works from within a clone spawned by \`rhx enroll\`"
 }
+
+[args] clone,whoami
 
 "
 `;
@@ -139,6 +143,8 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
   "hint": "use a non-negative integer (e.g. --tail 20) or --tail all"
 }
 
+[args] clone,get,@:driver,--tail,notanumber
+
 "
 `;
 
@@ -163,6 +169,8 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 {
   "hint": "use --format blocks (default, directioned) or --format raw (verbatim replies)"
 }
+
+[args] clone,get,@:driver,--format,bogus
 
 "
 `;
@@ -216,6 +224,8 @@ exports[`rhx clone reach (acceptance) given: [case1] a named clone enrolled thro
 {
   "hint": "list clones with \`rhx clone list\`"
 }
+
+[args] clone,get,@:ghostclone
 
 "
 `;

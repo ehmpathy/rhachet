@@ -11,6 +11,7 @@ import {
   type CloneSayAwaitTarget,
   computeCloneSayPollStep,
 } from './computeCloneSayPollStep';
+import { computeCloneSayProbeBound } from './computeCloneSayProbeBound';
 import type { CloneSayObservation } from './computeCloneSayVerdict';
 // the two latency bounds this loop rides live with every other wire tunable in
 // `./constants`, so a human who tunes the say budget reads them beside the submit delay
@@ -73,6 +74,11 @@ export const getCloneSayObservation = async (input: {
   //   bounded here, never escapes
   let cyclesElapsed = 0;
 
+  // .note = deliberate mutation — the reply bound for the next probe, local to this loop. a
+  //   probe that times out doubles it, a capable read resets it (computeCloneSayProbeBound),
+  //   so a host whose replies arrive late still lands a read instead of a timeout every cycle
+  let probeBoundMs = CLONE_SAY_PROBE_REPLY_MS;
+
   // .note = deliberate mutation — the diagnostic trail, appended once per cycle and handed
   //   back whole. it is write-only within this loop: no branch above reads it, so it cannot
   //   alter a verdict. bounded by the poll deadline (~60 cycles at the 250ms floor)
@@ -108,12 +114,18 @@ export const getCloneSayObservation = async (input: {
     // `debug: true` asks the server to attach the RAW grid beside the classification. it
     // is the SAME read the classification below is computed from, so the failure log shows
     // the exact rows the verdict saw — never a re-probe taken at a later, different moment
+    const probeStartedAt = Date.now();
     const reply = await getCloneInputStateOrBlind({
       socketPath: input.socketPath,
       message: input.message,
       debug: true,
-      replyTimeoutMs: CLONE_SAY_PROBE_REPLY_MS,
+      replyTimeoutMs: probeBoundMs,
       traceFault,
+    });
+    probeBoundMs = computeCloneSayProbeBound({
+      boundPrior: probeBoundMs,
+      probeMs: Date.now() - probeStartedAt,
+      capable: reply.probe === 'capable',
     });
     const screen = asCloneObservationScreen({
       reply,

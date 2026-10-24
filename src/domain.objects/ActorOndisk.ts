@@ -44,6 +44,7 @@ export interface ActorOndisk {
 
   /**
    * .what = the sorted role slugs this actor is enrolled with
+   * .note = a slug may carry a focus (`mechanic::flow`); read the role alone via asRoleFocusParts
    */
   roles: RoleSlug[];
 }

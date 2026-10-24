@@ -260,4 +260,181 @@ describe('computeBrainCliEnrollment', () => {
       });
     });
   });
+
+  given('[case-focus] a role at a subject focus', () => {
+    const asIncremental = (tokens: string[]) =>
+      new BrainCliEnrollmentSpec({
+        mode: 'incremental',
+        deltas: tokens.map(
+          (token) => new RoleDelta({ kind: 'addition', role: token }),
+        ),
+      });
+
+    when('[t0] an exact set names mechanic::flow', () => {
+      then('the focus is kept, validated by its role', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: new BrainCliEnrollmentSpec({
+            mode: 'absolute',
+            deltas: [
+              new RoleDelta({ kind: 'absolute', role: 'driver' }),
+              new RoleDelta({ kind: 'absolute', role: 'mechanic::flow' }),
+            ],
+          }),
+          rolesAmbient,
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['driver', 'mechanic::flow']);
+      });
+    });
+
+    when('[t1] +mechanic::flow atop an ambient mechanic whole (S3)', () => {
+      then('the entry narrows in place — never mechanic beside it', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic::flow']),
+          rolesAmbient,
+          rolesLinked,
+        });
+        expect(result.roles).toEqual([
+          'mechanic::flow',
+          'driver',
+          'ergonomist',
+        ]);
+      });
+    });
+
+    when('[t2] +mechanic::code.prod atop a held mechanic::flow (E3)', () => {
+      then('the focus moves — never flow and code.prod side by side', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic::code.prod']),
+          rolesAmbient: ['mechanic::flow', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['mechanic::code.prod', 'driver']);
+      });
+    });
+
+    when('[t3] +mechanic atop a held mechanic::flow (E4)', () => {
+      then('the entry widens to the whole role', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic']),
+          rolesAmbient: ['mechanic::flow', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['mechanic', 'driver']);
+      });
+    });
+
+    when('[t4] -mechanic atop a held mechanic::flow (P11)', () => {
+      then('the focused entry is removed whole', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: new BrainCliEnrollmentSpec({
+            mode: 'incremental',
+            deltas: [new RoleDelta({ kind: 'subtraction', role: 'mechanic' })],
+          }),
+          rolesAmbient: ['mechanic::flow', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['driver']);
+      });
+    });
+
+    when('[t5] +mechanic::flow atop a held mechanic::flow (E2)', () => {
+      then('it is a no-op', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic::flow']),
+          rolesAmbient: ['mechanic::flow', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['mechanic::flow', 'driver']);
+      });
+    });
+
+    when('[t6] a focus on a role that is not linked (L2)', () => {
+      then('it meets the unlinked refusal, named by its role', async () => {
+        const error = await getError(() =>
+          computeBrainCliEnrollment({
+            brain,
+            spec: asIncremental(['reviewer::flow']),
+            rolesAmbient,
+            rolesLinked,
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain("role 'reviewer' not found");
+        expect(error.message).toContain('linked roles: mechanic');
+        expect(error.message).toMatchSnapshot();
+      });
+    });
+
+    when(
+      '[t6.b] an exact set `mechanic::101,flow` — a subject typed without its role',
+      () => {
+        then('it names the one-subject-per-token form', async () => {
+          const error = await getError(() =>
+            computeBrainCliEnrollment({
+              brain,
+              spec: new BrainCliEnrollmentSpec({
+                mode: 'absolute',
+                deltas: [
+                  new RoleDelta({ kind: 'absolute', role: 'mechanic::101' }),
+                  new RoleDelta({ kind: 'absolute', role: 'flow' }),
+                ],
+              }),
+              rolesAmbient,
+              rolesLinked,
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('one subject per token');
+          expect(error.message).toContain('mechanic::flow');
+          expect(error.message).toMatchSnapshot();
+        });
+      },
+    );
+
+    when('[t7] +mechanic::flow atop a held ehmpathy/mechanic (Q1)', () => {
+      then('the qualified entry narrows in place — one entry per role', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic::flow']),
+          rolesAmbient: ['ehmpathy/mechanic', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['mechanic::flow', 'driver']);
+      });
+    });
+
+    when('[t8] -mechanic atop a held ehmpathy/mechanic::flow (Q1)', () => {
+      then('the qualified focused entry is removed whole', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: new BrainCliEnrollmentSpec({
+            mode: 'incremental',
+            deltas: [new RoleDelta({ kind: 'subtraction', role: 'mechanic' })],
+          }),
+          rolesAmbient: ['ehmpathy/mechanic::flow', 'driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['driver']);
+      });
+    });
+
+    when('[t9] +mechanic::flow atop a held bhuild/driver', () => {
+      then('a role of another name is kept as held', () => {
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec: asIncremental(['mechanic::flow']),
+          rolesAmbient: ['bhuild/driver'],
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['bhuild/driver', 'mechanic::flow']);
+      });
+    });
+  });
 });

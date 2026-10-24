@@ -9,6 +9,8 @@ import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAll
 import { isRolesetEqual } from '@src/domain.operations/actor/enrolled/isRolesetEqual';
 import { setActorOndiskManifestWithinLock } from '@src/domain.operations/actor/enrolled/setActorOndiskManifest';
 import type { BrainDirBootFailure } from '@src/domain.operations/boot/BrainDirBootRender';
+import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
+import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
@@ -52,14 +54,67 @@ export const setDeltaActorsOndisk = async (input: {
   if ('failure' in enumeration)
     return { rederived: [], failures: [enumeration.failure] };
 
+  // no actor to re-derive → naught to read
+  if (enumeration.actors.length === 0) return { rederived: [], failures: [] };
+
+  // the ambient set at its recorded focus, read once for the sweep — it is the same for every
+  //   actor, so a corrupt record is one failure, never one per actor
+  const ambient = getRolesAmbientOrFailure({
+    repoPath: input.repoPath,
+    rolesLinked: input.rolesLinked,
+  });
+  if ('failure' in ambient)
+    return { rederived: [], failures: [ambient.failure] };
+
   // one outcome per actor: rewritten, failed, or left as it was
   const outcomes = await Promise.all(
     enumeration.actors.map((actor) =>
-      getOneDeltaActorOutcome({ actor, rolesLinked: input.rolesLinked }),
+      getOneDeltaActorOutcome({
+        actor,
+        rolesAmbient: ambient.rolesAmbient,
+        rolesLinked: input.rolesLinked,
+      }),
     ),
   );
 
   return asDeltaActorOutcomes({ outcomes });
+};
+
+/**
+ * .what = the ambient roles at their recorded focus — the set a bare enroll inherits — or the
+ *   one failure that stopped the read
+ * .why = a corrupt ambient record is a sync failure to report once, never a throw
+ */
+const getRolesAmbientOrFailure = (input: {
+  repoPath: string;
+  rolesLinked: RoleSlug[];
+}): { rolesAmbient: RoleSlug[] } | { failure: BrainDirBootFailure } => {
+  try {
+    return {
+      rolesAmbient: asRoleSlugsAmbientAtFocus({
+        rolesLinked: input.rolesLinked,
+        foci: getRepoAmbientRoleFoci({ repoPath: input.repoPath }),
+      }),
+    };
+  } catch (error) {
+    // an allowlist: a classed or fs fault is the sweep's row; a code defect surfaces loud
+    if (isCodeDefectError({ error })) throw error;
+    return {
+      failure: {
+        scope: { kind: 'actors' },
+        cause:
+          error instanceof Error
+            ? error
+            : new MalfunctionError(
+                'ambient role foci read threw a non-Error value',
+                {
+                  reason: error,
+                  hint: 'rerun `rhx init`; if it fails again, report this output as a rhachet bug',
+                },
+              ),
+      },
+    };
+  }
 };
 
 /**
@@ -68,6 +123,7 @@ export const setDeltaActorsOndisk = async (input: {
  */
 const getOneDeltaActorOutcome = async (input: {
   actor: ActorOndisk;
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): Promise<DeltaActorOutcome> => {
   const { actor } = input;
@@ -75,6 +131,7 @@ const getOneDeltaActorOutcome = async (input: {
     // only a delta actor re-derives; any other holds the roles it named
     const rederive = getActorRolesRederivedOrNull({
       actor,
+      rolesAmbient: input.rolesAmbient,
       rolesLinked: input.rolesLinked,
     });
     if (rederive === null) return null;
@@ -127,6 +184,7 @@ const getOneDeltaActorOutcome = async (input: {
  */
 const getActorRolesRederivedOrNull = (input: {
   actor: ActorOndisk;
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): { rolesBefore: RoleSlug[]; rolesNext: RoleSlug[] } | null => {
   const manifest = getActorOndiskManifest({
@@ -137,7 +195,7 @@ const getActorRolesRederivedOrNull = (input: {
   const rolesNext = asActorRolesRederived({
     brain: input.actor.brain,
     rolesDelta: manifest.rolesDelta,
-    rolesAmbient: input.rolesLinked,
+    rolesAmbient: input.rolesAmbient,
     rolesLinked: input.rolesLinked,
   });
   const rolesBefore = manifest.roles as RoleSlug[];

@@ -49,8 +49,11 @@ const runTheWatch = async (input: {
 describe('genCloneLoopLagWatch', () => {
   given('[case1] a HEALTHY loop', () => {
     when('[t0] the watch runs across several ticks with no stall', () => {
+      // .note = the bound sits far above the stall a starved jest worker meets under a full
+      //   parallel run (a gc pause, cpu contention); this case asks only that a loop no test
+      //   stalls stays quiet, and a 200ms bound flaked on a loaded box
       const traced = useThen('the watch runs', async () =>
-        runTheWatch({ lagThresholdMs: 200, stopFirst: false, blockForMs: 0 }),
+        runTheWatch({ lagThresholdMs: 2000, stopFirst: false, blockForMs: 0 }),
       );
 
       then(
@@ -87,7 +90,25 @@ describe('genCloneLoopLagWatch', () => {
     });
   });
 
-  given('[case3] a STOPPED watch', () => {
+  given('[case3] a SHORT stall, at the 200ms bound [case1] once held', () => {
+    when('[t0] the loop is stalled 300ms against a 200ms bound', () => {
+      // .note = [case1] widened its bound to stay quiet on a loaded box; this case keeps the
+      //   low band under proof. a busy wait of 300ms always yields drift >= 300ms, so the
+      //   report is deterministic however loaded the box
+      const traced = useThen('the watch reports the stall', async () =>
+        runTheWatch({ lagThresholdMs: 200, stopFirst: false, blockForMs: 300 }),
+      );
+
+      then('a stall in the 200–400ms band is reported, once', () => {
+        expect(traced.count).toEqual(1);
+        expect(traced.first.startsWith('clone daemon event loop stalled')).toBe(
+          true,
+        );
+      });
+    });
+  });
+
+  given('[case4] a STOPPED watch', () => {
     when('[t0] the loop stalls AFTER stop()', () => {
       const traced = useThen('the watch runs', async () =>
         runTheWatch({ lagThresholdMs: 100, stopFirst: true, blockForMs: 300 }),

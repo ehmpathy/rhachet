@@ -1,0 +1,31 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 1.vision
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: dimensional-decomposition (l1, 3/3)
+   │  │   │   ├─ approved, cached — set aside by dispute
+   │  │   │   ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 2 nitpicks, 1 disputed → 1 tallied 🟠
+   │  │   │   ├─ given: .behavior/v2026_10_21.feat-enroll-role-subject-focus/.reviews/peer/1.vision._.review.i008.bd4b5e520dab9aa450.r001._.given.by_peer.dimensional-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_10_21.feat-enroll-role-subject-focus/.reviews/peer/1.vision._.review.i008.bd4b5e520dab9aa450.r001._.taken.by_self.dimensional-decomposition.md
+   │  │   └─ r2: experience-coverage (l1, 3/3)
+   │  │       ├─ exhausted 🌙, cached — set aside by dispute
+   │  │       ├─ disputed 🌙 — skipped this generation, no round spent
+   │  │       ├─ terminal — does not block higher levels
+   │  │       ├─ 1 blocker, 1 disputed → 0 tallied ✓
+   │  │       ├─ 0 nitpicks ✓
+   │  │       ├─ given: .behavior/v2026_10_21.feat-enroll-role-subject-focus/.reviews/peer/1.vision._.review.i008.bd4b5e520dab9aa450.r002._.given.by_peer.experience-coverage.md
+   │  │       └─ taken: .behavior/v2026_10_21.feat-enroll-role-subject-focus/.reviews/peer/1.vision._.review.i008.bd4b5e520dab9aa450.r002._.taken.by_self.experience-coverage.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │      │   └─ finished 3.3s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 3.3s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

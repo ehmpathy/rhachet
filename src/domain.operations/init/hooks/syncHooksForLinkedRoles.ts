@@ -22,6 +22,7 @@ import { asHookFaultRows } from './asHookFaultRows';
 import { asHookSyncTotalRows } from './asHookSyncTotalRows';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
+import { isBrainClaudeCode } from './isBrainClaudeCode';
 import { syncRoleHooksIntoTarget } from './syncRoleHooksIntoTarget';
 
 /**
@@ -123,7 +124,9 @@ export const syncHooksForLinkedRoles = async (
       { authorsDesired, roles, brains: brainsTarget, configTargetDir: null },
       context,
     );
-  const isClaudeCodeTargeted = brainsTarget.includes('anthropic/claude/code');
+  const isClaudeCodeTargeted = brainsTarget.some((brain) =>
+    isBrainClaudeCode({ brain }),
+  );
   const {
     pruneResult,
     syncResult,

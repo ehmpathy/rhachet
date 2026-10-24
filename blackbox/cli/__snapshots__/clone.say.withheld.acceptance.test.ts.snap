@@ -36,6 +36,8 @@ exports[`rhx clone reach (acceptance) given: [case9] a clone whose input box is 
   "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
 }
 
+[args] clone,say,@:dirtybox,--what,poke unforced-x9
+
 "
 `;
 
@@ -117,6 +119,8 @@ exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open 
   "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
 }
 
+[args] clone,say,@:modalbox,--what,poke modal-x9
+
 "
 `;
 
@@ -162,6 +166,8 @@ exports[`rhx clone reach (acceptance) given: [case14] a clone whose screen has N
   "slug": "noboxscreen",
   "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
 }
+
+[args] clone,say,@:noboxscreen,--what,poke nobox-x9
 
 "
 `;

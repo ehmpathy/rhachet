@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertUpgradeRoleSpecsUnfocused given: [case2] a spec with a focus (U2) when: [t0] upgrade --roles mechanic::flow then: it refuses and names the package form as the fix 1`] = `
+"✋ ConstraintError: upgrade --roles names packages, and a package has no focus: 'mechanic::flow'
+
+{
+  "roleSpecs": [
+    "mechanic::flow"
+  ],
+  "hint": "run: rhx upgrade --roles mechanic — every actor focused on it re-renders at its own focus"
+}"
+`;

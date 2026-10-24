@@ -196,6 +196,7 @@ const resolveSubjectSection = (
     | {
         briefs?: ResourceCurationDeclared;
         skills?: ResourceCurationDeclared;
+        inherit?: { always: boolean };
       }
     | undefined,
 ): SubjectSectionResolved | null => {
@@ -203,7 +204,76 @@ const resolveSubjectSection = (
   return {
     briefs: resolveResourceCuration(input.briefs),
     skills: resolveResourceCuration(input.skills),
+    inherit: { always: input.inherit?.always ?? true },
   };
+};
+
+/**
+ * .what = refuses an `inherit` the render cannot read — by place, or by name
+ * .why = the twin of `assertNoInertBudget`: an author wrote `inherit: { always: false }` to
+ *        shed `always`, and a misplaced or misspelled one would boot `always` in silence
+ *
+ * .note = by PLACE: `inherit` on the `always` section names naught to inherit from
+ * .note = by NAME: the test is STRUCTURAL, never a list of typos. a subject-section key other
+ *   than `inherit` whose value carries an `always` field declares an inheritance no render reads
+ */
+const assertNoInertInherit = (input: {
+  raw: Record<string, unknown>;
+  path: string;
+}): void => {
+  for (const [key, value] of Object.entries(input.raw)) {
+    if (!value || typeof value !== 'object') continue;
+    if (!isBootSectionKey(key)) continue;
+    const section = value as Record<string, unknown>;
+
+    // by PLACE — `always` cannot opt out of itself
+    if (key === 'always') {
+      if ('inherit' in section)
+        throw new ConstraintError(
+          'boot.yml declares `inherit` on the `always` section — only a subject inherits `always`',
+          {
+            path: input.path,
+            section: key,
+            hint: 'move `inherit: { always: false }` into the `subject.*` section that should shed `always`',
+          },
+        );
+      continue;
+    }
+
+    // by INNER NAME — an `inherit` whose own key is not `always` (e.g. `allways`)
+    const inherit = section.inherit;
+    if (inherit && typeof inherit === 'object') {
+      const keysInert = Object.keys(inherit).filter((one) => one !== 'always');
+      if (keysInert.length > 0)
+        throw new ConstraintError(
+          'boot.yml declares `inherit` with a key no render reads — as written, the subject still boots `always`',
+          {
+            path: input.path,
+            section: key,
+            keys: keysInert.join(', '),
+            expected: 'always',
+            hint: `write \`inherit: { always: false }\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+          },
+        );
+    }
+
+    // by NAME — a misspelled `inherit` key
+    for (const [field, inner] of Object.entries(section)) {
+      if (field === 'inherit') continue;
+      if (!inner || typeof inner !== 'object') continue;
+      if (!('always' in (inner as Record<string, unknown>))) continue;
+      throw new ConstraintError(
+        'boot.yml declares an `always` inheritance under a key no render reads — as written, the subject still boots `always`',
+        {
+          path: input.path,
+          section: key,
+          key: field,
+          expected: 'inherit',
+          hint: `rename \`${field}\` to \`inherit\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+        },
+      );
+    }
+  }
 };
 
 /**
@@ -235,6 +305,9 @@ export const parseRoleBootYaml = (input: {
   //    `computeBootMode`, so a spec whose ONLY section key is mistyped refuses by name rather
   //    than collapse to mode `none` and refuse as "no payload to cap"
   assertNoInertSection({ raw: rawObject, path: input.path });
+
+  // and an `always` opt-out that no render reads — misplaced, or misspelled
+  assertNoInertInherit({ raw: rawObject, path: input.path });
 
   // detect mode
   const mode = computeBootMode({ raw: rawObject });
@@ -278,6 +351,7 @@ export const parseRoleBootYaml = (input: {
         value as {
           briefs?: ResourceCurationDeclared;
           skills?: ResourceCurationDeclared;
+          inherit?: { always: boolean };
         },
       );
       if (section) {

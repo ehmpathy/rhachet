@@ -4,7 +4,8 @@ import { exec } from 'node:child_process';
 import { readlinkSync, statSync } from 'node:fs';
 import type { Socket } from 'node:net';
 import { promisify } from 'node:util';
-import { asSocketPeerPidFromSs } from './asSocketPeerPidFromSs';
+import { asSocketPeerInodeFromSs } from './asSocketPeerInodeFromSs';
+import { getSocketInodeHolderPid } from './getSocketInodeHolderPid';
 
 const execAsync = promisify(exec);
 
@@ -13,22 +14,24 @@ const execAsync = promisify(exec);
  *   the uid + gid that own it
  * .why =
  *   - node does not expose SO_PEERCRED directly, so this recovers the peer's
- *     identity via the kernel: the socket's inode → the peer pid (`ss -xp`) → the
- *     owner uid/gid of `/proc/<pid>` (its real credentials)
+ *     identity via the kernel: our socket's inode → the PEER socket's inode (`ss -x`)
+ *     → the process that holds that inode (`/proc/<pid>/fd`) → the owner uid/gid of
+ *     `/proc/<pid>` (its real credentials)
  *   - a caller needs the peer UID to enforce same-user dispatch on a clone socket
- *     (isCallerSameUser); the daemon needs the peer PID for its session gate. the two
- *     readers stay separate (this one returns {pid,uid,gid}; the daemon's
- *     getSocketPeerPid returns just the pid, in its own svc tree), but they SHARE the
- *     one hazard-prone step — the `ss -xp` inode-to-pid parse — via asSocketPeerPidFromSs,
- *     so a fix to the parse reaches both, not one
+ *     (isCallerSameUser)
  *
+ * .note = 🔴 why `ss -x` and not `ss -xp`: `-p` maps every fd of every process on the host,
+ *   once per connection — 168–343ms on an idle dev box (`rhx ss.peer.probe`), and past the
+ *   observe loop's 1s probe bound under suite load. the client then hung up mid-auth, its
+ *   fd closed, and the map found no owner: `could not read peer pid from ss` (measured
+ *   2026-10-23). `ss -x` (26ms) names the peer inode, and the holder scan stops at the first
+ *   match. and `-p` read the pid off whichever of the pair's two lines came first, which
+ *   could be the server's OWN line; the peer inode is read off our line alone
  * .note = linux-specific (needs /proc + ss); a lookup break is a MalfunctionError
  *   (a real infra fault to diagnose, not a caller fault)
- * .note = ASYNC: the `ss` lookup is a subprocess, so it is awaited (execAsync), NOT
- *   run through a synchronous execSync. the clone process is the SAME process that
- *   mirrors the human's pty, so a synchronous `ss` would freeze the human's terminal
- *   (and every other socket connection) for the lookup's duration. the `/proc`
- *   readlink/stat reads stay sync — they are microsecond-fast, never the blocker
+ * .note = ASYNC: the `ss` lookup is a subprocess, so it is awaited (execAsync), NOT run
+ *   through a synchronous execSync — the clone process mirrors the human's pty, so a sync
+ *   shell-out would freeze the terminal for its duration
  */
 export const getSocketPeerCred = async (input: {
   socket: Socket;
@@ -63,21 +66,33 @@ export const getSocketPeerCred = async (input: {
   const grepPattern =
     inodeNum > INT32_MAX ? `(${inode}|${signedInode})` : inode;
 
+  // read the peer inode off OUR line — no process map, so it costs the socket list alone
   const { stdout: ssOutput } = await execAsync(
-    `ss -xp | grep -E "${grepPattern}" || true`,
+    `ss -x | grep -E "${grepPattern}" || true`,
     { encoding: 'utf-8', timeout: 5000 },
   );
-  // parse the pid from the line whose inode field EXACTLY equals ours — never a
-  // partial grep match (asSocketPeerPidFromSs closes the wrong-peer hazard)
-  const pid = asSocketPeerPidFromSs({
+  const peerInode = asSocketPeerInodeFromSs({
     ssOutput,
     inode,
     signedInode: String(signedInode),
   });
-  if (pid === null)
-    return MalfunctionError.throw('could not read peer pid from ss', {
+  if (peerInode === null)
+    return MalfunctionError.throw('could not read peer inode from ss', {
       inode,
+      socketDestroyed: input.socket.destroyed,
     });
+
+  // find the process that holds the peer end; an unreadable or absent holder fails closed
+  const pid = await getSocketInodeHolderPid({ inode: peerInode });
+  if (pid === null)
+    return MalfunctionError.throw(
+      'could not find the process that holds the peer socket',
+      {
+        inode,
+        peerInode,
+        socketDestroyed: input.socket.destroyed,
+      },
+    );
 
   // the owner of /proc/<pid> carries the peer's real uid + gid
   const stat = statSync(`/proc/${pid}`);

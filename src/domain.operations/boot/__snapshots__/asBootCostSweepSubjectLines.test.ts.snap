@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootCostSweepSubjectLines given: [case2] a budgeted spec with two subjects when: [t0] the lines render then: the lines match their snapshot 1`] = `
+"   │  ├─  4,200 / 30,000 tokens (14%)  any::101
+   │  └─ 31,000 / 30,000 tokens (103%)  any::arch 🟡"
+`;

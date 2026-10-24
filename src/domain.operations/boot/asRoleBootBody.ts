@@ -16,8 +16,24 @@ export const asRoleBootBody = (input: {
   readme: { path: string; content: string } | null;
   briefsSaid: { path: string; content: string }[];
   skillsSaid: { path: string; content: string }[];
+
+  /**
+   * the focus this role renders at; null for a whole role
+   *
+   * .note = a focused render omits `<also>`, so this line is how the clone learns the
+   *   other subjects exist, and whether the role's `always` block was shed
+   */
+  focus: { given: string[]; elsewhere: string[]; alwaysShed: boolean } | null;
 }): { body: string; stats: BootStats } => {
-  const { bootPlan, readme, briefsSaid, skillsSaid } = input;
+  const { bootPlan, readme, briefsSaid, skillsSaid, focus } = input;
+
+  // a focused role names its focus first, so the clone reads the scope before the content
+  const linesFocus = focus
+    ? [
+        `<focus given="${focus.given.join(',')}" elsewhere="${focus.elsewhere.join(',')}" always="${focus.alwaysShed ? 'shed' : 'kept'}"/>`,
+        '',
+      ]
+    : [];
 
   // a path in the body is repo-relative, so two repos render the same text
   const asBodyPath = (filepath: string): string =>
@@ -42,6 +58,7 @@ export const asRoleBootBody = (input: {
 
   // compose the body, in the order the prior per-line print used
   const lines: string[] = [
+    ...linesFocus,
     ...(readme
       ? [
           `<readme path="${asBodyPath(readme.path)}">`,

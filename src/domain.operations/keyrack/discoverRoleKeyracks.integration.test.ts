@@ -87,6 +87,32 @@ describe('discoverRoleKeyracks', () => {
         expect(result).toEqual([]);
       });
     });
+
+    when(
+      '[t2] discoverRoleKeyracks is called with that role at a focus',
+      () => {
+        then(
+          'returns the role keyrack — a keyrack follows the role, never its focus',
+          async () => {
+            mkdirSync(join(testDir, '.agent/repo=ehmpathy/role=mechanic'), {
+              recursive: true,
+            });
+            writeFileSync(
+              join(testDir, '.agent/repo=ehmpathy/role=mechanic/keyrack.yml'),
+              'org: ehmpathy\n',
+            );
+
+            const result = await discoverRoleKeyracks(
+              { roles: ['mechanic::flow'] },
+              { gitroot: testDir },
+            );
+            expect(result).toEqual([
+              '.agent/repo=ehmpathy/role=mechanic/keyrack.yml',
+            ]);
+          },
+        );
+      },
+    );
   });
 
   given('[case4] .agent directory with multiple role keyracks', () => {

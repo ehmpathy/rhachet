@@ -1,4 +1,4 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { parseRoleBootYaml } from './parseRoleBootYaml';
@@ -863,6 +863,119 @@ always:
       then('it parses, and the unknown key is ignored as it is today', () => {
         const result = parseRoleBootYaml({ content, path: 'boot.yml' });
         expect(result?.mode).toEqual('subject');
+      });
+    });
+  });
+
+  /**
+   * .why = a subject may shed the role's `always` block (K1). the opt-out is a payload the
+   *   author relies on, so a misplaced or misspelled one refuses rather than boot `always` in
+   *   silence (K2) — the same rigor `[case13]` and `[case14]` give the budget and the section
+   */
+  given('[case15] a subject that declares its `always` inheritance', () => {
+    when('[t0] a subject declares inherit: { always: false }', () => {
+      const content = `
+always:
+  briefs:
+    say:
+      - base.md
+subject.101:
+  inherit:
+    always: false
+  briefs:
+    say:
+      - core.md
+subject.flow:
+  briefs:
+    say:
+      - flow.md
+`;
+
+      then(
+        'the opt-out reaches the spec, and a silent subject inherits',
+        () => {
+          const result = parseRoleBootYaml({ content, path: 'boot.yml' });
+          if (result?.mode !== 'subject')
+            throw new MalfunctionError('expected subject');
+          expect(result.subjects['101']?.inherit).toEqual({ always: false });
+          expect(result.subjects.flow?.inherit).toEqual({ always: true });
+        },
+      );
+    });
+
+    when('[t1] the inherit key is misspelled', () => {
+      const content = `
+always:
+  briefs:
+    say:
+      - base.md
+subject.101:
+  inhert:
+    always: false
+  briefs:
+    say:
+      - core.md
+`;
+
+      then('it throws, and names the key it read and the one it wanted', () => {
+        const error = getError(() =>
+          parseRoleBootYaml({ content, path: 'boot.yml' }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toMatch(/"key":\s*"inhert"/);
+        expect(error.message).toMatch(/"expected":\s*"inherit"/);
+        expect(error.message).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the inner always key is misspelled', () => {
+      const content = `
+subject.101:
+  inherit:
+    allways: false
+  briefs:
+    say:
+      - core.md
+`;
+
+      then(
+        'it throws rather than inherit in silence, and names the key',
+        () => {
+          const error = getError(() =>
+            parseRoleBootYaml({ content, path: 'boot.yml' }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'boot.yml declares `inherit` with a key no render reads',
+          );
+          expect(error.message).toMatch(/"keys":\s*"allways"/);
+          expect(error.message).not.toContain('invalid_type');
+          expect(error.message).toMatchSnapshot();
+        },
+      );
+    });
+
+    when('[t3] inherit sits on the always section itself', () => {
+      const content = `
+always:
+  inherit:
+    always: false
+  briefs:
+    say:
+      - base.md
+subject.101:
+  briefs:
+    say:
+      - core.md
+`;
+
+      then('it throws — only a subject inherits always', () => {
+        const error = getError(() =>
+          parseRoleBootYaml({ content, path: 'boot.yml' }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain('only a subject inherits `always`');
+        expect(error.message).toMatchSnapshot();
       });
     });
   });

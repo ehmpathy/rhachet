@@ -51,8 +51,8 @@ const asMigrationReportOnly = (output: string): string => {
  *   and on the very next run — causes unrelated to the render it claims to pin, and each
  *   such red teaches the maintainer to resnap rather than read
  * .note = what stays LIVE is every byte the cli owns: the `dropped:` / `moved:` lines, the
- *   `✗ … not written:` lead, each `└─ hint:` cure, every path segment BELOW the repo root
- *   (so `/TMP_REPO/.claude` keeps its `.claude`), the `unrestorable:` list, and the ROLE
+ *   `✗ … not written` lead, each `└─ hint =` cure, every path segment BELOW the repo root
+ *   (so `/TMP_REPO/.claude` keeps its `.claude`), the `unrestorable` list, and the ROLE
  *   count. a reword, a lost hint, or a changed destination all still redden
  * .note = the repo root is replaced by its OWN value rather than by a pattern, and both of
  *   its names are replaced — the raw path and its realpath — since a temp dir on darwin
@@ -688,11 +688,9 @@ describe('invokeInit (integration)', () => {
             expect(readlinkSync(join(repoPath, '.claude'))).toEqual(
               REPO_ACTOR_BRAIN_DIR_REL,
             );
-            // the dir moved first (the layout runs before the role inits), so only the hand
-            //   settings.json moved; the role's own init then wrote its permissions into
-            //   claude's settings.json, and the layout replaced it with the grove arrow. one answer,
-            //   rhachet's: the role init's write never reaches settings.of.repo.json (that waits
-            //   on ehmpathy/rhachet-roles-ehmpathy#895, a role init that writes it by name)
+            // the dir moved first (the layout runs before the role inits), so the role's own
+            //   init meets the layout and writes its permissions into settings.of.repo.json by
+            //   name (ehmpathy/rhachet-roles-ehmpathy#895; `inventory.of=requirements.case=8`)
             expect(
               asFileContentOrEmpty({
                 path: join(
@@ -701,7 +699,7 @@ describe('invokeInit (integration)', () => {
                   'settings.of.repo.json',
                 ),
               }),
-            ).not.toContain('"permissions"');
+            ).toContain('"permissions"');
             expect(
               lstatSync(
                 join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
@@ -844,7 +842,7 @@ describe('invokeInit (integration)', () => {
           'not a dir\n',
         );
         const errors = errorSpy.mock.calls.map((call) => String(call[0]));
-        expect(errors.some((line) => line.includes('└─ hint: move'))).toBe(
+        expect(errors.some((line) => line.includes('└─ hint = move'))).toBe(
           true,
         );
         // the hint is the one span the assert above checks; the frame around it is what

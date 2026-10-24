@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleBootBody given: [case4] a focused role, one subject said when: [t0] the body is composed with always kept then: the body matches its snapshot 1`] = `
+"<focus given="101" elsewhere="reef,tide" always="kept"/>
+
+<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/wave.md">
+ride it
+</brief.say>
+
+"
+`;
+
+exports[`asRoleBootBody given: [case4] a focused role, one subject said when: [t2] the focus names every declared subject then: the focus line matches its snapshot 1`] = `"<focus given="101,reef,tide" elsewhere="" always="kept"/>"`;

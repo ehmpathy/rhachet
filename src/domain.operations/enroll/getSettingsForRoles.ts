@@ -1,4 +1,5 @@
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 
 import { asRoleSlugOfHookAuthor } from './asRoleSlugOfHookAuthor';
 
@@ -25,7 +26,11 @@ export const getSettingsForRoles = (input: {
   //   🔴 a segment, never a substring: `role=architect` is a prefix of `role=architect-ops`,
   //   so a substring match would hand an `architect` actor the hooks of `architect-ops` —
   //   the cross-role leak this narrow exists to prevent
-  const rolesEnrolled = new Set(roles);
+  //   🔴 a focus is stripped first: hooks follow the role, never the subject, so
+  //   `mechanic::flow` keeps every mechanic hook (an unstripped token would drop them all)
+  const rolesEnrolled = new Set(
+    roles.map((token) => asRoleFocusParts({ token }).role),
+  );
 
   // narrow each hook event category to entries with at least one role-authored hook
   const hooksFiltered: ClaudeCodeSettings['hooks'] = {};
