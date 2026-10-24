@@ -80,6 +80,7 @@ import {
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { asCliOutputMode } from './asCliOutputMode';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
 /**
@@ -878,6 +879,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
         }
 
         await withCliOutputErrors({
+          args: getCliInvocationArgs({ command }),
           outputRaw: opts.output,
           run: async () => {
             const gitroot = process.cwd();

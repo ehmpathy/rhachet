@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
 import { getAllActorHashDirNames } from '@/blackbox/.test/infra/brainDirBootJourney';
@@ -211,22 +211,31 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
       stubPath = setupStubBrainPath({ dir });
     });
 
+    // .note = each row asserts its refusal's own sentence: the `[args]` echo also carries the
+    //   token, so a bare-token assert would pass on the echo alone
     const cases = [
       {
         label: '[t0] `--roles -mechanic::flow` (P12)',
         args: ['--roles', '-mechanic::flow'],
+        sentence:
+          "a subtraction removes a role whole; '-mechanic::flow' names a focus",
       },
       {
         label: '[t1] `--roles mechanic,mechanic::flow` (S1)',
         args: ['--roles', 'mechanic,mechanic::flow'],
+        sentence: "role 'mechanic' is named both whole and focused",
       },
       {
         label: '[t2] `--roles mechanic:flow`, one colon (P14)',
         args: ['--roles', 'mechanic:flow'],
+        sentence:
+          "role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>",
       },
       {
         label: '[t3] the bare alias `+mechanic:flow`, one colon (P14)',
         args: ['+mechanic:flow'],
+        sentence:
+          "role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>",
       },
     ];
     cases.forEach((thisCase) =>
@@ -240,9 +249,9 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
           }),
         );
 
-        then('it exits 2, names the token, and writes no actor', () => {
+        then('it exits 2, states the refusal for its token, and writes no actor', () => {
           expect(run.status).toEqual(2);
-          expect(run.stderr).toContain('mechanic::flow');
+          expect(run.stderr).toContain(`✋ ConstraintError: ${thisCase.sentence}`);
           expect(getAllActorHashDirNames({ dir })).toEqual([]);
         });
 
@@ -251,6 +260,46 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
         });
       }),
     );
+  });
+
+  given('[case4.b] driver linked, a role that declares no subjects', () => {
+    const dir = genTempDir({ slug: 'enroll-focus-unfocusable' });
+    let stubPath: string;
+    beforeAll(() => {
+      setupEnrollFixture({ dir });
+      stubPath = setupStubBrainPath({ dir });
+    });
+
+    when('[t0] `enroll claude --roles +driver::flow`', () => {
+      const run = useThen('it is refused', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '+driver::flow'],
+          cwd: dir,
+          env: { PATH: stubPath },
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, a constraint the caller must fix', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('it states the role cannot be focused, and names it whole as the fix', () => {
+        expect(run.stderr).toContain(
+          "✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused",
+        );
+        expect(run.stderr).toContain("name 'driver' whole");
+        expect(run.stderr).not.toContain('focus one of');
+      });
+
+      then('no actor dir is written', () => {
+        expect(getAllActorHashDirNames({ dir })).toEqual([]);
+      });
+
+      then('the refusal matches its snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
   });
 
   given('[case5] a repo whose ambient foci record is not json', () => {
@@ -547,7 +596,11 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
         env: { PATH: stubPath },
         logOnError: false,
       });
-      if (enrolled.status !== 0) throw new Error(enrolled.stderr);
+      if (enrolled.status !== 0)
+        throw new ConstraintError('the focus fixture could not seed its enroll', {
+          stderr: enrolled.stderr,
+          hint: 'run `npm run build` so the linked fixture loads a fresh dist',
+        });
     });
 
     when('[t0] `init --roles -driver` re-derives every delta actor', () => {

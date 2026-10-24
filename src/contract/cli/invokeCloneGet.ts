@@ -27,6 +27,7 @@ import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { asCliOutputMode } from './asCliOutputMode';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -115,6 +116,7 @@ export const invokeCloneGet = ({ clone }: { clone: Command }): void => {
         },
       ) => {
         await withCliOutputErrors({
+          args: getCliInvocationArgs({ command: clone }),
           outputRaw: opts.output,
           run: async () => {
             const mode = asCliOutputMode({ raw: opts.output });

@@ -91,6 +91,8 @@ exports[`rhachet upgrade given: [case12.1] --roles ehmpathy/mechanic where <repo
       └─ created — 1 role"
 `;
 
+exports[`rhachet upgrade given: [case12.2] --roles ehmpathy/mechanic where the repo record holds mechanic at flow when: [t0] rhachet upgrade --roles ehmpathy/mechanic then: the focus line the repo actor reads renders as snapshotted 1`] = `"<focus given="flow" elsewhere="code.prod,code.test,arch" always="kept"/>"`;
+
 exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked role when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: stdout.summary matches snapshot 1`] = `
 "│ ✨ permissions applied:
 ✨ 1 role(s) linked

@@ -9,3 +9,5 @@ ride it
 
 "
 `;
+
+exports[`asRoleBootBody given: [case4] a focused role, one subject said when: [t2] the focus names every declared subject then: the focus line matches its snapshot 1`] = `"<focus given="101,reef,tide" elsewhere="" always="kept"/>"`;

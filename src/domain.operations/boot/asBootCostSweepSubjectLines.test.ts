@@ -1,4 +1,4 @@
-import { given, then, when } from 'test-fns';
+import { given, then, useThen, when } from 'test-fns';
 
 import { genSampleBootSpecCost as asCost } from '@src/.test/assets/genSampleBootSpecCost';
 
@@ -19,36 +19,38 @@ describe('asBootCostSweepSubjectLines', () => {
   });
 
   given('[case2] a budgeted spec with two subjects', () => {
-    const lines = asBootCostSweepSubjectLines({
-      one: asCost({
-        tokens: 65_110,
-        budget: 30_000,
-        subjects: [
-          { slug: '101', tokens: 4_200 },
-          { slug: 'arch', tokens: 31_000 },
-        ],
-      }),
-      widthTokens: 6,
-    });
-
     when('[t0] the lines render', () => {
+      const result = useThen('the lines are composed', () => ({
+        lines: asBootCostSweepSubjectLines({
+          one: asCost({
+            tokens: 65_110,
+            budget: 30_000,
+            subjects: [
+              { slug: '101', tokens: 4_200 },
+              { slug: 'arch', tokens: 31_000 },
+            ],
+          }),
+          widthTokens: 6,
+        }),
+      }));
+
       then('each subject reads as the focus token an enroll takes', () => {
-        expect(lines[0]).toContain('::101');
-        expect(lines[1]).toContain('::arch');
+        expect(result.lines[0]).toContain('::101');
+        expect(result.lines[1]).toContain('::arch');
       });
 
       then('the last subject closes the branch', () => {
-        expect(lines[0]).toContain('├─');
-        expect(lines[1]).toContain('└─');
+        expect(result.lines[0]).toContain('├─');
+        expect(result.lines[1]).toContain('└─');
       });
 
       then('a focus over the spec cap is marked, one within it is not', () => {
-        expect(lines[0]).not.toContain('🟡');
-        expect(lines[1]).toContain('🟡');
+        expect(result.lines[0]).not.toContain('🟡');
+        expect(result.lines[1]).toContain('🟡');
       });
 
       then('the lines match their snapshot', () => {
-        expect(lines.join('\n')).toMatchSnapshot();
+        expect(result.lines.join('\n')).toMatchSnapshot();
       });
     });
   });

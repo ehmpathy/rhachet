@@ -1143,6 +1143,88 @@ describe('rhachet upgrade', () => {
     });
   });
 
+  given('[case12.2] --roles ehmpathy/mechanic where the repo record holds mechanic at flow', () => {
+    const scene = useBeforeAll(async () => {
+      // the record `rhx init --roles +mechanic::flow` writes; an upgrade re-renders at it
+      const repo = await genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+      const actorDir = join(repo.path, '.agent/.actors/actor.via.repo=ambient');
+      mkdirSync(actorDir, { recursive: true });
+      writeFileSync(
+        join(actorDir, 'roles.foci.json'),
+        `${JSON.stringify({ mechanic: ['flow'] }, null, 2)}\n`,
+      );
+      return { repo, bootPath: join(actorDir, 'brain/.claude/boot.md') };
+    });
+
+    when('[t0] rhachet upgrade --roles ehmpathy/mechanic', () => {
+      const result = useBeforeAll(async () => ({
+        upgradeResult: invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
+          cwd: scene.repo.path,
+        }),
+      }));
+
+      then('exits with status 0', () => {
+        expect(result.upgradeResult.status).toEqual(0);
+      });
+
+      then('the repo actor boot is rendered at the recorded focus, never widened', () => {
+        const boot = readFileSync(scene.bootPath, 'utf8');
+        expect(boot).toContain('<focus given="flow"');
+        expect(boot).toContain('work.flow/rule.require.trust-but-verify.md');
+        expect(boot).not.toContain('rule.require.hook-wrapper-pattern.md');
+      });
+
+      then('the focus line the repo actor reads renders as snapshotted', () => {
+        const boot = readFileSync(scene.bootPath, 'utf8');
+        expect(
+          boot.split('\n').find((line) => line.startsWith('<focus given=')),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case12.3] --roles ehmpathy/mechanic where the repo record is not json', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+      const actorDir = join(repo.path, '.agent/.actors/actor.via.repo=ambient');
+      mkdirSync(actorDir, { recursive: true });
+      const fociPath = join(actorDir, 'roles.foci.json');
+      writeFileSync(fociPath, '{ mechanic: flow');
+      return { repo, fociPath };
+    });
+
+    when('[t0] rhachet upgrade --roles ehmpathy/mechanic', () => {
+      const result = useBeforeAll(async () => ({
+        upgradeResult: invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
+          cwd: scene.repo.path,
+          logOnError: false,
+        }),
+      }));
+
+      then('it halts as a malfunction and never overwrites the record', () => {
+        expect(result.upgradeResult.status).toEqual(1);
+        expect(readFileSync(scene.fociPath, 'utf8')).toEqual('{ mechanic: flow');
+      });
+
+      then('it names the record and the repair', () => {
+        expect(result.upgradeResult.stderr).toContain('roles.foci.json');
+        expect(result.upgradeResult.stderr).toContain(
+          '💥 MalfunctionError: ambient role foci record is not json',
+        );
+        expect(result.upgradeResult.stderr).toContain('cause = SyntaxError');
+        expect(result.upgradeResult.stderr).toContain('hint = repair');
+      });
+    });
+  });
+
   given('[case13] --roles ehmpathy/designer with unlinked role (mechanic is linked)', () => {
     const scene = useBeforeAll(async () => {
       // fixture has .agent/repo=ehmpathy/role=mechanic/ (linked)

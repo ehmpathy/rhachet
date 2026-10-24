@@ -16,7 +16,8 @@ import type { RoleBootSpec } from '@src/domain.objects/RoleBootSpec';
  *         - `recorded`: an actor or the repo recorded it before a role upgrade dropped the
  *           subject (U1) — a re-enroll mints a new actor and clears naught while the old
  *           actor's clones live, so the fix ends those clones or re-points the repo record
- * .note = a role with no subjects (no boot.yml, or a simple-mode one) has no subject to focus
+ * .note = a role with no subjects (no boot.yml, a simple-mode one, or one with only `always:`)
+ *         has no subject to focus
  * .note = `subjects: null` is the whole role, which every spec admits
  * .note = pure — the spec is read by the caller
  */
@@ -29,8 +30,12 @@ export const assertRoleFocusDeclared = (input: {
   // the whole role needs no check
   if (input.subjects === null || input.subjects.length === 0) return;
 
-  // a role with no subjects cannot be focused
-  if (!input.config || input.config.mode !== 'subject')
+  // a role with no subjects cannot be focused; an `always:`-only spec parses as subject mode
+  if (
+    !input.config ||
+    input.config.mode !== 'subject' ||
+    Object.keys(input.config.subjects).length === 0
+  )
     throw new ConstraintError(
       `role '${input.slugRole}' declares no subjects, so it cannot be focused`,
       {

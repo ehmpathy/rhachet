@@ -55,6 +55,18 @@ const TEST_CASES = [
   },
   {
     description:
+      'a focus on every declared subject names none elsewhere, and keeps always',
+    given: { config: SPEC_SUBJECTED, subjects: ['reef', 'lean', 'flow'] },
+    expect: {
+      output: {
+        given: ['flow', 'lean', 'reef'],
+        elsewhere: [],
+        alwaysShed: false,
+      },
+    },
+  },
+  {
+    description:
       'a focus typed out of order names its subjects in declaration order (O1)',
     given: { config: SPEC_SUBJECTED, subjects: ['reef', 'flow'] },
     expect: {

@@ -14,6 +14,7 @@ import { withCliOutputErrors } from './withCliOutputErrors';
  */
 const runAndCapture = async (input: {
   outputRaw: string | undefined;
+  args: string[];
   run: () => Promise<void>;
 }): Promise<{ err: string; exitCode: number | undefined }> => {
   // .note = deliberate mutation — reset exitCode for the span of the run, restore
@@ -34,7 +35,11 @@ describe('withCliOutputErrors', () => {
   given('[case1] a run that succeeds', () => {
     when('[t0] wrapped', () => {
       const captured = useBeforeAll(async () =>
-        runAndCapture({ outputRaw: 'tree', run: async () => undefined }),
+        runAndCapture({
+          outputRaw: 'tree',
+          args: ['clone', 'list'],
+          run: async () => undefined,
+        }),
       );
 
       then('no error is emitted', () => {
@@ -52,6 +57,7 @@ describe('withCliOutputErrors', () => {
       const captured = useBeforeAll(async () =>
         runAndCapture({
           outputRaw: 'tree',
+          args: ['enroll', 'claude', '--as', 'bad'],
           run: async () => {
             throw new ConstraintError('bad --as value', {
               hint: 'use --as @:<slug>',
@@ -70,6 +76,12 @@ describe('withCliOutputErrors', () => {
         expect(captured.err).toContain('✋ ConstraintError: bad --as value');
         expect(captured.err).not.toContain('✋ bad --as value');
         expect(captured.err).toContain('use --as @:<slug>');
+      });
+
+      then('the refusal closes with the invocation echo', () => {
+        // a refusal read from a log or a paste names how to reproduce it
+        // (`rule.require.refusals-carry-context`) — the same line the last handler prints
+        expect(captured.err).toContain('[args] enroll,claude,--as,bad');
       });
 
       then('the WHOLE rendered screen is locked', () => {
@@ -100,6 +112,7 @@ describe('withCliOutputErrors', () => {
       const captured = useBeforeAll(async () =>
         runAndCapture({
           outputRaw: 'json',
+          args: ['clone', 'say', '@:gone', '--output', 'json'],
           run: async () => {
             throw new ConstraintError('no live clone for this address', {
               hint: 're-enroll to spawn a fresh clone',
@@ -121,6 +134,10 @@ describe('withCliOutputErrors', () => {
         expect(captured.err).not.toContain('✋');
       });
 
+      then('no invocation echo leaks into the json channel', () => {
+        expect(captured.err).not.toContain('[args]');
+      });
+
       then('exit code is 2 (caller fault)', () => {
         expect(captured.exitCode).toEqual(2);
       });
@@ -132,6 +149,7 @@ describe('withCliOutputErrors', () => {
       const captured = useBeforeAll(async () =>
         runAndCapture({
           outputRaw: 'tree',
+          args: ['clone', 'list'],
           run: async () => {
             throw new MalfunctionError('the socket server crashed');
           },
@@ -153,6 +171,7 @@ describe('withCliOutputErrors', () => {
           const error = await getError(async () =>
             withCliOutputErrors({
               outputRaw: 'tree',
+              args: ['clone', 'list'],
               run: async () => {
                 throw raw;
               },

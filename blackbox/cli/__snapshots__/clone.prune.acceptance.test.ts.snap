@@ -79,6 +79,8 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
   "hint": "use <N><unit> where unit is s|m|h|d, e.g. --older-than 1h"
 }
 
+[args] clone,prune,--older-than,soon
+
 "
 `;
 
@@ -103,6 +105,8 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
 {
   "hint": "use --mode plan (default, preview) or --mode apply (remove)"
 }
+
+[args] clone,prune,--mode,bogus
 
 "
 `;
@@ -137,6 +141,8 @@ exports[`rhx clone prune (acceptance) given: [case4] a reap that fails mid-batch
     "__SERIAL__"
   ]
 }
+
+[args] clone,prune,--mode,apply
 
 "
 `;

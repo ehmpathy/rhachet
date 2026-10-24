@@ -7,6 +7,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
 import { getOneFocusReceiptBlock } from '@/blackbox/.test/infra/getOneFocusReceiptBlock';
@@ -261,6 +262,139 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
           JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
         ).toEqual({});
       });
+
+      then('stdout names the widen, and the receipt renders as snapshotted', () => {
+        expect(run.stdout).toContain('widened');
+        expect(getOneFocusReceiptBlock({ output: run.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case7] an empty repo, and `--keys` beside a focus', () => {
+    const testDir = genTempDir({ slug: 'init-focus-keys' });
+    beforeAll(() => setupRoleFixtureRepo({ dir: testDir }));
+
+    when('[t0] `init --roles mechanic::flow --keys`', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'mechanic::flow', '--keys'],
+          cwd: testDir,
+        }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('the keyrack manifest extends the role keyrack, found by the role alone', () => {
+        const manifest = readFileSync(
+          join(testDir, '.agent', 'keyrack.yml'),
+          'utf8',
+        );
+        expect(manifest).toContain('extends:');
+        expect(manifest).toContain('role=mechanic/keyrack.yml');
+        expect(manifest).not.toContain('::flow');
+      });
+
+      then('the keyrack manifest renders as snapshotted', () => {
+        expect(
+          readFileSync(join(testDir, '.agent', 'keyrack.yml'), 'utf8'),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case8] an empty repo, and a focus on a role that declares no subjects', () => {
+    const testDir = genTempDir({ slug: 'init-focus-unfocusable' });
+    beforeAll(() => setupRoleFixtureRepo({ dir: testDir }));
+
+    when('[t0] `init --roles driver::flow`', () => {
+      const run = useThen('it is refused', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'driver::flow'],
+          cwd: testDir,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, a constraint the caller must fix', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('it states the role cannot be focused, and names it whole as the fix', () => {
+        expect(run.stderr).toContain(
+          "✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused",
+        );
+        expect(run.stderr).toContain("name 'driver' whole");
+        expect(run.stderr).not.toContain('focus one of');
+      });
+
+      then('the repo is left as it was found — no link, no actor dir, no record', () => {
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'driver' })).toEqual(false);
+        expect(existsSync(join(testDir, '.agent/.actors'))).toEqual(false);
+        expect(existsSync(asFociPath({ dir: testDir }))).toEqual(false);
+      });
+
+      then('the refusal matches its snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case9] a repo with mechanic linked whole', () => {
+    const testDir = genTempDir({ slug: 'init-focus-narrow' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      const seeded = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic'],
+        cwd: testDir,
+      });
+      if (seeded.status !== 0)
+        throw new ConstraintError('the focus fixture could not seed its init', {
+          stderr: seeded.stderr,
+          hint: 'run `npm run build` so the linked fixture loads a fresh dist',
+        });
+    });
+
+    when('[t0] `init --roles +mechanic::flow` narrows it', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+mechanic::flow'],
+          cwd: testDir,
+        }),
+      );
+
+      then('it exits 0, and the record holds the focus', () => {
+        expect(run.status).toEqual(0);
+        expect(
+          JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
+        ).toEqual({ mechanic: ['flow'] });
+      });
+
+      then('stdout names the narrow, and the receipt renders as snapshotted', () => {
+        expect(run.stdout).toContain('mechanic narrowed to ::flow');
+        expect(getOneFocusReceiptBlock({ output: run.stdout })).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] `init --roles +mechanic::code.prod` moves it', () => {
+      const run = useThen('it succeeds', () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', '+mechanic::code.prod'],
+          cwd: testDir,
+        }),
+      );
+
+      then('it exits 0, and the record holds the new focus alone', () => {
+        expect(run.status).toEqual(0);
+        expect(
+          JSON.parse(readFileSync(asFociPath({ dir: testDir }), 'utf8')),
+        ).toEqual({ mechanic: ['code.prod'] });
+      });
+
+      then('the move receipt renders as snapshotted', () => {
+        expect(getOneFocusReceiptBlock({ output: run.stdout })).toMatchSnapshot();
+      });
     });
   });
 
@@ -272,7 +406,11 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         args: ['init', '--roles', '+mechanic::flow'],
         cwd: testDir,
       });
-      if (seeded.status !== 0) throw new Error(seeded.stderr);
+      if (seeded.status !== 0)
+        throw new ConstraintError('the focus fixture could not seed its init', {
+          stderr: seeded.stderr,
+          hint: 'run `npm run build` so the linked fixture loads a fresh dist',
+        });
     });
 
     when('[t0] an exact `init --roles architect` that never names mechanic', () => {
@@ -339,7 +477,11 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         args: ['init', '--roles', '+mechanic::flow'],
         cwd: testDir,
       });
-      if (seeded.status !== 0) throw new Error(seeded.stderr);
+      if (seeded.status !== 0)
+        throw new ConstraintError('the focus fixture could not seed its init', {
+          stderr: seeded.stderr,
+          hint: 'run `npm run build` so the linked fixture loads a fresh dist',
+        });
 
       // the role "dropped" the subject: the record now names one it never declared
       writeFileSync(
@@ -421,7 +563,11 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         args: ['init', '--prep', '--roles', 'mechanic::flow'],
         cwd: testDir,
       });
-      if (seeded.status !== 0) throw new Error(seeded.stderr);
+      if (seeded.status !== 0)
+        throw new ConstraintError('the focus fixture could not seed its init', {
+          stderr: seeded.stderr,
+          hint: 'run `npm run build` so the linked fixture loads a fresh dist',
+        });
 
       // the role "dropped" the subject: the replay now names one it never declared
       const packagePath = join(testDir, 'package.json');

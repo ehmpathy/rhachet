@@ -207,6 +207,10 @@ export const CLONE_SAY_POLL_MS_MIN = 250;
  *   ms, so no false probe-blind on a slow-but-live host) and well below that default, so a
  *   stuck probe degrades probe-blind fast and the loop keeps its cadence. the broader
  *   per-tick rework (reconnect + auth + grid + relink) stays F14's dedicated PR
+ * .note = this is the BASE bound. a probe that times out doubles the next one, up to
+ *   CLONE_PROBE_REPLY_DEFAULT_MS, and a capable read resets it (computeCloneSayProbeBound):
+ *   each probe re-pays the same-user gate on a fresh connection, and on a loaded host a fixed
+ *   1s bound timed out every cycle alike, so the loop never landed a read
  */
 export const CLONE_SAY_PROBE_REPLY_MS = 1_000;
 

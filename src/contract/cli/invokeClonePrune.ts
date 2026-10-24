@@ -14,6 +14,7 @@ import { getOneActorOndiskByRef } from '@src/domain.operations/clone/getOneActor
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { asCliOutputMode } from './asCliOutputMode';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -120,6 +121,7 @@ export const invokeClonePrune = ({ clone }: { clone: Command }): void => {
         opts: { olderThan?: string; mode: string; output?: string },
       ) => {
         await withCliOutputErrors({
+          args: getCliInvocationArgs({ command: clone }),
           outputRaw: opts.output,
           run: async () => {
             const outputMode = asCliOutputMode({ raw: opts.output });

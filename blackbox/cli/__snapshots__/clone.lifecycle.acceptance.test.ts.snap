@@ -10,6 +10,8 @@ exports[`rhx clone reach (acceptance) given: [case2] a clone whose brain has EXI
   "reachCause": "DEAD-same-host"
 }
 
+[args] clone,say,@:ranger,--what,still there?
+
 "
 `;
 

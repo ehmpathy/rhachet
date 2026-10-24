@@ -7,13 +7,12 @@ import type { RoleBootSpec } from '@src/domain.objects/RoleBootSpec';
  *        its author relied on it
  *
  * .note = a boot of every subject (no `subjects` named) always keeps `always`
- * .note = pure transformer — no i/o, deterministic
  */
 export const isAlwaysShed = (input: {
   config: RoleBootSpec;
   subjects: string[] | null;
 }): boolean => {
-  // a spec with no subject sections has no subject to opt out of `always`
+  // a simple-mode spec has no subject sections, so none can opt out
   if (input.config.mode !== 'subject') return false;
 
   // no subject named means every subject boots, and the whole role keeps `always`

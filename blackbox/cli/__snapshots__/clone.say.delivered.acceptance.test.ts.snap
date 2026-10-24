@@ -54,6 +54,8 @@ exports[`rhx clone reach (acceptance) given: [case12] a clone whose write reache
   "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
 }
 
+[args] clone,say,@:bufferbox-tree,--what,stuck-in-box-x9
+
 "
 `;
 

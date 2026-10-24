@@ -55,15 +55,32 @@ no change to how a role with no focus boots.
 
 - types, unit and the touched acceptance suites green; each new
   snapshot verified on an independent run
-- integration tier, impacted sweep with the test keyrack unlocked: 2124 passed, 13 failed, all in
-  code this pr does not otherwise touch (`5.3.verification.yield.md` `.blockers`):
+- integration tier: the full suite's green is this pr's ci. the local impacted runs, on a box at
+  ~600% load, surfaced these reds, each fixed with a clamp (red before, green after on its own
+  file) or named open (`5.3.verification.yield.md` `.blockers`):
   - 3 fixed: the keyrack unlock ttl tests read the ttl left after a slow unlock returned; they now
     bracket the call (scoped rerun 17/17)
-  - 6 behind an sso credential wall: `aws configure export-credentials` hangs past its 10s bound
-    on the local box. escalated, not skipped; ci is their proof
-  - 4 on host load, red on a scoped rerun too: the clone socket's `ss -xp` peer read outran its 5s
-    bound, and a cold daemon spawn outran its 20s budget. neither guard was loosened; ci is their
-    proof
+  - 6 fixed in `keyrack/adapters/vaults/aws.params`: not sso. the python aws cli took 14.6s just
+    to start on a loaded box, past `useKeyrack`'s per-file 10s bound. the static-cred export now
+    runs once per run in the integration `globalSetup`; red before (27 passed, 15 failed at load
+    60), green after (42/42)
+  - 3 fixed in `clone/socket/getCloneSayObservation`: the clone socket's same-user auth ran
+    `ss -xp` (a map of every fd on the host) inside a 1s probe; under load the probe hung up first.
+    the lookup now reads the peer inode with `ss -x` and scans for its holder. its clamp
+    (`getSocketPeerCred.integration.test.ts`) was red on the old lookup, which also read the
+    server's own pid on 6 of 8 reads; green after, and the clone socket tier ran 89/89. the
+    observe loop's probe bound now doubles after a timeout (each probe re-pays the gate on a fresh
+    connection); its delay-proxy clamp went from screen `null` to 8/8
+  - the keyrack daemon's session gate: its `ss -xp` lookup passed its 5s timeout and refused the
+    harness's own `keyrack get`. it now uses `ss -x` + a sync holder scan; its clamp went from 3 of
+    8 reads on the daemon's own pid and `ss command failed` to 4/4
+  - 2 fixed in `weave/enweaveOne*`: the test model `gpt-4-turbo-2024-04-09` was deprecated (404);
+    now `gpt-4o-mini`, 10/10
+  - open, as load timeouts: `genCloneEnrollDetached` [case5] (10163ms against 10s) and
+    `envAllHostingStrategies` (a cold daemon spawn through `tsx` past its 20s window); log
+    `what=integration/2026-10-24T03-26-34Z`, the spawn caught as a dream
+- the dev-build `build:inplace` clamp (`devBuildKeepsDistEntry`): red with the cure reverted (2 of 3), green with it restored
+  (3 of 3)
 - the perf acceptance suites (`roles.cost.performance.*`, ci only) missed their 250ms cap on the
   local box, where the unchanged `run --skill` baseline also ran at ~430ms against its ~36ms
   norm; ci measures them on a clean box
@@ -105,8 +122,13 @@ no change to how a role with no focus boots.
 - `RoleFocusResolved` — derive one focus per command at one choke point (F10, the dream
   `a-focus-parses-once-into-a-domain-literal`); today each role sink strips the focus itself
 - ride-alongs, apart from the feature: the `isBrainClaudeCode` shield fix above, the jest
-  `.agent/.actors/` ignore, the `test.acceptance.credfree` skill, and the `permissions.get`
-  allowlist lines
+  `.agent/.actors/` ignore, the `test.acceptance.credfree`, `ss.peer.probe` and
+  `aws.export.probe` skills, the `permissions.get` allowlist lines, and the host-load cures
+  above (the clone and daemon socket peer lookups, the observe loop's probe bound, the
+  once-per-run aws export, the weave test model)
+- owed in its own pr: the keyrack daemon spawns through `tsx` under jest, which transpiles its
+  import graph cold on each spawn (14–26s on a loaded box); `envAllHostingStrategies` reds on its
+  20s reachable window
 - the role packages rode up to their current versions (bhrain 0.42.1, bhuild 0.23.3, ehmpathy
   1.39.7), which the reviewers of this route run on; the repo actor's tracked settings re-sorted
   with them. two extant test expectations move with that bump, and each asserts what the new
@@ -123,8 +145,15 @@ no change to how a role with no focus boots.
 - the resolved boot spec gains a field: each `always` and `subject.*` section of a subject-mode
   `RoleBootSpec` now carries `inherit: { always: boolean }` (the parser defaults it to `true`), so a
   fixture that builds a spec by hand names it. a yaml with no `inherit` reads as before
-- execution fulcrums F8–F14 (`.fulcrums/inventory.of=fulcrums._.md`) await the council's verdict;
-  F10–F12 are dirty reworks (F10 re-types roleset contracts; F11 and F12 change shared error
-  renderers and their extant snapshots), each with a caught dream
+- execution fulcrums F8–F14 (`.fulcrums/inventory.of=fulcrums._.md`): F11 and F12 were ruled (b)
+  and land here; the rest await the council's verdict, and F10 (re-types roleset contracts) keeps
+  its caught dream
+  - F11: a tree-mode refusal from every wrapped verb (`enroll`, `actor list`,
+    `clone get|list|say|prune|whoami`) now ends in the `[args] <argv>` echo, as unwrapped verbs
+    already did; the json channel carries none. extant refusal snapshots gain that line
+  - F12: a boot-fault row reads one glyph, the error class as its first branch, `key = value`
+    fields, and each array as a branch of leaves, in place of compact json
+- the dev rebuild no longer deletes `dist/`: `build:ifstale` falls back to the new `build:inplace`,
+  so the `link:.` self-link keeps its entry while a hook loads it. `build` keeps its clean
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

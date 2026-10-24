@@ -15,10 +15,14 @@ declared as they arise.
 | F8 | init's ambient focus lives in `actor.via.repo=ambient/roles.foci.json` | clean | open | 75% |
 | F9 | a focused role names its scope in one `<focus given elsewhere always/>` line | clean | open | 70% |
 | F10 | the focus rides as a token in `RoleSlug`, not a `RoleFocus` domain literal (deferred) | dirty | open | 60% |
-| F11 | enroll's focus refusals keep the extant echo-less frame (the echo deferred to all six wrapped verbs) | dirty | open | 70% |
-| F12 | the boot-fault row keeps its extant compact-array form (the branch form deferred) | dirty | open | 65% |
+| F11 | enroll's focus refusals keep the extant echo-less frame (the echo deferred to all six wrapped verbs) | dirty | ruled (b): the echo landed for all six verbs | 70% |
+| F12 | the boot-fault row keeps its extant compact-array form (the branch form deferred) | dirty | ruled (b): the branch form landed | 65% |
 | F13 | the default reviewer brain test stays a selection test; the real call belongs to the brain package | clean | open | 75% |
 | F14 | extant shapes this pr did not author stay until disturbed (quotes, temp-root tokens, caselists, `inherit` fixtures) | clean | open | 80% |
+| F15 | five `better` concessions (T2, Q1, N1, N2, U1-live) ship as pr follow-ups, per the commander's 5.1 verdict | clean | open — handed up | 60% |
+| F16 | changed test criteria each trace to a verdict, a concession, or a clamped host cure; none reverted | clean | open | 70% |
+| F17 | "hooks follow the role" is proven at the settings grain; the fire is claude's contract | clean | open | 65% |
+| F18 | the clone gate's peer lookup and its daemon twin both move in this pr | dirty | open | 80% |
 
 ## .questions for the commander — vision calls, retracted
 

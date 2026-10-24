@@ -1,5 +1,6 @@
 import { HelpfulError } from 'helpful-errors';
 
+import { asCliArgsEchoLine } from './asCliArgsEchoLine';
 import { asCliErrorFrame } from './asCliErrorFrame';
 import { asCliErrorJson } from './asCliErrorJson';
 import { getExitCodeFromError } from './getExitCodeFromError';
@@ -23,6 +24,7 @@ import { getExitCodeFromError } from './getExitCodeFromError';
  */
 export const withCliOutputErrors = async (input: {
   outputRaw: string | undefined;
+  args: string[];
   run: () => Promise<void>;
 }): Promise<void> => {
   try {
@@ -55,5 +57,10 @@ export const withCliOutputErrors = async (input: {
     //   a third, defective answer to the same question. the extraction is what makes the
     //   two agree by construction rather than by audit
     for (const line of asCliErrorFrame({ error })) console.error(line);
+
+    // the invocation, so a refusal read from a log or a paste names how to reproduce it
+    // (`rule.require.refusals-carry-context`) — the same line the last handler prints
+    console.error(asCliArgsEchoLine({ args: input.args }));
+    console.error('');
   }
 };

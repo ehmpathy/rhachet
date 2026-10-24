@@ -164,6 +164,33 @@ describe('assertRoleFocusDeclared', () => {
       });
     });
 
+    when(
+      '[t1.b] the spec holds only `always:` — subject mode, zero subjects',
+      () => {
+        then(
+          'a focus refuses as unfocusable, never with an empty list to pick from',
+          async () => {
+            const error = await getError(() =>
+              assertRoleFocusDeclared({
+                slugRole: 'driver',
+                subjects: ['flow'],
+                config: genSampleBootSpecSubjected({
+                  subjects: [],
+                  shedAlways: [],
+                }),
+                focusFrom: 'typed',
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain(
+              "role 'driver' declares no subjects, so it cannot be focused",
+            );
+            expect(error.message).not.toContain('focus one of');
+          },
+        );
+      },
+    );
+
     when('[t2] the role is enrolled whole', () => {
       then('it passes', () => {
         expect(() =>

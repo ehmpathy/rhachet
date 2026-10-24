@@ -23,6 +23,8 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
   "hashPrefix": "deadbeef"
 }
 
+[args] clone,list,@deadbeef
+
 "
 `;
 
@@ -49,6 +51,8 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
   "serial": "__SERIAL__"
 }
 
+[args] clone,whoami
+
 "
 `;
 
@@ -73,6 +77,8 @@ exports[`rhx clone reach (acceptance) given: [case4] a linked repo with NO clone
 {
   "hint": "omit --await for the default (enqueue)"
 }
+
+[args] clone,say,@:driver,--what,hello,--await,bogus
 
 "
 `;

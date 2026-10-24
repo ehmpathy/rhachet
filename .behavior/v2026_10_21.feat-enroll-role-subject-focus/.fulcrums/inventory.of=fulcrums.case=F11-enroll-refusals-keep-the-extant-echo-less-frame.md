@@ -20,4 +20,7 @@
 - **confidence:** 70%. the rule is clear; the bet is that a dedicated pr lands the echo across all
   six verbs at once, so enroll never splits from its five siblings
 - **where:** 5.3 i001 r001 blocker.1 · `.dream/2026_10_23.fix.wrapped-cli-refusals-carry-the-invocation-echo.dream.md`
-- **verdict:** —
+- **verdict:** (b), ruled by the director 2026-10-23. landed in this pr:
+  `withCliOutputErrors` takes `args`, read by `getCliInvocationArgs` off the root program's parsed
+  argv (the `-role` sentinel decoded); both renderers print the line through one owner,
+  `asCliArgsEchoLine`; all six verbs pass it; json output stays echo-free. the dream is resolved

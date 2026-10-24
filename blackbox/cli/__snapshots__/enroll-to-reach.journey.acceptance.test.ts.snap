@@ -9,6 +9,8 @@ exports[`enroll → reach journey (acceptance) given: [case1] a named clone @:pi
   "raw": "@pilot"
 }
 
+[args] clone,say,@pilot,--what,wrong grain
+
 "
 `;
 

@@ -1,3 +1,4 @@
+import { asCliArgsEchoLine } from './asCliArgsEchoLine';
 import { asCliErrorClassified } from './asCliErrorClassified';
 import { asCliErrorFrame } from './asCliErrorFrame';
 import { getExitCodeFromError } from './getExitCodeFromError';
@@ -22,8 +23,8 @@ import { getExitCodeFromError } from './getExitCodeFromError';
  *   identical from here on (`rule.prefer.wet-over-dry` — the third usage is what earns the
  *   extract)
  *
- * .note = the `[args]` trailer is this handler's own context. the wrapped path
- *   (`withCliOutputErrors`) knows its args from its own invoker and does not want the line
+ * .note = the `[args]` trailer is composed by `asCliArgsEchoLine`, the one owner both this
+ *   handler and the wrapped path (`withCliOutputErrors`) print, so the two echoes cannot drift
  *
  * .note = callers place it INSIDE the emoji shim, so the frame's `💥`/`✋` keep the terminal
  *   width the shim exists to hold
@@ -38,7 +39,7 @@ export const emitCliErrorAndExit = (input: {
   //   serialized metadata. `asCliErrorFrame` is the one owner of what a human reads off a
   //   cli error, so this path and `withCliOutputErrors` cannot drift apart
   for (const line of asCliErrorFrame({ error })) console.error(line);
-  console.error(`[args] ${input.args}`);
+  console.error(asCliArgsEchoLine({ args: input.args }));
   console.error(``);
 
   // the class's own code (ConstraintError = 2, MalfunctionError = 1)

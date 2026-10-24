@@ -9,5 +9,7 @@ exports[`rhx enroll vs a real claude-code: one shared login store given: [case1]
   "brainAuthPath": "/PATH_STRIPPED"
 }
 
+[args] enroll,claude,--model,haiku,--await,-p,reply ok
+
 "
 `;

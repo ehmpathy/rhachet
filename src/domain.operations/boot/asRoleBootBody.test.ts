@@ -151,7 +151,11 @@ describe('asRoleBootBody', () => {
   });
 
   given('[case4] a focused role, one subject said', () => {
-    const genBody = (input: { alwaysShed: boolean }) =>
+    const genBody = (input: {
+      given: string[];
+      elsewhere: string[];
+      alwaysShed: boolean;
+    }) =>
       asRoleBootBody({
         slugRepo: 'ehmpathy',
         slugRole: 'surfer',
@@ -173,14 +177,18 @@ describe('asRoleBootBody', () => {
         briefsSaid: [{ path: `${roleDir}/briefs/wave.md`, content: 'ride it' }],
         skillsSaid: [],
         focus: {
-          given: ['101'],
-          elsewhere: ['reef', 'tide'],
+          given: input.given,
+          elsewhere: input.elsewhere,
           alwaysShed: input.alwaysShed,
         },
       });
 
     when('[t0] the body is composed with always kept', () => {
-      const result = genBody({ alwaysShed: false });
+      const result = genBody({
+        given: ['101'],
+        elsewhere: ['reef', 'tide'],
+        alwaysShed: false,
+      });
 
       then('the focus line leads, and names the subjects not given', () => {
         expect(result.body.split('\n')[0]).toEqual(
@@ -198,10 +206,32 @@ describe('asRoleBootBody', () => {
     });
 
     when('[t1] the body is composed with always shed', () => {
-      const result = genBody({ alwaysShed: true });
+      const result = genBody({
+        given: ['101'],
+        elsewhere: ['reef', 'tide'],
+        alwaysShed: true,
+      });
 
       then('the focus line says always was shed', () => {
         expect(result.body.split('\n')[0]).toContain('always="shed"');
+      });
+    });
+
+    when('[t2] the focus names every declared subject', () => {
+      const result = genBody({
+        given: ['101', 'reef', 'tide'],
+        elsewhere: [],
+        alwaysShed: false,
+      });
+
+      then('the focus line names none elsewhere', () => {
+        expect(result.body.split('\n')[0]).toEqual(
+          '<focus given="101,reef,tide" elsewhere="" always="kept"/>',
+        );
+      });
+
+      then('the focus line matches its snapshot', () => {
+        expect(result.body.split('\n')[0]).toMatchSnapshot();
       });
     });
   });

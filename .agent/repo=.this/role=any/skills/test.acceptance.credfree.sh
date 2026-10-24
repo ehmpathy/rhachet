@@ -55,13 +55,20 @@ LOG_PATH="$LOG_DIR/$(date -u +%Y-%m-%dT%H-%M-%SZ).log"
 #   snapshot written here would fail there
 unset CLAUDE_CONFIG_DIR
 
-# resnap writes snapshots (the npm command reads RESNAP); the default verifies them under
+# test infra runs through pnpm, never npm (rule.forbid.npm-in-tests); absent pnpm fails fast
+command -v pnpm > /dev/null || {
+  echo "✋ ConstraintError: pnpm is required" >&2
+  echo "   └─ hint: corepack enable pnpm (or see https://pnpm.io/installation)" >&2
+  exit 2
+}
+
+# resnap writes snapshots (the package command reads RESNAP); the default verifies them under
 #   CI=true, which jest reads as --ci, so an unwritten snapshot fails as it does in ci
 set +e
 if [[ -n "$RESNAP" ]]; then
-  RESNAP=true npm run test:acceptance:locally -- "$SCOPE" > "$LOG_PATH" 2>&1
+  RESNAP=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
 else
-  CI=true npm run test:acceptance:locally -- "$SCOPE" > "$LOG_PATH" 2>&1
+  CI=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
 fi
 STATUS=$?
 set -e

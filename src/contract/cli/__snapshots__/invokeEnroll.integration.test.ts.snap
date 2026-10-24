@@ -13,5 +13,7 @@ exports[`invokeEnroll (integration) given: [case5] a brain cli below the version
   "shadowed": []
 }
 
+[args] enroll,claude
+
 "
 `;

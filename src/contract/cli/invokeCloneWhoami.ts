@@ -9,6 +9,7 @@ import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
 import { asCliOutputMode } from './asCliOutputMode';
+import { getCliInvocationArgs } from './getCliInvocationArgs';
 import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
@@ -32,6 +33,7 @@ export const invokeCloneWhoami = ({ clone }: { clone: Command }): void => {
     .option('--output <mode>', 'output mode: tree (default) or json', 'tree')
     .action(async (opts: { output?: string }) => {
       await withCliOutputErrors({
+        args: getCliInvocationArgs({ command: clone }),
         outputRaw: opts.output,
         run: async () => {
           const mode = asCliOutputMode({ raw: opts.output });

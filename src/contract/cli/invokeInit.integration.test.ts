@@ -51,8 +51,8 @@ const asMigrationReportOnly = (output: string): string => {
  *   and on the very next run — causes unrelated to the render it claims to pin, and each
  *   such red teaches the maintainer to resnap rather than read
  * .note = what stays LIVE is every byte the cli owns: the `dropped:` / `moved:` lines, the
- *   `✗ … not written:` lead, each `└─ hint:` cure, every path segment BELOW the repo root
- *   (so `/TMP_REPO/.claude` keeps its `.claude`), the `unrestorable:` list, and the ROLE
+ *   `✗ … not written` lead, each `└─ hint =` cure, every path segment BELOW the repo root
+ *   (so `/TMP_REPO/.claude` keeps its `.claude`), the `unrestorable` list, and the ROLE
  *   count. a reword, a lost hint, or a changed destination all still redden
  * .note = the repo root is replaced by its OWN value rather than by a pattern, and both of
  *   its names are replaced — the raw path and its realpath — since a temp dir on darwin
@@ -842,7 +842,7 @@ describe('invokeInit (integration)', () => {
           'not a dir\n',
         );
         const errors = errorSpy.mock.calls.map((call) => String(call[0]));
-        expect(errors.some((line) => line.includes('└─ hint: move'))).toBe(
+        expect(errors.some((line) => line.includes('└─ hint = move'))).toBe(
           true,
         );
         // the hint is the one span the assert above checks; the frame around it is what

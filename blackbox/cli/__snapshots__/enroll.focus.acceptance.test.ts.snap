@@ -30,6 +30,26 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case3] mechan
   ]
 }
 
+[args] enroll,claude,--roles,+mechanic::nope
+
+"
+`;
+
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4.b] driver linked, a role that declares no subjects when: [t0] \`enroll claude --roles +driver::flow\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused
+
+{
+  "hint": "name 'driver' whole, with no ::<subject>",
+  "role": "driver",
+  "focus": [
+    "flow"
+  ],
+  "mode": "subject"
+}
+
+[args] enroll,claude,--roles,+driver::flow
+
 "
 `;
 
@@ -44,6 +64,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechan
     "-mechanic::flow"
   ]
 }
+
+[args] enroll,claude,--roles,-mechanic::flow
 
 "
 `;
@@ -60,6 +82,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechan
   ]
 }
 
+[args] enroll,claude,--roles,mechanic,mechanic::flow
+
 "
 `;
 
@@ -72,6 +96,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechan
   "token": "mechanic:flow"
 }
 
+[args] enroll,claude,--roles,mechanic:flow
+
 "
 `;
 
@@ -83,6 +109,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case4] mechan
   "hint": "write mechanic::flow",
   "token": "mechanic:flow"
 }
+
+[args] enroll,claude,+mechanic:flow
 
 "
 `;
@@ -99,6 +127,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case5] a repo
     "message": "$JSON_PARSE_MESSAGE"
   }
 }
+
+[args] enroll,claude,--roles,+mechanic::flow
 
 "
 `;
@@ -120,6 +150,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a nati
   "key": "inherits",
   "expected": "inherit"
 }
+
+[args] enroll,claude,--roles,lean::tiny
 
 "
 `;
@@ -146,6 +178,8 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case8] the re
     "flow"
   ]
 }
+
+[args] enroll,claude
 
 "
 `;

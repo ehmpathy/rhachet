@@ -119,9 +119,10 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init then: stderr names the [t3] actor 1`] = `
-"✗ brain://hash=fddbc072/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written
-   ├─ brainDir: /TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude
-   └─ cause: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
+"✗ brain://hash=fddbc072/boot.md not written
+   ├─ 💥 MalfunctionError: brain dir boot.md could not be written
+   ├─ brainDir = /TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude
+   └─ cause = Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
 "
 `;
 
@@ -144,10 +145,12 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5] a lifeguard actor lives; lifeguard is unlinked; rhx init then: stderr names the lifeguard actor and both fixes, and offers no prune 1`] = `
-"✗ brain://hash=15cc47ca/boot.md not written: ✋ ConstraintError: actor hash=15cc47ca enrolled a role no longer linked: lifeguard
-   ├─ actorExid: hash=15cc47ca
-   ├─ slugsUnlinked: ["lifeguard"]
-   └─ hint: re-link the role (rhx roles link --role lifeguard), or end the actor's live clones so the sweep skips it
+"✗ brain://hash=15cc47ca/boot.md not written
+   ├─ ✋ ConstraintError: actor hash=15cc47ca enrolled a role no longer linked: lifeguard
+   ├─ actorExid = hash=15cc47ca
+   ├─ slugsUnlinked
+   │  └─ lifeguard
+   └─ hint = re-link the role (rhx roles link --role lifeguard), or end the actor's live clones so the sweep skips it
 "
 `;
 

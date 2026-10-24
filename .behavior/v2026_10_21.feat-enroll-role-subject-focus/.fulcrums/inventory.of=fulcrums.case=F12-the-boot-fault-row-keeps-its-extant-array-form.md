@@ -15,4 +15,6 @@
 - **confidence:** 65%. no fact is lost: every field the throw site supplied still renders
   (`rule.require.refusals-carry-context`); the defect is form, never content
 - **where:** 5.3 i001 r006 blocker.1 · `.dream/2026_10_23.fix.boot-fault-rows-branch-array-metadata.dream.md`
-- **verdict:** —
+- **verdict:** (b), ruled by the director 2026-10-23. landed in this pr: the headline reads
+  `✗ <scope>/boot.md not written` alone (one glyph); the class and message ride the first branch;
+  each field reads `key = value`; a list renders its key over one leaf per item. the dream is resolved
