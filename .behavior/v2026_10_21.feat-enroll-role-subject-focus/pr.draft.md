@@ -76,9 +76,13 @@ no change to how a role with no focus boots.
     8 reads on the daemon's own pid and `ss command failed` to 4/4
   - 2 fixed in `weave/enweaveOne*`: the test model `gpt-4-turbo-2024-04-09` was deprecated (404);
     now `gpt-4o-mini`, 10/10
-  - open, as load timeouts: `genCloneEnrollDetached` [case5] (10163ms against 10s) and
-    `envAllHostingStrategies` (a cold daemon spawn through `tsx` past its 20s window); log
-    `what=integration/2026-10-24T03-26-34Z`, the spawn caught as a dream
+  - the last local run, after every clamp: 229 files, 2154 passed, 1 failed (log
+    `what=integration/2026-10-24T04-43-59Z`). the 1 is `keyrack/daemon` [case11], a 60s test
+    timeout, not sso; alone it passes in 40.8s. its time is two cold `tsx` daemon spawns, the
+    cause caught as a dream
+  - open, as load timeouts seen in earlier runs and green in the last: `genCloneEnrollDetached`
+    [case5] (10163ms against 10s) and `envAllHostingStrategies` (a cold daemon spawn past its 20s
+    window); log `what=integration/2026-10-24T03-26-34Z`
 - the dev-build `build:inplace` clamp (`devBuildKeepsDistEntry`): red with the cure reverted (2 of 3), green with it restored
   (3 of 3)
 - the perf acceptance suites (`roles.cost.performance.*`, ci only) missed their 250ms cap on the
