@@ -1,8 +1,6 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
-import { REPO_ACTOR_DIR_NAME_LEGACY } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
-import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getAllPathsGitCannotRestore } from '@src/infra/git/getAllPathsGitCannotRestore';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setSymlinkSwapped } from '@src/infra/setSymlinkSwapped';
@@ -18,8 +16,13 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { isAbsolute, join, relative } from 'node:path';
 import { asRepoBrainDirMigrationPlan } from './asRepoBrainDirMigrationPlan';
+import {
+  assertRepoBrainDirSymlinkLandsHere,
+  getOneRealpathOrNull,
+  isRepoBrainDirSymlinkLegacy,
+} from './assertRepoBrainDirSymlinkLandsHere';
 
 type RepoBrainDirSymlinkEffect = 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
 
@@ -36,22 +39,6 @@ const getOneLstatOrNull = (input: { path: string }) => {
     return lstatSync(input.path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw error;
-  }
-};
-
-/**
- * .what = the realpath of a path, or null where it dangles
- * .note = only a dangle reads as null; any other fault (e.g. EACCES) is thrown, so it
- *         never masquerades as "a symlink to another place"
- */
-const getOneRealpathOrNull = (input: { path: string }): string | null => {
-  try {
-    return realpathSync(input.path);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ELOOP')
-      return null;
     throw error;
   }
 };
@@ -128,40 +115,29 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
 
     // a symlink to the legacy repo actor brain dir → repoint it. after the legacy dir
     //   moves (`setRepoActorDirFromLegacy`), the old link dangles; it is ours to repoint
-    const pathAimed = resolve(input.repoPath, readlinkSync(linkPath));
-    const pathLegacy = getBrainOndiskDir({
-      actorDir: join(
-        getActorsRootDir({ repoPath: input.repoPath }),
-        REPO_ACTOR_DIR_NAME_LEGACY,
-      ),
-    });
-    if (realpathFound !== realpathWanted && pathAimed === pathLegacy) {
+    if (
+      realpathFound !== realpathWanted &&
+      isRepoBrainDirSymlinkLegacy({ repoPath: input.repoPath, linkPath })
+    ) {
       setSymlinkSwapped({ path: linkPath, target: linkTarget });
       return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
     }
 
-    if (realpathFound !== realpathWanted)
-      throw new ConstraintError(
-        '<repo>/.claude is a symlink to another place',
-        {
-          path: linkPath,
-          found: `a symlink to ${readlinkSync(linkPath)}`,
-          wanted: `a symlink to ${linkTarget}`,
-          hint: `remove ${linkPath}, then rerun \`rhx init\``,
-        },
-      );
+    // a link that aims elsewhere → refused, both realpaths named (the preflight's one rule)
+    assertRepoBrainDirSymlinkLandsHere(input);
     if (!isAbsolute(readlinkSync(linkPath)))
       return { effect: 'FOUND', drops: [], moves: [], overwrites: [] };
     setSymlinkSwapped({ path: linkPath, target: linkTarget });
     return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
   }
 
-  // a file → refuse; only a dir can migrate
-  if (!stat.isDirectory())
-    throw new ConstraintError('<repo>/.claude is a file, not a dir', {
+  // a file → refused (the preflight's one rule); only a dir can migrate
+  if (!stat.isDirectory()) {
+    assertRepoBrainDirSymlinkLandsHere(input);
+    throw new MalfunctionError('<repo>/.claude is neither a dir nor refused', {
       path: linkPath,
-      hint: `move ${linkPath} aside, then rerun \`rhx init\``,
     });
+  }
 
   // a real dir → plan the migration. a name the repo actor dir already holds is NOT a refusal:
   // rhachet owns this dir, and `<repo>/.claude` is the live copy, so the move replaces it

@@ -329,6 +329,15 @@ describe('setRepoBrainDirSymlink', () => {
         expect(scene.error.message).toContain('another place');
         expect(readlinkSync(scene.linkPath)).toEqual('other');
       });
+
+      then('the refusal names both realpaths, so it diagnoses itself', () => {
+        expect(scene.error.message).toContain(
+          realpathSync(join(scene.repoPath, 'other')),
+        );
+        expect(scene.error.message).toContain(
+          realpathSync(scene.repoActorBrainDir),
+        );
+      });
     });
   });
 

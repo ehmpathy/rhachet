@@ -10,7 +10,7 @@ export const getContextOpenAI = (): ContextOpenAI => ({
         UnexpectedCodePathError.throw('prep openai key not declared in env'),
     },
     llm: {
-      model: 'gpt-4-turbo-2024-04-09',
+      model: 'gpt-4o-mini',
       output: 'words',
     },
   },
