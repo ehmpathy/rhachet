@@ -10,6 +10,8 @@ import {
   relative,
   resolve,
 } from 'node:path';
+import { getOneRhxProvenance } from '../getOneRhxProvenance';
+import { assertRepoMutexCacheFit } from './assertRepoMutexCacheFit';
 import { emitRepoMutexWaitNotice } from './emitRepoMutexWaitNotice';
 
 /**
@@ -64,7 +66,14 @@ const getOneRepoMutexCache = async (input: {
   if (found) return found;
   const created = (async () => {
     const { createCache } = await import('simple-on-disk-cache');
-    return createCache({ directory: { local: { path: dir } } });
+    const cache = createCache({ directory: { local: { path: dir } } });
+
+    // a foreign cache copy is named here, before any key is taken (vision case 5)
+    assertRepoMutexCacheFit({
+      cache,
+      rhx: getOneRhxProvenance({ repoPath: repoReal }),
+    });
+    return cache;
   })();
   cacheByRepo.set(repoReal, created);
   return created;

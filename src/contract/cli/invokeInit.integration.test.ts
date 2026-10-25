@@ -1,14 +1,17 @@
 import { execSync } from 'child_process';
 import { Command } from 'commander';
-import { genTempDir, given, then, when } from 'test-fns';
+import { ConstraintError } from 'helpful-errors';
+import { genTempDir, getError, given, then, when } from 'test-fns';
 
 import { setSampleRepoCommitted } from '@src/.test/assets/setSampleRepoCommitted';
 import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
 
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   readlinkSync,
   realpathSync,
@@ -147,6 +150,45 @@ describe('invokeInit (integration)', () => {
 
     // register the init command
     invokeInit({ program });
+
+    when('invoked in a tree that pins another rhachet (vision case 7)', () => {
+      then('one notice row names the active and the pinned rhx', async () => {
+        // a tree whose own node_modules/rhachet is a different install at another version
+        const skewDir = genTempDir({ slug: 'invokeInit-rhx-skew', git: true });
+        mkdirSync(join(skewDir, 'node_modules', 'rhachet'), {
+          recursive: true,
+        });
+        writeFileSync(
+          join(skewDir, 'node_modules', 'rhachet', 'package.json'),
+          JSON.stringify({ name: 'rhachet', version: '0.0.1-pinned' }),
+        );
+        writeFileSync(
+          join(skewDir, 'package.json'),
+          JSON.stringify({ name: 'test-skew', dependencies: {} }),
+        );
+        process.chdir(skewDir);
+
+        await program.parseAsync(['init'], { from: 'user' });
+
+        const rows = logSpy.mock.calls.map((call) => String(call[0]));
+        const notices = rows.filter((row) => row.includes('this repo pins'));
+        expect(notices).toHaveLength(1);
+        expect(notices[0]).toContain('runs; this repo pins 0.0.1-pinned');
+      });
+    });
+
+    when('invoked in a tree whose rhachet is this one (the self-link)', () => {
+      then('no notice row prints', async () => {
+        writeFileSync(
+          join(testDir, 'package.json'),
+          JSON.stringify({ name: 'test-project', dependencies: {} }),
+        );
+        await program.parseAsync(['init'], { from: 'user' });
+
+        const rows = logSpy.mock.calls.map((call) => String(call[0]));
+        expect(rows.some((row) => row.includes('this repo pins'))).toBe(false);
+      });
+    });
 
     when(
       'invoked with --config and package.json that has rhachet-roles-* packages',
@@ -688,11 +730,9 @@ describe('invokeInit (integration)', () => {
             expect(readlinkSync(join(repoPath, '.claude'))).toEqual(
               REPO_ACTOR_BRAIN_DIR_REL,
             );
-            // the dir moved first (the layout runs before the role inits), so only the hand
-            //   settings.json moved; the role's own init then wrote its permissions into
-            //   claude's settings.json, and the layout replaced it with the grove arrow. one answer,
-            //   rhachet's: the role init's write never reaches settings.of.repo.json (that waits
-            //   on ehmpathy/rhachet-roles-ehmpathy#895, a role init that writes it by name)
+            // the dir moved first (the layout runs before the role inits), so the role's own
+            //   init meets the split layout and writes its permissions into settings.of.repo.json
+            //   by name (ehmpathy/rhachet-roles-ehmpathy#895, inventory case=8)
             expect(
               asFileContentOrEmpty({
                 path: join(
@@ -701,7 +741,7 @@ describe('invokeInit (integration)', () => {
                   'settings.of.repo.json',
                 ),
               }),
-            ).not.toContain('"permissions"');
+            ).toContain('"permissions"');
             expect(
               lstatSync(
                 join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
@@ -886,25 +926,115 @@ describe('invokeInit (integration)', () => {
       then(
         'the hook sync is skipped, so no hook lands beside an absent boot.md',
         async () => {
-          // a symlink to ANOTHER place is the refusal the gate needs: it is still a dir, so
-          //   the role inits ahead of it run clean, and the sync refuses after them — which
-          //   is exactly the order that makes a hook land beside an absent boot.md possible
+          // the roles link clean first; then `<repo>/.claude` is aimed at ANOTHER place, and a
+          //   bare `--hooks` (no role inits, so no preflight) meets the refusal at the boot
+          //   sync — the order that would make a hook land beside an absent boot.md
           const repoPath = genRepoForInit({ slug: 'init-gate-hooks' });
+          await program.parseAsync(['init', '--roles', 'mechanic'], {
+            from: 'user',
+          });
+          expect(exitSpy).not.toHaveBeenCalled();
+          rmSync(join(repoPath, '.claude'));
           mkdirSync(join(repoPath, 'other'));
           symlinkSync('other', join(repoPath, '.claude'));
 
-          await program.parseAsync(['init', '--roles', 'mechanic', '--hooks'], {
-            from: 'user',
-          });
+          await program.parseAsync(['init', '--hooks'], { from: 'user' });
 
           // the refusal fails the default sync, so the exit is the sync's own 2
           expect(exitSpy.mock.calls).toEqual([[2]]);
           // `<repo>/.claude` still resolves to `other/`, which the sync never rendered into
           expect(existsSync(join(repoPath, '.claude', 'boot.md'))).toBe(false);
-          const settings = JSON.parse(
-            readFileSync(join(repoPath, '.claude', 'settings.json'), 'utf8'),
-          ) as { hooks?: unknown };
-          expect(settings.hooks).toBeUndefined();
+          // the hook sync never ran, so no hook landed in either dir
+          const lines = logSpy.mock.calls.map((call) => String(call[0]));
+          expect(
+            lines.some((line) =>
+              line.includes('search for linked roles with hooks'),
+            ),
+          ).toBe(false);
+          expect(readdirSync(join(repoPath, 'other'))).toEqual([]);
+          expect(
+            asFileContentOrEmpty({
+              path: join(
+                repoPath,
+                REPO_ACTOR_BRAIN_DIR_REL,
+                'settings.of.repo.json',
+              ),
+            }),
+          ).not.toContain('"hooks"');
+        },
+      );
+    });
+
+    when('[t5] <repo>/.claude is a symlink to another place', () => {
+      then(
+        'the preflight refuses before any role links, both realpaths named',
+        async () => {
+          const repoPath = genRepoForInit({ slug: 'init-preflight-link' });
+          mkdirSync(join(repoPath, 'other'));
+          symlinkSync('other', join(repoPath, '.claude'));
+
+          const error = await getError(
+            program.parseAsync(['init', '--roles', 'mechanic', '--hooks'], {
+              from: 'user',
+            }),
+          );
+
+          // refused at the door: a ConstraintError, and no role link was made (vision case 4)
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('a symlink to another place');
+          expect(error.message).toContain(
+            realpathSync(join(repoPath, 'other')),
+          );
+          expect(error.message).toContain(
+            realpathSync(join(repoPath, REPO_ACTOR_BRAIN_DIR_REL)),
+          );
+          expect(
+            lstatSync(
+              join(repoPath, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+              {
+                throwIfNoEntry: false,
+              },
+            ),
+          ).toBeUndefined();
+          // no role init wrote through the foreign link
+          expect(readdirSync(join(repoPath, 'other'))).toEqual([]);
+        },
+      );
+    });
+
+    when('[t6] the repo actor brain dir is not writable', () => {
+      then(
+        'the preflight refuses before any role links, owner and mode named',
+        async () => {
+          // a root user writes through any mode, so the clamp could not bite; fail loud
+          if (process.getuid?.() === 0)
+            throw new ConstraintError('this clamp needs a non-root user', {
+              hint: 'run the integration tests as a non-root user',
+            });
+          const repoPath = genRepoForInit({ slug: 'init-preflight-write' });
+          const brainDir = join(repoPath, REPO_ACTOR_BRAIN_DIR_REL);
+          mkdirSync(brainDir, { recursive: true });
+          symlinkSync(REPO_ACTOR_BRAIN_DIR_REL, join(repoPath, '.claude'));
+          chmodSync(brainDir, 0o555);
+
+          const error = await getError(
+            program.parseAsync(['init', '--roles', 'mechanic'], {
+              from: 'user',
+            }),
+          ).finally(() => chmodSync(brainDir, 0o755));
+
+          // refused at the door: a ConstraintError, and no role link was made (vision case 2)
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('not writable');
+          expect(error.message).toContain('555');
+          expect(
+            lstatSync(
+              join(repoPath, '.agent', 'repo=ehmpathy', 'role=mechanic'),
+              {
+                throwIfNoEntry: false,
+              },
+            ),
+          ).toBeUndefined();
         },
       );
     });
