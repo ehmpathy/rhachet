@@ -5,6 +5,8 @@ import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
 
+import { asRolesPartWayFaultError } from './asRolesPartWayFaultError';
+
 /**
  * .what = links + inits a set of already-found roles (the source of truth link loop)
  * .why = both the absolute path (initRolesFromPackages) and the incremental
@@ -27,15 +29,29 @@ export const getRolesLinkedFromFound = async (
   },
   context: ContextCli,
 ): Promise<{ repo: string; role: string }[]> => {
-  // link + init each role (sequential for deterministic, readable output)
-  for (const one of input.found) {
-    execRoleLink({ role: one.role, repo: one.repo }, context);
-    await execRoleInits({ role: one.role, repo: one.repo });
-  }
-
-  // report the concrete { repo, role } of each linked role
-  return input.found.map((one) => ({
+  // the concrete { repo, role } of each found role, in loop order
+  const slugs = input.found.map((one) => ({
     repo: one.repo.slug,
     role: one.role.slug,
   }));
+
+  // link + init each role (sequential for deterministic, readable output);
+  // a failed init stops the loop (F5), and the fault names which roles linked
+  for (const [index, one] of input.found.entries()) {
+    execRoleLink({ role: one.role, repo: one.repo }, context);
+    try {
+      await execRoleInits({ role: one.role, repo: one.repo });
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      throw asRolesPartWayFaultError({
+        cause: error,
+        failed: slugs[index]!,
+        linked: slugs.slice(0, index + 1),
+        notLinked: slugs.slice(index + 1),
+      });
+    }
+  }
+
+  // report the concrete { repo, role } of each linked role
+  return slugs;
 };

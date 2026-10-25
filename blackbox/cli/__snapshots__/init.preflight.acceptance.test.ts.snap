@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case1] the repo actor brain dir is not writable (vision case 2) when: [t0] init --roles tester --hooks then: the refusal matches snapshot 1`] = `
+"
+✋ ConstraintError: the repo actor brain dir is not writable
+
+{
+  "hint": "grant this user write to /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude, then rerun \`rhx init\`; no role was linked",
+  "path": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "errno": "EACCES",
+  "owner": {
+    "uid": $ID,
+    "gid": $ID
+  },
+  "mode": "555"
+}
+
+[args] init,--roles,tester,--hooks
+
+"
+`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case2] <repo>/.claude is a symlink to another place (vision case 4) when: [t0] init --roles tester --hooks then: the refusal matches snapshot 1`] = `
+"
+✋ ConstraintError: <repo>/.claude is a symlink to another place
+
+{
+  "hint": "remove /TMP_REPO/.claude, then rerun \`rhx init\`",
+  "path": "/TMP_REPO/.claude",
+  "found": "a symlink to other",
+  "realpathFound": "/TMP_REPO/other",
+  "wanted": "a symlink to .agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "realpathWanted": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude"
+}
+
+[args] init,--roles,tester,--hooks
+
+"
+`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case3] a fresh clone whose first role init fails part-way (vision case 3) when: [t1] init --roles tester reviewer --hooks then: the refusal matches snapshot 1`] = `
+"
+💥 RolesPartWayMalfunctionError: role init failed part-way, at repo=test/role=tester
+
+{
+  "hint": "fix the failed init, then rerun the same command",
+  "failed": "repo=test/role=tester",
+  "linked": [
+    "repo=test/role=tester"
+  ],
+  "notLinked": [
+    "repo=test/role=reviewer"
+  ],
+  "cause": {
+    "class": "Error",
+    "message": "init command failed: /TMP_REPO/node_modules/rhachet-roles-test/roles/tester/inits/fail.sh (exit code 1)"
+  }
+}
+
+[args] init,--roles,tester,reviewer,--hooks
+
+"
+`;
