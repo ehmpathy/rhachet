@@ -32,6 +32,10 @@ import {
   resolve,
 } from 'node:path';
 import { asRepoBrainDirMigrationPlan } from './asRepoBrainDirMigrationPlan';
+import {
+  assertRepoBrainDirSymlinkLandsHere,
+  getOneRealpathOrNull,
+} from './assertRepoBrainDirSymlinkLandsHere';
 
 type RepoBrainDirSymlinkEffect = 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
 
@@ -48,22 +52,6 @@ const getOneLstatOrNull = (input: { path: string }) => {
     return lstatSync(input.path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw error;
-  }
-};
-
-/**
- * .what = the realpath of a path, or null where it dangles
- * .note = only a dangle reads as null; any other fault (e.g. EACCES) is thrown, so it
- *         never masquerades as "a symlink to another place"
- */
-const getOneRealpathOrNull = (input: { path: string }): string | null => {
-  try {
-    return realpathSync(input.path);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ELOOP')
-      return null;
     throw error;
   }
 };
@@ -193,16 +181,8 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
       };
     }
 
-    if (realpathFound !== realpathWanted)
-      throw new ConstraintError(
-        '<repo>/.claude is a symlink to another place',
-        {
-          path: linkPath,
-          found: `a symlink to ${readlinkSync(linkPath)}`,
-          wanted: `a symlink to ${linkTarget}`,
-          hint: `remove ${linkPath}, then rerun \`rhx init\``,
-        },
-      );
+    // a link that aims elsewhere → refused, both realpaths named (the preflight's one rule)
+    assertRepoBrainDirSymlinkLandsHere(input);
     if (!isAbsolute(readlinkSync(linkPath)))
       return {
         effect: 'FOUND',
@@ -221,12 +201,13 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
     };
   }
 
-  // a file → refuse; only a dir can migrate
-  if (!stat.isDirectory())
-    throw new ConstraintError('<repo>/.claude is a file, not a dir', {
+  // a file → refused (the preflight's one rule); only a dir can migrate
+  if (!stat.isDirectory()) {
+    assertRepoBrainDirSymlinkLandsHere(input);
+    throw new MalfunctionError('<repo>/.claude is neither a dir nor refused', {
       path: linkPath,
-      hint: `move ${linkPath} aside, then rerun \`rhx init\``,
     });
+  }
 
   // a real dir → plan the migration. a name the repo actor dir already holds is NOT a refusal:
   // rhachet owns this dir, and `<repo>/.claude` is the live copy, so the move replaces it

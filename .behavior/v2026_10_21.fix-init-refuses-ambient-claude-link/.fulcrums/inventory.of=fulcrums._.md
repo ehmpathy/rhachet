@@ -11,5 +11,6 @@ axis = `case` (one entry per best-guessed call, in the order made). each one is 
 | F4 | `case=F4-roles-ehmpathy-pin-bump-in-scope` — the `rhachet-roles-ehmpathy >= 1.39.5` bump rides this pr | clean | answered by logic (open to strike) | 95% |
 | F5 | `case=F5-stop-at-first-failed-role-or-continue` — a failed role init stops the loop (extant), rather than the loop goes on | clean | open | 60% |
 | F6 | `case=F6-link-refusal-moves-ahead-of-role-loop` — a `.claude` link that aims elsewhere is refused in the preflight, before any role writes through it | clean | open | 65% |
+| F7 | `case=F7-blueprint-as-a-yield-with-no-stone` — the blueprint is a route yield, reviewed by hand, with no stone or guard | clean | open | 80% |
 
 gaps: cause 4 (director tree link layout) holds no fulcrum — it is a fact owed by the director, not a call.
