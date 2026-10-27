@@ -1,9 +1,25 @@
 import { ConstraintError } from 'helpful-errors';
-import { getError, given, then, when } from 'test-fns';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  useThen,
+  when,
+} from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
+import { BrainDirOutsideRepoError } from '@src/domain.operations/actor/enrolled/BrainDirOutsideRepoError';
 
-import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
@@ -218,6 +234,38 @@ describe('setBrainDirBoot', () => {
         );
 
         expect(error).toBeInstanceOf(ConstraintError);
+      });
+    });
+  });
+
+  given('[case5] a brain dir that links to a dir outside the repo', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t0' });
+      const outside = genTempDir({ slug: 'setBrainDirBoot-c5t0-outside' });
+      const brainDir = join(repoPath, 'brain', '.claude');
+      mkdirSync(join(repoPath, 'brain'), { recursive: true });
+      symlinkSync(outside, brainDir);
+      return { repoPath, outside, brainDir };
+    });
+
+    when('[t0] the brain dir is rendered', () => {
+      const rendered = useThen('the render settles', async () => ({
+        error: await getError(
+          setBrainDirBoot({
+            brainDir: scene.brainDir,
+            roles: ROLES,
+            repoPath: scene.repoPath,
+            scope: { kind: 'repo' },
+          }),
+        ),
+      }));
+
+      then('it refuses as a write outside the repo', () => {
+        expect(rendered.error).toBeInstanceOf(BrainDirOutsideRepoError);
+      });
+
+      then('the outside dir is untouched', () => {
+        expect(readdirSync(scene.outside)).toEqual([]);
       });
     });
   });

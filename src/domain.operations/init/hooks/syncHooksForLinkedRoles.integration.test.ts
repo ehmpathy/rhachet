@@ -9,14 +9,17 @@ import { syncHooksForLinkedRoles } from './syncHooksForLinkedRoles';
 /**
  * .mock = the orchestrator's leaf collaborators: role discovery, the prune, the per-brain sync,
  *         the actor read, and the per-actor settings derivation
- * .why = each case proves how the orchestrator collects and reports ONE kind of leaf fault — a
+ * .why = each case proves how the orchestrator collects and reports one kind of leaf fault — a
  *        failed brain sync, a broken role config, an actor derivation that rejects with an
  *        Error, with a non-Error, or with a code defect. a real leaf cannot be made to raise a
  *        rejected non-Error or a TypeError on demand, so the fault is injected at the leaf and
- *        everything around it (the real cwd, `detectBrainReplsInRepo`, the report emitters)
- *        runs for real
+ *        all around it (the real cwd, `detectBrainReplsInRepo`, the report emitters) runs for
+ *        real. case8 is a skip, not a fault: its brain dir links out for real, on a real temp
+ *        dir, and the mocked brain sync serves as the counter that proves no root sync ran — a
+ *        fact an empty outside dir alone cannot tell from a sync that wrote no file
  * .real = `invokeInit.integration` and the `init.hooks` acceptance suite drive these same paths
- *         through the real collaborators, with no mock at all
+ *         through the real collaborators, with no mock at all; the case8 skip, with real role
+ *         discovery and a real sync, is `init.hooks.outside-repo.acceptance` case6 and case13
  */
 jest.mock('@src/domain.operations/brains/getLinkedRolesWithHooks');
 jest.mock('@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains');
@@ -32,6 +35,9 @@ import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinked
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
+
+import { mkdirSync, readdirSync, symlinkSync } from 'node:fs';
+import { join } from 'node:path';
 
 const mockGetAllActorsOndisk = getAllActorsOndisk as jest.Mock;
 const mockGenBrainCliConfigArtifact = genBrainCliConfigArtifact as jest.Mock;
@@ -64,9 +70,9 @@ const captureConsoleOutput = async <T>(input: {
 
 /**
  * .what = the two loud error paths of syncHooksForLinkedRoles — the operator
- *   summary a human reads when a hook sync FAILS, and when role DISCOVERY fails
+ *   summary a human reads when a hook sync fails, and when role discovery fails
  * .why = restores the coverage the deleted syncHooksForLinkedRoles.test.ts held
- *   for these paths (rule.require.clamp-edge-cases). the leaf error CONSTRUCTION
+ *   for these paths (rule.require.clamp-edge-cases). the leaf error construction
  *   is tested one layer down, but the orchestrator's own error-collection +
  *   `💥 N hook sync error(s)` summary was left unguarded — a regression that
  *   dropped the summary (a silent failure) would go undetected. the actor read
@@ -242,12 +248,13 @@ describe('syncHooksForLinkedRoles (error paths)', () => {
       });
 
       then('the actor row reads as a fault, never a quiet no-op', () => {
-        // the row takes the brain rows' shape: a `✗` marker and the class read off the error
+        // a `✗` marker on the row, and the class read off the error on the leaf beneath it
         const lines = scene.output.split('\n');
         const actorAt = lines.indexOf('🧢 apply hooks to enrolled actors...');
         expect(actorAt).toBeGreaterThan(-1);
-        expect(lines[actorAt + 1]).toEqual(
-          '   └─ ✗ hash=051970ec: Error: EACCES: permission denied',
+        expect(lines[actorAt + 1]).toEqual('   └─ ✗ hash=051970ec');
+        expect(lines[actorAt + 2]).toEqual(
+          '      ├─ error = Error: EACCES: permission denied',
         );
       });
     });
@@ -292,14 +299,24 @@ describe('syncHooksForLinkedRoles (error paths)', () => {
           expect(scene.errors[0]?.error).toBeInstanceOf(MalfunctionError);
         });
 
-        then('the fix reads beneath the actor row', () => {
-          const lines = scene.output.split('\n');
-          const actorAt = lines.indexOf('🧢 apply hooks to enrolled actors...');
-          expect(lines[actorAt + 1]).toContain('└─ ✗ hash=051970ec: ');
-          expect(lines[actorAt + 2]).toEqual(
-            '      └─ hint: rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
-          );
-        });
+        then(
+          'the roles, the path and the fix read beneath the actor row',
+          () => {
+            const lines = scene.output.split('\n');
+            const actorAt = lines.indexOf(
+              '🧢 apply hooks to enrolled actors...',
+            );
+            expect(lines[actorAt + 1]).toEqual('   └─ ✗ hash=051970ec');
+            expect(lines[actorAt + 2]).toEqual(
+              '      ├─ error = 💥 MalfunctionError: actor settings derivation rejected',
+            );
+            expect(lines.slice(actorAt + 3, actorAt + 6)).toEqual([
+              '      ├─ roles = mechanic',
+              '      ├─ path = .agent/.actors/actor.via.hash=051970ec/brain/.claude',
+              '      └─ hint = rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
+            ]);
+          },
+        );
       });
     },
   );
@@ -447,3 +464,68 @@ given('[case7] the ROOT prune lands, then the ROOT sync THROWS', () => {
     });
   });
 });
+
+given(
+  '[case8] the root sync is skipped, as its brain dir lands outside the repo',
+  () => {
+    const scene = useBeforeAll(async () => {
+      // the actors root links out, and `<repo>/.claude` reaches the repo actor's brain dir through
+      //   it, so the shield's entry guard refuses that dir
+      const dir = genTempDir({ slug: 'sync-hooks-root-skipped' });
+      const outside = genTempDir({ slug: 'sync-hooks-root-skipped-outside' });
+      const outsideBrainDir = join(
+        outside,
+        'actor.via.repo=ambient',
+        'brain',
+        '.claude',
+      );
+      mkdirSync(outsideBrainDir, { recursive: true });
+      mkdirSync(join(dir, '.agent'), { recursive: true });
+      symlinkSync(outside, join(dir, '.agent', '.actors'));
+      symlinkSync(
+        '.agent/.actors/actor.via.repo=ambient/brain/.claude',
+        join(dir, '.claude'),
+      );
+      mockGetAllActorsOndisk.mockReturnValue([]);
+      mockGetLinkedRolesWithHooks.mockResolvedValue({
+        roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
+        errors: [],
+      });
+
+      // the count is read as a delta: earlier cases in this file share the mock
+      const callsBefore =
+        mockSyncAllRoleHooksIntoEachBrainRepl.mock.calls.length;
+      const context = new ContextCli({ cwd: dir, gitroot: dir });
+      const { output, result } = await captureConsoleOutput({
+        logic: () =>
+          syncHooksForLinkedRoles(
+            { brains: ['anthropic/claude/code'] },
+            context,
+          ),
+      });
+      return {
+        output,
+        errors: result.errors,
+        isSyncCalled:
+          mockSyncAllRoleHooksIntoEachBrainRepl.mock.calls.length > callsBefore,
+        outsideEntries: readdirSync(outsideBrainDir),
+      };
+    });
+
+    when('[t0] sync is executed', () => {
+      then('it never reads as a clean sync', () => {
+        expect(scene.output).not.toContain('no changes needed');
+      });
+
+      then('the skip warn names the dir, and no error is counted', () => {
+        expect(scene.output).toContain('⚠️ skipped a write outside the repo');
+        expect(scene.errors).toEqual([]);
+      });
+
+      then('no root sync ran, and the outside brain dir stays empty', () => {
+        expect(scene.isSyncCalled).toBe(false);
+        expect(scene.outsideEntries).toEqual([]);
+      });
+    });
+  },
+);

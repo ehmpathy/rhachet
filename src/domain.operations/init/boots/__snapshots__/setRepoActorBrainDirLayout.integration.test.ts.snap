@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setRepoActorBrainDirLayout given: [case4] a repo whose actors root links outside the repo when: [t0] the layout is set then: the human reads the header, the path, where it lands, and the fix 1`] = `
+"{
+  "header": "✋ ConstraintError: refused a write outside the repo",
+  "path": ".agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "landsAt": "$OUTSIDE/actor.via.repo=ambient/brain/.claude",
+  "hint": "point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
+}"
+`;

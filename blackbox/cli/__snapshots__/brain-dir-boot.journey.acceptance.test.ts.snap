@@ -137,7 +137,11 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 🧢 apply hooks to enrolled actors...
    ├─ hash=15cc47ca
    ├─ hash=6fdfcc44
-   └─ ✗ hash=fddbc072: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.settings.of.repo.json.__PID__.__HEX__.tmp'
+   └─ ✗ hash=fddbc072
+      ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+      ├─ roles = shaper
+      ├─ path = .agent/.actors/actor.via.hash=fddbc072/brain/.claude
+      └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
 
 💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
 "

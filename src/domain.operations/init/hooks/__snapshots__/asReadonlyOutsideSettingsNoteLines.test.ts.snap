@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asReadonlyOutsideSettingsNoteLines given: [case2] two actors whose arrows reach the one home file when: [t0] the notes are rendered then: the block matches snapshot 1`] = `
+"⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /home/kai/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+"
+`;

@@ -1,3 +1,4 @@
+import { assertBrainDirInsideRepo } from '@src/domain.operations/actor/enrolled/assertBrainDirInsideRepo';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
@@ -13,7 +14,7 @@ import { setRepoBrainDirSymlink } from './setRepoBrainDirSymlink';
  *         link `<repo>/.claude` to the brain dir, and findsert the settings layout
  * .why = a role init writes through `<repo>/.claude` (e.g. a permission hook that adds its
  *        allows to `settings.of.repo.json`). run before the role inits, so each init meets the
- *        layout it will live in, and the next layout findsert replaces naught it wrote
+ *        layout it will live in, and the next layout findsert replaces no file it wrote
  *        (`inventory.of=requirements.case=8`)
  *
  * .note = it renders no boot: the boot is derived from the linked roles, so it renders after
@@ -27,13 +28,20 @@ export const setRepoActorBrainDirLayout = async (input: {
   symlink: Awaited<ReturnType<typeof setRepoBrainDirSymlink>>;
   settings: Awaited<ReturnType<typeof setBrainDirSettingsLayout>>;
 }> => {
+  // rhachet never writes outside the repo: refuse a repo actor brain dir that lands out of it,
+  //   before the legacy move or the mkdir could create a file there
+  const repoActorBrainDir = getBrainOndiskDir({
+    actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
+  });
+  assertBrainDirInsideRepo({
+    repoPath: input.repoPath,
+    brainDir: repoActorBrainDir,
+  });
+
   // carry a legacy repo actor dir over to its current name, before any write
   setRepoActorDirFromLegacy({ repoPath: input.repoPath });
 
   // the parent tree exists before any write
-  const repoActorBrainDir = getBrainOndiskDir({
-    actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
-  });
   mkdirSync(repoActorBrainDir, { recursive: true });
 
   // link <repo>/.claude to the brain dir; a real dir migrates into it

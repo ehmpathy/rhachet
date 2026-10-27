@@ -9,6 +9,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
 import { asBrainGroveAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainGroveAbsentLine';
+import { assertBrainDirInsideRepoForEnroll } from '@src/domain.operations/actor/enrolled/assertBrainDirInsideRepoForEnroll';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
@@ -496,6 +497,13 @@ const performEnroll = async (input: {
   //   an everyday `claude` can run before the first `rhx init` on an upgraded repo; were the
   //   current dir made first, the move would skip forever and strand the tracked config
   //   a move dangles `<repo>/.claude`, which aimed at the legacy dir, so it is repointed at once
+  //
+  // 🔴 the move and the repoint's lock dir both land under the actors root, so the root is
+  //   guarded first: an actors root that links out of the repo refuses before either can write
+  assertBrainDirInsideRepoForEnroll({
+    repoPath,
+    brainDir: getActorsRootDir({ repoPath }),
+  });
   const legacy = setRepoActorDirFromLegacy({ repoPath });
   if (legacy.effect === 'MOVED')
     await setRepoBrainDirSymlink({
@@ -512,6 +520,11 @@ const performEnroll = async (input: {
   );
   const actorDir = getActorOndiskDir({ repoPath, exid });
   const brainDir = getBrainOndiskDir({ actorDir });
+
+  // rhachet never writes outside the repo: refuse a brain dir that lands out of it, before the
+  //   mkdir could create a file there. a clone cannot spawn without its brain dir, so enroll
+  //   refuses loud, where init would skip and warn
+  assertBrainDirInsideRepoForEnroll({ repoPath, brainDir });
   mkdirSync(brainDir, { recursive: true });
 
   // render the enrolled roles into the brain dir's boot corpus

@@ -1,0 +1,480 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init --hooks never writes outside the repo given: [case1] an actor whose settings.json arrow reaches a 0444 home file when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=7dcf1989: +3
+
+⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case2] an actor whose settings.json arrow reaches a writable home file when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=7dcf1989: +3
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case3] an actor brain dir that is read-only inside the repo when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+      └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case4] an actor brain dir that links to a dir outside the repo when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ⚠️ hash=7dcf1989
+      └─ skipped = outside the repo
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR
+   ├─ effect = that brain dir got no hooks and no boot from this run
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case5] a repo with no enrolled actor, whose home file is 0444 when: [t0] init --roles tester --hooks runs then: the stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case6] a repo whose actors root links to a dir outside the repo when: [t0] init --roles tester --hooks runs then: the stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/actor.via.repo=ambient/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case7] the repo actor dir links outside the repo, a hash actor stays inside when: [t0] init --roles tester --hooks runs then: the stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case8] <repo>/.claude links to a dotfiles dir outside the repo when: [t0] init --roles tester --hooks runs then: the stderr is locked 1`] = `
+"✗ brain://repo=ambient/boot.md not written: ✋ ConstraintError: <repo>/.claude is a symlink to another place
+   ├─ path: /TMP_REPO/.claude
+   ├─ found: a symlink to /PATH_STRIPPED
+   ├─ wanted: a symlink to .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ hint: remove /TMP_REPO/.claude, then rerun \`rhx init\`
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case9] a faulted actor beside a 0444 home file (vision case=3 [t0]) when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+      └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
+
+⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case10] the reported scene: the legacy adapter, and an actor arrow to a 0444 home file when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=7dcf1989: +3
+
+⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case11] the legacy adapter, and an actor arrow to a writable home file when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=7dcf1989: +3
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case12] a faulted actor beside a 0444 home file, under upgrade (vision case=3 [t1]) when: [t0] upgrade --which local runs then: the stdout is locked 1`] = `
+"🫧 skip (local refs): rhachet-roles-test, rhachet-brains-test
+
+📦 upgrade (pnpm)
+   └── rhachet@latest
+
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+      └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
+
+⚠️ left a read-only file outside the repo untouched
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
+   └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+
+✨ rhachet upgraded locally
+hint: hooks did not land — fix the hook sync faults above, then rerun \`rhx upgrade\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case13] the legacy adapter, and the repo actor dir linked out (vision case=4 [t2]) when: [t0] init --roles tester --hooks runs then: the stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case14] the repo actor brain dir is read-only, so its write faults when: [t0] init --hooks runs then: the stderr is locked 1`] = `
+"✗ brain://repo=ambient/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written
+   ├─ brainDir: /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ cause: Error: EACCES: permission denied, open '/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case14] the repo actor brain dir is read-only, so its write faults when: [t0] init --hooks runs then: the stdout is locked 1`] = `""`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case15] an actor whose settings.of.repo.json is a dir when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: settings.of.repo.json must be a real file
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude/settings.of.repo.json
+      ├─ found = a dir
+      └─ hint = rhachet derives it from the roles, so remove .agent/.actors/actor.via.hash=7dcf1989/brain/.claude/settings.of.repo.json, then rerun \`rhx init --hooks\`
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case16] an actor whose settings.of.repo.json is a symlink when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: settings.of.repo.json must be a real file
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude/settings.of.repo.json
+      ├─ found = a symlink to elsewhere.json
+      └─ hint = rhachet derives it from the roles, so remove .agent/.actors/actor.via.hash=7dcf1989/brain/.claude/settings.of.repo.json, then rerun \`rhx init --hooks\`
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case17] a repo whose actors root links outside the repo, under \`roles link\` when: [t0] roles link --role tester runs then: the stdout is locked 1`] = `
+"
+🔭 discover roles from packages...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/actor.via.repo=ambient/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+💡 tip
+   └─ an enrolled actor gains this role via \`rhx enroll --roles +tester\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case18] a repo whose actors root links outside the repo, under \`init --roles\` with no \`--hooks\` when: [t0] init --roles tester runs then: the stdout is locked 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/actor.via.repo=ambient/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case19] a skipped actor beside a faulted one when: [t0] init --hooks runs then: the stdout is locked 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+🧢 apply hooks to enrolled actors...
+   ├─ ⚠️ hash=0badc0de
+   │  └─ skipped = outside the repo
+   └─ ✗ hash=7dcf1989
+      ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+      ├─ roles = tester
+      ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+      └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.hash=0badc0de/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR
+   ├─ effect = that brain dir got no hooks and no boot from this run
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;

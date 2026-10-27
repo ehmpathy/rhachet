@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import { assertBrainDirInsideRepo } from '@src/domain.operations/actor/enrolled/assertBrainDirInsideRepo';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -19,8 +20,8 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
 /**
  * .what = render roles into one brain dir's `boot.md`, then its pointer files
- * .why = a clone boots from its brain dir; the corpus is written at render time, never
- *        per session, so every clone of one brain dir reads the same bytes
+ * .why = a clone boots from its actor's brain dir; the corpus is written at render time, never
+ *        per session, so every clone that reads one brain dir reads the same bytes
  *
  * .note = roles render from `repoPath`'s `.agent/`, in enrollment order, after the one
  *         rhachet intro brief (`getOneRhachetBootIntro`)
@@ -31,6 +32,9 @@ export const setBrainDirBoot = async (input: {
   repoPath: string;
   scope: BrainDirBootScope;
 }): Promise<BrainDirBootRender> => {
+  // rhachet never writes outside the repo: refuse a brain dir that lands out of it
+  assertBrainDirInsideRepo(input);
+
   // render each role, in the one enrollment order; Promise.all keeps that order
   const refsOrdered = asRoleRefsInEnrollmentOrder({ refs: input.roles });
   const contents = await Promise.all(

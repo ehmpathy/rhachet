@@ -1,5 +1,15 @@
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import { MalfunctionError } from 'helpful-errors';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  useThen,
+  when,
+} from 'test-fns';
 
+import { BrainDirOutsideRepoError } from '@src/domain.operations/actor/enrolled/BrainDirOutsideRepoError';
 import {
   REPO_ACTOR_DIR_NAME,
   REPO_ACTOR_DIR_NAME_LEGACY,
@@ -10,8 +20,11 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -58,7 +71,7 @@ describe('setRepoActorBrainDirLayout', () => {
         'utf8',
       );
       const second = await setRepoActorBrainDirLayout({ repoPath });
-      return { repoPath, first, second, settingsRepoAfterFirst };
+      return { repoPath, home, first, second, settingsRepoAfterFirst };
     });
 
     when('[t0] the layout is set', () => {
@@ -66,39 +79,56 @@ describe('setRepoActorBrainDirLayout', () => {
         expect(scene.first.repoActorBrainDir).toEqual(
           asRepoActorBrainDir({ repoPath: scene.repoPath }),
         );
+      });
+
+      then('the repo actor brain dir is a dir', () => {
         expect(lstatSync(scene.first.repoActorBrainDir).isDirectory()).toBe(
           true,
         );
       });
 
-      then('<repo>/.claude is a symlink to the repo actor brain dir', () => {
-        const link = join(scene.repoPath, '.claude');
-        expect(lstatSync(link).isSymbolicLink()).toBe(true);
-        expect(realpathSync(link)).toEqual(
+      then('<repo>/.claude is a symlink', () => {
+        expect(
+          lstatSync(join(scene.repoPath, '.claude')).isSymbolicLink(),
+        ).toBe(true);
+      });
+
+      then('<repo>/.claude lands at the repo actor brain dir', () => {
+        expect(realpathSync(join(scene.repoPath, '.claude'))).toEqual(
           realpathSync(scene.first.repoActorBrainDir),
         );
       });
 
-      then('settings.of.repo.json is a real file that holds {}', () => {
-        const path = join(
-          scene.first.repoActorBrainDir,
-          'settings.of.repo.json',
-        );
-        expect(lstatSync(path).isFile()).toBe(true);
-        expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({});
+      then('settings.of.repo.json is a real file', () => {
+        expect(
+          lstatSync(
+            join(scene.first.repoActorBrainDir, 'settings.of.repo.json'),
+          ).isFile(),
+        ).toBe(true);
       });
 
-      then('the grove arrows are in place', () => {
+      then('settings.of.repo.json holds {}', () => {
+        expect(JSON.parse(scene.settingsRepoAfterFirst)).toEqual({});
+      });
+
+      then('settings.json is an arrow to settings.of.grove.json', () => {
         expect(
-          lstatSync(
-            join(scene.first.repoActorBrainDir, 'settings.json'),
-          ).isSymbolicLink(),
-        ).toBe(true);
+          readlinkSync(join(scene.first.repoActorBrainDir, 'settings.json')),
+        ).toEqual('settings.of.grove.json');
+      });
+
+      then('settings.of.grove.json is an arrow to the home settings', () => {
         expect(
-          lstatSync(
+          readlinkSync(
             join(scene.first.repoActorBrainDir, 'settings.of.grove.json'),
-          ).isSymbolicLink(),
-        ).toBe(true);
+          ),
+        ).toEqual(join(scene.home, '.claude', 'settings.json'));
+      });
+
+      then('the chain lands at the home settings file', () => {
+        expect(
+          realpathSync(join(scene.first.repoActorBrainDir, 'settings.json')),
+        ).toEqual(realpathSync(join(scene.home, '.claude', 'settings.json')));
       });
     });
 
@@ -194,4 +224,60 @@ describe('setRepoActorBrainDirLayout', () => {
       });
     },
   );
+
+  given('[case4] a repo whose actors root links outside the repo', () => {
+    const scene = useBeforeAll(async () => {
+      const { repoPath, home } = genScene({ slug: 'repo-layout-linked-out' });
+      process.env.HOME = home;
+      const outside = realpathSync(
+        genTempDir({ slug: 'repo-layout-linked-out-outside' }),
+      );
+      const actorsRoot = getActorsRootDir({ repoPath });
+      mkdirSync(join(actorsRoot, '..'), { recursive: true });
+      symlinkSync(outside, actorsRoot);
+      return { repoPath, outside };
+    });
+
+    when('[t0] the layout is set', () => {
+      const laid = useThen('the layout settles', async () => {
+        const error = await getError(
+          setRepoActorBrainDirLayout({ repoPath: scene.repoPath }),
+        );
+        if (!(error instanceof BrainDirOutsideRepoError))
+          throw new MalfunctionError(
+            'expected the layout to refuse as outside the repo, but it did not',
+            { cause: error },
+          );
+        return { error };
+      });
+
+      then('it refuses with BrainDirOutsideRepoError', () => {
+        expect(laid.error).toBeInstanceOf(BrainDirOutsideRepoError);
+      });
+
+      then('the outside dir stays empty', () => {
+        expect(readdirSync(scene.outside)).toEqual([]);
+      });
+
+      then(
+        'the human reads the header, the path, where it lands, and the fix',
+        () => {
+          expect(
+            JSON.stringify(
+              {
+                header: laid.error.message.split('\n')[0],
+                path: laid.error.metadata?.path,
+                landsAt: laid.error.metadata?.landsAt,
+                hint: laid.error.metadata?.hint,
+              },
+              null,
+              2,
+            )
+              .split(scene.outside)
+              .join('$OUTSIDE'),
+          ).toMatchSnapshot();
+        },
+      );
+    });
+  });
 });

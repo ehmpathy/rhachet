@@ -1,4 +1,5 @@
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import { assertBrainDirInsideRepo } from '@src/domain.operations/actor/enrolled/assertBrainDirInsideRepo';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBootRender';
@@ -76,13 +77,20 @@ export const setRepoActorBrainDir = async (input: {
   settings: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['settings'];
   enrollConfigs: Awaited<ReturnType<typeof delStaleEnrollConfigs>>;
 }> => {
+  // rhachet never writes outside the repo: refuse a repo actor brain dir that lands out of it,
+  //   before the legacy move or the mkdir could create a file there
+  const repoActorBrainDir = getBrainOndiskDir({
+    actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
+  });
+  assertBrainDirInsideRepo({
+    repoPath: input.repoPath,
+    brainDir: repoActorBrainDir,
+  });
+
   // carry a legacy repo actor dir over to its current name, before any write
   setRepoActorDirFromLegacy({ repoPath: input.repoPath });
 
   // the parent tree exists before any write
-  const repoActorBrainDir = getBrainOndiskDir({
-    actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
-  });
   mkdirSync(repoActorBrainDir, { recursive: true });
 
   // render the corpus; a throw here stops the sync before the link

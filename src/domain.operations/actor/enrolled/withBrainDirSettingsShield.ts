@@ -1,6 +1,6 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
-import { setBrainDirSettingsLayoutWithinLock } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
+import { setBrainDirSettingsLayoutWithinLock } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayoutWithinLock';
 import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
 import { asJsonObjectOrNull } from '@src/infra/asJsonObjectOrNull';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
@@ -14,6 +14,7 @@ import {
   rmSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import { assertBrainDirInsideRepo } from './assertBrainDirInsideRepo';
 
 /**
  * .what = run a settings writer against a brain dir whose `settings.json` is a REAL copy of
@@ -44,6 +45,8 @@ export const withBrainDirSettingsShield = async <T>(
   input: { repoPath: string; brainDir: string; home: string },
   logic: () => Promise<T>,
 ): Promise<T> => {
+  // rhachet never writes outside the repo: refuse a brain dir that lands out of it
+  assertBrainDirInsideRepo(input);
   mkdirSync(input.brainDir, { recursive: true });
   return withRepoMutex(
     {
@@ -58,42 +61,127 @@ export const withBrainDirSettingsShield = async <T>(
  * .what = the shield span itself, once the brain dir's `settings.of.repo.json` mutex is held
  */
 const withBrainDirSettingsShieldWithinLock = async <T>(
-  input: { brainDir: string; home: string },
+  input: { repoPath: string; brainDir: string; home: string },
   logic: () => Promise<T>,
 ): Promise<T> => {
-  const { brainDir, home } = input;
-  const pathRepo = join(brainDir, CLAUDE_SETTINGS_FILENAMES.repo);
-  const pathClaude = join(brainDir, CLAUDE_SETTINGS_FILENAMES.claude);
+  const layout = {
+    repoPath: input.repoPath,
+    brainDir: input.brainDir,
+    home: input.home,
+  };
+  const pathRepo = join(input.brainDir, CLAUDE_SETTINGS_FILENAMES.repo);
+  const pathClaude = join(input.brainDir, CLAUDE_SETTINGS_FILENAMES.claude);
 
   // settle the layout first, so any real settings.json a role init left is replaced
-  setBrainDirSettingsLayoutWithinLock({ brainDir, home });
+  setBrainDirSettingsLayoutWithinLock(layout);
 
   // swap the arrow for a real copy of the repo's settings
   const contentBefore = getOneRepoSettingsContentOrSeed({ pathRepo });
   setShieldCopy({ pathClaude, content: contentBefore });
 
-  // run the writer; settle rather than throw, so the fold and the relink always run
-  const [settled] = await Promise.allSettled([logic()]);
+  // run the writer and settle it, so the fold and the relink always run
+  const writer = await getOneWriterSettled({ logic });
 
   // fold an old adapter's write back into settings.of.repo.json; drop the copy; relink
-  const fold = isRealFileAt({ path: pathClaude })
-    ? setShieldCopyFolded({ pathClaude, pathRepo, contentBefore })
-    : { isUnparseable: false };
-  setBrainDirSettingsLayoutWithinLock({ brainDir, home });
+  const fold = setShieldClosed({
+    layout,
+    copy: { pathClaude, pathRepo, contentBefore },
+    writer,
+  });
 
   // the writer's own fault propagates, once the brain dir is back in the layout
-  if (settled.status === 'rejected') throw settled.reason;
+  if (writer.isRejected)
+    throw asWriterFaultError({
+      reason: writer.reason,
+      brainDir: input.brainDir,
+    });
 
   // a write that is not a json object reached no file: say so, never drop it silently
   if (fold.isUnparseable)
     throw new MalfunctionError(
       'the settings writer left settings.json as json that is not an object',
       {
-        brainDir,
+        brainDir: input.brainDir,
         hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a bug of the brain hooks adapter',
       },
     );
-  return settled.value;
+  return writer.value;
+};
+
+/**
+ * .what = run the settings writer and settle its outcome, never throw
+ * .why = the shield must fold and relink whatever the writer did; the fault is rethrown by the
+ *   caller once the layout is restored, so naught is hidden
+ * .note = the call sits inside a try with an await, so a writer that throws before its first
+ *   await settles too; a rejection of any value, `null` included, reads as rejected
+ */
+const getOneWriterSettled = async <T>(input: {
+  logic: () => Promise<T>;
+}): Promise<
+  { isRejected: false; value: T } | { isRejected: true; reason: unknown }
+> => {
+  try {
+    return { isRejected: false, value: await input.logic() };
+  } catch (reason) {
+    return { isRejected: true, reason };
+  }
+};
+
+/**
+ * .what = the writer's rejection as an Error: itself where it is one, else a MalfunctionError
+ *   that names the value it rejected with
+ */
+const asWriterFaultError = (input: {
+  reason: unknown;
+  brainDir: string;
+}): Error =>
+  input.reason instanceof Error
+    ? input.reason
+    : new MalfunctionError(
+        'the settings writer rejected with a value that is not an Error',
+        {
+          brainDir: input.brainDir,
+          reason: input.reason,
+          hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a bug of the brain hooks adapter',
+        },
+      );
+
+/**
+ * .what = close the shield: fold the copy back, then relink the arrow
+ * .note = where the writer already failed, a cleanup fault is raised with the writer's fault
+ *   beside it, so neither is lost. a ConstraintError keeps its class and its hint (the caller
+ *   must fix it); any other fault is ours, a MalfunctionError
+ */
+const setShieldClosed = (input: {
+  layout: { repoPath: string; brainDir: string; home: string };
+  copy: { pathClaude: string; pathRepo: string; contentBefore: string };
+  writer: { isRejected: false } | { isRejected: true; reason: unknown };
+}): { isUnparseable: boolean } => {
+  try {
+    const fold = isRealFileAt({ path: input.copy.pathClaude })
+      ? setShieldCopyFolded(input.copy)
+      : { isUnparseable: false };
+    setBrainDirSettingsLayoutWithinLock(input.layout);
+    return fold;
+  } catch (error) {
+    if (!input.writer.isRejected) throw error;
+    const message =
+      'the settings writer failed, and the shield could not restore the layout after it';
+    const metadata = {
+      brainDir: input.layout.brainDir,
+      writerFault: input.writer.reason,
+      cause: error instanceof Error ? error : new Error(String(error)),
+    };
+    if (error instanceof ConstraintError)
+      throw new ConstraintError(message, {
+        ...metadata,
+        hint: error.metadata?.hint,
+      });
+    throw new MalfunctionError(message, {
+      ...metadata,
+      hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
+    });
+  }
 };
 
 /**
