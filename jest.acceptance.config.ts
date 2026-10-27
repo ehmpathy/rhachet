@@ -39,13 +39,15 @@ const config: Config = {
     // exclude rmsafe trash — deleted test files land in this gitignored cache dir;
     // jest would otherwise discover a stale copy and fail on its broken imports
     '!**/.agent/.cache/**',
+    // brain dirs hold claude runtime state (plugin caches with their own tests), never repo source
+    '!**/.agent/.actors/**',
   ],
   // ⚠️ the `testMatch` negation above stops the trash's TEST files from RUNNING, and
   //   does NOT stop jest from a crawl of the dir for `__snapshots__`. so a `.snap` left
   //   behind by an rmsafe is reported as obsolete and the acceptance gate exits
   //   non-zero with every test green — a failure no test output explains. this is the
   //   same line its unit + integration siblings already carry
-  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/', '/.agent/.actors/'],
   setupFilesAfterEnv: ['./jest.acceptance.env.ts'],
 
   // reclaim the temp dirs `genTempDir` mints. both keys are required: the setup mints

@@ -1,13 +1,25 @@
-import { getError, given, then, useBeforeAll, when } from 'test-fns';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  when,
+} from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
+import { BrainDirOutsideRepoError } from '@src/domain.operations/actor/enrolled/BrainDirOutsideRepoError';
+import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
+  readdirSync,
   readFileSync,
   readlinkSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -228,6 +240,36 @@ describe('setRepoActorBrainDir', () => {
 
       then('no <repo>/.claude is made', () => {
         expect(existsSync(join(scene.repoPath, '.claude'))).toBe(false);
+        expect(() => lstatSync(join(scene.repoPath, '.claude'))).toThrow();
+      });
+    });
+  });
+
+  given('[case3] a repo whose actors root links outside the repo', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genRepoWithRoles({
+        slug: 'sync-repo-actor-brain-dir-linked-out',
+      });
+      const outside = genTempDir({ slug: 'sync-repo-actor-brain-dir-outside' });
+      const actorsRoot = getActorsRootDir({ repoPath });
+      mkdirSync(join(actorsRoot, '..'), { recursive: true });
+      symlinkSync(outside, actorsRoot);
+      const error = await getError(
+        setRepoActorBrainDir({ repoPath, refsLinked: ROLES }),
+      );
+      return { repoPath, outside, error };
+    });
+
+    when('[t0] the repo actor brain dir is synced', () => {
+      then('it refuses with BrainDirOutsideRepoError', () => {
+        expect(scene.error).toBeInstanceOf(BrainDirOutsideRepoError);
+      });
+
+      then('the outside dir stays empty', () => {
+        expect(readdirSync(scene.outside)).toEqual([]);
+      });
+
+      then('no <repo>/.claude is made', () => {
         expect(() => lstatSync(join(scene.repoPath, '.claude'))).toThrow();
       });
     });

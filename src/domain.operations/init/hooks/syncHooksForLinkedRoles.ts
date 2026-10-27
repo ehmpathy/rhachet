@@ -1,9 +1,15 @@
-import { HelpfulError, MalfunctionError } from 'helpful-errors';
+import { HelpfulError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { BrainDirOutsideRepoError } from '@src/domain.operations/actor/enrolled/BrainDirOutsideRepoError';
+import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
+import { emitBrainDirOutsideRepoWarns } from '@src/domain.operations/actor/enrolled/emitBrainDirOutsideRepoWarns';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { withBrainDirOutsideRepoAsSkip } from '@src/domain.operations/actor/enrolled/withBrainDirOutsideRepoAsSkip';
 import { withBrainDirSettingsShield } from '@src/domain.operations/actor/enrolled/withBrainDirSettingsShield';
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
@@ -12,16 +18,22 @@ import { getHomeDir } from '@src/infra/getHomeDir';
 import { asErrorClassText } from '@src/utils/asErrorClassText';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
+import { isPathOutsideDir } from '@src/utils/isPathOutsideDir';
 
 import { lstatSync, realpathSync } from 'node:fs';
-import { join } from 'node:path';
-import { asEnrolledActorsHookSyncLines } from './asEnrolledActorsHookSyncLines';
+import { isAbsolute, join, relative } from 'node:path';
+import { asActorSettingsFaultWrapped } from './asActorSettingsFaultWrapped';
+import { asActorSettlementsSplit } from './asActorSettlementsSplit';
 import { asHookChangeSummary } from './asHookChangeSummary';
 import { asHookChangeTally } from './asHookChangeTally';
 import { asHookFaultRows } from './asHookFaultRows';
 import { asHookSyncTotalRows } from './asHookSyncTotalRows';
+import { emitEnrolledActorsHookSyncLines } from './emitEnrolledActorsHookSyncLines';
+import { emitReadonlyOutsideSettingsNotes } from './emitReadonlyOutsideSettingsNotes';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
+import { getOneReadonlyOutsideSettingsTargetOrNull } from './getOneReadonlyOutsideSettingsTargetOrNull';
+import { getOneRepoActorReadonlyTargetSettled } from './getOneRepoActorReadonlyTargetSettled';
 import { syncRoleHooksIntoTarget } from './syncRoleHooksIntoTarget';
 
 /**
@@ -124,13 +136,22 @@ export const syncHooksForLinkedRoles = async (
       context,
     );
   const isClaudeCodeTargeted = brainsTarget.includes('anthropic/claude/code');
-  const {
-    pruneResult,
-    syncResult,
-    faults: faultsForRoot,
-  } = isClaudeCodeTargeted
-    ? await withRepoBrainDirShield({ repoPath: context.cwd }, syncIntoRoot)
-    : await syncIntoRoot();
+  const syncIntoRootReached = isClaudeCodeTargeted
+    ? () => withRepoBrainDirShield({ repoPath: context.cwd }, syncIntoRoot)
+    : syncIntoRoot;
+
+  // a skip is no error: a brain dir that lands outside the repo is never written, and its
+  //   `⚠️` block prints once the actors have reported (`assertBrainDirInsideRepo`). the skip
+  //   rides beside the stand-in result, so it is never mistaken for a sync that changed no file
+  const rootSync = await withBrainDirOutsideRepoAsSkip({
+    logic: syncIntoRootReached,
+    skipped: {
+      pruneResult: { removed: [] },
+      syncResult: { applied: [], errors: [] },
+      faults: [],
+    },
+  });
+  const { pruneResult, syncResult, faults: faultsForRoot } = rootSync.result;
   const errorsForRoot = faultsForRoot.map(({ error }) => ({
     source: 'root',
     error,
@@ -209,14 +230,17 @@ export const syncHooksForLinkedRoles = async (
       console.log(line);
   }
 
-  // a clean sync that moved no hook says so once, as a subbranch (rule.forbid.colons-in-stdout)
+  // a clean sync that moved no hook says so once, as a subbranch (rule.forbid.colons-in-stdout).
+  //   a skipped sync is never clean: it moved no hook because it never ran, and its `⚠️`
+  //   block below says so
   const countRootFaults = syncResult.errors.length + errorsForRoot.length;
-  if (!hasChanges && countRootFaults === 0) {
+  const isRootClean = countRootFaults === 0 && rootSync.skips.length === 0;
+  if (!hasChanges && isRootClean) {
     console.log('✨ hooks');
     console.log('   └─ no changes needed');
   }
   // close the summary only where one printed, so a fault-only run leaves one blank, not two
-  if (hasChanges || countRootFaults === 0) console.log('');
+  if (hasChanges || isRootClean) console.log('');
 
   // derive every enrolled actor's settings.of.repo.json from the repo actor's, narrowed
   // to THAT actor's own roles — the same derivation enroll runs at spawn, so an
@@ -227,37 +251,59 @@ export const syncHooksForLinkedRoles = async (
   //   arrow into the human's home settings, so a write by that name would land the roles'
   //   hooks in `~/.claude/settings.json` (inventory.of=requirements.case=9)
   //
-  // 🟡 .note = the repo actor is included: this pass is init's one writer of its
+  // 🟡 .note = the repo actor is included once enrolled: this pass is init's one writer of its
   //   `claudeMdExcludes` (enroll writes them only at spawn). its hooks come back unchanged,
   //   since `genBrainCliConfigArtifact` never narrows the source
   const actorsEnrolled = getAllActorsOndisk({ repoPath: context.cwd });
-  if (actorsEnrolled.length > 0) {
-    // derive each actor's settings, one at a time and in order; a fault is collected, so one
-    //   broken actor never skips the rest. the actor row carries the SAME +N/~N/-N summary
-    //   the brain rows do (rule.forbid.snapshot-visual-blemishes: the two rows share a shape)
-    const actorRows: Parameters<
-      typeof asEnrolledActorsHookSyncLines
-    >[0]['actors'] = [];
-    // .note = deliberate mutation — the actors derive one at a time, in order, so the rows
-    //   print in the order the actors were read; the list is local to this block
-    for (const actor of actorsEnrolled) {
-      const { outcome, fault } = await getOneEnrolledActorSettingsOutcome({
-        actor,
-        repoPath: context.cwd,
-      });
-      if (fault)
-        errors.push({ source: `sync:actor=${actor.exid}`, error: fault });
-      actorRows.push({
-        actorExid: actor.exid,
-        outcome,
-        hint: asErrorHintOrNull({ error: fault }),
-      });
-    }
-    asEnrolledActorsHookSyncLines({ actors: actorRows }).forEach((line) =>
-      console.log(line),
-    );
-    console.log('');
-  }
+
+  // derive each actor's settings; a fault is collected, so one broken actor never skips the
+  //   rest. the actor row carries the same +N/~N/-N summary the brain rows do
+  //   (rule.forbid.snapshot-visual-blemishes: the two rows share a shape)
+  const actorPass = asActorSettlementsSplit({
+    settlements: await setAllEnrolledActorSettlements({
+      actors: actorsEnrolled,
+      repoPath: context.cwd,
+    }),
+  });
+
+  // the repo actor's arrow reaches the human's home settings too, and it is listed among the
+  //   actors only once a clone was enrolled (it gains its actor.json then). so it is probed
+  //   on its own, and a locked home file is noted on every init, enrolled or not. a probe
+  //   fault renders as its own actor row and joins the errors, never a throw after the writes
+  const probeOfRepoActor = getOneRepoActorReadonlyTargetSettled({
+    repoPath: context.cwd,
+    isSkipped: rootSync.skips.length > 0,
+  });
+  const rowsOfProbeFault = probeOfRepoActor.fault
+    ? [
+        {
+          actorExid: REPO_ACTOR_EXID,
+          outcome: { error: probeOfRepoActor.fault },
+          details: [],
+        },
+      ]
+    : [];
+  errors.push(...actorPass.errors);
+  if (probeOfRepoActor.fault)
+    errors.push({
+      source: `probe:actor=${REPO_ACTOR_EXID}`,
+      error: probeOfRepoActor.fault,
+    });
+  emitEnrolledActorsHookSyncLines({
+    actors: [...actorPass.rows, ...rowsOfProbeFault],
+  });
+  const targetReadonlyOfRepoActor = probeOfRepoActor.target;
+
+  // each skipped brain dir names its path and its fix; each read-only home file, once
+  const skips = [...rootSync.skips, ...actorPass.skips];
+  emitBrainDirOutsideRepoWarns({ skips });
+  emitReadonlyOutsideSettingsNotes({
+    repoPath: context.cwd,
+    targets: [
+      ...(targetReadonlyOfRepoActor ? [targetReadonlyOfRepoActor] : []),
+      ...actorPass.targetsReadonly,
+    ],
+  });
 
   // the ONE header a fault set gets, owned here and printed once, after every phase has
   //   reported its own rows in place. a caller (`invokeInit`, `execUpgrade`) reads `errors`
@@ -269,19 +315,45 @@ export const syncHooksForLinkedRoles = async (
 };
 
 /**
- * .what = derive one enrolled actor's settings, and settle it into the shape its report row
- *   reads: the change summary or the fault, and the fault itself (always an Error) for the
- *   caller's error list
+ * .what = settle every enrolled actor, one at a time and in order
+ * .why = the actors derive in order, so the rows print in the order the actors were read; a
+ *   parallel map would interleave their writes to the repo actor's source
+ *
+ * 🟡 .note = deliberate mutation — the list grows one settlement per actor, local to this call
+ */
+const setAllEnrolledActorSettlements = async (input: {
+  actors: ActorOndisk[];
+  repoPath: string;
+}): Promise<
+  Awaited<ReturnType<typeof setOneEnrolledActorSettingsOutcome>>[]
+> => {
+  const settlements: Awaited<
+    ReturnType<typeof setOneEnrolledActorSettingsOutcome>
+  >[] = [];
+  for (const actor of input.actors)
+    settlements.push(
+      await setOneEnrolledActorSettingsOutcome({
+        actor,
+        repoPath: input.repoPath,
+      }),
+    );
+  return settlements;
+};
+
+/**
+ * .what = derive one enrolled actor's settings, and settle it into its report row, the fault
+ *   itself (always an Error) for the caller's error list, its skip, and its read-only home file
  * .why = a fault is collected, never thrown, so one broken actor never skips the rest
  */
-const getOneEnrolledActorSettingsOutcome = async (input: {
+const setOneEnrolledActorSettingsOutcome = async (input: {
   actor: ActorOndisk;
   repoPath: string;
-}): Promise<{
-  outcome: { changes: string } | { error: Error };
-  fault: Error | null;
-}> => {
+}): Promise<
+  Parameters<typeof asActorSettlementsSplit>[0]['settlements'][number]
+> => {
+  const actorExid = input.actor.exid;
   try {
+    const brainDir = getActorBrainDir(input);
     const derived = await setActorSettingsDerived(input);
     const tally = asHookChangeTally(derived.hooks);
     const changes = asHookChangeSummary({
@@ -289,21 +361,65 @@ const getOneEnrolledActorSettingsOutcome = async (input: {
       updated: tally.updated.length,
       deleted: tally.deleted.length,
     });
-    return { outcome: { changes }, fault: null };
+    const targetReadonly = getOneReadonlyOutsideSettingsTargetOrNull({
+      repoPath: input.repoPath,
+      brainDir,
+    });
+    return {
+      row: { actorExid, outcome: { changes }, details: [] },
+      fault: null,
+      skip: null,
+      targetReadonly,
+    };
   } catch (error) {
+    // a brain dir that lands outside the repo is skipped, never an error row
+    if (error instanceof BrainDirOutsideRepoError)
+      return {
+        row: {
+          actorExid,
+          outcome: { skipped: 'outside the repo' },
+          details: [],
+        },
+        fault: null,
+        skip: error,
+        targetReadonly: null,
+      };
+
     // an allowlist: a classed or fs fault is this actor's row; a code defect surfaces loud
     if (isCodeDefectError({ error })) throw error;
-    const fault =
-      error instanceof Error
-        ? error
-        : new MalfunctionError('actor settings derivation rejected', {
-            actorExid: input.actor.exid,
-            reason: error,
-            hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
-          });
-    return { outcome: { error: fault }, fault };
+    const fault = asActorSettingsFaultWrapped({
+      error,
+      actorExid,
+      roles: input.actor.roles,
+      brainDirRel: relative(input.repoPath, getActorBrainDir(input)),
+    });
+    return {
+      row: {
+        actorExid,
+        outcome: { error: fault },
+        details: asActorFaultDetails({ error: fault, ...input }),
+      },
+      fault,
+      skip: null,
+      targetReadonly: null,
+    };
   }
 };
+
+/**
+ * .what = the brain dir of one enrolled actor
+ * .why = a faulted row with no path of its own still names where it struck
+ */
+const getActorBrainDir = (input: {
+  actor: ActorOndisk;
+  repoPath: string;
+}): string =>
+  getBrainOndiskDir({
+    actorDir: getActorOndiskDir({
+      repoPath: input.repoPath,
+      exid: input.actor.exid,
+    }),
+  });
 
 /**
  * .what = run logic inside the settings shield of the brain dir `<repo>/.claude` reaches,
@@ -346,14 +462,50 @@ const getRealpathOrNull = (input: { path: string }): string | null => {
 };
 
 /**
- * .what = the `hint` a HelpfulError carries, or null
- * .why = an actor row names the fault's class; the hint beneath it names the fix
+ * .what = the `roles = …`, `path = …`, `found = …`, `lands at = …`, `hint = …` details beneath
+ *   a faulted actor row
+ * .why = every fault names which roles it costs and where it struck (the wish), whatever its
+ *   class; what sits there, where it lands, and the hint follow where the error carries them.
+ *   a clean row has no details
+ * .note = the path is the fault's own, where it names one, else the actor's brain dir; an
+ *   absolute path inside the repo reads relative to it, so every row's `path =` has one shape
  */
-const asErrorHintOrNull = (input: { error: Error | null }): string | null => {
-  if (!(input.error instanceof HelpfulError)) return null;
-  const hint: unknown = input.error.metadata?.hint;
-  return typeof hint === 'string' ? hint : null;
+const asActorFaultDetails = (input: {
+  error: Error;
+  actor: ActorOndisk;
+  repoPath: string;
+}): { key: string; value: string }[] => {
+  const metadata: Record<string, unknown> =
+    input.error instanceof HelpfulError ? (input.error.metadata ?? {}) : {};
+  const pathNamed =
+    typeof metadata.path === 'string' ? metadata.path : getActorBrainDir(input);
+  const path = asPathRelativeWhenInside({
+    path: pathNamed,
+    dir: input.repoPath,
+  });
+  return [
+    { key: 'roles', value: input.actor.roles.join(', ') || null },
+    { key: 'path', value: path },
+    { key: 'found', value: metadata.found },
+    { key: 'lands at', value: metadata.landsAt },
+    { key: 'hint', value: metadata.hint },
+  ].flatMap(({ key, value }) =>
+    typeof value === 'string' ? [{ key, value }] : [],
+  );
 };
+
+/**
+ * .what = a path relative to a dir when it is absolute and inside it; else the path as named
+ * .why = every row's `path =` reads in one shape, relative to the repo; a path outside it
+ *   stays absolute, so the human sees it leave the repo
+ */
+const asPathRelativeWhenInside = (input: {
+  path: string;
+  dir: string;
+}): string =>
+  isAbsolute(input.path) && !isPathOutsideDir(input)
+    ? relative(input.dir, input.path)
+    : input.path;
 
 /**
  * .what = whether a symlink sits at a path (absent reads as no)

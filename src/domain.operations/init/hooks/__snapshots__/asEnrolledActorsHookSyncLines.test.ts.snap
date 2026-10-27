@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`asEnrolledActorsHookSyncLines given: [case1] no actor enrolled when: [t0] the block is rendered then: the block matches snapshot 1`] = `""`;
+
 exports[`asEnrolledActorsHookSyncLines given: [case2] one actor whose derivation changed hooks when: [t0] the block is rendered then: the block matches snapshot 1`] = `
 "🧢 apply hooks to enrolled actors...
    └─ hash=9c1e0000: +2, ~1, -1"
@@ -7,8 +9,9 @@ exports[`asEnrolledActorsHookSyncLines given: [case2] one actor whose derivation
 
 exports[`asEnrolledActorsHookSyncLines given: [case3] one actor whose derivation faulted, with a hint when: [t0] the block is rendered then: the block matches snapshot 1`] = `
 "🧢 apply hooks to enrolled actors...
-   └─ ✗ hash=deadbeef: ✋ ConstraintError: settings unreadable
-      └─ hint: fix the json in settings.of.repo.json, then rerun \`rhx init --hooks\`"
+   └─ ✗ hash=deadbeef
+      ├─ error = ✋ ConstraintError: settings unreadable
+      └─ hint = fix the json in settings.of.repo.json, then rerun \`rhx init --hooks\`"
 `;
 
 exports[`asEnrolledActorsHookSyncLines given: [case4] two actors, one with naught to change when: [t0] the block is rendered then: the block matches snapshot 1`] = `
@@ -19,7 +22,33 @@ exports[`asEnrolledActorsHookSyncLines given: [case4] two actors, one with naugh
 
 exports[`asEnrolledActorsHookSyncLines given: [case5] a faulted actor above another, the fault with a hint when: [t0] the block is rendered then: the block matches snapshot 1`] = `
 "🧢 apply hooks to enrolled actors...
-   ├─ ✗ hash=aaaa1111: ✋ ConstraintError: settings unreadable
-   │  └─ hint: rerun \`rhx init --hooks\`
+   ├─ ✗ hash=aaaa1111
+   │  ├─ error = ✋ ConstraintError: settings unreadable
+   │  └─ hint = rerun \`rhx init --hooks\`
    └─ hash=bbbb2222: ~1"
+`;
+
+exports[`asEnrolledActorsHookSyncLines given: [case6] an fs fault with its roles, path and hint when: [t0] the block is rendered then: the block matches snapshot 1`] = `
+"🧢 apply hooks to enrolled actors...
+   ├─ ✗ hash=7dcf1989
+   │  ├─ error = ✋ ConstraintError: actor settings could not be written (EACCES)
+   │  ├─ roles = driver, mechanic
+   │  ├─ path = .agent/.actors/actor.via.hash=7dcf1989/brain/.claude
+   │  └─ hint = restore write access to that dir, then rerun \`rhx init --hooks\`
+   └─ repo=ambient"
+`;
+
+exports[`asEnrolledActorsHookSyncLines given: [case7] an actor whose brain dir lands outside the repo when: [t0] the block is rendered then: the block matches snapshot 1`] = `
+"🧢 apply hooks to enrolled actors...
+   └─ ⚠️ hash=7dcf1989
+      └─ skipped = outside the repo"
+`;
+
+exports[`asEnrolledActorsHookSyncLines given: [case8] a change and a skip, each with a detail of its own when: [t0] the block is rendered then: the block matches snapshot 1`] = `
+"🧢 apply hooks to enrolled actors...
+   ├─ hash=9c1e0000: +1
+   │  └─ roles = mechanic
+   └─ ⚠️ hash=7dcf1989
+      ├─ skipped = outside the repo
+      └─ roles = tester"
 `;

@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`withBrainDirSettingsShield given: [case6] a writer that rejects with a value that is not an Error when: [t0] the shield closes then: the human reads the same header and hint 1`] = `
+{
+  "header": "💥 MalfunctionError: the settings writer rejected with a value that is not an Error",
+  "hint": "rerun \`rhx init --hooks\`; if it fails again, report this output as a bug of the brain hooks adapter",
+}
+`;

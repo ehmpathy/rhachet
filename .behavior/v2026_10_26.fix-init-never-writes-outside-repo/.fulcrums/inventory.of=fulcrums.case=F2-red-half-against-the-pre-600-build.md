@@ -19,3 +19,18 @@ clean — the red-half run is a verification step, not code; B drops one step.
 
 ## .where
 `1.vision.yield.md` .evaluation · `case=1` .the clamp's red half.
+
+## .verdict
+ruled A by the director ("the red half against v1.49.1 plus the guard's own red then green test
+is the proof"). measured at 5.3, 2026-10-26, via `rhx test.against.release`:
+
+- case=1's scene, with the fixture's test brain, stays green on 1.48.0 and 1.49.1 once its arrow is
+  laid as an enroll leaves it: that brain writes `settings.of.repo.json`, so it never followed the
+  arrow. only its read-only note is absent there
+- the reported write needs the reporter's adapter. #661's repo pins rhachet 1.48.0 and
+  `rhachet-brains-anthropic@0.4.3`, whose dao writes `settings.json` by name. acceptance case10
+  (the real 0.4.3 adapter, a 0444 home) reproduces #661 on 1.48.0 to the line: `└─ 7dcf1989`, no
+  count, exit 1, no error shown. case11 (a writable home) shows the old build write role hooks into
+  the home file. both are red on 1.48.0 and on 1.49.1, and green on this branch
+- so the clamp the wish names is case10, and its red half ran against the reporter's own pin
+  as well as v1.49.1. the guard's own red then green clamps stand as before

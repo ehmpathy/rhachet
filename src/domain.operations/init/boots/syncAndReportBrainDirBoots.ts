@@ -1,20 +1,21 @@
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { emitBrainDirOutsideRepoWarns } from '@src/domain.operations/actor/enrolled/emitBrainDirOutsideRepoWarns';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
-import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
-import {
-  asBrainDirSyncReportLines,
-  type BrainDirSyncSymlink,
-} from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
-import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
 
 import { relative } from 'node:path';
 import { asBootGuardReportLines } from './asBootGuardReportLines';
+import { asBrainDirSyncFailuresSplit } from './asBrainDirSyncFailuresSplit';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
+import { emitBootGuardReportLines } from './emitBootGuardReportLines';
+import { emitBrainDirBootFailureLines } from './emitBrainDirBootFailureLines';
+import { emitBrainDirSyncReports } from './emitBrainDirSyncReports';
 import { findsertRepoThisRoleAnyBootGuard } from './findsertRepoThisRoleAnyBootGuard';
+import { isRepoActorRendered } from './isRepoActorRendered';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
 /**
@@ -37,7 +38,8 @@ const REPO_BRAIN_DIR_READER: BrainSlug = 'claude';
  *   census nobody acts on reads as debug chatter (`rule.require.treestruct-output`)
  *
  * .note = `repoActorRendered` gates the hook sync: a repo whose repo actor render failed keeps
- *         its role boot hooks, so it never holds neither
+ *         its role boot hooks, so it always holds one of the two: the old boot hooks, or a fresh
+ *         boot.md with the hooks derived from it
  */
 export const syncAndReportBrainDirBoots = async (
   input: {
@@ -63,53 +65,43 @@ export const syncAndReportBrainDirBoots = async (
   // findsert the repo's own boot guards BEFORE the render, so the render reads the budget.
   //   one treestruct, printed only where a guard was created
   const guard = findsertRepoThisRoleAnyBootGuard({ repoPath: input.repoPath });
-  const linesGuard = asBootGuardReportLines({ guard });
-  if (linesGuard.length > 0) {
-    console.log('🧢 .agent/repo=.this/role=any');
-    asTreeBranchLines({ rows: linesGuard, indent: '   ' }).forEach((line) =>
-      console.log(line),
-    );
-    console.log('');
-  }
+  emitBootGuardReportLines({ lines: asBootGuardReportLines({ guard }) });
 
-  const { renders, failures, symlink } = await syncBootsForBrainDirs(
+  const {
+    renders,
+    failures: failuresAll,
+    symlink,
+  } = await syncBootsForBrainDirs(
     { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
     context,
   );
 
-  // one treestruct per brain dir this run CHANGED, on stdout. only the repo actor's render has a
-  //   `<repo>/.claude` link beneath it; an actor's brain dir is reached by its own path
-  const repoActorBrainDirRel = relative(
-    input.repoPath,
-    getBrainOndiskDir({
-      actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
-    }),
-  );
-  //
-  // 🌊 each tree closes on its own blank line, as every other block of this pipeline does
-  //   (`execRoleLink`, the role delta, `🔭` hooks, `✨` summary). the next root then opens
-  //   clean whether it is a second brain dir, the `🔭` hook sweep, or a `💡` tip — and a
-  //   no-op tree prints naught, blank included, so silence stays silent
-  for (const render of renders) {
-    const lines = asBrainDirSyncReportLines({
-      render,
-      symlink: render.scope.kind === 'repo' ? symlink : null,
-      repoActorBrainDirRel,
-    });
-    if (lines.length === 0) continue;
-    for (const line of lines) console.log(line);
-    console.log('');
-  }
+  // a brain dir that lands outside the repo was skipped, never written: a `⚠️` block, not
+  //   a failure, so it sets no exit code (`assertBrainDirInsideRepo`)
+  const { failures, skips } = asBrainDirSyncFailuresSplit({
+    failures: failuresAll,
+  });
+  emitBrainDirOutsideRepoWarns({ skips });
+
+  // one treestruct per brain dir this run CHANGED, on stdout
+  emitBrainDirSyncReports({
+    renders,
+    symlink,
+    repoActorBrainDirRel: relative(
+      input.repoPath,
+      getBrainOndiskDir({
+        actorDir: getOneRepoActorOndiskDir({ repoPath: input.repoPath }),
+      }),
+    ),
+  });
 
   // one named failure per corpus not written, on stderr
-  for (const failure of failures)
-    for (const line of asBrainDirBootFailureLines({ failure }))
-      console.error(line);
+  emitBrainDirBootFailureLines({ failures });
 
+  // .note = the two read different lists on purpose: a skip sets no exit code, yet a skipped
+  //   repo actor did not render, so the hook sync must still keep its role boot hooks
   return {
     exitCode: asExitCodeForBrainDirSyncFailures({ failures }),
-    repoActorRendered: !failures.some(
-      (failure) => failure.scope.kind === 'repo',
-    ),
+    repoActorRendered: isRepoActorRendered({ failures: failuresAll }),
   };
 };

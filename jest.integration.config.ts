@@ -44,11 +44,13 @@ const config: Config = {
     // exclude rmsafe trash — deleted test files land in this gitignored cache dir;
     // jest would otherwise discover a stale copy and fail on its broken imports
     '!**/.agent/.cache/**',
+    // brain dirs hold claude runtime state (plugin caches with their own tests), never repo source
+    '!**/.agent/.actors/**',
   ],
   // also keep jest's obsolete-snapshot scan out of the rmsafe trash — a deleted
   // .snap lands there and would otherwise be flagged obsolete (a local-only false
   // positive; the testMatch negation alone does not cover the snapshot scan)
-  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/', '/.agent/.actors/'],
   setupFilesAfterEnv: ['./jest.integration.env.ts'],
 
   // reclaim the temp dirs `genTempDir` mints. both keys are required: the setup mints

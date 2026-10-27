@@ -48,3 +48,8 @@ ignores:
   - "@noble/curves" # src/infra/ssh/sshPubkeyToAgeRecipient.ts
   - "@noble/hashes" # src/infra/ssh/sshPrikeyToAgeIdentity.ts
   - "@scure/base" # src/infra/ssh/getOneScureBase.ts (one shared loader, both ssh-crypto files import it)
+# brain dirs hold claude runtime state (plugin caches, transcripts), gitignored and never this
+# repo source; <repo>/.claude is a symlink into the repo actor dir, so both names are cut
+ignore-patterns:
+  - .claude
+  - .agent/.actors
