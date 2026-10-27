@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainDirOutsideRepoWarnLines given: [case] a hash actor dir: the effect is that one dir when: [t0] the warn is rendered then: the block matches snapshot 1`] = `
+"⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.hash=aaaa1111/brain/.claude
+   ├─ lands at = /elsewhere
+   ├─ effect = that brain dir got no hooks and no boot from this run
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
+`;
+
+exports[`asBrainDirOutsideRepoWarnLines given: [case] the repo actor dir: the effect is every actor when: [t0] the warn is rendered then: the block matches snapshot 1`] = `
+"⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /elsewhere
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
+`;

@@ -3,14 +3,18 @@ import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollme
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
-import { readClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import {
+  CLAUDE_SETTINGS_FILENAMES,
+  readClaudeCodeSettings,
+} from '@src/domain.operations/brains/claudeCodeSettings';
 import { asHookUniqueKey } from '@src/domain.operations/brains/dispatch/asHookUniqueKey';
 import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 import { getHookDispatchManifestPathOfBrainDir } from '@src/domain.operations/brains/dispatch/getHookDispatchManifestPathOfBrainDir';
 import { getOneHookDispatchManifest } from '@src/domain.operations/brains/dispatch/getOneHookDispatchManifest';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
-import { dirname } from 'node:path';
+import { lstatSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
 
 /**
@@ -64,10 +68,20 @@ export const setActorSettingsDerived = async (input: {
  *        move itself reads as no change
  * .note = a settings hook's timeout is in claude's unit, seconds, as the published claude
  *   adapter writes it; the manifest holds seconds too, so both read as written
+ * .note = a `settings.of.repo.json` that is not a real file (a dir, a symlink) yields no hooks
+ *   here, so the layout findsert that follows refuses it with its own fix. a read first would
+ *   throw a raw `EISDIR` errno, with no hint, and hide that refusal
  */
 const getAllHooksByKeyOfBrainDir = async (input: {
   brainDir: string;
 }): Promise<Map<string, string>> => {
+  const statRepo = lstatSync(
+    join(input.brainDir, CLAUDE_SETTINGS_FILENAMES.repo),
+    {
+      throwIfNoEntry: false,
+    },
+  );
+  if (statRepo && !statRepo.isFile()) return new Map();
   const settings = await readClaudeCodeSettings({
     from: dirname(input.brainDir),
   });

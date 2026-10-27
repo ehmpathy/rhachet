@@ -1,7 +1,11 @@
 import { asActorOndiskDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskDirName';
 import { REPO_ACTOR_DIR_NAME } from '@src/domain.operations/actor/enrolled/constants';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
+import { getRealpathOfNearestExtant } from '@src/infra/filesystem/getRealpathOfNearestExtant';
+import { isPathOutsideDir } from '@src/utils/isPathOutsideDir';
 
+import { realpathSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { findsertDirGitignore } from './findsertDirGitignore';
 import type { LinkResult } from './findsertFile';
 
@@ -55,12 +59,27 @@ const asActorsGitignoreContentSelf = (input: {
  *   create-time untrack; every other dir ignores all it holds
  * .note = `.actors` takes the repo path from its caller, so the spared repo actor dir is never
  *   derived from the shape of a path string
+ * .note = rhachet never writes outside the repo: a dir that links out of `<repo>` is left
+ *   alone. its self-ignore has no job there, since this repo's git never sees that dir
  */
 export const findsertAgentEphemeralGitignore = (
   input:
     | { dir: string; kind: 'cache' }
     | { dir: string; kind: 'actors'; repoPath: string },
 ): LinkResult => {
+  // leave alone a dir that links out of the repo; a cache dir sits at `<repo>/.agent/<name>`
+  const repoPath =
+    input.kind === 'actors' ? input.repoPath : dirname(dirname(input.dir));
+  const isDirOutsideRepo = isPathOutsideDir({
+    path: getRealpathOfNearestExtant({ path: input.dir }),
+    dir: realpathSync(repoPath),
+  });
+  if (isDirOutsideRepo)
+    return {
+      path: relative(process.cwd(), join(input.dir, '.gitignore')),
+      status: 'unchanged',
+    };
+
   // a cache dir ignores all it holds
   if (input.kind === 'cache')
     return findsertDirGitignore({

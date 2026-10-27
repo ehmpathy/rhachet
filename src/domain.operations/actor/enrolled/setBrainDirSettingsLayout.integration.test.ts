@@ -1,19 +1,30 @@
 import { ConstraintError } from 'helpful-errors';
-import { getError, given, then, useBeforeAll, when } from 'test-fns';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  useThen,
+  when,
+} from 'test-fns';
 
 import { genSampleHomeWithBrainDir } from '@src/.test/assets/genSampleHomeWithBrainDir';
 
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import { BrainDirOutsideRepoError } from './BrainDirOutsideRepoError';
 import { setBrainDirSettingsLayout } from './setBrainDirSettingsLayout';
 
 const GROVE_CONTENT = `${JSON.stringify({ theme: 'dark', model: 'opus' }, null, 2)}\n`;
@@ -32,6 +43,12 @@ const genScene = (input: { slug: string; grove: boolean }) =>
  */
 const asForkedNames = (input: { brainDir: string }): string[] =>
   readdirSync(input.brainDir).filter((name) => name.includes('.forked.'));
+
+/**
+ * .what = a text with the scene's temp brain dir masked, so a snapshot is stable across runs
+ */
+const asBrainDirMasked = (input: { text: unknown; brainDir: string }): string =>
+  String(input.text).split(input.brainDir).join('$BRAIN_DIR');
 
 describe('setBrainDirSettingsLayout', () => {
   given('[case1] a fresh brain dir on a box with a grove', () => {
@@ -278,7 +295,7 @@ describe('setBrainDirSettingsLayout', () => {
     });
   });
 
-  given('[case4b] a box with no grove, and a real settings.json', () => {
+  given('[case5] a box with no grove, and a real settings.json', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, home, brainDir } = genScene({
         slug: 'layout-no-grove-real',
@@ -318,7 +335,7 @@ describe('setBrainDirSettingsLayout', () => {
     });
   });
 
-  given('[case5] a real file where settings.of.grove.json belongs', () => {
+  given('[case6] a real file where settings.of.grove.json belongs', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, home, brainDir } = genScene({
         slug: 'layout-grove-real',
@@ -351,7 +368,7 @@ describe('setBrainDirSettingsLayout', () => {
     });
   });
 
-  given('[case6] a real settings.json, and a grove that is broken json', () => {
+  given('[case7] a real settings.json, and a grove that is broken json', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, home, brainDir } = genScene({
         slug: 'layout-grove-broken',
@@ -393,7 +410,7 @@ describe('setBrainDirSettingsLayout', () => {
     });
   });
 
-  given('[case7] fork copies an earlier layout kept aside', () => {
+  given('[case8] fork copies an earlier layout kept aside', () => {
     const FORKED_NAMES = [
       'settings.forked.2026-09-29T15-28-40-006Z.json',
       'settings.forked.2026-09-29T15-28-40-006Z.1a2b3c4d.json',
@@ -434,7 +451,7 @@ describe('setBrainDirSettingsLayout', () => {
   });
 
   given(
-    '[case8] a role init wrote its allows into settings.of.repo.json',
+    '[case9] a role init wrote its allows into settings.of.repo.json',
     () => {
       const REPO_CONTENT = `${JSON.stringify({ permissions: { allow: ['Bash(ls)'] } })}\n`;
       const scene = useBeforeAll(async () => {
@@ -466,7 +483,7 @@ describe('setBrainDirSettingsLayout', () => {
     },
   );
 
-  given('[case9] settings.of.repo.json is a symlink', () => {
+  given('[case10] settings.of.repo.json is a symlink', () => {
     const scene = useBeforeAll(async () => {
       const { repoPath, home, brainDir } = genScene({
         slug: 'layout-repo-symlink',
@@ -481,6 +498,7 @@ describe('setBrainDirSettingsLayout', () => {
       const error = await getError(
         setBrainDirSettingsLayout({ repoPath, brainDir, home }),
       );
+      if (!(error instanceof ConstraintError)) throw error;
       return { repoPath, home, brainDir, error };
     });
 
@@ -503,6 +521,133 @@ describe('setBrainDirSettingsLayout', () => {
           readFileSync(join(scene.brainDir, 'settings.json'), 'utf8'),
         ).toEqual('{"theme":"light"}');
       });
+
+      then('the found text names the link, and the hint names the fix', () => {
+        expect(scene.error.metadata?.found).toEqual(
+          `a symlink to ${join(scene.home, 'elsewhere.json')}`,
+        );
+        expect(
+          asBrainDirMasked({
+            text: scene.error.metadata?.hint,
+            brainDir: scene.brainDir,
+          }),
+        ).toMatchSnapshot();
+      });
     });
   });
+
+  given('[case11] settings.of.repo.json is a dir', () => {
+    const scene = useBeforeAll(async () => {
+      const { repoPath, home, brainDir } = genScene({
+        slug: 'layout-repo-dir',
+        grove: true,
+      });
+      mkdirSync(join(brainDir, 'settings.of.repo.json'));
+      return { repoPath, home, brainDir };
+    });
+
+    when('[t0] the layout is findserted', () => {
+      const findserted = useThen('the findsert settles', async () => {
+        const error = await getError(
+          setBrainDirSettingsLayout({
+            repoPath: scene.repoPath,
+            brainDir: scene.brainDir,
+            home: scene.home,
+          }),
+        );
+        if (!(error instanceof ConstraintError)) throw error;
+        return { error };
+      });
+
+      then('it refuses loud, and says it found a dir', () => {
+        expect(findserted.error).toBeInstanceOf(ConstraintError);
+        expect(findserted.error.message).toContain(
+          'settings.of.repo.json must be a real file',
+        );
+        expect(findserted.error.metadata?.found).toEqual('a dir');
+      });
+
+      then('the human reads the same header, found text and hint', () => {
+        expect({
+          header: findserted.error.message.split('\n')[0],
+          found: findserted.error.metadata?.found,
+          hint: asBrainDirMasked({
+            text: findserted.error.metadata?.hint,
+            brainDir: scene.brainDir,
+          }),
+        }).toMatchSnapshot();
+      });
+
+      then('naught is changed: the dir stays a dir', () => {
+        expect(
+          lstatSync(
+            join(scene.brainDir, 'settings.of.repo.json'),
+          ).isDirectory(),
+        ).toBe(true);
+      });
+    });
+  });
+
+  given(
+    '[case12] a brain dir not yet made, under a parent that links outside the repo',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const { repoPath, home } = genScene({
+          slug: 'layout-outside',
+          grove: true,
+        });
+        const outside = realpathSync(
+          genTempDir({ slug: 'layout-outside-target' }),
+        );
+        symlinkSync(outside, join(repoPath, 'actor-out'));
+        const brainDir = join(repoPath, 'actor-out', 'brain', '.claude');
+        return { repoPath, home, brainDir, outside };
+      });
+
+      when('[t0] the layout is findserted', () => {
+        const findserted = useThen('the findsert settles', async () => {
+          const error = await getError(
+            setBrainDirSettingsLayout({
+              repoPath: scene.repoPath,
+              brainDir: scene.brainDir,
+              home: scene.home,
+            }),
+          );
+          if (!(error instanceof BrainDirOutsideRepoError)) throw error;
+          return { error };
+        });
+
+        then('it refuses as a write outside the repo', () => {
+          expect(findserted.error).toBeInstanceOf(BrainDirOutsideRepoError);
+        });
+
+        then(
+          'the outside dir stays empty: the refusal precedes the mkdir',
+          () => {
+            expect(readdirSync(scene.outside)).toEqual([]);
+          },
+        );
+
+        then(
+          'the human reads the header, the path, where it lands, and the fix',
+          () => {
+            expect(
+              JSON.stringify(
+                {
+                  header: findserted.error.message.split('\n')[0],
+                  path: findserted.error.metadata?.path,
+                  landsAt: findserted.error.metadata?.landsAt,
+                  hint: findserted.error.metadata?.hint,
+                },
+                null,
+                2,
+              )
+                .split(scene.outside)
+                .join('$OUTSIDE'),
+            ).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
 });

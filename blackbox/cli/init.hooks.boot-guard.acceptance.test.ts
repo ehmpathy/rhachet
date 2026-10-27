@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import { given, then, useBeforeAll, useThen, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
@@ -65,6 +65,18 @@ const getManifestRulesStop = async (input: {
     .filter((row) => row.event === 'Stop')
     .map((row) => ({ matcher: row.author, command: row.command }));
 
+/**
+ * .what = `init --hooks` against a fresh temp HOME
+ * .why = the repo actor's grove arrow reaches `$HOME/.claude/settings.json`, and init notes a
+ *   read-only one. the host's home file must not decide what this suite's stdout holds
+ */
+const invokeInitHooks = (input: { cwd: string }) =>
+  invokeRhachetCliBinary({
+    args: ['init', '--hooks'],
+    cwd: input.cwd,
+    env: { HOME: genTempDir({ slug: 'boot-guard-home' }) },
+  });
+
 describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () => {
   given('[case1] a repo whose own role has a payload and no budget', () => {
     const repo = useBeforeAll(async () =>
@@ -75,7 +87,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
 
     when('[t0] init --hooks', () => {
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeInitHooks({ cwd: repo.path }),
       );
 
       then('exits with status 0', () => {
@@ -176,7 +188,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
 
     when('[t3] init --hooks runs again', () => {
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeInitHooks({ cwd: repo.path }),
       );
 
       then('findserts naught new', () => {
@@ -214,7 +226,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         content: await fs.readFile(bootYmlPath(), 'utf-8'),
       }));
       const result = useThen('it succeeds', async () =>
-        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),
+        invokeInitHooks({ cwd: repo.path }),
       );
 
       then('exits with status 0', () => {
