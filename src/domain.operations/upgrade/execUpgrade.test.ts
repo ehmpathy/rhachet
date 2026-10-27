@@ -39,8 +39,8 @@ jest.mock(
   }),
 );
 /**
- * .what = the ONE collaborator replaced here; the rest of the module stays real
- * .why = this suite needs the hook sync to FAULT — it aggregates per-brain faults into
+ * .what = the one collaborator replaced here; the rest of the module stays real
+ * .why = this suite needs the hook sync to fault — it aggregates per-brain faults into
  *   `errors` rather than a throw, so a suite that cannot drive that channel cannot
  *   clamp whether `execUpgrade` reads it
  */
@@ -52,7 +52,7 @@ jest.mock('@src/domain.operations/init/hooks/syncHooksForLinkedRoles', () => ({
 }));
 
 /**
- * .what = the boot sync, replaced as narrowly as the hook sync above — the default is the REAL one
+ * .what = the boot sync, replaced as narrowly as the hook sync above — the default is the real one
  * .why = the hook sync runs only once the default boot rendered (`defaultRendered` gates it),
  *   and against this suite's `/test` cwd the real render never lands. a case that drives a
  *   hook-sync fault opens that gate explicitly
@@ -421,9 +421,9 @@ describe('execUpgrade', () => {
         expect(mockInitRolesFromPackages).not.toHaveBeenCalled();
       });
 
-      then('hookErrors is EMPTY — no hooks were synced at all', async () => {
-        // the empty array means "not run", never "ran clean" — hookErrors is present
-        // on every path, even the one that skipped the sync
+      then('hookErrors is empty — no hooks were synced at all', async () => {
+        // the uncalled spy is what proves "not run"; a sync that ran and found no fault would
+        //   also return an empty list. hookErrors is present on every path, this one included
         const result = await execUpgrade({ roleSpecs: ['*'] }, context);
         expect(spySyncHooksForLinkedRoles).not.toHaveBeenCalled();
         expect(result.hookErrors).toEqual([]);

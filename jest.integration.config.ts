@@ -44,6 +44,8 @@ const config: Config = {
     // exclude rmsafe trash — deleted test files land in this gitignored cache dir;
     // jest would otherwise discover a stale copy and fail on its broken imports
     '!**/.agent/.cache/**',
+    // brain dirs hold claude runtime state (plugin caches with their own tests), never repo source
+    '!**/.agent/.actors/**',
   ],
   // also keep jest's obsolete-snapshot scan out of the rmsafe trash — a deleted
   // .snap lands there and would otherwise be flagged obsolete (a local-only false

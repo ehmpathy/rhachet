@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`writeClaudeCodeSettings never writes outside the dir it was aimed at given: [case1] a \`.claude\` that links to a dir outside \`to\` when: [t0] the write is called then: it refuses, and the outside dir is untouched 1`] = `
+"{
+  "header": "✋ ConstraintError: settings dir lands outside the tree it was aimed at",
+  "metadata": {
+    "path": "$TO/.claude",
+    "landsAt": "$OUTSIDE",
+    "hint": "point that .claude dir back inside the repo, then rerun \`rhx init --hooks\`"
+  }
+}"
+`;
+
+exports[`writeClaudeCodeSettings never writes outside the dir it was aimed at given: [case2] a \`.claude\` that is a broken link when: [t0] the write is called then: it refuses, with the link target named 1`] = `
+"{
+  "header": "✋ ConstraintError: settings dir lands outside the tree it was aimed at",
+  "metadata": {
+    "path": "$TO/.claude",
+    "landsAt": "a broken link to $GONE/gone",
+    "hint": "point that .claude dir back inside the repo, then rerun \`rhx init --hooks\`"
+  }
+}"
+`;
+
+exports[`writeClaudeCodeSettings never writes outside the dir it was aimed at given: [case4] a \`.claude\` that is a real file inside \`to\` when: [t0] the write is called then: it refuses with a fix, and the file is untouched 1`] = `
+"{
+  "header": "✋ ConstraintError: settings dir is not a directory",
+  "metadata": {
+    "path": "$TO/.claude",
+    "found": "a file",
+    "hint": "move that .claude file aside, then rerun \`rhx init --hooks\`"
+  }
+}"
+`;

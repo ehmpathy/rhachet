@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll never writes outside the repo given: [case1] a repo whose .agent/.actors links to a dir outside the repo when: [t0] a clone is enrolled then: the stderr is locked 1`] = `
+"
+✋ ConstraintError: refused a write outside the repo
+
+{
+  "hint": "point that dir, or the link above it, back inside the repo, then rerun \`rhx enroll\`",
+  "path": ".agent/.actors",
+  "landsAt": "/TMP_TEST_DIR"
+}
+
+"
+`;
+
+exports[`rhx enroll never writes outside the repo given: [case2] the outside actors root holds a legacy repo actor dir, from before the rename when: [t0] a clone is enrolled then: the stderr is locked 1`] = `
+"
+✋ ConstraintError: refused a write outside the repo
+
+{
+  "hint": "point that dir, or the link above it, back inside the repo, then rerun \`rhx enroll\`",
+  "path": ".agent/.actors",
+  "landsAt": "/TMP_TEST_DIR"
+}
+
+"
+`;
+
+exports[`rhx enroll never writes outside the repo given: [case3] the actors root stays inside, but the repo actor dir links outside the repo when: [t0] a bare clone is enrolled then: the stderr is locked 1`] = `
+"
+✋ ConstraintError: refused a write outside the repo
+
+{
+  "hint": "point that dir, or the link above it, back inside the repo, then rerun \`rhx enroll\`",
+  "path": ".agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "landsAt": "/TMP_TEST_DIR/brain/.claude"
+}
+
+"
+`;
+
+exports[`rhx enroll never writes outside the repo given: [case4] the repo actor brain dir sits inside, but its settings.of.repo.json is a dir when: [t0] a bare clone is enrolled then: the stderr is locked 1`] = `
+"
+✋ ConstraintError: settings.of.repo.json must be a real file
+
+{
+  "hint": "rhachet derives it from the roles, so remove .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json, then rerun \`rhx init --hooks\`",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
+  "found": "a dir"
+}
+
+"
+`;
