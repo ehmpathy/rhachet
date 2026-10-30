@@ -167,18 +167,13 @@ the `--roles` spec supports these modes:
 | mixed | `+role1,-role2` | `--roles +architect,-driver` | defaults + architect - driver |
 | focus | `role::subject` or `+role::subject` | `--roles +mechanic::flow` | defaults, with mechanic at its `flow` subject |
 
-a focus boots only the named subject's briefs and skills (plus `always`, unless the subject
-declares `inherit: { always: false }`), and keeps every hook the role grants. a role's subjects
-are the `subject.<slug>` sections of its `boot.yml`; `npx rhachet roles cost --all` lists them, one
-`::subject` row each. two subjects of one role union, one subject per token:
-`--roles +mechanic::flow,+mechanic::code.prod`. the same form works on `rhx init --roles`,
-where it records the repo's own focus; a bare `rhx enroll` then inherits it, and its receipt
-says so (`mechanic held at ::flow`). the record (`.agent/.actors/actor.via.repo=ambient/roles.foci.json`)
-is gitignored, so a fresh clone or worktree gets it back only from the install replay: init with
-`--prep` (`rhx init --prep --roles +mechanic::flow`) to write the focus into `prepare:rhachet`,
-which `pnpm install` runs. with no `--prep`, or before that install, a fresh worktree boots each
-role whole. a focus is always written with two colons —
-`mechanic:flow` is refused, and names `mechanic::flow`.
+a focus boots only that subject's briefs and skills, plus `always` unless the subject sets
+`inherit: { always: false }`, and keeps every hook of the role. subjects are the `subject.<slug>`
+sections of a role's `boot.yml`; `npx rhachet roles cost --all` lists them. one subject per token,
+and two of one role union: `--roles +mechanic::flow,+mechanic::code.prod`.
+
+`rhx init --roles +mechanic::flow` sets the repo's own focus, which a bare `rhx enroll` inherits.
+its record is gitignored: add `--prep` so `pnpm install` replays it in a fresh clone.
 
 ```yaml
 # boot.yml — a small subject that sheds the role's always block

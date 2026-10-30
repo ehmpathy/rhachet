@@ -26,6 +26,10 @@
 #   - the full output lands in .log/role=any/skill=test.acceptance.credfree/;
 #     stdout carries the failed tests, the totals, and the log path
 #   - a non-zero exit from jest is passed through
+#
+# .note = a stopgap. it retires once git.repo.test gains an auth-skip mode
+#         (ehmpathy/rhachet-roles-ehmpathy#1198); see the dream
+#         .dream/2026_10_29.fix.retire-test-acceptance-credfree-once-git-repo-test-skips-auth.dream.md
 ######################################################################
 set -euo pipefail
 
