@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 import { genTempDir } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import {
   asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
@@ -324,7 +326,7 @@ const asSayVerdict = (stdout: string): 'enqueued' | 'released' | 'other' => {
   return 'other';
 };
 
-describe('screen dogfood — a real brain-cli renders its input states (real acceptance)', () => {
+describeBrainLiveOnDemand('screen dogfood — a real brain-cli renders its input states (real acceptance)', () => {
   given('[case1] a live claude, freshly enrolled and idle', () => {
     const scene = useBeforeAll(async () => {
       const { binDir } = getRealClaudeOrThrow();

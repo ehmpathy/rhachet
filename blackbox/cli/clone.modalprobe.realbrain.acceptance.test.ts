@@ -3,6 +3,8 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import { genTempDir } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import {
   enrollRealClaudeAndWaitReach,
   getRealClaudeOrThrow,
@@ -89,7 +91,7 @@ const asCloneSayJsonSnapshotSafe = (input: {
   );
 };
 
-describe('rhx clone say modal-over-match probe vs a REAL claude (real acceptance)', () => {
+describeBrainLiveOnDemand('rhx clone say modal-over-match probe vs a REAL claude (real acceptance)', () => {
   given('[case1] a real claude that just rendered a numbered-list reply', () => {
     const scene = useBeforeAll(async () => {
       const { binDir } = getRealClaudeOrThrow();

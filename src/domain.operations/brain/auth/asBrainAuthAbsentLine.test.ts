@@ -11,8 +11,14 @@ describe('asBrainAuthAbsentLine', () => {
         });
         expect(line).toMatchSnapshot();
         expect(line).toEqual(
-          'ℹ no claude login at /home/h/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY',
+          'ℹ no claude login at /home/h/.claude/.credentials.json — run /login inside the clone, or set CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`)',
         );
+      });
+      then('it never suggests the api key, which bills the api', () => {
+        const line = asBrainAuthAbsentLine({
+          brainAuthPath: '/home/h/.claude/.credentials.json',
+        });
+        expect(line).not.toContain('ANTHROPIC_API_KEY');
       });
     });
   });

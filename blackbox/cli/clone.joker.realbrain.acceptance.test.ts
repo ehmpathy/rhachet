@@ -1,6 +1,8 @@
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import {
   asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
@@ -59,7 +61,7 @@ const promptFor = (turn: number, ask: string): string =>
     turn,
   )}`;
 
-describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptance)', () => {
+describeBrainLiveOnDemand('rhx clone — a 5-turn conversation with a real @:joker (real acceptance)', () => {
   given('[case1] a real claude enrolled as @:joker through a real pty', () => {
     const scene = useBeforeAll(async () => {
       // the loud gate — throws ConstraintError (exit 2) when the real brain or its

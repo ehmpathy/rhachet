@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthApiBilledLine given: [case3] a spawn env with ANTHROPIC_API_KEY set when: [t0] the notice is rendered then: it names the key, the api charge, and the fix 1`] = `
+"⚠️ this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks the api key above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_API_KEY, then enroll again"
+`;

@@ -2,7 +2,10 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
@@ -11,7 +14,7 @@ import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { EXAMPLE_REPO_COLLOCATED } from '../../../.test/assets/example.repo/directory';
 import { scribeRole } from '../../../.test/assets/example.repo/rhachet-roles-example.collocated/role';
 
-describe('genActor.brain.caseCollocated (integration)', () => {
+describeBrainLiveOnDemand('genActor.brain.caseCollocated (integration)', () => {
   given('[case1] collocated pattern (rhachet-roles-example.collocated)', () => {
     // setup: use temp dir within project (avoids codex trust issues)
     const tmpDir = path.resolve(__dirname, './.temp/caseCollocated');
@@ -73,9 +76,13 @@ echo '{"summary":"summarized content"}'
 
     // create scribe actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
-    const brain = genBrainRepl({
-      slug: 'claude/code/haiku',
-    }) as unknown as ActorBrain;
+    // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
+    const brain: ActorBrain = asBrainReplBounded({
+      brain: genBrainRepl({
+        slug: 'claude/code/haiku',
+      }) as unknown as BrainRepl,
+      waitMs: 60_000,
+    });
     const scribe = genCloneInmem({
       actor: genActor({
         roles: [scribeRole],

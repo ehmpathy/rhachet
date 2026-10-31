@@ -19,6 +19,7 @@ import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/s
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
+import { asBrainAuthApiBilledLine } from '@src/domain.operations/brain/auth/asBrainAuthApiBilledLine';
 import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
 import { assertBrainAuthNotDead } from '@src/domain.operations/brain/auth/assertBrainAuthNotDead';
 import { getBrainAuthPath } from '@src/domain.operations/brain/auth/getBrainAuthPath';
@@ -624,6 +625,11 @@ const performEnroll = async (input: {
   //   on a refusal it would land ahead of the json error a machine parses off stderr
   if (isBrainAuthAbsent && result.spawn !== null)
     console.error(asBrainAuthAbsentLine({ brainAuthPath }));
+
+  // say loud when the clone bills the anthropic api, under the same gate and for the same reason
+  //   .note = the spawn env passes process.env through (asBrainCliSpawnEnv), so this reads it
+  const apiBilledLine = asBrainAuthApiBilledLine({ env: process.env });
+  if (apiBilledLine && result.spawn !== null) console.error(apiBilledLine);
 
   // say the box has no grove, so its defaults did not reach the clone (vision case=4),
   //   under the same gate and for the same reason

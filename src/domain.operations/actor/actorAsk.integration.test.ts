@@ -1,13 +1,15 @@
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
 import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-with-rigid-skill/role';
 import { ACTOR_ASK_DEFAULT_SCHEMA, actorAsk } from './actorAsk';
 
-describe('actorAsk (integration)', () => {
+describeBrainLiveOnDemand('actorAsk (integration)', () => {
   // use test asset directory
   const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
   const originalCwd = process.cwd();
@@ -23,10 +25,14 @@ describe('actorAsk (integration)', () => {
 
   // create real brain via genBrainRepl
   // note: external brains from npm packages don't have spec yet; cast for compatibility
-  // haiku: a real repl brain the test key reaches (rule.require.test-claude-cli-against-haiku)
-  const brain = genBrainRepl({
-    slug: 'claude/code/haiku',
-  }) as unknown as BrainRepl;
+  // haiku: a real repl brain the test oauth token reaches (rule.require.test-claude-cli-against-haiku)
+  // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
+  const brain = asBrainReplBounded({
+    brain: genBrainRepl({
+      slug: 'claude/code/haiku',
+    }) as unknown as BrainRepl,
+    waitMs: 60_000,
+  });
 
   given('[case1] a valid role and brain', () => {
     when('[t0] actorAsk is called with a prompt', () => {

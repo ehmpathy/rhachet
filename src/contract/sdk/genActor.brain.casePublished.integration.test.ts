@@ -2,7 +2,10 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { getError, given, then, when } from 'test-fns';
 
+import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
@@ -18,7 +21,7 @@ import {
 import { EXAMPLE_REPO_PUBLISHED } from '../../../.test/assets/example.repo/directory';
 import { authorRole } from '../../../.test/assets/example.repo/rhachet-roles-example.published/role';
 
-describe('genActor.brain.casePublished (integration)', () => {
+describeBrainLiveOnDemand('genActor.brain.casePublished (integration)', () => {
   given('[case1] published pattern (rhachet-roles-example.published)', () => {
     // setup: use temp dir within project (avoids codex trust issues)
     const tmpDir = path.resolve(__dirname, './.temp/casePublished');
@@ -75,9 +78,13 @@ echo '{"content":"drafted content about $1"}'
 
     // create author actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
     // note: external brains from npm packages don't have spec yet; cast for compatibility
-    const brain = genBrainRepl({
-      slug: 'claude/code/haiku',
-    }) as unknown as ActorBrain;
+    // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
+    const brain: ActorBrain = asBrainReplBounded({
+      brain: genBrainRepl({
+        slug: 'claude/code/haiku',
+      }) as unknown as BrainRepl,
+      waitMs: 60_000,
+    });
     const author = genCloneInmem({
       actor: genActor({
         roles: [authorRole],

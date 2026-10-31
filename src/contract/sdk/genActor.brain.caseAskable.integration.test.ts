@@ -5,7 +5,10 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
+import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -21,8 +24,9 @@ if (!process.env.XAI_API_KEY)
  * .what = integration test for actor.ask() with BrainAtom support
  * .why = demonstrates that both BrainAtom and BrainRepl work with actor.ask()
  */
-describe('genActor.brain.caseAskable (integration)', () => {
-  jest.setTimeout(60000);
+describeBrainLiveOnDemand('genActor.brain.caseAskable (integration)', () => {
+  // above the repl's 60s bound, so a hung repl fails with its named cause, not jest's timeout
+  jest.setTimeout(90000);
 
   given('[case1] author role with mixed brain allowlist', () => {
     // setup: use temp dir within project
@@ -101,9 +105,13 @@ When writing about ocean themes:
     const brainAtom = genBrainAtomXAI({
       slug: 'xai/grok/3-mini',
     }) as unknown as ActorBrain;
-    const brainRepl = genBrainReplAnthropic({
-      slug: 'claude/code/haiku',
-    }) as unknown as ActorBrain;
+    // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
+    const brainRepl: ActorBrain = asBrainReplBounded({
+      brain: genBrainReplAnthropic({
+        slug: 'claude/code/haiku',
+      }) as unknown as BrainRepl,
+      waitMs: 60_000,
+    });
 
     // create actor with mixed brains (BrainAtom first)
     const author = genCloneInmem({

@@ -5,6 +5,6 @@ exports[`assertBrainAuthNotDead given: [case1] the shared login is dead when: [t
 
 {
   "brainAuthPath": "/home/fake/.claude/.credentials.json",
-  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY for this clone"
+  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`) for this clone"
 }"
 `;

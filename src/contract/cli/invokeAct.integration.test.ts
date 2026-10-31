@@ -5,6 +5,8 @@ import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
+import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -199,8 +201,8 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  given(
-    'a CLI program with invokeAct registered (happy path with real brain)',
+  describeBrainLiveOnDemand(
+    'given: a CLI program with invokeAct registered (happy path with real brain)',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
       const originalCwd = process.cwd();
@@ -214,12 +216,16 @@ describe('invokeAct (integration)', () => {
         process.chdir(originalCwd);
       });
 
-      // create real brains via genBrainRepl: haiku is the default (the test key reaches it);
+      // create real brains via genBrainRepl: haiku is the default (the test oauth token reaches it);
       // codex is named explicitly, to prove --brain routes the call to the openai service
       // note: external brains from npm packages don't have spec yet; cast for compatibility
-      const brainHaiku = genBrainReplAnthropic({
-        slug: 'claude/code/haiku',
-      }) as unknown as BrainRepl;
+      // bounded: a vendor refusal hangs the repl, so each haiku call fails loud past 60s
+      const brainHaiku = asBrainReplBounded({
+        brain: genBrainReplAnthropic({
+          slug: 'claude/code/haiku',
+        }) as unknown as BrainRepl,
+        waitMs: 60_000,
+      });
       const brainCodex = genBrainReplOpenAI({
         slug: 'openai/codex',
       }) as unknown as BrainRepl;

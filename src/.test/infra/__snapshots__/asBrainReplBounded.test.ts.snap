@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainReplBounded given: [case2] a repl that hangs past the bound when: [t0] ask is called then: it fails with a MalfunctionError that names the causes 1`] = `
+"💥 MalfunctionError: the repl brain gave no answer in 1s
+
+{
+  "brain": "fake/repl/slow",
+  "why": "a vendor refusal (rate limit, no credit, a dead oauth token) hangs the repl rather than throws",
+  "hint": "run \`claude -p --model haiku \\"say ok\\"\` to see the vendor text, fix the cause, then re-run the suite"
+}"
+`;

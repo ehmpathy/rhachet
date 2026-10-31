@@ -5,7 +5,7 @@ exports[`rhx enroll vs a real claude-code: one shared login store given: [case1]
 ✋ ConstraintError: the box's claude login is dead
 
 {
-  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY for this clone",
+  "hint": "run /login in any claude on this box (or \`rhx git.grove.auth\` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`) for this clone",
   "brainAuthPath": "/PATH_STRIPPED"
 }
 

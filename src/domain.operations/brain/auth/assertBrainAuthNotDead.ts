@@ -30,6 +30,6 @@ export const assertBrainAuthNotDead = (input: {
 
   throw new ConstraintError("the box's claude login is dead", {
     brainAuthPath: input.brainAuthPath,
-    hint: 'run /login in any claude on this box (or `rhx git.grove.auth` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY for this clone',
+    hint: 'run /login in any claude on this box (or `rhx git.grove.auth` on a grove); every live clone recovers on the refill, with no respawn. or set CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) for this clone',
   });
 };
