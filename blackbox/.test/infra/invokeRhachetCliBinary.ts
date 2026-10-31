@@ -502,14 +502,25 @@ export const invokeRhachetCliBinaryViaSlowPipe = (input: {
 };
 
 /**
- * .what = asSnapshotSafe, minus the two enroll lines that depend on the host's own `~/.claude`
- * .why = enroll prints `ℹ no claude login at …` only on a host with no login, and
- *   `ℹ no grove at …` only on a host with no `~/.claude/settings.json`. so a snapshot of
- *   enroll stderr differs between a dev box and ci. each line is its own concern, clamped
- *   where a case pins a HOME that holds or lacks it (the grove: `enroll.acceptance`
- *   [case2c]); elsewhere it is host noise
+ * .what = matches the enroll api-billed notice block: its header and its branches
+ * .why = enroll prints it only when the runner's env holds `ANTHROPIC_API_KEY`, as ci does and a
+ *   dev box may not; its own shape is locked by `asBrainAuthApiBilledLine.test.ts`
+ * .note = the blank line after it is the separator before the next block, so it stays
+ */
+export const ENROLL_API_BILLED_NOTICE_PATTERN =
+  /^⚠️ this clone bills the anthropic api.*\n(?: {3}[├└]─ .*\n)*/gm;
+
+/**
+ * .what = asSnapshotSafe, minus the enroll lines that depend on the host's own `~/.claude`
+ *   or its env
+ * .why = enroll prints `ℹ no claude login at …` only on a host with no login,
+ *   `ℹ no grove at …` only on a host with no `~/.claude/settings.json`, and the api-billed
+ *   notice only where `ANTHROPIC_API_KEY` is set. so a snapshot of enroll stderr differs
+ *   between a dev box and ci. each line is its own concern, clamped where a case pins a HOME
+ *   that holds or lacks it (the grove: `enroll.acceptance` [case2c]); elsewhere it is host noise
  */
 export const asSnapshotSafeOfHostLogin = (output: string): string =>
   asSnapshotSafe(output)
+    .replace(ENROLL_API_BILLED_NOTICE_PATTERN, '')
     .replace(/^ℹ no claude login at .*\n?/gm, '')
     .replace(/^ℹ no grove at .*\n?/gm, '');

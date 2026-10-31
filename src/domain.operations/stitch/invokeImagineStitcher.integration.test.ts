@@ -3,6 +3,7 @@ import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { Stitch } from '@src/domain.objects/Stitch';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
 import { StitchStepImagine } from '@src/domain.objects/StitchStep';
@@ -18,7 +19,7 @@ import { enstitch } from './enstitch';
 
 jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
-describe('invokeImagineStitcher', () => {
+describeBrainLiveOnDemand('invokeImagineStitcher', () => {
   given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
     const context = {
       ...genContextLogTrail(),

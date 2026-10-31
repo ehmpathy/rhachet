@@ -16,8 +16,10 @@ export const isBrainLiveScopeAll = (input: {
  * .what = a describe that runs only when `BRAIN_LIVE_SCOPE=all`; else it is skipped, by name
  * .why = tier 3 of the live-brain cost bound: every live-brain test beyond the smoke tier is
  *   off by default, on cicd and on a crew box alike, and runs on demand by the named flag
- * .note = never a silent skip: the skipped describe's title names its tier and the flag that
- *   runs it, so jest's verbose report shows each gated test and how to run it
+ * .note = never a silent skip: a todo row beside the skipped describe names its tier and the
+ *   flag that runs it, so jest's verbose report shows each gated suite and how to run it
+ * .note = the skipped describe keeps its own title, so its snapshots stay keyed and are never
+ *   reported obsolete
  * .note = see rule.forbid.live-brain-spend-beyond-the-smoke-tier
  */
 export const describeBrainLiveOnDemand = (
@@ -27,9 +29,9 @@ export const describeBrainLiveOnDemand = (
   // run in full when targeted
   if (isBrainLiveScopeAll({ env: process.env })) return describe(name, fn);
 
-  // skip by name, with the flag that runs it
-  return describe.skip(
-    `${name} [gated: tier-3 live brain; run with ${BRAIN_LIVE_SCOPE_FLAG}=all]`,
-    fn,
+  // skip under its own title, and name the gate in a todo row
+  test.todo(
+    `[gated: tier-3 live brain] ${name} — run with ${BRAIN_LIVE_SCOPE_FLAG}=all`,
   );
+  return describe.skip(name, fn);
 };

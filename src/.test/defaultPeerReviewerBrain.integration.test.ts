@@ -27,11 +27,11 @@ describe('installed dependencies — the default peer reviewer brain', () => {
             dir,
             'dist',
             'domain.operations',
-            'review',
-            'DEFAULT_REVIEW_BRAIN.js',
+            'brain',
+            'BRAIN_DEFAULT_OF_REVIEW.js',
           ),
-        ) as { DEFAULT_REVIEW_BRAIN: string };
-        expect(constant.DEFAULT_REVIEW_BRAIN).toEqual(
+        ) as { BRAIN_DEFAULT_OF_REVIEW: string };
+        expect(constant.BRAIN_DEFAULT_OF_REVIEW).toEqual(
           'openrouter/deepseek/flash',
         );
       });
@@ -42,7 +42,7 @@ describe('installed dependencies — the default peer reviewer brain', () => {
             join(dir, 'dist', 'contract', 'cli', file),
             'utf-8',
           );
-          expect(source).toContain('DEFAULT_REVIEW_BRAIN');
+          expect(source).toContain('BRAIN_DEFAULT_OF_REVIEW');
         }
       });
     });

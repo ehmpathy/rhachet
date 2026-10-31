@@ -6,6 +6,7 @@ import { getUuid } from 'uuid-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import { genStitcherCodeFileRead } from '@src/.test/stitchers/genStitcherCodeFileRead';
 import { genStitcherCodeFileWrite } from '@src/.test/stitchers/genStitcherCodeFileWrite';
 import { genStitcherCodeReview } from '@src/.test/stitchers/genStitcherCodeReviewImagine';
@@ -29,7 +30,7 @@ import { enweaveOneStitcher } from './enweaveOneStitcher';
 
 jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
-describe('enweaveOneStitcher', () => {
+describeBrainLiveOnDemand('enweaveOneStitcher', () => {
   const baseContext = {
     ...genContextStitchTrail(),
     ...genContextLogTrail(),

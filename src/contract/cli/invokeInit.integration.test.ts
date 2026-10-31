@@ -688,11 +688,9 @@ describe('invokeInit (integration)', () => {
             expect(readlinkSync(join(repoPath, '.claude'))).toEqual(
               REPO_ACTOR_BRAIN_DIR_REL,
             );
-            // the dir moved first (the layout runs before the role inits), so only the hand
-            //   settings.json moved; the role's own init then wrote its permissions into
-            //   claude's settings.json, and the layout replaced it with the grove arrow. one answer,
-            //   rhachet's: the role init's write never reaches settings.of.repo.json (that waits
-            //   on ehmpathy/rhachet-roles-ehmpathy#895, a role init that writes it by name)
+            // the dir moved first (the layout runs before the role inits), so the role's own
+            //   init meets the split layout and writes its permissions into
+            //   settings.of.repo.json by name (`inventory.of=requirements.case=8`)
             expect(
               asFileContentOrEmpty({
                 path: join(
@@ -701,7 +699,7 @@ describe('invokeInit (integration)', () => {
                   'settings.of.repo.json',
                 ),
               }),
-            ).not.toContain('"permissions"');
+            ).toContain('"permissions"');
             expect(
               lstatSync(
                 join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),

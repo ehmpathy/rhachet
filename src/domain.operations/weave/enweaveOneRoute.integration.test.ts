@@ -10,6 +10,7 @@ import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import { stitcherCodeDiffImagine } from '@src/.test/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '@src/.test/threads/codeArtist';
 import { exampleThreadDirector } from '@src/.test/threads/director';
@@ -22,7 +23,7 @@ import { genContextStitchTrail } from '@src/domain.operations/context/genContext
 import { genStitchRoute } from './compose/genStitchRoute';
 import { enweaveOneRoute } from './enweaveOneRoute';
 
-describe('enweaveOneRoute', () => {
+describeBrainLiveOnDemand('enweaveOneRoute', () => {
   const context = {
     ...genContextStitchTrail(),
     ...genContextLogTrail(),

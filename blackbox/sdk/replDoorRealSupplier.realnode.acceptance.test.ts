@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { ConstraintError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
 
 /**
@@ -21,7 +23,7 @@ import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
  * .note = the probe reaches genContextBrain through the built `rhachet/brains` contract
  *   (dist/contract/sdk.brains.js), the file a consumer resolves (rule.require.acceptance.blackbox)
  */
-describe('replDoorRealSupplier.realnode.acceptance', () => {
+describeBrainLiveOnDemand('replDoorRealSupplier.realnode.acceptance', () => {
   const brainsContractDistPath = join(
     __dirname,
     '..',

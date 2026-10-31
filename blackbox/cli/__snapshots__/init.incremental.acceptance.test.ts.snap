@@ -28,8 +28,9 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │ 🔧 init claude config for mechanic role...
       │
       │ 🔐 mechanic permissions configured successfully!
-      │    .claude/settings.json
-      │    .claude/settings.$TIMESTAMP.bak.json
+      │    .claude/settings.of.repo.json
+      │    .claude/settings.of.repo.$TIMESTAMP.bak.json
+      │    note: this clone's config dir is $REPO_ROOT/.agent/.actors/actor.via.repo=ambient/brain/.claude; its settings.of.repo.json is derived from this file. every actor picks up new allows at the next rhx init --hooks, rhx upgrade, or its own next rhx enroll. a delta actor also picks them up in the same rhx init --roles, when that init changed its roles
       │
       │ ✨ permissions applied:
       │    • allow: replaced entirely
@@ -84,7 +85,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 "
 `;
@@ -130,7 +131,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 "
 `;
@@ -211,7 +212,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 🧠 brain://repo=ambient
    ├─ linked
@@ -283,7 +284,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 🧠 brain://repo=ambient
    ├─ linked
@@ -341,7 +342,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
    │  ├─ ↻ .agent/repo=ehmpathy/role=architect/boot.yml (updated)
    │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 "
 `;
@@ -384,7 +385,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -398,8 +399,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;
@@ -431,7 +432,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 📚 link role repo=bhrain/role=reviewer
    ├─ links
@@ -445,8 +446,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;
@@ -479,7 +480,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 45 brief(s)
+      └─ 53 brief(s)
 
 "
 `;

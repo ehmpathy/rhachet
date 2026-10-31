@@ -4,6 +4,7 @@ import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import { genStitcherCodeReview } from '@src/.test/stitchers/genStitcherCodeReviewImagine';
 import { stitcherFanoutRandomSum } from '@src/.test/stitchers/stitcherFanoutRandomSum';
 import { stitcherFanoutWithRoutes } from '@src/.test/stitchers/stitcherFanoutSubroutes';
@@ -18,7 +19,7 @@ import { genThread } from '@src/domain.operations/thread/genThread';
 import { genStitchFanout } from './compose/genStitchFanout';
 import { enweaveOneFanout } from './enweaveOneFanout';
 
-describe('enweaveOneFanout', () => {
+describeBrainLiveOnDemand('enweaveOneFanout', () => {
   const context = { ...genContextStitchTrail(), ...genContextLogTrail() };
   given('a fanout that computes 5 random numbers then sums them', () => {
     const threadMain = new Thread({

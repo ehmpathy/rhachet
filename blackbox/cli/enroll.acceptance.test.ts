@@ -13,6 +13,7 @@ import {
 import {
   asSnapshotSafe,
   asSnapshotSafeOfHostLogin,
+  ENROLL_API_BILLED_NOTICE_PATTERN,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { setupRoleFixtureRepo } from '@/blackbox/.test/infra/roleFixtureRepo';
@@ -165,13 +166,15 @@ const setupArgvRecorderBrainPath = (input: {
 };
 
 /**
- * .what = asSnapshotSafe, minus the one enroll line the runner's own credentials decide
+ * .what = asSnapshotSafe, minus the enroll lines the runner's own credentials decide
  * .why = a case that pins HOME still inherits the runner's env, so whether enroll prints
- *   `ℹ no claude login at …` differs between a dev box and ci; the grove line,
- *   which the pinned HOME decides, stays in the snapshot
+ *   `ℹ no claude login at …` or the api-billed notice differs between a dev box and ci;
+ *   the grove line, which the pinned HOME decides, stays in the snapshot
  */
 const asSnapshotSafeOfCredential = (output: string): string =>
-  asSnapshotSafe(output).replace(/^ℹ no claude login at .*\n?/gm, '');
+  asSnapshotSafe(output)
+    .replace(ENROLL_API_BILLED_NOTICE_PATTERN, '')
+    .replace(/^ℹ no claude login at .*\n?/gm, '');
 
 /**
  * .what = reads the argv the recorder stub captured, one entry per element
