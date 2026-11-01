@@ -191,8 +191,9 @@ export const waitForReadyOrRefusal = async (input: {
     return { ready: true };
   } catch (error) {
     if (!(error instanceof ConstraintError)) throw error;
+    // the exit message names the spawned bin's basename (`run` for rhachet), so match the shape
     const isWaitOutcome =
-      error.message.includes('rhachet exited (code') ||
+      /exited \(code -?\d+\) before output matched/.test(error.message) ||
       error.message.includes('timed out after');
     if (!isWaitOutcome) throw error;
     return { ready: false };
