@@ -8,7 +8,7 @@ import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles'
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
-import { asBrainGroveAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainGroveAbsentLine';
+import { asBrainSpawnNoticeLines } from '@src/domain.operations/actor/enrolled/asBrainSpawnNoticeLines';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
@@ -18,8 +18,6 @@ import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/
 import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
-import { asBrainAuthAbsentLine } from '@src/domain.operations/brain/auth/asBrainAuthAbsentLine';
-import { asBrainAuthApiBilledLine } from '@src/domain.operations/brain/auth/asBrainAuthApiBilledLine';
 import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
 import { assertBrainAuthNotDead } from '@src/domain.operations/brain/auth/assertBrainAuthNotDead';
 import { getBrainAuthPath } from '@src/domain.operations/brain/auth/getBrainAuthPath';
@@ -40,6 +38,7 @@ import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
+import { asBrainCliSpawnEnv } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
 import { asEnrollBareRoleDeltas } from '@src/domain.operations/enroll/asEnrollBareRoleDeltas';
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
@@ -531,7 +530,7 @@ const performEnroll = async (input: {
     scope: { kind: 'actor', actorExid: exid },
   });
 
-  // observe the shared login every clone reads, to say plainly when there is none (D13)
+  // observe the shared login every clone reads, to say plainly when there is none
   //
   // .note = no per-actor link is written: each clone spawns with
   //   CLAUDE_SECURESTORAGE_CONFIG_DIR='' (asBrainCliSpawnEnv), so it reads and refreshes
@@ -565,8 +564,11 @@ const performEnroll = async (input: {
   //   .note = this sits on the path a detached host re-enters, so an `--async` caller
   //   wears the same refusal and exit code the host reports
   //   .note = the login is read once, so the refusal and the absent line judge one state
+  //   .note = the env is the one the clone gets, from the same owner the spawn builds it with,
+  //     so the refusal and the notices judge the credentials the brain will actually see
   const brainAuthContent = getFileContentOrNull({ path: brainAuthPath });
-  assertBrainAuthNotDead({ brainAuthPath, brainAuthContent, env: process.env });
+  const envOfSpawn = asBrainCliSpawnEnv({ env: process.env, brainDir });
+  assertBrainAuthNotDead({ brainAuthPath, brainAuthContent, env: envOfSpawn });
   const isBrainAuthAbsent =
     asBrainAuthState({ content: brainAuthContent }) === 'absent';
 
@@ -618,23 +620,19 @@ const performEnroll = async (input: {
     context,
   );
 
-  // say there is no login to share only once a brain was actually spawned
+  // say the login, api-bill and grove notices, only once a brain was actually spawned
   //
-  // .note = a refused enroll (a slug collision) and a live-slug reuse spawn no brain, so
-  //   a "run /login inside the clone" hint there names a clone that never started — and
-  //   on a refusal it would land ahead of the json error a machine parses off stderr
-  if (isBrainAuthAbsent && result.spawn !== null)
-    console.error(asBrainAuthAbsentLine({ brainAuthPath }));
-
-  // say loud when the clone bills the anthropic api, under the same gate and for the same reason
-  //   .note = the spawn env passes process.env through (asBrainCliSpawnEnv), so this reads it
-  const apiBilledLine = asBrainAuthApiBilledLine({ env: process.env });
-  if (apiBilledLine && result.spawn !== null) console.error(apiBilledLine);
-
-  // say the box has no grove, so its defaults did not reach the clone (vision case=4),
-  //   under the same gate and for the same reason
-  if (!layout.grove.isPresent && result.spawn !== null)
-    console.error(asBrainGroveAbsentLine({ groveSource: layout.grove.source }));
+  // .note = a live-slug reuse spawns no brain, so a hint there names a clone that never
+  //   started. a refused enroll (a slug collision, an unknown role) throws before this line
+  // .note = the notices read the env the clone gets (`envOfSpawn`), never process.env direct,
+  //   so a credential the spawn env drops is never named as one the clone bills
+  if (result.spawn !== null)
+    asBrainSpawnNoticeLines({
+      env: envOfSpawn,
+      brainAuthPath,
+      isBrainAuthAbsent,
+      grove: layout.grove,
+    }).forEach((line) => console.error(line));
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
   // a `--output json` caller (the idempotent-cron-retry path) still gets the

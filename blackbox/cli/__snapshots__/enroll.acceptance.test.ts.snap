@@ -360,6 +360,22 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
 "
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case2f] a seat whose env credential decides what the clone bills (vision case=5) when: [t0] the env holds a key, with no login then: the notice a human reads, as enroll printed it, is locked to a snapshot 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above a /login and CLAUDE_CODE_OAUTH_TOKEN, and this seat has no /login
+   └─ to use a subscription, unset ANTHROPIC_API_KEY, then /login or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`), then enroll again
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2f] a seat whose env credential decides what the clone bills (vision case=5) when: [t1] the env holds no key then: the /login hint a human reads, as enroll printed it, is locked to a snapshot 1`] = `"ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`)"`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2f] a seat whose env credential decides what the clone bills (vision case=5) when: [t4] the seat has a login, and the env holds a key then: the notice a human reads, as enroll printed it, is locked to a snapshot 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_API_KEY, then enroll again
+"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
 "{
   "hooks": {

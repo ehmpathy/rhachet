@@ -1,17 +1,11 @@
 import { Command } from 'commander';
-import { genBrainRepl as genBrainReplAnthropic } from 'rhachet-brains-anthropic';
-import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
-import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
-import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
-import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
 import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-with-rigid-skill/role';
 import { invokeAct } from './invokeAct';
 
@@ -199,167 +193,64 @@ describe('invokeAct (integration)', () => {
         expect(error?.message).toContain('--attempts requires --output');
       });
     });
-  });
 
-  describeBrainLiveOnDemand(
-    'given: a CLI program with invokeAct registered (happy path with real brain)',
-    () => {
-      const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
-      const originalCwd = process.cwd();
+    when('act command is invoked with brain not in allowlist', () => {
+      // the allowlist check runs before any brain call, so plain brain shapes prove it with no
+      //   live call (the tier-3 peer, invokeAct.live, needs a live brain for the rest). they
+      //   carry the identities of the live allowlist, so the near-miss input below is the same
+      //   one it was refused against before the split
+      const programWithBrain = new Command();
+      programWithBrain.exitOverride(); // prevent process.exit in tests
 
-      beforeAll(() => {
-        // switch to test asset directory for skill discovery
-        process.chdir(testAssetDir);
-      });
-
-      afterAll(() => {
-        process.chdir(originalCwd);
-      });
-
-      // create real brains via genBrainRepl: haiku is the default (the test oauth token reaches it);
-      // codex is named explicitly, to prove --brain routes the call to the openai service
-      // note: external brains from npm packages don't have spec yet; cast for compatibility
-      // bounded: a vendor refusal hangs the repl, so each haiku call fails loud past 60s
-      const brainHaiku = asBrainReplBounded({
-        brain: genBrainReplAnthropic({
-          slug: 'claude/code/haiku',
-        }) as unknown as BrainRepl,
-        waitMs: 60_000,
-      });
-      const brainCodex = genBrainReplOpenAI({
+      const brainHaikuShape = {
+        repo: 'anthropic',
+        slug: 'claude/code/haiku',
+        description: 'a brain shape the refusal never calls',
+        ask: async () => ({ content: '' }),
+        act: async () => ({ result: '' }),
+      };
+      const brainCodexShape = {
+        repo: 'openai',
         slug: 'openai/codex',
-      }) as unknown as BrainRepl;
-
-      const testRegistry: RoleRegistry = {
+        description: 'a brain shape the refusal never calls',
+        ask: async () => ({ content: '' }),
+        act: async () => ({ result: '' }),
+      };
+      const testerRegistry: RoleRegistry = {
         slug: '.this',
         readme: { uri: '.test/readme.md' },
         roles: [testerRole],
       };
 
-      const program = new Command();
-      program.exitOverride();
-      // .mock = a passthrough `jest.spyOn(console, 'log')`; no behavior is replaced
-      // .why = invokeAct prints its run header through console.log and takes no log sink, so
-      //   the spy is the one seam that observes it
-      // .real = the brain, the skill and the cli all run for real; the spy only records
-      const logSpy = jest.spyOn(console, 'log');
-
-      beforeEach(() => {
-        logSpy.mockClear();
-      });
-
-      // register with mock context that provides the tester registry and brain
-      const happyContext = genMockContextConfigOfUsage({
+      const allowlistContext = genMockContextConfigOfUsage({
         isExplicit: true,
         explicitPath: '/fake/rhachet.use.ts',
-        registries: [testRegistry],
-        brains: [brainHaiku, brainCodex],
+        registries: [testerRegistry],
+        brains: [brainHaikuShape as any, brainCodexShape as any],
         hooks: null,
       });
-      invokeAct({ program }, happyContext);
+      invokeAct({ program: programWithBrain }, allowlistContext);
 
-      when('act command is invoked with default brain', () => {
-        then('it executes the rigid skill with the default brain', async () => {
-          const args = [
-            'act',
-            '--role',
-            'tester',
-            '--skill',
-            'echo.review',
-            '--input',
-            '{"content":"hello world"}',
-          ];
-          await program.parseAsync(args, { from: 'user' });
-
-          // verify skill execution was logged
-          expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining(
-              'act rigid skill repo=.this/role=tester/skill=echo.review',
-            ),
-          );
-        });
-      });
-
-      when('act command is invoked with explicit --brain', () => {
-        // the ehmpath test key holds no codex model, so the openai service refuses the call.
-        // that refusal is the proof: only the specified brain reaches the openai service
-        then(
-          'it routes the call to the specified brain from allowlist',
-          async () => {
-            const args = [
-              'act',
-              '--role',
-              'tester',
-              '--skill',
-              'echo.review',
-              '--brain',
-              'openai/codex',
-              '--input',
-              '{"content":"hello world"}',
-            ];
-            const error = await getError(() =>
-              program.parseAsync(args, { from: 'user' }),
-            );
-
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'act rigid skill repo=.this/role=tester/skill=echo.review',
-              ),
-            );
-            expect(error?.message).toContain('model_not_found');
-            expect(error?.message).toContain('codex');
-          },
+      then('it throws error about brain not in allowlist', async () => {
+        // `anthropic/claude` is a prefix of an allowed slug: a near miss that a prefix match
+        //   would let through
+        const args = [
+          'act',
+          '--role',
+          'tester',
+          '--skill',
+          'echo.review',
+          '--brain',
+          'anthropic/claude',
+          '--input',
+          '{"content":"hello world"}',
+        ];
+        const error = await getError(() =>
+          programWithBrain.parseAsync(args, { from: 'user' }),
         );
+
+        expect(error?.message).toMatch(/not.*allowlist/i);
       });
-
-      when(
-        'act command is invoked with --brain repo/slug for an anthropic brain',
-        () => {
-          // the anthropic slug does not open with its repo, so the flag reads as repo/rest
-          then('it executes the rigid skill with the named brain', async () => {
-            const args = [
-              'act',
-              '--role',
-              'tester',
-              '--skill',
-              'echo.review',
-              '--brain',
-              'anthropic/claude/code/haiku',
-              '--input',
-              '{"content":"hello world"}',
-            ];
-            await program.parseAsync(args, { from: 'user' });
-
-            expect(logSpy).toHaveBeenCalledWith(
-              expect.stringContaining(
-                'act rigid skill repo=.this/role=tester/skill=echo.review',
-              ),
-            );
-          });
-        },
-      );
-
-      when('act command is invoked with brain not in allowlist', () => {
-        then('it throws error about brain not in allowlist', async () => {
-          const args = [
-            'act',
-            '--role',
-            'tester',
-            '--skill',
-            'echo.review',
-            '--brain',
-            'anthropic/claude',
-            '--input',
-            '{"content":"hello world"}',
-          ];
-          const error = await getError(() =>
-            program.parseAsync(args, { from: 'user' }),
-          );
-
-          expect(error).toBeDefined();
-          expect(error?.message).toMatch(/not.*allowlist/i);
-        });
-      });
-    },
-  );
+    });
+  });
 });

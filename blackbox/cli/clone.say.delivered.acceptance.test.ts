@@ -1,3 +1,4 @@
+import { MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import {
@@ -498,27 +499,51 @@ describe('rhx clone reach (acceptance)', () => {
     afterAll(async () => scene.bg.kill());
 
     when('[t0] a say that SUCCEEDS, with --debug', () => {
-      const said = useThen('the say succeeds', async () =>
-        invokeRhachetCliBinaryAsync({
-          args: [
-            'clone',
-            'say',
-            '@:debugok',
-            '--what',
-            'debugok-needle-q4',
-            '--debug',
-            '--output',
-            'json',
-          ],
-          cwd: scene.dir,
-          env: scene.env,
-        }),
-      );
+      // the AFTER grid is the read the verdict was decided on, never a later re-probe. on a
+      //   loaded host the cycle-0 probe can time out to `feed-not-live` while the transcript
+      //   rises, so that say releases on a blind read and its capture holds no grid. the cure
+      //   is the one [case13]'s observe poll and clone.screen-dogfood use: sample again until a
+      //   capable read lands, then hold that read to the strict needle clamp below. each try
+      //   carries its own needle, so a grid can only prove the try it belongs to (fulcrum F12)
+      const tries = useThen('the say succeeds, on a capable read', async () => {
+        const triesBlind: { verdict: string; afterSection: string }[] = [];
+        for (const index of [1, 2, 3]) {
+          const needle = `debugok-needle-q4-try${index}`;
+          const said = await invokeRhachetCliBinaryAsync({
+            args: [
+              'clone',
+              'say',
+              '@:debugok',
+              '--what',
+              needle,
+              '--debug',
+              '--output',
+              'json',
+            ],
+            cwd: scene.dir,
+            env: scene.env,
+          });
+          const matched = /🔍 clone say capture appended → (\S+)/.exec(said.stderr);
+          if (!matched) return { said, needle, triesBlind, afterSection: '' };
+          const log = readFileSync(matched[1]!, 'utf8');
+          const afterIndex = log.lastIndexOf('AFTER the dispatch (cycle #');
+          const afterSection = log.slice(afterIndex, log.indexOf('═══ end ═══', afterIndex));
+          const isBlind = afterSection.includes(
+            '(probe-blind: feed-not-live — the feed handed back no grid)',
+          );
+          if (!isBlind) return { said, needle, triesBlind, afterSection };
+          const parsed = JSON.parse(said.stdout) as { verdict: string };
+          triesBlind.push({ verdict: parsed.verdict, afterSection });
+        }
+        throw new MalfunctionError('three says in a row read blind; no capable read was sampled', {
+          triesBlind,
+        });
+      });
 
       then('the stdout record is UNCHANGED by --debug — no field, no reshape (V13)', () => {
         // the flag is diagnostic-only: it must not touch the machine channel a retry policy
         // reads, else every consumer would branch on whether a human asked for evidence
-        const parsed = JSON.parse(said.stdout) as {
+        const parsed = JSON.parse(tries.said.stdout) as {
           delivered: boolean;
           verdict: string;
         };
@@ -533,7 +558,7 @@ describe('rhx clone reach (acceptance)', () => {
       const debug = useThen('stderr names where the capture landed', () => {
         // a silent write is a diagnostic nobody can find. the path goes to STDERR precisely so
         // the clamp above can hold — stdout stays the byte-for-byte record it always was
-        const matched = /🔍 clone say capture appended → (\S+)/.exec(said.stderr);
+        const matched = /🔍 clone say capture appended → (\S+)/.exec(tries.said.stderr);
         expect(matched).not.toBeNull();
         return { path: matched![1]!, line: matched![0]! };
       });
@@ -549,19 +574,49 @@ describe('rhx clone reach (acceptance)', () => {
         expect(asSnapshotSafe(debug.line)).toMatchSnapshot();
       });
 
-      then('the capture holds the SUCCESS verdict and the grid behind it', () => {
+      then('the capture holds the SUCCESS verdict', () => {
         // goes RED under the pre-cure code, which wrote no file at all on a success — so the
         // whole `--debug` surface is what this line pins
         expect(existsSync(debug.path)).toEqual(true);
         const log = readFileSync(debug.path, 'utf8');
         expect(log).toMatch(/clone say — (released|enqueued)/);
+      });
+
+      then('the capture holds the BEFORE grid, in its bright-only view', () => {
         // the grid is the point: a screen-read cure is proven by the rows the read SAW while
         // it decided to proceed, which only a success capture can carry
+        const log = readFileSync(debug.path, 'utf8');
         expect(log).toContain('BEFORE the dispatch (the baseline probe)');
         expect(log).toContain(
           'BRIGHT ONLY (dim cells blanked; this is what the dirty/clear read sees)',
         );
-        expect(log).toMatch(/│[^\n]*debugok-needle-q4[^\n]*│/);
+      });
+
+      then('the capture holds an AFTER section, the read the verdict was decided on', () => {
+        const log = readFileSync(debug.path, 'utf8');
+        expect(log).toContain('AFTER the dispatch (cycle #');
+      });
+
+      then('the AFTER grid carries the dispatched needle, inside a row frame', () => {
+        // ⚠️ the success-path clamp: the message the verdict was decided about is visible in
+        //   the rows the read SAW. the needle is the one this try sent, so an earlier try's
+        //   grid cannot satisfy it
+        expect(tries.afterSection).toMatch(
+          new RegExp(`│[^\\n]*${tries.needle}[^\\n]*│`),
+        );
+      });
+
+      then('a try that read blind, if any, released and named its blind read', () => {
+        // the honest degrade a loaded host can force: no grid, the blind line in its place,
+        //   and a `released` verdict proven by the transcript. a blind read on any other
+        //   verdict, or a blind line beside a grid, fails
+        const triesBlindRead = tries.triesBlind.map((tryBlind) => ({
+          verdict: tryBlind.verdict,
+          isGridRowAny: /│[^\n]*│/.test(tryBlind.afterSection),
+        }));
+        expect(triesBlindRead).toEqual(
+          tries.triesBlind.map(() => ({ verdict: 'released', isGridRowAny: false })),
+        );
       });
     });
 

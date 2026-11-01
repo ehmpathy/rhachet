@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { asTestXdgRuntimeDir } from '@/blackbox/.test/infra/asTestXdgRuntimeDir';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
@@ -70,7 +71,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [envKey]: envValue,
           },
         });
@@ -158,7 +159,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [envKey]: envValue,
           },
         });
@@ -236,7 +237,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [dangerousKey]: dangerousValue,
           },
         });
@@ -323,7 +324,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [dangerousKey]: dangerousValue,
           },
         });
@@ -410,7 +411,7 @@ try {
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
           },
         });
 
@@ -482,7 +483,7 @@ try {
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
           },
         });
 
@@ -556,7 +557,7 @@ try {
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
           },
         });
 
@@ -633,7 +634,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [envKey]: envValue,
           },
         });
@@ -717,7 +718,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [envKey]: envValue,
           },
         });
@@ -814,7 +815,7 @@ console.log(JSON.stringify(result, null, 2));
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [envKey]: envValue,
           },
         });

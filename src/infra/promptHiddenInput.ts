@@ -1,3 +1,8 @@
+import {
+  asCharsOfChunkAfterSplitCrlf,
+  stdinEnterState,
+} from './stdinEnterState';
+
 /**
  * .what = prompts user for input with hidden echo (for passwords)
  * .why = enables secure passphrase entry without exposure to shell history or process lists
@@ -10,8 +15,6 @@ export const promptHiddenInput = async (input: {
 }): Promise<string> => {
   // TTY mode: asterisk masking
   if (process.stdin.isTTY) {
-    process.stdout.write(input.prompt);
-
     return new Promise((resolve) => {
       let buffer = '';
 
@@ -22,7 +25,9 @@ export const promptHiddenInput = async (input: {
 
       const onData = (chunk: string): void => {
         // .note = in PTY mode with raw mode, multiple chars can arrive at once
-        for (const char of chunk) {
+        // .note = a CRLF the prior prompt split across chunks leaves its LF here; it is dropped
+        const chars = asCharsOfChunkAfterSplitCrlf({ chunk });
+        for (const [index, char] of chars.entries()) {
           const code = char.charCodeAt(0);
 
           // Enter (CR or LF)
@@ -30,6 +35,16 @@ export const promptHiddenInput = async (input: {
             process.stdin.setRawMode(false);
             process.stdin.pause();
             process.stdin.removeListener('data', onData);
+
+            // keep typed-ahead input for the next reader; a chunk can hold the next line too.
+            //   a CRLF pair is one Enter, so its LF is no empty answer for the next prompt —
+            //   in this chunk, or, when the CR closes the chunk, at the head of the next one
+            const isCrlf = code === 13 && chars[index + 1] === '\n';
+            stdinEnterState.isLfOfCrAwaited =
+              code === 13 && index === chars.length - 1;
+            const rest = chars.slice(index + (isCrlf ? 2 : 1)).join('');
+            if (rest) process.stdin.unshift(rest, 'utf8');
+
             process.stdout.write('\n');
             resolve(buffer);
             return;
@@ -63,6 +78,11 @@ export const promptHiddenInput = async (input: {
       };
 
       process.stdin.on('data', onData);
+
+      // show the prompt only once raw mode holds, so no reply to it meets the driver's line
+      //   discipline (its echo would print the secret in clear). a prompt shown first leaves a
+      //   gap, and a loaded host can preempt this process inside it
+      process.stdout.write(input.prompt);
     });
   }
 

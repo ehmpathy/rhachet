@@ -1,3 +1,8 @@
+# the brain dirs: `.claude` links to the repo actor's brain dir, where claude code installs
+#   marketplace plugins that ship their own `.ts`; a host-made state, never this repo's imports
+ignore-patterns:
+  - .claude
+  - .agent/.actors
 ignores:
   - depcheck
   - declapract

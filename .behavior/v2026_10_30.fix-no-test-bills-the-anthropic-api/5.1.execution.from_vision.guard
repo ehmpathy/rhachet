@@ -218,7 +218,7 @@ reviews:
 
     - slug: enroll-impl-arch-defects
       run: $rhx enroll claude --model 'claude-sonnet-5-5[1m]' --roles reviewer,behaver,architect,mechanic -p 'review the current implementation for architectural defects and omissions; opports to decompose for recompose, prevent scope leaks, and eliminate maintenance and behavior hazards structurally. read the prior peer-review conversation at $conversation to catch up on context.'
-      budget: 3
+      budget: 13
       level: 3
 
 judges:

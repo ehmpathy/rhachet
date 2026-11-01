@@ -190,7 +190,7 @@ export const genIsolatedClaudeHome = (input: {
       'no claude credential to share into the isolated HOME',
       {
         expected: credsHost,
-        hint: 'log in with `claude` on this host, or export ANTHROPIC_API_KEY (in ci: rhx keyrack unlock --owner ehmpath --env test)',
+        hint: 'rhx keyrack unlock --owner ehmpath --env test, then run via rhx git.repo.test, which sources the test credential; or log in with `claude` on this host',
       },
     );
   if (existsSync(credsHost))

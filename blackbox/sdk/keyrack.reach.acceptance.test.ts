@@ -3,6 +3,7 @@ import { symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { asTestXdgRuntimeDir } from '@/blackbox/.test/infra/asTestXdgRuntimeDir';
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -79,7 +80,7 @@ try {
       env: {
         ...process.env,
         HOME: testDir,
-        XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+        XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
       },
     });
 

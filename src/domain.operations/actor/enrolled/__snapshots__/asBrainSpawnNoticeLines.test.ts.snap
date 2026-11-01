@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainSpawnNoticeLines given: [case1] a login, no env credential, a grove: naught to say when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `[]`;
+
+exports[`asBrainSpawnNoticeLines given: [case2] no login, no env credential: the /login hint when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "ℹ no claude login at /home/human/.claude/.credentials.json — run /login inside the clone, or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`)",
+]
+`;
+
+exports[`asBrainSpawnNoticeLines given: [case3] no login, an api key: the api-billed notice alone, no /login hint when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above a /login and CLAUDE_CODE_OAUTH_TOKEN, and this seat has no /login
+   └─ to use a subscription, unset ANTHROPIC_API_KEY, then /login or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`), then enroll again",
+]
+`;
+
+exports[`asBrainSpawnNoticeLines given: [case4] no login, an auth token: the api-billed notice alone, no /login hint when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "🟡 this clone bills the anthropic api, since ANTHROPIC_AUTH_TOKEN is set
+   ├─ claude code ranks ANTHROPIC_AUTH_TOKEN above a /login and CLAUDE_CODE_OAUTH_TOKEN, and this seat has no /login
+   └─ to use a subscription, unset ANTHROPIC_AUTH_TOKEN, then /login or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`), then enroll again",
+]
+`;
+
+exports[`asBrainSpawnNoticeLines given: [case5] no login, an oauth token: naught, since the token authenticates the clone when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `[]`;
+
+exports[`asBrainSpawnNoticeLines given: [case6] a login and an api key: the api-billed notice, since the key outranks the login when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_API_KEY, then enroll again",
+]
+`;
+
+exports[`asBrainSpawnNoticeLines given: [case7] no login, no env credential, no grove: the /login hint, then the grove line when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "ℹ no claude login at /home/human/.claude/.credentials.json — run /login inside the clone, or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`)",
+  "ℹ no grove at /home/human/.claude/settings.json — box defaults did not apply; create it to share them with every clone",
+]
+`;
+
+exports[`asBrainSpawnNoticeLines given: [case8] a login, an api key, no grove: the api-billed notice, then the grove line when: [t0] the spawn notices are rendered then: it prints exactly the notices the precedence allows, in order 1`] = `
+[
+  "🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_API_KEY, then enroll again",
+  "ℹ no grove at /home/human/.claude/settings.json — box defaults did not apply; create it to share them with every clone",
+]
+`;

@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
+import { asTestXdgRuntimeDir } from '@/blackbox/.test/infra/asTestXdgRuntimeDir';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
@@ -74,7 +75,7 @@ console.log('alternative value:', process.env.${alternativeKey});
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [alternativeKey]: alternativeValue,
           },
         });
@@ -148,7 +149,7 @@ console.log('should not reach here');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             // neither key set
           },
         });
@@ -226,7 +227,7 @@ console.log('alternative value:', process.env.${alternativeKey});
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [primaryKey]: primaryValue,
             [alternativeKey]: alternativeValue,
           },
@@ -307,7 +308,7 @@ console.log('should not reach here');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [alternativeKey]: '', // empty string
           },
         });
@@ -381,7 +382,7 @@ console.log('alternative value:', process.env.${alternativeKey});
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [alternativeKey]: alternativeValue,
           },
         });
@@ -462,7 +463,7 @@ console.log('waiver checks env, not manifest');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [alternativeKey]: alternativeValue, // in env but not manifest
           },
         });
@@ -531,7 +532,7 @@ console.log('should not reach here');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             // neither key set
           },
         });
@@ -609,7 +610,7 @@ console.log('primary value:', process.env.${primaryKey});
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: testDir }),
             [primaryKey]: primaryValue, // primary IS set
             // alternative NOT set
           },

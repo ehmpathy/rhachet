@@ -1,6 +1,8 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { asLegibleScreen } from './asLegibleScreen';
+import { asEnrollRealClaudeArgs } from './asEnrollRealClaudeArgs';
+import { getErrorOfCreditSpent } from './getErrorOfCreditSpent';
 import { genRealBrainSlot } from './genRealBrainSlot';
 import {
   asSnapshotSafe,
@@ -28,6 +30,7 @@ import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthState';
 import { BRAIN_CLI_VERSION_FLOOR } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import {
   getAllBrainCliPathResolutions,
@@ -319,11 +322,26 @@ export const getRealClaudeBinPath = (): string | null =>
  * .why = the binary alone is not enough — claude-code needs credentials (an oauth
  *   login file, or an api-key env). absent auth would hang or 401 mid-reach, so the
  *   gate refuses up front with a fix-named error rather than burn a 2-minute wait.
+ * .note = the login file is read from `process.env.HOME`, the home the spawned claude
+ *   inherits; `homedir()` reads the process's own start env, which a test cannot isolate
+ * .note = a dead login (the clear claude-code leaves on a revoked refresh) is no auth: the
+ *   file exists, yet every spawn would meet `Login expired`. the product's own reader decides
+ *   it (asBrainAuthState), so the gate and enroll's refusal can never disagree
  */
 export const isRealClaudeAuthed = (): boolean => {
-  const credsFile = join(homedir(), '.claude', '.credentials.json');
+  const credsFile = join(
+    process.env.HOME || homedir(), // an empty HOME is no home: fall back, never a relative path
+    '.claude',
+    '.credentials.json',
+  );
+  const credsContent = existsSync(credsFile)
+    ? readFileSync(credsFile, 'utf8')
+    : null;
+  const isLoginLive =
+    credsContent !== null &&
+    asBrainAuthState({ content: credsContent }) === 'present';
   return (
-    existsSync(credsFile) ||
+    isLoginLive ||
     !!process.env.ANTHROPIC_API_KEY ||
     !!process.env.CLAUDE_CODE_OAUTH_TOKEN
   );
@@ -348,23 +366,25 @@ export const getRealClaudeOrThrow = (): { binPath: string; binDir: string } => {
           .join(', ')
       : 'none on PATH';
     throw new ConstraintError(
-      [
-        `no real \`claude\` at or above the brain-cli floor ${asVersionWords(BRAIN_CLI_VERSION_FLOOR)}`,
-        `for the real-claude reach tier. found: ${foundWords}.`,
-        'fix: upgrade the install that wins your PATH (`pnpm add -g @anthropic-ai/claude-code@latest`),',
-        'put a newer one first on PATH, or set RHACHET_REAL_CLAUDE_BIN to a binary that clears the',
-        'floor. this tier NEVER skips — an absent or below-floor brain is a loud gate, not a silent pass.',
-      ].join(' '),
+      `no real \`claude\` at or above the brain-cli floor ${asVersionWords(BRAIN_CLI_VERSION_FLOOR)}, for the real-claude reach tier`,
+      {
+        found: foundWords,
+        fix: 'upgrade the install that wins your PATH: pnpm add -g @anthropic-ai/claude-code@latest',
+        alt: 'or put a newer one first on PATH, or set RHACHET_REAL_CLAUDE_BIN to a binary that clears the floor',
+        note: 'this tier never skips; an absent or below-floor brain is a loud gate, not a silent pass',
+      },
     );
   }
 
   if (!isRealClaudeAuthed())
     throw new ConstraintError(
-      [
-        'real `claude` found but NOT authenticated — the reach round-trip would 401 or hang.',
-        'fix: authenticate claude-code (`claude` interactive login) or export ANTHROPIC_API_KEY;',
-        'in ci, `rhx keyrack unlock --owner ehmpath --env test`. this tier NEVER skips.',
-      ].join(' '),
+      'real `claude` found but not authenticated, so the reach round-trip would 401 or hang',
+      {
+        fix: 'rhx keyrack unlock --owner ehmpath --env test, then run the suite via rhx git.repo.test',
+        why: 'git.repo.test sources the test key from keyrack, the one key the every-push smoke suite on haiku may bill',
+        alt: 'or authenticate claude-code by its interactive `/login`',
+        note: 'this tier never skips; an absent credential is a loud gate, not a silent pass',
+      },
     );
 
   return { binPath, binDir: binPath.slice(0, binPath.lastIndexOf('/')) };
@@ -645,7 +665,6 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   as?: string;
   /** the roleset to enroll; absent → the repo default */
   roles?: string[];
-  model?: string;
   timeoutMs?: number;
 }): Promise<{ bg: RhachetBackgroundHandle; address: string; serial: string }> => {
   // 🔴 take a host-wide slot BEFORE the spawn. every realbrain suite passes through this
@@ -656,24 +675,31 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   // (genRealBrainSlot carries both log paths)
   const slot = await genRealBrainSlot();
 
-  // default the real brain to haiku — the reach proof needs a LIVE brain that submits
-  // + replies, not a smart one. haiku answers fastest + cheapest, so the round-trip is
-  // quick and the token spend is minimal (rule.require.test-claude-cli-against-haiku).
-  // `--model` is a claude passthrough arg (enroll consumes only its own flags).
+  // spawn the enroll, its brain pinned to haiku with no override (asEnrollRealClaudeArgs)
   const bg = spawnRhachetCliBackground({
-    args: [
-      'enroll',
-      'claude',
-      '--model',
-      input.model ?? 'haiku',
-      ...(input.as ? ['--as', input.as] : []),
-      ...(input.roles ? ['--roles', input.roles.join(',')] : []),
-      '--output',
-      'json',
-    ],
+    args: asEnrollRealClaudeArgs({
+      as: input.as ?? null,
+      roles: input.roles ?? null,
+    }),
     cwd: input.dir,
     env: input.env,
   });
+
+  // a readiness wait that fails names a spent credit when the screen shows one (as the say
+  //   poll does), frees the slot for a peer, kills the dead brain, and rethrows
+  const failAndRelease = async (error: unknown): Promise<never> => {
+    const errorNamed =
+      getErrorOfCreditSpent({
+        text: asLegibleScreen(bg.getOutput()),
+        phase: 'got ready',
+        address: input.as ?? null,
+        cause: error instanceof Error ? error : null,
+      }) ?? error;
+    slot.release();
+    await bg.kill();
+    throw errorNamed;
+  };
+
   // 🔴 every step from here to the return may throw, and each throw must release the slot.
   // an enroll that fails its trust menu or its readiness bound would otherwise hold a slot
   // until the stale sweep reclaims it — and starve every peer suite meanwhile for a brain
@@ -699,11 +725,7 @@ export const enrollRealClaudeAndWaitReach = async (input: {
       await driveTrustMenus({ bg, timeoutMs: input.timeoutMs });
 
     return reach.groups!.serial!;
-  })().catch(async (error: unknown) => {
-    slot.release();
-    await bg.kill();
-    throw error;
-  });
+  })().catch(failAndRelease);
 
   // the `"serial":` handoff prints from rhachet BEFORE claude's tui input reader is
   // armed. a dispatch that lands before the reader is ready is lost (a mid-boot claude
@@ -721,13 +743,9 @@ export const enrollRealClaudeAndWaitReach = async (input: {
       pattern: CLAUDE_IS_READY,
       timeoutMs: input.timeoutMs ?? 120000,
     })
-    .catch(async (error: unknown) => {
-      // same contract as the block above: a brain that never announced itself is dead
-      // weight, and its slot belongs to a peer
-      slot.release();
-      await bg.kill();
-      throw error;
-    });
+    // same contract as the block above: a brain that never announced itself is dead
+    //   weight, and its slot belongs to a peer
+    .catch(failAndRelease);
 
   //   2. a FIXED settle, stated as one. the banner marks the RENDER; claude publishes no
   //      second mark for "the input reader is armed", so there is no signal left to wait
@@ -991,6 +1009,16 @@ export const sayAndPollForMarker = async (input: {
   reportSayTrail({
     headline: `💥 dispatch NEVER landed after ${maxAttempts} attempts`,
   });
+
+  // name a spent api credit, the one cause a tier-2 run meets that no code change can cure
+  const screenLast = input.getScreen ? asLegibleScreen(input.getScreen()) : '';
+  const errorOfCreditSpent = getErrorOfCreditSpent({
+    text: `${screenLast}\n${lastRead}`,
+    phase: 'replied',
+    address: input.address,
+    cause: null,
+  });
+  if (errorOfCreditSpent) throw errorOfCreditSpent;
 
   return { said, lastRead, landed: false };
 };

@@ -1,6 +1,45 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import { BRAIN_AUTH_ENV_KEYS } from '@src/domain.operations/brain/auth/BRAIN_AUTH_ENV_KEYS';
+
+/**
+ * .what = the cause line and the hint of a hung repl, from the credential its env holds
+ * .why = the repl bills whatever its env holds. a probe from a human shell with no api key
+ *   answers on the box login and reads as an all-clear, while the suite's env billed a key
+ *   with no credit; so the hint must name the credential the repl actually used
+ */
+const asHungReplDiagnosis = (input: {
+  env: NodeJS.ProcessEnv;
+}): { auth: string; hint: string; credit?: string } => {
+  // the api-billed keys the repl inherited, in table order
+  const keysApi = BRAIN_AUTH_ENV_KEYS.filter(
+    (entry) => entry.bills === 'api' && !!input.env[entry.key],
+  ).map((entry) => entry.key);
+
+  // an api key outranks the box login, so the vendor refused that key
+  if (keysApi.length > 0)
+    return {
+      auth: `${keysApi.join(' and ')} in the test env, so the repl billed the api`,
+      hint: 'run `rhx claude.vendor.probe --via keyrack-test` to see the vendor text on that key. a probe from a shell with no api key answers on the login, so it shows naught about the key',
+      credit:
+        'a spent credit is cured only by whoever funds the key. ask them to restore it, then re-run the suite',
+    };
+
+  // no api key: the repl used the box login
+  return {
+    auth: 'no api key in the test env, so the repl used the box login',
+    hint: 'run `rhx claude.vendor.probe --via login` to see the vendor text on that login, fix the cause, then re-run the suite',
+  };
+};
+
+/**
+ * .what = the wait a live haiku repl call gets before the bound fails it
+ * .why = one value for every live-brain suite: well above a haiku reply on a narrow
+ *   context (seconds), well below jest's per-test timeout, so a vendor hang fails with
+ *   its named cause first
+ */
+export const BRAIN_REPL_BOUND_MS = 60_000;
 
 /**
  * .what = wrap a repl brain so each ask and act fails loud past a bounded wait
@@ -10,15 +49,18 @@ import type { BrainRepl } from '@src/domain.objects/BrainRepl';
  *   causes and the re-run
  * .note = a backstop in test infra; the root cure is a repl that throws the vendor's error
  */
-export const asBrainReplBounded = (input: {
-  brain: BrainRepl;
-  waitMs: number;
-}): BrainRepl => {
+export const asBrainReplBounded = (
+  input: {
+    brain: BrainRepl;
+    waitMs: number;
+  },
+  context: { env: NodeJS.ProcessEnv } = { env: process.env },
+): BrainRepl => {
   // race a call against the bound; clear the timer either way, so no handle stays open
   const withinBound = async <T>(call: Promise<T>): Promise<T> => {
-    let timer: NodeJS.Timeout | undefined;
+    const timer: { handle: NodeJS.Timeout | null } = { handle: null };
     const bound = new Promise<never>((_, reject) => {
-      timer = setTimeout(
+      timer.handle = setTimeout(
         () =>
           reject(
             new MalfunctionError(
@@ -26,7 +68,7 @@ export const asBrainReplBounded = (input: {
               {
                 brain: `${input.brain.repo}/${input.brain.slug}`,
                 why: 'a vendor refusal (rate limit, no credit, a dead oauth token) hangs the repl rather than throws',
-                hint: 'run `claude -p --model haiku "say ok"` to see the vendor text, fix the cause, then re-run the suite',
+                ...asHungReplDiagnosis({ env: context.env }),
               },
             ),
           ),
@@ -36,7 +78,7 @@ export const asBrainReplBounded = (input: {
     try {
       return await Promise.race([call, bound]);
     } finally {
-      clearTimeout(timer);
+      if (timer.handle) clearTimeout(timer.handle);
     }
   };
 

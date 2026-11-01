@@ -86,4 +86,61 @@ describe('asFlatModuleExports', () => {
       });
     });
   });
+
+  given(
+    "[case6] a commonjs namespace from node >= 23, with its 'module.exports' alias",
+    () => {
+      when('[t0] flattened', () => {
+        then('the alias key is dropped, so the shape matches node 22', () => {
+          const moduleExports = { getBrainAtomsByDynamic: () => [4] };
+          const result = asFlatModuleExports({
+            namespace: {
+              default: moduleExports,
+              'module.exports': moduleExports,
+            },
+          });
+          expect(Object.keys(result)).toEqual([
+            'getBrainAtomsByDynamic',
+            'default',
+          ]);
+        });
+      });
+    },
+  );
+
+  given(
+    "[case7] a 'module.exports' export that is not an alias of default",
+    () => {
+      when('[t0] flattened', () => {
+        then('the export is kept', () => {
+          const result = asFlatModuleExports({
+            namespace: { default: { a: 1 }, 'module.exports': 'its own value' },
+          });
+          expect(result['module.exports']).toEqual('its own value');
+        });
+      });
+    },
+  );
+
+  given(
+    "[case8] a function default, aliased by 'module.exports' (a commonjs `module.exports = fn`)",
+    () => {
+      when('[t0] flattened', () => {
+        then(
+          'the alias key is dropped, and the function stays under default, unhoisted',
+          () => {
+            const moduleExports = (): number => 5;
+            const result = asFlatModuleExports({
+              namespace: {
+                default: moduleExports,
+                'module.exports': moduleExports,
+              },
+            });
+            expect(Object.keys(result)).toEqual(['default']);
+            expect(result.default).toBe(moduleExports);
+          },
+        );
+      });
+    },
+  );
 });

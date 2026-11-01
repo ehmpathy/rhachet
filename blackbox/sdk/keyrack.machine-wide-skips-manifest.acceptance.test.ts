@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { asTestXdgRuntimeDir } from '@/blackbox/.test/infra/asTestXdgRuntimeDir';
 import { genBrokenKeyrackManifestYml } from '@/blackbox/.test/infra/genBrokenKeyrackManifestYml';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -110,7 +111,7 @@ describe('keyrack machine-wide skips manifest (sdk)', () => {
       env: {
         ...process.env,
         HOME: input.testDir,
-        XDG_RUNTIME_DIR: join(input.testDir, '.xdg-runtime'),
+        XDG_RUNTIME_DIR: asTestXdgRuntimeDir({ of: input.testDir }),
         ...input.secrets,
       },
     });

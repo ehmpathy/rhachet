@@ -37,8 +37,7 @@ describeBrainLiveOnDemand('enweaveOneStitcher', () => {
   };
   const context = { ...baseContext, ...getContextOpenAI() };
 
-  // takes a while; skip by default
-  given.runIf(!process.env.CI)(
+  given(
     'a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max',
     () => {
       const stitcherCodeReviewConcluder = new StitchStepCompute<

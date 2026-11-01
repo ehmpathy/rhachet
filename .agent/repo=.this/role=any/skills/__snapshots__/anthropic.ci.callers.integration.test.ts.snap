@@ -1,0 +1,114 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`anthropic.ci.callers given: [case1] a human asks for help when: [t0] \`--help\` then: it names the usage 1`] = `
+"🐢 anthropic.ci.callers — measure which ci test runs reached the anthropic api, per repo
+   ├─ usage
+   │  └─ rhx anthropic.ci.callers --since <yyyy-mm-dd> [--repos <a,b>] [--workflow <name>] [--scan <n>]
+   ├─ inputs
+   │  ├─ --since     an iso date; runs created on or after it (required)
+   │  ├─ --repos     a comma list of ehmpathy repos (default: the six that declare ANTHROPIC_API_KEY)
+   │  ├─ --workflow  the workflow name to count (default: test)
+   │  └─ --scan      how many of the newest failed runs per repo to scan for the markers (default: 5)
+   ├─ guarantee
+   │  ├─ read only; it writes no file and changes no run
+   │  ├─ a success run leaves no failed-job log, so its api use is reported unseen, never zero
+   │  ├─ a failed run whose log cannot be read is counted apart, never as a run with no marker
+   │  └─ exit 0 = measured · 1 = malfunction · 2 = bad input
+   └─ example
+      ├─ rhx anthropic.ci.callers --since 2026-10-18
+      ├─ rhx anthropic.ci.callers --since 2026-10-18 --repos rhachet,rhachet-roles-bhrain
+      └─ rhx anthropic.ci.callers --since 2026-10-18 --workflow test --scan 5
+"
+`;
+
+exports[`anthropic.ci.callers given: [case2] no --since when: [t0] the skill runs bare then: it names the fix 1`] = `
+"✋ ConstraintError: --since is required, since it bounds the runs read
+   └─ fix
+      └─ rhx anthropic.ci.callers --since 2026-10-18
+"
+`;
+
+exports[`anthropic.ci.callers given: [case3] a --scan that is not a whole number when: [t0] \`--scan five\` then: it refuses, and names the fix 1`] = `
+"✋ ConstraintError: --scan must be a whole number, got 'five'
+   └─ fix
+      └─ rhx anthropic.ci.callers --since 2026-10-18 --scan 5
+"
+`;
+
+exports[`anthropic.ci.callers given: [case4] an unknown flag when: [t0] \`--sincee 2026-10-18\` then: it refuses the flag, never drops it, and names the help 1`] = `
+"✋ ConstraintError: unknown arg '--sincee'
+   └─ fix
+      └─ rhx anthropic.ci.callers --help
+"
+`;
+
+exports[`anthropic.ci.callers given: [case5] a flag with no value when: [t0] \`--since\` ends the args then: it names the flag that lacks a value, and the help 1`] = `
+"✋ ConstraintError: --since needs a value
+   └─ fix
+      └─ rhx anthropic.ci.callers --help
+"
+`;
+
+exports[`anthropic.ci.callers given: [case6] a gh that answers from fixed runs when: [t0] two repos are counted, with one log that cannot be read then: it counts the runs per repo, by conclusion 1`] = `
+"🧮 anthropic.ci.callers --since 2026-10-18 --workflow test --scan 5
+   ├─ alpha
+   │  ├─ 5 runs (1 success · 3 failure · 1 other)
+   │  ├─ 2 newest failed runs scanned
+   │  ├─ 1 failed run whose log could not be read, so its markers are unseen, not zero
+   │  │  └─ run 103, HTTP 410: logs expired
+   │  ├─ 2 of the scanned runs show the api-mode banner
+   │  ├─ 1 of the scanned runs shows the credit error (oldest such run <iso-time>)
+   │  └─ success runs leave no failed log, so their api use is unseen here
+   └─ beta
+      ├─ 5 runs (1 success · 3 failure · 1 other)
+      ├─ 2 newest failed runs scanned
+      ├─ 1 failed run whose log could not be read, so its markers are unseen, not zero
+      │  └─ run 103, HTTP 410: logs expired
+      ├─ 2 of the scanned runs show the api-mode banner
+      ├─ 1 of the scanned runs shows the credit error (oldest such run <iso-time>)
+      └─ success runs leave no failed log, so their api use is unseen here
+"
+`;
+
+exports[`anthropic.ci.callers given: [case6] a gh that answers from fixed runs when: [t1] \`--scan 1\` bounds the logs read then: the bounded report renders as snapped 1`] = `
+"🧮 anthropic.ci.callers --since 2026-10-18 --workflow test --scan 1
+   └─ alpha
+      ├─ 5 runs (1 success · 3 failure · 1 other)
+      ├─ 1 newest failed run scanned
+      ├─ 1 of the scanned runs shows the api-mode banner
+      ├─ 1 of the scanned runs shows the credit error (oldest such run <iso-time>)
+      └─ success runs leave no failed log, so their api use is unseen here
+"
+`;
+
+exports[`anthropic.ci.callers given: [case6] a gh that answers from fixed runs when: [t2] a repo whose run list fails then: it fails loud with a MalfunctionError 1`] = `
+"💥 MalfunctionError: gh run list failed for ehmpathy/gone
+   ├─ cause
+   │  └─ could not resolve to a Repository
+   └─ fix
+      └─ gh auth status, then check that ehmpathy/gone exists and has a 'test' workflow
+"
+`;
+
+exports[`anthropic.ci.callers given: [case6] a gh that answers from fixed runs when: [t3] a repo whose run list fills the 1000-run cap then: the capped report renders as snapped 1`] = `
+"🧮 anthropic.ci.callers --since 2026-10-18 --workflow test --scan 5
+   └─ crowded
+      ├─ 1000 runs (1000 success · 0 failure · 0 other)
+      ├─ the list is capped at 1000 runs, so any older run since 2026-10-18 is unseen, not zero
+      ├─ 0 newest failed runs scanned
+      ├─ 0 of the scanned runs show the api-mode banner
+      ├─ 0 of the scanned runs show the credit error
+      └─ success runs leave no failed log, so their api use is unseen here
+"
+`;
+
+exports[`anthropic.ci.callers given: [case6] a gh that answers from fixed runs when: [t4] a repo with no failed run then: the report with no failed run renders as snapped 1`] = `
+"🧮 anthropic.ci.callers --since 2026-10-18 --workflow test --scan 5
+   └─ calm
+      ├─ 2 runs (2 success · 0 failure · 0 other)
+      ├─ 0 newest failed runs scanned
+      ├─ 0 of the scanned runs show the api-mode banner
+      ├─ 0 of the scanned runs show the credit error
+      └─ success runs leave no failed log, so their api use is unseen here
+"
+`;

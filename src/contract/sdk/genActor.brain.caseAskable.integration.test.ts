@@ -5,7 +5,10 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import {
+  asBrainReplBounded,
+  BRAIN_REPL_BOUND_MS,
+} from '@src/.test/infra/asBrainReplBounded';
 import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -16,10 +19,6 @@ import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem'
 
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-// fail fast if api keys not available
-if (!process.env.XAI_API_KEY)
-  throw new ConstraintError('XAI_API_KEY is required for integration tests');
-
 /**
  * .what = integration test for actor.ask() with BrainAtom support
  * .why = demonstrates that both BrainAtom and BrainRepl work with actor.ask()
@@ -27,6 +26,17 @@ if (!process.env.XAI_API_KEY)
 describeBrainLiveOnDemand('genActor.brain.caseAskable (integration)', () => {
   // above the repl's 60s bound, so a hung repl fails with its named cause, not jest's timeout
   jest.setTimeout(90000);
+
+  // fail fast if api keys not available; inside the gate, so a skipped suite reads no key
+  beforeAll(() => {
+    if (!process.env.XAI_API_KEY)
+      throw new ConstraintError(
+        'XAI_API_KEY is required for integration tests',
+        {
+          hint: 'rhx keyrack unlock --owner ehmpath --env test',
+        },
+      );
+  });
 
   given('[case1] author role with mixed brain allowlist', () => {
     // setup: use temp dir within project
@@ -101,7 +111,7 @@ When writing about ocean themes:
     });
 
     // create brains: BrainAtom (xAI) and BrainRepl (claude haiku)
-    // note: external brains from npm packages don't have spec yet; cast for compatibility
+    // cast: an npm brain package declares its own repl shape, not rhachet's BrainRepl; drop the cast once the package types against rhachet's
     const brainAtom = genBrainAtomXAI({
       slug: 'xai/grok/3-mini',
     }) as unknown as ActorBrain;
@@ -110,7 +120,7 @@ When writing about ocean themes:
       brain: genBrainReplAnthropic({
         slug: 'claude/code/haiku',
       }) as unknown as BrainRepl,
-      waitMs: 60_000,
+      waitMs: BRAIN_REPL_BOUND_MS,
     });
 
     // create actor with mixed brains (BrainAtom first)
@@ -171,14 +181,7 @@ When writing about ocean themes:
       );
     });
 
-    when('[t2] author.run() is called (solid skill, no brain needed)', () => {
-      then('executes wordcount skill without brain', async () => {
-        const result = await author.run({
-          skill: { wordcount: { text: 'hello world of turtles' } },
-        });
-
-        expect(result).toEqual({ count: 5 });
-      });
-    });
+    // the solid run needs no brain, so it runs ungated in
+    //   genActor.brain.caseSansCall.integration.test.ts
   });
 });

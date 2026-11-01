@@ -1,0 +1,129 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`claude.vendor.probe given: [case1] a human asks for help when: [t0] \`--help\` then: it names the usage 1`] = `
+"🐢 claude.vendor.probe — ask claude one tiny haiku prompt, and print what the vendor answers
+   ├─ usage
+   │  └─ rhx claude.vendor.probe [--via login|keyrack-test] [--timeout <seconds>]
+   ├─ inputs
+   │  ├─ --via      login (default) | keyrack-test
+   │  │  ├─ login unsets ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN, so claude answers on the login
+   │  │  └─ keyrack-test passes the ehmpath test ANTHROPIC_API_KEY, as a live test gets it
+   │  └─ --timeout seconds to wait for an answer (default 60)
+   ├─ guarantee
+   │  ├─ --via login never bills the api
+   │  ├─ --via keyrack-test bills one haiku call, and never prints the key
+   │  ├─ read only; it writes no file
+   │  └─ exit 0 = claude answered · 1 = claude refused, failed, or hung · 2 = bad input
+   └─ example
+      ├─ rhx claude.vendor.probe
+      ├─ rhx claude.vendor.probe --via keyrack-test
+      └─ rhx claude.vendor.probe --timeout 60
+"
+`;
+
+exports[`claude.vendor.probe given: [case2] a bad input when: [t0] an unknown flag then: it refuses the flag by name 1`] = `
+"✋ ConstraintError: unknown arg '--timeot'
+   └─ fix
+      └─ rhx claude.vendor.probe --help
+"
+`;
+
+exports[`claude.vendor.probe given: [case2] a bad input when: [t1] a --timeout that is not a whole number then: it names the value 1`] = `
+"✋ ConstraintError: --timeout must be a whole number, got 'soon'
+   └─ fix
+      └─ rhx claude.vendor.probe --timeout 60
+"
+`;
+
+exports[`claude.vendor.probe given: [case2] a bad input when: [t2] a --via that names no credential path then: it names the valid paths 1`] = `
+"✋ ConstraintError: --via must be login or keyrack-test, got 'oauth'
+   └─ fix
+      └─ rhx claude.vendor.probe --via login
+"
+`;
+
+exports[`claude.vendor.probe given: [case2] a bad input when: [t3] a final --via with no value then: it names the flag that lacks a value 1`] = `
+"✋ ConstraintError: --via needs a value
+   └─ fix
+      └─ rhx claude.vendor.probe --via login
+"
+`;
+
+exports[`claude.vendor.probe given: [case3] a claude that answers, with api vars set in the caller env when: [t0] the probe runs then: the answer is relayed, inside a quoted block 1`] = `
+"🧪 claude.vendor.probe --via login --timeout 20
+   ├─ exit = 0
+   ├─ vendor said
+   │  ├─
+   │  │
+   │  │  saw api_key=unset auth_token=unset
+   │  │  key sha=[e3b0c44298fc]
+   │  │  ok
+   │  │
+   │  └─
+   │
+   └─ ✨ claude answered
+"
+`;
+
+exports[`claude.vendor.probe given: [case4] a claude that refuses when: [t0] the probe runs then: it relays the vendor refusal text 1`] = `
+"🧪 claude.vendor.probe --via login --timeout 20
+   ├─ exit = 1
+   ├─ vendor said
+   │  ├─
+   │  │
+   │  │  saw api_key=unset auth_token=unset
+   │  │  key sha=[e3b0c44298fc]
+   │  │  Credit balance is too low
+   │  │
+   │  └─
+   │
+   └─ 💥 claude refused or failed; the text above names why
+"
+`;
+
+exports[`claude.vendor.probe given: [case5] a claude that hangs past the bound when: [t0] the probe runs with a 1s bound then: it names the hang and its bound 1`] = `
+"🧪 claude.vendor.probe --via login --timeout 1
+   ├─ exit = 124 (timed out)
+   ├─ vendor said
+   │  ├─
+   │  │
+   │  │  saw api_key=unset auth_token=unset
+   │  │  key sha=[e3b0c44298fc]
+   │  │
+   │  └─
+   │
+   └─ 💥 no answer in 1s; the cli hung
+"
+`;
+
+exports[`claude.vendor.probe given: [case6] the test key, from an unlocked keyrack when: [t0] the probe runs --via keyrack-test then: the header names the credential path 1`] = `
+"🧪 claude.vendor.probe --via keyrack-test --timeout 20
+   ├─ exit = 0
+   ├─ vendor said
+   │  ├─
+   │  │
+   │  │  saw api_key=set auth_token=unset
+   │  │  key sha=[e3658e4aadc9]
+   │  │  ok
+   │  │
+   │  └─
+   │
+   └─ ✨ claude answered
+"
+`;
+
+exports[`claude.vendor.probe given: [case7] a locked keyrack when: [t0] the probe runs --via keyrack-test then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: keyrack could not get ANTHROPIC_API_KEY for env=test
+   ├─ cause
+   │  └─ 🔐 keyrack is locked for owner=ehmpath env=test
+   └─ fix
+      └─ rhx keyrack unlock --owner ehmpath --env test
+"
+`;
+
+exports[`claude.vendor.probe given: [case8] no claude cli on PATH when: [t0] the probe runs then: it names the absent cli 1`] = `
+"✋ ConstraintError: no claude cli on PATH
+   └─ fix
+      └─ install claude code, then /login
+"
+`;

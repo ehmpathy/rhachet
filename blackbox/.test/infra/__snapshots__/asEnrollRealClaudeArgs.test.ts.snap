@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asEnrollRealClaudeArgs given: [case1] a tier-2 enroll with no slug and no roleset when: [t0] the argv is built then: the argv renders as snapped 1`] = `
+[
+  "enroll",
+  "claude",
+  "--model",
+  "haiku",
+  "--output",
+  "json",
+]
+`;
+
+exports[`asEnrollRealClaudeArgs given: [case2] a tier-2 enroll with a slug and a roleset when: [t0] the argv is built then: the argv renders as snapped 1`] = `
+[
+  "enroll",
+  "claude",
+  "--model",
+  "haiku",
+  "--as",
+  "@:reach1",
+  "--roles",
+  "mechanic,-driver",
+  "--output",
+  "json",
+]
+`;

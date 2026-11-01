@@ -22,4 +22,18 @@ describe('asBrainAuthAbsentLine', () => {
       });
     });
   });
+
+  given('[case2] a login path with spaces in it', () => {
+    when('[t0] the line is rendered', () => {
+      then('it names the whole path verbatim, with both fixes after it', () => {
+        const line = asBrainAuthAbsentLine({
+          brainAuthPath: '/Users/Jamie Rivera/.claude/.credentials.json',
+        });
+        expect(line).toContain(
+          'no claude login at /Users/Jamie Rivera/.claude/.credentials.json — run /login',
+        );
+        expect(line).toContain('CLAUDE_CODE_OAUTH_TOKEN');
+      });
+    });
+  });
 });

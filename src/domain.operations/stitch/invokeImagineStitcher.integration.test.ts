@@ -20,7 +20,7 @@ import { enstitch } from './enstitch';
 jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
 describeBrainLiveOnDemand('invokeImagineStitcher', () => {
-  given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
+  given('a representative imagine stitcher', () => {
     const context = {
       ...genContextLogTrail(),
       ...genContextStitchTrail(),

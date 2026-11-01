@@ -1,11 +1,24 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`asBrainReplBounded given: [case2] a repl that hangs past the bound when: [t0] ask is called then: it fails with a MalfunctionError that names the causes 1`] = `
+exports[`asBrainReplBounded given: [case2] a repl that hangs past the bound, with no api key in its env when: [t0] ask is called then: it says the repl gave no answer, and names a rate limit 1`] = `
 "💥 MalfunctionError: the repl brain gave no answer in 1s
 
 {
   "brain": "fake/repl/slow",
   "why": "a vendor refusal (rate limit, no credit, a dead oauth token) hangs the repl rather than throws",
-  "hint": "run \`claude -p --model haiku \\"say ok\\"\` to see the vendor text, fix the cause, then re-run the suite"
+  "auth": "no api key in the test env, so the repl used the box login",
+  "hint": "run \`rhx claude.vendor.probe --via login\` to see the vendor text on that login, fix the cause, then re-run the suite"
+}"
+`;
+
+exports[`asBrainReplBounded given: [case3] a repl that hangs past the bound, with an api key in its env when: [t0] ask is called then: it names the api key it billed 1`] = `
+"💥 MalfunctionError: the repl brain gave no answer in 1s
+
+{
+  "brain": "fake/repl/slow",
+  "why": "a vendor refusal (rate limit, no credit, a dead oauth token) hangs the repl rather than throws",
+  "auth": "ANTHROPIC_API_KEY in the test env, so the repl billed the api",
+  "hint": "run \`rhx claude.vendor.probe --via keyrack-test\` to see the vendor text on that key. a probe from a shell with no api key answers on the login, so it shows naught about the key",
+  "credit": "a spent credit is cured only by whoever funds the key. ask them to restore it, then re-run the suite"
 }"
 `;

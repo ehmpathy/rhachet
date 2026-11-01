@@ -2,7 +2,10 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
-import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import {
+  asBrainReplBounded,
+  BRAIN_REPL_BOUND_MS,
+} from '@src/.test/infra/asBrainReplBounded';
 import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -75,13 +78,13 @@ echo '{"summary":"summarized content"}'
     });
 
     // create scribe actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
-    // note: external brains from npm packages don't have spec yet; cast for compatibility
+    // cast: an npm brain package declares its own repl shape, not rhachet's BrainRepl; drop the cast once the package types against rhachet's
     // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
     const brain: ActorBrain = asBrainReplBounded({
       brain: genBrainRepl({
         slug: 'claude/code/haiku',
       }) as unknown as BrainRepl,
-      waitMs: 60_000,
+      waitMs: BRAIN_REPL_BOUND_MS,
     });
     const scribe = genCloneInmem({
       actor: genActor({
@@ -90,19 +93,9 @@ echo '{"summary":"summarized content"}'
       }),
     });
 
-    when('[t0] scribe.run({ skill: { linecount: { text } } })', () => {
-      then('executes solid skill and returns rational line count', async () => {
-        // solid skills execute shell scripts (use simple text to avoid shell newline issues)
-        const result = await scribe.run({
-          skill: { linecount: { text: 'hello world' } },
-        });
-
-        // assert rational response: single-line text = 1 line
-        expect(result).toEqual({ lines: 1 });
-      });
-    });
-
-    when('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
+    // the solid run makes no brain call, so it runs ungated in
+    //   genActor.brain.caseSansCall.integration.test.ts
+    when('[t0] scribe.act({ skill: { summarize: { content } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await scribe.act({
           skill: {
@@ -115,7 +108,7 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when('[t2] scribe.ask({ prompt })', () => {
+    when('[t1] scribe.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await scribe.ask({
           prompt: 'summarize the concept of brevity',

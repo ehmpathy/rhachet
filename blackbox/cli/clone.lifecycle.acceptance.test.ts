@@ -109,6 +109,33 @@ describe('rhx clone reach (acceptance)', () => {
         expect(asSnapshotSafe(reused.stderr)).toMatchSnapshot();
       });
     });
+
+    when('[t2] the same slug is enrolled again, with an api key in the env', () => {
+      // the one path that reaches the `result.spawn !== null` gate on the spawn notices: a
+      //   reuse returns no spawn, so a notice here would name a clone that never started
+      // .note = the fake key is an env signal only: no brain spawns, so it bills naught
+      const reused = useThen('the second enroll reuses (no new spawn)', async () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['enroll', 'claude', '--as', '@:driver'],
+          cwd: scene.dir,
+          env: { ...scene.env, ANTHROPIC_API_KEY: 'sk-ant-api03-fake' },
+          logOnError: false,
+        }),
+      );
+
+      then('it reuses the live clone, exit 0', () => {
+        expect(reused.status).toEqual(0);
+        expect(reused.stderr).toContain('♻ reused the live clone that already answers to @:driver');
+      });
+
+      then('it prints no api-billed notice, since no brain spawned', () => {
+        expect(reused.stderr).not.toContain('bills the anthropic api');
+      });
+
+      then('it prints no /login hint, since no brain spawned', () => {
+        expect(reused.stderr).not.toContain('no claude login at');
+      });
+    });
   });
 
   given('[case2] a clone whose brain has EXITED (dead)', () => {

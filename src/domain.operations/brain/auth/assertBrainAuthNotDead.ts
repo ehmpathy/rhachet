@@ -5,6 +5,8 @@ import { isBrainAuthViaEnv } from './isBrainAuthViaEnv';
 
 /**
  * .what = refuse an enroll whose clone would boot into a dead login
+ *   — dead means present but cleared (revoked, or a refresh the server rejected); an
+ *   absent login is not dead, and is never refused (see asBrainAuthAbsentLine)
  * .why = every clone reads the one shared login. once claude-code clears it (a revoked
  *   login, or a refresh the server rejects), each new clone would boot straight into
  *   `Login expired` with no keyboard to answer it. a refusal with the cure is cheaper

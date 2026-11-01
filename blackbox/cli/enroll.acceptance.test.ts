@@ -991,6 +991,263 @@ describe('rhx enroll --roles (acceptance)', () => {
     });
   });
 
+  given('[case2f] a seat whose env credential decides what the clone bills (vision case=5)', () => {
+    // the masks drop the notice from every other snapshot, since the runner's env decides it;
+    //   so this case pins the env three ways and proves the wire-up itself
+    // .mock = the brain cli: setupStubBrainPath puts a stub `claude` first on PATH
+    // .why = this case grades what enroll PRINTS for an env credential, which it decides
+    //   before the brain runs; a real claude on a fake key would bill or refuse a real call.
+    //   the fake key and token are env signals only: the stub calls no api, so they bill naught
+    // .real = blackbox/cli/clone.realbrain.acceptance.test.ts spawns the real brain (tier 2)
+    // one fixture per when, so neither enroll sees the state the other left
+    // each pins its own HOME: empty for [t0]–[t2] and [t5], so no login exists; a login file
+    //   for [t3] and [t4], so the login-present quadrant is read off a real file
+    const homeWithKey = genTempDir({ slug: 'enroll-api-billed-key-home' });
+    const homeWithoutKey = genTempDir({ slug: 'enroll-api-billed-nokey-home' });
+    const dirWithKey = genTempDir({ slug: 'enroll-api-billed-key' });
+    const sceneWithKey = useBeforeAll(async () => {
+      setupEnrollFixture(dirWithKey);
+      return { stubPath: setupStubBrainPath({ dir: dirWithKey }) };
+    });
+    const dirWithoutKey = genTempDir({ slug: 'enroll-api-billed-nokey' });
+    const sceneWithoutKey = useBeforeAll(async () => {
+      setupEnrollFixture(dirWithoutKey);
+      return { stubPath: setupStubBrainPath({ dir: dirWithoutKey }) };
+    });
+    const homeWithToken = genTempDir({ slug: 'enroll-api-billed-token-home' });
+    const dirWithToken = genTempDir({ slug: 'enroll-api-billed-token' });
+    const sceneWithToken = useBeforeAll(async () => {
+      setupEnrollFixture(dirWithToken);
+      return { stubPath: setupStubBrainPath({ dir: dirWithToken }) };
+    });
+
+    when('[t0] the env holds a key, with no login', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dirWithKey,
+          env: {
+            HOME: homeWithKey,
+            PATH: sceneWithKey.stubPath,
+            ANTHROPIC_API_KEY: 'sk-ant-api03-fake',
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('stderr gives no /login hint, since a login would not change the bill', () => {
+        expect(run.stderr).not.toContain('no claude login at');
+      });
+
+      then('enroll exits 0, since the notice never blocks the seat', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('stderr says the clone bills the api, and names the key', () => {
+        expect(run.stderr).toContain(
+          '🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set',
+        );
+      });
+
+      then('stderr names the unset and a subscription credential, since this seat has no login', () => {
+        expect(run.stderr).toContain(
+          'unset ANTHROPIC_API_KEY, then /login or set CLAUDE_CODE_OAUTH_TOKEN',
+        );
+      });
+
+      then('the notice a human reads, as enroll printed it, is locked to a snapshot', () => {
+        // the notice block alone: the rest of stderr is env-decided and masked elsewhere
+        const notice = run.stderr.match(ENROLL_API_BILLED_NOTICE_PATTERN);
+        expect(notice).toHaveLength(1);
+        expect(notice?.[0]).toMatchSnapshot();
+      });
+
+      then('the notice never echoes the key value', () => {
+        expect(run.stderr).not.toContain('sk-ant-api03-fake');
+      });
+    });
+
+    when('[t1] the env holds no key', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dirWithoutKey,
+          // undefined unsets the runner's own key (asEnvForSpawn), so this run holds none
+          env: {
+            HOME: homeWithoutKey,
+            PATH: sceneWithoutKey.stubPath,
+            ANTHROPIC_API_KEY: undefined,
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('enroll exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('enroll prints no api-billed notice', () => {
+        expect(run.stderr).not.toContain('bills the anthropic api');
+      });
+
+      then('stderr gives the /login hint, so [t0] proves the notice displaced it', () => {
+        expect(run.stderr).toContain('no claude login at');
+      });
+
+      then('the /login hint a human reads, as enroll printed it, is locked to a snapshot', () => {
+        // the hint line alone, its temp HOME masked: the rest of stderr is env-decided
+        const hint = run.stderr.match(/ℹ no claude login at[^\n]*/);
+        expect(hint).toHaveLength(1);
+        expect(asSnapshotSafe(hint![0])).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the env holds an oauth token and no key, with no login', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dirWithToken,
+          env: {
+            HOME: homeWithToken,
+            PATH: sceneWithToken.stubPath,
+            ANTHROPIC_API_KEY: undefined,
+            CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-fake',
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('enroll exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('stderr gives no /login hint, since the token authenticates the clone', () => {
+        expect(run.stderr).not.toContain('no claude login at');
+      });
+
+      then('enroll prints no api-billed notice, since the token bills the subscription', () => {
+        expect(run.stderr).not.toContain('bills the anthropic api');
+      });
+    });
+
+    when('[t3] the seat has a login, and the env holds no credential (vision cell 11)', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-api-billed-login' });
+        const home = genTempDir({ slug: 'enroll-api-billed-login-home' });
+        setupEnrollFixture(dir);
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(
+          join(home, '.claude', '.credentials.json'),
+          JSON.stringify({ claudeAiOauth: { refreshToken: 'stub-refresh' } }),
+        );
+        return { dir, home, stubPath: setupStubBrainPath({ dir }) };
+      });
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: scene.dir,
+          env: {
+            HOME: scene.home,
+            PATH: scene.stubPath,
+            ANTHROPIC_API_KEY: undefined,
+            ANTHROPIC_AUTH_TOKEN: undefined,
+            CLAUDE_CODE_OAUTH_TOKEN: undefined,
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('enroll exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('enroll prints no api-billed notice, since the login bills the subscription', () => {
+        expect(run.stderr).not.toContain('bills the anthropic api');
+      });
+
+      then('stderr gives no /login hint, since the seat has one', () => {
+        expect(run.stderr).not.toContain('no claude login at');
+      });
+    });
+
+    when('[t4] the seat has a login, and the env holds a key', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-api-billed-login-key' });
+        const home = genTempDir({ slug: 'enroll-api-billed-login-key-home' });
+        setupEnrollFixture(dir);
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(
+          join(home, '.claude', '.credentials.json'),
+          JSON.stringify({ claudeAiOauth: { refreshToken: 'stub-refresh' } }),
+        );
+        return { dir, home, stubPath: setupStubBrainPath({ dir }) };
+      });
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: scene.dir,
+          env: {
+            HOME: scene.home,
+            PATH: scene.stubPath,
+            ANTHROPIC_API_KEY: 'sk-ant-api03-fake',
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('enroll exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+
+      then('stderr names the unset alone, since the login takes over once the key is gone', () => {
+        expect(run.stderr).toContain('unset ANTHROPIC_API_KEY, then enroll again');
+      });
+
+      then('the notice a human reads, as enroll printed it, is locked to a snapshot', () => {
+        const notice = run.stderr.match(ENROLL_API_BILLED_NOTICE_PATTERN);
+        expect(notice).toHaveLength(1);
+        expect(notice?.[0]).toMatchSnapshot();
+      });
+    });
+
+    when('[t5] the env holds a key, and enroll refuses before any brain spawns', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-api-billed-refused' });
+        const home = genTempDir({ slug: 'enroll-api-billed-refused-home' });
+        setupEnrollFixture(dir);
+        return { dir, home, stubPath: setupStubBrainPath({ dir }) };
+      });
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', 'role-absent', '--output', 'json'],
+          cwd: scene.dir,
+          env: {
+            HOME: scene.home,
+            PATH: scene.stubPath,
+            ANTHROPIC_API_KEY: 'sk-ant-api03-fake',
+          },
+          logOnError: false,
+        }),
+      );
+
+      then('enroll refuses with exit 2', () => {
+        expect(run.status).toEqual(2);
+      });
+
+      then('stderr holds no api-billed notice, since no clone started', () => {
+        expect(run.stderr).not.toContain('bills the anthropic api');
+      });
+
+      then('stderr holds no /login hint, since no clone started', () => {
+        expect(run.stderr).not.toContain('no claude login at');
+      });
+
+      then('stderr is the json error alone, so a machine still parses it', () => {
+        expect(() => JSON.parse(run.stderr)).not.toThrow();
+      });
+    });
+  });
+
   given('[case2e] 🔴 core invariant — a `-driver` clone loads no driver hook from ANY layer', () => {
     // claude MERGES hooks across every settings source it reads, so a filtered `--settings`
     //   file proves naught on its own. this case reads every layer the recorded spawn argv

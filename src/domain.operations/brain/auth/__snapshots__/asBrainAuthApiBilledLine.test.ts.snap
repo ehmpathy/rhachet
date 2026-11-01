@@ -1,7 +1,25 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`asBrainAuthApiBilledLine given: [case3] a spawn env with ANTHROPIC_API_KEY set when: [t0] the notice is rendered then: it names the key, the api charge, and the fix 1`] = `
-"⚠️ this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
-   ├─ claude code ranks the api key above your /login and CLAUDE_CODE_OAUTH_TOKEN
+exports[`asBrainAuthApiBilledLine given: [case3] a spawn env with ANTHROPIC_API_KEY set when: [t0] the notice is rendered then: it names the api charge 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above your /login and CLAUDE_CODE_OAUTH_TOKEN
    └─ to use your subscription, unset ANTHROPIC_API_KEY, then enroll again"
+`;
+
+exports[`asBrainAuthApiBilledLine given: [case4] a spawn env with ANTHROPIC_AUTH_TOKEN set, and no api key when: [t0] the notice is rendered then: it names the auth token, which bills the api the same way 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_AUTH_TOKEN is set
+   ├─ claude code ranks ANTHROPIC_AUTH_TOKEN above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_AUTH_TOKEN, then enroll again"
+`;
+
+exports[`asBrainAuthApiBilledLine given: [case5] a spawn env with both keys set when: [t0] the notice is rendered then: it names both keys 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN are set
+   ├─ claude code ranks ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN above your /login and CLAUDE_CODE_OAUTH_TOKEN
+   └─ to use your subscription, unset ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN, then enroll again"
+`;
+
+exports[`asBrainAuthApiBilledLine given: [case6] a spawn env with ANTHROPIC_API_KEY set, on a seat with no login when: [t0] the notice is rendered then: it says the seat has no /login to fall back on 1`] = `
+"🟡 this clone bills the anthropic api, since ANTHROPIC_API_KEY is set
+   ├─ claude code ranks ANTHROPIC_API_KEY above a /login and CLAUDE_CODE_OAUTH_TOKEN, and this seat has no /login
+   └─ to use a subscription, unset ANTHROPIC_API_KEY, then /login or set CLAUDE_CODE_OAUTH_TOKEN (from \`claude setup-token\`), then enroll again"
 `;

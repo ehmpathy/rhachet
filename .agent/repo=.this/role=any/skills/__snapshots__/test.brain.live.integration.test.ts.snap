@@ -1,0 +1,103 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t0] no --scope then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --scope is required, since each live test spends real money
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t1] no --what then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --what is required, since it names the tier to run (integration or acceptance)
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t2] a --what outside the two live tiers then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --what must be integration or acceptance, got 'unit'
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t3] a --scope at the end of the line, with no value then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --scope needs a value
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t4] a --scope that names the whole tree then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --scope . matches the whole tree, so it would run every tier-3 suite
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t5] a --scope=path:// that names the whole tree then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --scope path:// matches the whole tree, so it would run every tier-3 suite
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t6] a --scope that matches more tier-3 suites than one live run may take then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: the path scopes match 5 tier-3 suites, past the 3 one live run may take
+   ├─ matched
+   │  ├─ blackbox/cli/clone.joker.realbrain.acceptance.test.ts
+   │  ├─ blackbox/cli/clone.modalprobe.realbrain.acceptance.test.ts
+   │  ├─ blackbox/cli/clone.saybulk-probe.realbrain.acceptance.test.ts
+   │  ├─ blackbox/cli/clone.screen-dogfood.realbrain.acceptance.test.ts
+   │  └─ blackbox/cli/clone.transcript-lag.realbrain.acceptance.test.ts
+   │
+   └─ fix
+      └─ rhx test.brain.live --what acceptance --scope path://blackbox/cli/clone.joker.realbrain.acceptance.test.ts
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t7] a name:// scope with no path scope to bound it then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: a name:// scope alone matches by title in every file, so a path scope must bound the run
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk --scope name://t0
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t8] four stacked path scopes, each within the cap, whose union is past it then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: the path scopes match 4 tier-3 suites, past the 3 one live run may take
+   ├─ matched
+   │  ├─ blackbox/cli/clone.joker.realbrain.acceptance.test.ts
+   │  ├─ blackbox/cli/clone.modalprobe.realbrain.acceptance.test.ts
+   │  ├─ blackbox/cli/clone.saybulk-probe.realbrain.acceptance.test.ts
+   │  └─ blackbox/cli/clone.screen-dogfood.realbrain.acceptance.test.ts
+   │
+   └─ fix
+      └─ rhx test.brain.live --what acceptance --scope path://blackbox/cli/clone.joker.realbrain.acceptance.test.ts
+"
+`;
+
+exports[`test.brain.live given: [case2] a run the skill must refuse when: [t9] a path scope that is not a valid pattern then: it names the cause as a ConstraintError 1`] = `
+"✋ ConstraintError: --scope [ could not be read as a path pattern
+   └─ fix
+      └─ rhx test.brain.live --what integration --scope path://actorAsk
+"
+`;
+
+exports[`test.brain.live given: [case3] a seat that asks the skill to describe itself when: [t0] --help then: it prints usage, inputs and an example 1`] = `
+"🐢 test.brain.live — run tier-3 live-brain tests on demand, scoped
+   ├─ usage
+   │  └─ rhx test.brain.live --what <integration|acceptance> --scope <scope> [--mode apply]
+   ├─ inputs
+   │  ├─ --what   integration | acceptance (required)
+   │  └─ --scope  a git.repo.test scope (required, repeatable; at least one a path scope)
+   ├─ guarantee
+   │  ├─ sets BRAIN_LIVE_SCOPE=all for this run only
+   │  ├─ refuses a scope that matches more than 3 tier-3 suites
+   │  ├─ every other flag passes to git.repo.test, which refuses one it does not know
+   │  ├─ without --mode apply, git.repo.test shows the matched files and runs none
+   │  └─ exit 2 = bad input · else the exit of git.repo.test
+   └─ example
+      ├─ rhx test.brain.live --what integration --scope path://actorAsk
+      └─ rhx test.brain.live --what integration --scope path://actorAsk --mode apply
+"
+`;

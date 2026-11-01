@@ -33,17 +33,18 @@ describeBrainLiveOnDemand('replDoorRealSupplier.realnode.acceptance', () => {
     'sdk.brains.js',
   );
   const repoRoot = join(__dirname, '..', '..');
-  const livePath = join(
-    __dirname,
-    '..',
-    '.test',
-    'infra',
-    'probe.replDoorRealSupplierLive.cjs',
-  );
 
   given('[case1] a live haiku brain behind the real anthropic repl', () => {
     when('[t0] a depth-0 caller asks the live brain', () => {
       const live = useBeforeAll(async () => {
+        // the probe is named in the hook, so naught that reaches it runs at collection
+        const livePath = join(
+          __dirname,
+          '..',
+          '.test',
+          'infra',
+          'probe.replDoorRealSupplierLive.cjs',
+        );
         // the built artifact must exist; acceptance runs after `npm run build`
         if (!existsSync(brainsContractDistPath))
           throw new ConstraintError(

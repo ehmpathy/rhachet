@@ -2,6 +2,8 @@ import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
+import { BRAIN_AUTH_API_BILLED_NOTICE_HEAD } from '@src/domain.operations/brain/auth/asBrainAuthApiBilledLine';
+
 /**
  * .what = strip machine-specific content from CLI output for snapshots
  * .why = paths and pids vary by machine — strip them so snapshots work across environments
@@ -505,10 +507,15 @@ export const invokeRhachetCliBinaryViaSlowPipe = (input: {
  * .what = matches the enroll api-billed notice block: its header and its branches
  * .why = enroll prints it only when the runner's env holds `ANTHROPIC_API_KEY`, as ci does and a
  *   dev box may not; its own shape is locked by `asBrainAuthApiBilledLine.test.ts`
- * .note = the blank line after it is the separator before the next block, so it stays
+ * .note = it ends at the block's last branch and takes no line after it: enroll prints each
+ *   notice with its own console.error and no blank line between, so the next notice (`ℹ no
+ *   grove at …`) follows at once and the mask leaves it whole
+ * .note = the head is the op's own constant, so a reword of the notice moves the mask with it
  */
-export const ENROLL_API_BILLED_NOTICE_PATTERN =
-  /^⚠️ this clone bills the anthropic api.*\n(?: {3}[├└]─ .*\n)*/gm;
+export const ENROLL_API_BILLED_NOTICE_PATTERN = new RegExp(
+  `^${BRAIN_AUTH_API_BILLED_NOTICE_HEAD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*\\n(?: {3}[├└]─ .*\\n)*`,
+  'gm',
+);
 
 /**
  * .what = asSnapshotSafe, minus the enroll lines that depend on the host's own `~/.claude`

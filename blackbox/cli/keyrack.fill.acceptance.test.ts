@@ -325,6 +325,105 @@ describe('keyrack fill cli', () => {
   });
 
   /**
+   * [case7b] the same fill journey, with answers that end in a CRLF
+   * a human who pastes answers from a windows-edited file sends CR LF, and a pty may hand the
+   * pair to the prompt in one read or across two. either way the choice must count as one
+   * Enter, and the secret prompt that follows must take the secret, never the stray LF as an
+   * empty answer
+   */
+  const ANSWER_EOL_CASES = [
+    { eol: 'crlf', description: 'each answer ends in CR LF, in one write' },
+    {
+      eol: 'crlf-split',
+      description: 'the choice ends in CR, then LF in a second write at the secret prompt',
+    },
+  ] as const;
+  ANSWER_EOL_CASES.map((thisCase, index) =>
+    given(`[case7b.${index + 1}] fill via pseudo-TTY, ${thisCase.description}`, () => {
+      beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+      afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+      const repo = useBeforeAll(async () => {
+        const r = await genTestTempRepo({ fixture: 'minimal' });
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'init'],
+          cwd: r.path,
+          env: { HOME: r.path },
+        });
+        const agentDir = `${r.path}/.agent`;
+        if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+        writeFileSync(
+          `${agentDir}/keyrack.yml`,
+          'org: testorg\n\nenv.test:\n  - API_KEY\n',
+          'utf-8',
+        );
+        return r;
+      });
+
+      when('[t0] the choice and the secret are answered', () => {
+        const result = useBeforeAll(async () =>
+          spawnSync(
+            'node',
+            [
+              PTY_WITH_ANSWERS,
+              `${RHACHET_BIN} keyrack fill --env test`,
+              'choice: |enter secret for',
+              '1', // select PERMANENT_VIA_REPLICA
+              'test-fill-crlf-secret',
+            ],
+            {
+              encoding: 'utf-8',
+              cwd: repo.path,
+              env: {
+                ...process.env,
+                HOME: repo.path,
+                PTY_ANSWER_EOL: thisCase.eol,
+              },
+              timeout: 60000,
+            },
+          ),
+        );
+
+        then('exits with status 0', () => {
+          expect(result.status).toEqual(0);
+        });
+
+        then('the choice counts as one Enter, so the secret prompt is shown once', () => {
+          expect(result.stdout.split('enter secret for').length - 1).toEqual(1);
+        });
+
+        then('stdout matches snapshot', () => {
+          expect(asPtySnapshotSafe(result.stdout)).toMatchSnapshot();
+        });
+      });
+
+      when('[t1] the key is read back after an unlock', () => {
+        // precondition: the daemon holds the key the fill stored
+        useBeforeAll(async () =>
+          invokeRhachetCliBinary({
+            args: ['keyrack', 'unlock', '--env', 'test'],
+            cwd: repo.path,
+            env: { HOME: repo.path },
+          }),
+        );
+
+        const got = useBeforeAll(async () =>
+          invokeRhachetCliBinary({
+            args: ['keyrack', 'get', '--key', 'testorg.test.API_KEY', '--json'],
+            cwd: repo.path,
+            env: { HOME: repo.path },
+          }),
+        );
+
+        then('the stored secret is the answer, never an empty one', () => {
+          const parsed = JSON.parse(got.stdout);
+          expect(parsed.grant.key.secret).toEqual('test-fill-crlf-secret');
+        });
+      });
+    }),
+  );
+
+  /**
    * [case8] fill --env camp — the wish's new env
    * proves the camp env, now advertised in fill's help text, is accepted by
    * fill (exit 0, empty is not an error) rather than rejected (positive journey)

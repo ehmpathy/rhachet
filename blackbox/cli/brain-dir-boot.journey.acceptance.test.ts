@@ -77,8 +77,8 @@ const killQuietly = (pid: number): void => {
  * .why = a step past its budget fails at once and names itself, and every later step
  *   short circuits; the ledger at the end names where every second went
  *
- * .note = a `claude -p` launch splits into two populations, so it takes two kinds. a BARE
- *   launch carries the repo's small default corpus; an ENROLLED launch binds
+ * .note = a `claude -p` launch splits into two populations, so it takes two kinds. a bare
+ *   launch carries the repo's small default corpus; an enrolled launch binds
  *   `CLAUDE_CONFIG_DIR` to an actor's brain dir, so it carries that actor's whole corpus
  *   and costs about twice as much. one budget over both sizes the bound for the cheap
  *   population and leaves the dear one at ~100% of it, where a normal latency wobble

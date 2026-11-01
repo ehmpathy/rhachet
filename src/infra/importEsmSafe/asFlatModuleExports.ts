@@ -8,6 +8,9 @@
  *         beneath the top-level keys so callers find named exports (getBrainAtomsBy*,
  *         getBrainHooks, getRoleRegistry, ...) whether the loader hoisted them or nested
  *         them under default. top-level keys win on conflict (no double-count).
+ * .note = node >= 23 adds a `'module.exports'` key to a commonjs namespace, an alias of
+ *         the same object as `default`. it is dropped, so the shape is the same on every
+ *         node; a `'module.exports'` export that is NOT that alias is kept
  */
 export const asFlatModuleExports = (input: {
   namespace: Record<string, unknown>;
@@ -21,5 +24,13 @@ export const asFlatModuleExports = (input: {
       ? defaultExport
       : {};
 
-  return { ...fromDefault, ...input.namespace };
+  // drop node's commonjs alias key, which repeats `default` under a second name
+  const { 'module.exports': aliasOfDefault, ...namespaceRest } =
+    input.namespace;
+  const namespaceKept =
+    'module.exports' in input.namespace && aliasOfDefault !== defaultExport
+      ? input.namespace
+      : namespaceRest;
+
+  return { ...fromDefault, ...namespaceKept };
 };

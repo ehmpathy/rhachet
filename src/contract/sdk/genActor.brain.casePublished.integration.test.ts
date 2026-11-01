@@ -1,8 +1,11 @@
 import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
-import { getError, given, then, when } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
-import { asBrainReplBounded } from '@src/.test/infra/asBrainReplBounded';
+import {
+  asBrainReplBounded,
+  BRAIN_REPL_BOUND_MS,
+} from '@src/.test/infra/asBrainReplBounded';
 import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
@@ -77,13 +80,13 @@ echo '{"content":"drafted content about $1"}'
     });
 
     // create author actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
-    // note: external brains from npm packages don't have spec yet; cast for compatibility
+    // cast: an npm brain package declares its own repl shape, not rhachet's BrainRepl; drop the cast once the package types against rhachet's
     // bounded: a vendor refusal hangs the repl, so each call fails loud past 60s
     const brain: ActorBrain = asBrainReplBounded({
       brain: genBrainRepl({
         slug: 'claude/code/haiku',
       }) as unknown as BrainRepl,
-      waitMs: 60_000,
+      waitMs: BRAIN_REPL_BOUND_MS,
     });
     const author = genCloneInmem({
       actor: genActor({
@@ -92,19 +95,9 @@ echo '{"content":"drafted content about $1"}'
       }),
     });
 
-    when('[t0] author.run({ skill: { wordcount: { text } } })', () => {
-      then('executes solid skill and returns rational word count', async () => {
-        // solid skills execute shell scripts
-        const result = await author.run({
-          skill: { wordcount: { text: 'hello world' } },
-        });
-
-        // assert rational response: "hello world" = 2 words
-        expect(result).toEqual({ count: 2 });
-      });
-    });
-
-    when('[t1] author.act({ skill: { draft: { topic } } })', () => {
+    // the solid run and the allowlist refusal make no brain call, so they run ungated in
+    //   genActor.brain.caseSansCall.integration.test.ts
+    when('[t0] author.act({ skill: { draft: { topic } } })', () => {
       then('executes rigid skill with default brain', async () => {
         const result = await author.act({
           skill: { draft: { topic: 'surfer turtles' } },
@@ -115,7 +108,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t2] author.act({ brain: { repo, slug }, skill })', () => {
+    when('[t1] author.act({ brain: { repo, slug }, skill })', () => {
       then('executes with explicit brain from allowlist', async () => {
         const result = await author.act({
           brain: { repo: 'anthropic', slug: 'claude/code/haiku' },
@@ -126,21 +119,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t3] author.act({ brain: notInAllowlist, skill })', () => {
-      then('throws error', async () => {
-        const error = await getError(() =>
-          author.act({
-            brain: { repo: 'openai', slug: 'openai/codex' },
-            skill: { draft: { topic: 'sunshine' } },
-          }),
-        );
-
-        expect(error).toBeDefined();
-        expect(error?.message).toMatch(/not.*allowlist/i);
-      });
-    });
-
-    when('[t4] author.ask({ prompt })', () => {
+    when('[t2] author.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await author.ask({
           prompt: 'tell me about the turtles',

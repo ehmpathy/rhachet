@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getRealClaudeOrThrow given: [case1] a claude above the floor, and no credential of any kind when: [t0] the gate is asked for a real claude then: the refusal renders as snapped 1`] = `
+"✋ ConstraintError: real \`claude\` found but not authenticated, so the reach round-trip would 401 or hang
+
+{
+  "fix": "rhx keyrack unlock --owner ehmpath --env test, then run the suite via rhx git.repo.test",
+  "why": "git.repo.test sources the test key from keyrack, the one key the every-push smoke suite on haiku may bill",
+  "alt": "or authenticate claude-code by its interactive \`/login\`",
+  "note": "this tier never skips; an absent credential is a loud gate, not a silent pass"
+}"
+`;
+
+exports[`getRealClaudeOrThrow given: [case3] a claude below the floor when: [t0] the gate is asked for a real claude then: the refusal renders as snapped 1`] = `
+"✋ ConstraintError: no real \`claude\` at or above the brain-cli floor 2.1.277, for the real-claude reach tier
+
+{
+  "found": "/PATH_STRIPPED",
+  "fix": "upgrade the install that wins your PATH: pnpm add -g @anthropic-ai/claude-code@latest",
+  "alt": "or put a newer one first on PATH, or set RHACHET_REAL_CLAUDE_BIN to a binary that clears the floor",
+  "note": "this tier never skips; an absent or below-floor brain is a loud gate, not a silent pass"
+}"
+`;
+
+exports[`getRealClaudeOrThrow given: [case4] a claude above the floor, with a DEAD login file in HOME when: [t0] the gate is asked for a real claude then: the refusal renders as snapped 1`] = `
+"✋ ConstraintError: real \`claude\` found but not authenticated, so the reach round-trip would 401 or hang
+
+{
+  "fix": "rhx keyrack unlock --owner ehmpath --env test, then run the suite via rhx git.repo.test",
+  "why": "git.repo.test sources the test key from keyrack, the one key the every-push smoke suite on haiku may bill",
+  "alt": "or authenticate claude-code by its interactive \`/login\`",
+  "note": "this tier never skips; an absent credential is a loud gate, not a silent pass"
+}"
+`;

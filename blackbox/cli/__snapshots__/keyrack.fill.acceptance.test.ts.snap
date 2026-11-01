@@ -65,6 +65,50 @@ exports[`keyrack fill cli given: [case7] fill prompts for mechanism selection (p
 🔐 keyrack fill complete (1/1 keys verified)"
 `;
 
+exports[`keyrack fill cli given: [case7b.1] fill via pseudo-TTY, each answer ends in CR LF, in one write when: [t0] the choice and the secret are answered then: stdout matches snapshot 1`] = `
+"🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
+🔑 key 1/1, API_KEY, for 1 owner
+   └─ for owner default
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for API_KEY: *********************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key API_KEY --env test --owner default
+
+🔐 keyrack fill complete (1/1 keys verified)"
+`;
+
+exports[`keyrack fill cli given: [case7b.2] fill via pseudo-TTY, the choice ends in CR, then LF in a second write at the secret prompt when: [t0] the choice and the secret are answered then: stdout matches snapshot 1`] = `
+"🔐 keyrack fill (env: test, keys: 1, owners: 1)
+
+🔑 key 1/1, API_KEY, for 1 owner
+   └─ for owner default
+      ├─ set the key
+      │  ├─
+      │  │
+      │  │  which mechanism?
+      │  │  ├─ 1. PERMANENT_VIA_REPLICA — static secret (api key, password)
+      │  │  └─ 2. EPHEMERAL_VIA_GITHUB_APP — github app installation (short-lived tokens)
+      │  │  choice: 1
+      │  │  enter secret for API_KEY: *********************
+      │  │
+      │  └─
+      └─ get after set, to verify
+         ├─ ✓ rhx keyrack unlock --key API_KEY --env test --owner default
+         └─ ✓ rhx keyrack get --key API_KEY --env test --owner default
+
+🔐 keyrack fill complete (1/1 keys verified)"
+`;
+
 exports[`keyrack fill cli given: [case8] repo with keyrack manifest (test keys only), fill camp when: [t0] rhx keyrack fill --env camp (no camp keys exist) then: stdout matches snapshot 1`] = `
 "
 🔐 keyrack fill (env: camp)
