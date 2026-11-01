@@ -11,6 +11,18 @@ import {
 } from '@/blackbox/.test/infra/roleFixtureRepo';
 import { setFixturePrepareRhachet } from '@/blackbox/.test/infra/setFixturePrepareRhachet';
 
+/**
+ * .what = an upgrade's stdout with the installer's replayed block collapsed to one line
+ * .why = the block between the `📦` plan tree and the `✨` outcome is pnpm's own text, and its
+ *   counts move with the shared store's state (`reused 185, downloaded 1` on a cold store,
+ *   `reused 186` on a warm one). the frame around it is rhachet's, and the frame is the subject
+ */
+const asUpgradeStdoutWithInstallerMasked = (input: { stdout: string }): string =>
+  input.stdout.replace(
+    /(📦 upgrade[^\n]*\n(?: {3}[├└]── [^\n]*\n)+\n)[\s\S]*?(\n✨ )/u,
+    '$1<installer output>\n$2',
+  );
+
 describe('rhx', () => {
   given('[case1] repo with skills', () => {
     const repo = useBeforeAll(async () =>
@@ -263,19 +275,22 @@ describe('rhx', () => {
       });
     });
 
+    // .note = each upgrade runs in a fresh repo of its own. in one shared repo the first run
+    //   installs `rhachet@latest` and the second reports `Already up to date`, so the two
+    //   outputs part on the order of the calls, never on the dispatch under test
     when('[t1] rhx upgrade (without args)', () => {
       const rhxResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           binary: 'rhx',
           args: ['upgrade'],
-          cwd: repo.path,
+          cwd: (await genTestTempRepo({ fixture: 'minimal' })).path,
           logOnError: false,
         }),
       );
       const rhachetResult = useBeforeAll(async () =>
         invokeRhachetCliBinary({
           args: ['upgrade'],
-          cwd: repo.path,
+          cwd: (await genTestTempRepo({ fixture: 'minimal' })).path,
           logOnError: false,
         }),
       );
@@ -288,7 +303,11 @@ describe('rhx', () => {
       });
 
       then('rhx output matches rhachet upgrade output', () => {
-        expect(rhxResult.stdout).toEqual(rhachetResult.stdout);
+        expect(
+          asUpgradeStdoutWithInstallerMasked({ stdout: rhxResult.stdout }),
+        ).toEqual(
+          asUpgradeStdoutWithInstallerMasked({ stdout: rhachetResult.stdout }),
+        );
       });
 
       then('rhx exit code matches rhachet upgrade exit code', () => {
