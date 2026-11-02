@@ -2,6 +2,7 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { getError, given, then, when } from 'test-fns';
 
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -97,27 +98,33 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t1] author.act({ skill: { draft: { topic } } })', () => {
-      then('executes rigid skill with default brain', async () => {
-        const result = await author.act({
-          skill: { draft: { topic: 'surfer turtles' } },
+    when.runIf(RUN_LIVE_API_TEST)(
+      '[t1] author.act({ skill: { draft: { topic } } })',
+      () => {
+        then('executes rigid skill with default brain', async () => {
+          const result = await author.act({
+            skill: { draft: { topic: 'surfer turtles' } },
+          });
+
+          // brain.act returns structured result
+          expect(result).toBeDefined();
         });
+      },
+    );
 
-        // brain.act returns structured result
-        expect(result).toBeDefined();
-      });
-    });
+    when.runIf(RUN_LIVE_API_TEST)(
+      '[t2] author.act({ brain: { repo, slug }, skill })',
+      () => {
+        then('executes with explicit brain from allowlist', async () => {
+          const result = await author.act({
+            brain: { repo: 'anthropic', slug: 'claude/code/haiku' },
+            skill: { draft: { topic: 'ocean waves' } },
+          });
 
-    when('[t2] author.act({ brain: { repo, slug }, skill })', () => {
-      then('executes with explicit brain from allowlist', async () => {
-        const result = await author.act({
-          brain: { repo: 'anthropic', slug: 'claude/code/haiku' },
-          skill: { draft: { topic: 'ocean waves' } },
+          expect(result).toBeDefined();
         });
-
-        expect(result).toBeDefined();
-      });
-    });
+      },
+    );
 
     when('[t3] author.act({ brain: notInAllowlist, skill })', () => {
       then('throws error', async () => {
@@ -133,7 +140,7 @@ echo '{"content":"drafted content about $1"}'
       });
     });
 
-    when('[t4] author.ask({ prompt })', () => {
+    when.runIf(RUN_LIVE_API_TEST)('[t4] author.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await author.ask({
           prompt: 'tell me about the turtles',

@@ -1,6 +1,7 @@
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
@@ -28,7 +29,7 @@ describe('actorAsk (integration)', () => {
     slug: 'claude/code/haiku',
   }) as unknown as BrainRepl;
 
-  given('[case1] a valid role and brain', () => {
+  given.runIf(RUN_LIVE_API_TEST)('[case1] a valid role and brain', () => {
     when('[t0] actorAsk is called with a prompt', () => {
       then('returns a response from the brain', async () => {
         const result = await actorAsk({
@@ -46,7 +47,7 @@ describe('actorAsk (integration)', () => {
     });
   });
 
-  given('[case2] a simple prompt', () => {
+  given.runIf(RUN_LIVE_API_TEST)('[case2] a simple prompt', () => {
     when('[t0] actorAsk is invoked', () => {
       then('brain processes the prompt and returns response', async () => {
         const result = await actorAsk({

@@ -38,6 +38,7 @@ import type { RhachetBackgroundHandle } from '@/blackbox/.test/infra/spawnPtyCli
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genIsolatedClaudeHome } from '@/blackbox/.test/infra/genIsolatedClaudeHome';
 import { genStepBudget } from '@/blackbox/.test/infra/genStepBudget';
+import { RUN_LIVE_API_TEST } from '@/blackbox/.test/infra/RUN_LIVE_API_TEST';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary as invokeRhachetCliBinaryUnbounded,
@@ -199,7 +200,9 @@ const useWhenLabeled = <T>(input: { label: string; fn: () => T }): T => {
   return held.value;
 };
 
-describe('brain dir boot journey (acceptance, real haiku)', () => {
+// every step is proven at a live haiku, and later steps lean on earlier ones, so the
+// whole journey runs only when a run targets the live api by name
+(RUN_LIVE_API_TEST ? describe : describe.skip)('brain dir boot journey (acceptance, real haiku)', () => {
   // every live clone the journey spawns, reaped at the end
   const clonesLive: RhachetBackgroundHandle[] = [];
   afterAll(async () => {

@@ -12,6 +12,7 @@ import {
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { RUN_LIVE_API_TEST } from '@/blackbox/.test/infra/RUN_LIVE_API_TEST';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { genCloneHistoryRelink } from '@src/domain.operations/clone/genCloneHistoryRelink';
 import { getCloneSubmittedCount } from '@src/domain.operations/clone/getCloneSubmittedCount';
@@ -325,7 +326,7 @@ const asSayVerdict = (stdout: string): 'enqueued' | 'released' | 'other' => {
 };
 
 describe('screen dogfood — a real brain-cli renders its input states (real acceptance)', () => {
-  given('[case1] a live claude, freshly enrolled and idle', () => {
+  given.runIf(RUN_LIVE_API_TEST)('[case1] a live claude, freshly enrolled and idle', () => {
     const scene = useBeforeAll(async () => {
       const { binDir } = getRealClaudeOrThrow();
 
