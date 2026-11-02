@@ -33,7 +33,7 @@ reach surface it is **required** (`rule.forbid.faked-or-quarantined-acceptance`)
 - the test runs in the **one** acceptance gate (`jest.acceptance.config.ts`), never a separate
   `.real` config. there is no `test:acceptance:real`.
 - a fresh fixture dir must pre-accept claude's one-time folder-trust gate
-  (`trustFolderForRealClaude`) — the same `hasTrustDialogAccepted: true` a real user leaves after
+  (`setRealClaudeFirstRunAccepted`) — the same `hasTrustDialogAccepted: true` a real user leaves after
   they trust a project once — else a real claude hangs on the trust prompt with no keyboard behind
   the pty. this is NOT a fake of the brain (real claude still boots + thinks); it clears an
   onboarding gate the user would have cleared.
@@ -51,4 +51,4 @@ empty history — would the default acceptance gate go red before merge?"
 - `rule.forbid.faked-or-quarantined-acceptance` — no stub-as-acceptance, no quarantine config
 - `rule.require.playtest-via-real-dogfood` — the byhand twin: prove via the real product
 - `blackbox/.test/infra/enrollCloneHarness.ts` — `getRealClaudeOrThrow`, `enrollRealClaudeAndWaitReach`,
-  `sayAndPollForMarker`, `trustFolderForRealClaude`
+  `sayAndPollForMarker`, `setRealClaudeFirstRunAccepted`
