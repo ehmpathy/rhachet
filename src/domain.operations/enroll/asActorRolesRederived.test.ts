@@ -72,4 +72,19 @@ describe('asActorRolesRederived', () => {
       });
     },
   );
+
+  given('[case4] a `+mechanic::flow` actor (D1)', () => {
+    when('[t0] the ambient set gains a role, and the actor re-derives', () => {
+      then('🔴 the focus survives — never dropped as unlinked', () => {
+        expect(
+          asActorRolesRederived({
+            brain: 'claude',
+            rolesDelta: ['+mechanic::flow'],
+            rolesAmbient: ['any', 'driver', 'architect'],
+            rolesLinked: ['any', 'driver', 'architect', 'mechanic'],
+          }),
+        ).toEqual(['any', 'driver', 'architect', 'mechanic::flow']);
+      });
+    });
+  });
 });

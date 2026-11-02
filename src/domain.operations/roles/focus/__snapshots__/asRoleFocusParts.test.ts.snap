@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleFocusParts given: [case2] a malformed focus when: [t0] the token is '::flow' then: it refuses and names the shape 1`] = `
+"✋ ConstraintError: role focus '::flow' must read <role>::<subject>
+
+{
+  "token": "::flow",
+  "hint": "name one role and one subject, e.g. mechanic::flow"
+}"
+`;
+
+exports[`asRoleFocusParts given: [case2] a malformed focus when: [t0] the token is 'mechanic::' then: it refuses and names the shape 1`] = `
+"✋ ConstraintError: role focus 'mechanic::' must read <role>::<subject>
+
+{
+  "token": "mechanic::",
+  "hint": "name one role and one subject, e.g. mechanic::flow"
+}"
+`;
+
+exports[`asRoleFocusParts given: [case2] a malformed focus when: [t0] the token is 'mechanic::a::b' then: it refuses and names the shape 1`] = `
+"✋ ConstraintError: role focus 'mechanic::a::b' must read <role>::<subject>
+
+{
+  "token": "mechanic::a::b",
+  "hint": "name one role and one subject, e.g. mechanic::flow"
+}"
+`;
+
+exports[`asRoleFocusParts given: [case3] a focus written with one colon (P14) when: [t0] the token is 'mechanic:flow' then: it refuses, names the form, and hints the token with \`::\` — never the whole role 1`] = `
+"✋ ConstraintError: role focus 'mechanic:flow' has one colon; a focus is written <role>::<subject>
+
+{
+  "token": "mechanic:flow",
+  "hint": "write mechanic::flow"
+}"
+`;

@@ -60,6 +60,8 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case3] an enroll with --
   "reachCause": "DEAF"
 }
 
+[args] clone,say,@:plain,--what,hello
+
 "
 `;
 

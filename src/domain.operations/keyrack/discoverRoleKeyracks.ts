@@ -1,5 +1,7 @@
 import glob from 'fast-glob';
 
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
+
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -25,8 +27,11 @@ export const discoverRoleKeyracks = async (
     onlyFiles: true,
   });
 
-  // filter to only specified roles
-  const rolesSet = new Set(input.roles);
+  // filter to only specified roles; a keyrack follows the role, never its focus, so a
+  //   `role::subject` token reads as its role (the sink strips it, not the caller)
+  const rolesSet = new Set(
+    input.roles.map((token) => asRoleFocusParts({ token }).role),
+  );
   const filteredPaths = allPaths.filter((path) => {
     // extract role from path: .agent/repo=X/role=Y/keyrack.yml -> Y
     const match = path.match(/role=([^/]+)/);

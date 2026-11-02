@@ -2,6 +2,7 @@ import { ConstraintError } from 'helpful-errors';
 
 import { RoleDelta } from '@src/domain.objects/RoleDelta';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
 
@@ -68,6 +69,28 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
     return new RoleDelta({ kind: 'absolute', role: token });
   });
 
+  // every token's focus must read <role>::<subject>; a malformed one refuses here
+  deltas.forEach((delta) => asRoleFocusParts({ token: delta.role }));
+
+  // a subtraction removes a role whole, so a focus on it names a removal the set has no
+  //   shape for — refuse, and name the two moves that do exist (fulcrum F1)
+  const subtractionFocused = deltas.find(
+    (delta) =>
+      delta.kind === 'subtraction' &&
+      asRoleFocusParts({ token: delta.role }).subject !== null,
+  );
+  if (subtractionFocused) {
+    const { role } = asRoleFocusParts({ token: subtractionFocused.role });
+    throw new ConstraintError(
+      `a subtraction removes a role whole; '-${subtractionFocused.role}' names a focus`,
+      {
+        token: `-${subtractionFocused.role}`,
+        tokens: input.tokens,
+        hint: `-${role} removes the role whole; to change its focus, enroll the exact set or +${role}::<subject>`,
+      },
+    );
+  }
+
   // partition by kind to enforce the homogeneity + conflict invariants
   const absolutes = deltas.filter((delta) => delta.kind === 'absolute');
   const additions = deltas.filter((delta) => delta.kind === 'addition');
@@ -75,6 +98,25 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
 
   // decide mode: any sigiled token => incremental
   const isIncremental = additions.length > 0 || subtractions.length > 0;
+
+  // a bare word beside a `+role::subject` reads as a second subject typed without its role
+  //   (`+mechanic::101,flow`): name the one-subject-per-token form, never the generic mix
+  const rolesAddedAtFocus = additions
+    .map((delta) => asRoleFocusParts({ token: delta.role }))
+    .filter((parts) => parts.subject !== null)
+    .map((parts) => parts.role);
+  const subjectBare = absolutes.find(
+    (delta) => asRoleFocusParts({ token: delta.role }).subject === null,
+  );
+  if (isIncremental && subjectBare && rolesAddedAtFocus.length > 0)
+    throw new ConstraintError(
+      `'${subjectBare.role}' has no sigil beside a focused delta — one subject per token`,
+      {
+        token: subjectBare.role,
+        tokens: input.tokens,
+        hint: `to focus at a second subject, give it its role and sigil: +${rolesAddedAtFocus[0]}::${subjectBare.role}; to add a role, give it a sigil: +${subjectBare.role}`,
+      },
+    );
 
   // reject mixed calls — all-absolute OR all-incremental, never both
   if (isIncremental && absolutes.length > 0)
@@ -85,6 +127,22 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
         additions: additions.map((delta) => delta.role),
         subtractions: subtractions.map((delta) => delta.role),
         tokens: input.tokens,
+      },
+    );
+
+  // a role named both whole and focused is either redundant or a contradiction — refuse
+  //   rather than guess which was meant (fulcrum F2). an exact set and a `+` delta alike, so
+  //   a delta can never persist two entries of one role, one whole and one focused
+  const sigil = isIncremental ? '+' : '';
+  const roleWholeAndFocused = findRoleNamedWholeAndFocused({
+    deltas: isIncremental ? additions : absolutes,
+  });
+  if (roleWholeAndFocused)
+    throw new ConstraintError(
+      `role '${roleWholeAndFocused.role}' is named both whole and focused`,
+      {
+        tokens: input.tokens,
+        hint: `name '${sigil}${roleWholeAndFocused.role}' to boot every subject, or '${sigil}${roleWholeAndFocused.role}::${roleWholeAndFocused.subject}' to boot that one — not both`,
       },
     );
 
@@ -102,12 +160,15 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
   // reuse the shared isRoleSpecifierMatch so the match rule stays in one place.
   const contradiction = additionsUnique.find((addition) =>
     subtractionsUnique.some((subtraction) =>
-      isRoleSpecifierMatch({ left: addition.role, right: subtraction.role }),
+      isRoleSpecifierMatch({
+        left: asRoleFocusParts({ token: addition.role }).role,
+        right: subtraction.role,
+      }),
     ),
   );
   if (contradiction)
     throw new ConstraintError(
-      `cannot both add and remove role "${parseRoleSpecifier({ specifier: contradiction.role }).role}" in one call`,
+      `cannot both add and remove role "${parseRoleSpecifier({ specifier: asRoleFocusParts({ token: contradiction.role }).role }).role}" in one call`,
       {
         additions: additionsUnique.map((delta) => delta.role),
         subtractions: subtractionsUnique.map((delta) => delta.role),
@@ -117,6 +178,30 @@ export const getRoleDeltas = (input: { tokens: string[] }): RoleDelta[] => {
 
   // incremental deltas: additions first, then subtractions (order within preserved)
   return [...additionsUnique, ...subtractionsUnique];
+};
+
+/**
+ * .what = the first focus whose role is also named whole in the same call, or null
+ * .why = `mechanic mechanic::flow` (or `+mechanic +mechanic::flow`) is redundant or a
+ *   contradiction (fulcrum F2); the parts are parsed once, so the scan reads as the rule
+ *   rather than as a nested reparse
+ */
+const findRoleNamedWholeAndFocused = (input: {
+  deltas: RoleDelta[];
+}): { role: string; subject: string | null } | null => {
+  const parts = input.deltas.map((delta) =>
+    asRoleFocusParts({ token: delta.role }),
+  );
+  const wholes = parts.filter((part) => part.subject === null);
+  return (
+    parts.find(
+      (focus) =>
+        focus.subject !== null &&
+        wholes.some((whole) =>
+          isRoleSpecifierMatch({ left: whole.role, right: focus.role }),
+        ),
+    ) ?? null
+  );
 };
 
 /**

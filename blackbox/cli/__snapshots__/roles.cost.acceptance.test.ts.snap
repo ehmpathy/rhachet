@@ -419,6 +419,26 @@ exports[`rhachet roles cost given: [case12] a repo with one OWN spec and one LIN
 "
 `;
 
+exports[`rhachet roles cost given: [case13.b] an unbudgeted role and a route spec, each with a subject when: [t0] roles cost --all then: the uncapped roster renders as snapshotted — on STDOUT: stdout-all-subject-uncapped 1`] = `
+"🧢 2 boot specs — none declare a budget
+   ├─ 646 tokens (no budget)  .agent/repo=.this/role=any/boot.yml
+   │  ├─ 283 tokens (no budget)  any::review
+   │  └─ 600 tokens (no budget)  any::fulcrums
+   ├─ 192 tokens (no budget)  .behavior/v2026_10_23.demo/boot.yml
+   │  └─ 192 tokens (no budget)  review
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+"
+`;
+
 exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subjects when: [t0] roles cost --subject review then: the scoped report renders as snapshotted — on STDOUT: stdout-subject-one 1`] = `
 "🧢 roles cost --repo .this --role any --subject review
    ├─ tokens  = 289 (full emitted payload, o200k_base)
@@ -452,6 +472,24 @@ exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subje
 
    .note = the column plus chrome is the total. chrome is the renderer's own floor —
            no edit to a say or ref entry reaches it.
+
+"
+`;
+
+exports[`rhachet roles cost given: [case13] a role whose boot declares TWO subjects when: [t2] roles cost --all then: the focus roster renders as snapshotted — on STDOUT: stdout-all-subject 1`] = `
+"🧢 1 boot spec — 1 budgeted, 1 over budget
+   ├─ 650 / 400 tokens (163%)  .agent/repo=.this/role=any/boot.yml 🟡
+   │  ├─ 289 / 400 tokens (72%)  any::review
+   │  └─ 604 / 400 tokens (151%)  any::fulcrums 🟡
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
 
 "
 `;

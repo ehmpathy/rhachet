@@ -117,7 +117,19 @@ describe('getRolesSpaceFormCollision', () => {
     });
   });
 
-  given('[case6] a repo-qualified extra role after the value', () => {
+  given('[case6] a focused extra role after the value', () => {
+    when('[t0] `--roles -driver +mechanic::flow` is scanned', () => {
+      then('the focused token names a linked role and collides', () => {
+        const out = getRolesSpaceFormCollision({
+          rawArgs: ['--roles', '-driver', '+mechanic::flow'],
+          rolesLinked: ROLES_LINKED,
+        });
+        expect(out).toEqual('+mechanic::flow');
+      });
+    });
+  });
+
+  given('[case7] a repo-qualified extra role after the value', () => {
     when('[t0] `--roles -driver -ehmpathy/reviewer` is scanned', () => {
       then('the qualified token resolves to a linked slug and collides', () => {
         const out = getRolesSpaceFormCollision({

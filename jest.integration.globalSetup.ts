@@ -23,4 +23,10 @@ export default async (globalConfig: {
   // source api keys into process.env
   const { keyrack } = await import('rhachet/keyrack');
   keyrack.source({ env: 'test', owner: 'ehmpath' });
+
+  // export the sourced aws profile's static creds once, for `useKeyrack` suites to apply
+  const { genAwsStaticCredsExport } = await import(
+    './src/.test/infra/genAwsStaticCredsExport'
+  );
+  genAwsStaticCredsExport();
 };

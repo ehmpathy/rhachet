@@ -2,6 +2,8 @@ import { MalfunctionError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 import { genTempDir } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import {
   asCloneSayHeadSnapshotSafe,
   enrollRealClaudeAndWaitReach,
@@ -213,7 +215,7 @@ const captureQueuedWindow = async (input: {
   return { onScreen, transcriptCount };
 };
 
-describe('A1 refuted — a brain-cli writes a QUEUED message to the transcript at submit (real acceptance)', () => {
+describeBrainLiveOnDemand('A1 refuted — a brain-cli writes a QUEUED message to the transcript at submit (real acceptance)', () => {
   given('[case1] a real claude with a turn already in flight', () => {
     const scene = useBeforeAll(async () => {
       // the loud gate — a ConstraintError (exit 2) when the real brain or its

@@ -88,4 +88,17 @@ describe('getAllHooksOfUnenrolledRoles', () => {
       });
     });
   });
+
+  given('[case4] a role enrolled at a subject focus (wish 2)', () => {
+    when('[t0] mechanic is enrolled as mechanic::flow', () => {
+      then('its hooks count as enrolled — hooks follow the role', () => {
+        expect(
+          getAllHooksOfUnenrolledRoles({
+            settings,
+            roles: ['mechanic::flow', 'driver', 'architect-ops'],
+          }),
+        ).toEqual([]);
+      });
+    });
+  });
 });

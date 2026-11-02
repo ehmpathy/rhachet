@@ -1,3 +1,9 @@
+# a brain dir holds what its brain-cli installs (a plugin marketplace, with its own tests and
+# imports); `.claude` is a symlink into the repo actor's brain dir. neither is this repo's code,
+# as every jest tier already holds (`/.agent/.actors/`)
+ignore-patterns:
+  - .agent/.actors
+  - .claude
 ignores:
   - depcheck
   - declapract

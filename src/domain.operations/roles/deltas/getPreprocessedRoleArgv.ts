@@ -49,7 +49,9 @@ export const BARE_DELTA_COMMANDS = new Set(['enroll']);
  *   reach commander as before
  */
 const isBareRemoveShaped = (input: { token: string }): boolean =>
-  /^-[a-z0-9.][a-z0-9._-]+(\/[a-z0-9._-]+)?$/i.test(input.token);
+  /^-[a-z0-9.][a-z0-9._-]+(\/[a-z0-9._-]+)?(::[a-z0-9._-]*)?$/i.test(
+    input.token,
+  );
 
 /**
  * .what = decides whether a token ends the `--roles` value list

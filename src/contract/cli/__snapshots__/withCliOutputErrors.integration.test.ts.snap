@@ -8,5 +8,7 @@ exports[`withCliOutputErrors given: [case2] a ConstraintError under --output tre
   "hint": "use --as @:<slug>"
 }
 
+[args] enroll,claude,--as,bad
+
 "
 `;

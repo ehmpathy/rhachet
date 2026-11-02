@@ -1,0 +1,135 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case1] an empty repo, and a focus mechanic does not declare when: [t0] \`init --roles mechanic::nope\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' declares no subject 'nope'
+
+{
+  "hint": "focus one of: mechanic::code.prod, mechanic::code.test, mechanic::arch, mechanic::flow. if \`prepare:rhachet\` ran this init, its replay names a subject the role dropped; rewrite it with \`rhx init --prep --roles +mechanic::<one of code.prod, code.test, arch, flow>\`",
+  "role": "mechanic",
+  "focus": [
+    "nope"
+  ],
+  "declared": [
+    "code.prod",
+    "code.test",
+    "arch",
+    "flow"
+  ]
+}
+
+[args] init,--roles,mechanic::nope
+
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case2] an empty repo, and a focus mechanic declares when: [t0] \`init --roles mechanic::flow --hooks claude-code\` then: the focus receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic focused at ::flow"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case2] an empty repo, and a focus mechanic declares when: [t1] \`init --roles +mechanic\` widens it back then: stdout names the widen, and the receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic widened to the whole role"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case3] a repo whose ambient foci record is not json when: [t0] \`init --roles +mechanic::flow\` then: the refusal matches its snapshot, the v8 parse text masked 1`] = `
+"
+💥 MalfunctionError: ambient role foci record is not json
+
+{
+  "hint": "repair /TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json to the shape {\\"<role>\\":[\\"<subject>\\"]}, or remove it to boot every ambient role whole; then rerun \`rhx init --roles <roles>\`",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
+  "cause": {
+    "class": "SyntaxError",
+    "message": "$JSON_PARSE_MESSAGE"
+  }
+}
+
+[args] init,--roles,+mechanic::flow
+
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case4] a repo with mechanic focused at flow (E-init) when: [t0] an exact \`init --roles architect\` that never names mechanic then: the receipt and the held focus line render as snapshotted 1`] = `
+{
+  "lineFocus": "<focus given="flow" elsewhere="code.prod,code.test,arch" always="kept"/>",
+  "receipt": "",
+}
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case5] the repo record holds a focus mechanic no longer declares (U1 on init) when: [t0] an init that names another role, \`init --roles +architect\` then: the refusal matches its snapshot 1`] = `
+"✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: role 'mechanic' declares no subject 'gone'
+   ├─ role = mechanic
+   ├─ focus
+   │  └─ gone
+   ├─ declared
+   │  ├─ code.prod
+   │  ├─ code.test
+   │  ├─ arch
+   │  └─ flow
+   └─ hint = the focus was recorded before the role dropped it. for the repo's record (a bare enroll inherits it), run \`rhx init --roles +mechanic::<one of code.prod, code.test, arch, flow> --hooks\` — it re-records the focus and lands the hooks a halted upgrade skipped; for an actor that holds it, end its live clones so the sweep skips it, then enroll at mechanic::<one of code.prod, code.test, arch, flow>
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case6] the \`prepare:rhachet\` replay names a subject mechanic no longer declares (U6) when: [t0] the replay runs then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'mechanic' declares no subject 'gone'
+
+{
+  "hint": "focus one of: mechanic::code.prod, mechanic::code.test, mechanic::arch, mechanic::flow. if \`prepare:rhachet\` ran this init, its replay names a subject the role dropped; rewrite it with \`rhx init --prep --roles +mechanic::<one of code.prod, code.test, arch, flow>\`",
+  "role": "mechanic",
+  "focus": [
+    "gone"
+  ],
+  "declared": [
+    "code.prod",
+    "code.test",
+    "arch",
+    "flow"
+  ]
+}
+
+[args] init,--roles,mechanic::gone
+
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case7] an empty repo, and \`--keys\` beside a focus when: [t0] \`init --roles mechanic::flow --keys\` then: the keyrack manifest renders as snapshotted 1`] = `
+"org: ehmpathy
+extends:
+  - .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+env.prod: null
+env.prep: null
+env.test: null
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case8] an empty repo, and a focus on a role that declares no subjects when: [t0] \`init --roles driver::flow\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: role 'driver' declares no subjects, so it cannot be focused
+
+{
+  "hint": "name 'driver' whole, with no ::<subject>",
+  "role": "driver",
+  "focus": [
+    "flow"
+  ],
+  "mode": "subject"
+}
+
+[args] init,--roles,driver::flow
+
+"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case9] a repo with mechanic linked whole when: [t0] \`init --roles +mechanic::flow\` narrows it then: stdout names the narrow, and the receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic narrowed to ::flow"
+`;
+
+exports[`rhx init --roles <role>::<subject> (acceptance) given: [case9] a repo with mechanic linked whole when: [t1] \`init --roles +mechanic::code.prod\` moves it then: the move receipt renders as snapshotted 1`] = `
+"🧢 focus
+   └─ mechanic moved from ::flow to ::code.prod"
+`;

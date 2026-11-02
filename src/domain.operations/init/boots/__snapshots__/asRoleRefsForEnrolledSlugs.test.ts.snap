@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleRefsForEnrolledSlugs given: [case5] an enrolled slug qualified by its repo (Q1) when: [t1] mapped, qualified by a repo that does not link it then: it reads as unlinked 1`] = `
+"✋ ConstraintError: actor abc12345 enrolled a role no longer linked: bhuild/mechanic
+
+{
+  "actorExid": "abc12345",
+  "slugsUnlinked": [
+    "bhuild/mechanic"
+  ],
+  "hint": "re-link the role (rhx roles link --role bhuild/mechanic), or end the actor's live clones so the sweep skips it"
+}"
+`;

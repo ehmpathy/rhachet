@@ -6,6 +6,7 @@ import { asBootCostReadout } from '@src/domain.operations/boot/asBootCostReadout
 import { asBootCostSweepOwnershipLines } from '@src/domain.operations/boot/asBootCostSweepOwnershipLines';
 import { asBootCostSweepReachLines } from '@src/domain.operations/boot/asBootCostSweepReachLines';
 import { asBootCostSweepRow } from '@src/domain.operations/boot/asBootCostSweepRow';
+import { asBootCostSweepSubjectLines } from '@src/domain.operations/boot/asBootCostSweepSubjectLines';
 import { asBootCostSweepSummary } from '@src/domain.operations/boot/asBootCostSweepSummary';
 import { asBootSubjectFlagSuffix } from '@src/domain.operations/boot/asBootSubjectFlagSuffix';
 import { asBootSweepOverBudgetReadout } from '@src/domain.operations/boot/asBootSweepOverBudgetReadout';
@@ -110,7 +111,10 @@ const invokeRolesCostForHook = async (): Promise<void> => {
  * .why = the tokens column width is a property of the roster, so it reads these counts
  */
 const getAllTokensOfCosts = (input: { costs: BootSpecCost[] }): number[] =>
-  input.costs.map((one) => one.tokens);
+  input.costs.flatMap((one) => [
+    one.tokens,
+    ...one.subjects.map((subject) => subject.tokens),
+  ]);
 
 /**
  * .what = the repo-wide arm — every boot spec this repo can reach, costed
@@ -126,7 +130,11 @@ const getAllTokensOfCosts = (input: { costs: BootSpecCost[] }): number[] =>
  */
 const invokeRolesCostForAll = async (): Promise<void> => {
   const cwd = process.cwd();
-  const { costs, globs } = await getAllRepoBootSpecCosts({ cwd, globs: null });
+  const { costs, globs } = await getAllRepoBootSpecCosts({
+    cwd,
+    globs: null,
+    subjects: true,
+  });
 
   // 🔴 the reach prints on BOTH arms, and the empty one is where it earns its lines: the sweep
   //    walks a glob POLICY rather than the whole repo, so *"none found"* is a claim
@@ -147,9 +155,14 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   const widthTokens = getOneTokensColumnWidth({
     counts: getAllTokensOfCosts({ costs }),
   });
-  costs.forEach((one) =>
-    console.log(asBootCostSweepRow({ one, cwd, widthTokens })),
-  );
+  costs.forEach((one) => {
+    console.log(asBootCostSweepRow({ one, cwd, widthTokens }));
+
+    // each declared subject, as the focus a seat may enroll at (`role::subject`)
+    asBootCostSweepSubjectLines({ one, widthTokens }).forEach((line) =>
+      console.log(line),
+    );
+  });
   linesReach.forEach((line) => console.log(line));
 
   // 🔴 the ownership note follows the reach, because both are DISCLOSURES about the roster

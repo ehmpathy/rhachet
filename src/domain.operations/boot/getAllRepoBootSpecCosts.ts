@@ -3,6 +3,7 @@ import { ConstraintError } from 'helpful-errors';
 import { asBootSpecUnreadableLines } from '@src/domain.operations/boot/asBootSpecUnreadableLines';
 import { calcBootPayloadTokens } from '@src/domain.operations/boot/calcBootPayloadTokens';
 import { genBootPayload } from '@src/domain.operations/boot/genBootPayload';
+import { getAllBootSpecSubjectCosts } from '@src/domain.operations/boot/getAllBootSpecSubjectCosts';
 import { getAllRepoBootSpecPaths } from '@src/domain.operations/boot/getAllRepoBootSpecPaths';
 import { getOneBootSourceFromSpecPath } from '@src/domain.operations/boot/getOneBootSourceFromSpecPath';
 import { isBootSpecForeign } from '@src/domain.operations/boot/isBootSpecForeign';
@@ -30,6 +31,16 @@ export interface BootSpecCost {
    *   that could disagree (`isBootSpecForeign`).
    */
   isForeign: boolean;
+
+  /**
+   * .what = what a boot focused on each declared subject costs — empty where none is declared
+   * .why = a role may be enrolled at a focus (`mechanic::101`), and that boot spends the
+   *        subject's tokens rather than the whole role's. a reader who sizes a seat must see
+   *        the focus cost beside the whole one
+   *
+   * .note = nested under the spec, never a peer row, so the roster still counts specs
+   */
+  subjects: { slug: string; tokens: number }[];
 }
 
 /**
@@ -46,6 +57,7 @@ const getOneBootSpecCost = async (
   input: {
     pathToSpec: string;
     cwd: string;
+    subjects: boolean;
   },
   context: { countTokens: BrainTokenCounter },
 ): Promise<BootSpecCost | null> => {
@@ -69,7 +81,17 @@ const getOneBootSpecCost = async (
       { countTokens: context.countTokens },
     );
 
+    // each declared subject, priced as the focused boot an enroll at `role::subject` renders;
+    //   only where the caller asked, so the onStop gate never renders a subject it discards
+    const subjects = input.subjects
+      ? await getAllBootSpecSubjectCosts(
+          { source, slugs: payload.subjects?.inScope ?? [] },
+          context,
+        )
+      : [];
+
     return {
+      subjects,
       pathToSpec: input.pathToSpec,
       tokens: counted.tokens,
       budget: payload.budget?.tokens ?? null,
@@ -115,6 +137,14 @@ const getOneBootSpecCost = async (
 export const getAllRepoBootSpecCosts = async (input: {
   cwd: string;
   globs: readonly string[] | null;
+
+  /**
+   * .what = whether to price each declared subject too
+   * .why = `roles cost --all` shows a row per focus; the onStop budget gate reads the whole
+   *        spec alone, so it skips N subject renders per spec, and a fault in a subject it
+   *        does not read can never drop a spec from its verdict
+   */
+  subjects: boolean;
 }): Promise<{ costs: BootSpecCost[]; globs: readonly string[] }> => {
   const { paths: pathsToSpec, globs } = await getAllRepoBootSpecPaths({
     cwd: input.cwd,
@@ -141,7 +171,7 @@ export const getAllRepoBootSpecCosts = async (input: {
 
   for (const pathToSpec of pathsToSpec) {
     const cost = await getOneBootSpecCost(
-      { pathToSpec, cwd: input.cwd },
+      { pathToSpec, cwd: input.cwd, subjects: input.subjects },
       { countTokens },
     );
     if (cost) costs.push(cost);

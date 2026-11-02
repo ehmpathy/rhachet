@@ -85,7 +85,10 @@ initialize roles from packages or generate rhachet.use.ts
 
 Options:
   --roles <roles...>   role specifiers: bare names replace the set (mechanic
-                       behaver), or +role to add / -role to remove incrementally
+                       behaver), or +role to add / -role to remove
+                       incrementally; role::<subject> boots one subject of the
+                       role, with all its hooks (mechanic::flow); list subjects
+                       via npx rhachet roles cost --all
   --hooks [brains...]  apply brain hooks (auto-detect brains if no args)
   --config             generate rhachet.use.ts config (legacy behavior)
   --prep               persist init command to package.json prepare entries

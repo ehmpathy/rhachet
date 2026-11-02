@@ -4,6 +4,7 @@ import { getUuid } from 'uuid-fns';
 
 import { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 
+import { connect, createServer, type Socket } from 'node:net';
 import { getCloneSocketPath } from '../getCloneSocketPath';
 import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
 import { genCloneSocketServer } from './genCloneSocketServer';
@@ -29,6 +30,46 @@ const genObserveServer = async (input: {
   });
   await ready;
   return { socketPath, close };
+};
+
+/**
+ * .what = a unix socket proxy that holds each connection's first frame for `delayMs`, then
+ *   relays it to the real clone socket and pipes the reply back
+ * .why = on a loaded host the server's same-user gate can outlast the observe loop's 1s probe
+ *   bound on every fresh connection. this proxy reproduces that per-connection stall on the
+ *   real wire, so the clamp reads what the loop does when each reply arrives late
+ */
+const genDelayProxy = async (input: {
+  upstreamPath: string;
+  delayMs: number;
+}): Promise<{ socketPath: string; close: () => Promise<void> }> => {
+  const socketPath = getCloneSocketPath({ serial: getUuid() })!;
+  const sockets = new Set<Socket>();
+  const server = createServer((conn) => {
+    sockets.add(conn);
+    conn.on('error', () => conn.destroy());
+    conn.once('data', (chunk) => {
+      const timer = setTimeout(() => {
+        // the client gave up before the stall ended; there is no one to answer
+        if (conn.destroyed) return;
+        const upstream = connect(input.upstreamPath);
+        sockets.add(upstream);
+        upstream.on('error', () => conn.destroy());
+        conn.on('close', () => upstream.destroy());
+        upstream.write(chunk);
+        upstream.pipe(conn);
+      }, input.delayMs);
+      conn.on('close', () => clearTimeout(timer));
+    });
+  });
+  await new Promise<void>((done) => server.listen(socketPath, () => done()));
+  return {
+    socketPath,
+    close: async () => {
+      sockets.forEach((socket) => socket.destroy());
+      await new Promise<void>((done) => server.close(() => done()));
+    },
+  };
 };
 
 /**
@@ -82,7 +123,9 @@ describe('getCloneSayObservation.integration', () => {
             read: () => enqueuedScreen,
           });
           const clone = genCountZeroClone();
-          const timeoutMs = 3000;
+          // a large bound, so only a short-circuit that never fires can redden the elapsed
+          // check below; host load lengthens each probe, never the loop's decision
+          const timeoutMs = 8000;
           const startedAt = Date.now();
           const { observation } = await getCloneSayObservation({
             repoPath: clone.actor.repoPath,
@@ -238,6 +281,59 @@ describe('getCloneSayObservation.integration', () => {
 
         then('it polls to the bound rather than short-circuits early', () => {
           expect(scene.elapsedMs).toBeGreaterThanOrEqual(scene.timeoutMs);
+        });
+      });
+    },
+  );
+
+  given(
+    '[case3] a loaded host — each fresh connection answers past the 1s probe bound',
+    () => {
+      // every probe reply arrives 1300ms after its frame, the stall a slow same-user gate
+      // puts on each fresh connection under load (measured 2026-10-23, the full sweep). a
+      // fixed 1s bound times out every cycle alike, so no read ever lands
+      when('[t0] observed with target `enqueue`', () => {
+        const scene = useBeforeAll(async () => {
+          const server = await genObserveServer({
+            read: () => enqueuedScreen,
+          });
+          const proxy = await genDelayProxy({
+            upstreamPath: server.socketPath,
+            delayMs: 1300,
+          });
+          const clone = genCountZeroClone();
+          const timeoutMs = 8000;
+          const startedAt = Date.now();
+          const { observation } = await getCloneSayObservation({
+            repoPath: clone.actor.repoPath,
+            clone,
+            socketPath: proxy.socketPath,
+            message: MESSAGE,
+            baseline,
+            target: 'enqueue',
+            timeoutMs,
+          });
+          const elapsedMs = Date.now() - startedAt;
+          await proxy.close();
+          await server.close();
+          return { observation, elapsedMs, timeoutMs };
+        });
+
+        then(
+          'a late reply still lands — the screen is the enqueued shape',
+          () => {
+            expect(scene.observation.screen).toEqual({
+              focus: 'input',
+              input: 'clear',
+              countInInputRose: false,
+              countOnScreenRose: true,
+              queued: false,
+            });
+          },
+        );
+
+        then('it short-circuits before the bound, as on a healthy host', () => {
+          expect(scene.elapsedMs).toBeLessThan(scene.timeoutMs);
         });
       });
     },

@@ -46,6 +46,8 @@ exports[`rhx actor list (acceptance) given: [case3] an invalid --output mode whe
   "hint": "use --output tree (default) or --output json"
 }
 
+[args] actor,list,--output,xml
+
 "
 `;
 
@@ -75,6 +77,8 @@ exports[`rhx actor list (acceptance) given: [case5] a corrupt actor manifest on 
     "message": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
   }
 }
+
+[args] actor,list
 
 "
 `;

@@ -1,13 +1,14 @@
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
 import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-with-rigid-skill/role';
 import { ACTOR_ASK_DEFAULT_SCHEMA, actorAsk } from './actorAsk';
 
-describe('actorAsk (integration)', () => {
+describeBrainLiveOnDemand('actorAsk (integration)', () => {
   // use test asset directory
   const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
   const originalCwd = process.cwd();

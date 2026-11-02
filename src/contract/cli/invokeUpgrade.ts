@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { assertUpgradeRoleSpecsUnfocused } from '@src/domain.operations/upgrade/assertUpgradeRoleSpecsUnfocused';
 import { execUpgrade } from '@src/domain.operations/upgrade/execUpgrade';
 
 /**
@@ -42,6 +43,9 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
         const roleSpecs = options.roles
           ? getRoleDeltaTokens({ raw: options.roles })
           : undefined;
+
+        // a focus is no package; refuse it before any install, with the package form as fix
+        if (roleSpecs) assertUpgradeRoleSpecsUnfocused({ roleSpecs });
 
         const result = await execUpgrade(
           {

@@ -1,59 +1,47 @@
-import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { ConstraintError } from 'helpful-errors';
 
-import { keyrack } from '@src/contract/sdk.keyrack';
+import { AWS_STATIC_CREDS_EXPORT_ENV } from './genAwsStaticCredsExport';
 
 /**
- * .what = source aws credentials from keyrack into process.env for an integration test
+ * .what = put the run's aws STATIC creds into process.env for an integration suite, and drop
+ *   AWS_PROFILE so the SDK uses them
  * .why = the AWS SDK v3, given an SSO profile, lazily import()s its SSO credential provider,
- *        which jest's default (non-vm-modules) runtime rejects with
- *        "A dynamic import callback was invoked without --experimental-vm-modules". so this
- *        sources the profile THROUGH keyrack (keyrack.source refreshes the SSO session on
- *        demand via the aws.config vault), then exports STATIC keys for that live profile and
- *        drops AWS_PROFILE — so the SDK uses the synchronous env provider (no dynamic import,
- *        a real backend, no mock). this is the same handoff CI performs with a role
+ *   which jest's default (non-vm-modules) runtime rejects with "A dynamic import callback was
+ *   invoked without --experimental-vm-modules". static env creds take the synchronous env
+ *   provider instead — a real backend, no mock. this is the same handoff CI performs with a role
  *
- * .note = mirrors the shared `useKeyrack` util (ahbode/svc-jobs, ahbode/svc-notifications),
- *         adapted to import keyrack from this repo's own sdk subpath. call from a beforeAll —
- *         it mutates process.env with the static credential keys
+ * .note = 🔴 no keyrack source and no aws cli here. `jest.integration.globalSetup.ts` sources
+ *   keyrack and exports the static creds ONCE per run (genAwsStaticCredsExport). per suite file,
+ *   each was a child process on a loaded box: the python aws cli alone took 14.6s to start
+ *   (past this helper's old 10s bound), and the keyrack daemon's peer lookup timed out — 15 of
+ *   42 aws.params tests red at load 60 (measured 2026-10-23)
+ * .note = call from a beforeAll — it mutates process.env
  */
-export const useKeyrack = (input?: {
-  env?: 'test' | 'prep' | 'prod';
-  owner?: string;
-}): void => {
-  const env = input?.env ?? 'test';
-  const owner = input?.owner ?? 'ehmpath';
-
+export const useKeyrack = (): void => {
   // skip in CI — credentials arrive from secrets / an attached role, already in the env
   if (process.env.CI) return;
 
-  // skip if keyrack is not configured on this host
-  if (!existsSync(join(process.cwd(), '.agent/keyrack.yml'))) return;
-
-  // source the aws profile from keyrack (refreshes the SSO session on demand via aws.config)
-  keyrack.source({ env, owner, mode: 'lenient' });
-
-  // if static creds already exist, clear the profile so the SDK does not prefer it over them
+  // static creds already set: clear the profile so the SDK does not prefer it over them
   if (process.env.AWS_ACCESS_KEY_ID) {
     delete process.env.AWS_PROFILE;
     delete process.env.AWS_DEFAULT_PROFILE;
     return;
   }
 
-  // no profile sourced — a non-aws env; no profile to export
-  const profile = process.env.AWS_PROFILE;
-  if (!profile) return;
+  // no profile sourced — a non-aws env; no creds to apply
+  if (!process.env.AWS_PROFILE) return;
 
-  // export STATIC creds for the live profile so the SDK uses the synchronous env provider
-  const exported = execSync(
-    `aws configure export-credentials --profile "${profile}" --format env`,
-    { encoding: 'utf8', timeout: 10000 }, // eslint-disable-line @cspell/spellchecker -- node api
-  );
-  for (const line of exported.split('\n')) {
-    const match = line.match(/^export\s+(\w+)=(.*)$/);
-    if (match?.[1] && match[2] !== undefined) process.env[match[1]] = match[2];
-  }
+  // apply the once-per-run export; its absence means globalSetup did not run
+  const exported = process.env[AWS_STATIC_CREDS_EXPORT_ENV];
+  if (!exported)
+    throw new ConstraintError('no aws static creds export for this run', {
+      expected: AWS_STATIC_CREDS_EXPORT_ENV,
+      hint: 'run via the integration jest config, whose globalSetup exports them: rhx git.repo.test --what integration',
+    });
+  const vars = JSON.parse(exported) as Record<string, string>;
+  Object.entries(vars).forEach(([key, value]) => {
+    process.env[key] = value;
+  });
 
   // clear the profile so the SDK uses only the static creds (it prefers a profile otherwise)
   delete process.env.AWS_PROFILE;

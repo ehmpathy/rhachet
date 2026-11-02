@@ -28,8 +28,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │ 🔧 init claude config for mechanic role...
       │
       │ 🔐 mechanic permissions configured successfully!
-      │    .claude/settings.json
-      │    .claude/settings.$TIMESTAMP.bak.json
+      │    .claude/settings.of.repo.json
+      │    .claude/settings.of.repo.$TIMESTAMP.bak.json
       │
       │ ✨ permissions applied:
       │    • allow: replaced entirely
@@ -348,7 +348,10 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
 
 exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` documents the incremental sigils when: [t0] \`init --help\` then: the --roles help block matches snapshot 1`] = `
 "  --roles <roles...>   role specifiers: bare names replace the set (mechanic
-                       behaver), or +role to add / -role to remove incrementally"
+                       behaver), or +role to add / -role to remove
+                       incrementally; role::<subject> boots one subject of the
+                       role, with all its hooks (mechanic::flow); list subjects
+                       via npx rhachet roles cost --all"
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `
@@ -398,8 +401,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;
@@ -445,8 +448,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
    │  ├─ + .agent/repo=bhrain/role=reviewer/briefs
    │  └─ + .agent/repo=bhrain/role=reviewer/skills
    └─ stats
-      ├─ 23 brief(s)
-      └─ 3 skill(s)
+      ├─ 26 brief(s)
+      └─ 4 skill(s)
 
 "
 `;

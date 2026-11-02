@@ -8,6 +8,7 @@ import type {
 import type { RoleBriefRef } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 
 import { filterByGlob } from './filterBootResourcesByGlob';
+import { isAlwaysShed } from './isAlwaysShed';
 
 /**
  * .what = the result of say vs ref computation for boot resources
@@ -257,12 +258,11 @@ const computeSubjectModePlan = async (input: {
     skills.addRef(skillsClaimed.ref);
   };
 
-  // process always section first, so its claims say before any subject's
-  await absorbSection(input.config.always);
-
   // determine which subjects to process
   const subjectSlugs = Object.keys(input.config.subjects);
-  const selectedSlugs = input.subjects ?? subjectSlugs;
+  const selectedSlugs = input.subjects
+    ? subjectSlugs.filter((slug) => input.subjects?.includes(slug))
+    : subjectSlugs;
 
   // validate selected subjects exist
   if (input.subjects) {
@@ -276,6 +276,11 @@ const computeSubjectModePlan = async (input: {
       }
     }
   }
+
+  // process always section first, so its claims say before any subject's; it is shed only
+  //   when a boot names its subjects and every one of them opts out
+  if (!isAlwaysShed({ config: input.config, subjects: input.subjects ?? null }))
+    await absorbSection(input.config.always);
 
   // process each selected subject, in declaration order
   for (const slug of selectedSlugs) {

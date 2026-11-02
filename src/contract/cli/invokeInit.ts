@@ -9,15 +9,20 @@ import { generateRhachetUseTs } from '@src/domain.operations/init/config/generat
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
 import { setPrepareRhachetRolesDelta } from '@src/domain.operations/init/prep/setPrepareRhachetRolesDelta';
+import { assertInitRoleFociDeclared } from '@src/domain.operations/init/roles/assertInitRoleFociDeclared';
 import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/getRoleSlugsForFlags';
 import { setIncrementalRoles } from '@src/domain.operations/init/roles/incremental/setIncrementalRoles';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
+import { setInitRoleFoci } from '@src/domain.operations/init/roles/setInitRoleFoci';
 import { showInitUsageInstructions } from '@src/domain.operations/init/usage/showInitUsageInstructions';
 import { initKeyrackRepoManifest } from '@src/domain.operations/keyrack/initKeyrackRepoManifest';
 import { getRoleDeltaMode } from '@src/domain.operations/roles/deltas/getRoleDeltaMode';
 import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
+import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
+import { asRoleDeltasUnfocused } from '@src/domain.operations/roles/focus/asRoleDeltasUnfocused';
 
 /**
  * .what = apply an incremental role delta to the `prepare:rhachet` replay; null when the
@@ -53,7 +58,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
     .description('initialize roles from packages or generate rhachet.use.ts')
     .option(
       '--roles <roles...>',
-      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally',
+      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally; role::<subject> boots one subject of the role, with all its hooks (mechanic::flow); list subjects via npx rhachet roles cost --all',
     )
     .option(
       '--hooks [brains...]',
@@ -104,13 +109,37 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         }
 
         // parse the deltas once (absolute vs incremental) when roles are present.
-        // downstream flags (--keys, --prep) act on plain role slugs, so derive
-        // them here — never the raw sigiled tokens (`+architect` / `-reviewer`)
+        // the slugs below carry no sigil (`+architect` / `-reviewer`), and they DO carry the
+        //   focus: `--prep` writes them into the replay, so a fresh install keeps it.
+        //   🔴 never swap them for the unfocused slugs — the replay would boot the whole role
         const deltas =
           rolesDecoded && rolesDecoded.length > 0
             ? getRoleDeltas({ tokens: rolesDecoded })
             : null;
         const roleSlugsForFlags = getRoleSlugsForFlags({ deltas });
+
+        // a link and a keyrack read the role alone (`--keys` takes these); a focus rides only
+        //   in the ambient record and the `prepare:rhachet` replay
+        const deltasUnfocused =
+          deltas === null ? null : asRoleDeltasUnfocused({ deltas });
+        const roleSlugsUnfocused = getRoleSlugsForFlags({
+          deltas: deltasUnfocused,
+        });
+
+        // the roles linked before this init, so its receipt names a focus change only on a
+        //   role the repo already held
+        const rolesLinkedBefore =
+          deltas === null
+            ? []
+            : getAllLinkedRoleRefs({}, context).map((ref) => ref.role);
+
+        // an unreadable foci record halts here, before the first link this init writes
+        if (deltas !== null)
+          getRepoAmbientRoleFoci({ repoPath: context.gitroot });
+
+        // a focus its role does not declare halts here, before the first write of this init
+        if (deltas !== null)
+          await assertInitRoleFociDeclared({ deltas }, context);
 
         // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
         //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
@@ -126,14 +155,19 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
         const rolesInitHasErrors = await (async (): Promise<boolean> => {
-          if (!deltas) return false;
+          if (!deltasUnfocused) return false;
 
-          const mode = getRoleDeltaMode({ deltas });
+          const mode = getRoleDeltaMode({ deltas: deltasUnfocused });
 
           // absolute: replace the whole set (legacy behavior)
           if (mode === 'absolute') {
             const result = await initRolesFromPackages(
-              { specifiers: getRoleDeltasOfKind({ deltas, kind: 'absolute' }) },
+              {
+                specifiers: getRoleDeltasOfKind({
+                  deltas: deltasUnfocused,
+                  kind: 'absolute',
+                }),
+              },
               context,
             );
             return result.errors.length > 0;
@@ -144,9 +178,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           if (mode === 'incremental') {
             await setIncrementalRoles(
               {
-                additions: getRoleDeltasOfKind({ deltas, kind: 'addition' }),
+                additions: getRoleDeltasOfKind({
+                  deltas: deltasUnfocused,
+                  kind: 'addition',
+                }),
                 subtractions: getRoleDeltasOfKind({
-                  deltas,
+                  deltas: deltasUnfocused,
                   kind: 'subtraction',
                 }),
               },
@@ -158,6 +195,17 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           return false;
         })();
 
+        // record the foci beside the repo actor, and name each focus change
+        //   .note = stdout, as every init receipt is; enroll writes its receipts to stderr,
+        //   since its stdout belongs to the brain-cli it hands the terminal to
+        if (deltas !== null) {
+          const { lines } = await setInitRoleFoci(
+            { deltas, rolesLinkedBefore },
+            context,
+          );
+          lines.forEach((line) => console.log(line));
+        }
+
         // an incremental delta reaches the `prepare:rhachet` replay, so the next install
         // never re-links a removed role (critical: inventory.of=requirements.case=1)
         const prepareDelta = await setPrepareRhachetOfIncrementalOrNull(
@@ -166,9 +214,9 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         );
 
         // flag: --keys => init keyrack manifest (after roles); plain slugs only
-        if (options.keys && roleSlugsForFlags.length > 0) {
+        if (options.keys && roleSlugsUnfocused.length > 0) {
           const result = await initKeyrackRepoManifest(
-            { roles: roleSlugsForFlags },
+            { roles: roleSlugsUnfocused },
             context,
           );
 
@@ -226,7 +274,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           return hookResult.errors.length > 0;
         })();
 
-        // flag: --prep => persist to package.json; plain slugs only.
+        // flag: --prep => persist to package.json; unsigiled slugs, focus kept.
         // an incremental delta already applied itself to an extant entry above; a full
         // write here would replace the extant roles with the additions alone
         const isPrepareDeltaApplied =

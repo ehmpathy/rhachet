@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setRepoAmbientRoleFoci given: [case3] a corrupt foci record when: [t0] the record is not json then: it fails loud, names the file, its cause, and the repair 1`] = `
+"💥 MalfunctionError: ambient role foci record is not json
+
+{
+  "path": "<repo>/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
+  "hint": "repair <repo>/.agent/.actors/actor.via.repo=ambient/roles.foci.json to the shape {\\"<role>\\":[\\"<subject>\\"]}, or remove it to boot every ambient role whole; then rerun \`rhx init --roles <roles>\`"
+}"
+`;
+
+exports[`setRepoAmbientRoleFoci given: [case3] a corrupt foci record when: [t1] the record has the wrong shape then: it fails loud and names each issue 1`] = `
+"💥 MalfunctionError: ambient role foci record has the wrong shape
+
+{
+  "path": "<repo>/.agent/.actors/actor.via.repo=ambient/roles.foci.json",
+  "hint": "repair <repo>/.agent/.actors/actor.via.repo=ambient/roles.foci.json to the shape {\\"<role>\\":[\\"<subject>\\"]}, or remove it to boot every ambient role whole; then rerun \`rhx init --roles <roles>\`",
+  "issues": [
+    "mechanic: Invalid input: expected array, received string"
+  ]
+}"
+`;

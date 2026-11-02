@@ -1,4 +1,5 @@
-import { getDecodedRoleDeltaToken } from '../roles/deltas/getDecodedRoleDeltaToken';
+import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
+import { asRoleOfTokenLenient } from '@src/domain.operations/roles/focus/asRoleOfTokenLenient';
 
 /**
  * .what = is this token a bare role delta — `+role`, `-role`, `+repo/role` — that names a LINKED role?
@@ -26,7 +27,12 @@ export const isEnrollBareRoleDelta = (input: {
   // the role is the body after an optional `repo/`
   const parts = token.slice(1).split('/');
   if (parts.length > 2) return false;
-  const role = parts[parts.length - 1];
+  const body = parts[parts.length - 1];
+  if (!body) return false;
+
+  // a focus (`mechanic::flow`) names its role before the `::`; a malformed focus still reads
+  //   as a delta when its role is linked, so the parser refuses it by name
+  const role = asRoleOfTokenLenient({ token: body });
   if (!role) return false;
 
   // a delta only when the body names a linked role

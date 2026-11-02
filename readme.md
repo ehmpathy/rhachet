@@ -157,7 +157,7 @@ spawn a brain with specific roles via `rhx enroll`:
 rhx enroll <brain> --roles <spec> [passthrough args...]
 ```
 
-the `--roles` spec supports three modes:
+the `--roles` spec supports these modes:
 
 | mode | syntax | example | result |
 | ---- | ------ | ------- | ------ |
@@ -165,6 +165,25 @@ the `--roles` spec supports three modes:
 | append | `+role` | `--roles +architect` | defaults + architect |
 | subtract | `-role` | `--roles -driver` | defaults - driver |
 | mixed | `+role1,-role2` | `--roles +architect,-driver` | defaults + architect - driver |
+| focus | `role::subject` or `+role::subject` | `--roles +mechanic::flow` | defaults, with mechanic at its `flow` subject |
+
+a focus boots only that subject's briefs and skills, plus `always` unless the subject sets
+`inherit: { always: false }`, and keeps every hook of the role. subjects are the `subject.<slug>`
+sections of a role's `boot.yml`; `npx rhachet roles cost --all` lists them. one subject per token,
+and two of one role union: `--roles +mechanic::flow,+mechanic::code.prod`.
+
+`rhx init --roles +mechanic::flow` sets the repo's own focus, which a bare `rhx enroll` inherits.
+its record is gitignored: add `--prep` so `pnpm install` replays it in a fresh clone.
+
+```yaml
+# boot.yml — a small subject that sheds the role's always block
+subject.101:
+  inherit:
+    always: false
+  briefs:
+    say:
+      - briefs/basics.md
+```
 
 ```sh
 # spawn with only mechanic role (replace mode)
@@ -178,6 +197,9 @@ rhx enroll claude --roles -driver
 
 # spawn with specific combo (replace mode)
 rhx enroll claude --roles mechanic,ergonomist
+
+# spawn with defaults, mechanic focused at its flow subject (focus mode)
+rhx enroll claude --roles +mechanic::flow
 
 # passthrough args to brain
 rhx enroll claude --roles mechanic --resume

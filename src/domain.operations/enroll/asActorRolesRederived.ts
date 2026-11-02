@@ -1,9 +1,22 @@
 import { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
+import type { RoleDelta } from '@src/domain.objects/RoleDelta';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 
 import { computeBrainCliEnrollment } from './computeBrainCliEnrollment';
+
+/**
+ * .what = whether a delta names a role still linked, matched by its role with the focus stripped
+ */
+const isDeltaOfLinkedRole = (input: {
+  delta: RoleDelta;
+  rolesLinked: RoleSlug[];
+}): boolean =>
+  input.rolesLinked.includes(
+    asRoleFocusParts({ token: input.delta.role }).role,
+  );
 
 /**
  * .what = a delta actor's roles, re-derived from the CURRENT ambient roles ⊕ its stored delta
@@ -22,8 +35,10 @@ export const asActorRolesRederived = (input: {
   rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): RoleSlug[] => {
+  // 🔴 a focused delta is matched by its role — `mechanic::flow` is no linked slug, so an
+  //   unstripped check would drop the seat's mechanic, rails and all, in silence (D1)
   const deltas = getRoleDeltas({ tokens: input.rolesDelta }).filter((delta) =>
-    input.rolesLinked.includes(delta.role),
+    isDeltaOfLinkedRole({ delta, rolesLinked: input.rolesLinked }),
   );
   return computeBrainCliEnrollment({
     brain: input.brain,

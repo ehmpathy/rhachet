@@ -5,6 +5,7 @@ import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -199,8 +200,9 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  given(
-    'a CLI program with invokeAct registered (happy path with real brain)',
+  // each case in this block calls a live brain, so the block runs only on demand
+  describeBrainLiveOnDemand(
+    'given: a CLI program with invokeAct registered (happy path with real brain)',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
       const originalCwd = process.cwd();

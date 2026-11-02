@@ -45,7 +45,9 @@ const config: Config = {
   //   behind by an rmsafe is reported as obsolete and the acceptance gate exits
   //   non-zero with every test green — a failure no test output explains. this is the
   //   same line its unit + integration siblings already carry
-  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
+  // an actor's brain dir holds what its brain-cli installs (e.g. plugin marketplaces, with
+  // their own tests), so it is no test root
+  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/', '/.agent/.actors/'],
   setupFilesAfterEnv: ['./jest.acceptance.env.ts'],
 
   // reclaim the temp dirs `genTempDir` mints. both keys are required: the setup mints

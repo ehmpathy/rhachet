@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getRoleDeltas given: [case8] a role at a subject focus when: [t3] a subtraction names a focus (P12) then: it refuses and names the whole-role removal 1`] = `
+"✋ ConstraintError: a subtraction removes a role whole; '-mechanic::flow' names a focus
+
+{
+  "token": "-mechanic::flow",
+  "tokens": [
+    "-mechanic::flow"
+  ],
+  "hint": "-mechanic removes the role whole; to change its focus, enroll the exact set or +mechanic::<subject>"
+}"
+`;
+
+exports[`getRoleDeltas given: [case8] a role at a subject focus when: [t4] an exact set names a role whole and focused (S1) then: it refuses and names both choices 1`] = `
+"✋ ConstraintError: role 'mechanic' is named both whole and focused
+
+{
+  "tokens": [
+    "mechanic",
+    "mechanic::flow"
+  ],
+  "hint": "name 'mechanic' to boot every subject, or 'mechanic::flow' to boot that one — not both"
+}"
+`;
+
+exports[`getRoleDeltas given: [case8] a role at a subject focus when: [t4b] a delta adds a role whole and focused (F2) then: it refuses as the exact set does, with the delta form 1`] = `
+"✋ ConstraintError: role 'mechanic' is named both whole and focused
+
+{
+  "tokens": [
+    "+mechanic",
+    "+mechanic::flow"
+  ],
+  "hint": "name '+mechanic' to boot every subject, or '+mechanic::flow' to boot that one — not both"
+}"
+`;
+
+exports[`getRoleDeltas given: [case8] a role at a subject focus when: [t5] a focused addition and a subtraction of its role then: it refuses as a contradiction 1`] = `
+"✋ ConstraintError: cannot both add and remove role "mechanic" in one call
+
+{
+  "additions": [
+    "mechanic::flow"
+  ],
+  "subtractions": [
+    "mechanic"
+  ],
+  "tokens": [
+    "+mechanic::flow",
+    "-mechanic"
+  ]
+}"
+`;
+
+exports[`getRoleDeltas given: [case8] a role at a subject focus when: [t6] a malformed focus then: it refuses and names the shape 1`] = `
+"✋ ConstraintError: role focus 'mechanic::' must read <role>::<subject>
+
+{
+  "token": "mechanic::",
+  "hint": "name one role and one subject, e.g. mechanic::flow"
+}"
+`;

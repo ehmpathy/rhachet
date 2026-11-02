@@ -44,7 +44,9 @@ const config: Config = {
   // also keep jest's obsolete-snapshot scan out of the rmsafe trash — a deleted
   // .snap lands there and would otherwise be flagged obsolete (a local-only false
   // positive; the testMatch negation alone does not cover the snapshot scan)
-  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/'],
+  // an actor's brain dir holds what its brain-cli installs (e.g. plugin marketplaces, with
+  // their own tests), so it is no test root
+  testPathIgnorePatterns: ['/node_modules/', '/.agent/.cache/', '/.agent/.actors/'],
   setupFilesAfterEnv: ['./jest.unit.env.ts'],
 
   // reclaim the temp dirs `genTempDir` mints. both keys are required: the setup mints

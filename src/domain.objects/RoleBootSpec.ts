@@ -81,12 +81,26 @@ export const schemaRoleBootSpecSimplified = z.object({
 });
 
 /**
+ * .what = schema for what a subject inherits from the role's `always` section
+ * .why = a small focus need not carry the role's whole `always` block; the subject's
+ *        author declares `inherit: { always: false }` to shed it
+ *
+ * .note = strict, so a misspelled inner key refuses rather than drop in silence
+ */
+export const schemaSubjectInherit = z
+  .object({
+    always: z.boolean(),
+  })
+  .strict();
+
+/**
  * .what = schema for subject section (always or subject.$slug)
  * .why = subject sections have the same structure as simple mode top-level
  */
 export const schemaSubjectSection = z.object({
   briefs: schemaResourceCuration.optional(),
   skills: schemaResourceCuration.optional(),
+  inherit: schemaSubjectInherit.optional(),
 });
 export type SubjectSection = z.infer<typeof schemaSubjectSection>;
 
@@ -154,6 +168,13 @@ export class RoleBootSpecSimplified
 export interface SubjectSectionResolved {
   briefs: ResourceCurationResolved | null;
   skills: ResourceCurationResolved | null;
+
+  /**
+   * whether a boot of this subject alone carries the role's `always` section
+   *
+   * .note = defaults to `{ always: true }`; the `always` section itself always inherits
+   */
+  inherit: { always: boolean };
 }
 
 /**
