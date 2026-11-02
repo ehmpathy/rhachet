@@ -3,17 +3,21 @@ import { ConstraintError } from 'helpful-errors';
 
 import { type ContextCli, genContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import { asResyncFaultNotice } from '@src/domain.operations/init/boots/asResyncFaultNotice';
+import { assertRepoActorBrainDirReadyForRoleInits } from '@src/domain.operations/init/boots/assertRepoActorBrainDirReadyForRoleInits';
 import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
-import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
+import { syncBootsThenHooks } from '@src/domain.operations/init/boots/syncBootsThenHooks';
+import { syncBootsThenHooksAfterPartWayFault } from '@src/domain.operations/init/boots/syncBootsThenHooksAfterPartWayFault';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
-import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
 import { setPrepareRhachetRolesDelta } from '@src/domain.operations/init/prep/setPrepareRhachetRolesDelta';
+import { asRhxSkewNoticeOrNull } from '@src/domain.operations/init/provenance/asRhxSkewNoticeOrNull';
 import { assertInitRoleFociDeclared } from '@src/domain.operations/init/roles/assertInitRoleFociDeclared';
 import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/getRoleSlugsForFlags';
 import { setIncrementalRoles } from '@src/domain.operations/init/roles/incremental/setIncrementalRoles';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
+import { isRolesPartWayFaultError } from '@src/domain.operations/init/roles/link/isRolesPartWayFaultError';
 import { setInitRoleFoci } from '@src/domain.operations/init/roles/setInitRoleFoci';
 import { showInitUsageInstructions } from '@src/domain.operations/init/usage/showInitUsageInstructions';
 import { initKeyrackRepoManifest } from '@src/domain.operations/keyrack/initKeyrackRepoManifest';
@@ -23,6 +27,7 @@ import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRole
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { asRoleDeltasUnfocused } from '@src/domain.operations/roles/focus/asRoleDeltasUnfocused';
+import { getOneRhxProvenance } from '@src/infra/getOneRhxProvenance';
 
 /**
  * .what = apply an incremental role delta to the `prepare:rhachet` replay; null when the
@@ -83,6 +88,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
       }) => {
         // build context for operations
         const context = await genContextCli({ cwd: process.cwd() });
+
+        // name the rhx that runs when the repo pins another, as a notice, never a refusal (case 7, F3)
+        const rhxSkewNotice = asRhxSkewNoticeOrNull(
+          getOneRhxProvenance({ repoPath: context.gitroot }),
+        );
+        if (rhxSkewNotice !== null) console.log(`${rhxSkewNotice}\n`);
 
         // flatten via the shared `--roles` tokenizer: decodes the argv sentinel
         // and accepts both the space form (`+a -b`) and comma form (`+a,-b`)
@@ -151,6 +162,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
               })
             : null;
 
+        // flag: --roles => refuse a brain dir no init may write through, before any role links (case 10)
+        if (deltas !== null)
+          assertRepoActorBrainDirReadyForRoleInits({
+            repoPath: context.gitroot,
+          });
+
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
@@ -159,7 +176,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
           const mode = getRoleDeltaMode({ deltas: deltasUnfocused });
 
-          // absolute: replace the whole set (legacy behavior)
+          // absolute: replace the whole set; a part-way fault resyncs, then fails loud (case 11, F8)
           if (mode === 'absolute') {
             const result = await initRolesFromPackages(
               {
@@ -169,7 +186,22 @@ export const invokeInit = ({ program }: { program: Command }): void => {
                 }),
               },
               context,
-            );
+            ).catch(async (error: unknown) => {
+              // only a part-way fault resyncs, as the clean path does (hooks only under --hooks); every fault is rethrown
+              if (!isRolesPartWayFaultError(error)) throw error;
+
+              // resync, print a resync fault beside the part-way one, then rethrow the part-way one
+              const { resyncFault } = await syncBootsThenHooksAfterPartWayFault(
+                {
+                  repoPath: context.gitroot,
+                  hooks: options.hooks,
+                  symlinkPrior: layoutBeforeInits?.symlink ?? null,
+                },
+                context,
+              );
+              if (resyncFault) console.error(asResyncFaultNotice(resyncFault));
+              throw error;
+            });
             return result.errors.length > 0;
           }
 
@@ -249,30 +281,21 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // flag: --roles or --hooks => re-render every brain dir boot, after the links land.
         // it precedes the hook sync, so a repo never drops its boot hooks before boot.md exists
-        const boots =
+        // flag: --hooks => then apply hooks, only once the default boot.md rendered
+        const { boots, hooksHaveErrors } =
           deltas !== null || options.hooks !== undefined
-            ? await syncAndReportBrainDirBoots(
+            ? await syncBootsThenHooks(
                 {
                   repoPath: context.gitroot,
-                  env: process.env,
+                  hooks: options.hooks,
                   symlinkPrior: layoutBeforeInits?.symlink ?? null,
                 },
                 context,
               )
-            : { exitCode: 0 as const, repoActorRendered: true };
-
-        // flag: --hooks => apply hooks, only once the default boot.md rendered;
-        // the iife yields a boolean so the error state stays an immutable const
-        const hooksHaveErrors = await (async (): Promise<boolean> => {
-          if (options.hooks === undefined) return false;
-          if (!boots.repoActorRendered) return false;
-          const brains =
-            Array.isArray(options.hooks) && options.hooks.length > 0
-              ? options.hooks
-              : undefined;
-          const hookResult = await syncHooksForLinkedRoles({ brains }, context);
-          return hookResult.errors.length > 0;
-        })();
+            : {
+                boots: { exitCode: 0 as const, repoActorRendered: true },
+                hooksHaveErrors: false,
+              };
 
         // flag: --prep => persist to package.json; unsigiled slugs, focus kept.
         // an incremental delta already applied itself to an extant entry above; a full

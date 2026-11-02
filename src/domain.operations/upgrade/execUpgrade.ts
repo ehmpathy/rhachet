@@ -3,6 +3,7 @@ import { HelpfulError } from 'helpful-errors';
 import type { BrainSupplierSlug } from '@src/domain.objects/BrainSupplierSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
+import { assertRepoActorBrainDirReadyForRoleInits } from '@src/domain.operations/init/boots/assertRepoActorBrainDirReadyForRoleInits';
 import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
@@ -356,6 +357,9 @@ export const execUpgrade = async (
     const layoutBeforeInits = await setRepoActorBrainDirLayoutBeforeInits({
       repoPath: context.gitroot,
     });
+
+    // refuse a brain dir no init may write through, before any role links (case 10)
+    assertRepoActorBrainDirReadyForRoleInits({ repoPath: context.gitroot });
     await initRolesFromPackages({ specifiers }, context);
 
     // re-render the boots before the hook sync, so the boot hooks never go first

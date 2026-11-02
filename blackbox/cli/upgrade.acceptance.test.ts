@@ -1,5 +1,16 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import { ConstraintError } from 'helpful-errors';
@@ -1426,6 +1437,237 @@ describe('rhachet upgrade', () => {
       then('stdout.header matches snapshot', () => {
         const { header } = extractRhachetOutput({ stdout: result.stdout });
         expect(asSnapshotSafe(header)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = the preflight `rhx init --roles` runs, on the upgrade path too (inventory case=10)
+   * .why = an upgrade re-runs every linked role's init through `<repo>/.claude`; a brain dir
+   *   it cannot write, or a link that lands elsewhere, must refuse before the first role links
+   */
+  given('[case18] a linked role whose repo actor brain dir no init may write through', () => {
+    const REPO_ACTOR_BRAIN_DIR_REL =
+      '.agent/.actors/actor.via.repo=ambient/brain/.claude';
+
+    /**
+     * .what = a temp repo with the tester role linked, ready for the upgrade under test
+     * .why = an upgrade re-runs the inits of the roles a repo already links, so the preflight
+     *   meets a real linked role, not an empty repo
+     */
+    const genRepoWithTesterLinked = async (): Promise<{ path: string }> => {
+      const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      const linked = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+      });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles tester failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the linked fixture sees a fresh dist, then re-run',
+        });
+      return repo;
+    };
+
+    when('[t0] the brain dir is not writable (vision case 2)', () => {
+      const result = useBeforeAll(async () => {
+        // a root process writes past a 0o555 mode, so this case cannot hold under root
+        if (process.getuid?.() === 0)
+          throw new ConstraintError('this case cannot run as root', {
+            hint: 'run the suite as a non-root user',
+          });
+        const repo = await genRepoWithTesterLinked();
+        const brainDir = join(repo.path, REPO_ACTOR_BRAIN_DIR_REL);
+        chmodSync(brainDir, 0o555);
+        try {
+          return invokeRhachetCliBinary({
+            args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+            cwd: repo.path,
+            logOnError: false,
+          });
+        } finally {
+          // restore the mode on every path, so the temp repo stays removable
+          chmodSync(brainDir, 0o755);
+        }
+      });
+
+      then('it exits 2, a constraint', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('it names the dir, the errno and the mode', () => {
+        expect(result.stderr).toContain(
+          'the repo actor brain dir is not writable',
+        );
+        expect(result.stderr).toContain('EACCES');
+        expect(result.stderr).toContain('555');
+      });
+
+      then('no role init runs and no hook syncs', () => {
+        expect(result.stdout).not.toContain('link role');
+        expect(result.stdout).not.toContain('init role');
+        expect(result.stdout).not.toContain('hook');
+      });
+
+      then('the refusal matches snapshot', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('✋ ConstraintError');
+
+        // the owner ids are the host's user; the field names stay live, the numbers are masked,
+        //   one token per id ($UID, $GID), so a reader never reads the two as one value.
+        //   stdout rides beside stderr, so a banner or a stray row on a refusal shows in the diff
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr).replace(
+            /"(uid|gid)": \d+/g,
+            (_, key: string) => `"${key}": "$${key.toUpperCase()}"`,
+          ),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] <repo>/.claude is a symlink to another place (vision case 4)', () => {
+      const scene = useBeforeAll(async () => {
+        const repo = await genRepoWithTesterLinked();
+        rmSync(join(repo.path, '.claude'));
+        mkdirSync(join(repo.path, 'other'));
+        symlinkSync('other', join(repo.path, '.claude'));
+        const result = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+        return { repo, result };
+      });
+
+      then('it exits 2, a constraint', () => {
+        expect(scene.result.status).toEqual(2);
+      });
+
+      then('it names both realpaths', () => {
+        expect(scene.result.stderr).toContain('a symlink to another place');
+        expect(scene.result.stderr).toContain(
+          realpathSync(join(scene.repo.path, 'other')),
+        );
+        expect(scene.result.stderr).toContain(
+          realpathSync(join(scene.repo.path, REPO_ACTOR_BRAIN_DIR_REL)),
+        );
+      });
+
+      then('no role writes through the link', () => {
+        expect(readdirSync(join(scene.repo.path, 'other'))).toEqual([]);
+        expect(scene.result.stdout).not.toContain('link role');
+      });
+
+      then('the refusal matches snapshot', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(scene.result.status).toEqual(2);
+        expect(scene.result.stderr).toContain('a symlink to another place');
+        // stdout rides beside stderr, so a banner or a stray row on a refusal shows in the diff
+        expect({
+          stdout: asSnapshotSafe(scene.result.stdout),
+          stderr: asSnapshotSafe(scene.result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] <repo>/.claude is an absolute link that lands on the brain dir (vision case 6)', () => {
+      const scene = useBeforeAll(async () => {
+        const repo = await genRepoWithTesterLinked();
+        const linkTarget = join(repo.path, REPO_ACTOR_BRAIN_DIR_REL);
+        rmSync(join(repo.path, '.claude'));
+        symlinkSync(linkTarget, join(repo.path, '.claude'));
+        const result = invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+        return { repo, linkTarget, result };
+      });
+
+      then('it exits 0, never refused', () => {
+        expect(scene.result.status).toEqual(0);
+        expect(scene.result.stderr).not.toContain('ConstraintError');
+      });
+
+      then('the role init runs', () => {
+        expect(scene.result.stdout).toContain('init 1 role(s)');
+      });
+
+      then('the link lands on the brain dir, rewritten relative', () => {
+        expect(realpathSync(join(scene.repo.path, '.claude'))).toEqual(
+          realpathSync(scene.linkTarget),
+        );
+        expect(readlinkSync(join(scene.repo.path, '.claude'))).toEqual(
+          REPO_ACTOR_BRAIN_DIR_REL,
+        );
+      });
+    });
+  });
+
+  given('[case19] a linked role whose init fails part-way on upgrade (vision case 3)', () => {
+    /**
+     * .what = a repo with tester linked, whose tester init now fails
+     * .why = `rhx upgrade` re-runs the role inits through the same link loop as `rhx init`, so a
+     *   failed init must name the failed role there too
+     */
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      const linked = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: r.path,
+      });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles tester failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the linked fixture sees a fresh dist, then re-run',
+        });
+
+      // the tester init now fails
+      const pkgDir = join(r.path, 'node_modules', 'rhachet-roles-test');
+      const initPath = join(pkgDir, 'roles', 'tester', 'inits', 'fail.sh');
+      mkdirSync(join(pkgDir, 'roles', 'tester', 'inits'), { recursive: true });
+      writeFileSync(initPath, '#!/bin/bash\necho "tester init fails"\nexit 1\n');
+      chmodSync(initPath, 0o755);
+      const ymlPath = join(pkgDir, 'rhachet.repo.yml');
+      writeFileSync(
+        ymlPath,
+        readFileSync(ymlPath, 'utf-8').replace(
+          '      dirs: roles/tester/skills\n',
+          '      dirs: roles/tester/skills\n    inits:\n      exec:\n        - roles/tester/inits/fail.sh\n',
+        ),
+      );
+      return r;
+    });
+
+    when('[t0] upgrade --roles test/tester --which local', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits nonzero', () => {
+        expect(result.status).not.toEqual(0);
+      });
+
+      then('it names the role whose init failed part-way', () => {
+        expect(result.stderr).toContain(
+          'role init failed part-way, at repo=test/role=tester',
+        );
+      });
+
+      then('the refusal matches snapshot, stdout and stderr', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.stderr).toContain('failed part-way');
+        expect({
+          status: result.status,
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });
