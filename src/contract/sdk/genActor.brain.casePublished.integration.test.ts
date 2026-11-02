@@ -2,6 +2,7 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { getError, given, then, when } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -18,7 +19,7 @@ import {
 import { EXAMPLE_REPO_PUBLISHED } from '../../../.test/assets/example.repo/directory';
 import { authorRole } from '../../../.test/assets/example.repo/rhachet-roles-example.published/role';
 
-describe('genActor.brain.casePublished (integration)', () => {
+describeBrainLiveOnDemand('genActor.brain.casePublished (integration)', () => {
   given('[case1] published pattern (rhachet-roles-example.published)', () => {
     // setup: use temp dir within project (avoids codex trust issues)
     const tmpDir = path.resolve(__dirname, './.temp/casePublished');

@@ -5,6 +5,7 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
@@ -13,16 +14,23 @@ import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem'
 
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-// fail fast if api keys not available
-if (!process.env.XAI_API_KEY)
-  throw new ConstraintError('XAI_API_KEY is required for integration tests');
-
 /**
  * .what = integration test for actor.ask() with BrainAtom support
  * .why = demonstrates that both BrainAtom and BrainRepl work with actor.ask()
  */
-describe('genActor.brain.caseAskable (integration)', () => {
+describeBrainLiveOnDemand('genActor.brain.caseAskable (integration)', () => {
   jest.setTimeout(60000);
+
+  // fail fast if api keys not available; inside the gate, so a skipped suite reads no key
+  beforeAll(() => {
+    if (!process.env.XAI_API_KEY)
+      throw new ConstraintError(
+        'XAI_API_KEY is required for integration tests',
+        {
+          hint: 'rhx keyrack unlock --owner ehmpath --env test',
+        },
+      );
+  });
 
   given('[case1] author role with mixed brain allowlist', () => {
     // setup: use temp dir within project

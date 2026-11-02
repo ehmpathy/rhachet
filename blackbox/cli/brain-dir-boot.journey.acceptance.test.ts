@@ -23,6 +23,8 @@ import {
 } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
+
 import {
   asMaskedClaudeEnvelope,
   asSentinel,
@@ -199,7 +201,7 @@ const useWhenLabeled = <T>(input: { label: string; fn: () => T }): T => {
   return held.value;
 };
 
-describe('brain dir boot journey (acceptance, real haiku)', () => {
+describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () => {
   // every live clone the journey spawns, reaped at the end
   const clonesLive: RhachetBackgroundHandle[] = [];
   afterAll(async () => {

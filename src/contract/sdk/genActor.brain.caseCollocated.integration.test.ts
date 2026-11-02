@@ -2,6 +2,7 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -11,7 +12,7 @@ import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { EXAMPLE_REPO_COLLOCATED } from '../../../.test/assets/example.repo/directory';
 import { scribeRole } from '../../../.test/assets/example.repo/rhachet-roles-example.collocated/role';
 
-describe('genActor.brain.caseCollocated (integration)', () => {
+describeBrainLiveOnDemand('genActor.brain.caseCollocated (integration)', () => {
   given('[case1] collocated pattern (rhachet-roles-example.collocated)', () => {
     // setup: use temp dir within project (avoids codex trust issues)
     const tmpDir = path.resolve(__dirname, './.temp/caseCollocated');

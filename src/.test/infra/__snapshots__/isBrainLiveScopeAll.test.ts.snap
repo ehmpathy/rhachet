@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`isBrainLiveScopeAll given: [case2] an env with a value outside the closed set when: [t0] the gate is read with BRAIN_LIVE_SCOPE=true then: the whole message a seat reads at collection is snapped 1`] = `
+"✋ ConstraintError: BRAIN_LIVE_SCOPE must be 'all' or unset
+
+{
+  "value": "true",
+  "hint": "unset it, or set BRAIN_LIVE_SCOPE=all to run the live-brain suites"
+}"
+`;
