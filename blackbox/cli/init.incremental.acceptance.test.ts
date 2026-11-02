@@ -82,6 +82,8 @@ describe('rhx init --roles incremental (acceptance)', () => {
         invokeRhachetCliBinary({
           args: ['init', '--roles', 'mechanic', 'behaver'],
           cwd: testDir,
+          // unset the runner's own config dir, so a clone's run screens the same as ci's
+          env: { CLAUDE_CONFIG_DIR: undefined },
         }),
       );
       then('both roles are linked', () => {

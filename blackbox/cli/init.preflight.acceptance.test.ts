@@ -77,8 +77,12 @@ describe('rhachet init — refusals before any role links, and a part-way init',
         });
       const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
       invokeSetupOrThrow({ args: ['init', '--roles', 'tester'], cwd: r.path });
+      const settingsBefore = await fs.readFile(
+        path.join(r.path, REPO_ACTOR_BRAIN_DIR_REL, 'settings.of.repo.json'),
+        'utf-8',
+      );
       await fs.chmod(path.join(r.path, REPO_ACTOR_BRAIN_DIR_REL), 0o555);
-      return r;
+      return { path: r.path, settingsBefore };
     });
 
     when('[t0] init --roles tester --hooks', () => {
@@ -108,14 +112,44 @@ describe('rhachet init — refusals before any role links, and a part-way init',
         expect(result.stdout).not.toContain('search for linked roles with hooks');
       });
 
+      then('settings.of.repo.json is byte-equal to before', async () => {
+        const settingsAfter = await fs.readFile(
+          path.join(repo.path, REPO_ACTOR_BRAIN_DIR_REL, 'settings.of.repo.json'),
+          'utf-8',
+        );
+        expect(settingsAfter).toEqual(repo.settingsBefore);
+      });
+
       then('the refusal matches snapshot', () => {
-        // the owner ids are the host's user; the field names stay live, the numbers are masked
-        expect(
-          asSnapshotSafe(result.stderr).replace(
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('✋ ConstraintError');
+
+        // the owner ids are the host's user; the field names stay live, the numbers are masked,
+        //   one token per id ($UID, $GID), so a reader never reads the two as one value.
+        //   stdout rides beside stderr, so a banner or a stray row on a refusal shows in the diff
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr).replace(
             /"(uid|gid)": \d+/g,
-            '"$1": $ID',
+            (_, key: string) => `"${key}": "$${key.toUpperCase()}"`,
           ),
-        ).toMatchSnapshot();
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] write is granted, and the same init reruns', () => {
+      // [t0] grants write back once its run returns, so this run meets a writable dir
+      const result = useBeforeAll(async () =>
+        invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0', () => {
+        expect(result.status).toEqual(0);
       });
     });
   });
@@ -158,8 +192,39 @@ describe('rhachet init — refusals before any role links, and a part-way init',
         expect(result.stdout).not.toContain('link role');
       });
 
+      then('the link itself is left as found', async () => {
+        expect(await fs.readlink(path.join(repo.path, '.claude'))).toEqual('other');
+      });
+
       then('the refusal matches snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('a symlink to another place');
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the link is removed, and the same init reruns', () => {
+      const result = useBeforeAll(async () => {
+        await fs.rm(path.join(repo.path, '.claude'));
+        return invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+      });
+
+      then('it exits 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the link is created relative, to the repo actor brain dir', async () => {
+        expect(await fs.readlink(path.join(repo.path, '.claude'))).toEqual(
+          REPO_ACTOR_BRAIN_DIR_REL,
+        );
       });
     });
   });
@@ -241,7 +306,232 @@ describe('rhachet init — refusals before any role links, and a part-way init',
       });
 
       then('the refusal matches snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.status).toEqual(1);
+        expect(result.stderr).toContain('role init failed part-way');
+        // stdout carries the hook sync to the linked roles, which runs before the refusal
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the tester init is fixed, and the same init reruns', () => {
+      const result = useBeforeAll(async () => {
+        await fs.writeFile(
+          path.join(
+            repo.path,
+            'node_modules/rhachet-roles-test/roles/tester/inits/fail.sh',
+          ),
+          '#!/bin/bash\necho "tester init passes"\nexit 0\n',
+        );
+        return invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', 'reviewer', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+      });
+
+      then('it exits 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the hooks of tester and reviewer both return', async () => {
+        const authors = await getHookAuthorsOfRepoSettings({ repoPath: repo.path });
+        expect(authors.some((a) => a.includes('repo=test/role=tester'))).toBe(true);
+        expect(authors.some((a) => a.includes('repo=test/role=reviewer'))).toBe(true);
+      });
+    });
+  });
+
+  given('[case4] a tree that pins another rhachet than the one that runs (vision case 7)', () => {
+    const repo = useBeforeAll(async () => {
+      // a real dir, never the fixture's self-link: a write through that link would land in this repo
+      const dir = genTempDir({ slug: 'init-preflight-skew', git: true });
+      await fs.mkdir(path.join(dir, 'node_modules', 'rhachet'), { recursive: true });
+      await fs.writeFile(
+        path.join(dir, 'node_modules', 'rhachet', 'package.json'),
+        JSON.stringify({ name: 'rhachet', version: '0.0.1-pinned' }),
+      );
+      await fs.writeFile(
+        path.join(dir, 'package.json'),
+        JSON.stringify({ name: 'test-skew', dependencies: {} }),
+      );
+      return { path: dir };
+    });
+
+    when('[t0] init', () => {
+      const result = useBeforeAll(async () =>
+        invokeWithoutGrove({ args: ['init'], cwd: repo.path, logOnError: false }),
+      );
+
+      then('one notice row names the active and the pinned rhx', () => {
+        const notices = result.stdout
+          .split('\n')
+          .filter((row) => row.includes('this repo pins'));
+        expect(notices).toHaveLength(1);
+        expect(notices[0]).toMatch(/^🐚 rhx \S+ runs; this repo pins 0\.0\.1-pinned$/);
+      });
+
+      then('the skew is named, never refused', () => {
+        expect(result.stderr).not.toContain('ConstraintError');
+        expect(result.stderr).not.toContain('MalfunctionError');
+      });
+
+      then('the notice row matches snapshot', () => {
+        // the version that runs bumps on every release; the pinned one is the fixture's own
+        const notice = result.stdout
+          .split('\n')
+          .filter((row) => row.includes('this repo pins'))
+          .join('\n')
+          .replace(/rhx \d+\.\d+\.\d+(?:-[\w.]+)?/, 'rhx $VERSION');
+        expect(notice).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] <repo>/.claude is a file', () => {
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      invokeSetupOrThrow({ args: ['init', '--roles', 'tester'], cwd: r.path });
+      await fs.rm(path.join(r.path, '.claude'));
+      await fs.writeFile(path.join(r.path, '.claude'), 'not a dir\n');
+      return r;
+    });
+
+    when('[t0] init --roles tester --hooks', () => {
+      const result = useBeforeAll(async () =>
+        invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, a constraint', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('✋ ConstraintError');
+      });
+
+      then('it names the file', () => {
+        expect(result.stderr).toContain('is a file');
+      });
+
+      then('no role links', () => {
+        expect(result.stdout).not.toContain('link role');
+      });
+
+      then('the file is left as found', async () => {
+        expect(await fs.readFile(path.join(repo.path, '.claude'), 'utf-8')).toEqual(
+          'not a dir\n',
+        );
+      });
+
+      then('the refusal matches snapshot, stdout and stderr', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('is a file');
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case6] <repo>/.claude is a link that lands on the repo actor brain dir (vision case 6)', () => {
+    when('[t0] the link is absolute, and init --roles tester --hooks runs', () => {
+      const scene = useBeforeAll(async () => {
+        const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        invokeSetupOrThrow({ args: ['init', '--roles', 'tester'], cwd: repo.path });
+        const linkTarget = path.join(repo.path, REPO_ACTOR_BRAIN_DIR_REL);
+        await fs.rm(path.join(repo.path, '.claude'));
+        await fs.symlink(linkTarget, path.join(repo.path, '.claude'));
+        const result = invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+        return { repo, linkTarget, result };
+      });
+
+      then('it exits 0, never refused', () => {
+        expect(scene.result.status).toEqual(0);
+        expect(scene.result.stderr).not.toContain('ConstraintError');
+      });
+
+      then('the role links', () => {
+        expect(scene.result.stdout).toContain('link role');
+      });
+
+      then('the link lands on the repo actor brain dir', async () => {
+        expect(await fs.realpath(path.join(scene.repo.path, '.claude'))).toEqual(
+          await fs.realpath(scene.linkTarget),
+        );
+      });
+
+      then('the absolute link is rewritten relative', async () => {
+        expect(await fs.readlink(path.join(scene.repo.path, '.claude'))).toEqual(
+          REPO_ACTOR_BRAIN_DIR_REL,
+        );
+        expect(scene.result.stdout).toContain(`.claude → ${REPO_ACTOR_BRAIN_DIR_REL}`);
+      });
+
+      then('the screen matches snapshot, stdout and stderr', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(scene.result.status).toEqual(0);
+        expect(scene.result.stderr).not.toContain('ConstraintError');
+        expect({
+          stdout: asSnapshotSafe(scene.result.stdout),
+          stderr: asSnapshotSafe(scene.result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the link reaches the brain dir through a hop, and init --roles tester --hooks runs', () => {
+      const scene = useBeforeAll(async () => {
+        const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        invokeSetupOrThrow({ args: ['init', '--roles', 'tester'], cwd: repo.path });
+        await fs.rm(path.join(repo.path, '.claude'));
+        // a hop: .claude -> hop -> the repo actor brain dir
+        await fs.symlink(REPO_ACTOR_BRAIN_DIR_REL, path.join(repo.path, 'hop'));
+        await fs.symlink('hop', path.join(repo.path, '.claude'));
+        const result = invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        });
+        return { repo, result };
+      });
+
+      then('it exits 0, never refused', () => {
+        expect(scene.result.status).toEqual(0);
+        expect(scene.result.stderr).not.toContain('ConstraintError');
+      });
+
+      then('the link lands on the repo actor brain dir', async () => {
+        expect(await fs.realpath(path.join(scene.repo.path, '.claude'))).toEqual(
+          await fs.realpath(path.join(scene.repo.path, REPO_ACTOR_BRAIN_DIR_REL)),
+        );
+      });
+
+      then('the link is left as found, through its hop', async () => {
+        expect(await fs.readlink(path.join(scene.repo.path, '.claude'))).toEqual('hop');
+      });
+
+      then('the brain dir report is silent, since naught changed', () => {
+        expect(scene.result.stdout).not.toContain('🧠');
+      });
+
+      then('the screen matches snapshot, stdout and stderr', () => {
+        // the facts the snapshot carries are asserted here too, so a resnap cannot hide a drift
+        expect(scene.result.status).toEqual(0);
+        expect(scene.result.stderr).not.toContain('ConstraintError');
+        expect({
+          stdout: asSnapshotSafe(scene.result.stdout),
+          stderr: asSnapshotSafe(scene.result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });

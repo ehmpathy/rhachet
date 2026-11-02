@@ -1,27 +1,32 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet init — refusals before any role links, and a part-way init given: [case1] the repo actor brain dir is not writable (vision case 2) when: [t0] init --roles tester --hooks then: the refusal matches snapshot 1`] = `
-"
+{
+  "stderr": "
 ✋ ConstraintError: the repo actor brain dir is not writable
 
 {
   "hint": "grant this user write to /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude, then rerun \`rhx init\`; no role was linked",
   "path": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "probe": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude",
   "errno": "EACCES",
   "owner": {
-    "uid": $ID,
-    "gid": $ID
+    "uid": "$UID",
+    "gid": "$GID"
   },
   "mode": "555"
 }
 
 [args] init,--roles,tester,--hooks
 
-"
+",
+  "stdout": "",
+}
 `;
 
 exports[`rhachet init — refusals before any role links, and a part-way init given: [case2] <repo>/.claude is a symlink to another place (vision case 4) when: [t0] init --roles tester --hooks then: the refusal matches snapshot 1`] = `
-"
+{
+  "stderr": "
 ✋ ConstraintError: <repo>/.claude is a symlink to another place
 
 {
@@ -35,11 +40,14 @@ exports[`rhachet init — refusals before any role links, and a part-way init gi
 
 [args] init,--roles,tester,--hooks
 
-"
+",
+  "stdout": "",
+}
 `;
 
 exports[`rhachet init — refusals before any role links, and a part-way init given: [case3] a fresh clone whose first role init fails part-way (vision case 3) when: [t1] init --roles tester reviewer --hooks then: the refusal matches snapshot 1`] = `
-"
+{
+  "stderr": "
 💥 RolesPartWayMalfunctionError: role init failed part-way, at repo=test/role=tester
 
 {
@@ -59,5 +67,133 @@ exports[`rhachet init — refusals before any role links, and a part-way init gi
 
 [args] init,--roles,tester,reviewer,--hooks
 
-"
+",
+  "stdout": "
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+💪 init role repo=test/role=tester
+   └─ node_modules/rhachet-roles-test/roles/tester/inits/fail.sh
+      ├─
+      │
+      │ tester init fails
+      │
+      └─
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ 1 orphans removed
+
+",
+}
+`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case4] a tree that pins another rhachet than the one that runs (vision case 7) when: [t0] init then: the notice row matches snapshot 1`] = `"🐚 rhx $VERSION runs; this repo pins 0.0.1-pinned"`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case5] <repo>/.claude is a file when: [t0] init --roles tester --hooks then: the refusal matches snapshot, stdout and stderr 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: <repo>/.claude is a file, not a dir
+
+{
+  "hint": "move /TMP_REPO/.claude aside, then rerun \`rhx init\`",
+  "path": "/TMP_REPO/.claude"
+}
+
+[args] init,--roles,tester,--hooks
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case6] <repo>/.claude is a link that lands on the repo actor brain dir (vision case 6) when: [t0] the link is absolute, and init --roles tester --hooks runs then: the screen matches snapshot, stdout and stderr 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ upgraded — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+",
+}
+`;
+
+exports[`rhachet init — refusals before any role links, and a part-way init given: [case6] <repo>/.claude is a link that lands on the repo actor brain dir (vision case 6) when: [t1] the link reaches the brain dir through a hop, and init --roles tester --hooks runs then: the screen matches snapshot, stdout and stderr 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+",
+}
 `;

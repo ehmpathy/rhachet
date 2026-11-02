@@ -1,6 +1,7 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
+import { getOneRealpathOrNull } from '@src/infra/getOneRealpathOrNull';
 import { getAllPathsGitCannotRestore } from '@src/infra/git/getAllPathsGitCannotRestore';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setSymlinkSwapped } from '@src/infra/setSymlinkSwapped';
@@ -17,12 +18,10 @@ import {
   symlinkSync,
 } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
+import { asRepoBrainDirIsFileError } from './asRepoBrainDirIsFileError';
 import { asRepoBrainDirMigrationPlan } from './asRepoBrainDirMigrationPlan';
-import {
-  assertRepoBrainDirSymlinkLandsHere,
-  getOneRealpathOrNull,
-  isRepoBrainDirSymlinkLegacy,
-} from './assertRepoBrainDirSymlinkLandsHere';
+import { assertRepoBrainDirSymlinkLandsHere } from './assertRepoBrainDirSymlinkLandsHere';
+import { isRepoBrainDirSymlinkLegacy } from './isRepoBrainDirSymlinkLegacy';
 
 type RepoBrainDirSymlinkEffect = 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
 
@@ -131,13 +130,8 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
     return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
   }
 
-  // a file → refused (the preflight's one rule); only a dir can migrate
-  if (!stat.isDirectory()) {
-    assertRepoBrainDirSymlinkLandsHere(input);
-    throw new MalfunctionError('<repo>/.claude is neither a dir nor refused', {
-      path: linkPath,
-    });
-  }
+  // a file → refused, in the preflight's words; only a dir can migrate
+  if (!stat.isDirectory()) throw asRepoBrainDirIsFileError({ linkPath });
 
   // a real dir → plan the migration. a name the repo actor dir already holds is NOT a refusal:
   // rhachet owns this dir, and `<repo>/.claude` is the live copy, so the move replaces it

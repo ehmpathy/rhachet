@@ -1,6 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 import { genTempDir, getError, given, then, when } from 'test-fns';
 
+import { REPO_ACTOR_DIR_NAME_LEGACY } from '@src/domain.operations/actor/enrolled/constants';
+import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 
@@ -117,4 +119,23 @@ describe('assertRepoBrainDirSymlinkLandsHere', () => {
       });
     });
   });
+
+  given(
+    '[case7] <repo>/.claude is the legacy link, dangled by the rename',
+    () => {
+      when('[t0] the link is checked', () => {
+        then('it passes, since the layout step repoints it', () => {
+          const scene = genRepoScene({ slug: 'lands-here-legacy' });
+          const legacyBrainDir = getBrainOndiskDir({
+            actorDir: join(
+              getActorsRootDir({ repoPath: scene.repoPath }),
+              REPO_ACTOR_DIR_NAME_LEGACY,
+            ),
+          });
+          symlinkSync(relative(scene.repoPath, legacyBrainDir), scene.linkPath);
+          expect(() => assertRepoBrainDirSymlinkLandsHere(scene)).not.toThrow();
+        });
+      });
+    },
+  );
 });
