@@ -39,6 +39,17 @@ jest.mock(
   }),
 );
 /**
+ * .what = the preflight before the role inits, replaced
+ * .why = it probes the repo actor brain dir on disk, and this suite's `/test` gitroot has none;
+ *   its refusals are clamped in `assertRepoActorBrainDirReadyForRoleInits.integration.test.ts`,
+ *   `assertRepoActorBrainDirWritable.integration.test.ts`,
+ *   `assertRepoBrainDirSymlinkLandsHere.integration.test.ts`, and upgrade.acceptance [case18]
+ */
+jest.mock(
+  '@src/domain.operations/init/boots/assertRepoActorBrainDirReadyForRoleInits',
+  () => ({ assertRepoActorBrainDirReadyForRoleInits: jest.fn() }),
+);
+/**
  * .what = the ONE collaborator replaced here; the rest of the module stays real
  * .why = this suite needs the hook sync to FAULT — it aggregates per-brain faults into
  *   `errors` rather than a throw, so a suite that cannot drive that channel cannot

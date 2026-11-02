@@ -11,11 +11,25 @@ converges.
 
 ## .clamp
 
-owed.
+partial. in absolute mode under `--hooks`, a role init that fails part way is caught, the boots and
+hooks sync to the roles linked on disk, and the fault rethrows with the linked and unlinked sets
+named (`invokeInit`, `asRolesPartWayFaultError`).
+
+owed, each on a call that is the commander's:
+
+- incremental mode (`--roles +x`) — blueprint question B2
+- a run with no `--hooks` prunes no hook — fulcrum F2
+- the role whose init failed keeps its link, so its hooks stay — fulcrum F1. as worded above ("no
+  hook of a role that did not finish enrolment") this requirement reads against F1
+- `rhx upgrade` part way — not yet asked
 
 ## .proof
 
-owed.
+- `blackbox/cli/init.preflight.acceptance.test.ts` [case3] — a fresh clone whose first role init
+  fails: no hook is left for the unlinked role
+- `src/domain.operations/init/roles/link/asRolesPartWayFaultError.test.ts` — the error class follows
+  the cause
+- owed: the rerun-converges half, and each owed clamp above
 
 ## .source
 

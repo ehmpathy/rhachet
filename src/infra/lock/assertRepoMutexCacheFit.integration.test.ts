@@ -26,7 +26,14 @@ describe('assertRepoMutexCacheFit', () => {
       then('it passes', () => {
         const dir = genTempDir({ slug: 'mutex-cache-fit' });
         const cache = createCache({ directory: { local: { path: dir } } });
-        expect(() => assertRepoMutexCacheFit({ cache, rhx })).not.toThrow();
+        expect(() =>
+          assertRepoMutexCacheFit({
+            cache,
+            rhx: () => {
+              throw new Error('a fit cache must never read the provenance');
+            },
+          }),
+        ).not.toThrow();
       });
     });
   });
@@ -63,7 +70,7 @@ describe('assertRepoMutexCacheFit', () => {
           const error = await getError(() =>
             assertRepoMutexCacheFit({
               cache: genCacheWithoutVersion({ dir }),
-              rhx,
+              rhx: () => rhx,
             }),
           );
           expect(error).toBeInstanceOf(MalfunctionError);

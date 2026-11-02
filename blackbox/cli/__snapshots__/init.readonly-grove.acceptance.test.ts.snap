@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx init — a read-only grove file (vision case 1) given: [case1] a fresh tree, a HOME whose grove settings.json is 0444 when: [t0] rhx init --roles mechanic then: the screen names settings.of.repo.json, never the grove arrow, and matches snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/boot.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/briefs
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/skills
+   │  └─ + .agent/repo=ehmpathy/role=mechanic/inits
+   └─ stats
+      ├─ $COUNT brief(s)
+      ├─ $COUNT skill(s)
+      └─ $COUNT init(s)
+
+💪 init role repo=ehmpathy/role=mechanic
+   └─ $RELCLIMB$REPO_ROOT/node_modules/.pnpm/rhachet-roles-ehmpathy@$VERSION_@huggingface+transformers@$VERSION_@tensorflow+tfjs@$VERSION_seedrandom@$VERSION_/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/inits/init.claude.sh
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │ 🔐 mechanic permissions configured successfully!
+      │    .claude/settings.of.repo.json
+      │    .claude/settings.of.repo.$TIMESTAMP.bak.json
+      │
+      │ ✨ permissions applied:
+      │    • allow: replaced entirely
+      │    • deny: extended (no duplicates)
+      │    • ask: extended (no duplicates)
+      │
+      │ 👌 claude config ready
+      │
+      └─
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+"
+`;

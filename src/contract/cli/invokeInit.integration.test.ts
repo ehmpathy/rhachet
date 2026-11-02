@@ -174,6 +174,9 @@ describe('invokeInit (integration)', () => {
         const notices = rows.filter((row) => row.includes('this repo pins'));
         expect(notices).toHaveLength(1);
         expect(notices[0]).toContain('runs; this repo pins 0.0.1-pinned');
+
+        // the notice is a note, never a refusal: init proceeds (F3 holds the skew unrefused)
+        expect(exitSpy).not.toHaveBeenCalled();
       });
     });
 

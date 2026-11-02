@@ -1,14 +1,13 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
-import {
-  asRolesPartWayFaultError,
-  isRolesPartWayFaultError,
-  RolesPartWayConstraintError,
-  RolesPartWayMalfunctionError,
-} from './asRolesPartWayFaultError';
+import { asRolesPartWayFaultError } from './asRolesPartWayFaultError';
+import { isRolesPartWayFaultError } from './isRolesPartWayFaultError';
+import { RolesPartWayConstraintError } from './RolesPartWayConstraintError';
+import { RolesPartWayMalfunctionError } from './RolesPartWayMalfunctionError';
 
 const sets = {
+  step: 'init' as const,
   failed: { repo: 'test', role: 'tester' },
   linked: [{ repo: 'test', role: 'tester' }],
   notLinked: [{ repo: 'test', role: 'reviewer' }],

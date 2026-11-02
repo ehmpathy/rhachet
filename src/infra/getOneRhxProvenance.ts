@@ -1,22 +1,25 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { asRecordOrNull } from './asRecordOrNull';
+import { withAbsentAsNull } from './withAbsentAsNull';
 
 /**
  * .what = the package root and version of one rhachet install, or null where none sits there
+ * .note = one read, never a probe then a read; an absent manifest is null, a foreign one too
  */
 const getOneRhachetPackageOrNull = (input: {
   dir: string;
 }): { path: string; version: string } | null => {
-  const manifestPath = join(input.dir, 'package.json');
-  if (!existsSync(manifestPath)) return null;
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-    name?: string;
-    version?: string;
-  };
-  if (manifest.name !== 'rhachet') return null;
+  const content = withAbsentAsNull({
+    read: () => readFileSync(join(input.dir, 'package.json'), 'utf8'),
+  });
+  if (content === null) return null;
+  const manifest = asRecordOrNull({ value: JSON.parse(content) });
+  if (manifest?.name !== 'rhachet') return null;
   return {
     path: realpathSync(input.dir),
-    version: manifest.version ?? 'unknown',
+    version:
+      typeof manifest.version === 'string' ? manifest.version : 'unknown',
   };
 };
 

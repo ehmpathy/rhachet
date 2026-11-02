@@ -1,12 +1,12 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
-import { asActorOndiskExidFromDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskExidFromDirName';
 import {
   REPO_ACTOR_DIR_NAME,
   REPO_ACTOR_DIR_NAME_LEGACY,
 } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneRealpathOrNull } from '@src/infra/getOneRealpathOrNull';
 import { getAllPathsGitCannotRestore } from '@src/infra/git/getAllPathsGitCannotRestore';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setSymlinkSwapped } from '@src/infra/setSymlinkSwapped';
@@ -31,11 +31,10 @@ import {
   relative,
   resolve,
 } from 'node:path';
+import { asRepoBrainDirIsFileError } from './asRepoBrainDirIsFileError';
 import { asRepoBrainDirMigrationPlan } from './asRepoBrainDirMigrationPlan';
-import {
-  assertRepoBrainDirSymlinkLandsHere,
-  getOneRealpathOrNull,
-} from './assertRepoBrainDirSymlinkLandsHere';
+import { assertRepoBrainDirSymlinkLandsHere } from './assertRepoBrainDirSymlinkLandsHere';
+import { isActorBrainDirOfRepo } from './isActorBrainDirOfRepo';
 
 type RepoBrainDirSymlinkEffect = 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
 
@@ -54,27 +53,6 @@ const getOneLstatOrNull = (input: { path: string }) => {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
   }
-};
-
-/**
- * .what = whether a path is the brain dir of an actor dir in this repo's actors root — the
- *         legacy `actor.via.slug=.default`, or any actor rhachet mints
- * .why = such a link is rhachet's own prior link to a former repo actor, so it may be
- *        repointed; a link to any other place is the human's, and is refused
- */
-const isActorBrainDirOfRepo = (input: {
-  repoPath: string;
-  path: string;
-}): boolean => {
-  const actorDir = dirname(dirname(input.path));
-  if (dirname(actorDir) !== getActorsRootDir({ repoPath: input.repoPath }))
-    return false;
-  if (getBrainOndiskDir({ actorDir }) !== input.path) return false;
-  const dirName = basename(actorDir);
-  return (
-    dirName === REPO_ACTOR_DIR_NAME_LEGACY ||
-    asActorOndiskExidFromDirName({ dirName }) !== null
-  );
 };
 
 /**
@@ -201,13 +179,8 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
     };
   }
 
-  // a file → refused (the preflight's one rule); only a dir can migrate
-  if (!stat.isDirectory()) {
-    assertRepoBrainDirSymlinkLandsHere(input);
-    throw new MalfunctionError('<repo>/.claude is neither a dir nor refused', {
-      path: linkPath,
-    });
-  }
+  // a file → refused, in the preflight's words; only a dir can migrate
+  if (!stat.isDirectory()) throw asRepoBrainDirIsFileError({ linkPath });
 
   // a real dir → plan the migration. a name the repo actor dir already holds is NOT a refusal:
   // rhachet owns this dir, and `<repo>/.claude` is the live copy, so the move replaces it
