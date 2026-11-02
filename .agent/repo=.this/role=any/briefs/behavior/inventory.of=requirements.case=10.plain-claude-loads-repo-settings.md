@@ -26,7 +26,7 @@ dir; a real file at the name is REPLACED.
 | tier | test | status |
 |---|---|---|
 | integration | `src/domain.operations/actor/enrolled/setBrainDirSettingsLayout.integration.test.ts` [case1], [case7] — the arrow is findserted, and a real `settings.local.json` is replaced | ✅ green, 2026-10-17 |
-| acceptance | `blackbox/cli/brain-config.grove-vs-repo.realbrain.acceptance.test.ts` [case2] — a real plain claude at the repo root runs the repo's allowed probe with no prompt, and the repo role's boot hook fires | ✅ green, 2026-10-16 · 🟡 rerun owed: the suite's tui waits changed 2026-10-17, and that run met an api key with no credit |
+| acceptance | `blackbox/cli/brain-config.grove-vs-repo.realbrain.acceptance.test.ts` [case2] — a real plain claude at the repo root runs the repo's allowed probe with no prompt, and the repo role's boot hook fires | ✅ green, 2026-10-16 · 🟡 rerun owed: the suite's tui waits changed 2026-10-17, and that run met an api key with no credit · 🟡 since 2026-11-02 the case runs only under `LIVE_API=true` (no credential is funded for ci), so ci skips it; the rerun needs a funded key |
 
 ## .source
 
