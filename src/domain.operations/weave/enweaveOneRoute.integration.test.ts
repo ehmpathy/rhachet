@@ -12,7 +12,6 @@ import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
 import { stitcherCodeDiffImagine } from '@src/.test/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '@src/.test/threads/codeArtist';
-import { exampleThreadDirector } from '@src/.test/threads/director';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
 import { StitchStepCompute } from '@src/domain.objects/StitchStep';
 import { Thread } from '@src/domain.objects/Thread';
@@ -198,13 +197,21 @@ export const sdkOpenMeteo = {
     when('given the threads required', () => {
       let threads: Threads<{
         artist: { tools: string[]; facts: string[] };
-        director: Empty;
+        director: { directive: string };
       }>;
 
       beforeAll(async () => {
         threads = {
           artist: await getExampleThreadCodeArtist(),
-          director: exampleThreadDirector,
+          // a director with a directive, so the brain is told what to diff and never guesses
+          director: new Thread({
+            context: {
+              role: 'director' as const,
+              directive:
+                'add a `timeoutMs` input to sdkOpenMeteo.getWeather, which fails fast when the call exceeds it',
+            },
+            stitches: [],
+          }),
         };
       });
 
