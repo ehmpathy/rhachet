@@ -34,3 +34,11 @@ settled by measurement, 2026-11-02 — b holds. the revert was made and its scop
 (`rhx git.repo.test --what integration --scope 'path://invokeImagineStitcher' --scope 'path://enweaveOne' --mode apply`).
 main's model is retired, so main's own openai suites are red; the swap is that red's cure, not scope
 creep. restored, the same command passed 12/12.
+
+the swap then surfaced one ci red on `enweaveOneRoute` [imagine stitchers]: the brain asked for the
+code rather than diff it. cause — the shared `stitcherCodeDiffImagine` prompt sent no code (it read
+`.output.content` off a file read whose output is the text itself) and no directive (the test's
+director held none), so the brain guessed. cured at the prompt: the code is read from either output
+shape, an absent code or directive fails fast, and the test's director carries a directive. the
+guard bites (a blank directive goes red with `expected the director thread to hold a directive`);
+restored, 4 of 4 runs green, and `enweaveOneStitcher` 2 of 2.
