@@ -1,11 +1,9 @@
 import { given, then, when } from 'test-fns';
 
-import {
-  asBrainDirSyncReportLines,
-  type BrainDirSyncSymlink,
-} from './asBrainDirSyncReportLines';
+import { asBrainDirSyncReportLines } from './asBrainDirSyncReportLines';
 import { BOOT_STATS_ZERO } from './BootStats';
 import type { BrainDirBootRender } from './BrainDirBootRender';
+import type { BrainDirSyncSymlink } from './BrainDirLayoutOutcome';
 
 const REPO_ACTOR_BRAIN_DIR_REL =
   '.agent/.actors/actor.via.repo=ambient/brain/.claude';
@@ -21,6 +19,7 @@ const genRender = (
   stats: { ...BOOT_STATS_ZERO, roles: 2, chars: 4096 },
   agentsMdReset: false,
   bootMdCreated: false,
+  bootMdChanged: false,
   ...overrides,
 });
 
@@ -43,12 +42,14 @@ describe('asBrainDirSyncReportLines', () => {
     () => {
       when('[t0] the lines are rendered', () => {
         const lines = asBrainDirSyncReportLines({
-          render: genRender({ bootMdCreated: true }),
+          render: genRender({ bootMdCreated: true, bootMdChanged: true }),
           symlink: genSymlink({
             effect: 'MIGRATED',
             drops: ['CLAUDE.md'],
             moves: ['settings.json', 'keep.json'],
           }),
+          settingsReplaced: [],
+          excludesDropped: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -69,8 +70,10 @@ describe('asBrainDirSyncReportLines', () => {
   given('[case2] a link this run created, with naught to migrate', () => {
     when('[t0] the lines are rendered', () => {
       const lines = asBrainDirSyncReportLines({
-        render: genRender({ bootMdCreated: true }),
+        render: genRender({ bootMdCreated: true, bootMdChanged: true }),
         symlink: genSymlink({ effect: 'CREATED' }),
+        settingsReplaced: [],
+        excludesDropped: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -85,6 +88,8 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender(),
         symlink: genSymlink({ effect: 'FOUND' }),
+        settingsReplaced: [],
+        excludesDropped: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -104,9 +109,12 @@ describe('asBrainDirSyncReportLines', () => {
           render: genRender({
             scope: { kind: 'actor', actorExid: 'hash=051970ec' },
             bootMdCreated: true,
+            bootMdChanged: true,
             stats: { ...BOOT_STATS_ZERO, roles: 1, chars: 512 },
           }),
           symlink: null,
+          settingsReplaced: [],
+          excludesDropped: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -124,6 +132,8 @@ describe('asBrainDirSyncReportLines', () => {
             scope: { kind: 'actor', actorExid: 'hash=051970ec' },
           }),
           symlink: null,
+          settingsReplaced: [],
+          excludesDropped: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -143,6 +153,8 @@ describe('asBrainDirSyncReportLines', () => {
           moves: ['settings.json', 'rules'],
           overwrites: ['settings.json'],
         }),
+        settingsReplaced: [],
+        excludesDropped: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -162,6 +174,8 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({ agentsMdReset: true }),
         symlink: genSymlink({ effect: 'FOUND' }),
+        settingsReplaced: [],
+        excludesDropped: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -172,5 +186,134 @@ describe('asBrainDirSyncReportLines', () => {
         },
       );
     });
+  });
+
+  given(
+    '[case6] a real settings.local.json the layout replaced with its arrow',
+    () => {
+      when('[t0] the lines are rendered for the repo actor', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender(),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          settingsReplaced: [
+            { name: 'settings.local.json', target: 'settings.of.repo.json' },
+          ],
+          excludesDropped: [],
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then('the replacement is never silent — its content is gone', () => {
+          // a re-render alone says naught (case3); a replaced file is news, so the tree prints
+          expect(lines).toContain('   └─ replaced');
+          expect(lines.join('\n')).toContain(
+            '.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone',
+          );
+          expect(lines).toMatchSnapshot();
+        });
+      });
+    },
+  );
+
+  given('[case7] a real settings.json removed on a box with no grove', () => {
+    when('[t0] the lines are rendered for the repo actor', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender(),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        settingsReplaced: [{ name: 'settings.json', target: null }],
+        excludesDropped: [],
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then(
+        'the removal is never silent, and names why no arrow took its place',
+        () => {
+          expect(lines).toContain('   └─ replaced');
+          expect(lines.join('\n')).toContain(
+            '.claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it',
+          );
+          expect(lines).toMatchSnapshot();
+        },
+      );
+    });
+  });
+
+  given(
+    '[case9] a hand claudeMdExcludes entry the derived list dropped',
+    () => {
+      when('[t0] the lines are rendered for the repo actor', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender(),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          settingsReplaced: [],
+          excludesDropped: ['docs/legacy/CLAUDE.md'],
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then('the drop is news: the tree prints and names the entry', () => {
+          expect(lines).toContain('   └─ unexcluded');
+          expect(lines).toMatchSnapshot();
+        });
+      });
+    },
+  );
+
+  given('[case8] a replaced settings file beside a corpus', () => {
+    when('[t0] the corpus bytes were identical to the prior boot.md', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({ bootMdChanged: false }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        settingsReplaced: [
+          { name: 'settings.local.json', target: 'settings.of.repo.json' },
+        ],
+        excludesDropped: [],
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then(
+        'the boot.md row is absent — an unchanged corpus is no upgrade',
+        () => {
+          expect(lines.join('\n')).not.toContain('boot.md');
+          expect(lines.join('\n')).not.toContain('upgraded');
+        },
+      );
+    });
+
+    when('[t1] the corpus bytes differed from the prior boot.md', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({ bootMdChanged: true }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        settingsReplaced: [
+          { name: 'settings.local.json', target: 'settings.of.repo.json' },
+        ],
+        excludesDropped: [],
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then('the boot.md row says upgraded, after the replaced group', () => {
+        expect(lines).toContain('   └─ boot.md');
+        expect(lines).toContain('      └─ upgraded — 2 roles');
+        expect(lines).toMatchSnapshot();
+      });
+    });
+
+    when(
+      '[t2] the corpus bytes differed, and no settings file was replaced',
+      () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({ bootMdChanged: true }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          settingsReplaced: [],
+          excludesDropped: [],
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then(
+          'no tree prints — a re-render alone is the daily brief edit',
+          () => {
+            expect(lines).toEqual([]);
+          },
+        );
+      },
+    );
   });
 });

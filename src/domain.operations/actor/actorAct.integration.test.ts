@@ -1,6 +1,7 @@
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 
 import { EXAMPLE_REPO_WITH_RIGID_SKILL } from '../../../.test/assets/example.repo/directory';
@@ -29,27 +30,30 @@ describe('actorAct (integration)', () => {
     slug: 'claude/code/haiku',
   }) as unknown as BrainRepl;
 
-  given('[case1] a rigid skill in role.skills.rigid', () => {
-    when('[t0] actorAct is called with pre-resolved skill', () => {
-      then('executes the skill with the brain', async () => {
-        // resolve skill first (as genActor would)
-        const skill = findActorRoleSkillBySlug({
-          slug: 'echo.review',
-          role: testerRole,
-          route: 'rigid',
-        });
+  given.runIf(RUN_LIVE_API_TEST)(
+    '[case1] a rigid skill in role.skills.rigid',
+    () => {
+      when('[t0] actorAct is called with pre-resolved skill', () => {
+        then('executes the skill with the brain', async () => {
+          // resolve skill first (as genActor would)
+          const skill = findActorRoleSkillBySlug({
+            slug: 'echo.review',
+            role: testerRole,
+            route: 'rigid',
+          });
 
-        const result = await actorAct({
-          role: testerRole,
-          brain,
-          skill,
-          args: { content: 'hello world' },
-        });
+          const result = await actorAct({
+            role: testerRole,
+            brain,
+            skill,
+            args: { content: 'hello world' },
+          });
 
-        // brain.act returns structured result
-        expect(result).toBeDefined();
-        expect(typeof result).toEqual('object');
+          // brain.act returns structured result
+          expect(result).toBeDefined();
+          expect(typeof result).toEqual('object');
+        });
       });
-    });
-  });
+    },
+  );
 });

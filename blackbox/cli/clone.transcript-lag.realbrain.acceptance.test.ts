@@ -11,6 +11,7 @@ import {
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { RUN_LIVE_API_TEST } from '@/blackbox/.test/infra/RUN_LIVE_API_TEST';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { genCloneHistoryRelink } from '@src/domain.operations/clone/genCloneHistoryRelink';
@@ -214,7 +215,7 @@ const captureQueuedWindow = async (input: {
 };
 
 describe('A1 refuted — a brain-cli writes a QUEUED message to the transcript at submit (real acceptance)', () => {
-  given('[case1] a real claude with a turn already in flight', () => {
+  given.runIf(RUN_LIVE_API_TEST)('[case1] a real claude with a turn already in flight', () => {
     const scene = useBeforeAll(async () => {
       // the loud gate — a ConstraintError (exit 2) when the real brain or its
       // credentials are absent; this tier proves the premise or fails, never skips

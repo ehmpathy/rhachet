@@ -5,6 +5,7 @@ import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { BrainRepl } from '@src/domain.objects/BrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
@@ -199,7 +200,7 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  given(
+  given.runIf(RUN_LIVE_API_TEST)(
     'a CLI program with invokeAct registered (happy path with real brain)',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;

@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`role inits meet the split brain dir layout given: [case4] a split-layout repo with a real settings.local.json when: [t0] rhx roles init --role tester then: the replaced report is locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   └─ replaced
+      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)"
+`;
+
+exports[`role inits meet the split brain dir layout given: [case5] a split-layout repo with a hand claudeMdExcludes entry when: [t0] rhx init --roles tester then: the unexcluded report is locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   └─ unexcluded
+      └─ **/docs/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped"
+`;
+
+exports[`role inits meet the split brain dir layout given: [case6] a repo whose <repo>/.claude is a plain file when: [t0] rhx roles init --role tester then: the warn tree is locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   └─ 🟡 the layout did not land; run \`rhx init\` to see why"
+`;

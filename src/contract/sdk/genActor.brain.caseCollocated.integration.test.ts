@@ -2,6 +2,7 @@ import * as path from 'path';
 import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -95,20 +96,23 @@ echo '{"summary":"summarized content"}'
       });
     });
 
-    when('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
-      then('executes rigid skill with default brain', async () => {
-        const result = await scribe.act({
-          skill: {
-            summarize: { content: 'a long verbose text about many things' },
-          },
+    when.runIf(RUN_LIVE_API_TEST)(
+      '[t1] scribe.act({ skill: { summarize: { content } } })',
+      () => {
+        then('executes rigid skill with default brain', async () => {
+          const result = await scribe.act({
+            skill: {
+              summarize: { content: 'a long verbose text about many things' },
+            },
+          });
+
+          // brain.act returns structured result
+          expect(result).toBeDefined();
         });
+      },
+    );
 
-        // brain.act returns structured result
-        expect(result).toBeDefined();
-      });
-    });
-
-    when('[t2] scribe.ask({ prompt })', () => {
+    when.runIf(RUN_LIVE_API_TEST)('[t2] scribe.ask({ prompt })', () => {
       then('starts fluid conversation with default brain', async () => {
         const result = await scribe.ask({
           prompt: 'summarize the concept of brevity',

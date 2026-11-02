@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped package name when: [t0] init --keys --roles tester then: stdout matches snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test-repo/role=tester
@@ -28,8 +31,6 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
    └─ created .agent/keyrack.yml
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -80,7 +81,10 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
 `;
 
 exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create manifest anyway) when: [t0] init --keys --roles norack then: stdout matches snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test-repo/role=norack
@@ -104,8 +108,6 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
    └─ created .agent/keyrack.yml
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

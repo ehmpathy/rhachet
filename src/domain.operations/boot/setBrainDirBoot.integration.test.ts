@@ -123,6 +123,42 @@ describe('setBrainDirBoot', () => {
         expect(readFileSync(second.bootMdPath, 'utf8')).toEqual(bytesFirst);
         expect(second.agentsMdReset).toEqual(false);
       });
+
+      then(
+        'the first render is created and changed; the second is neither',
+        async () => {
+          // the report reads these two flags: a byte-identical re-render must never say `upgraded`
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t2b' });
+          const brainDir = join(repoPath, 'brain');
+          const first = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo' },
+          });
+          const second = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo' },
+          });
+          expect(first.bootMdCreated).toEqual(true);
+          expect(first.bootMdChanged).toEqual(true);
+          expect(second.bootMdCreated).toEqual(false);
+          expect(second.bootMdChanged).toEqual(false);
+
+          // a boot.md whose bytes drifted is rewritten, and that IS a change
+          writeFileSync(second.bootMdPath, 'stale corpus');
+          const third = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo' },
+          });
+          expect(third.bootMdCreated).toEqual(false);
+          expect(third.bootMdChanged).toEqual(true);
+        },
+      );
     });
 
     when('[t3] the same roles are rendered in two repos at two paths', () => {

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { ConstraintError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { RUN_LIVE_API_TEST } from '../.test/infra/RUN_LIVE_API_TEST';
 import { spawnProbeBetween } from '../.test/infra/spawnProbeBetween';
 
 /**
@@ -39,7 +40,7 @@ describe('replDoorRealSupplier.realnode.acceptance', () => {
     'probe.replDoorRealSupplierLive.cjs',
   );
 
-  given('[case1] a live haiku brain behind the real anthropic repl', () => {
+  given.runIf(RUN_LIVE_API_TEST)('[case1] a live haiku brain behind the real anthropic repl', () => {
     when('[t0] a depth-0 caller asks the live brain', () => {
       const live = useBeforeAll(async () => {
         // the built artifact must exist; acceptance runs after `npm run build`

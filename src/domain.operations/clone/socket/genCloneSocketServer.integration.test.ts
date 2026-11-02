@@ -700,10 +700,9 @@ describe('genCloneSocketServer.integration', () => {
     //   had just `close()`d. that is `rule.forbid.failhide` produced by the guard written
     //   to retire it, and it made the `'chmod'` allowlist entry unreachable by construction.
     //
-    // ✅ the fault is REAL, never stubbed. node binds a unix socket SYNCHRONOUSLY inside
-    //   `listen()` and emits its listen-success event on the next tick, and the lockdown runs
-    //   on that event. so a socket file removed in between — after the bind landed, before
-    //   the lockdown runs — leaves `chmodSync` to fault `ENOENT` with a structured `syscall`:
+    // ✅ the fault is REAL, never stubbed. the lockdown runs on node's listen-success event,
+    //   after the bind. so a socket file removed in between — by a listener prepended ahead
+    //   of the lockdown — leaves `chmodSync` to fault `ENOENT` with a structured `syscall`:
     //   a bind that succeeded and a lockdown that then failed, which is exactly this row's
     //   subject. the same fault reaches a real clone when a peer reaps its socket file in
     //   that window.
@@ -727,18 +726,27 @@ describe('genCloneSocketServer.integration', () => {
         settle: async () => {},
       });
 
-      // 🚨 synchronous, before any await: the bind has landed, the lockdown has not run yet.
-      //   both are asserted, never assumed, so a node that bound late or locked down early
-      //   fails here by name rather than passes this row over an unexercised path
-      //   (`rule.forbid.faked-or-quarantined-acceptance`)
-      if (!existsSync(socketPath))
-        throw new ConstraintError(
-          '[case15] needs the bind to land inside listen(), so the socket file exists before the lockdown',
-          { socketPath },
-        );
-      unlinkSync(socketPath);
+      // 🚨 remove the file in the window between the bind and the lockdown. a PREPENDED
+      //   listen-success listener runs after the bind landed and before the ready gate's own
+      //   listener, which runs the lockdown — on any node, whether it binds inside `listen()`
+      //   or a tick later. a file-exists check right after `listen()` returned once stood
+      //   here, and it failed on a host whose bind was not yet observable at that point
+      const removal = { fileWasThere: false };
+      server.server.prependListener('listening', () => {
+        removal.fileWasThere = existsSync(socketPath);
+        if (removal.fileWasThere) unlinkSync(socketPath);
+      });
 
       const error = await getError(server.ready);
+
+      // the fault must be the one this row is about: the bind landed, then the file went.
+      //   asserted, never assumed, so an unexercised path fails by name
+      //   (`rule.forbid.faked-or-quarantined-acceptance`)
+      if (!removal.fileWasThere)
+        throw new ConstraintError(
+          '[case15] needs the socket file to exist when listen-success fires, before the lockdown',
+          { socketPath },
+        );
       return { server, error };
     });
     // ⚠️ the optional chain is deliberate. the scene throws by design when a host breaks the

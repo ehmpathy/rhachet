@@ -5,6 +5,7 @@ import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
+import { RUN_LIVE_API_TEST } from '@src/.test/RUN_LIVE_API_TEST';
 import type { ActorBrain } from '@src/domain.objects/ActorInmem';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
@@ -139,29 +140,32 @@ When writing about ocean themes:
       );
     });
 
-    when('[t1] author.ask() is called with BrainRepl', () => {
-      then(
-        'also returns prose response (BrainRepl supports .ask())',
-        async () => {
-          // create actor with BrainRepl as default
-          const authorWithRepl = genCloneInmem({
-            actor: genActor({
-              roles: [authorRole],
-              brains: [brainRepl],
-            }),
-          });
+    when.runIf(RUN_LIVE_API_TEST)(
+      '[t1] author.ask() is called with BrainRepl',
+      () => {
+        then(
+          'also returns prose response (BrainRepl supports .ask())',
+          async () => {
+            // create actor with BrainRepl as default
+            const authorWithRepl = genCloneInmem({
+              actor: genActor({
+                roles: [authorRole],
+                brains: [brainRepl],
+              }),
+            });
 
-          const result = await authorWithRepl.ask({
-            prompt: 'write one sentence about the sea',
-            schema: ACTOR_ASK_DEFAULT_SCHEMA,
-          });
+            const result = await authorWithRepl.ask({
+              prompt: 'write one sentence about the sea',
+              schema: ACTOR_ASK_DEFAULT_SCHEMA,
+            });
 
-          expect(result).toBeDefined();
-          expect(result.output.answer).toBeDefined();
-          expect(result.output.answer.length).toBeGreaterThan(10);
-        },
-      );
-    });
+            expect(result).toBeDefined();
+            expect(result.output.answer).toBeDefined();
+            expect(result.output.answer.length).toBeGreaterThan(10);
+          },
+        );
+      },
+    );
 
     when('[t2] author.run() is called (solid skill, no brain needed)', () => {
       then('executes wordcount skill without brain', async () => {

@@ -1,0 +1,36 @@
+# rule.forbid.sync-invoke-while-a-pty-is-live
+
+> **while a test holds a live background pty, it never calls a child process synchronously.
+> use `invokeRhachetCliBinaryAsync`, never `invokeRhachetCliBinary` (`spawnSync`).**
+
+## .why — a sync call starves the pty it alone drains
+
+`spawnRhachetCliBackground` reads its pty through `child.onData`, which fires only while the test's
+event loop turns. a `spawnSync` freezes that loop. the clone's tui writes without pause, the kernel pty
+buffer fills, the clone blocks inside its own sync tty write, and so cannot serve its socket — a
+`clone say` gets no `delivered` ack, waits out its 30s wedge, and exits **2**. then the loop resumes,
+the pty drains, and the clone delivers the message it held.
+
+⇒ **a deadlock the test made, which reads as a product wedge**: `said.status = 2`, yet `landed = true`.
+🔴 it is load-dependent — solo runs pass; a full parallel suite fills the buffer first.
+
+🟡 only a call that needs the clone's loop (`clone say`) can deadlock; `clone list`/`get` only delay
+the drain. use the async twin for both — the rule is cheaper to hold than the distinction.
+
+measured 2026-09-25, `clone.joker.realbrain` [t4]: exit 2 after 34.5s (the 30s wedge plus a reply).
+on the async twin: 19/19 in 30s solo, 27/27 across the three real-brain suites.
+
+| when… | then… |
+|---|---|
+| a test holds a `spawnRhachetCliBackground` handle | every child call in its scope is async |
+| a say exits 2 but its reply lands moments later | 🔴 suspect this rule before the product |
+| a real-brain flake appears only under the full suite | suspect a starved pty before a slow brain |
+| you add a helper that invokes the cli beside a live pty | it takes the async twin, never the sync one |
+
+scope: blackbox tests and infra that spawn a background pty. a test with no live pty may stay sync.
+
+blocker: a `clone say` via `spawnSync` while a background pty is live.
+nitpick: any other sync child call while a background pty is live.
+
+⇒ see also: `invokeRhachetCliBinary.ts` (the async twin) · `enrollCloneHarness.ts`
+(`sayAndPollForMarker`) · `define.invariant.clone-say-delivery`.

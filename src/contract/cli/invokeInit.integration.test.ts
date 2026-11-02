@@ -652,6 +652,16 @@ describe('invokeInit (integration)', () => {
       return repoPath;
     };
 
+    // pin HOME to a temp home with a grove: the `replaced` row for `settings.json` names the
+    //   grove arrow only where `~/.claude/settings.json` is present, so the box must not decide it
+    const homeBefore = process.env.HOME;
+    beforeAll(() => {
+      const home = genTempDir({ slug: 'init-brain-dirs-home' });
+      mkdirSync(join(home, '.claude'), { recursive: true });
+      writeFileSync(join(home, '.claude', 'settings.json'), '{}\n');
+      process.env.HOME = home;
+    });
+
     beforeEach(() => {
       logSpy.mockClear();
       errorSpy.mockClear();
@@ -659,6 +669,7 @@ describe('invokeInit (integration)', () => {
     });
 
     afterAll(() => {
+      process.env.HOME = homeBefore;
       process.chdir(originalCwd);
       logSpy.mockRestore();
       errorSpy.mockRestore();
@@ -689,10 +700,8 @@ describe('invokeInit (integration)', () => {
               REPO_ACTOR_BRAIN_DIR_REL,
             );
             // the dir moved first (the layout runs before the role inits), so only the hand
-            //   settings.json moved; the role's own init then wrote its permissions into
-            //   claude's settings.json, and the layout replaced it with the grove arrow. one answer,
-            //   rhachet's: the role init's write never reaches settings.of.repo.json (that waits
-            //   on ehmpathy/rhachet-roles-ehmpathy#895, a role init that writes it by name)
+            //   settings.json moved; the role's own init then met the layout in place and wrote
+            //   its permissions into settings.of.repo.json by name (`inventory.of=requirements.case=8`)
             expect(
               asFileContentOrEmpty({
                 path: join(
@@ -701,7 +710,7 @@ describe('invokeInit (integration)', () => {
                   'settings.of.repo.json',
                 ),
               }),
-            ).not.toContain('"permissions"');
+            ).toContain('"permissions"');
             expect(
               lstatSync(
                 join(repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.json'),
@@ -715,30 +724,47 @@ describe('invokeInit (integration)', () => {
               readFileSync(join(repoPath, '.claude', 'boot.md'), 'utf8'),
             ).toContain('repo=ehmpathy/role=mechanic');
             const lines = logSpy.mock.calls.map((call) => String(call[0]));
+            // two trees for the repo actor, each for its own step: the layout step names the
+            //   migration the moment it lands — before the role inits, so an abort in them
+            //   never hides it — and the boot sync after them names the corpus
+            const headerIndexes = lines.flatMap((line, index) =>
+              line === '🧠 brain://repo=ambient' ? [index] : [],
+            );
+            expect(headerIndexes).toHaveLength(2);
             expect(
-              lines.filter((line) => line === '🧠 brain://repo=ambient'),
-            ).toHaveLength(1);
+              lines.findIndex((line) => line.includes('🔧 init')),
+            ).toBeGreaterThan(headerIndexes[0]!);
             // stdout names the drop and the move, so the human can commit the rename —
             //   and each is a ROW of the brain dir tree, never a bare line wedged between
             //   two adjacent treestructs (`rule.require.treestruct-output`)
             expect(lines).toContain(
               '   │  └─ .claude/AGENTS.md — rhachet owns the boot context',
             );
+            // the hand settings.json moved in and was then taken back by the grove arrow, so
+            //   it reads once, as `replaced` — its content is gone
             expect(lines).toContain(
-              `   │  └─ .claude/settings.json → ${REPO_ACTOR_BRAIN_DIR_REL}/settings.json`,
+              '      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)',
             );
             // the asserts above prove the two lines a human ACTS on are present; they
             // cannot catch a reordered block, a lost blank, or a reworded neighbour in
             // the migration report as a whole. this is a human-faced cli surface, so it
             // is pinned whole, BESIDE those asserts rather than in place of them — a
             // snapshot-only case passes on any content once resnapped
-            // (`rule.forbid.failhide`)
-            expect(
-              asMaskedInitReport({
+            // (`rule.forbid.failhide`). both trees are pinned: the layout step's, which
+            // prints before the role inits, and the boot sync's after the last `✨`
+            const layoutStepTree = lines
+              .slice(headerIndexes[0], lines.indexOf('', headerIndexes[0]))
+              .join('\n');
+            expect({
+              layoutStep: asMaskedInitReport({
+                output: layoutStepTree,
+                repoPath,
+              }),
+              bootSync: asMaskedInitReport({
                 output: asMigrationReportOnly(lines.join('\n')),
                 repoPath,
               }),
-            ).toMatchSnapshot();
+            }).toMatchSnapshot();
           },
         );
       },
@@ -817,15 +843,23 @@ describe('invokeInit (integration)', () => {
               )?.isFile() ?? false,
             ).toBe(false);
 
-            // the overwritten row is marked, so a human knows which file to diff
+            // the file moved in and was then taken back by the arrow, so its content is gone:
+            //   it reads once, as `replaced`, never as a `moved` row that says it survived
             const lines = logSpy.mock.calls.map((call) => String(call[0]));
             expect(
-              lines.some(
-                (line) =>
-                  line.includes('.claude/settings.json →') &&
-                  line.endsWith('(replaced)'),
+              lines.some((line) =>
+                line.includes(
+                  '.claude/settings.json → settings.of.grove.json — a real file was here; its content is gone',
+                ),
               ),
             ).toBe(true);
+            expect(
+              lines.some((line) =>
+                line.includes(
+                  `.claude/settings.json → ${REPO_ACTOR_BRAIN_DIR_REL}/settings.json`,
+                ),
+              ),
+            ).toBe(false);
           },
         );
       },
