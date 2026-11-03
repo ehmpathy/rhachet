@@ -36,6 +36,7 @@ reviewer checks a change against it.
 | 7 | [a brain dir holds one answer, rhachet's — no kept-aside copies](./inventory.of=requirements.case=7.no-kept-aside-one-answer.md) | proven |
 | 8 | [role inits meet the split layout: `settings.of.repo.json` always present, the layout before the inits](./inventory.of=requirements.case=8.role-inits-meet-the-split-layout.md) | proven |
 | 9 | 🔴 [a clone loads no hook from a role it is not enrolled in, from any settings layer](./inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md) | proven |
+| 10 | [two repos that ship one role slug both boot — neither is dropped](./inventory.of=requirements.case=10.same-slug-roles-boot-apart.md) | owed |
 
 ## .how to add an entry
 
