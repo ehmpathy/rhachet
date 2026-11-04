@@ -1,12 +1,10 @@
-import { ConstraintError } from 'helpful-errors';
 import * as path from 'path';
-import { genBrainRepl as genBrainReplAnthropic } from 'rhachet-brains-anthropic';
-import { genBrainAtom as genBrainAtomXAI } from 'rhachet-brains-xai';
 import { given, then, when } from 'test-fns';
 import { z } from 'zod';
 
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
-import type { ActorBrain } from '@src/domain.objects/ActorInmem';
+import type { MockedBrainCall } from '@src/.test.assets/asMockedBrainCall';
+import { genMockedBrainAtom } from '@src/.test.assets/genMockedBrainAtom';
+import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
@@ -18,20 +16,7 @@ import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
  * .what = integration test for actor.ask() with BrainAtom support
  * .why = demonstrates that both BrainAtom and BrainRepl work with actor.ask()
  */
-describeBrainLiveOnDemand('genActor.brain.caseAskable (integration)', () => {
-  jest.setTimeout(60000);
-
-  // fail fast if api keys not available; inside the gate, so a skipped suite reads no key
-  beforeAll(() => {
-    if (!process.env.XAI_API_KEY)
-      throw new ConstraintError(
-        'XAI_API_KEY is required for integration tests',
-        {
-          hint: 'rhx keyrack unlock --owner ehmpath --env test',
-        },
-      );
-  });
-
+describe('genActor.brain.caseAskable (integration)', () => {
   given('[case1] author role with mixed brain allowlist', () => {
     // setup: use temp dir within project
     const tmpDir = path.resolve(__dirname, './.temp/caseAskable');
@@ -61,21 +46,17 @@ echo '{"count":5}'
       );
       chmodSync(wordcountPath, '755');
 
-      // create writing brief about prose style
+      // create a brief about prose style
       writeFileSync(
         path.join(briefsDir, 'prose-style.brief.md'),
-        `# Prose Writing Guidelines
+        `# Prose Guidelines
 
-You are a creative writer who specializes in evocative, nature-inspired prose.
-
-When writing about ocean themes:
-- Use vivid sensory details
-- Incorporate movement and rhythm
-- Evoke feelings of peace and wonder
+You are a creative author who specializes in evocative, nature-inspired prose.
 `,
       );
 
       // switch to temp directory
+      // .note = deliberate global mutation: the actor finds its briefs and skills from the cwd; afterAll restores it
       process.chdir(tmpDir);
     });
 
@@ -104,14 +85,18 @@ When writing about ocean themes:
       briefs: { dirs: { uri: '.agent/repo=.this/role=author/briefs' } },
     });
 
-    // create brains: BrainAtom (xAI) and BrainRepl (claude haiku)
-    // note: external brains from npm packages don't have spec yet; cast for compatibility
-    const brainAtom = genBrainAtomXAI({
-      slug: 'xai/grok/3-mini',
-    }) as unknown as ActorBrain;
-    const brainRepl = genBrainReplAnthropic({
-      slug: 'claude/code/haiku',
-    }) as unknown as ActorBrain;
+    // create brains: a mocked BrainAtom and a mocked BrainRepl, each records its own calls
+    // .mock = the brains, injected via genMockedBrainAtom / genMockedBrainRepl; their docblocks hold the .why and the .real
+    const callsAtom: MockedBrainCall[] = [];
+    const callsRepl: MockedBrainCall[] = [];
+    const brainAtom = genMockedBrainAtom({
+      output: { ask: { answer: 'sun on the swell, a turtle rides it in' } },
+      onInvoke: (call) => callsAtom.push(call),
+    });
+    const brainRepl = genMockedBrainRepl({
+      output: { ask: { answer: 'the sea breathes' } },
+      onInvoke: (call) => callsRepl.push(call),
+    });
 
     // create actor with mixed brains (BrainAtom first)
     const author = genCloneInmem({
@@ -121,54 +106,66 @@ When writing about ocean themes:
       }),
     });
 
-    when('[t0] author.ask() is called with BrainAtom', () => {
+    // each case reads only the calls it made
+    // .note = deliberate mutation: each mock closes over its array, so it is reset in place
+    beforeEach(() => {
+      callsAtom.length = 0;
+      callsRepl.length = 0;
+    });
+
+    when('[t0] author.ask() is called with BrainAtom as the default', () => {
       then(
-        'returns creative prose about sunshine ocean surfer turtles',
+        'the atom answers, handed the role brief and the prompt',
         async () => {
           const result = await author.ask({
             prompt:
-              'write a short prose paragraph (2-3 sentences) about sunshine, ocean, surfer, and turtles',
+              'write a short prose paragraph about sunshine, ocean, surfer, and turtles',
             schema: ACTOR_ASK_DEFAULT_SCHEMA,
           });
 
-          expect(result).toBeDefined();
-          expect(result.output.answer).toBeDefined();
-          expect(result.output.answer.length).toBeGreaterThan(50);
-
-          // verify content contains expected themes (case-insensitive)
-          const response = result.output.answer.toLowerCase();
+          expect(result.output.answer).toEqual(
+            'sun on the swell, a turtle rides it in',
+          );
+          expect(callsAtom).toHaveLength(1);
+          expect(callsAtom[0]?.prompt).toContain('turtles');
           expect(
-            response.includes('sun') ||
-              response.includes('ocean') ||
-              response.includes('surf') ||
-              response.includes('turtle'),
+            callsAtom[0]?.briefs.some((uri) =>
+              uri.endsWith('prose-style.brief.md'),
+            ),
           ).toBe(true);
+          expect(callsRepl).toHaveLength(0);
+
+          // the whole envelope an sdk caller of actor.ask receives, from an atom
+          // .note = the metrics are the mock's constants (genMockedBrainOutputMetrics); the hashes are content hashes
+          expect(result).toMatchSnapshot();
         },
       );
     });
 
-    when('[t1] author.ask() is called with BrainRepl', () => {
-      then(
-        'also returns prose response (BrainRepl supports .ask())',
-        async () => {
-          // create actor with BrainRepl as default
-          const authorWithRepl = genCloneInmem({
-            actor: genActor({
-              roles: [authorRole],
-              brains: [brainRepl],
-            }),
-          });
+    when('[t1] author.ask() is called with BrainRepl as the default', () => {
+      then('the repl answers (BrainRepl supports .ask())', async () => {
+        // create actor with BrainRepl as default
+        const authorWithRepl = genCloneInmem({
+          actor: genActor({
+            roles: [authorRole],
+            brains: [brainRepl],
+          }),
+        });
 
-          const result = await authorWithRepl.ask({
-            prompt: 'write one sentence about the sea',
-            schema: ACTOR_ASK_DEFAULT_SCHEMA,
-          });
+        const result = await authorWithRepl.ask({
+          prompt: 'write one sentence about the sea',
+          schema: ACTOR_ASK_DEFAULT_SCHEMA,
+        });
 
-          expect(result).toBeDefined();
-          expect(result.output.answer).toBeDefined();
-          expect(result.output.answer.length).toBeGreaterThan(10);
-        },
-      );
+        expect(result.output.answer).toEqual('the sea breathes');
+        expect(callsRepl).toHaveLength(1);
+        expect(callsRepl[0]?.verb).toEqual('ask');
+        expect(callsAtom).toHaveLength(0);
+
+        // the whole envelope an sdk caller of actor.ask receives, from a repl
+        // .note = the metrics are the mock's constants (genMockedBrainOutputMetrics); the hashes are content hashes
+        expect(result).toMatchSnapshot();
+      });
     });
 
     when('[t2] author.run() is called (solid skill, no brain needed)', () => {
@@ -178,6 +175,8 @@ When writing about ocean themes:
         });
 
         expect(result).toEqual({ count: 5 });
+        expect(callsAtom).toHaveLength(0);
+        expect(callsRepl).toHaveLength(0);
       });
     });
   });

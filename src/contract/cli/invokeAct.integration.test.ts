@@ -1,12 +1,10 @@
 import { Command } from 'commander';
-import { genBrainRepl as genBrainReplAnthropic } from 'rhachet-brains-anthropic';
-import { genBrainRepl as genBrainReplOpenAI } from 'rhachet-brains-openai';
 import { getError, given, then, when } from 'test-fns';
 import { z } from 'zod';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
-import type { BrainRepl } from '@src/domain.objects/BrainRepl';
+import type { MockedBrainCall } from '@src/.test.assets/asMockedBrainCall';
+import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -15,7 +13,7 @@ import { testerRole } from '../../../.test/assets/example.repo/repo-with-role-wi
 import { invokeAct } from './invokeAct';
 
 describe('invokeAct (integration)', () => {
-  given('a CLI program with invokeAct registered (error handling)', () => {
+  given('[case1] a CLI program with invokeAct registered, error cases', () => {
     // create test role with rigid skill schema
     const testRole = new Role({
       slug: 'summarizer',
@@ -55,7 +53,7 @@ describe('invokeAct (integration)', () => {
     });
     invokeAct({ program }, mockContext);
 
-    when('act command is invoked with no brains available', () => {
+    when('[t0] act command is invoked with no brains available', () => {
       then('it throws error about no brains', async () => {
         const args = [
           'act',
@@ -74,7 +72,7 @@ describe('invokeAct (integration)', () => {
       });
     });
 
-    when('act command is invoked with nonexistent role', () => {
+    when('[t1] act command is invoked with nonexistent role', () => {
       // need brains for this test to reach the role validation logic
       const programWithBrain = new Command();
       programWithBrain.exitOverride();
@@ -114,7 +112,7 @@ describe('invokeAct (integration)', () => {
       });
     });
 
-    when('act command is invoked with invalid brain format', () => {
+    when('[t2] act command is invoked with invalid brain format', () => {
       // need brains for this test to reach the brain validation logic
       const programWithBrain = new Command();
       programWithBrain.exitOverride(); // prevent process.exit in tests
@@ -157,7 +155,7 @@ describe('invokeAct (integration)', () => {
       });
     });
 
-    when('act command is invoked with --attempts but no --output', () => {
+    when('[t3] act command is invoked with --attempts but no --output', () => {
       // need brains for this test
       const programWithBrain = new Command();
       programWithBrain.exitOverride(); // prevent process.exit in tests
@@ -200,15 +198,15 @@ describe('invokeAct (integration)', () => {
     });
   });
 
-  // each case in this block calls a live brain, so the block runs only on demand
-  describeBrainLiveOnDemand(
-    'given: a CLI program with invokeAct registered (happy path with real brain)',
+  given(
+    '[case2] a CLI program with invokeAct registered, and two mocked brains under real refs',
     () => {
       const testAssetDir = EXAMPLE_REPO_WITH_RIGID_SKILL;
       const originalCwd = process.cwd();
 
       beforeAll(() => {
         // switch to test asset directory for skill discovery
+        // .note = deliberate global mutation: getRoleBriefs reads the cwd; afterAll restores it
         process.chdir(testAssetDir);
       });
 
@@ -216,15 +214,24 @@ describe('invokeAct (integration)', () => {
         process.chdir(originalCwd);
       });
 
-      // create real brains via genBrainRepl: haiku is the default (the test key reaches it);
-      // codex is named explicitly, to prove --brain routes the call to the openai service
-      // note: external brains from npm packages don't have spec yet; cast for compatibility
-      const brainHaiku = genBrainReplAnthropic({
+      // two mocked repls under real brain refs, each records its own calls: the first is the
+      // default; the refs keep their real shapes, since --brain parse depends on them
+      // .mock = the brains, injected via genMockedBrainRepl; its docblock holds the .why and the .real
+      const callsHaiku: MockedBrainCall[] = [];
+      const callsCodex: MockedBrainCall[] = [];
+      const echoReviewed = { echoed: 'hello world', reviewed: true };
+      const brainHaiku = genMockedBrainRepl({
+        repo: 'anthropic',
         slug: 'claude/code/haiku',
-      }) as unknown as BrainRepl;
-      const brainCodex = genBrainReplOpenAI({
+        output: { act: echoReviewed },
+        onInvoke: (call) => callsHaiku.push(call),
+      });
+      const brainCodex = genMockedBrainRepl({
+        repo: 'openai',
         slug: 'openai/codex',
-      }) as unknown as BrainRepl;
+        output: { act: echoReviewed },
+        onInvoke: (call) => callsCodex.push(call),
+      });
 
       const testRegistry: RoleRegistry = {
         slug: '.this',
@@ -242,6 +249,9 @@ describe('invokeAct (integration)', () => {
 
       beforeEach(() => {
         logSpy.mockClear();
+        // .note = deliberate mutation: each mock closes over its array, so it is reset in place
+        callsHaiku.length = 0;
+        callsCodex.length = 0;
       });
 
       // register with mock context that provides the tester registry and brain
@@ -254,7 +264,7 @@ describe('invokeAct (integration)', () => {
       });
       invokeAct({ program }, happyContext);
 
-      when('act command is invoked with default brain', () => {
+      when('[t0] act command is invoked with default brain', () => {
         then('it executes the rigid skill with the default brain', async () => {
           const args = [
             'act',
@@ -273,12 +283,28 @@ describe('invokeAct (integration)', () => {
               'act rigid skill repo=.this/role=tester/skill=echo.review',
             ),
           );
+
+          // the default brain took the call, with the skill and its input
+          expect(callsHaiku).toHaveLength(1);
+          expect(callsHaiku[0]?.prompt).toContain('echo.review');
+          expect(callsHaiku[0]?.prompt).toContain('hello world');
+          expect(
+            callsHaiku[0]?.briefs.every((uri) => uri.includes('role=tester')),
+          ).toBe(true);
+          expect(callsHaiku[0]?.briefs.length).toBeGreaterThan(0);
+          expect(callsCodex).toHaveLength(0);
+
+          // the full stdout a caller reads, so a drift anywhere on it shows in review
+          // .note = the metrics are the mock's constants (genMockedBrainOutputMetrics); the hashes are content hashes
+          const stdout = logSpy.mock.calls
+            .map((call) => call.map(String).join(' '))
+            .join('\n');
+          expect(stdout).toMatchSnapshot();
         });
       });
 
-      when('act command is invoked with explicit --brain', () => {
-        // the ehmpath test key holds no codex model, so the openai service refuses the call.
-        // that refusal is the proof: only the specified brain reaches the openai service
+      when('[t1] act command is invoked with explicit --brain', () => {
+        // the proof: only the named brain records the call
         then(
           'it routes the call to the specified brain from allowlist',
           async () => {
@@ -293,23 +319,27 @@ describe('invokeAct (integration)', () => {
               '--input',
               '{"content":"hello world"}',
             ];
-            const error = await getError(() =>
-              program.parseAsync(args, { from: 'user' }),
-            );
+            await program.parseAsync(args, { from: 'user' });
 
             expect(logSpy).toHaveBeenCalledWith(
               expect.stringContaining(
                 'act rigid skill repo=.this/role=tester/skill=echo.review',
               ),
             );
-            expect(error?.message).toContain('model_not_found');
-            expect(error?.message).toContain('codex');
+            expect(callsCodex).toHaveLength(1);
+            expect(callsHaiku).toHaveLength(0);
+
+            // the snap pins the envelope this route prints; the call counts above pin the route
+            const stdout = logSpy.mock.calls
+              .map((call) => call.map(String).join(' '))
+              .join('\n');
+            expect(stdout).toMatchSnapshot();
           },
         );
       });
 
       when(
-        'act command is invoked with --brain repo/slug for an anthropic brain',
+        '[t2] act command is invoked with --brain repo/slug for an anthropic brain',
         () => {
           // the anthropic slug does not open with its repo, so the flag reads as repo/rest
           then('it executes the rigid skill with the named brain', async () => {
@@ -331,11 +361,19 @@ describe('invokeAct (integration)', () => {
                 'act rigid skill repo=.this/role=tester/skill=echo.review',
               ),
             );
+            expect(callsHaiku).toHaveLength(1);
+            expect(callsCodex).toHaveLength(0);
+
+            // the snap pins the envelope this route prints; the call counts above pin the route
+            const stdout = logSpy.mock.calls
+              .map((call) => call.map(String).join(' '))
+              .join('\n');
+            expect(stdout).toMatchSnapshot();
           });
         },
       );
 
-      when('act command is invoked with brain not in allowlist', () => {
+      when('[t3] act command is invoked with brain not in allowlist', () => {
         then('it throws error about brain not in allowlist', async () => {
           const args = [
             'act',
@@ -354,6 +392,7 @@ describe('invokeAct (integration)', () => {
 
           expect(error).toBeDefined();
           expect(error?.message).toMatch(/not.*allowlist/i);
+          expect(error?.message).toMatchSnapshot();
         });
       });
     },
