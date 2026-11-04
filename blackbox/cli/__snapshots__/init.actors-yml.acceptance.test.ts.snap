@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 2 actor(s), 3 role(s) declared
+   └─ short → restored
+      ├─ ehmpathy/mechanic ↺ linked
+      ├─ bhuild/behaver ↺ linked
+      └─ bhrain/librarian ↺ linked"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role linked by hand, then a manifest that omits it when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @solo
+   ├─ 1 actor(s), 1 role(s) declared
+   ├─ in sync, no role short
+   └─ extra → kept, undeclared
+      └─ ehmpathy/architect
+         ├─ to keep it, declare \`ehmpathy/architect\` in .agent/actors.yml
+         └─ to drop it, unlink .agent/repo=ehmpathy/role=architect"
+`;

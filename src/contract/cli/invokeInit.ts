@@ -90,6 +90,22 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           ? getRoleDeltaTokens({ raw: options.roles })
           : undefined;
 
+        // read `.agent/actors.yml`, if the repo declares one; absent → today's behavior (case=5)
+        const { getActorsManifest } = await import(
+          '@src/domain.operations/actor/manifest/getActorsManifest'
+        );
+        const actorsManifest = getActorsManifest({ repoPath: context.gitroot });
+
+        // refuse: `--roles` beside a manifest is two sources of truth
+        if (actorsManifest && rolesDecoded && rolesDecoded.length > 0)
+          throw new ConstraintError(
+            '--roles is refused beside .agent/actors.yml',
+            {
+              roles: rolesDecoded,
+              hint: 'edit the actor roles in .agent/actors.yml, then run `rhx init` with no --roles. to keep a --roles list instead, remove .agent/actors.yml',
+            },
+          );
+
         // validate: --prep requires --roles
         if (options.prep && (!rolesDecoded || rolesDecoded.length === 0)) {
           throw new ConstraintError('--prep requires --roles', {
@@ -98,8 +114,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           });
         }
 
-        // validate: --keys requires --roles
-        if (options.keys && (!rolesDecoded || rolesDecoded.length === 0)) {
+        // validate: --keys requires --roles, or a manifest to name them
+        if (
+          options.keys &&
+          !actorsManifest &&
+          (!rolesDecoded || rolesDecoded.length === 0)
+        ) {
           throw new ConstraintError(
             '--keys requires --roles to specify which role keyracks to extend',
             {
@@ -145,16 +165,26 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
         //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits
         const layoutBeforeInits =
-          deltas !== null
+          deltas !== null || actorsManifest
             ? await setRepoActorBrainDirLayoutBeforeInits({
                 repoPath: context.gitroot,
               })
             : null;
 
+        // manifest => link the union of every declared actor's roles, after its drift report (F6)
+        const manifestInit = actorsManifest
+          ? await (
+              await import(
+                '@src/domain.operations/actor/manifest/initRolesFromActorsManifest'
+              )
+            ).initRolesFromActorsManifest({ manifest: actorsManifest }, context)
+          : null;
+
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
         const rolesInitHasErrors = await (async (): Promise<boolean> => {
+          if (manifestInit) return manifestInit.result.errors.length > 0;
           if (!deltasUnfocused) return false;
 
           const mode = getRoleDeltaMode({ deltas: deltasUnfocused });
@@ -206,6 +236,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           lines.forEach((line) => console.log(line));
         }
 
+        // no manifest + --roles => one dim hint, after the link trees, that names the manifest (case=5)
+        if (!actorsManifest && deltas !== null)
+          console.log(
+            '\x1b[2m💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\x1b[0m\n',
+          );
+
         // an incremental delta reaches the `prepare:rhachet` replay, so the next install
         // never re-links a removed role (critical: inventory.of=requirements.case=1)
         const prepareDelta = await setPrepareRhachetOfIncrementalOrNull(
@@ -213,10 +249,16 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           context,
         );
 
-        // flag: --keys => init keyrack manifest (after roles); plain slugs only
-        if (options.keys && roleSlugsUnfocused.length > 0) {
+        // flag: --keys => init keyrack manifest (after roles); plain slugs only.
+        //   under a manifest, the slugs are the declared union's
+        const roleSlugsForKeys = manifestInit
+          ? manifestInit.roleSpecifiers.map(
+              (specifier) => specifier.split('/').pop() ?? specifier,
+            )
+          : roleSlugsUnfocused;
+        if (options.keys && roleSlugsForKeys.length > 0) {
           const result = await initKeyrackRepoManifest(
-            { roles: roleSlugsUnfocused },
+            { roles: roleSlugsForKeys },
             context,
           );
 
@@ -250,7 +292,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // flag: --roles or --hooks => re-render every brain dir boot, after the links land.
         // it precedes the hook sync, so a repo never drops its boot hooks before boot.md exists
         const boots =
-          deltas !== null || options.hooks !== undefined
+          deltas !== null || actorsManifest || options.hooks !== undefined
             ? await syncAndReportBrainDirBoots(
                 {
                   repoPath: context.gitroot,
@@ -308,6 +350,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // no flags => show usage instructions
         const hasAnyFlag =
           rolesDecoded ||
+          actorsManifest ||
           options.keys ||
           options.hooks !== undefined ||
           options.prep ||

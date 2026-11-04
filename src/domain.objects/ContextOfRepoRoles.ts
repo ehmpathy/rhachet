@@ -9,6 +9,12 @@ export interface ContextOfRepoRoles {
   repo: {
     ambient: {
       /**
+       * .what = the exid of the repo actor, the one actor that holds the ambient roles —
+       *         `repo=ambient`, or `slug=<x>` under `ambient: '@<x>'` (`getOneRepoActorExid`)
+       */
+      exid: string;
+
+      /**
        * .what = the repo's ambient roles — the roles every bare enroll inherits
        * .note = a slug may carry a focus (`mechanic::flow`); read the role alone via asRoleFocusParts
        */

@@ -2,90 +2,90 @@
 
 ## .what
 
-`actors.yml` lets a repo declare its own **actors** by slug — a durable `{ brain, roles }` identity —
-so a clone is spawnable by name (`rhx clone actor://<slug>`) instead of a re-typed `--roles` spec on
-every run.
+`actors.yml` lets a repo declare its **actors** by slug — a durable `{ brain, roles }` identity — and
+name which one is the **repo actor**. `rhx init` links their roles from it, so no `--roles` list lives
+in `prepare:rhachet`, and a clone is spawnable by name (`rhx clone @<slug>`).
 
 an **actor** is a brain enrolled in a set of roles (the identity); a **clone** is a live run of that
 actor (see [`define.actor-clone-hierarchy.md`](../../../role=any/briefs/define.actor-clone-hierarchy.md)).
 
 ## the manifest
 
-path: `.agent/actors.yml` — a peer of `.agent/keyrack.yml`, since a repo may declare actors with no
-native roles of its own
+path: `.agent/actors.yml` — a peer of `.agent/keyrack.yml`, since an actor belongs to the repo, and a
+repo may declare actors with no native roles of its own
 
 ```yaml
+ambient: '@builder'               # the repo actor — required, by name
+
 actor:
-  - slug: mechanic
-    brain: claude
+  - slug: builder                 # brain propagates up from @ehmpathy/builder
     roles:
-      - ehmpathy/mechanic
-      - ehmpathy/architect
-      - bhrain/driver
+      - '@ehmpathy/builder'       # a published actor, adopted by name
+      - +bhrowser/playwright      # plus a role
+
+  - slug: scholar
+    brain: anthropic/claude/code
+    roles: [bhrain/librarian, bhrain/learner, ehmpathy/architect]
 
   - slug: foreman
-    brain: claude
     roles:
-      - '@mechanic'      # base = the mechanic actor (a peer) — quoted: yaml reserves @ at the start of a value
-      - -driver           # minus the driver role
-      - +supervisor       # plus a supervisor role
+      - '@builder'                # a peer actor as the base
+      - -driver                   # minus the driver role
 ```
 
-each entry declares:
+🟡 quote every value that opens with `@` — yaml reserves it. an unquoted `@builder` fails to parse, and
+the error names the quote fix.
 
-| field   | what                                                        |
-| ------- | ----------------------------------------------------------- |
-| `slug`  | the actor's name — how you address it (`@<slug>` ≡ `actor://<slug>`) |
-| `brain` | the inference cli the actor enrolls (e.g. `claude`)          |
-| `roles` | the role-set — fully-qualified roles (`<supplier>/<role>`), or a base **peer actor** (`@<slug>`) with `+role` / `-role` deltas over it |
+| field | what |
+|---|---|
+| `ambient` | the **repo actor** — the one a bare `rhx enroll` (and a bare `claude`) reaches, and the one that holds the ambient roles. **required**, even with one actor: the repo actor is never inferred |
+| `slug` | the actor's name — how you address it (`@<slug>`) |
+| `brain` | the brain the actor enrolls (any slug `rhx enroll` accepts). may be omitted where the actor extends a base: the base's brain propagates up, and a local `brain:` overrides it |
+| `roles` | either fully-qualified roles (`<repo>/<role>`, or a bare slug where unambiguous), **or** one base actor first — `'@<slug>'` (a peer) or `'@<repo>/<slug>'` (published) — then `+role` / `-role` deltas. never both |
 
-name the slug after the actor's **composite role** (`longboarder`, `redteamer`), never a person — an
-actor is a recipe, and each clone gets its own name via `--as`. see
+name the slug after the actor's **composite role** (`builder`, `redteamer`), never a person — an actor
+is a recipe, and each clone gets its own name via `--as`. see
 [`rule.prefer.name-actors-after-roles.md`](./rule.prefer.name-actors-after-roles.md).
 
-### bases: explicit roles or a peer actor
+### what `rhx init` does with it
 
-an `actors.yml` role-set is either **fully-qualified roles** or a base **peer actor** (`@<slug>`)
-with `+`/`-` deltas over it.
+- links the **union** of every declared actor's roles, so every actor finds its roles linked
+- prints the drift between declared and linked: **short** roles are restored; **extra** roles are kept
+  and named, with the fix either way — never silently removed
+- refuses `--roles` beside the manifest (two sources of truth): edit `actors.yml` instead
+- fails fast before any write on an invalid manifest — no `ambient:`, an unknown base, a cycle, a mix of
+  roles and deltas, or an actor that reaches no brain
 
-the repo's *default role-set* is an **enroll-time** concept — it belongs to `rhx enroll` from within
-a repo. an actor cannot see it: actor scope is portable and repo-agnostic, so default roles are out
-of scope there entirely. base off a named peer actor (`@mechanic`) instead.
+with no `actors.yml`, `rhx init --roles …` behaves exactly as it did; one dim line names this file.
 
-> **notation** — `@<slug>` is the actor sigil (shorthand for `actor://<slug>`). the full sigil
-> rationale — the `@:` clone sigil and the distilisys convergence too — lives in
-> [`define.address-sigils.md`](./define.address-sigils.md).
+### bases: a peer, or a published actor
+
+a base is a **peer** in this file (`'@builder'`) or a **published** actor of an installed role package
+(`'@ehmpathy/builder'`). a published base expands from the **installed** package version, so when the
+package grows the actor, every repo that extends it gains the role at its next `rhx init`. to hold a
+base still, pin the package version.
 
 ## spawn a clone of a declared actor
 
 ```bash
-rhx clone actor://mechanic            # local slug, from this repo's actors.yml
-rhx clone actor://ehmpathy/mechanic   # supplier-qualified, when a name needs disambiguation
+rhx clone @scholar               # a fresh clone, on the actor's own brain and roles
+rhx enroll @scholar              # the same, via the enroll alias
+rhx clone @scholar +mechanic     # an override: a delta clone, still tethered to @scholar
 ```
 
-resolution order:
+no brain is typed: the actor names its own. a plain role list beside `@<slug>` is refused — that is the
+inline form, `rhx enroll <brain> --roles …`, for a one-off composition with no name yet.
 
-1. local `.agent/actors.yml`
-2. supplier-qualified `actor://<supplier>/<slug>` from installed role packages
-3. else — an error that names the candidates it found
+## publish actors from a role package
 
-## supplier-shipped actor declarations
-
-each `rhachet-roles-<supplier>` package can ship the actors it recommends, so you enroll a curated,
-supplier-blessed actor without hand-assembly of the role-set:
-
-```bash
-rhx clone actor://ehmpathy/mechanic   # the mechanic actor ehmpathy recommends
-```
-
-## use a declared actor
-
-once declared, bake and talk to clones of the actor — `rhx clone make actor://<slug>`, then `say` /
-`get`. see [`howto.use.clones.md`](./howto.use.clones.md) for the full clone surface.
+a role package publishes the actors it recommends: `getRoleRegistry()` sets `actors: { uri }` to a yml
+in the same shape, with no `ambient:` (the repo actor is the consumer's choice). `rhachet repo
+introspect` inlines them into `rhachet.repo.yml` as `actors:`, and a consumer adopts one as
+`'@<repo>/<slug>'`.
 
 ## see also
 
 - [`rule.prefer.name-actors-after-roles.md`](./rule.prefer.name-actors-after-roles.md) — name actors after their composite role, not a person
-- [`howto.use.clones.md`](./howto.use.clones.md) — bake (make/fork/wake) + talk (list/say/get) to clones
-- [`.dream/2026_08_07.clone-actor-from-actors-yml.dream.md`](../../../../../.dream/2026_08_07.clone-actor-from-actors-yml.dream.md) — the full dream + `gen <make|fork|wake>` grammar
+- [`howto.use.clones.md`](./howto.use.clones.md) — bake and talk to clones
+- [`define.address-sigils.md`](./define.address-sigils.md) — `@<slug>` for an actor, `@:<slug>` for a clone
 - [`define.actor-clone-hierarchy.md`](../../../role=any/briefs/define.actor-clone-hierarchy.md) — the clone → actor → { brain, roles } model

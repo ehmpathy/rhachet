@@ -319,4 +319,64 @@ describe('findsertAgentEphemeralGitignore', () => {
       });
     });
   });
+
+  given(
+    "[case8] a git repo whose actors.yml names `ambient: '@builder'`",
+    () => {
+      // the repo actor is the `ambient:` actor, so its dir is the one spared
+      const scene = useBeforeAll(async () => {
+        const repo = genTempDir({
+          slug: 'ephemeral-gitignore-manifest',
+          git: true,
+        });
+        mkdirSync(join(repo, '.agent'), { recursive: true });
+        writeFileSync(
+          join(repo, '.agent', 'actors.yml'),
+          [
+            "ambient: '@builder'",
+            'actor:',
+            '  - slug: builder',
+            '    brain: anthropic/claude/code',
+            '    roles: [ehmpathy/mechanic]',
+          ].join('\n'),
+          'utf8',
+        );
+        const actorsDir = join(repo, '.agent', '.actors');
+        findsertAgentEphemeralGitignore({ dir: actorsDir, kind: 'actors' });
+        return { repo, actorsDir };
+      });
+
+      when('[t0] the .actors self-ignore is created', () => {
+        then('it re-includes the `slug=builder` brain dir', () => {
+          const content = readFileSync(
+            join(scene.actorsDir, '.gitignore'),
+            'utf8',
+          );
+          expect(content).toContain('\n!/actor.via.slug=builder/\n');
+          expect(content).toContain(
+            '\n!/actor.via.slug=builder/brain/.claude/\n',
+          );
+          expect(content).not.toContain('repo=ambient');
+        });
+
+        then(
+          'git spares the `slug=builder` brain dir and ignores `repo=ambient`',
+          () => {
+            expect(
+              getOneIsPathIgnoredByGit({
+                repo: scene.repo,
+                path: '.agent/.actors/actor.via.slug=builder/brain/.claude/keep.md',
+              }),
+            ).toBe(false);
+            expect(
+              getOneIsPathIgnoredByGit({
+                repo: scene.repo,
+                path: '.agent/.actors/actor.via.repo=ambient/brain/.claude/keep.md',
+              }),
+            ).toBe(true);
+          },
+        );
+      });
+    },
+  );
 });

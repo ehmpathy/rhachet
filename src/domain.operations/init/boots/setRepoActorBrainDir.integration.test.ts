@@ -60,7 +60,10 @@ describe('setRepoActorBrainDir', () => {
 
     when('[t0] the repo actor brain dir is synced', () => {
       then('boot.md holds both roles, under the repo scope', () => {
-        expect(scene.result.render.scope).toEqual({ kind: 'repo' });
+        expect(scene.result.render.scope).toEqual({
+          kind: 'repo',
+          actorExid: 'repo=ambient',
+        });
         expect(scene.result.render.bootMdPath).toEqual(
           join(scene.repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'boot.md'),
         );

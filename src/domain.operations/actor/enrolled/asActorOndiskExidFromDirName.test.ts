@@ -54,14 +54,30 @@ describe('asActorOndiskExidFromDirName', () => {
         expect(asActorOndiskExidFromDirName({ dirName: '.slugs' })).toBeNull();
       });
     });
-    when('[t1] it is a slug dir, which enroll never mints', () => {
-      then('null', () => {
+    when('[t1] it is the legacy `slug=.default` repo actor dir', () => {
+      then('null — a slug never opens with a dot', () => {
         expect(
           asActorOndiskExidFromDirName({ dirName: 'actor.via.slug=.default' }),
         ).toBeNull();
+      });
+    });
+  });
+
+  given('[case4] a declared actor dir name, from .agent/actors.yml', () => {
+    when('[t0] it is a slug actor', () => {
+      then('the exid is slug=<x>', () => {
         expect(
-          asActorOndiskExidFromDirName({ dirName: 'actor.via.slug=mechanic' }),
-        ).toBeNull();
+          asActorOndiskExidFromDirName({ dirName: 'actor.via.slug=builder' }),
+        ).toEqual('slug=builder');
+      });
+    });
+    when('[t1] it is a derived actor, a slug base with a delta', () => {
+      then('the exid holds the base and the delta', () => {
+        expect(
+          asActorOndiskExidFromDirName({
+            dirName: 'actor.via.slug=builder._.delta=9c1e0000',
+          }),
+        ).toEqual('slug=builder._.delta=9c1e0000');
       });
     });
   });

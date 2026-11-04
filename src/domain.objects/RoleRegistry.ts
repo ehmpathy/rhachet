@@ -30,6 +30,17 @@ export interface RoleRegistry {
    * .what = the roles that this registry has collected
    */
   roles: Role[];
+
+  /**
+   * .what = reference to a yml of the actors this registry publishes, if any
+   * .why = a published actor is a roleset a package names and recommends (`@<repo>/<slug>`),
+   *        which a consumer adopts or extends by name in its own `.agent/actors.yml`
+   * .note = the yml holds the consumer shape (`actor: [{ slug, brain, roles }]`) with no
+   *         `ambient:` — the repo actor is the consumer's choice (F9). introspect inlines it
+   *         into `rhachet.repo.yml` as `actors:`
+   * .note = optional on this public contract, as `Role.keyrack` is; absent = no published actors
+   */
+  actors?: { uri: string };
 }
 export class RoleRegistry
   extends DomainEntity<RoleRegistry>

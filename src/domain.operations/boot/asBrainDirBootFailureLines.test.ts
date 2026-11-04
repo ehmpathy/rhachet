@@ -50,7 +50,7 @@ describe('asBrainDirBootFailureLines', () => {
       when('[t0] reported', () => {
         const lines = asBrainDirBootFailureLines({
           failure: {
-            scope: { kind: 'repo' },
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
             cause: new ConstraintError(
               "role 'mechanic' declares no subject 'gone'",
               {
@@ -81,7 +81,7 @@ describe('asBrainDirBootFailureLines', () => {
     when('[t0] reported', () => {
       const lines = asBrainDirBootFailureLines({
         failure: {
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
           cause: new MalfunctionError(
             'brain dir boot.md could not be written',
             {
@@ -108,7 +108,7 @@ describe('asBrainDirBootFailureLines', () => {
     when('[t0] reported', () => {
       const lines = asBrainDirBootFailureLines({
         failure: {
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
           cause: new MalfunctionError(
             'brain dir boot.md could not be written',
             {

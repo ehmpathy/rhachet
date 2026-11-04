@@ -3,6 +3,7 @@ import { withEmojiSpaceShim } from 'emoji-space-shim';
 
 import type { ContextConfigOfUsage } from '@src/domain.operations/config/ContextConfigOfUsage';
 import { genContextConfigOfUsage } from '@src/domain.operations/config/genContextConfigOfUsage';
+import { asArgvWithActorFormAlias } from '@src/domain.operations/enroll/asArgvWithActorFormAlias';
 import { assureUniqueRoles } from '@src/domain.operations/invoke/assureUniqueRoles';
 import { getCommandFromArgv } from '@src/domain.operations/roles/deltas/getCommandFromArgv';
 import { getPreprocessedRoleArgv } from '@src/domain.operations/roles/deltas/getPreprocessedRoleArgv';
@@ -79,8 +80,11 @@ const getAllRegistrarLoadersForArgv = (input: {
 const _invoke = async (input: { args: string[] }): Promise<void> => {
   const cwd = process.cwd();
 
-  // encode `-role` remove tokens past commander's variadic parser (init --roles)
-  const args = getPreprocessedRoleArgv({ args: input.args });
+  // map the actor form `clone @<slug>` onto enroll, then encode `-role` remove tokens past
+  // commander's variadic parser (init --roles)
+  const args = getPreprocessedRoleArgv({
+    args: asArgvWithActorFormAlias({ args: input.args }),
+  });
 
   // create context with lazy config loaders
   const context = await genContextConfigOfUsage({ args, cwd });

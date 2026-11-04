@@ -7,7 +7,7 @@ import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBoo
 import { asRepoActorBrainDirOutcome } from './asRepoActorBrainDirOutcome';
 
 const render: BrainDirBootRender = {
-  scope: { kind: 'repo' },
+  scope: { kind: 'repo', actorExid: 'repo=ambient' },
   bootMdPath:
     '/repo/.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md',
   stats: BOOT_STATS_ZERO,
@@ -51,6 +51,7 @@ describe('asRepoActorBrainDirOutcome', () => {
                   enrollConfigs: { deleted: [], kept: [] },
                 },
               },
+              actorExid: 'repo=ambient',
             }),
           ).toEqual({ render, symlink, settings, failure: null });
         },
@@ -65,12 +66,16 @@ describe('asRepoActorBrainDirOutcome', () => {
         expect(
           asRepoActorBrainDirOutcome({
             settled: { status: 'rejected', reason: cause },
+            actorExid: 'repo=ambient',
           }),
         ).toEqual({
           render: null,
           symlink: null,
           settings: null,
-          failure: { scope: { kind: 'repo' }, cause },
+          failure: {
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
+            cause,
+          },
         });
       });
     });
@@ -85,6 +90,7 @@ describe('asRepoActorBrainDirOutcome', () => {
           () => {
             const outcome = asRepoActorBrainDirOutcome({
               settled: { status: 'rejected', reason: 'disk full' },
+              actorExid: 'repo=ambient',
             });
             expect(outcome.failure?.cause).toBeInstanceOf(MalfunctionError);
             expect(outcome.failure?.cause.message).toContain(
@@ -106,6 +112,7 @@ describe('asRepoActorBrainDirOutcome', () => {
         expect(() =>
           asRepoActorBrainDirOutcome({
             settled: { status: 'rejected', reason: defect },
+            actorExid: 'repo=ambient',
           }),
         ).toThrow(defect);
       });

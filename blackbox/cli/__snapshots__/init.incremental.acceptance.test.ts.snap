@@ -36,6 +36,7 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │    • deny: extended (no duplicates)
       │    • ask: extended (no duplicates)
       │
+      │ 📦 backed up prior settings to: .claude/settings.$TIMESTAMP.bak.json
       │ 👌 claude config ready
       │
       └─
@@ -58,6 +59,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 🧠 brain://repo=ambient
    ├─ linked
@@ -86,6 +89,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    └─ stats
       └─ 45 brief(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 "
 `;
 
@@ -94,6 +99,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case3.1] a repo whose
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (1)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 
 📦 persist prepare entries...
@@ -108,6 +115,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case3] a repo with me
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (1)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -131,6 +140,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
       └─ 45 brief(s)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -213,6 +224,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    └─ stats
       └─ 45 brief(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -242,6 +255,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case10] remove of an 
 "🔧 init roles (incremental)
    └─ untouched (1)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 "
 `;
 
@@ -250,6 +265,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case11] remove the la
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (0)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -285,6 +302,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    └─ stats
       └─ 45 brief(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -318,6 +337,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case15] remove where 
    │  └─ - ehmpathy/architect
    └─ untouched (0)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -342,6 +363,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
    │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
    └─ stats
       └─ 45 brief(s)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -404,6 +427,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
       ├─ 26 brief(s)
       └─ 4 skill(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 "
 `;
 
@@ -413,6 +438,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case21] a repo with m
    │  ├─ - ehmpathy/architect
    │  └─ - bhrain/reviewer
    └─ untouched (1)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -451,6 +478,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
       ├─ 26 brief(s)
       └─ 4 skill(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 "
 `;
 
@@ -460,6 +489,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case23] comma-form mu
    │  ├─ - ehmpathy/architect
    │  └─ - bhrain/reviewer
    └─ untouched (1)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;
@@ -483,6 +514,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
       └─ 45 brief(s)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 "
 `;

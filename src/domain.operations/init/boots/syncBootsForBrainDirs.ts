@@ -1,4 +1,6 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
+import { getAllRepoActorRoleRefs } from '@src/domain.operations/actor/manifest/getAllRepoActorRoleRefs';
 import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import type {
   BrainDirBootFailure,
@@ -40,18 +42,23 @@ export const syncBootsForBrainDirs = async (
 }> => {
   const refsLinked = getAllLinkedRoleRefs({}, context);
 
+  // the repo actor's roles — every linked role, or the `ambient:` actor's under a manifest
+  const refsAmbient = await getAllRepoActorRoleRefs({ refsLinked }, context);
+
   // the repo actor's brain dir; a throw is collected under the repo scope
   const [repoActorSettled] = await Promise.allSettled([
-    setRepoActorBrainDir({ repoPath: input.repoPath, refsLinked }),
+    setRepoActorBrainDir({ repoPath: input.repoPath, refsLinked: refsAmbient }),
   ]);
   const repoActorOutcome = asRepoActorBrainDirOutcome({
     settled: repoActorSettled,
+    actorExid: getOneRepoActorExid({ repoPath: input.repoPath }),
   });
 
-  // each delta actor re-derives its roles from the linked set it stands over, so the sweep
+  // each delta actor re-derives its roles from the ambient set it stands over, so the sweep
   //   below renders it from its fresh roles (`inventory.of=requirements.case=2`)
   const deltaOutcome = await setDeltaActorsOndisk({
     repoPath: input.repoPath,
+    rolesAmbient: asRoleSlugsOfRefs({ refs: refsAmbient }),
     rolesLinked: asRoleSlugsOfRefs({ refs: refsLinked }),
   });
 

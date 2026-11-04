@@ -5,5 +5,5 @@
  *   (rule.require.shared-test-fixtures)
  */
 export const genSampleContextNoAmbient = (): {
-  repo: { ambient: { roles: string[] } };
-} => ({ repo: { ambient: { roles: [] } } });
+  repo: { ambient: { exid: string; roles: string[] } };
+} => ({ repo: { ambient: { exid: 'repo=ambient', roles: [] } } });

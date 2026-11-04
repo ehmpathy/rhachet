@@ -12,12 +12,14 @@
  * .note = segment-anchored (`^` or `/`), so it reads a BARE dir-name token AND a
  *   token embedded as a path segment (a `.slugs/` symlink target), never a name
  *   that merely holds the token mid-word
- * .note = the `via` must be a namespace enroll mints (`repo`, `hash`), so a stray dir that
- *   merely starts with `actor.via.` is never read as an actor. a `slug=` dir reads as null
- *   (pinned in the test); the legacy `actor.via.slug=.default` is moved to
- *   `actor.via.repo=ambient` by `setRepoActorDirFromLegacy` before an enumeration
+ * .note = the `via` must be a namespace rhachet mints (`repo`, `hash`, `slug`), so a stray dir
+ *   that merely starts with `actor.via.` is never read as an actor. a `slug=` dir is a declared
+ *   actor of `.agent/actors.yml` (`slug=<x>`, or `slug=<x>._.delta=<h>`); a slug never opens
+ *   with a dot, so the legacy `actor.via.slug=.default` reads as null (pinned in the test) —
+ *   `setRepoActorDirFromLegacy` moves it to `actor.via.repo=ambient` before an enumeration
  */
-const ACTOR_DIR_NAME_RE = /(?:^|\/)actor\.via\.(?<exid>(?:repo|hash)=[^/]+)/;
+const ACTOR_DIR_NAME_RE =
+  /(?:^|\/)actor\.via\.(?<exid>(?:repo|hash)=[^/]+|slug=[^./][^/]*)/;
 
 export const asActorOndiskExidFromDirName = (input: {
   dirName: string;

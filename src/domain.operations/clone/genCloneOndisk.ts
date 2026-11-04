@@ -78,6 +78,8 @@ export const genCloneOndisk = async (
     roles: RoleSlug[];
     /** the actor's delta over the ambient roles (`asActorRolesDelta`), or null */
     rolesDelta?: string[] | null;
+    /** the exid of a declared actor (`asActorFormEnrollment`), or null where it is derived */
+    exidDeclared: string | null;
     delta: string | null;
     reason: string | null;
     command: string;
@@ -112,10 +114,12 @@ export const genCloneOndisk = async (
   spawn: CloneSpawnHandle | null;
 }> => {
   const repoPath = getOneRepoPath({ from: input.repoPath });
-  const exid = getOneActorOndiskExid(
-    { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
-    context,
-  );
+  const exid =
+    input.exidDeclared ??
+    getOneActorOndiskExid(
+      { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
+      context,
+    );
   const actorsRoot = getActorsRootDir({ repoPath });
 
   // decide the slug outcome from what already holds the name (if any)
@@ -159,6 +163,7 @@ export const genCloneOndisk = async (
       brain: input.brain,
       roles: input.roles,
       rolesDelta: input.rolesDelta,
+      exidDeclared: input.exidDeclared,
       delta: input.delta,
       reason: input.reason,
       logEnrollment: decision !== 'reuse',

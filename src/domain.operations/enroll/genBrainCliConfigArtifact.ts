@@ -1,7 +1,7 @@
 import type { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
-import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import {
   CLAUDE_SETTINGS_FILENAMES,
@@ -57,7 +57,7 @@ export const genBrainCliConfigArtifact = async (input: {
   const actorBrainDir = getBrainOndiskDir({
     actorDir: getActorOndiskDir({ repoPath, exid: input.exid }),
   });
-  const isRepoActor = input.exid === REPO_ACTOR_EXID;
+  const isRepoActor = input.exid === getOneRepoActorExid({ repoPath });
 
   // read the source and write the target as one critical section: the source mutex first,
   //   then the target's. every writer of `settings.of.repo.json` takes them in this order, the

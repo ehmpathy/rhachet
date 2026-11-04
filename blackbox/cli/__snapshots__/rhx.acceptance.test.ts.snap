@@ -18,6 +18,8 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    └─ stats
       └─ 45 brief(s)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 🔑 keyrack init
    ├─ org: ehmpathy
    └─ created .agent/keyrack.yml
@@ -45,6 +47,8 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2.1] \`rhx init -e
    │  └─ - ehmpathy/ergonomist
    └─ untouched (1)
 
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
 
 📦 persist prepare entries...
    ↻ [updated] scripts["prepare:rhachet"]
@@ -66,6 +70,8 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -erg
    ├─ subtractions
    │  └─ - ehmpathy/ergonomist
    └─ untouched (1)
+
+[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
 
 🔭 search for linked roles with hooks...
    └─ ehmpathy/architect

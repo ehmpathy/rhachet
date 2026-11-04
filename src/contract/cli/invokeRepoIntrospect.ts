@@ -3,6 +3,7 @@ import { ConstraintError } from 'helpful-errors';
 import { getGitRepoRoot } from 'rhachet-artifact-git';
 
 import type { RoleRegistry } from '@src/domain.objects';
+import { getActorsPublishedOfRegistry } from '@src/domain.operations/actor/manifest/getActorsPublishedOfRegistry';
 import { assertRegistryHasNoOrphanBriefs } from '@src/domain.operations/manifest/assertRegistryHasNoOrphanBriefs';
 import { assertRegistryHooksNoNpx } from '@src/domain.operations/manifest/assertRegistryHooksNoNpx';
 import { assertRegistryHooksNoRoleBoot } from '@src/domain.operations/manifest/assertRegistryHooksNoRoleBoot';
@@ -103,9 +104,13 @@ export const invokeRepoIntrospect = ({
       console.log(``);
       console.log(`✨ Generate manifest for "${registry.slug}"...`);
 
+      // read the actors the registry publishes, if any; refuses an `ambient:` (F9)
+      const actors = getActorsPublishedOfRegistry({ registry });
+
       const manifest = castIntoRoleRegistryManifest({
         registry,
         packageRoot: gitRoot,
+        actors,
       });
       const yaml = serializeRoleRegistryManifest({ manifest });
 
