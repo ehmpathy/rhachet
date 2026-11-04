@@ -1,0 +1,19 @@
+{
+  "key": "f671e5cac69b2c45",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(clone): a peer-cred lookup fault replies auth-denied, whose hint is a false cure",
+  "description": "# 🌙 dream: a peer-cred lookup fault replies `auth-denied`, whose hint is a false cure\n\nkind = reseed · owner = rhachet (clone) · caught 2026-11-01\n\n## .the cue that fired\n\nissue #678 lists three further cures; `v2026_11_01.fix-clone-auth-lookup-timeout` adopted only the\nbound change.\n\n## .the gap, precisely\n\nwhen `getSocketPeerCred` throws (exec kill past 60s, maxBuffer, no fd), `awaitCloneAuthGate` maps\nit to `deny`, and the server replies `rejected (auth-denied)` with a hint to run as another user.\nfor a same-user caller that hint is wrong.\n\n## .the shape of the fix\n\n- a fourth gate verdict, `fault`, distinct from `deny`, still fail-closed, replied as\n  `auth-lookup-fault` with a hint that names the host lookup\n- optional: the kernel-perm fallback from the issue (accept on lookup fault only when the socket\n  and its parent dir are owned by this uid and the dir mode `& 0o077 === 0`)\n- optional: read the peer pid without a full `ss -xp` scan (e.g. `ss -xp` filtered by inode\n  `src`, or `/proc/net/unix` + a narrower fd walk)\n\n## .why it is not done in this round\n\nthe wish scopes the outcome to the two bounds; each cure is additive and owes its own clamp.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 2,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "683"
+}

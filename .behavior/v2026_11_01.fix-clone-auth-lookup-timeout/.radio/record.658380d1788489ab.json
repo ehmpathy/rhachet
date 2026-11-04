@@ -1,0 +1,19 @@
+{
+  "key": "658380d1788489ab",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(clone): a cross-user `clone get --what buffer` names an older daemon, not the deny",
+  "description": "## the defect\n\nsince the clone auth gate reads the peer's pid (#678), a `clone get --what buffer` from another unix\nuser is refused by the gate: the server replies with a rejected ack,\n`{ phase: 'rejected', reason: 'auth-denied' }`.\n\n`asCloneGetReply` maps any ack that carries a `phase` to `peer-probe-blind` (the path for an older\ndaemon that predates the read channel). so the refused caller reads:\n\n```\n😶 @:<clone> — the buffer could not be read\n   ├─ cause\n   │  └─ peer-probe-blind\n   └─ fix\n      └─ this daemon predates the read channel — re-enroll the clone to a version that answers a probe\n```\n\nthe security invariant holds: no row of the box reaches the caller. the copy names a false cause and\na false cure: a re-enroll cannot make another user's read pass.\n\n## the shape of the fix\n\n- in `asCloneGetReply`, read a rejected ack with `reason: 'auth-denied'` as the deny it is, before\n  the older-daemon fallthrough\n- either a new probe-blind reason (the closed set is `CLONE_PROBE_BLIND_REASONS`; each copy map is\n  compiler-forced), or a classed throw on the get path that renders the same `auth-denied` reject\n  copy `clone say` renders\n- the say's baseline probe meets the same ack for a cross-user say, so the choice must keep that\n  say refused at dispatch, exit 1, with its extant copy\n\n## the pin\n\n`blackbox/cli/clone.say.slowbox.realbrain.acceptance.test.ts` `[case2][t1]` snaps today's tree; the\nfix moves that snapshot on purpose.\n\nfound in the 5.3 verification review of the #678 behavior.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": null,
+  "heldSeq": 8,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "704"
+}

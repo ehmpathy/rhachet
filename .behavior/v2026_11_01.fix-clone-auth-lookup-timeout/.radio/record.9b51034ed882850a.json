@@ -1,0 +1,19 @@
+{
+  "key": "9b51034ed882850a",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(keyrack): the daemon's session gate reads its own pid as the caller's",
+  "description": "# 🌙 dream: the keyrack daemon's session gate reads its own pid as the caller's\n\nkind = reseed · owner = rhachet (keyrack daemon) · caught 2026-11-01\n\n## .the cue that fired\n\n`v2026_11_01.fix-clone-auth-lookup-timeout` added a child-process-peer test for\n`getSocketPeerCred`; it read the reader's own pid (3004316 = self; the peer was 3009574). the clone\nreader was fixed there. the daemon reader shares the faulty parse.\n\n## .the gap, precisely\n\n`asSocketPeerPidFromSs` returns the `pid=` from the first `ss -xp` line that holds our socket inode\nas any token. our inode shows on two lines: our own (local column, process = the reader) and the\npeer's (peer column, process = the caller). the reader's line can win, so `getSocketPeerPid`\n(`src/domain.operations/keyrack/daemon/svc/src/infra/getSocketPeerPid.ts`) may hand\n`verifyCallerLoginSession` the daemon's own pid, and the session gate checks the daemon against\nitself.\n\n## .the shape of the fix\n\n- switch `getSocketPeerPid` to `asSocketPeerPidFromSsPeerLine` (`src/infra/socket/`), the\n  peer-column read the clone gate now uses; a peer this user cannot see yields null → refuse\n- retire `asSocketPeerPidFromSs`, which then has no reader\n- clamp: a child-process caller; assert the gate reads the child's pid, and that a caller outside\n  the login session is refused\n- care: this changes who keyrack admits (the real caller's session is checked for the first time);\n  land with ehmpathy/rhachet#685 or right after it\n\n## .why it is not done in this round\n\nthe wisher scoped this PR to the clone gate; a switch of the daemon's gate changes who keyrack\nadmits and owes its own review.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 5,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "686"
+}
