@@ -1,0 +1,19 @@
+{
+  "key": "b18d33cc16deac8b",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(keyrack): the daemon's peer-pid lookup keeps a 5s ss bound in a sync exec",
+  "description": "# 🌙 dream: the keyrack daemon's peer-pid lookup keeps a 5s `ss -xp` bound, in a sync exec\n\nkind = reseed · owner = rhachet (keyrack daemon) · caught 2026-11-01\n\n## .the cue that fired\n\n`v2026_11_01.fix-clone-auth-lookup-timeout` raised the clone's `ss -xp` bound from 5s to 60s\nbecause `ss -xp` passes 5s on a loaded box. the daemon runs the same scan.\n\n## .the gap, precisely\n\n`src/domain.operations/keyrack/daemon/svc/src/infra/getSocketPeerPid.ts:77-80` —\n`execSync(..., { timeout: 5000 })`. on the same loaded box, a keyrack get could fail its session\ngate for the same reason.\n\n🔴 the bound cannot simply be raised: the call is `execSync`, so a 60s bound would freeze the\ndaemon's event loop — every other caller of the daemon — for up to a minute per slow lookup.\n\n## .the shape of the fix\n\n1. `getSocketPeerPid` → async (`execAsync`, as `getSocketPeerCred` already is)\n2. `verifyCallerLoginSession` → async; `handleKeyrackDaemonConnection` awaits it (the\n   `verifySession` injection type in `createKeyrackDaemonServer` follows)\n3. share `SOCKET_PEER_CRED_LOOKUP_TIMEOUT_MS` (`src/infra/socket/constants.ts`) between the two\n   readers, as they already share `asSocketPeerPidFromSs`\n4. audit the keyrack client's own socket timers: each must sit above the lookup bound, or the\n   same inversion #678 had (outer timer below inner lookup) moves to the daemon\n5. clamp with `genSlowSsOnPath` (`src/.test/assets/`): a slow `ss` under the bound → the get passes;\n   the daemon still answers a second caller while the first lookup crawls\n\n## .why it is not done in this round\n\na sync→async contract change across the daemon's access gate (three files plus the client timer\naudit), in the keyrack domain, outside the clone wish. it warrants its own focused review.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 4,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "685"
+}
