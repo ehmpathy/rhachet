@@ -119,7 +119,7 @@ describe('awaitCloneAuthGate', () => {
     when('[t0] the gate is awaited', () => {
       // clamps that a settled check does NOT wait out its bound — the armed timer is
       // cleared, so a healthy dispatch pays the lookup only. without the clear, every
-      // accept would hold its reply for the whole 8s prod bound
+      // accept would hold its reply for the whole 65s prod bound
       const outcome = useThen('it settles promptly', async () => {
         const startedAt = Date.now();
         const settled = await awaitCloneAuthGate({

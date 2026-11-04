@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`computeCloneSayReport given: absent → failure, malfunction class (exit 1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: absent → failure, malfunction class (exit 1) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "do NOT blind re-send (a prompt-consumed message would double) — verify the clone, then retry with --await release",
@@ -9,7 +9,7 @@ exports[`computeCloneSayReport given: absent → failure, malfunction class (exi
 }
 `;
 
-exports[`computeCloneSayReport given: buffered → failure, malfunction class (exit 1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: buffered → failure, malfunction class (exit 1) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "do NOT re-send (it would append) — verify the clone accepts a submit, or retry with --await release",
@@ -18,7 +18,7 @@ exports[`computeCloneSayReport given: buffered → failure, malfunction class (e
 }
 `;
 
-exports[`computeCloneSayReport given: enqueued + a /… client command → success, and the advisory does NOT claim a turn hold (r029) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: enqueued + a /… client command → success, and the advisory does NOT claim a turn hold (r029) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ enqueued for @:x — a /… client command; the client takes it at submit
@@ -26,7 +26,7 @@ exports[`computeCloneSayReport given: enqueued + a /… client command → succe
 }
 `;
 
-exports[`computeCloneSayReport given: enqueued → success, a distinct tree line then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: enqueued → success, a distinct tree line when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ enqueued for @:x — mid-turn; lands next
@@ -34,14 +34,14 @@ exports[`computeCloneSayReport given: enqueued → success, a distinct tree line
 }
 `;
 
-exports[`computeCloneSayReport given: exited → success, names the asked exit — never a probe fault on a clone gone on purpose then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: exited → success, names the asked exit — never a probe fault on a clone gone on purpose when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x — the clone exited as asked",
 }
 `;
 
-exports[`computeCloneSayReport given: released + feed-faulted → success, transcript-only degrade names re-enroll, NOT self-heal (the faulted emulator never heals on a wait) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: released + feed-faulted → success, transcript-only degrade names re-enroll, NOT self-heal (the faulted emulator never heals on a wait) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x
@@ -49,7 +49,7 @@ exports[`computeCloneSayReport given: released + feed-faulted → success, trans
 }
 `;
 
-exports[`computeCloneSayReport given: released + feed-not-live → success, transcript-only degrade self-heals, NO re-enroll (r008-i004-b1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: released + feed-not-live → success, transcript-only degrade self-heals, NO re-enroll (r008-i004-b1) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x
@@ -57,7 +57,7 @@ exports[`computeCloneSayReport given: released + feed-not-live → success, tran
 }
 `;
 
-exports[`computeCloneSayReport given: released + peer-probe-blind → success, transcript-only degrade names re-enroll (r008-i004-b1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: released + peer-probe-blind → success, transcript-only degrade names re-enroll (r008-i004-b1) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x
@@ -65,7 +65,15 @@ exports[`computeCloneSayReport given: released + peer-probe-blind → success, t
 }
 `;
 
-exports[`computeCloneSayReport given: released + socket-gone → success, transcript-only degrade names enroll then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: released + probe-unanswered → success, transcript-only degrade names no re-enroll (a loaded box, #678) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
+{
+  "channel": "success",
+  "tree": "😶🎙️ said to @:x
+   └─ 🟡 screen probe unanswered (a loaded box) — verified by transcript; no action needed",
+}
+`;
+
+exports[`computeCloneSayReport given: released + socket-gone → success, transcript-only degrade names enroll when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x
@@ -73,14 +81,14 @@ exports[`computeCloneSayReport given: released + socket-gone → success, transc
 }
 `;
 
-exports[`computeCloneSayReport given: released → success, the extant tree line byte-for-byte (V13) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: released → success, the extant tree line byte-for-byte (V13) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "success",
   "tree": "😶🎙️ said to @:x",
 }
 `;
 
-exports[`computeCloneSayReport given: unreadable feed-faulted → failure, malfunction, names re-enroll (NOT a wait — the emulator threw) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: unreadable feed-faulted → failure, malfunction, names re-enroll (NOT a wait — the emulator threw) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "re-enroll the clone to rebuild the screen feed; a wait never clears a faulted emulator",
@@ -89,16 +97,16 @@ exports[`computeCloneSayReport given: unreadable feed-faulted → failure, malfu
 }
 `;
 
-exports[`computeCloneSayReport given: unreadable feed-not-live → failure, malfunction, names the wait (r9.n1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: unreadable feed-not-live → failure, malfunction, forbids a blind re-send (the message was delivered, #678) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
-  "hint": "wait a moment and retry — a brand-new clone attaches its feed on its first output, so the message may have landed; if it recurs across retries the clone has no emulator to read its screen, so re-enroll on a build that carries one (a feed that faulted mid-run reports \`feed-faulted\`, not this)",
+  "hint": "do NOT blind re-send — the message reached the pty and may have landed (a re-send would double it). read the clone with \`clone get\` first. a brand-new clone attaches its feed on its first output; if this recurs, the clone has no emulator to read its screen, so re-enroll on a build that carries one (a feed that faulted mid-run reports \`feed-faulted\`, not this)",
   "klass": "malfunction",
   "message": "the clone screen feed is not live (a brand-new clone before its first chunk, or a clone with no screen emulator) and the transcript did not rise within the bound",
 }
 `;
 
-exports[`computeCloneSayReport given: unreadable peer-probe-blind → failure, malfunction, names re-enroll (r9.n1) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: unreadable peer-probe-blind → failure, malfunction, names re-enroll (r9.n1) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "re-enroll the clone on a current version to read its screen state, or retry with a longer --await release bound",
@@ -107,7 +115,16 @@ exports[`computeCloneSayReport given: unreadable peer-probe-blind → failure, m
 }
 `;
 
-exports[`computeCloneSayReport given: unreadable socket-gone → failure, malfunction, names wake (a wait never clears a gone socket) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: unreadable probe-unanswered → failure, malfunction, forbids a blind re-send and names the wait (a loaded box, #678) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
+{
+  "channel": "failure",
+  "hint": "do NOT blind re-send — the message reached the pty and may have landed (a re-send would double it). wait for the load to ease, then read the input box with \`clone get --what buffer\`; a read that still says \`probe-unanswered\` means the machine is still loaded. a re-enroll does not help",
+  "klass": "malfunction",
+  "message": "the clone did not answer its screen probe in time (a loaded box: its auth check is slow) and the transcript did not rise within the bound",
+}
+`;
+
+exports[`computeCloneSayReport given: unreadable socket-gone → failure, malfunction, names wake (a wait never clears a gone socket) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "a wait never clears a gone socket. read its last turns with \`clone get\`, then enroll a fresh clone (\`rhx enroll\`) before you retry",
@@ -116,7 +133,7 @@ exports[`computeCloneSayReport given: unreadable socket-gone → failure, malfun
 }
 `;
 
-exports[`computeCloneSayReport given: withheld dirty → failure, constraint, names --force then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: withheld dirty → failure, constraint, names --force when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
@@ -125,7 +142,7 @@ exports[`computeCloneSayReport given: withheld dirty → failure, constraint, na
 }
 `;
 
-exports[`computeCloneSayReport given: withheld modal → failure, constraint class (exit 2) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: withheld modal → failure, constraint class (exit 2) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
@@ -134,7 +151,7 @@ exports[`computeCloneSayReport given: withheld modal → failure, constraint cla
 }
 `;
 
-exports[`computeCloneSayReport given: withheld unrecognized → failure, constraint, names the unrecognized screen (the third withheld reason — a peer of modal + dirty) then: the report renders the expected channel and copy 1`] = `
+exports[`computeCloneSayReport given: withheld unrecognized → failure, constraint, names the unrecognized screen (the third withheld reason — a peer of modal + dirty) when: [t0] the report is computed then: the report renders the expected channel and copy 1`] = `
 {
   "channel": "failure",
   "hint": "an unrecognized screen is never force-able. read it with --debug; the measured causes are permanent (a 0x0 pty geometry, or a detached host with no tty), so a wait never clears them — tear the clone down and re-enroll it",

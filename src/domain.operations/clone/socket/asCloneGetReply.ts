@@ -19,6 +19,10 @@ import { CloneWireCorruptionError } from './CloneWireCorruptionError';
  *   - `socket-gone` — no listener at the socket at all (absent, or refused): the clone ended.
  *     minted CLIENT-side by the probe degrade, never sent by a peer; a wait never clears it,
  *     and after a `/exit` it is the clone that ended as asked (the `exited` verdict)
+ *   - `probe-unanswered` — the socket accepted, then the reply did not arrive in the probe's
+ *     window. on a loaded box the clone's auth gate holds every frame until its peer-cred `ss`
+ *     scan settles (ehmpathy/rhachet#678). minted CLIENT-side, never sent by a peer; the feed
+ *     may be healthy, so a re-enroll cures naught — the box must calm
  *   all drive `unreadable` save the asked exit, but the remedy copy differs per cause
  */
 const CLONE_PROBE_BLIND_REASONS = [
@@ -26,6 +30,7 @@ const CLONE_PROBE_BLIND_REASONS = [
   'feed-faulted',
   'peer-probe-blind',
   'socket-gone',
+  'probe-unanswered',
 ] as const;
 
 /**

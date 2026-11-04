@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.feed-faulted] a probe-blind reply when: [t0] the surface is rendered then: it names its cause and its own fix, each on a subbranch 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ feed-faulted
+   └─ fix
+      └─ the emulator faulted, so the grid is in doubt — a wait never clears it; re-enroll the clone"
+`;
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.feed-not-live] a probe-blind reply when: [t0] the surface is rendered then: it names its cause and its own fix, each on a subbranch 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ feed-not-live
+   └─ fix
+      └─ the screen feed has not attached yet — retry in a moment"
+`;
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.loaded-box] a probe-unanswered reply on a loaded box when: [t0] the queue surface is rendered then: 🔴 it names the wait, never a re-enroll 1`] = `
+"😶 @:x — the queue could not be read
+   ├─ cause
+   │  └─ probe-unanswered
+   └─ fix
+      └─ the clone did not answer in time — the machine is loaded; wait for the load to ease, then read again"
+`;
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.peer-probe-blind] a probe-blind reply when: [t0] the surface is rendered then: it names its cause and its own fix, each on a subbranch 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ peer-probe-blind
+   └─ fix
+      └─ this daemon predates the read channel — re-enroll the clone to a version that answers a probe"
+`;
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.probe-unanswered] a probe-blind reply when: [t0] the surface is rendered then: it names its cause and its own fix, each on a subbranch 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ probe-unanswered
+   └─ fix
+      └─ the clone did not answer in time — the machine is loaded; wait for the load to ease, then read again"
+`;
+
+exports[`asCloneInputSurfaceText — each probe-blind reason given: [case.socket-gone] a probe-blind reply when: [t0] the surface is rendered then: it names its cause and its own fix, each on a subbranch 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ socket-gone
+   └─ fix
+      └─ no listener at the socket — the clone ended; enroll a fresh clone (\`rhx enroll\`)"
+`;
+
+exports[`asCloneInputSurfaceText — the false-clear clamps 🔴 an UNRECOGNIZED screen → could not be read, and names the permanent cause 1`] = `
+"😶 @:x — the queue could not be read
+   ├─ cause
+   │  └─ the screen is on unrecognized, so the input band is not locatable
+   └─ fix
+      └─ read the screen with --debug; the measured causes are permanent, so re-enroll the clone"
+`;
+
+exports[`asCloneInputSurfaceText — the false-clear clamps 🔴 an older daemon that predates the content field → could not be read 1`] = `
+"😶 @:x — the buffer could not be read
+   ├─ cause
+   │  └─ this daemon answers a probe but predates the content read
+   └─ fix
+      └─ re-enroll the clone to pick up the current daemon"
+`;

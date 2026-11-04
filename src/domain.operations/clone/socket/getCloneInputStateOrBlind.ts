@@ -1,9 +1,38 @@
 import { getCloneTraceSink } from '../getCloneTraceSink';
 import type { CloneGetReply } from './asCloneGetReply';
+import { CloneProbeReplyTimeoutError } from './CloneProbeReplyTimeoutError';
 import { CloneSocketGoneError } from './CloneSocketGoneError';
 import { CloneWireCorruptionError } from './CloneWireCorruptionError';
 import { getCloneInputState } from './getCloneInputState';
 import { isCloneProbeTransportFault } from './isCloneProbeTransportFault';
+
+/**
+ * .what = the probe-blind reason a transport fault degrades to
+ * .why = each names a different fix: a gone socket never self-heals; an unanswered probe waits
+ *   on a loaded box, where a re-enroll cures naught; any other hiccup may self-heal on the next
+ *   poll. a reply timeout is named apart so the say never tells a slow box to re-enroll
+ */
+const asCloneProbeBlindReasonFromFault = (input: {
+  error: unknown;
+}): 'socket-gone' | 'probe-unanswered' | 'feed-not-live' => {
+  if (input.error instanceof CloneSocketGoneError) return 'socket-gone';
+  if (input.error instanceof CloneProbeReplyTimeoutError)
+    return 'probe-unanswered';
+  return 'feed-not-live';
+};
+
+/**
+ * .what = the one-line gloss each degrade carries in the trace
+ */
+const PROBE_FAULT_TRACE_GLOSS: Record<
+  ReturnType<typeof asCloneProbeBlindReasonFromFault>,
+  string
+> = {
+  'socket-gone': 'no listener; the clone ended',
+  'probe-unanswered':
+    'the reply outlasted the probe window; a loaded box may hold the auth gate',
+  'feed-not-live': 'may self-heal on the next poll',
+};
 
 /**
  * .what = probe a clone's input state; a transient TRANSPORT fault degrades to a probe-blind
@@ -52,6 +81,11 @@ import { isCloneProbeTransportFault } from './isCloneProbeTransportFault';
  *   degrades to `socket-gone`, never `feed-not-live`: no listener means the clone ended, and a
  *   wait never clears that. the say poll stops on it at once, and a `/exit` whose socket then
  *   closes reads as the clone that ended as asked (`exited`), never as a probe fault
+ *
+ * .note = a reply TIMEOUT (`CloneProbeReplyTimeoutError`) degrades to `probe-unanswered`: the
+ *   socket took the connect and said naught in the window. on a loaded box that is the auth gate
+ *   behind a slow `ss` scan (ehmpathy/rhachet#678), so its copy says wait for the box, never
+ *   re-enroll. the poll treats it as it treats `feed-not-live`: it keeps the transcript watch
  */
 export const getCloneInputStateOrBlind = async (input: {
   socketPath: string;
@@ -87,12 +121,9 @@ export const getCloneInputStateOrBlind = async (input: {
     // a GONE socket (no listener) is named apart: it never self-heals, so a poll stops on it
     const traceFault = input.traceFault ?? getCloneTraceSink();
     const message = error instanceof Error ? error.message : String(error);
-    const reason =
-      error instanceof CloneSocketGoneError ? 'socket-gone' : 'feed-not-live';
+    const reason = asCloneProbeBlindReasonFromFault({ error });
     traceFault(
-      reason === 'socket-gone'
-        ? `😶 clone probe fault — degraded to socket-gone (no listener; the clone ended): ${message}\n`
-        : `😶 clone probe fault — degraded to feed-not-live (may self-heal on the next poll): ${message}\n`,
+      `😶 clone probe fault — degraded to ${reason} (${PROBE_FAULT_TRACE_GLOSS[reason]}): ${message}\n`,
     );
 
     return { probe: 'unsupported', reason };

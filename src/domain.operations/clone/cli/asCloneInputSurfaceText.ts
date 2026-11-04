@@ -1,5 +1,44 @@
-import type { CloneGetReply } from '../socket/asCloneGetReply';
+import type {
+  CloneGetReply,
+  CloneProbeBlindReason,
+} from '../socket/asCloneGetReply';
 import type { CloneGetWhat } from './asCloneGetWhat';
+
+/**
+ * .what = the fix a probe-blind read names, per cause
+ * .why = keyed by the closed reason set, so a new reason is a compile error here rather than a
+ *   fall to another cause's fix (a gone socket once fell to "re-enroll to a version that answers")
+ */
+const PROBE_BLIND_REMEDY: Record<CloneProbeBlindReason, string> = {
+  'feed-not-live': 'the screen feed has not attached yet — retry in a moment',
+  'feed-faulted':
+    'the emulator faulted, so the grid is in doubt — a wait never clears it; re-enroll the clone',
+  'peer-probe-blind':
+    'this daemon predates the read channel — re-enroll the clone to a version that answers a probe',
+  'socket-gone':
+    'no listener at the socket — the clone ended; enroll a fresh clone (`rhx enroll`)',
+  'probe-unanswered':
+    'the clone did not answer in time — the machine is loaded; wait for the load to ease, then read again',
+};
+
+/**
+ * .what = the tree a read that could not be made renders: its cause, then its fix
+ * .why = one shape for every unreadable branch. each label stands alone and its detail sits on a
+ *   subbranch, so no label runs on into its detail with a colon (rule.forbid.colons-in-stdout)
+ */
+const asUnreadableSurfaceText = (input: {
+  address: string;
+  what: CloneGetWhat;
+  cause: string;
+  fix: string;
+}): string =>
+  [
+    `😶 ${input.address} — the ${input.what} could not be read`,
+    '   ├─ cause',
+    `   │  └─ ${input.cause}`,
+    '   └─ fix',
+    `      └─ ${input.fix}`,
+  ].join('\n');
 
 /**
  * .what = the render of a live input-surface read — the tree a human reads off
@@ -28,41 +67,38 @@ export const asCloneInputSurfaceText = (input: {
 }): string => {
   const { reply, what, address } = input;
 
-  if (reply.probe === 'unsupported') {
-    const remedy =
-      reply.reason === 'feed-not-live'
-        ? 'the screen feed has not attached yet — retry in a moment'
-        : reply.reason === 'feed-faulted'
-          ? 'the emulator faulted, so the grid is in doubt — a wait never clears it; re-enroll the clone'
-          : 'this daemon predates the read channel — re-enroll the clone to a version that answers a probe';
-    return [
-      `😶 ${address} — the ${what} could not be read`,
-      `   ├─ cause: ${reply.reason}`,
-      `   └─ fix: ${remedy}`,
-    ].join('\n');
-  }
+  if (reply.probe === 'unsupported')
+    return asUnreadableSurfaceText({
+      address,
+      what,
+      cause: reply.reason,
+      fix: PROBE_BLIND_REMEDY[reply.reason],
+    });
 
   // an OLDER daemon answers the probe and predates the content field. it must not render as an
   // empty box: that reads as "clear" about a surface never read (rule.forbid.failhide)
   if (reply.content === undefined)
-    return [
-      `😶 ${address} — the ${what} could not be read`,
-      '   ├─ cause: this daemon answers a probe but predates the content read',
-      '   └─ fix: re-enroll the clone to pick up the current daemon',
-    ].join('\n');
+    return asUnreadableSurfaceText({
+      address,
+      what,
+      cause: 'this daemon answers a probe but predates the content read',
+      fix: 're-enroll the clone to pick up the current daemon',
+    });
 
   // 🔴 the probe answered and the SCREEN is still unreadable. a modal or an unrecognized screen
   // has no locatable input band, so the content read returns zero rows — and zero rows would
   // otherwise render as "the input box is clear", a false clear about a box never located
   // (rule.forbid.failhide). the focus check must precede the empty check, or the residual eats it
   if (reply.state.focus !== 'input')
-    return [
-      `😶 ${address} — the ${what} could not be read`,
-      `   ├─ cause: the screen is on ${reply.state.focus}, so the input band is not locatable`,
-      reply.state.focus === 'modal'
-        ? "   └─ fix: read what the modal asks with --debug; it must be cleared at the clone's own tty"
-        : '   └─ fix: read the screen with --debug; the measured causes are permanent, so re-enroll the clone',
-    ].join('\n');
+    return asUnreadableSurfaceText({
+      address,
+      what,
+      cause: `the screen is on ${reply.state.focus}, so the input band is not locatable`,
+      fix:
+        reply.state.focus === 'modal'
+          ? "read what the modal asks with --debug; it must be cleared at the clone's own tty"
+          : 'read the screen with --debug; the measured causes are permanent, so re-enroll the clone',
+    });
 
   const rows = what === 'queue' ? reply.content.queue : reply.content.buffer;
 
