@@ -1,4 +1,4 @@
-# howto: author `.agent/repo=$repo/actors.yml`
+# howto: author `.agent/actors.yml`
 
 ## .what
 
@@ -11,7 +11,8 @@ actor (see [`define.actor-clone-hierarchy.md`](../../../role=any/briefs/define.a
 
 ## the manifest
 
-path: `.agent/repo=.this/actors.yml`
+path: `.agent/actors.yml` — a peer of `.agent/keyrack.yml`, since a repo may declare actors with no
+native roles of its own
 
 ```yaml
 actor:
@@ -25,7 +26,7 @@ actor:
   - slug: foreman
     brain: claude
     roles:
-      - @mechanic        # base = the mechanic actor (a peer)
+      - '@mechanic'      # base = the mechanic actor (a peer) — quoted: yaml reserves @ at the start of a value
       - -driver           # minus the driver role
       - +supervisor       # plus a supervisor role
 ```
@@ -64,7 +65,7 @@ rhx clone actor://ehmpathy/mechanic   # supplier-qualified, when a name needs di
 
 resolution order:
 
-1. local `.agent/repo=.this/actors.yml`
+1. local `.agent/actors.yml`
 2. supplier-qualified `actor://<supplier>/<slug>` from installed role packages
 3. else — an error that names the candidates it found
 
