@@ -74,7 +74,9 @@ describe('setDeltaActorsOndisk', () => {
 
         // enroll both actors over the original ambient set
         const context = {
-          repo: { ambient: { roles: ['any', 'zeta', 'omega'] } },
+          repo: {
+            ambient: { exid: REPO_ACTOR_EXID, roles: ['any', 'zeta', 'omega'] },
+          },
         };
         const deltaActor = await findsertActorOndisk(
           {
@@ -84,6 +86,7 @@ describe('setDeltaActorsOndisk', () => {
             rolesDelta: ['-omega'],
             delta: '-omega',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
           context,
@@ -95,6 +98,7 @@ describe('setDeltaActorsOndisk', () => {
             roles: ['zeta', 'omega'],
             delta: 'zeta,omega',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
           context,
@@ -106,6 +110,7 @@ describe('setDeltaActorsOndisk', () => {
         const result = useBeforeAll(async () =>
           setDeltaActorsOndisk({
             repoPath: scene.repoPath,
+            rolesAmbient: ['any', 'omega'],
             rolesLinked: ['any', 'omega'],
           }),
         );
@@ -160,6 +165,7 @@ describe('setDeltaActorsOndisk', () => {
         const result = useBeforeAll(async () =>
           setDeltaActorsOndisk({
             repoPath: scene.repoPath,
+            rolesAmbient: ['any', 'omega'],
             rolesLinked: ['any', 'omega'],
           }),
         );
@@ -192,9 +198,17 @@ describe('setDeltaActorsOndisk', () => {
             rolesDelta: ['-omega'],
             delta: '-omega',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+          {
+            repo: {
+              ambient: {
+                exid: REPO_ACTOR_EXID,
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
         );
         return { repoPath, deltaActor };
       });
@@ -203,6 +217,7 @@ describe('setDeltaActorsOndisk', () => {
         const result = useBeforeAll(async () =>
           setDeltaActorsOndisk({
             repoPath: scene.repoPath,
+            rolesAmbient: ['any', 'zeta'],
             rolesLinked: ['any', 'zeta'],
           }),
         );
@@ -238,9 +253,14 @@ describe('setDeltaActorsOndisk', () => {
                   rolesDelta: ['-omega'],
                   delta: '-omega',
                   reason: null,
+                  exidDeclared: null,
                   logEnrollment: false,
                 },
-                { repo: { ambient: { roles: ['any', 'zeta'] } } },
+                {
+                  repo: {
+                    ambient: { exid: REPO_ACTOR_EXID, roles: ['any', 'zeta'] },
+                  },
+                },
               ),
           );
 
@@ -279,9 +299,17 @@ describe('setDeltaActorsOndisk', () => {
             rolesDelta: ['-omega'],
             delta: '-omega',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+          {
+            repo: {
+              ambient: {
+                exid: REPO_ACTOR_EXID,
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
         );
 
         // the source the settings derive from is unparseable, so the derivation faults
@@ -289,6 +317,7 @@ describe('setDeltaActorsOndisk', () => {
         writeFileSync(repoSettingsPath, '{ not json');
         const first = await setDeltaActorsOndisk({
           repoPath,
+          rolesAmbient: ['any', 'omega'],
           rolesLinked: ['any', 'omega'],
         });
         const manifestAfterFault = getOneActorManifest({
@@ -310,6 +339,7 @@ describe('setDeltaActorsOndisk', () => {
         );
         const second = await setDeltaActorsOndisk({
           repoPath,
+          rolesAmbient: ['any', 'omega'],
           rolesLinked: ['any', 'omega'],
         });
         return { repoPath, deltaActor, first, manifestAfterFault, second };
@@ -386,9 +416,17 @@ describe('setDeltaActorsOndisk', () => {
             rolesDelta: ['+omega::flow'],
             delta: '+omega::flow',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+          {
+            repo: {
+              ambient: {
+                exid: REPO_ACTOR_EXID,
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
         );
         return { repoPath, deltaActor };
       });
@@ -397,6 +435,7 @@ describe('setDeltaActorsOndisk', () => {
         const result = useBeforeAll(async () =>
           setDeltaActorsOndisk({
             repoPath: scene.repoPath,
+            rolesAmbient: ['any', 'omega'],
             rolesLinked: ['any', 'omega'],
           }),
         );
@@ -460,9 +499,17 @@ describe('setDeltaActorsOndisk', () => {
             rolesDelta: ['-omega'],
             delta: '-omega',
             reason: null,
+            exidDeclared: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+          {
+            repo: {
+              ambient: {
+                exid: REPO_ACTOR_EXID,
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
         );
         writeFileSync(
           getRepoAmbientRoleFociPath({ repoPath }),
@@ -475,6 +522,7 @@ describe('setDeltaActorsOndisk', () => {
         const result = useBeforeAll(async () =>
           setDeltaActorsOndisk({
             repoPath: scene.repoPath,
+            rolesAmbient: ['any', 'zeta', 'omega'],
             rolesLinked: ['any', 'zeta', 'omega'],
           }),
         );
@@ -512,9 +560,14 @@ describe('setDeltaActorsOndisk', () => {
           rolesDelta: ['-omega'],
           delta: '-omega',
           reason: null,
+          exidDeclared: null,
           logEnrollment: false,
         },
-        { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+        {
+          repo: {
+            ambient: { exid: REPO_ACTOR_EXID, roles: ['any', 'zeta', 'omega'] },
+          },
+        },
       );
       const recordPath = getRepoAmbientRoleFociPath({ repoPath });
       mkdirSync(dirname(recordPath), { recursive: true });
@@ -526,6 +579,7 @@ describe('setDeltaActorsOndisk', () => {
       const result = useBeforeAll(async () =>
         setDeltaActorsOndisk({
           repoPath: scene.repoPath,
+          rolesAmbient: ['any', 'omega'],
           rolesLinked: ['any', 'omega'],
         }),
       );
@@ -551,4 +605,73 @@ describe('setDeltaActorsOndisk', () => {
       });
     });
   });
+
+  given(
+    '[case7] a `-omega` delta actor under a manifest, whose `ambient:` actor drops zeta while another declared actor keeps zeta linked',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'sync-delta-actors-manifest',
+          roles: [
+            { repo: 'fixture', role: 'any' },
+            { repo: 'fixture', role: 'zeta' },
+            { repo: 'fixture', role: 'omega' },
+          ],
+        });
+        const repoBrainDir = getBrainOndiskDir({
+          actorDir: getOneRepoActorOndiskDir({ repoPath }),
+        });
+        mkdirSync(repoBrainDir, { recursive: true });
+        writeFileSync(join(repoBrainDir, 'settings.of.repo.json'), '{}');
+        const deltaActor = await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['any', 'zeta'],
+            rolesDelta: ['-omega'],
+            delta: '-omega',
+            reason: null,
+            exidDeclared: null,
+            logEnrollment: false,
+          },
+          {
+            repo: {
+              ambient: {
+                exid: REPO_ACTOR_EXID,
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
+        );
+        return { repoPath, deltaActor };
+      });
+
+      when(
+        '[t0] the delta actors sync over ambient [any, omega], linked [any, zeta, omega]',
+        () => {
+          const result = useBeforeAll(async () =>
+            setDeltaActorsOndisk({
+              repoPath: scene.repoPath,
+              rolesAmbient: ['any', 'omega'],
+              rolesLinked: ['any', 'zeta', 'omega'],
+            }),
+          );
+
+          then(
+            'the delta actor follows the ambient set, not the linked set — zeta leaves it (case=2)',
+            () => {
+              expect(result.failures).toEqual([]);
+              expect(result.rederived).toEqual([
+                {
+                  actorExid: scene.deltaActor.exid,
+                  before: ['any', 'zeta'],
+                  after: ['any'],
+                },
+              ]);
+            },
+          );
+        },
+      );
+    },
+  );
 });

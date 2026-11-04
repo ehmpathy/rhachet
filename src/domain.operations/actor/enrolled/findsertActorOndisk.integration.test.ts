@@ -42,6 +42,7 @@ describe('findsertActorOndisk.integration', () => {
           roles: ['mechanic'],
           delta: null,
           reason: 'first enrollment',
+          exidDeclared: null,
           logEnrollment: true,
         },
         contextNoAmbient,
@@ -95,6 +96,7 @@ describe('findsertActorOndisk.integration', () => {
           roles: ['mechanic', 'driver'],
           delta: null,
           reason: null,
+          exidDeclared: null,
           logEnrollment: true,
         },
         contextNoAmbient,
@@ -106,6 +108,7 @@ describe('findsertActorOndisk.integration', () => {
           roles: ['driver', 'mechanic'], // reordered — must hash the same
           delta: null,
           reason: null,
+          exidDeclared: null,
           logEnrollment: false, // a pure reuse: do NOT append again
         },
         contextNoAmbient,
@@ -144,6 +147,7 @@ describe('findsertActorOndisk.integration', () => {
           roles: ['mechanic'],
           delta: null,
           reason: null,
+          exidDeclared: null,
           logEnrollment: true,
         },
         contextNoAmbient,
@@ -155,6 +159,7 @@ describe('findsertActorOndisk.integration', () => {
           roles: ['driver'],
           delta: null,
           reason: null,
+          exidDeclared: null,
           logEnrollment: true,
         },
         contextNoAmbient,
@@ -185,9 +190,10 @@ describe('findsertActorOndisk.integration', () => {
           rolesDelta: ['+mechanic'],
           delta: '+mechanic',
           reason: null,
+          exidDeclared: null,
           logEnrollment: true,
         },
-        { repo: { ambient: { roles: ['mechanic'] } } },
+        { repo: { ambient: { exid: 'repo=ambient', roles: ['mechanic'] } } },
       );
       return { actor };
     });

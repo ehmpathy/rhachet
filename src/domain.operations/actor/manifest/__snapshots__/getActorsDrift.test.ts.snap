@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asActorsDriftReportLines given: [case1] drift both ways, with a caution when: [t0] the report is rendered then: it matches the snapshot 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @builder
+   ├─ 2 actor(s), 6 role(s) declared
+   ├─ short → restored
+   │  └─ bhrain/learner ↺ linked, via @ehmpathy/builder
+   ├─ extra → kept, undeclared
+   │  └─ ghlitch/observer
+   │     ├─ to keep it, declare \`ghlitch/observer\` in .agent/actors.yml
+   │     └─ to drop it, unlink .agent/repo=ghlitch/role=observer
+   └─ cautions
+      └─ @builder removes -driver, which @ehmpathy/builder does not hold
+"
+`;
+
+exports[`asActorsDriftReportLines given: [case2] no drift when: [t0] the report is rendered then: it matches the snapshot 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @scholar
+   ├─ 1 actor(s), 3 role(s) declared
+   └─ in sync, no role short
+"
+`;

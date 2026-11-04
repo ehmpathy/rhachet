@@ -16,7 +16,7 @@ const REPO_ACTOR_BRAIN_DIR_REL =
 const genRender = (
   overrides: Partial<BrainDirBootRender> = {},
 ): BrainDirBootRender => ({
-  scope: { kind: 'repo' },
+  scope: { kind: 'repo', actorExid: 'repo=ambient' },
   bootMdPath: `/repo/${REPO_ACTOR_BRAIN_DIR_REL}/boot.md`,
   stats: { ...BOOT_STATS_ZERO, roles: 2, chars: 4096 },
   agentsMdReset: false,

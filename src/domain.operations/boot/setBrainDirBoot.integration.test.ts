@@ -34,7 +34,7 @@ describe('setBrainDirBoot', () => {
             brainDir,
             roles: ROLES,
             repoPath,
-            scope: { kind: 'repo' },
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
           });
 
           const bootMd = readFileSync(render.bootMdPath, 'utf8');
@@ -88,7 +88,7 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'a'),
           roles: ROLES,
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const renderB = await setBrainDirBoot({
           brainDir: join(repoPath, 'b'),
@@ -111,7 +111,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const bytesFirst = readFileSync(first.bootMdPath, 'utf8');
 
@@ -119,7 +119,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
 
         expect(readFileSync(second.bootMdPath, 'utf8')).toEqual(bytesFirst);
@@ -138,13 +138,13 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPathA, 'brain'),
           roles: ROLES,
           repoPath: repoPathA,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const renderB = await setBrainDirBoot({
           brainDir: join(repoPathB, 'brain'),
           roles: ROLES,
           repoPath: repoPathB,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
 
         expect(readFileSync(renderB.bootMdPath, 'utf8')).toEqual(
@@ -264,7 +264,7 @@ describe('setBrainDirBoot', () => {
                 { repo: 'fixture', role: 'absent', subjects: null },
               ],
               repoPath,
-              scope: { kind: 'repo' },
+              scope: { kind: 'repo', actorExid: 'repo=ambient' },
             }),
           );
 
@@ -291,7 +291,7 @@ describe('setBrainDirBoot', () => {
           brainDir,
           roles: ROLES,
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
 
         expect(render.agentsMdReset).toEqual(true);
@@ -312,7 +312,7 @@ describe('setBrainDirBoot', () => {
             brainDir,
             roles: ROLES,
             repoPath,
-            scope: { kind: 'repo' },
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
           }),
         );
 
@@ -335,7 +335,7 @@ describe('setBrainDirBoot', () => {
             { repo: 'fixture', role: 'zeta', subjects: null },
           ],
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const bootMd = readFileSync(render.bootMdPath, 'utf8');
         expect(bootMd).toContain('any base body');
@@ -352,7 +352,7 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: ['flow'] }],
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         expect(readFileSync(render.bootMdPath, 'utf8')).toContain(
           'skills/flow.sh',
@@ -369,7 +369,7 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: ['lean'] }],
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const bootMd = readFileSync(render.bootMdPath, 'utf8');
         expect(bootMd).toContain('any lean body');
@@ -388,7 +388,7 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: null }],
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         const bootMd = readFileSync(render.bootMdPath, 'utf8');
         expect(bootMd).toContain('any base body');
@@ -411,7 +411,7 @@ describe('setBrainDirBoot', () => {
                 brainDir: join(repoPath, 'brain', '.claude'),
                 roles: [{ repo: '.this', role: 'any', subjects: ['gone'] }],
                 repoPath,
-                scope: { kind: 'repo' },
+                scope: { kind: 'repo', actorExid: 'repo=ambient' },
               }),
             );
             expect(error).toBeInstanceOf(ConstraintError);

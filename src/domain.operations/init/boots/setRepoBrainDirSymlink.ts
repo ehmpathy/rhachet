@@ -1,5 +1,6 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import { asActorOndiskExidFromDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskExidFromDirName';
 import { REPO_ACTOR_DIR_NAME_LEGACY } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
@@ -18,7 +19,14 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from 'node:path';
 import { asRepoBrainDirMigrationPlan } from './asRepoBrainDirMigrationPlan';
 
 type RepoBrainDirSymlinkEffect = 'CREATED' | 'FOUND' | 'REWRITTEN' | 'MIGRATED';
@@ -57,12 +65,34 @@ const getOneRealpathOrNull = (input: { path: string }): string | null => {
 };
 
 /**
+ * .what = whether a path is the brain dir of an actor dir in this repo's actors root — the
+ *         legacy `actor.via.slug=.default`, or any actor rhachet mints
+ * .why = such a link is rhachet's own prior link to a former repo actor, so it may be
+ *        repointed; a link to any other place is the human's, and is refused
+ */
+const isActorBrainDirOfRepo = (input: {
+  repoPath: string;
+  path: string;
+}): boolean => {
+  const actorDir = dirname(dirname(input.path));
+  if (dirname(actorDir) !== getActorsRootDir({ repoPath: input.repoPath }))
+    return false;
+  if (getBrainOndiskDir({ actorDir }) !== input.path) return false;
+  const dirName = basename(actorDir);
+  return (
+    dirName === REPO_ACTOR_DIR_NAME_LEGACY ||
+    asActorOndiskExidFromDirName({ dirName }) !== null
+  );
+};
+
+/**
  * .what = make `<repo>/.claude` a relative symlink to the repo actor's brain dir (D10)
  * .why = `<repo>/.claude` holds no file of its own; the link makes it a reach path into
  *        the repo actor's brain dir, so there is one place its config lives
  *
- * .note = a link aimed at the legacy repo actor brain dir (`actor.via.slug=.default`) is
- *         repointed, not refused — it is rhachet's own prior link, dangled by the rename
+ * .note = a link aimed at a former repo actor brain dir — the legacy `actor.via.slug=.default`,
+ *         dangled by the rename, or a prior repo actor before a change of `ambient:` — is
+ *         repointed, not refused: it is rhachet's own prior link
  *
  * .note = a real dir is migrated: its boot files drop (S11), every other entry moves.
  *         a name in BOTH dirs moves too — the repo-side copy is the live one a human and a
@@ -126,16 +156,14 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
     const realpathFound = getOneRealpathOrNull({ path: linkPath });
     const realpathWanted = realpathSync(input.repoActorBrainDir);
 
-    // a symlink to the legacy repo actor brain dir → repoint it. after the legacy dir
-    //   moves (`setRepoActorDirFromLegacy`), the old link dangles; it is ours to repoint
+    // a symlink to a former repo actor brain dir → repoint it. the legacy dir dangles once
+    //   it moves (`setRepoActorDirFromLegacy`), and a change of `ambient:` names another
+    //   actor; either way the link is rhachet's own, so it is ours to repoint
     const pathAimed = resolve(input.repoPath, readlinkSync(linkPath));
-    const pathLegacy = getBrainOndiskDir({
-      actorDir: join(
-        getActorsRootDir({ repoPath: input.repoPath }),
-        REPO_ACTOR_DIR_NAME_LEGACY,
-      ),
-    });
-    if (realpathFound !== realpathWanted && pathAimed === pathLegacy) {
+    if (
+      realpathFound !== realpathWanted &&
+      isActorBrainDirOfRepo({ repoPath: input.repoPath, path: pathAimed })
+    ) {
       setSymlinkSwapped({ path: linkPath, target: linkTarget });
       return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
     }

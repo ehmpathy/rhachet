@@ -5,7 +5,6 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { mkdirSync } from 'node:fs';
-import { REPO_ACTOR_EXID } from './constants';
 import { getActorOndiskDir } from './getActorOndiskDir';
 import { getOneActorOndiskExid } from './getOneActorOndiskExid';
 import { setActorOndiskManifest } from './setActorOndiskManifest';
@@ -44,6 +43,11 @@ export const findsertActorOndisk = async (
     roles: RoleSlug[];
     /** the actor's delta over the ambient roles (`asActorRolesDelta`), or null */
     rolesDelta?: string[] | null;
+    /**
+     * the exid of a declared actor of `.agent/actors.yml` (`slug=<x>`, `slug=<x>._.delta=<h>`),
+     * or null where the actor is derived from its roleset (`asActorFormEnrollment`)
+     */
+    exidDeclared: string | null;
     /** the raw `--roles` text as typed, for the roles log only — never an identity input */
     delta: string | null;
     reason: string | null;
@@ -53,12 +57,14 @@ export const findsertActorOndisk = async (
 ): Promise<ActorOndisk> => {
   const repoPath = getOneRepoPath({ from: input.repoPath });
 
-  // the one derivation: the ambient roles → the repo actor; a delta → a hash of the
-  //   delta; else → a hash of the roles
-  const exid = getOneActorOndiskExid(
-    { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
-    context,
-  );
+  // a declared actor names its own dir; else the one derivation: the ambient roles → the
+  //   repo actor; a delta → a hash of the delta; else → a hash of the roles
+  const exid =
+    input.exidDeclared ??
+    getOneActorOndiskExid(
+      { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
+      context,
+    );
   const actorDir = getActorOndiskDir({ repoPath, exid });
 
   // ensure the actor dir exists
@@ -73,7 +79,10 @@ export const findsertActorOndisk = async (
     actorDir,
     brain: input.brain,
     roles: input.roles,
-    rolesDelta: exid === REPO_ACTOR_EXID ? null : (input.rolesDelta ?? null),
+    rolesDelta:
+      exid === context.repo.ambient.exid || input.exidDeclared !== null
+        ? null
+        : (input.rolesDelta ?? null),
   });
 
   // append a roles-log event, unless this is a pure live-slug reuse

@@ -40,22 +40,31 @@ two apart.
 these two grains are born in **different places**, and that is the crux:
 
 - a **slug actor** (`@<slug>`, the `actor.via.slug` namespace) is declared **only** in
-  `.agent/actors.yml` (a `slug:` entry). NO cli flag mints one. **`rhx clone` is the
-  `actors.yml`-aware surface** — it reads a declared slug actor and spawns a clone from it.
-- a **hash actor** (`actor.via.hash`, anonymous) is derived, never declared: **`rhx enroll` is
-  hash-only** — it derives the id from `genEnrollmentHash({brain, roles})` and **never consults
-  `actors.yml`**, so every enroll spawns a clone under an anonymous hash actor.
-- a **clone** is spawned by `rhx enroll` and `rhx clone`, and named with **`--as @:<slug>`**.
+  `.agent/actors.yml` (a `slug:` entry). NO cli flag mints one.
+- a **hash actor** (`actor.via.hash`, anonymous) is derived, never declared — from
+  `genEnrollmentHash({brain, roles})`, or from the delta over the ambient roles.
+- a **clone** is spawned by `rhx enroll` (alias `rhx clone @<slug>`), and named with
+  **`--as @:<slug>`**.
 
-so **`rhx enroll` spawns a clone, always — never an actor**, and always under an **anonymous** hash
-actor. the slug / `actors.yml` surface belongs to `rhx clone`, not enroll.
+enroll takes two forms, and the first token tells them apart (F10):
+
+| form | call | lands in |
+|------|------|----------|
+| **actor form** | `rhx clone @<slug>` ≡ `rhx enroll @<slug>` | `actor.via.slug=<slug>`; a `+r`/`-r`/`--brain` override → `actor.via.slug=<slug>._.delta=<h>` |
+| **inline form** | `rhx enroll <brain> [--roles …]` | `actor.via.hash=<h>` — never consults a declared slug (F7) |
+| **bare** | `rhx enroll` | the repo actor — `actor.via.slug=<ambient>` under a manifest, else `actor.via.repo=ambient` |
+
+so **enroll spawns a clone, always — never an actor.** the actor form spawns one of a declared
+actor; the inline form spawns one of an anonymous hash actor. a plain role list beside `@<slug>`
+is refused (it would replace the actor wholesale — that is the inline form), and an undeclared
+`@<slug>` fails fast with the declared actors listed.
 
 > **note (2026-08-08) — the `@<hash>` form of `@<actor>`.** since a hash actor has no declared slug,
 > its address body is its **hash** — so `@<hash>` ≡ `actor://<hash>` is the sanctioned, admitted form
 > of `@<actor>` for an **anonymous** actor (e.g. `rhx clone list @9c1e…` scopes to the hash actor
 > `actor.via.hash=9c1e…`). this is not a new sigil — `@<name>` ≡ `actor://<name>`, and an anonymous
-> actor's "name" simply IS its hash. before `actors.yml` mints slugs (the `rhx clone` dream), the hash
-> IS the only actor identifier, so `@<actor>` in an enroll-only world resolves a hash literal. surfaces
+> actor's "name" simply IS its hash. a declared slug in `actors.yml` names its actor; the hash
+> IS the only actor identifier for an anonymous actor, so `@<actor>` there resolves a hash literal. surfaces
 > that emit an actor for a human to re-type (`rhx actor list`, `rhx clone list`) render a **copyable
 > hash** so the `@<hash>` form is usable by hand. (added by `v2026_08_07.enroll-with-interface`,
 > blueprint blocker-4.)

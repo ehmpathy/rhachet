@@ -2,7 +2,7 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { genRepoActorGitignoreExclusion } from './genRepoActorGitignoreExclusion';
 
@@ -145,4 +145,66 @@ describe('genRepoActorGitignoreExclusion', () => {
       });
     });
   });
+
+  given(
+    "[case5] a repo whose actors.yml names `ambient: '@builder'`, with the `repo=ambient` negation from before",
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repo = genTempDir({
+          slug: 'repo-actor-exclusion-manifest',
+          git: true,
+        });
+        mkdirSync(join(repo, '.agent'), { recursive: true });
+        writeFileSync(
+          join(repo, '.agent', 'actors.yml'),
+          [
+            "ambient: '@builder'",
+            'actor:',
+            '  - slug: builder',
+            '    brain: anthropic/claude/code',
+            '    roles: [ehmpathy/mechanic]',
+          ].join('\n'),
+        );
+        writeFileSync(
+          join(repo, '.gitignore'),
+          `node_modules\n.agent/.actors/*\n${NEGATION}\n`,
+          'utf8',
+        );
+        const result = await genRepoActorGitignoreExclusion({ repoPath: repo });
+        return { repo, result };
+      });
+
+      when('[t0] the exclusion is findserted', () => {
+        then(
+          'the former negation drops and the `slug=builder` negation lands',
+          () => {
+            expect(scene.result).toEqual({
+              rewritten: true,
+              negation: 'APPENDED',
+            });
+            expect(
+              readFileSync(join(scene.repo, '.gitignore'), 'utf8'),
+            ).toEqual(
+              'node_modules\n.agent/.actors/*\n!.agent/.actors/actor.via.slug=builder/\n',
+            );
+          },
+        );
+
+        then('git spares a file in the `slug=builder` repo actor dir', () => {
+          expect(
+            getOneIsPathIgnoredByGit({
+              repo: scene.repo,
+              path: '.agent/.actors/actor.via.slug=builder/brain/.claude/settings.json',
+            }),
+          ).toBe(false);
+        });
+
+        then('git ignores the former `repo=ambient` dir again', () => {
+          expect(
+            getOneIsPathIgnoredByGit({ repo: scene.repo, path: FILE_DEFAULT }),
+          ).toBe(true);
+        });
+      });
+    },
+  );
 });

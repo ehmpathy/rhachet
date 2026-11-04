@@ -67,8 +67,8 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
           roles: ['mechanic'],
           delta: null,
           reason: null,
-          logEnrollment: false,
-        }, { repo: { ambient: { roles: [] } } });
+          exidDeclared: null, logEnrollment: false,
+        }, { repo: { ambient: { exid: 'repo=ambient', roles: [] } } });
         const brainDir = getBrainOndiskDir({
           actorDir: getActorOndiskDir({
             repoPath: actor.repoPath,

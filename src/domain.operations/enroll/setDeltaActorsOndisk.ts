@@ -2,10 +2,10 @@ import { MalfunctionError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
-import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorOndiskManifest } from '@src/domain.operations/actor/enrolled/getActorOndiskManifest';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { isRolesetEqual } from '@src/domain.operations/actor/enrolled/isRolesetEqual';
 import { setActorOndiskManifestWithinLock } from '@src/domain.operations/actor/enrolled/setActorOndiskManifest';
 import type { BrainDirBootFailure } from '@src/domain.operations/boot/BrainDirBootRender';
@@ -43,6 +43,8 @@ import { setActorSettingsDerived } from './setActorSettingsDerived';
  */
 export const setDeltaActorsOndisk = async (input: {
   repoPath: string;
+  /** the repo actor's roles — every linked role, or the `ambient:` actor's under a manifest */
+  rolesAmbient: RoleSlug[];
   rolesLinked: RoleSlug[];
 }): Promise<{
   rederived: { actorExid: string; before: RoleSlug[]; after: RoleSlug[] }[];
@@ -57,11 +59,11 @@ export const setDeltaActorsOndisk = async (input: {
   // no actor to re-derive → naught to read
   if (enumeration.actors.length === 0) return { rederived: [], failures: [] };
 
-  // the ambient set at its recorded focus, read once for the sweep — it is the same for every
-  //   actor, so a corrupt record is one failure, never one per actor
+  // the repo actor's roles at their recorded focus, read once for the sweep — it is the same
+  //   for every actor, so a corrupt record is one failure, never one per actor
   const ambient = getRolesAmbientOrFailure({
     repoPath: input.repoPath,
-    rolesLinked: input.rolesLinked,
+    rolesAmbient: input.rolesAmbient,
   });
   if ('failure' in ambient)
     return { rederived: [], failures: [ambient.failure] };
@@ -81,18 +83,18 @@ export const setDeltaActorsOndisk = async (input: {
 };
 
 /**
- * .what = the ambient roles at their recorded focus — the set a bare enroll inherits — or the
- *   one failure that stopped the read
+ * .what = the repo actor's roles at their recorded focus — the set a bare enroll inherits — or
+ *   the one failure that stopped the read
  * .why = a corrupt ambient record is a sync failure to report once, never a throw
  */
 const getRolesAmbientOrFailure = (input: {
   repoPath: string;
-  rolesLinked: RoleSlug[];
+  rolesAmbient: RoleSlug[];
 }): { rolesAmbient: RoleSlug[] } | { failure: BrainDirBootFailure } => {
   try {
     return {
       rolesAmbient: asRoleSlugsAmbientAtFocus({
-        rolesLinked: input.rolesLinked,
+        rolesLinked: input.rolesAmbient,
         foci: getRepoAmbientRoleFoci({ repoPath: input.repoPath }),
       }),
     };
@@ -262,7 +264,8 @@ const getAllActorsOrFailure = (input: {
 }): { actors: ActorOndisk[] } | { failure: BrainDirBootFailure } => {
   try {
     const actors = getAllActorsOndisk({ repoPath: input.repoPath });
-    return { actors: actors.filter((actor) => actor.exid !== REPO_ACTOR_EXID) };
+    const exidRepoActor = getOneRepoActorExid({ repoPath: input.repoPath });
+    return { actors: actors.filter((actor) => actor.exid !== exidRepoActor) };
   } catch (error) {
     // an allowlist: a classed or fs fault is the sweep's row; a code defect surfaces loud
     if (isCodeDefectError({ error })) throw error;
