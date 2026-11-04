@@ -40,7 +40,7 @@ two apart.
 these two grains are born in **different places**, and that is the crux:
 
 - a **slug actor** (`@<slug>`, the `actor.via.slug` namespace) is declared **only** in
-  `.agent/repo=.this/actors.yml` (a `slug:` entry). NO cli flag mints one. **`rhx clone` is the
+  `.agent/actors.yml` (a `slug:` entry). NO cli flag mints one. **`rhx clone` is the
   `actors.yml`-aware surface** — it reads a declared slug actor and spawns a clone from it.
 - a **hash actor** (`actor.via.hash`, anonymous) is derived, never declared: **`rhx enroll` is
   hash-only** — it derives the id from `genEnrollmentHash({brain, roles})` and **never consults

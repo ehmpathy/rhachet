@@ -208,6 +208,13 @@
   "permissions": {
     "defaultMode": "auto",
     "allow": [
+      "Edit(.agent/.notes/**)",
+      "Edit(.route/**)",
+      "Edit(**/.test/**)",
+      "mcp__ide__getDiagnostics",
+      "WebSearch",
+      "WebFetch",
+      "Bash(tree:*)",
       "Bash(cat:*)",
       "Bash(cmd | npx rhachet run --skill teesafe file.txt)",
       "Bash(cmd | rhx teesafe --into file.txt --append)",
@@ -520,5 +527,9 @@
     "type": "command",
     "command": "node -e \"import('rhachet-roles-bhrain/cli/route').then(m => m.routeStatusLine())\"",
     "padding": 0
-  }
+  },
+  "claudeMdExcludes": [
+    "/home/camper/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md"
+  ]
 }
