@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asMockedBrainOutput given: [case2] an output the schema refuses when: [t0] asMockedBrainOutput is called then: it refuses, and names the told output, the key and the field to fix 1`] = `
+"✋ ConstraintError: genMockedBrainAtom's answer to 'ask' does not fit the caller's schema
+
+{
+  "mock": "genMockedBrainAtom",
+  "verb": "ask",
+  "output": {
+    "verdict": "ok"
+  },
+  "issues": [
+    {
+      "path": "answer",
+      "message": "Invalid input: expected string, received undefined"
+    }
+  ],
+  "hint": "set output.ask to the shape the caller's schema wants"
+}"
+`;
