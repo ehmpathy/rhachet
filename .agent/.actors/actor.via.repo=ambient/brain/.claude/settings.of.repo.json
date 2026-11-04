@@ -191,15 +191,15 @@
           },
           {
             "type": "command",
-            "command": "node -e \"import('rhachet-roles-bhuild').then(m => m.cli.radioTaskHeld())\" -- --when hook.onStop",
-            "timeout": 10,
-            "author": "repo=bhuild/role=dispatcher"
-          },
-          {
-            "type": "command",
             "command": "./node_modules/.bin/rhachet roles cost --all --when hook.onStop",
             "timeout": 60,
             "author": "repo=.this/role=any"
+          },
+          {
+            "type": "command",
+            "command": "node -e \"import('rhachet-roles-bhuild/cli').then(m => m.cli.radioTaskQueue())\" -- get --when hook.onStop",
+            "timeout": 10,
+            "author": "repo=bhuild/role=dispatcher"
           }
         ]
       }
@@ -522,11 +522,11 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node -e \"import('rhachet-roles-bhrain/cli/route').then(m => m.routeStatusLine())\"",
+    "command": "node -e \"import('rhachet-roles-bhrain/cli/route.status.line').then(m => m.routeStatusLine())\"",
     "padding": 0
   },
   "claudeMdExcludes": [
-    "/home/vlad/.claude/CLAUDE.md",
+    "/home/camper/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }
