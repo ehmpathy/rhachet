@@ -10,5 +10,6 @@
 | [S4](./inventory.of=seeds.case=S4-fix-same-slug-boot-here-and-tilde-marker.md) | same-slug roles boot apart, fixed in this wish; `~` marks an edit | yield + case 10 + F7 + F11 + requirement 10 |
 | [S5](./inventory.of=seeds.case=S5-this-boots-beside-bhuild-change-symbols.md) | a `.this` role boots beside; changes marked with the bhuild `[+]`/`[~]`/`[-]` legend, enruled | rule + F7 + F11 + yield question 6 + cases 4, 7, 8 |
 | [S6](./inventory.of=seeds.case=S6-mods-not-edit.md) | the dir is `repo=.mods`; a role is modded by a mod | yield + every case + F6–F9 |
+| [S7](./inventory.of=seeds.case=S7-nheuron-this-extensions-move-to-mods.md) | a last stone moves nheuron's foreign-role `repo=.this` extensions into `repo=.mods`, as a pr beside the overlay pr | `6.adopt.mods.in.nheuron.stone` |
 
 gaps: none known.
