@@ -7,11 +7,14 @@ import { ConstraintError } from 'helpful-errors';
  *   (an enroll, a test) fails loud on it as the ConstraintError it is
  * .note = metadata carries `path` (the brain dir init aimed at, relative to the repo) and
  *   `landsAt` (its realpath)
+ * .note = `effect` names what the skip cost, for a writer whose dir is no brain dir (the role
+ *   foci record); a brain dir writer leaves it unset, and the warn derives it from the path
  */
 export class BrainDirOutsideRepoError extends ConstraintError<{
   path: string;
   landsAt: string;
   hint: string;
+  effect?: string;
 }> {}
 
 /**

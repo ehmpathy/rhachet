@@ -185,11 +185,12 @@ exports[`rhachet init --hooks never writes outside the repo given: [case7] the r
 `;
 
 exports[`rhachet init --hooks never writes outside the repo given: [case8] <repo>/.claude links to a dotfiles dir outside the repo when: [t0] init --roles tester --hooks runs then: the stderr is locked 1`] = `
-"✗ brain://repo=ambient/boot.md not written: ✋ ConstraintError: <repo>/.claude is a symlink to another place
-   ├─ path: /TMP_REPO/.claude
-   ├─ found: a symlink to /PATH_STRIPPED
-   ├─ wanted: a symlink to .agent/.actors/actor.via.repo=ambient/brain/.claude
-   └─ hint: remove /TMP_REPO/.claude, then rerun \`rhx init\`
+"✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: <repo>/.claude is a symlink to another place
+   ├─ path = /TMP_REPO/.claude
+   ├─ found = a symlink to /PATH_STRIPPED
+   ├─ wanted = a symlink to .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ hint = remove /TMP_REPO/.claude, then rerun \`rhx init\`
 "
 `;
 
@@ -340,9 +341,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case13] the 
 `;
 
 exports[`rhachet init --hooks never writes outside the repo given: [case14] the repo actor brain dir is read-only, so its write faults when: [t0] init --hooks runs then: the stderr is locked 1`] = `
-"✗ brain://repo=ambient/boot.md not written: 💥 MalfunctionError: brain dir boot.md could not be written
-   ├─ brainDir: /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude
-   └─ cause: Error: EACCES: permission denied, open '/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
+"✗ brain://repo=ambient/boot.md not written
+   ├─ 💥 MalfunctionError: brain dir boot.md could not be written
+   ├─ brainDir = /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ cause = Error: EACCES: permission denied, open '/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude/.boot.md.__PID__.__HEX__.tmp'
 "
 `;
 
@@ -476,5 +478,39 @@ exports[`rhachet init --hooks never writes outside the repo given: [case19] a sk
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
 
 💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
+"
+`;
+
+exports[`rhachet init --hooks never writes outside the repo given: [case20] the repo actor dir links outside the repo, and init names a role focus when: [t0] init --roles +tester::flow runs then: the stdout is locked 1`] = `
+"
+🔧 init roles (incremental)
+   └─ untouched (1)
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient
+   ├─ lands at = /TMP_TEST_DIR
+   ├─ effect = the role focus this run named was not recorded
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --roles\`
+
+⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
+   ├─ lands at = /TMP_TEST_DIR/brain/.claude
+   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
 "
 `;

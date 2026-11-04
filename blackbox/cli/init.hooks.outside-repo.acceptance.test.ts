@@ -161,6 +161,54 @@ const setLegacyAnthropicAdapter = async (input: {
 };
 
 /**
+ * .what = give this temp repo's tester role a boot spec that declares one subject, `flow`
+ * .why = a focus delta (`+tester::flow`) is refused before any write unless the role declares
+ *   the subject; the fixture's tester declares none, and its other scenes must keep their boot
+ * .note = edits this scene's own copy of the fixture package, never the shared fixture
+ */
+const setTesterRoleSubjectFlow = async (input: {
+  repoPath: string;
+}): Promise<void> => {
+  const packageDir = path.join(
+    input.repoPath,
+    'node_modules/rhachet-roles-test',
+  );
+  await fs.writeFile(
+    path.join(packageDir, 'roles/tester/boot.yml'),
+    [
+      'subject.flow:',
+      '  briefs:',
+      '    say:',
+      '      - briefs/test.brief.md',
+      '',
+    ].join('\n'),
+    'utf-8',
+  );
+
+  // declare the boot spec in both registry forms the package ships, so link lays it down
+  const repoYmlPath = path.join(packageDir, 'rhachet.repo.yml');
+  const repoYml = await fs.readFile(repoYmlPath, 'utf-8');
+  await fs.writeFile(
+    repoYmlPath,
+    repoYml.replace(
+      '    readme: roles/tester/readme.md\n',
+      '    readme: roles/tester/readme.md\n    boot: roles/tester/boot.yml\n',
+    ),
+    'utf-8',
+  );
+  const roleIndexPath = path.join(packageDir, 'dist/index.js');
+  const roleIndex = await fs.readFile(roleIndexPath, 'utf-8');
+  await fs.writeFile(
+    roleIndexPath,
+    roleIndex.replace(
+      "readme: { uri: 'roles/tester/readme.md' },",
+      "readme: { uri: 'roles/tester/readme.md' },\n      boot: { uri: 'roles/tester/boot.yml' },",
+    ),
+    'utf-8',
+  );
+};
+
+/**
  * .what = the facts that prove a file was never rewritten: its inode, its mode, its mtime
  * .why = same bytes alone would pass a temp-and-rename rewrite, which swaps the inode and can
  *   reset the mode; all three hold only for a file no write touched
@@ -1299,6 +1347,68 @@ describe('rhachet init --hooks never writes outside the repo', () => {
         );
         expect(scene.result.stdout).toContain(
           'effect = the repo actor got no boot, and no actor gets its role hooks until it does',
+        );
+      });
+
+      then('the stdout is locked', () => {
+        expect(
+          asStdoutMasked({
+            stdout: scene.result.stdout,
+            home: scene.home,
+            outsideDir: scene.outsideDir,
+          }),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case20] the repo actor dir links outside the repo, and init names a role focus', () => {
+    const scene = useBeforeAll(async () => {
+      const setup = await genSceneRepoWithActorAndHome({
+        homeSettingsMode: 0o644,
+      });
+      await setTesterRoleSubjectFlow({ repoPath: setup.repoPath });
+
+      // re-link tester, so its new boot spec reaches `.agent/` before the focus is named
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: setup.repoPath,
+        env: { HOME: setup.home },
+      });
+      const outsideDir = genTempDir({ slug: 'init-outside-repo-actor-focus' });
+      await fs.writeFile(path.join(outsideDir, 'keep.txt'), 'keep\n', 'utf-8');
+      const repoActorDir = path.join(
+        setup.repoPath,
+        '.agent/.actors/actor.via.repo=ambient',
+      );
+      await fs.rm(repoActorDir, { recursive: true, force: true });
+      await fs.symlink(outsideDir, repoActorDir);
+
+      const result = invokeRhachetCliBinary({
+        args: ['init', '--roles', '+tester::flow'],
+        cwd: setup.repoPath,
+        env: { HOME: setup.home },
+        logOnError: false,
+      });
+      const outsideNamesAfter = await fs.readdir(outsideDir);
+      return { ...setup, outsideDir, outsideNamesAfter, result };
+    });
+
+    when('[t0] init --roles +tester::flow runs', () => {
+      then('it exits 0', () => {
+        expect(scene.result.status).toEqual(0);
+      });
+
+      then('the outside dir holds only what it held before', () => {
+        expect(scene.outsideNamesAfter).toEqual(['keep.txt']);
+      });
+
+      then('the warn names the focus that was not recorded', () => {
+        expect(scene.result.stdout).toContain(
+          '├─ path = .agent/.actors/actor.via.repo=ambient\n',
+        );
+        expect(scene.result.stdout).toContain(
+          'effect = the role focus this run named was not recorded',
         );
       });
 

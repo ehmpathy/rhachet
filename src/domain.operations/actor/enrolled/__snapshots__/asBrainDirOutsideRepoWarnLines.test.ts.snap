@@ -8,6 +8,14 @@ exports[`asBrainDirOutsideRepoWarnLines given: [case] a hash actor dir: the effe
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
 `;
 
+exports[`asBrainDirOutsideRepoWarnLines given: [case] a writer that names its own effect: the effect is that one when: [t0] the warn is rendered then: the block matches snapshot 1`] = `
+"⚠️ skipped a write outside the repo
+   ├─ path = .agent/.actors/actor.via.repo=ambient
+   ├─ lands at = /elsewhere
+   ├─ effect = the role focus this run named was not recorded
+   └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
+`;
+
 exports[`asBrainDirOutsideRepoWarnLines given: [case] the repo actor dir: the effect is every actor when: [t0] the warn is rendered then: the block matches snapshot 1`] = `
 "⚠️ skipped a write outside the repo
    ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude
