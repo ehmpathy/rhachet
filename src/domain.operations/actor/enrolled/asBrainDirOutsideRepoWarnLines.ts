@@ -25,6 +25,6 @@ export const asBrainDirOutsideRepoWarnLines = (input: {
   '⚠️ skipped a write outside the repo',
   `   ├─ path = ${input.error.metadata?.path}`,
   `   ├─ lands at = ${input.error.metadata?.landsAt}`,
-  `   ├─ effect = ${asSkipEffect({ path: input.error.metadata?.path ?? '' })}`,
+  `   ├─ effect = ${input.error.metadata?.effect ?? asSkipEffect({ path: input.error.metadata?.path ?? '' })}`,
   `   └─ hint = ${input.error.metadata?.hint}`,
 ];

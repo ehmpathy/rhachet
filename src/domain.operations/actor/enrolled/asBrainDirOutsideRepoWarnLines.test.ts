@@ -23,6 +23,16 @@ const TEST_CASES = [
         '   ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does',
     },
   },
+  {
+    description: 'a writer that names its own effect: the effect is that one',
+    given: {
+      path: '.agent/.actors/actor.via.repo=ambient',
+      effect: 'the role focus this run named was not recorded',
+    },
+    expect: {
+      effect: '   ├─ effect = the role focus this run named was not recorded',
+    },
+  },
 ];
 
 describe('asBrainDirOutsideRepoWarnLines', () => {
@@ -32,7 +42,14 @@ describe('asBrainDirOutsideRepoWarnLines', () => {
         const lines = asBrainDirOutsideRepoWarnLines({
           error: new BrainDirOutsideRepoError(
             'refused a write outside the repo',
-            { path: thisCase.given.path, landsAt: '/elsewhere', hint: HINT },
+            {
+              path: thisCase.given.path,
+              landsAt: '/elsewhere',
+              hint: HINT,
+              ...('effect' in thisCase.given
+                ? { effect: thisCase.given.effect }
+                : {}),
+            },
           ),
         });
 
