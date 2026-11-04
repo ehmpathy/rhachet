@@ -2,56 +2,27 @@
 
 🗿 route.stone.set
    ├─ stone = 1.vision
-   ├─ passage = blocked
-   ├─ reason = wait for human approval
-   └─ guard
-      ├─ artifacts
-      ├─ reviews
-      │   ├─ r1: dimensional-decomposition (l1, 3/3)
-      │   │   ├─ approved, cached
-      │   │   ├─ 0 blockers ✓
-      │   │   ├─ 0 nitpicks ✓
-      │   │   ├─ given: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r001._.given.by_peer.dimensional-decomposition.md
-      │   │   └─ taken: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r001._.taken.by_self.dimensional-decomposition.md
-      │   └─ r2: experience-coverage (l1, 3/3)
-      │       ├─ approved, cached
-      │       ├─ 0 blockers ✓
-      │       ├─ 2 nitpicks 🟠
-      │       ├─ given: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r002._.given.by_peer.experience-coverage.md
-      │       └─ taken: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r002._.taken.by_self.experience-coverage.md
-      └─ judges
-          ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
-          │   └─ finished 5.5s ✓
-          └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
-              ├─ finished 4.0s ✗
-              └─ reason: wait for human approval
-
-────────────────────────────────────────────────────────────────
-
-🪶 judge 2
-   ├─ stdout
-   │  ├─
-   │  │
-   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
-   │  │
-   │  │  passed: false
-   │  │  reason: wait for human approval
-   │  │
-   │  │  ✋ halted, human approval required
-   │  │     ├─ please ask your human to
-   │  │     │  └─ rhx route.stone.set --stone 1.vision --as approved
-   │  │     │
-   │  │     └─ after human approves, run
-   │  │        └─ rhx route.stone.set --stone 1.vision --as passed
-   │  │
-   │  └─
-   ├─ stderr
-   │  ├─
-   │  │
-   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
-   │  │     └─ ✋ blocked by constraints
-   │  │
-   │  └─
-   └─ passage blocked
-      ├─ blocked by constraints
-      └─ exit code: 2 ✋
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  ├─ reviews
+   │  │   ├─ r1: dimensional-decomposition (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r001._.given.by_peer.dimensional-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r001._.taken.by_self.dimensional-decomposition.md
+   │  │   └─ r2: experience-coverage (l1, 3/3)
+   │  │       ├─ approved, cached
+   │  │       ├─ 0 blockers ✓
+   │  │       ├─ 2 nitpicks 🟠
+   │  │       ├─ given: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r002._.given.by_peer.experience-coverage.md
+   │  │       └─ taken: .behavior/v2026_10_16.feat-role-edit-overlay/.reviews/peer/1.vision._.review.i004.e3683301e4330078b8.r002._.taken.by_self.experience-coverage.md
+   │  └─ judges
+   │      ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │      │   └─ finished 4.7s ✓
+   │      └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+   │          └─ finished 3.9s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive

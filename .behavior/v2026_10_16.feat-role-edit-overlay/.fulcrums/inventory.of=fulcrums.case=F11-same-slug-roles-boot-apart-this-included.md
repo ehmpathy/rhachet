@@ -30,7 +30,11 @@ have learned to boot. b and c are clean before release.
 
 ## .risk
 
-high — a1 changes what extant repos boot: a repo that relies on a `.this` override boots two
+low: no credential, no prod write (director, ca-2675884743); behavior harm clamped by a blueprint test
+
+## .harm
+
+a1 changes what extant repos boot: a repo that relies on a `.this` override boots two
 same-slug roles after release, and the count of such repos is unmeasured. b1 and c1 are clean before
 release, but c2 would move every extant actor dir.
 
@@ -48,4 +52,8 @@ release, but c2 would move every extant actor dir.
 
 ## .verdict
 
-a1 settled by the wisher (S5). b1 and c1 open.
+ruled. a1 is the wisher's (S5). b1 (a bare slug carries every repo's role) and c1 (roles hash as
+named, no actor dir moves) are taken as chosen: clean before release, no credential and no prod
+write. the behavior change a1 brings to repos that rely on a `.this` override is owed a measure in
+research (count those repos) and a test, not a halt; it ships only on the commander's release
+review. (director, ca-2675884743)

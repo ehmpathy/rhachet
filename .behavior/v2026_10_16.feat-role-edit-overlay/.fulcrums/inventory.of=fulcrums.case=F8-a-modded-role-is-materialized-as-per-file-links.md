@@ -4,6 +4,7 @@
 - **taken**: (b). a skill sources its peer files from its own dir (`git.commit.sponsor.sh:29-37`), so a shadow run from `.mods` would find none of them — no read-time merge can fix where bash looks. (b) also makes `run --skill` see one file per name, and every reader mod-blind
 - **rework**: dirty once built — the link layout and every render path's re-materialize depend on it
 - **confidence**: 70% — a new mod file is not live until a re-materialize; and per-file links are a second layout beside per-dir links
-- **risk**: high — a stale link set boots the un-modded role, or a shadow skill that cannot find its peers, with no error at boot; that is a behavior harm a clone meets silently. and once built, the layout is under every render path
+- **risk**: low: no credential, no prod write (director, ca-2675884743); behavior harm clamped by a blueprint test
+- **harm**: a stale link set boots the un-modded role, or a shadow skill that cannot find its peers, with no error at boot; that is a behavior harm a clone meets silently. and once built, the layout is under every render path
 - **where**: `1.vision.yield.md` `### the merged view`; case 9
-- **verdict**: —
+- **verdict**: ruled. rework dirty, risk not on that bar: it touches no credential and no prod write. the silent stale-link boot you named is a real behavior harm, so it is owed a test, not a halt: the blueprint must clamp it (a stale link set, or a shadow skill without its peers, fails loud at boot or re-materialize). (b) is taken as you chose it. (director, ca-2675884743)

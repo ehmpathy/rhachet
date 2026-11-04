@@ -38,3 +38,9 @@
 {"stone":"1.vision","status":"blocked","blocker":"approval","reason":"wait for human approval"}
 {"stone":"1.vision","status":"arrived","reason":"entered guard reviews"}
 {"stone":"1.vision","status":"blocked","blocker":"approval","reason":"wait for human approval"}
+{"stone":"1.vision","status":"approved"}
+{"stone":"1.vision","status":"arrived","reason":"entered guard reviews"}
+{"stone":"1.vision","status":"passed"}
+{"stone":"2.1.criteria.blackbox","status":"passed"}
+{"stone":"3.1.research.internal.this-overrides","status":"passed"}
+{"stone":"3.3.1.blueprint.product","status":"blocked"}
