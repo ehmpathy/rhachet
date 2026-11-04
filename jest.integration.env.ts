@@ -3,6 +3,11 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import util from 'util';
 
+import {
+  CLONE_ENV_KEYS_HANDOFF,
+  CLONE_ENV_KEYS_IDENTITY,
+} from './src/utils/cloneEnvKeys';
+
 // eslint-disable-next-line no-undef
 jest.setTimeout(180000); // since we call downstream apis w/ retries
 
@@ -82,5 +87,14 @@ if (requiresTestDb) {
     );
   }
 }
+
+/**
+ * .what = scrub the host's clone identity before each integration test file
+ * .why = a run inside a clone (a leaf, an agent) would otherwise hand its own serial,
+ *   socket, depth, and leaf mark to every test: the spawn guard then refuses each mocked
+ *   repl as "a leaf clone may not spawn". a test that needs a clone identity sets it itself
+ */
+for (const key of [...CLONE_ENV_KEYS_IDENTITY, ...CLONE_ENV_KEYS_HANDOFF])
+  delete process.env[key];
 
 // .note = the keyrack source runs once per jest run, in jest.integration.globalSetup.ts
