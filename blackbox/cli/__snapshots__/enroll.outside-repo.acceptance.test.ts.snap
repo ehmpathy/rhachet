@@ -10,6 +10,8 @@ exports[`rhx enroll never writes outside the repo given: [case1] a repo whose .a
   "landsAt": "/TMP_TEST_DIR"
 }
 
+[args] enroll,claude,--model,haiku,--await,-p,reply ok
+
 "
 `;
 
@@ -22,6 +24,8 @@ exports[`rhx enroll never writes outside the repo given: [case2] the outside act
   "path": ".agent/.actors",
   "landsAt": "/TMP_TEST_DIR"
 }
+
+[args] enroll,claude,--model,haiku,--await,-p,reply ok
 
 "
 `;
@@ -36,6 +40,8 @@ exports[`rhx enroll never writes outside the repo given: [case3] the actors root
   "landsAt": "/TMP_TEST_DIR/brain/.claude"
 }
 
+[args] enroll,claude,--model,haiku,--await,-p,reply ok
+
 "
 `;
 
@@ -48,6 +54,8 @@ exports[`rhx enroll never writes outside the repo given: [case4] the repo actor 
   "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
   "found": "a dir"
 }
+
+[args] enroll,claude,--model,haiku,--await,-p,reply ok
 
 "
 `;
