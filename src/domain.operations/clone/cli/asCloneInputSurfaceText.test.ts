@@ -1,4 +1,9 @@
-import type { CloneGetReply } from '../socket/asCloneGetReply';
+import { given, then, when } from 'test-fns';
+
+import type {
+  CloneGetReply,
+  CloneProbeBlindReason,
+} from '../socket/asCloneGetReply';
 import { asCloneInputSurfaceText } from './asCloneInputSurfaceText';
 
 /**
@@ -53,6 +58,7 @@ describe('asCloneInputSurfaceText — the false-clear clamps', () => {
     });
     expect(text).toContain('could not be read');
     expect(text).toContain('re-enroll');
+    expect(text).toMatchSnapshot();
   });
 
   test('a probe-blind reply → its own cause and fix, never an empty surface', () => {
@@ -84,6 +90,63 @@ describe('asCloneInputSurfaceText — the false-clear clamps', () => {
     });
     expect(text).toContain('could not be read');
     expect(text).toContain('predates');
+    expect(text).toMatchSnapshot();
+  });
+});
+
+/**
+ * .what = every probe-blind reason, keyed so a new reason fails to compile here until it is snapped
+ * .why = each reason names a different fix (wait, re-enroll, enroll fresh), and a human reads that
+ *   fix off `rhx clone get`; a reason with no snapshot is a remedy that can drift unreviewed
+ */
+const PROBE_BLIND_REASONS = [
+  'feed-not-live',
+  'feed-faulted',
+  'peer-probe-blind',
+  'socket-gone',
+  'probe-unanswered',
+] as const satisfies readonly CloneProbeBlindReason[];
+
+// a reason absent from the list above leaves a required key here, so the file fails to compile
+const PROBE_BLIND_REASONS_UNSNAPPED: Record<
+  Exclude<CloneProbeBlindReason, (typeof PROBE_BLIND_REASONS)[number]>,
+  never
+> = {};
+void PROBE_BLIND_REASONS_UNSNAPPED;
+
+describe('asCloneInputSurfaceText — each probe-blind reason', () => {
+  PROBE_BLIND_REASONS.map((reason) =>
+    given(`[case.${reason}] a probe-blind reply`, () => {
+      when('[t0] the surface is rendered', () => {
+        then('it names its cause and its own fix, each on a subbranch', () => {
+          const text = asCloneInputSurfaceText({
+            reply: { probe: 'unsupported', reason },
+            what: 'buffer',
+            address: '@:x',
+          });
+          expect(text).toContain(`   │  └─ ${reason}`);
+          expect(text).not.toMatch(/├─ cause:|└─ fix:/);
+          expect(text).toMatchSnapshot();
+        });
+      });
+    }),
+  );
+
+  given('[case.loaded-box] a probe-unanswered reply on a loaded box', () => {
+    when('[t0] the queue surface is rendered', () => {
+      then('🔴 it names the wait, never a re-enroll', () => {
+        // the cure on a loaded box is time; a re-enroll spawns a fresh clone on the same box
+        const text = asCloneInputSurfaceText({
+          reply: { probe: 'unsupported', reason: 'probe-unanswered' },
+          what: 'queue',
+          address: '@:x',
+        });
+        expect(text).toContain('the queue could not be read');
+        expect(text).toContain('wait for the load to ease');
+        expect(text).not.toContain('re-enroll');
+        expect(text).toMatchSnapshot();
+      });
+    });
   });
 });
 

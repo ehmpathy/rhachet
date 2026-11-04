@@ -38,6 +38,10 @@ export interface CloneWireExchangeContext<T> {
  *   the exchange latches on the FIRST settle: once `finish` runs a `done`/`fail`, no further
  *   frame in the same chunk is dispatched — so a single-frame reader ignores a later frame
  *   and a loop reader stops at its terminal one, both without a per-caller guard
+ *
+ * .note = frame contract: a client holds its socket open, never half-closed, until it reads its
+ *   terminal frame. the server drops the frames of a peer no longer writable once its auth gate
+ *   settles (genCloneSocketServer), so a client that sends FIN after its request is read as hung up
  */
 export const exchangeOnCloneSocket = async <T>(input: {
   socketPath: string;

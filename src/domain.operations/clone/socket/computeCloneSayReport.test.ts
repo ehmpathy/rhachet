@@ -1,4 +1,4 @@
-import { given, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { computeCloneSayReport } from './computeCloneSayReport';
 import type { CloneSayOutcome } from './computeCloneSayVerdict';
@@ -163,7 +163,7 @@ const TEST_CASES: {
   },
   {
     description:
-      'unreadable feed-not-live → failure, malfunction, names the wait (r9.n1)',
+      'unreadable feed-not-live → failure, malfunction, forbids a blind re-send (the message was delivered, #678)',
     given: {
       verdict: 'unreadable',
       reason: 'feed-not-live',
@@ -173,7 +173,7 @@ const TEST_CASES: {
     expect: {
       channel: 'failure',
       klass: 'malfunction',
-      treeIncludes: 'wait',
+      treeIncludes: 'do NOT blind re-send',
     },
   },
   {
@@ -205,6 +205,32 @@ const TEST_CASES: {
       klass: 'malfunction',
       treeIncludes: 're-enroll',
     },
+  },
+  {
+    description:
+      'unreadable probe-unanswered → failure, malfunction, forbids a blind re-send and names the wait (a loaded box, #678)',
+    given: {
+      verdict: 'unreadable',
+      reason: 'probe-unanswered',
+      probe: 'unsupported',
+      delivered: true,
+    },
+    expect: {
+      channel: 'failure',
+      klass: 'malfunction',
+      treeIncludes: 'wait for the load to ease',
+    },
+  },
+  {
+    description:
+      'released + probe-unanswered → success, transcript-only degrade names no re-enroll (a loaded box, #678)',
+    given: {
+      verdict: 'released',
+      reason: 'probe-unanswered',
+      probe: 'unsupported',
+      delivered: true,
+    },
+    expect: { channel: 'success', treeIncludes: 'no action needed' },
   },
   {
     description:
@@ -252,31 +278,33 @@ const TEST_CASES: {
 describe('computeCloneSayReport', () => {
   TEST_CASES.map((thisCase) =>
     given(thisCase.description, () => {
-      then('the report renders the expected channel and copy', () => {
-        const report = computeCloneSayReport({
-          outcome: thisCase.given,
-          addressShown: '@:x',
-          // a plain prompt unless the case names otherwise — the class every row but the
-          // client-command one exercises
-          message: thisCase.givenMessage ?? 'reply with exactly PONG',
+      when('[t0] the report is computed', () => {
+        then('the report renders the expected channel and copy', () => {
+          const report = computeCloneSayReport({
+            outcome: thisCase.given,
+            addressShown: '@:x',
+            // a plain prompt unless the case names otherwise — the class every row but the
+            // client-command one exercises
+            message: thisCase.givenMessage ?? 'reply with exactly PONG',
+          });
+          expect(report.channel).toEqual(thisCase.expect.channel);
+          // lock the EXACT rendered copy a caller reads — every success tree line and every
+          // failure class/message/hint — so any drift in a user-faced line ships loud (r9.b2)
+          expect(report).toMatchSnapshot();
+          if (report.channel === 'success' && thisCase.expect.tree)
+            expect(report.tree).toEqual(thisCase.expect.tree);
+          if (report.channel === 'success' && thisCase.expect.treeIncludes)
+            expect(report.tree).toContain(thisCase.expect.treeIncludes);
+          if (report.channel === 'failure') {
+            expect(report.klass).toEqual(thisCase.expect.klass);
+            // every failure names a fix (rule.require.errors-name-the-fix)
+            expect(report.hint.length).toBeGreaterThan(0);
+            if (thisCase.expect.treeIncludes)
+              expect(`${report.message} ${report.hint}`).toContain(
+                thisCase.expect.treeIncludes,
+              );
+          }
         });
-        expect(report.channel).toEqual(thisCase.expect.channel);
-        // lock the EXACT rendered copy a caller reads — every success tree line and every
-        // failure class/message/hint — so any drift in a user-faced line ships loud (r9.b2)
-        expect(report).toMatchSnapshot();
-        if (report.channel === 'success' && thisCase.expect.tree)
-          expect(report.tree).toEqual(thisCase.expect.tree);
-        if (report.channel === 'success' && thisCase.expect.treeIncludes)
-          expect(report.tree).toContain(thisCase.expect.treeIncludes);
-        if (report.channel === 'failure') {
-          expect(report.klass).toEqual(thisCase.expect.klass);
-          // every failure names a fix (rule.require.errors-name-the-fix)
-          expect(report.hint.length).toBeGreaterThan(0);
-          if (thisCase.expect.treeIncludes)
-            expect(`${report.message} ${report.hint}`).toContain(
-              thisCase.expect.treeIncludes,
-            );
-        }
       });
     }),
   );

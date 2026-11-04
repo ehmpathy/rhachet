@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone say on a loaded box vs a REAL claude (real acceptance) given: [case1] a real claude on a box where \`ss -x\` takes 7s when: [t0] the human says a message to their own clone then: the whole success tree a human reads on a loaded box is locked 1`] = `
+"😶🎙️ said to @:__SERIAL8__
+   └─ 🟡 screen probe unanswered (a loaded box) — verified by transcript; no action needed"
+`;
+
+exports[`rhx clone say on a loaded box vs a REAL claude (real acceptance) given: [case2] a real claude whose every caller reads as another uid when: [t0] a say is dispatched to the clone then: the refusal a human reads is locked 1`] = `
+"💥 MalfunctionError: clone refused the message: the caller is not the same unix user as the clone — a clone socket accepts only its own user; run the say as the user that enrolled the clone
+
+{
+  "socketPath": "__SOCKET__",
+  "reason": "auth-denied"
+}
+
+[args] clone,say,@:__SERIAL__,--what,CROSSUSER-NEVER-TYPED"
+`;
+
+exports[`rhx clone say on a loaded box vs a REAL claude (real acceptance) given: [case2] a real claude whose every caller reads as another uid when: [t1] the caller reads the input box with \`clone get --what buffer\` then: the tree a refused caller reads is locked 1`] = `
+"😶 @:__SERIAL8__ — the buffer could not be read
+   ├─ cause
+   │  └─ peer-probe-blind
+   └─ fix
+      └─ this daemon predates the read channel — re-enroll the clone to a version that answers a probe"
+`;

@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone say on a loaded box (integration, stub brain) given: [case2] a busy clone on a box where \`ss -x\` takes 7s (no transcript rise, every probe blind) when: [t0] the human says a message to their own clone then: the failure a human reads on a loaded box is locked 1`] = `
+"💥 MalfunctionError: the clone did not answer its screen probe in time (a loaded box: its auth check is slow) and the transcript did not rise within the bound
+
+{
+  "hint": "do NOT blind re-send — the message reached the pty and may have landed (a re-send would double it). wait for the load to ease, then read the input box with \`clone get --what buffer\`; a read that still says \`probe-unanswered\` means the machine is still loaded. a re-enroll does not help",
+  "delivered": true,
+  "verdict": "unreadable",
+  "reason": "probe-unanswered",
+  "probe": "unsupported",
+  "serial": "__SERIAL__",
+  "slug": "slowbusy",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+[args] clone,say,@:slowbusy,--what,hold-me-slowbox"
+`;
+
+exports[`rhx clone say on a loaded box (integration, stub brain) given: [case2] a busy clone on a box where \`ss -x\` takes 7s (no transcript rise, every probe blind) when: [t1] the human reads the input box with \`clone get --what buffer\` then: the tree a human reads on a loaded box is locked 1`] = `
+"😶 @:slowbusy — the buffer could not be read
+   ├─ cause
+   │  └─ probe-unanswered
+   └─ fix
+      └─ the clone did not answer in time — the machine is loaded; wait for the load to ease, then read again"
+`;
+
+exports[`rhx clone say on a loaded box (integration, stub brain) given: [case2] a busy clone on a box where \`ss -x\` takes 7s (no transcript rise, every probe blind) when: [t2] a machine reads the input box with \`clone get --what buffer --output json\` then: the record a machine parses on a loaded box is locked 1`] = `
+"{
+  "probe": "unsupported",
+  "reason": "probe-unanswered"
+}"
+`;

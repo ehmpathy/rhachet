@@ -1,3 +1,5 @@
+import { SOCKET_PEER_CRED_LOOKUP_TIMEOUT_MS } from '@src/infra/socket/constants';
+
 /**
  * .what = the byte a clone's dispatch writes to the brain-cli pty to SUBMIT the
  *   typed message (the Enter key), after the message content is typed
@@ -123,31 +125,32 @@ export const CLONE_WEDGED_TIMEOUT_FLOOR_MS = 30_000;
 export const CLONE_WEDGED_TIMEOUT_SLACK_MS = 10_000;
 
 /**
+ * .what = the margin the auth gate bound holds above the peer-cred lookup bound
+ * .why = it covers what follows the bounded `ss` scan — the `/proc` holder scan (newest process
+ *   first, it stops at the first holder), the stat, and the settle — so a slow scan always ends
+ *   at the lookup (a named fault), never at the gate first
+ */
+export const CLONE_AUTH_GATE_MARGIN_MS = 5_000;
+
+/**
  * .what = the BOUND on the per-connection same-user auth gate — past it the connection is
  *   NACK'd with a named reason rather than held silent
  * .why =
- *   - 🔴 the accept path writes NO frame until that gate resolves, and the gate shells out
- *     to `ss -xp` (a scan of every unix socket on the host, each mapped to the pid that
- *     holds it) once per connection. so an unbounded gate is an unbounded, unobservable
- *     silence — the client sees a connected socket that never answers, and falls to its 30s
- *     wedge timer with no cause to report (`rule.forbid.failhide`)
- *   - measured 2026-09-18, an 11-suite clone acceptance tier against 3 live brains: a joker
- *     dispatch wedged at 30s with `acksSeen: []` and `silentMs: 30092` — the server never
- *     acked at all, so the stall sat BEFORE the first frame, which is exactly this gate
- *   - it sits ABOVE `getSocketPeerCred`'s own 5s `execAsync` timeout deliberately: a healthy
- *     lookup settles in tens of ms, and a slow one is already refused at 5s. so this bound
- *     fires ONLY when that inner timeout failed to settle the promise, and the value is
- *     derived from the inner bound rather than guessed from observed latency
- *     (`rule.forbid.time-assumptions`)
+ *   - 🔴 the accept path writes NO frame until that gate settles, and the gate scans `ss -x`
+ *     (every unix socket on the host) and then `/proc` for the peer's holder, once per
+ *     connection. an unbounded gate is an unbounded, unobservable silence: the client sees a
+ *     connected socket that never answers (`rule.forbid.failhide`)
+ *   - 🔴 it sits above `SOCKET_PEER_CRED_LOOKUP_TIMEOUT_MS` by `CLONE_AUTH_GATE_MARGIN_MS`, so it
+ *     fires only when the lookup failed to settle at all. a gate at or below the lookup turns a
+ *     slow lookup into a false `auth-denied` (ehmpathy/rhachet#678)
  *
- * ⚠️ this bound did NOT cure the 30s wedge above, and the record says so. the very next tier
- *   run reproduced it — `acksSeen: []`, `silentMs: 30013` — with this bound live and unfired, so
- *   the stall does not sit in this gate (a fired bound would have NACK'd at 8s). what it DOES
- *   close is a real failhide: an unbounded, unnamed wait before the accept path writes its first
- *   frame. kept on that merit alone (`rule.forbid.mechanism-inferred-from-outcome` — a bound
- *   honored is not a fix demonstrated). ⇒ fulcrum F32 carries the refutation
+ * .note = it bounds the wait before the first frame; it is not the cause of the say's 30s wedge
+ *   (ehmpathy/rhachet#682)
+ * .note = it sits above the say's 30s wedge floor, so a lookup slower than ~30s ends as a client
+ *   wedge, never a false deny
  */
-export const CLONE_AUTH_GATE_TIMEOUT_MS = 8_000;
+export const CLONE_AUTH_GATE_TIMEOUT_MS =
+  SOCKET_PEER_CRED_LOOKUP_TIMEOUT_MS + CLONE_AUTH_GATE_MARGIN_MS;
 
 /**
  * .what = how often the daemon's loop-lag watch wakes, in ms
