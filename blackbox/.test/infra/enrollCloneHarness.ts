@@ -1075,8 +1075,9 @@ export const expectCloneSaySuccessTree = (input: {
   // (a probe-blind or feed-not-live peer earns a degrade leaf; a healthy one earns none). so a
   // single snapshot key holds only the head, and the shape of what may follow it is checked here
   //
-  // ⚠️ .why NOT a line count = `said to` has FOUR renders, three of which carry a degrade leaf
-  //   (`feed faulted`, `feed not live`, `probe-blind`). an `=== 1` check would redden against a
+  // ⚠️ .why NOT a line count = `said to` has several renders, most of which carry a degrade leaf
+  //   (`feed faulted`, `feed not live`, `probe-blind`, `socket closed`, `screen probe
+  //   unanswered`). an `=== 1` check would redden against a
   //   legitimate degrade — a false failure on a peer that is merely older than the read channel
   const verdict = matched[1];
   const lines = asSnapshotSafe(input.stdout).trimEnd().split('\n');

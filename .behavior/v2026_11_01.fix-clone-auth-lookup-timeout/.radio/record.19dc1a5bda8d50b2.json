@@ -1,0 +1,19 @@
+{
+  "key": "19dc1a5bda8d50b2",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(clone): a short clone say wedges at 30s before the 65s auth gate decides",
+  "description": "# 🌙 dream: a short clone say wedges before the auth gate decides\n\nkind = reseed · owner = rhachet (clone) · caught 2026-11-01\n\n## .the cue that fired\n\n`v2026_11_01.fix-clone-auth-lookup-timeout` raised the peer-cred lookup bound to 60s and the gate\nbound to 65s. the client's wedge floor for a short `say` is 30s, and no ack is sent before the gate\nsettles.\n\n## .the gap, precisely\n\na lookup of 30s–60s passes server-side, but the client has already exited 1 (a wedge `MalfunctionError`) with\n`acksSeen: []`. no false deny, yet no delivery.\n\n## .the shape of the fix\n\neither (a) the server writes an ack phase (e.g. `auth-pending`) the moment a frame arrives, which\nre-arms the client's window as `queued` does today; or (b) the wedge floor rises above\n`CLONE_AUTH_GATE_TIMEOUT_MS`. (a) keeps the short wedge for a truly dead peer; (b) is one line.\n\n## .why it is not done in this round\n\nthe wish names the two server bounds only; either cure changes the wire or a client timer.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": "findsert",
+  "heldSeq": 1,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "682"
+}

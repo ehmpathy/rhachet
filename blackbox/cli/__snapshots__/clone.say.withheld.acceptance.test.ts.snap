@@ -126,8 +126,10 @@ exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open 
 
 exports[`rhx clone reach (acceptance) given: [case10] a clone with a MODAL open (a permission prompt) when: [t2] a \`clone get --what buffer\` read while the modal holds focus then: the modal-blind read format is locked (visual spot-check) 1`] = `
 "😶 @:modalbox — the buffer could not be read
-   ├─ cause: the screen is on modal, so the input band is not locatable
-   └─ fix: read what the modal asks with --debug; it must be cleared at the clone's own tty
+   ├─ cause
+   │  └─ the screen is on modal, so the input band is not locatable
+   └─ fix
+      └─ read what the modal asks with --debug; it must be cleared at the clone's own tty
 "
 `;
 

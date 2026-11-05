@@ -10,6 +10,9 @@ import {
 } from 'test-fns';
 import { getUuid } from 'uuid-fns';
 
+import { genSceneWithFakeSsOnPath } from '@src/.test/assets/genSceneWithFakeSsOnPath';
+import { asSnapshotSafe } from '@src/.test/infra/asSnapshotSafe';
+
 import {
   existsSync,
   realpathSync,
@@ -1384,4 +1387,268 @@ describe('genCloneSocketServer.integration', () => {
       });
     },
   );
+
+  /**
+   * .what = a same-uid say on a box where the peer-cred `ss -x` scan takes 9s
+   * .why = the clamp for ehmpathy/rhachet#678. a 5s exec bound on that scan killed it, the
+   *   gate failed closed, and a same-user caller was refused as `auth-denied`. 9s sits above
+   *   both old bounds (the 5s exec kill, the 8s gate) and below the say's 30s window, so the
+   *   say must land. the real gate, exec, and `ss` all run — only `ss` is slowed, by a fake on
+   *   `PATH` that sleeps, then execs the real binary (genFakeSsOnPath)
+   * .note = the `PATH` swap is undone on every exit (genSceneWithFakeSsOnPath)
+   */
+  given('[case19] a same-uid say on a box where `ss -x` takes 9s', () => {
+    const SS_DELAY_SECONDS = 9;
+
+    const scene = useBeforeAll(async () =>
+      genSceneWithFakeSsOnPath(
+        {
+          ss: {
+            delaySeconds: SS_DELAY_SECONDS,
+            delayAt: 'before-scan',
+            view: 'whole',
+          },
+        },
+        { genScene: genServerWithCapture },
+      ),
+    );
+    // ⚠️ the optional chain is deliberate, as in [case15]: the scene throws by design on a host
+    //   with no `ss`, and an unguarded teardown would replace that named ConstraintError with a
+    //   bare TypeError (`rule.forbid.failhide`)
+    afterAll(async () => scene?.close?.());
+
+    when('[t0] the human says a message to their own clone', () => {
+      const outcome = useThen('the say settles', async () => {
+        const startedAt = Date.now();
+        const said = await sayClone({
+          socketPath: scene.socketPath,
+          message: 'slow box hello',
+        }).then(
+          (result) => ({ result, error: null }),
+          (error: Error) => ({ result: null, error }),
+        );
+        return { ...said, elapsedMs: Date.now() - startedAt };
+      });
+
+      then('the say is delivered, not refused as auth-denied', () => {
+        expect(outcome.error).toEqual(null);
+        expect(outcome.result).toEqual({ delivered: true });
+      });
+
+      then('the gate waited out the slow scan rather than cut it short', () => {
+        expect(outcome.elapsedMs).toBeGreaterThanOrEqual(
+          SS_DELAY_SECONDS * 1000,
+        );
+      });
+
+      then('the child was written the message, then its submit', () => {
+        expect(scene.written.join('')).toEqual('slow box hello\r');
+      });
+
+      // every gate fault traces a line that opens `clone socket auth` — the lookup error and
+      //   the gate timeout alike (genCloneSocketServer.ts:353,357)
+      then('the trace holds no `clone socket auth` fault line', () => {
+        expect(
+          scene.traced.filter((line) => line.startsWith('clone socket auth')),
+        ).toEqual([]);
+      });
+    });
+  });
+
+  /**
+   * .what = a caller whose end the lookup cannot name in `ss`
+   * .why = the gate must then deny: no peer inode → lookup fault → `auth-denied`, and not one
+   *   byte to the child. the fake `ss` shows every peer inode as 0, so the real gate, exec, and
+   *   parser all run. a parse that fell back to the reader's own pid would pass here, and this
+   *   case would go red
+   */
+  given('[case20] a caller the lookup cannot name in `ss`', () => {
+    const scene = useBeforeAll(async () =>
+      genSceneWithFakeSsOnPath(
+        { ss: { delaySeconds: 0, delayAt: 'before-scan', view: 'blind' } },
+        { genScene: genServerWithCapture },
+      ),
+    );
+    afterAll(async () => scene?.close?.());
+
+    when('[t0] a say is dispatched', () => {
+      const outcome = useThen('the say is refused', async () => ({
+        error: await getError(
+          sayClone({ socketPath: scene.socketPath, message: 'unseen hello' }),
+        ),
+      }));
+
+      then(
+        'it is refused as auth-denied, with the copy that names the fix',
+        () => {
+          expect(outcome.error).toBeInstanceOf(MalfunctionError);
+          expect(outcome.error).toMatchObject({
+            metadata: { reason: 'auth-denied' },
+          });
+          expect(outcome.error.message).toContain('same unix user');
+          // the whole message, copy and metadata; the per-run socket path is masked, never cut
+          expect(
+            asSnapshotSafe({
+              of: outcome.error.message,
+              // the token the blackbox mask stamps on a clone socket, so both deny snapshots
+              //   read as one render
+              masks: [{ path: scene.socketPath, into: '__SOCKET__' }],
+            }),
+          ).toMatchSnapshot();
+        },
+      );
+
+      then('not one byte reached the child', () => {
+        expect(scene.written).toEqual([]);
+      });
+
+      then('the lookup fault is traced on the clone side', () => {
+        expect(
+          scene.traced.some((line) =>
+            line.includes('could not read peer inode from ss'),
+          ),
+        ).toEqual(true);
+      });
+    });
+  });
+
+  /**
+   * .what = a caller held by a process this user cannot read — how another uid's caller looks to
+   *   a non-root clone, end to end
+   * .why = a non-root reader cannot read another user's fds, so the holder scan finds no one and
+   *   the gate must deny: no holder → lookup fault → `auth-denied`, and not one byte to the child.
+   *   the fake `ss` rewrites every peer inode to one no process holds, so the real gate, exec,
+   *   parser, and holder scan all run. the uid compare itself is clamped in isCallerSameUser.test
+   */
+  given('[case21] a caller held by a process this user cannot read', () => {
+    const scene = useBeforeAll(async () =>
+      genSceneWithFakeSsOnPath(
+        { ss: { delaySeconds: 0, delayAt: 'before-scan', view: 'foreign' } },
+        { genScene: genServerWithCapture },
+      ),
+    );
+    afterAll(async () => scene?.close?.());
+
+    when('[t0] a say is dispatched', () => {
+      const outcome = useThen('the say is refused', async () => ({
+        error: await getError(
+          sayClone({ socketPath: scene.socketPath, message: 'root hello' }),
+        ),
+      }));
+
+      then(
+        'it is refused as auth-denied, with the copy that names the fix',
+        () => {
+          expect(outcome.error).toBeInstanceOf(MalfunctionError);
+          expect(outcome.error).toMatchObject({
+            metadata: { reason: 'auth-denied' },
+          });
+          expect(outcome.error.message).toContain('same unix user');
+          // the whole message, copy and metadata; the per-run socket path is masked, never cut
+          expect(
+            asSnapshotSafe({
+              of: outcome.error.message,
+              // the token the blackbox mask stamps on a clone socket, so both deny snapshots
+              //   read as one render
+              masks: [{ path: scene.socketPath, into: '__SOCKET__' }],
+            }),
+          ).toMatchSnapshot();
+        },
+      );
+
+      then('not one byte reached the child', () => {
+        expect(scene.written).toEqual([]);
+      });
+
+      then('the absent holder is traced on the clone side', () => {
+        expect(
+          scene.traced.some((line) =>
+            line.includes(
+              'could not find the process that holds the peer socket',
+            ),
+          ),
+        ).toEqual(true);
+      });
+    });
+  });
+
+  /**
+   * .what = a caller that gives up while a slow `ss` holds the gate
+   * .why = the caller reports a wedge and may retry. if the server then typed the say, the retry
+   *   would land it twice. a caller that hung up has closed its fd, so the holder scan after the
+   *   slow scan finds no one and the gate denies; and a gate that passed on a caller that hung up
+   *   after the scan drops its frames (`computeCloneAuthGateAction.test`). either way, not one
+   *   byte reaches the child
+   */
+  given('[case22] a caller that hangs up before a slow gate settles', () => {
+    const SS_DELAY_SECONDS = 3;
+
+    // the scan reads the table while the caller is still connected, then prints it late — so the
+    //   holder scan runs after the caller has already given up
+    const scene = useBeforeAll(async () =>
+      genSceneWithFakeSsOnPath(
+        {
+          ss: {
+            delaySeconds: SS_DELAY_SECONDS,
+            delayAt: 'after-scan',
+            view: 'whole',
+          },
+        },
+        { genScene: genServerWithCapture },
+      ),
+    );
+    afterAll(async () => scene?.close?.());
+
+    when('[t0] the say window ends at 1s, before the 3s gate', () => {
+      const outcome = useThen(
+        'the gate has settled after the hangup',
+        async () => {
+          const error = await getError(
+            sayClone({
+              socketPath: scene.socketPath,
+              message: 'late hello',
+              wedgedTimeoutMs: 1_000,
+            }),
+          );
+          // wait out the slow scan plus a margin, so the gate has settled on the server
+          await new Promise((done) =>
+            setTimeout(done, SS_DELAY_SECONDS * 1000 + 1_500),
+          );
+          return { error };
+        },
+      );
+
+      then('the caller saw a wedge', () => {
+        expect(outcome.error).toBeInstanceOf(MalfunctionError);
+      });
+
+      then('the wedge report a human reads is locked', () => {
+        // a 30s–60s lookup now ends here on the caller side where it used to end in auth-denied,
+        //   so its copy is human-faced. the per-run socket path and the measured silence are masked
+        expect(
+          asSnapshotSafe({
+            of: outcome.error.message,
+            masks: [{ path: scene.socketPath, into: '__SOCKET__' }],
+          }).replace(/("silentMs": )\d+/g, '$1__MS__'),
+        ).toMatchSnapshot();
+      });
+
+      then(
+        'not one byte reached the child, so a retry cannot double it',
+        () => {
+          expect(scene.written).toEqual([]);
+        },
+      );
+
+      then('the gone caller is traced on the clone side', () => {
+        expect(
+          scene.traced.some((line) =>
+            line.includes(
+              'could not find the process that holds the peer socket',
+            ),
+          ),
+        ).toEqual(true);
+      });
+    });
+  });
 });

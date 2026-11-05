@@ -85,9 +85,20 @@ const REASON_COPY: Record<
     hint: 'do NOT blind re-send (a prompt-consumed message would double) — verify the clone, then retry with --await release',
   },
   'feed-not-live': {
+    // 🔴 `unreadable` is always post-write (`delivered: true`), so the hint must never say "retry":
+    //   the message reached the pty and may have landed, and a blind re-send types it twice
     message:
       'the clone screen feed is not live (a brand-new clone before its first chunk, or a clone with no screen emulator) and the transcript did not rise within the bound',
-    hint: 'wait a moment and retry — a brand-new clone attaches its feed on its first output, so the message may have landed; if it recurs across retries the clone has no emulator to read its screen, so re-enroll on a build that carries one (a feed that faulted mid-run reports `feed-faulted`, not this)',
+    hint: 'do NOT blind re-send — the message reached the pty and may have landed (a re-send would double it). read the clone with `clone get` first. a brand-new clone attaches its feed on its first output; if this recurs, the clone has no emulator to read its screen, so re-enroll on a build that carries one (a feed that faulted mid-run reports `feed-faulted`, not this)',
+  },
+  'probe-unanswered': {
+    // 🔴 a loaded box: every observe probe outlasted its window behind the clone's auth gate,
+    //   whose peer-cred `ss` scan is slow (ehmpathy/rhachet#678). the feed may be healthy, so a
+    //   re-enroll cures naught. the read it names is `clone get --what buffer`: it degrades to
+    //   `probe-unanswered` on the same box rather than throws, so it reads as the sign to wait
+    message:
+      'the clone did not answer its screen probe in time (a loaded box: its auth check is slow) and the transcript did not rise within the bound',
+    hint: 'do NOT blind re-send — the message reached the pty and may have landed (a re-send would double it). wait for the load to ease, then read the input box with `clone get --what buffer`; a read that still says `probe-unanswered` means the machine is still loaded. a re-enroll does not help',
   },
   'feed-faulted': {
     message:
@@ -137,6 +148,8 @@ const DEGRADE_COPY: Record<CloneProbeBlindReason, string> = {
     '   └─ 🟡 feed not live — verified by transcript; self-heals as the feed attaches, else re-enroll (F24)',
   'socket-gone':
     '   └─ 🟡 socket closed after the say — verified by transcript; enroll a fresh clone (`rhx enroll`) to reach it again',
+  'probe-unanswered':
+    '   └─ 🟡 screen probe unanswered (a loaded box) — verified by transcript; no action needed',
 };
 
 /**

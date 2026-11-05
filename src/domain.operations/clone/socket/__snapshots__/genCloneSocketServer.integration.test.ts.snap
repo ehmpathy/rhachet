@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genCloneSocketServer.integration given: [case20] a caller the lookup cannot name in \`ss\` when: [t0] a say is dispatched then: it is refused as auth-denied, with the copy that names the fix 1`] = `
+"💥 MalfunctionError: clone refused the message: the caller is not the same unix user as the clone — a clone socket accepts only its own user; run the say as the user that enrolled the clone
+
+{
+  "socketPath": "__SOCKET__",
+  "reason": "auth-denied"
+}"
+`;
+
+exports[`genCloneSocketServer.integration given: [case21] a caller held by a process this user cannot read when: [t0] a say is dispatched then: it is refused as auth-denied, with the copy that names the fix 1`] = `
+"💥 MalfunctionError: clone refused the message: the caller is not the same unix user as the clone — a clone socket accepts only its own user; run the say as the user that enrolled the clone
+
+{
+  "socketPath": "__SOCKET__",
+  "reason": "auth-denied"
+}"
+`;
+
+exports[`genCloneSocketServer.integration given: [case22] a caller that hangs up before a slow gate settles when: [t0] the say window ends at 1s, before the 3s gate then: the wedge report a human reads is locked 1`] = `
+"💥 MalfunctionError: the clone accepted the connection but did not answer in time
+
+{
+  "socketPath": "__SOCKET__",
+  "wedgedMs": 1000,
+  "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+  "reachCause": "wedged",
+  "acksSeen": [],
+  "silentMs": __MS__
+}"
+`;

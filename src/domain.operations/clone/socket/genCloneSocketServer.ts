@@ -21,6 +21,7 @@ import {
 } from './awaitCloneSubmitReady';
 import { awaitCloneSubmitTaken } from './awaitCloneSubmitTaken';
 import { computeCloneAcceptRoute } from './computeCloneAcceptRoute';
+import { computeCloneAuthGateAction } from './computeCloneAuthGateAction';
 import { computeCloneScreenDispatchGate } from './computeCloneScreenDispatchGate';
 import {
   CLONE_AUTH_GATE_TIMEOUT_MS,
@@ -352,7 +353,15 @@ export const genCloneSocketServer = (
           if (outcome.fault)
             trace(`clone socket auth error: ${outcome.fault.message}\n`);
 
-          if (outcome.verdict === 'timeout') {
+          // the route is decided apart, so each of the four is unit-tested with no socket; a slow
+          //   `ss` can hold the gate past the say's window, which is why a hung-up caller drops
+          const action = computeCloneAuthGateAction({
+            verdict: outcome.verdict,
+            peerWritable: socket.writable,
+          });
+
+          // refuse a gate that timed out, with its classed reason
+          if (action === 'nack-timeout') {
             trace(
               `clone socket auth gate timed out after ${CLONE_AUTH_GATE_TIMEOUT_MS}ms\n`,
             );
@@ -360,11 +369,22 @@ export const genCloneSocketServer = (
             socket.end();
             return;
           }
-          if (outcome.verdict === 'deny') {
+
+          // refuse a caller the gate denied
+          if (action === 'nack-denied') {
             reply(socket, 'rejected', 'auth-denied');
             socket.end();
             return;
           }
+
+          // drop the frames of a caller that hung up (or half-closed) while the gate ran
+          if (action === 'drop-hung-up') {
+            trace(
+              'clone socket frames dropped — peer hung up (or half-closed) before the auth gate settled\n',
+            );
+            return;
+          }
+
           processChunk(text);
         })
         .catch((error: unknown) => {

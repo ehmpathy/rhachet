@@ -159,6 +159,29 @@ describe('asSnapshotSafe path mask', () => {
     });
   });
 
+  given('[case4b] a clone socket path as a json value', () => {
+    // the refusal metadata of a `clone say` carries `"socketPath": "<path>"`. a mask whose prefix
+    // ate the first quote rendered `"socketPath": __SOCKET__",` — a string with no start
+    const SOCKET_JSON =
+      '"socketPath": "/run/user/1000/rhachet/clone.9c1e0af3-1b2c-4d5e-8f90-a1b2c3d4e5f6.ab12cd34.sock",';
+
+    when('[t0] the mask reaches it', () => {
+      then('the path collapses to one token, and both quotes stay', () => {
+        expect(asSnapshotSafe(SOCKET_JSON)).toEqual('"socketPath": "__SOCKET__",');
+      });
+    });
+
+    when('[t1] the same path sits in prose after a space', () => {
+      then('the whole path still collapses to one token', () => {
+        expect(
+          asSnapshotSafe(
+            'listen EACCES: permission denied /run/user/1000/rhachet/clone.9c1e0af3-1b2c-4d5e-8f90-a1b2c3d4e5f6.ab12cd34.sock',
+          ),
+        ).toEqual('listen EACCES: permission denied __SOCKET__');
+      });
+    });
+  });
+
   given('[case5] the two volatile spans a BOOT CENSUS line carries', () => {
     // 🚨 .why = these two spans are masked HERE and were clamped NOWHERE. seven
     //   acceptance call sites wrapped this mask as `maskBootCensusVolatiles(asSnapshotSafe(x))`

@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import { asCloneGetReply, type CloneGetReply } from './asCloneGetReply';
+import { CloneProbeReplyTimeoutError } from './CloneProbeReplyTimeoutError';
 import { CLONE_PROBE_REPLY_DEFAULT_MS } from './constants';
 import { exchangeOnCloneSocket } from './exchangeOnCloneSocket';
 
@@ -82,7 +83,7 @@ export const getCloneInputState = async (input: {
     onTimeout: (ctx) =>
       ctx.finish(() =>
         ctx.fail(
-          new MalfunctionError('clone get read timed out', {
+          new CloneProbeReplyTimeoutError('clone get read timed out', {
             socketPath: input.socketPath,
             replyMs,
           }),
