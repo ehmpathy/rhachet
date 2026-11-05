@@ -236,7 +236,7 @@ describe('setBrainDirBoot', () => {
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t2' });
           const render = await setBrainDirBoot({
             brainDir: join(repoPath, 'brain'),
-            roles: [{ repo: 'fixture', role: 'zeta' }],
+            roles: [{ repo: 'fixture', role: 'zeta', subjects: null }],
             repoPath,
             scope: { kind: 'repo' },
           });
