@@ -1,0 +1,19 @@
+{
+  "key": "46c71311cd6cae9e",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "a say that lands but exits nonzero invites a double post",
+  "description": "# 🌙 dream: a say that lands but exits nonzero invites a double post\n\nkind = followup · owner = rhachet (clone say) · caught 2026-11-02\n\n## .the cue that fired\n\nthe blueprint for `v2026_11_01.fix-tests-mock-the-claude-cli` made the test harness's say retry\nidempotent: before a re-send, it counts the clone's `in` transcript lines, and re-sends only if the\ncount did not rise. a peer review noted the harness retry exists to model a consumer who re-says a\nwedged dispatch (`blackbox/.test/infra/enrollCloneHarness.ts:877-885`). the harness no longer\ndouble-posts; that consumer still can.\n\n## .the gap, precisely\n\n`rhx clone say` can exit nonzero after the brain took the message: the say reached the pty and the\nbrain wrote its user turn, but the `delivered` ack or the reply poll ran out. a consumer — a human,\nor a clone that drives another — reads exit 2 as \"not delivered\" and re-says. the brain then holds\nthe message twice, and answers it twice.\n\n## .the shape of the fix\n\none of, to be chosen in its own behavior:\n\n- the say's refusal names the case: when the transcript already holds this say's `in` line, the\n  exit-2 output says the message landed and only the ack or reply is late, with the command to\n  read it (`rhx clone get`), so a re-say is no longer the obvious next move\n- or a `--idem` flag on `clone say` that applies the same count check the harness now uses\n\neither needs a measurement first: how often a real say lands but exits nonzero (the\n`rule.forbid.sync-invoke-while-a-pty-is-live` case was one such cause, in tests).\n\n## .why it is not done in this round\n\nit is product behavior of `clone say`, and this wish is about which tests reach anthropic. a fix\nhere changes a published cli contract; it needs its own vision and the wisher's call.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 2,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}
