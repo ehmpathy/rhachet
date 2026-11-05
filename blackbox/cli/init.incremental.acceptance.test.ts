@@ -13,6 +13,15 @@ import {
 import { setFixturePrepareRhachet } from '@/blackbox/.test/infra/setFixturePrepareRhachet';
 
 /**
+ * .what = the env every `init` call here runs with: the runner's CLAUDE_CONFIG_DIR unset
+ * .why = an enrolled clone's shell sets CLAUDE_CONFIG_DIR to its actor's brain dir, and the
+ *   mechanic init prints a `config dir` note only when that var names another dir. so an
+ *   ambient value puts a line on the screen that ci never prints, and the snapshot holds
+ *   whichever shell ran it last (`rule.require.hermetic-tests`)
+ */
+const ENV_WITHOUT_AMBIENT_CONFIG_DIR = { CLAUDE_CONFIG_DIR: undefined };
+
+/**
  * .what = slices the `--roles` option help lines out of `init --help` stdout
  * .why = the incremental `+role`/`-role` syntax is documented on the --roles
  *        option; a snapshot of only its help block locks that discoverability
@@ -79,7 +88,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles mechanic behaver`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', 'mechanic', 'behaver'],
           cwd: testDir,
         }),
@@ -129,7 +138,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-add' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -137,7 +146,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect` (e1 add, keep rest)', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect'],
           cwd: testDir,
         }),
@@ -158,7 +167,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-remove' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'architect'],
         cwd: testDir,
       });
@@ -166,7 +175,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect` (remove, keep rest)', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
         }),
@@ -201,7 +210,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-remove-prepare' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'architect'],
         cwd: testDir,
       });
@@ -213,7 +222,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
         }),
@@ -246,7 +255,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-addremove' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'reviewer'],
         cwd: testDir,
       });
@@ -254,7 +263,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect -reviewer`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect', '-reviewer'],
           cwd: testDir,
         }),
@@ -278,7 +287,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles mechanic +architect`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', 'mechanic', '+architect'],
           cwd: testDir,
           logOnError: false,
@@ -299,7 +308,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect -architect`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect', '-architect'],
           cwd: testDir,
           logOnError: false,
@@ -319,7 +328,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +nonesuch`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+nonesuch'],
           cwd: testDir,
           logOnError: false,
@@ -367,7 +376,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +ehmpathy/architect`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+ehmpathy/architect'],
           cwd: testDir,
         }),
@@ -393,7 +402,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-'],
           cwd: testDir,
           logOnError: false,
@@ -411,7 +420,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-absent' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -419,7 +428,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect` when architect is not linked', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
         }),
@@ -439,7 +448,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-empty' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', '+ehmpathy/architect'],
         cwd: testDir,
       });
@@ -447,7 +456,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect` (the only role)', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
         }),
@@ -480,7 +489,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -homegrown`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-homegrown'],
           cwd: testDir,
           logOnError: false,
@@ -500,7 +509,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect +architect`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect', '+architect'],
           cwd: testDir,
         }),
@@ -531,7 +540,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect` without a repo qualifier', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
           logOnError: false,
@@ -562,7 +571,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect` on the broken link', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect'],
           cwd: testDir,
         }),
@@ -585,7 +594,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
       // seed architect already linked via a first incremental add
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', '+architect'],
         cwd: testDir,
       });
@@ -593,7 +602,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect` a second time', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect'],
           cwd: testDir,
         }),
@@ -622,7 +631,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     beforeAll(() => {
       for (const dir of [dirFindsert, dirUpsert]) {
         setupRoleFixtureRepo({ dir });
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', 'mechanic'],
           cwd: dir,
         });
@@ -631,7 +640,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] the same `+architect -mechanic` runs under each mode', () => {
       const runFindsert = useThen('findsert exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: [
             'init',
             '--roles',
@@ -644,7 +653,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
         }),
       );
       const runUpsert = useThen('upsert exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: [
             'init',
             '--roles',
@@ -690,7 +699,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --help`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--help'],
           cwd: testDir,
         }),
@@ -716,7 +725,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+'],
           cwd: testDir,
           logOnError: false,
@@ -735,7 +744,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-multiadd' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -743,7 +752,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect +reviewer` (add two, keep rest)', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect', '+reviewer'],
           cwd: testDir,
         }),
@@ -767,7 +776,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-multiremove' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'architect', 'reviewer'],
         cwd: testDir,
       });
@@ -775,7 +784,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect -reviewer` (remove two, keep rest)', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect', '-reviewer'],
           cwd: testDir,
         }),
@@ -808,7 +817,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-add' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -816,7 +825,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect,+reviewer`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect,+reviewer'],
           cwd: testDir,
         }),
@@ -840,7 +849,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-remove' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'architect', 'reviewer'],
         cwd: testDir,
       });
@@ -848,7 +857,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles -architect,-reviewer`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '-architect,-reviewer'],
           cwd: testDir,
         }),
@@ -874,7 +883,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-mixed' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic', 'reviewer'],
         cwd: testDir,
       });
@@ -882,7 +891,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect,-reviewer`', () => {
       const run = useThen('exits 0', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect,-reviewer'],
           cwd: testDir,
         }),
@@ -906,7 +915,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-conflict' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -914,7 +923,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect,-architect`', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect,-architect'],
           cwd: testDir,
           logOnError: false,
@@ -936,7 +945,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-unknown' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -947,7 +956,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     //   rejection is proven via an ADD, mirroring the space-form case7.
     when('[t0] `init --roles +architect,+ghostrole` (unknown add via comma)', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect,+ghostrole'],
           cwd: testDir,
           logOnError: false,
@@ -985,7 +994,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
     const testDir = genTempDir({ slug: 'init-comma-empty-sigil' });
     beforeAll(() => {
       setupRoleFixtureRepo({ dir: testDir });
-      invokeRhachetCliBinary({
+      invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
         args: ['init', '--roles', 'mechanic'],
         cwd: testDir,
       });
@@ -993,7 +1002,7 @@ describe('rhx init --roles incremental (acceptance)', () => {
 
     when('[t0] `init --roles +architect,+` (bare sigil after comma)', () => {
       const run = useThen('exits non-zero', () =>
-        invokeRhachetCliBinary({
+        invokeRhachetCliBinary({ env: ENV_WITHOUT_AMBIENT_CONFIG_DIR,
           args: ['init', '--roles', '+architect,+'],
           cwd: testDir,
           logOnError: false,
