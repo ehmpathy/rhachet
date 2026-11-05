@@ -5,15 +5,14 @@ import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { asBootCorpus } from './asBootCorpus';
-import { asRoleRefsInEnrollmentOrder } from './asRoleRefsInEnrollmentOrder';
+import { asBootCorpusWithCacheBoundary } from './asBootCorpusWithCacheBoundary';
+import { asRoleRefsInCacheOrder } from './asRoleRefsInCacheOrder';
 import { assertBootMdDelivered } from './assertBootMdDelivered';
 import type {
   BrainDirBootRender,
   BrainDirBootScope,
 } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
-import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { getOneRoleBootContent } from './getOneRoleBootContent';
 import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
@@ -22,8 +21,10 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
  * .why = a clone boots from its brain dir; the corpus is written at render time, never
  *        per session, so every clone of one brain dir reads the same bytes
  *
- * .note = roles render from `repoPath`'s `.agent/`, in enrollment order, after the one
- *         rhachet intro brief (`getOneRhachetBootIntro`)
+ * .note = roles render from `repoPath`'s `.agent/` after the one rhachet intro brief
+ *         (`getOneRhachetBootIntro`): the published roles first, then the boundary line,
+ *         then the `repo=.this` roles (`asRoleRefsInCacheOrder`), each group in enrollment
+ *         order — so a local edit re-writes only the cached tail
  * .note = a focused role renders its subjects alone; a whole one (`subjects: null`) renders
  *         every subject, as it always has
  */
@@ -33,21 +34,28 @@ export const setBrainDirBoot = async (input: {
   repoPath: string;
   scope: BrainDirBootScope;
 }): Promise<BrainDirBootRender> => {
-  // render each role, in the one enrollment order; Promise.all keeps that order
-  const refsOrdered = asRoleRefsInEnrollmentOrder({ refs: input.roles });
-  const contents = await Promise.all(
-    refsOrdered.map((ref) =>
-      getOneRoleBootContent({
-        slugRepo: ref.repo,
-        slugRole: ref.role,
-        subjects: ref.subjects,
-        cwd: input.repoPath,
-      }),
-    ),
-  );
-  // the rhachet intro leads, ahead of every role
-  const corpus = asBootCorpus({
-    contents: [getOneRhachetBootIntro(), ...contents],
+  // render each role: the published roles, then the repo=.this roles, each in the one
+  //   enrollment order; Promise.all keeps that order
+  const { published, local } = asRoleRefsInCacheOrder({ refs: input.roles });
+  const renderOne = async (ref: RoleLinkRefAtFocus) => ({
+    ref,
+    ...(await getOneRoleBootContent({
+      slugRepo: ref.repo,
+      slugRole: ref.role,
+      subjects: ref.subjects,
+      cwd: input.repoPath,
+    })),
+  });
+  const [contentsPublished, contentsLocal] = await Promise.all([
+    Promise.all(published.map(renderOne)),
+    Promise.all(local.map(renderOne)),
+  ]);
+
+  // join the corpus around the boundary line, before any write; a role body that holds the
+  //   literal is refused here
+  const corpus = asBootCorpusWithCacheBoundary({
+    published: contentsPublished,
+    local: contentsLocal,
   });
 
   // write boot.md whole, then the pointer files; an fs fault names the brain dir

@@ -47,14 +47,14 @@ const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
  *   child, never that it spawned a VIABLE one.
  *
  * .the allowlist = exactly what `asBrainCliSpawnArgs` builds: the fixed
- *   prefix (config sources + the owned empty system prompt). an arg past it is by definition a passthrough arg, and no
- *   extant case passes one — so an arg here is a LEAK, and this refusal is what
- *   says so out loud (rule.forbid.failhide)
+ *   prefix (config sources + the owned system-prompt file, the actor's boot). an arg
+ *   past it is by definition a passthrough arg, and no extant case passes one — so an
+ *   arg here is a LEAK, and this refusal is what says so out loud (rule.forbid.failhide)
  */
 const ARGS_KNOWN_WITH_VALUE = new Set([
   '--setting-sources',
   '--settings',
-  '--system-prompt',
+  '--system-prompt-file',
 ]);
 /**
  * 🔴 .the print flags a real brain-cli ACCEPTS — so this stub accepts them too.
@@ -117,6 +117,8 @@ fs.writeFileSync(
     depthMinted: process.env.RHACHET_CLONE_DEPTH_MINTED ?? null,
     leaf: process.env.RHACHET_CLONE_LEAF ?? null,
     hostDetached: process.env.RHACHET_CLONE_HOST_DETACHED ?? null,
+    // the boot door switch: with it on, the clone reads its boot once, as the system prompt
+    disableClaudeMds: process.env.CLAUDE_CODE_DISABLE_CLAUDE_MDS ?? null,
   }),
 );
 

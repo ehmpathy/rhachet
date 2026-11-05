@@ -89,6 +89,38 @@ a reader who learns only the adherence gap will reach for tier 2 in cases where 
 mid-route belongs in the conversation layer, full stop — and the resume row is the trap, because a
 stale corpus on a resumed session fails **silently**.
 
+## ✅ .the cache axis, measured — and why rhachet boots clones via the system prompt
+
+the cache row above undersells the gap. claude places its cache breakpoints on the system block and
+on the last block of the first message. `CLAUDE.md` rides inside that first message, after the hook
+output, the cwd, and git status, and before the prompt. so a NEW session can read a `CLAUDE.md` boot
+from cache only if its whole first message matches an earlier one byte for byte — and two real sessions
+never open with the same prompt.
+
+measured 2026-11-02, haiku, a 121k-token boot, two `-p` sessions with different prompts
+(`rhx boot.cache.probe`):
+
+| door | 2nd session cache write | 2nd session cache read |
+|---|---|---|
+| `CLAUDE.md` memory | 125,844 | 11,237 |
+| `--system-prompt-file <boot.md>` | 4,811 | 132,111 |
+
+⇒ rhachet spawns every clone with its actor's `boot.md` as the system prompt (`asBrainCliSpawnArgs`),
+and turns the `CLAUDE.md` door off for the clone so the boot loads once (`asBrainCliSpawnEnv`). the
+snapshot rows above are the price: a live clone keeps the boot it spawned with, through `/compact`
+(measured 2026-11-02, `rhx boot.compact.probe`: the request after a compaction held the spawn boot), and
+a `--resume` sends the prompt its session first recorded (measured 2026-11-03, `rhx boot.resume.probe`:
+the resumed request lacked an edit that the boot.md of that spawn held). a boot edit or a role change
+reaches new sessions at spawn
+(`inventory.of=requirements.case=11`).
+the gain is ~26× less cache write per session start, on every start of a role set within its TTL.
+
+🟡 the door switch is a vendor env key (`CLAUDE_CODE_DISABLE_CLAUDE_MDS`). should a claude release rename
+or drop it, a clone loads the boot twice, and the second copy sits after the per-session values, so each
+session writes it again: no error, only the cost. ⇒ after a brain-cli upgrade, run `rhx boot.cache.probe`;
+a second-session cache write of a few thousand tokens holds the win; one near the boot size means the
+`CLAUDE.md` copy is back.
+
 ## ⚠️ .the lever Anthropic documents most forcefully is BREVITY, not channel
 
 stated at least as strongly as the channel effect, and easy to skip past:

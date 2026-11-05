@@ -14,6 +14,7 @@ describe('getAllBrainCliSettingsLayers', () => {
         () => {
           const args = asBrainCliSpawnArgs({
             configPath: `${brainDir}/settings.of.repo.json`,
+            bootMdPath: `${brainDir}/boot.md`,
             passthrough: [],
           });
           expect(getAllBrainCliSettingsLayers({ args, brainDir, cwd })).toEqual(
