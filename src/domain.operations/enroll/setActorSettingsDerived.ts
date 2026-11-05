@@ -3,10 +3,14 @@ import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollme
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
-import { readClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import {
+  CLAUDE_SETTINGS_FILENAMES,
+  readClaudeCodeSettings,
+} from '@src/domain.operations/brains/claudeCodeSettings';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
-import { dirname } from 'node:path';
+import { lstatSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
 
 /**
@@ -55,10 +59,20 @@ export const setActorSettingsDerived = async (input: {
  *         valued by its whole body (matcher included)
  * .why = a before/after pair of these tallies what one derivation added, changed, and
  *        removed — a changed timeout or matcher keeps the key and moves the body
+ * .note = a `settings.of.repo.json` that is not a real file (a dir, a symlink) yields no hooks
+ *   here, so the layout findsert that follows refuses it with its own fix. a read first would
+ *   throw a raw `EISDIR` errno, with no hint, and hide that refusal
  */
 const getAllHooksByKeyOfBrainDir = async (input: {
   brainDir: string;
 }): Promise<Map<string, string>> => {
+  const statRepo = lstatSync(
+    join(input.brainDir, CLAUDE_SETTINGS_FILENAMES.repo),
+    {
+      throwIfNoEntry: false,
+    },
+  );
+  if (statRepo && !statRepo.isFile()) return new Map();
   const settings = await readClaudeCodeSettings({
     from: dirname(input.brainDir),
   });

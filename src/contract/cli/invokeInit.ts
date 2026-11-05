@@ -3,6 +3,7 @@ import { ConstraintError } from 'helpful-errors';
 
 import { type ContextCli, genContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import { emitBrainDirOutsideRepoWarns } from '@src/domain.operations/actor/enrolled/emitBrainDirOutsideRepoWarns';
 import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
@@ -199,11 +200,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         //   .note = stdout, as every init receipt is; enroll writes its receipts to stderr,
         //   since its stdout belongs to the brain-cli it hands the terminal to
         if (deltas !== null) {
-          const { lines } = await setInitRoleFoci(
+          const { lines, skips } = await setInitRoleFoci(
             { deltas, rolesLinkedBefore },
             context,
           );
           lines.forEach((line) => console.log(line));
+          emitBrainDirOutsideRepoWarns({ skips });
         }
 
         // an incremental delta reaches the `prepare:rhachet` replay, so the next install

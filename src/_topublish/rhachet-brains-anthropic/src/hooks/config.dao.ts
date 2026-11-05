@@ -34,10 +34,12 @@ export interface ClaudeCodeSettings {
 }
 
 /**
- * .what = reads the brain dir's settings.of.repo.json
+ * .what = reads the settings.of.repo.json of the brain dir at `<from>/.claude`
  * .why = enables hook discovery and modification
  *
- * .note = a legacy brain dir holds its repo settings in a REAL `settings.json`; while no
+ * .note = `from` is the dir that HOLDS `.claude` — a repo, or an actor's `brain/` dir — never the
+ *   brain dir itself
+ * .note = a legacy brain dir holds its repo settings in a real `settings.json`; while no
  *   `settings.of.repo.json` exists yet, that file is read instead, so a sync before the layout
  *   migration loses no key. a `settings.json` symlink is never read here — it is the grove
  */
@@ -151,6 +153,9 @@ export const writeClaudeCodeSettings = async (input: {
   const settingsDir = path.join(input.to, '.claude');
   const settingsPath = path.join(settingsDir, CLAUDE_SETTINGS_FILENAMES.repo);
 
+  // never write outside the dir the caller named: a `.claude` that links out of it is refused
+  await assertSettingsDirWithin({ settingsDir, to: input.to });
+
   // ensure directory exists
   await fs.mkdir(settingsDir, { recursive: true });
 
@@ -167,4 +172,66 @@ export const writeClaudeCodeSettings = async (input: {
     await fs.rm(pathTemp, { force: true });
     throw error;
   }
+};
+
+/**
+ * .what = refuse a settings dir whose realpath lands outside the dir the caller named
+ * .why = the write lands by name inside `<to>/.claude`, by temp + rename, so `.claude` itself is
+ *   the one part that can leave the caller's tree. a `.claude` that links out of it is refused,
+ *   so this writer never lands a file outside the tree it was aimed at
+ * .note = an absent `.claude` is created inside `to` by the mkdir that follows, so it passes;
+ *   a broken link has no realpath, so it is refused with its link target named
+ * .note = a probe, then a write: a peer that swaps `.claude` between the two is not caught.
+ *   the threat is a misconfigured box, not an adversary
+ */
+const assertSettingsDirWithin = async (input: {
+  settingsDir: string;
+  to: string;
+}): Promise<void> => {
+  const stat = await fs.lstat(input.settingsDir).catch((error: unknown) => {
+    if (isFsErrorOfAbsence(error)) return null;
+    throw error;
+  });
+  if (!stat) return;
+  const toReal = await fs.realpath(input.to);
+  const landsAt = await fs
+    .realpath(input.settingsDir)
+    .catch((error: unknown) => {
+      if (isFsErrorOfAbsence(error)) return null;
+      throw error;
+    });
+  // the escape is a `..` segment of the relative path, or an absolute one (another root); a
+  //   prefix test would read every path under `/` as outside, since `/` + sep is `//`
+  const within = landsAt ? path.relative(toReal, landsAt) : null;
+  const isWithin =
+    within !== null &&
+    within !== '..' &&
+    !within.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(within);
+
+  // a `.claude` inside the tree that is no dir: refuse it here, with a fix, rather than let
+  //   the mkdir that follows throw a bare EEXIST
+  if (isWithin && landsAt && !(await fs.stat(landsAt)).isDirectory())
+    throw new ConstraintError('settings dir is not a directory', {
+      path: input.settingsDir,
+      found: 'a file',
+      hint: 'move that .claude file aside, then rerun `rhx init --hooks`',
+    });
+  if (isWithin) return;
+
+  // name where it lands; a broken link names its target. only a symlink is read as one, so
+  //   the diagnostic itself never throws a raw fs error in place of the refusal
+  const landsAtNamed =
+    landsAt ??
+    (stat.isSymbolicLink()
+      ? `a broken link to ${await fs.readlink(input.settingsDir)}`
+      : 'an entry with no realpath');
+  throw new ConstraintError(
+    'settings dir lands outside the tree it was aimed at',
+    {
+      path: input.settingsDir,
+      landsAt: landsAtNamed,
+      hint: 'point that .claude dir back inside the repo, then rerun `rhx init --hooks`',
+    },
+  );
 };

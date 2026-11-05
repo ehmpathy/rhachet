@@ -5,6 +5,7 @@ import {
   given,
   then,
   useBeforeAll,
+  useThen,
   when,
 } from 'test-fns';
 
@@ -14,8 +15,10 @@ import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -300,22 +303,49 @@ describe('findsertAgentEphemeralGitignore', () => {
     });
 
     when('[t0] the self-ignore is created', () => {
-      then('it throws a MalfunctionError that names the dir', async () => {
-        const error = await getError(async () =>
+      const created = useThen('the findsert settles', async () => ({
+        error: await getError(async () =>
           findsertAgentEphemeralGitignore({
             dir: scene.cacheDir,
             kind: 'cache',
           }),
-        );
-        expect(error).toBeInstanceOf(MalfunctionError);
-        expect(error.message).toContain(
+        ),
+      }));
+
+      then('it throws a MalfunctionError that names the dir', () => {
+        expect(created.error).toBeInstanceOf(MalfunctionError);
+        expect(created.error.message).toContain(
           'could not untrack the dir before its .gitignore',
         );
-        expect(error.message).toContain(scene.cacheDir);
+        expect(created.error.message).toContain(scene.cacheDir);
       });
 
       then('it writes no .gitignore over a failed untrack', () => {
         expect(existsSync(join(scene.cacheDir, '.gitignore'))).toBe(false);
+      });
+    });
+  });
+
+  given('[case8] an .actors dir that links to a dir outside the repo', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genTempDir({ slug: 'agent-gitignore-linked-out' });
+      const outside = genTempDir({ slug: 'agent-gitignore-linked-out-target' });
+      mkdirSync(join(repo, '.agent'), { recursive: true });
+      symlinkSync(outside, join(repo, '.agent', '.actors'));
+      const result = findsertAgentEphemeralGitignore({
+        dir: join(repo, '.agent', '.actors'),
+        kind: 'actors',
+      });
+      return { outside, result };
+    });
+
+    when('[t0] the self-ignore is findserted', () => {
+      then('the outside dir stays empty', () => {
+        expect(readdirSync(scene.outside)).toEqual([]);
+      });
+
+      then('it reports the self-ignore as unchanged', () => {
+        expect(scene.result.status).toEqual('unchanged');
       });
     });
   });

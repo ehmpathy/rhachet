@@ -1,4 +1,3 @@
-import { MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { asEnrolledActorHookSyncRow } from './asEnrolledActorHookSyncRow';
@@ -31,32 +30,34 @@ describe('asEnrolledActorHookSyncRow', () => {
   });
 
   given('[case3] a derivation that faulted', () => {
-    when('[t0] the fault is a plain error', () => {
-      then('the row leads with ✗ and carries the class token', () => {
-        expect(
-          asEnrolledActorHookSyncRow({
-            actorExid: 'hash=051970ec',
-            outcome: { error: new Error('EACCES: permission denied') },
-          }),
-        ).toEqual('✗ hash=051970ec: Error: EACCES: permission denied');
-      });
-    });
-
-    when('[t1] the fault is a helpful error', () => {
-      then('the row carries its own class prefix, once', () => {
-        const row = asEnrolledActorHookSyncRow({
-          actorExid: 'repo=ambient',
-          outcome: {
-            error: new MalfunctionError('settings derivation rejected', {
-              actorExid: 'repo=ambient',
+    when('[t0] the row is rendered', () => {
+      then(
+        'it is the actor alone, behind ✗: the fault hangs beneath it',
+        () => {
+          expect(
+            asEnrolledActorHookSyncRow({
+              actorExid: 'hash=051970ec',
+              outcome: { error: new Error('EACCES: permission denied') },
             }),
-          },
-        });
-        expect(row.startsWith('✗ repo=ambient: ')).toEqual(true);
-        expect(row).toContain('MalfunctionError');
-        expect(row).toContain('settings derivation rejected');
-        expect(row).not.toContain('"actorExid"');
-      });
+          ).toEqual('✗ hash=051970ec');
+        },
+      );
+    });
+  });
+
+  given('[case4] a derivation that was skipped', () => {
+    when('[t0] the row is rendered', () => {
+      then(
+        'it is the actor alone, behind ⚠️: the reason hangs beneath it',
+        () => {
+          expect(
+            asEnrolledActorHookSyncRow({
+              actorExid: 'hash=7dcf1989',
+              outcome: { skipped: 'outside the repo' },
+            }),
+          ).toEqual('⚠️ hash=7dcf1989');
+        },
+      );
     });
   });
 });

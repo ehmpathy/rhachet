@@ -103,6 +103,18 @@ const asFileContentOrEmpty = (input: { path: string }): string =>
   existsSync(input.path) ? readFileSync(input.path, 'utf8') : '';
 
 describe('invokeInit (integration)', () => {
+  // a temp HOME with no `.claude/settings.json`, so the grove arrow dangles as it does on a
+  //   fresh box. the host's own home file must not reach a role init: a 0444 one makes the
+  //   copy a role backs up 0444 too, and a second backup in the same second then fails EACCES
+  const homeBefore = process.env.HOME;
+  const homeTemp = genTempDir({ slug: 'invokeInit-home' });
+  beforeAll(() => {
+    process.env.HOME = homeTemp;
+  });
+  afterAll(() => {
+    process.env.HOME = homeBefore;
+  });
+
   given('a CLI program with invokeInit registered', () => {
     const testDir = genTempDir({ slug: 'invokeInit' });
     const originalCwd = process.cwd();
