@@ -1,0 +1,134 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genActor.brain.caseAskable (integration) given: [case1] author role with mixed brain allowlist when: [t0] author.ask() is called with BrainAtom as the default then: the atom answers, handed the role brief and the prompt 1`] = `
+BrainOutput {
+  "calls": null,
+  "episode": BrainEpisode {
+    "exchanges": [
+      BrainExchange {
+        "exid": null,
+        "hash": "dc02f71cbe671672a0013367db8c99632555eb58ba5130d688ae2cb5bb872b3a",
+        "input": "write a short prose paragraph about sunshine, ocean, surfer, and turtles",
+        "output": "{"answer":"sun on the swell, a turtle rides it in"}",
+      },
+    ],
+    "exid": null,
+    "hash": "fa82ecb8f76927c9ea350fde60edbc47e4351e6d192dc725e7a35afa68beeefd",
+  },
+  "metrics": BrainOutputMetrics {
+    "cost": {
+      "cash": {
+        "deets": {
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00",
+          },
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+        },
+        "total": "USD 0.01",
+      },
+      "time": {
+        "milliseconds": 1500,
+      },
+    },
+    "size": {
+      "chars": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 4000,
+        "output": 2000,
+      },
+      "tokens": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 1000,
+        "output": 500,
+      },
+    },
+  },
+  "output": {
+    "answer": "sun on the swell, a turtle rides it in",
+  },
+  "series": null,
+}
+`;
+
+exports[`genActor.brain.caseAskable (integration) given: [case1] author role with mixed brain allowlist when: [t1] author.ask() is called with BrainRepl as the default then: the repl answers (BrainRepl supports .ask()) 1`] = `
+BrainOutput {
+  "calls": null,
+  "episode": BrainEpisode {
+    "exchanges": [
+      BrainExchange {
+        "exid": null,
+        "hash": "472ab876ed6fa3fab3485d35a2c1424f9a327004ea543cf2f99a85027b3ff9c8",
+        "input": "write one sentence about the sea",
+        "output": "{"answer":"the sea breathes"}",
+      },
+    ],
+    "exid": null,
+    "hash": "be95407f8b96192f8316daa8196976e0887abe1bba44e3a6ac9f45286f7af585",
+  },
+  "metrics": BrainOutputMetrics {
+    "cost": {
+      "cash": {
+        "deets": {
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00",
+          },
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+        },
+        "total": "USD 0.01",
+      },
+      "time": {
+        "milliseconds": 1500,
+      },
+    },
+    "size": {
+      "chars": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 4000,
+        "output": 2000,
+      },
+      "tokens": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 1000,
+        "output": 500,
+      },
+    },
+  },
+  "output": {
+    "answer": "the sea breathes",
+  },
+  "series": BrainSeries {
+    "episodes": [
+      BrainEpisode {
+        "exchanges": [
+          BrainExchange {
+            "exid": null,
+            "hash": "472ab876ed6fa3fab3485d35a2c1424f9a327004ea543cf2f99a85027b3ff9c8",
+            "input": "write one sentence about the sea",
+            "output": "{"answer":"the sea breathes"}",
+          },
+        ],
+        "exid": null,
+        "hash": "be95407f8b96192f8316daa8196976e0887abe1bba44e3a6ac9f45286f7af585",
+      },
+    ],
+    "exid": null,
+    "hash": "d591c98b28d60bff2d5b6ea188a07ec2d102efc44b8fbb0cee6fa34c4207b416",
+  },
+}
+`;

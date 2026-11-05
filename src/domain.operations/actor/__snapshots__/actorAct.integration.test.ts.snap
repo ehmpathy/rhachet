@@ -1,0 +1,100 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`actorAct (integration) given: [case1] a rigid skill in role.skills.rigid, and a mocked repl brain when: [t0] actorAct is called with a skill found in advance then: the whole envelope the caller receives is snapped 1`] = `
+BrainOutput {
+  "calls": null,
+  "episode": BrainEpisode {
+    "exchanges": [
+      BrainExchange {
+        "exid": null,
+        "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+        "input": "Execute skill "echo.review" with args: {"content":"hello world"}",
+        "output": "{"echoed":"hello world","reviewed":true}",
+      },
+    ],
+    "exid": null,
+    "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+  },
+  "metrics": BrainOutputMetrics {
+    "cost": {
+      "cash": {
+        "deets": {
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00",
+          },
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+        },
+        "total": "USD 0.01",
+      },
+      "time": {
+        "milliseconds": 1500,
+      },
+    },
+    "size": {
+      "chars": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 4000,
+        "output": 2000,
+      },
+      "tokens": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 1000,
+        "output": 500,
+      },
+    },
+  },
+  "output": {
+    "echoed": "hello world",
+    "reviewed": true,
+  },
+  "series": BrainSeries {
+    "episodes": [
+      BrainEpisode {
+        "exchanges": [
+          BrainExchange {
+            "exid": null,
+            "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+            "input": "Execute skill "echo.review" with args: {"content":"hello world"}",
+            "output": "{"echoed":"hello world","reviewed":true}",
+          },
+        ],
+        "exid": null,
+        "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+      },
+    ],
+    "exid": null,
+    "hash": "6a20d3737352a12c649c64912d7ed0d70c229001863089bd6680d0992c382461",
+  },
+}
+`;
+
+exports[`actorAct (integration) given: [case2] a mocked repl told to fill { summary }, and a skill whose schema wants { echoed, reviewed } when: [t0] actorAct is called with that skill then: the call rejects at parse, and names the absent key 1`] = `
+"✋ ConstraintError: genMockedBrainRepl's answer to 'act' does not fit the caller's schema
+
+{
+  "mock": "genMockedBrainRepl",
+  "verb": "act",
+  "output": {
+    "summary": "brief"
+  },
+  "issues": [
+    {
+      "path": "echoed",
+      "message": "Invalid input: expected string, received undefined"
+    },
+    {
+      "path": "reviewed",
+      "message": "Invalid input: expected boolean, received undefined"
+    }
+  ],
+  "hint": "set output.act to the shape the caller's schema wants"
+}"
+`;

@@ -1,9 +1,8 @@
 import * as path from 'path';
-import { genBrainRepl } from 'rhachet-brains-anthropic';
 import { given, then, when } from 'test-fns';
 
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
-import type { ActorBrain } from '@src/domain.objects/ActorInmem';
+import type { MockedBrainCall } from '@src/.test.assets/asMockedBrainCall';
+import { genMockedBrainRepl } from '@src/.test.assets/genMockedBrainRepl';
 import { ACTOR_ASK_DEFAULT_SCHEMA } from '@src/domain.operations/actor/actorAsk';
 import { genActor } from '@src/domain.operations/actor/genActor';
 import { genCloneInmem } from '@src/domain.operations/clone.inmem/genCloneInmem';
@@ -12,7 +11,7 @@ import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { EXAMPLE_REPO_COLLOCATED } from '../../../.test/assets/example.repo/directory';
 import { scribeRole } from '../../../.test/assets/example.repo/rhachet-roles-example.collocated/role';
 
-describeBrainLiveOnDemand('genActor.brain.caseCollocated (integration)', () => {
+describe('genActor.brain.caseCollocated (integration)', () => {
   given('[case1] collocated pattern (rhachet-roles-example.collocated)', () => {
     // setup: use temp dir within project (avoids codex trust issues)
     const tmpDir = path.resolve(__dirname, './.temp/caseCollocated');
@@ -64,6 +63,7 @@ echo '{"summary":"summarized content"}'
       );
 
       // switch to temp directory
+      // .note = deliberate global mutation: the actor finds its briefs and skills from the cwd; afterAll restores it
       process.chdir(tmpDir);
     });
 
@@ -72,11 +72,16 @@ echo '{"summary":"summarized content"}'
       rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    // create scribe actor with a claude haiku brain (rule.require.test-claude-cli-against-haiku)
-    // note: external brains from npm packages don't have spec yet; cast for compatibility
-    const brain = genBrainRepl({
-      slug: 'claude/code/haiku',
-    }) as unknown as ActorBrain;
+    // create scribe actor with a mocked repl brain that records each call
+    // .mock = the brain, injected via genMockedBrainRepl; its docblock holds the .why and the .real
+    const calls: MockedBrainCall[] = [];
+    const brain = genMockedBrainRepl({
+      output: {
+        act: { summary: 'brief' },
+        ask: { answer: 'say less' },
+      },
+      onInvoke: (call) => calls.push(call),
+    });
     const scribe = genCloneInmem({
       actor: genActor({
         roles: [scribeRole],
@@ -84,29 +89,47 @@ echo '{"summary":"summarized content"}'
       }),
     });
 
-    when('[t0] scribe.run({ skill: { linecount: { text } } })', () => {
-      then('executes solid skill and returns rational line count', async () => {
-        // solid skills execute shell scripts (use simple text to avoid shell newline issues)
-        const result = await scribe.run({
-          skill: { linecount: { text: 'hello world' } },
-        });
+    // each case reads only the calls it made
+    // .note = deliberate mutation: the mock closes over this array, so it is reset in place
+    beforeEach(() => {
+      calls.length = 0;
+    });
 
-        // assert rational response: single-line text = 1 line
-        expect(result).toEqual({ lines: 1 });
-      });
+    when('[t0] scribe.run({ skill: { linecount: { text } } })', () => {
+      then(
+        'executes solid skill and returns rational line count, no brain called',
+        async () => {
+          // solid skills execute shell scripts (use simple text to avoid shell newline issues)
+          const result = await scribe.run({
+            skill: { linecount: { text: 'hello world' } },
+          });
+
+          // assert rational response: single-line text = 1 line
+          expect(result).toEqual({ lines: 1 });
+          expect(calls).toHaveLength(0);
+        },
+      );
     });
 
     when('[t1] scribe.act({ skill: { summarize: { content } } })', () => {
-      then('executes rigid skill with default brain', async () => {
-        const result = await scribe.act({
-          skill: {
-            summarize: { content: 'a long verbose text about many things' },
-          },
-        });
+      then(
+        'executes rigid skill with default brain, handed the role brief',
+        async () => {
+          const result = await scribe.act({
+            skill: {
+              summarize: { content: 'a long verbose text about many things' },
+            },
+          });
 
-        // brain.act returns structured result
-        expect(result).toBeDefined();
-      });
+          expect(result.output).toEqual({ summary: 'brief' });
+          expect(calls).toHaveLength(1);
+          expect(calls[0]?.verb).toEqual('act');
+          expect(calls[0]?.prompt).toContain('summarize');
+          expect(
+            calls[0]?.briefs.some((uri) => uri.endsWith('.brief.md')),
+          ).toBe(true);
+        },
+      );
     });
 
     when('[t2] scribe.ask({ prompt })', () => {
@@ -116,8 +139,10 @@ echo '{"summary":"summarized content"}'
           schema: ACTOR_ASK_DEFAULT_SCHEMA,
         });
 
-        expect(result).toBeDefined();
-        expect(result.output.answer).toBeDefined();
+        expect(result.output.answer).toEqual('say less');
+        expect(calls).toHaveLength(1);
+        expect(calls[0]?.verb).toEqual('ask');
+        expect(calls[0]?.prompt).toEqual('summarize the concept of brevity');
       });
     });
   });

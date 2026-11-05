@@ -1,0 +1,19 @@
+{
+  "key": "8087c4a675594db5",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-brains-anthropic"
+  },
+  "exid": null,
+  "title": "prove the claude cli behaviors via the BrainCli interface",
+  "description": "## .what\n\nprove the real claude cli behaviors rhachet relies on, in rhachet-brains-anthropic, via the `BrainCli` interface rhachet formalizes.\n\n## .why\n\nthese behaviors are claude's, so the anthropic supplier is where they are proven. rhachet then stops to spend api credit on them, and stops to retest a real claude on every unrelated rhachet change.\n\n## .depends on\n\nthe `BrainCli` interface task in `ehmpathy/rhachet` (formalize the BrainCli interface). start once it lands.\n\n## .the behaviors to prove (each pinned today by a rhachet realbrain suite)\n\n| behavior | rhachet suite today |\n|---|---|\n| a real tui submits a dispatched say across turns; its transcript reads back | `clone.joker.realbrain`, `clone.realbrain` |\n| a bulk paste commits only with a length-scaled submit delay | `clone.saybulk-probe.realbrain` |\n| a real claude writes the user turn at submit, even while queued | `clone.transcript-lag.realbrain` |\n| a real render does not trip the modal classifier; a multi-line paste lands as one turn | `clone.modalprobe.realbrain`, `clone.screen-dogfood.realbrain` |\n| a real claude loads the memory files laid down (CLAUDE.md to boot.md, `--setting-sources user`, `claudeMdExcludes`) | `brain-dir-boot.journey` |\n| a real claude-code clears a dead login as expected | `enroll.shared-brain-auth` |\n\nrun them on haiku, one shared session where the seam allows.\n\n## .after\n\nonce proven here, rhachet's copies of these suites move to a mock cli (tracked in rhachet, the fence followup).\n\n## .source\n\nreview of ehmpathy/rhachet#691, 2026-11-04",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 5,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}

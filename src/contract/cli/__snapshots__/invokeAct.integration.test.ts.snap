@@ -1,0 +1,250 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeAct (integration) given: [case2] a CLI program with invokeAct registered, and two mocked brains under real refs when: [t0] act command is invoked with default brain then: it executes the rigid skill with the default brain 1`] = `
+"
+🔩 act rigid skill repo=.this/role=tester/skill=echo.review
+
+{
+  "output": {
+    "echoed": "hello world",
+    "reviewed": true
+  },
+  "calls": null,
+  "metrics": {
+    "size": {
+      "tokens": {
+        "input": 1000,
+        "output": 500,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      },
+      "chars": {
+        "input": 4000,
+        "output": 2000,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      }
+    },
+    "cost": {
+      "time": {
+        "milliseconds": 1500
+      },
+      "cash": {
+        "total": "USD 0.01",
+        "deets": {
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00"
+          }
+        }
+      }
+    }
+  },
+  "episode": {
+    "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+    "exid": null,
+    "exchanges": [
+      {
+        "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+        "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+        "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+        "exid": null
+      }
+    ]
+  },
+  "series": {
+    "hash": "6a20d3737352a12c649c64912d7ed0d70c229001863089bd6680d0992c382461",
+    "exid": null,
+    "episodes": [
+      {
+        "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+        "exid": null,
+        "exchanges": [
+          {
+            "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+            "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+            "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+            "exid": null
+          }
+        ]
+      }
+    ]
+  }
+}"
+`;
+
+exports[`invokeAct (integration) given: [case2] a CLI program with invokeAct registered, and two mocked brains under real refs when: [t1] act command is invoked with explicit --brain then: it routes the call to the specified brain from allowlist 1`] = `
+"
+🔩 act rigid skill repo=.this/role=tester/skill=echo.review
+
+{
+  "output": {
+    "echoed": "hello world",
+    "reviewed": true
+  },
+  "calls": null,
+  "metrics": {
+    "size": {
+      "tokens": {
+        "input": 1000,
+        "output": 500,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      },
+      "chars": {
+        "input": 4000,
+        "output": 2000,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      }
+    },
+    "cost": {
+      "time": {
+        "milliseconds": 1500
+      },
+      "cash": {
+        "total": "USD 0.01",
+        "deets": {
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00"
+          }
+        }
+      }
+    }
+  },
+  "episode": {
+    "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+    "exid": null,
+    "exchanges": [
+      {
+        "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+        "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+        "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+        "exid": null
+      }
+    ]
+  },
+  "series": {
+    "hash": "6a20d3737352a12c649c64912d7ed0d70c229001863089bd6680d0992c382461",
+    "exid": null,
+    "episodes": [
+      {
+        "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+        "exid": null,
+        "exchanges": [
+          {
+            "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+            "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+            "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+            "exid": null
+          }
+        ]
+      }
+    ]
+  }
+}"
+`;
+
+exports[`invokeAct (integration) given: [case2] a CLI program with invokeAct registered, and two mocked brains under real refs when: [t2] act command is invoked with --brain repo/slug for an anthropic brain then: it executes the rigid skill with the named brain 1`] = `
+"
+🔩 act rigid skill repo=.this/role=tester/skill=echo.review
+
+{
+  "output": {
+    "echoed": "hello world",
+    "reviewed": true
+  },
+  "calls": null,
+  "metrics": {
+    "size": {
+      "tokens": {
+        "input": 1000,
+        "output": 500,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      },
+      "chars": {
+        "input": 4000,
+        "output": 2000,
+        "cache": {
+          "get": 0,
+          "set": 0
+        }
+      }
+    },
+    "cost": {
+      "time": {
+        "milliseconds": 1500
+      },
+      "cash": {
+        "total": "USD 0.01",
+        "deets": {
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00"
+          }
+        }
+      }
+    }
+  },
+  "episode": {
+    "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+    "exid": null,
+    "exchanges": [
+      {
+        "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+        "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+        "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+        "exid": null
+      }
+    ]
+  },
+  "series": {
+    "hash": "6a20d3737352a12c649c64912d7ed0d70c229001863089bd6680d0992c382461",
+    "exid": null,
+    "episodes": [
+      {
+        "hash": "93699e9246cdf1dfaa3cefd2c2778a8dc0f84e1ca773b6ce7da447b064e4f75e",
+        "exid": null,
+        "exchanges": [
+          {
+            "hash": "2f32f2e6cb0690238c3c32b4096111f4c4db21b687da5e976339000a4bb6fa8d",
+            "input": "Execute skill \\"echo.review\\" with args: {\\"content\\":\\"hello world\\"}",
+            "output": "{\\"echoed\\":\\"hello world\\",\\"reviewed\\":true}",
+            "exid": null
+          }
+        ]
+      }
+    ]
+  }
+}"
+`;
+
+exports[`invokeAct (integration) given: [case2] a CLI program with invokeAct registered, and two mocked brains under real refs when: [t3] act command is invoked with brain not in allowlist then: it throws error about brain not in allowlist 1`] = `
+"✋ ConstraintError: brain not in actor allowlist
+
+{
+  "brainSlugFull": "anthropic/claude",
+  "allowlistSlugs": [
+    "anthropic/claude/code/haiku",
+    "openai/codex"
+  ]
+}"
+`;

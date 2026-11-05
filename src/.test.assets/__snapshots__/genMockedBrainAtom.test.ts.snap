@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genMockedBrainAtom given: [case1] a mock told both content and output when: [t0] the mock is built then: it refuses, so neither input is dropped in silence 1`] = `
+"✋ ConstraintError: genMockedBrainAtom was told both content and output
+
+{
+  "mock": "genMockedBrainAtom",
+  "content": "hi",
+  "output": {
+    "ask": {
+      "answer": "hi"
+    }
+  },
+  "hint": "give output alone; content answers only when no output is told"
+}"
+`;
