@@ -1,0 +1,19 @@
+{
+  "key": "d73c1f045572d363",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "formalize the BrainCli interface",
+  "description": "## .what\n\nformalize a `BrainCli` interface in rhachet: the contract a brain supplier implements so rhachet can spawn, drive, and read a brain cli (tui and `-p` print modes) with no knowledge of which cli it is.\n\n## .why\n\nrhachet proves real claude cli behaviors in its own acceptance tier (`blackbox/cli/clone.*.realbrain`, `brain-dir-boot.journey`, `enroll.shared-brain-auth`). each run spends api credit, and each unrelated rhachet change retests a real claude. those behaviors belong to the anthropic supplier. a formal `BrainCli` interface is the seam that lets the supplier prove them, and lets rhachet test its own side against a mock cli.\n\n## .scope\n\n- declare the interface in rhachet: spawn (tui, print), input dispatch, screen and transcript read, the memory-file layout it loads, auth state\n- rhachet suites that drive a clone exercise the interface via a mock cli\n- no supplier change here; that is the follow-up task in `ehmpathy/rhachet-brains-anthropic`, which waits on this one\n\n## .source\n\nreview of ehmpathy/rhachet#691, 2026-11-04",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 4,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}
