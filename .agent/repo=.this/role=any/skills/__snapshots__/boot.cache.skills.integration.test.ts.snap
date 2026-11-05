@@ -1,0 +1,765 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 boot.cache.probe — does a new session of an actor read its boot from cache?
+   ├─ usage
+   │  └─ rhx boot.cache.probe [--roles <spec>] [--model <model>] [--diff] [--across <where>]
+   ├─ options
+   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent, so a probe never drives a bound route
+   │  ├─ --model    the brain model; haiku when absent
+   │  ├─ --diff     log both raw request bodies, list their blocks, name the first byte that differs
+   │  └─ --across   where the second session runs; one of tree or worktree
+   │     ├─ tree      this worktree, the default
+   │     └─ worktree  a temp git worktree of HEAD, so the second session runs at another path
+   ├─ exits
+   │  ├─ 0 = measured, and the verdict is ✓ or ✗
+   │  ├─ 1 = the measure failed — a probe returned no usage, or --diff found no request bodies
+   │  └─ 2 = bad input, or an enroll refused its args
+   ├─ examples
+   │  ├─ rhx boot.cache.probe
+   │  ├─ rhx boot.cache.probe --model sonnet
+   │  ├─ rhx boot.cache.probe --diff
+   │  ├─ rhx boot.cache.probe --across worktree
+   │  └─ rhx boot.cache.probe --roles '-driver +architect'
+   └─ spends real tokens — two short -p calls
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t1] --across holds a value outside its set then: it refuses with exit 2 and names the valid set 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe --across bogus
+   ├─ ✋ ConstraintError: invalid --across value bogus
+   └─ hint = pass one of tree or worktree
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t2] --roles has no value then: it refuses with exit 2 and names the flag 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe --roles
+   ├─ ✋ ConstraintError: absent value for --roles
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t3] an unknown argument is passed then: it refuses with exit 2, never drops it 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe --bogus
+   ├─ ✋ ConstraintError: unknown argument --bogus
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t4] a probe clone exits nonzero then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe
+   ├─ 💥 MalfunctionError: a probe clone failed, exit 3, in this tree
+   ├─ detail
+   │  │ enroll refused
+   └─ hint = the full output is at <repo>/.log/role=any/skill=boot.cache.probe/<run>/first.log
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t5] a probe clone returns no result json then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe
+   ├─ 💥 MalfunctionError: a probe returned no result json, so no usage to measure
+   ├─ detail
+   │  │ not json
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t6] the first run writes the boot and the second reads it then: it exits 0 with a ✓ verdict, and no warm-first-run note 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across tree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 137100 cache write
+   │  └─ 0 cache read
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   └─ ✓ the second session read the boot from cache
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t7] both runs read the boot, since an earlier session wrote it then: it exits 0 with a ✓ verdict, and names why the first run read 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across tree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   ├─ the first run read the boot too, since a session of this boot wrote it within the cache ttl
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   └─ ✓ the second session read the boot from cache
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t8] both runs write the boot then: it exits 0 with a ✗ verdict: a miss is a measure, not a fault 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across tree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 137100 cache write
+   │  └─ 0 cache read
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 137100 cache write
+   │  └─ 0 cache read
+   └─ ✗ the second session did not read the boot from cache
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t9] --diff, and the two requests differ only in the first message then: it names the first byte that differs, and that it lies after the boot 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across tree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   ├─ the first run read the boot too, since a session of this boot wrote it within the cache ttl
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   ├─ ✓ the second session read the boot from cache
+   ├─ system blocks, in request order (first run)
+   │  ├─ [0] 38 chars · breakpoint · <brief.say path="x">a boot</brief.say>
+   │  └─ the boot splits at its boundary line when claude honors it
+   ├─ first message blocks, in request order (first run)
+   │  ├─ [0] 2 chars · OK
+   │  └─ a breakpoint ends the prefix the cache can share
+   ├─ breakpoints outside the first message
+   │  ├─ system = 1 marked
+   │  └─ tools = 0 marked
+   │
+   └─ request bodies
+      ├─ first = .log/role=any/skill=boot.cache.probe/<run>/first/<body>
+      ├─ second = .log/role=any/skill=boot.cache.probe/<run>/second/<body>
+      ├─ first byte that differs = 63 of the request file
+      ├─ in messages, after the boot, so the boot prefix is still shared
+      ├─ first, around it
+      │  └─ {"messages":[{"role":"user","content":[{"type":"text","text":"OK"}]}],"system":[{"type":"text","text":"<brief.say path=\\"x\\">a boot</brief.say>","cache_control":{"type":"ephemeral"}}]}
+      └─ second, around it
+         └─ {"messages":[{"role":"user","content":[{"type":"text","text":"YES"}]}],"system":[{"type":"text","text":"<brief.say path=\\"x\\">a boot</brief.say>","cache_control":{"type":"ephemeral"}}]}
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t10] a probe enroll refuses its args (exit 2) then: it refuses as a named constraint with exit 2, never a malfunction 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe
+   ├─ ✋ ConstraintError: a probe enroll refused its args, in this tree
+   ├─ detail
+   │  │ bad --roles spec
+   └─ hint = the full output is at <repo>/.log/role=any/skill=boot.cache.probe/<run>/first.log
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t11] a probe brain returns an error result then: it fails as a named malfunction with the brain text 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe
+   ├─ 💥 MalfunctionError: a probe brain returned an error, not a measure
+   ├─ detail
+   │  │ the api refused the request
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t12] a probe result holds no usage figures then: it fails as a named malfunction: a partial usage is no measure 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe
+   ├─ 💥 MalfunctionError: a probe result held no usage figures
+   ├─ detail
+   │  │ {"type":"result","result":"hi 🧮 there"}
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t13] --diff, and the two raw requests are byte-equal then: it names the bodies byte-equal, read off cmp, never off a silent fault 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across tree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   ├─ the first run read the boot too, since a session of this boot wrote it within the cache ttl
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   ├─ ✓ the second session read the boot from cache
+   ├─ system blocks, in request order (first run)
+   │  ├─ [0] 6 chars · a boot
+   │  └─ the boot splits at its boundary line when claude honors it
+   ├─ first message blocks, in request order (first run)
+   │  └─ a breakpoint ends the prefix the cache can share
+   ├─ breakpoints outside the first message
+   │  ├─ system = 0 marked
+   │  └─ tools = 0 marked
+   │
+   └─ request bodies
+      ├─ first = .log/role=any/skill=boot.cache.probe/<run>/first/<body>
+      ├─ second = .log/role=any/skill=boot.cache.probe/<run>/second/<body>
+      └─ byte-equal
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t14] --diff, and a raw request body is no json then: it fails as a named malfunction, never a verdict 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe --diff
+   ├─ 💥 MalfunctionError: a raw request body is not a json object
+   ├─ detail
+   │  │ .log/role=any/skill=boot.cache.probe/<run>/first/r1.json
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t15] --across worktree, the second run in a temp worktree of HEAD then: it exits 0, names the other path, and gives the verdict 1`] = `
+"🧮 boot.cache.probe --roles '-driver' --model haiku --across worktree
+   ├─ prompts differ per run, as two real sessions do
+   ├─ the second run starts in a temp worktree of HEAD, at another path
+   ├─ first run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 137100 cache write
+   │  └─ 0 cache read
+   ├─ second run = 137110 tokens of prefix
+   │  ├─ 10 fresh
+   │  ├─ 4805 cache write
+   │  └─ 132295 cache read
+   └─ ✓ the second session read the boot from cache
+"
+`;
+
+exports[`boot.cache.skills given: [case1] boot.cache.probe when: [t16] --diff, and a raw request index row is no json then: it fails as a named malfunction, never as absent bodies or a verdict 1`] = `
+"🧮 boot.cache.probe
+   ├─ ran = rhx boot.cache.probe --diff
+   ├─ 💥 MalfunctionError: the first request row under .log/role=any/skill=boot.cache.probe/<run>/first could not be parsed as json
+   ├─ detail
+   │  │ <jq error text>
+   └─ hint = rhx boot.cache.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 clone.cache.usage — the prompt-cache usage of each api call in a clone
+   ├─ usage
+   │  └─ rhx clone.cache.usage (--transcript <path.jsonl> | --clone <dir>) [--head <n>]
+   ├─ options
+   │  ├─ --transcript   a brain-cli transcript (.jsonl); may repeat
+   │  ├─ --clone        a clone dir; reads every history/*.jsonl in it
+   │  └─ --head         show only the first n calls of each transcript; all when absent
+   ├─ exits
+   │  ├─ 0 = shown
+   │  ├─ 1 = a transcript could not be parsed
+   │  └─ 2 = bad input — an absent value, an unknown flag, or no transcript found
+   └─ examples
+      ├─ rhx clone.cache.usage --clone .agent/.actors/actor.via.repo=ambient/clones/serial=<uuid>
+      └─ rhx clone.cache.usage --transcript <path.jsonl> --head 5
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t1] a transcript is read then: two blocks of one message fold to one call 1`] = `
+"🧮 clone.cache.usage
+   ├─ transcript = session.jsonl
+   │  ├─ calls (n · fresh · cache write · cache read)
+   │  │  ├─   1 ·       10 fresh ·     4800 write ·   132111 read
+   │  │  └─   2 ·        3 fresh ·      120 write ·   136911 read
+   │  │
+   │  └─ totals
+   │     ├─ 2 calls
+   │     ├─ 13 fresh
+   │     ├─ 4920 cache write
+   │     └─ 269022 cache read
+   └─ done
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t2] a clone dir is read, first call only then: it reads the clone history and stops at the head 1`] = `
+"🧮 clone.cache.usage
+   ├─ transcript = session.jsonl
+   │  ├─ calls (n · fresh · cache write · cache read)
+   │  │  └─   1 ·       10 fresh ·     4800 write ·   132111 read
+   │  │
+   │  └─ totals
+   │     ├─ 1 calls
+   │     ├─ 10 fresh
+   │     ├─ 4800 cache write
+   │     └─ 132111 cache read
+   └─ done
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t3] a clone dir holds no history then: it refuses with exit 2 and names the absent transcript 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage --clone .temp/boot.cache.skills.test/clone-empty
+   ├─ ✋ ConstraintError: the clone holds no history transcript, .temp/boot.cache.skills.test/clone-empty/history/*.jsonl matched no file
+   └─ hint = a clone keeps history once its brain-cli writes a turn; for a one-shot -p run, read .usage from rhx enroll claude -p '<prompt>' --output-format json
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t4] --head is no integer then: it refuses with exit 2 and shows a valid form 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage --transcript .temp/boot.cache.skills.test/clone/history/session.jsonl --head five
+   ├─ ✋ ConstraintError: invalid --head value five
+   └─ hint = pass a non-negative integer, e.g. --head 5
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t5] a transcript path is absent on disk then: it refuses with exit 2 before any tree opens 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage --transcript .temp/boot.cache.skills.test/absent.jsonl
+   ├─ ✋ ConstraintError: transcript not found, .temp/boot.cache.skills.test/absent.jsonl
+   └─ hint = rhx clone.cache.usage help
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t6] a transcript holds a partial json line then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage --transcript .temp/boot.cache.skills.test/broken.jsonl
+   ├─ 💥 MalfunctionError: a transcript could not be parsed as json lines, .temp/boot.cache.skills.test/broken.jsonl
+   ├─ detail
+   │  │ parse error: Unfinished JSON term at EOF at line 2, column 0
+   └─ hint = a transcript in mid-write may hold a partial line; re-run once the clone is idle
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t7] no transcript is given then: it refuses with exit 2 and names both inputs 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage 
+   ├─ ✋ ConstraintError: no transcript given
+   └─ hint = pass --transcript <path.jsonl> or --clone <dir>
+"
+`;
+
+exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t8] a clone dir is absent on disk then: it refuses with exit 2 and names how to list the clone dirs 1`] = `
+"🧮 clone.cache.usage
+   ├─ ran = rhx clone.cache.usage --clone .temp/boot.cache.skills.test/clone-absent
+   ├─ ✋ ConstraintError: clone dir not found, .temp/boot.cache.skills.test/clone-absent
+   └─ hint = list clone dirs with rhx globsafe --pattern '.agent/.actors/*/clones/serial=*'
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 boot.compact.probe — does a live clone re-read its boot on /compact?
+   ├─ usage
+   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>]
+   ├─ options
+   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
+   │  └─ --model    the brain model; haiku when absent
+   ├─ exits
+   │  ├─ 0 = measured, and the verdict is ✓ or ✗
+   │  ├─ 1 = the measure failed — no clone, no request bodies, or a wait ran out
+   │  └─ 2 = bad input
+   ├─ examples
+   │  ├─ rhx boot.compact.probe
+   │  └─ rhx boot.compact.probe --model sonnet
+   └─ spends real tokens — two short turns and one compaction
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t1] --model has no value then: it refuses with exit 2 before any clone spawns 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe --model
+   ├─ ✋ ConstraintError: absent value for --model
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t2] an unknown argument is passed then: it refuses with exit 2, never drops it 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe --bogus
+   ├─ ✋ ConstraintError: unknown argument --bogus
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t3] the probe clone exits nonzero then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe
+   ├─ 💥 MalfunctionError: the probe clone did not enroll, exit 3
+   ├─ detail
+   │  │ enroll refused
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t4] the enroll succeeds and no clone of the probe slug is on disk then: it fails as a named malfunction: the actor boot.md is not found 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe
+   ├─ 💥 MalfunctionError: the probe clone's actor boot.md could not be found
+   ├─ detail
+   │  │ {"type":"result","result":"hi 🧮 there"}
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t5] the probe enroll refuses its args (exit 2) then: it refuses as a named constraint with exit 2, never a malfunction 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe
+   ├─ ✋ ConstraintError: the probe enroll refused its args
+   ├─ detail
+   │  │ bad --roles spec
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t6] the clone is found and its first say is refused (exit 2) then: it refuses as a named constraint that names the turn 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe
+   ├─ ✋ ConstraintError: the say of turn 1 was refused
+   ├─ detail
+   │  │ the say did not land
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t7] the clone is found and its first say does not reach it (exit 1) then: it fails as a named malfunction that names the turn and the exit 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe
+   ├─ 💥 MalfunctionError: the say of turn 1 did not reach the clone, exit 1
+   ├─ detail
+   │  │ the say did not land
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t8] the request after /compact holds the edit then: it exits 0 with the ✓ verdict, each request in send order 1`] = `
+"🧮 boot.compact.probe --roles '-driver' --model haiku
+   ├─ the sentinel line lands in boot.md after spawn, before /compact
+   ├─ requests, in send order
+   │  ├─ [1] turn 1 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · system holds the sentinel = yes · asks "/compact"
+   │  └─ [3] turn 2 · system holds the sentinel = yes · asks "Do not use any tools. Reply with exactly: OK"
+   │
+   ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   └─ ✓ /compact re-read the boot; a live clone meets a boot edit at its next compaction
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t9] the request after /compact holds the spawn boot then: it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault 1`] = `
+"🧮 boot.compact.probe --roles '-driver' --model haiku
+   ├─ the sentinel line lands in boot.md after spawn, before /compact
+   ├─ requests, in send order
+   │  ├─ [1] turn 1 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · system holds the sentinel = no · asks "/compact"
+   │  └─ [3] turn 2 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
+   │
+   ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   └─ ✗ /compact kept the spawn boot; a live clone meets a boot edit only at its next spawn
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 boot.adherence.probe — does a clone follow a brief its boot carries?
+   ├─ usage
+   │  └─ rhx boot.adherence.probe --prompt <text> --expect <text> [--trials <n>] [--roles <spec>] [--model <model>]
+   ├─ options
+   │  ├─ --prompt   the ask each trial sends
+   │  ├─ --expect   the text a reply must hold to count as adherent (a fixed string)
+   │  ├─ --trials   how many fresh sessions; 5 when absent
+   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
+   │  └─ --model    the brain model; haiku when absent
+   ├─ exits
+   │  ├─ 0 = measured
+   │  ├─ 1 = a trial failed to return a reply
+   │  └─ 2 = bad input
+   ├─ examples
+   │  └─ rhx boot.adherence.probe --prompt '<an ask a brief dictates the reply to>' --expect '<the text that brief dictates>'
+   └─ spends real tokens — one short -p call per trial
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t1] --trials is no positive integer then: it refuses with exit 2 and shows a valid form 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt say hi --expect 🧮 --trials 0
+   ├─ ✋ ConstraintError: invalid --trials value 0
+   └─ hint = pass a positive integer, e.g. --trials 5
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t2] --prompt has no value then: it refuses with exit 2 and names the flag 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt
+   ├─ ✋ ConstraintError: absent value for --prompt
+   └─ hint = rhx boot.adherence.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t3] --expect is absent then: it refuses with exit 2 and names both required flags 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt say hi
+   ├─ ✋ ConstraintError: --prompt and --expect are both required
+   └─ hint = rhx boot.adherence.probe --prompt '<an ask a brief dictates the reply to>' --expect '<the text that brief dictates>'
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t4] an unknown argument is passed then: it refuses with exit 2, never drops it 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --bogus
+   ├─ ✋ ConstraintError: unknown argument --bogus
+   └─ hint = rhx boot.adherence.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t5] a trial exits nonzero then: it fails as a named malfunction with exit 1 and the trial output 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt say hi --expect 🧮 --trials 1
+   ├─ 💥 MalfunctionError: trial 1 failed, exit 3
+   ├─ detail
+   │  │ enroll refused
+   └─ hint = the full output is at .log/role=any/skill=boot.adherence.probe/<run>/trial.1.log
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t6] a trial returns no result json then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt say hi --expect 🧮 --trials 1
+   ├─ 💥 MalfunctionError: trial 1 returned no reply
+   ├─ detail
+   │  │ not json
+   └─ hint = the full output is at .log/role=any/skill=boot.adherence.probe/<run>/trial.1.log
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t7] each trial returns a reply that holds the text then: it counts each adherent reply 1`] = `
+"🧮 boot.adherence.probe --roles '-driver' --model haiku --trials 2
+   ├─ prompt = say hi
+   ├─ expect = 🧮
+   ├─ trials
+   │  ├─ [1] ✓ hi 🧮 there
+   │  └─ [2] ✓ hi 🧮 there
+   │
+   ├─ logs = .log/role=any/skill=boot.adherence.probe/<run>
+   └─ 2 of 2 replies hold the expected text
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t8] a trial enroll refuses its args (exit 2) then: it refuses as a named constraint with exit 2, never a malfunction 1`] = `
+"🧮 boot.adherence.probe
+   ├─ ran = rhx boot.adherence.probe --prompt say hi --expect 🧮 --trials 1
+   ├─ ✋ ConstraintError: trial 1 enroll refused its args
+   ├─ detail
+   │  │ bad --roles spec
+   └─ hint = the full output is at .log/role=any/skill=boot.adherence.probe/<run>/trial.1.log
+"
+`;
+
+exports[`boot.cache.skills given: [case4] boot.adherence.probe when: [t9] no trial reply holds the text then: it exits 0 and counts none: a miss is a measure, not a fault 1`] = `
+"🧮 boot.adherence.probe --roles '-driver' --model haiku --trials 2
+   ├─ prompt = say hi
+   ├─ expect = 🧮
+   ├─ trials
+   │  ├─ [1] ✗ hi there
+   │  └─ [2] ✗ hi there
+   │
+   ├─ logs = .log/role=any/skill=boot.adherence.probe/<run>
+   └─ 0 of 2 replies hold the expected text
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 boot.resume.probe — does a resumed session boot with the boot of today?
+   ├─ usage
+   │  └─ rhx boot.resume.probe [--roles <spec>] [--model <model>]
+   ├─ options
+   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
+   │  └─ --model    the brain model; haiku when absent
+   ├─ exits
+   │  ├─ 0 = measured, and the verdict is ✓ or ✗
+   │  ├─ 1 = the measure failed — no session, no request bodies
+   │  └─ 2 = bad input
+   ├─ examples
+   │  ├─ rhx boot.resume.probe
+   │  └─ rhx boot.resume.probe --model sonnet
+   └─ spends real tokens — two short -p turns
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t1] --model has no value then: it refuses with exit 2 before any turn 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe --model
+   ├─ ✋ ConstraintError: absent value for --model
+   └─ hint = rhx boot.resume.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t2] an unknown argument is passed then: it refuses with exit 2, never drops it 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe --bogus
+   ├─ ✋ ConstraintError: unknown argument --bogus
+   └─ hint = rhx boot.resume.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t3] the first turn exits nonzero then: it fails as a named malfunction with exit 1 and the turn output 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ 💥 MalfunctionError: a probe turn failed, exit 3
+   ├─ detail
+   │  │ enroll refused
+   └─ hint = the full output is at <repo>/.log/role=any/skill=boot.resume.probe/<run>/first.log
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t4] the first turn returns no result json then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ 💥 MalfunctionError: a probe turn returned no result json
+   ├─ detail
+   │  │ not json
+   └─ hint = rhx boot.resume.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t5] it runs where the sentinel brief is absent then: it refuses with exit 2 before any turn, and names the fix 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ ✋ ConstraintError: the sentinel brief is absent: .agent/repo=.this/role=any/briefs/run.executable.lookup.pattern.md.min
+   └─ hint = run from the repo root
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t6] the first turn enroll refuses its args (exit 2) then: it refuses as a named constraint with exit 2, never a malfunction 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ ✋ ConstraintError: a probe enroll refused its args
+   ├─ detail
+   │  │ bad --roles spec
+   └─ hint = the full output is at <repo>/.temp/boot.cache.skills.test/resume-tree/.log/role=any/skill=boot.resume.probe/<run>/first.log
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t7] the first turn names no session_id then: it fails as a named malfunction: no session to resume 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ 💥 MalfunctionError: turn 1 named no session_id
+   ├─ detail
+   │  │ {"type":"result","result":"hi 🧮 there"}
+   └─ hint = rhx boot.resume.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t8] the first turn already holds the sentinel then: it fails as a named malfunction: the measure is void 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ 💥 MalfunctionError: turn 1 already held the sentinel, so the resume measure is void
+   └─ hint = rhx boot.resume.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t9] the boot the resume spawned with lacks the brief edit then: it fails as a named malfunction that names the brief to check 1`] = `
+"🧮 boot.resume.probe
+   ├─ ran = rhx boot.resume.probe
+   ├─ 💥 MalfunctionError: the render at the resume spawn did not carry the brief edit, so the resume measure is void
+   └─ hint = check that .agent/repo=.this/role=any/briefs/run.executable.lookup.pattern.md.min renders as say in the actor boot
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t10] the resumed request carries the edit then: it exits 0 with the ✓ verdict 1`] = `
+"🧮 boot.resume.probe --roles '-driver' --model haiku
+   ├─ the sentinel lands in .agent/repo=.this/role=any/briefs/run.executable.lookup.pattern.md.min after turn 1, before the resume
+   ├─ requests
+   │  ├─ turn 1 · system holds the sentinel = no
+   │  └─ resumed turn · system holds the sentinel = yes
+   ├─ the boot.md the resume spawned with holds the sentinel = yes
+   │
+   ├─ request bodies = .log/role=any/skill=boot.resume.probe/<run>
+   └─ ✓ a resume sends the boot of today; an edit reaches a resumed session
+"
+`;
+
+exports[`boot.cache.skills given: [case5] boot.resume.probe when: [t11] the resumed request carries the boot it first recorded then: it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault 1`] = `
+"🧮 boot.resume.probe --roles '-driver' --model haiku
+   ├─ the sentinel lands in .agent/repo=.this/role=any/briefs/run.executable.lookup.pattern.md.min after turn 1, before the resume
+   ├─ requests
+   │  ├─ turn 1 · system holds the sentinel = no
+   │  └─ resumed turn · system holds the sentinel = no
+   ├─ the boot.md the resume spawned with holds the sentinel = yes
+   │
+   ├─ request bodies = .log/role=any/skill=boot.resume.probe/<run>
+   └─ ✗ a resume sends the boot the session first recorded; an edit waits for a new session
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
+"🧮 boot.subagent.probe — does a clone's subagent boot with the clone's boot?
+   ├─ usage
+   │  └─ rhx boot.subagent.probe [--roles <spec>] [--model <model>]
+   ├─ options
+   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
+   │  └─ --model    the brain model; haiku when absent
+   ├─ exits
+   │  ├─ 0 = measured
+   │  ├─ 1 = the measure failed — no request bodies, or no subagent ran
+   │  └─ 2 = bad input
+   ├─ examples
+   │  └─ rhx boot.subagent.probe
+   └─ spends real tokens — one -p turn and one subagent task
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t1] --roles has no value then: it refuses with exit 2 before any turn 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe --roles
+   ├─ ✋ ConstraintError: absent value for --roles
+   └─ hint = rhx boot.subagent.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t2] an unknown argument is passed then: it refuses with exit 2, never drops it 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe --bogus
+   ├─ ✋ ConstraintError: unknown argument --bogus
+   └─ hint = rhx boot.subagent.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t3] the turn exits nonzero then: it fails as a named malfunction with exit 1 and the turn output 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe
+   ├─ 💥 MalfunctionError: the probe turn failed, exit 3
+   ├─ detail
+   │  │ enroll refused
+   └─ hint = the full output is at <repo>/.log/role=any/skill=boot.subagent.probe/<run>/turn.log
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t4] the turn writes no raw request bodies then: it fails as a named malfunction with exit 1 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe
+   ├─ 💥 MalfunctionError: no raw request bodies under <repo>/.log/role=any/skill=boot.subagent.probe/<run>/otel
+   └─ hint = the brain-cli writes them only when OTEL_LOG_RAW_API_BODIES=file:<dir> reaches it
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t5] no request carries the boot then: it fails as a named malfunction: the clone turn is absent 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe
+   ├─ 💥 MalfunctionError: no request carried the boot, so the clone's own turn is absent
+   └─ hint = read <repo>/.log/role=any/skill=boot.subagent.probe/<run>/turn.log
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t6] every request carries the boot then: it fails as a named malfunction: no subagent request was told apart 1`] = `
+"🧮 boot.subagent.probe
+   ├─ ran = rhx boot.subagent.probe
+   ├─ 💥 MalfunctionError: every request carried the boot, so no subagent request was told apart
+   └─ hint = did the subagent run? read <repo>/.log/role=any/skill=boot.subagent.probe/<run>/turn.log
+"
+`;
+
+exports[`boot.cache.skills given: [case6] boot.subagent.probe when: [t7] one request carries the boot and the subagent request does not then: it exits 0 and counts each side 1`] = `
+"🧮 boot.subagent.probe --roles '-driver' --model haiku
+   ├─ requests, in send order
+   │  ├─ [1] system carries the boot = yes · system chars = 38
+   │  └─ [2] system carries the boot = no · system chars = 17
+   │
+   ├─ request bodies = .log/role=any/skill=boot.subagent.probe/<run>/otel
+   └─ 1 request(s) carry the boot, 1 do not; a request without it is the subagent's own prompt
+"
+`;

@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll, boot boundary refusal (acceptance) given: [case1] a repo brief that quotes the boundary literal inside a code fence when: [t0] a clone is enrolled then: the refusal a human reads is locked 1`] = `
+"
+✋ ConstraintError: a role boot holds the cache boundary literal
+
+{
+  "hint": "the render owns this literal. a role of this repo (repo=.this): name it another way in its briefs (e.g. \\"the system prompt boundary line\\"). a role from a package: upgrade it, or unlink it via \`rhx init --roles -<role>\`, and report the brief to its owner",
+  "offenders": [
+    "repo=.this/role=any"
+  ],
+  "literal": "__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__"
+}
+
+"
+`;
+
+exports[`rhx enroll, boot boundary refusal (acceptance) given: [case1] a repo brief that quotes the boundary literal inside a code fence when: [t1] a clone is enrolled with --output json then: the json refusal a machine parses is locked 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "a role boot holds the cache boundary literal",
+  "hint": "the render owns this literal. a role of this repo (repo=.this): name it another way in its briefs (e.g. \\"the system prompt boundary line\\"). a role from a package: upgrade it, or unlink it via \`rhx init --roles -<role>\`, and report the brief to its owner",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "offenders": [
+      "repo=.this/role=any"
+    ],
+    "literal": "__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__",
+    "hint": "the render owns this literal. a role of this repo (repo=.this): name it another way in its briefs (e.g. \\"the system prompt boundary line\\"). a role from a package: upgrade it, or unlink it via \`rhx init --roles -<role>\`, and report the brief to its owner"
+  }
+}
+"
+`;
+
+exports[`rhx enroll, boot boundary refusal (acceptance) given: [case1] a repo brief that quotes the boundary literal inside a code fence when: [t2] rhx init --hooks renders the repo brain dir then: the init refusal a human reads is locked 1`] = `
+"✗ brain://repo=ambient/boot.md not written: ✋ ConstraintError: a role boot holds the cache boundary literal
+   ├─ offenders: ["repo=.this/role=any"]
+   ├─ literal: __SYSTEM_PROMPT_DYNAMIC_BOUNDARY__
+   └─ hint: the render owns this literal. a role of this repo (repo=.this): name it another way in its briefs (e.g. "the system prompt boundary line"). a role from a package: upgrade it, or unlink it via \`rhx init --roles -<role>\`, and report the brief to its owner
+"
+`;

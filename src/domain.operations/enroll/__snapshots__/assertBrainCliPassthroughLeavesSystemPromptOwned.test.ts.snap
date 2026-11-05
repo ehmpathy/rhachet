@@ -7,6 +7,6 @@ exports[`assertBrainCliPassthroughLeavesSystemPromptOwned the refusal message is
   "overrides": [
     "--system-prompt"
   ],
-  "hint": "rhachet spawns every clone with \`--system-prompt ''\` and boots its briefs via CLAUDE.md. to add text, pass \`--append-system-prompt <text>\`; to change what a clone knows, add a brief to one of its roles"
+  "hint": "rhachet spawns every clone with its actor's boot.md as the system prompt. to add text, pass \`--append-system-prompt <text>\`, or \`--append-system-prompt-file <path>\` for a file; to change what a clone knows, add a brief to one of its roles"
 }"
 `;

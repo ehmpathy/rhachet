@@ -6,6 +6,7 @@ import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSu
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { BOOT_CACHE_BOUNDARY_LINE } from './getOneBootCacheBoundary';
 import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
 
@@ -152,6 +153,100 @@ describe('setBrainDirBoot', () => {
       });
     });
   });
+
+  given(
+    '[case5] published and repo=.this roles, rendered for the prompt cache',
+    () => {
+      when('[t0] one brain dir is rendered', () => {
+        then(
+          'every published role precedes every repo=.this role, parted by one boundary line',
+          async () => {
+            const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t0' });
+            const render = await setBrainDirBoot({
+              brainDir: join(repoPath, 'brain'),
+              roles: ROLES,
+              repoPath,
+              scope: { kind: 'repo' },
+            });
+            const bootMd = readFileSync(render.bootMdPath, 'utf8');
+
+            // the slug order alone would put `.this/any` first; the cache order puts it last
+            const boundaryAt = bootMd.indexOf(
+              `\n${BOOT_CACHE_BOUNDARY_LINE}\n`,
+            );
+            expect(boundaryAt).toBeGreaterThan(-1);
+            expect(bootMd.indexOf('zeta brief body')).toBeLessThan(boundaryAt);
+            expect(bootMd.indexOf('any brief body')).toBeGreaterThan(
+              boundaryAt,
+            );
+            expect(bootMd.split(BOOT_CACHE_BOUNDARY_LINE)).toHaveLength(2);
+          },
+        );
+      });
+
+      when('[t1] a repo=.this brief is edited and the boot re-renders', () => {
+        then('every byte before the boundary is byte-equal', async () => {
+          // a local edit must void only the tail, so the published prefix stays a cache read
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t1' });
+          const brainDir = join(repoPath, 'brain');
+          const before = readFileSync(
+            (
+              await setBrainDirBoot({
+                brainDir,
+                roles: ROLES,
+                repoPath,
+                scope: { kind: 'repo' },
+              })
+            ).bootMdPath,
+            'utf8',
+          );
+
+          writeFileSync(
+            join(
+              repoPath,
+              '.agent',
+              'repo=.this',
+              'role=any',
+              'briefs',
+              'core.md',
+            ),
+            'any brief body, edited on a branch',
+          );
+          const after = readFileSync(
+            (
+              await setBrainDirBoot({
+                brainDir,
+                roles: ROLES,
+                repoPath,
+                scope: { kind: 'repo' },
+              })
+            ).bootMdPath,
+            'utf8',
+          );
+
+          const prefixOf = (text: string) =>
+            text.slice(0, text.indexOf(BOOT_CACHE_BOUNDARY_LINE));
+          expect(after).not.toEqual(before);
+          expect(prefixOf(after)).toEqual(prefixOf(before));
+        });
+      });
+
+      when('[t2] only published roles are rendered', () => {
+        then('no boundary line is written', async () => {
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t2' });
+          const render = await setBrainDirBoot({
+            brainDir: join(repoPath, 'brain'),
+            roles: [{ repo: 'fixture', role: 'zeta' }],
+            repoPath,
+            scope: { kind: 'repo' },
+          });
+          expect(readFileSync(render.bootMdPath, 'utf8')).not.toContain(
+            BOOT_CACHE_BOUNDARY_LINE,
+          );
+        });
+      });
+    },
+  );
 
   given('[case2] a role not linked on disk', () => {
     when('[t0] the brain dir is rendered', () => {

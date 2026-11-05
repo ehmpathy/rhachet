@@ -550,7 +550,9 @@ const performEnroll = async (input: {
   // .note = a success says NAUGHT. the corpus render is not enroll's declared job — it is a
   //   precondition of the spawn — and a census a human cannot act on is noise on the one
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
-  await setBrainDirBoot({
+  // .note = the spawn names `bootMdPath` as its system-prompt file, so a clone boots the
+  //   exact file this render wrote and proved delivered
+  const { bootMdPath } = await setBrainDirBoot({
     brainDir,
     roles: refsEnrolled,
     repoPath,
@@ -630,7 +632,11 @@ const performEnroll = async (input: {
     exid,
     repoPath,
   });
-  const args = asBrainCliSpawnArgs({ configPath, passthrough });
+  const args = asBrainCliSpawnArgs({
+    configPath,
+    bootMdPath,
+    passthrough,
+  });
 
   // refuse a spawn whose clone would load a hook from a role it is not enrolled in
   assertCloneSettingsLayersHoldOnlyEnrolledRoles({

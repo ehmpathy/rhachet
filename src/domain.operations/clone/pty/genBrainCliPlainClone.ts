@@ -54,6 +54,7 @@ export const genBrainCliPlainClone = (input: {
       [CLONE_ENV_KEYS.socket]: undefined,
     },
     brainDir: input.brainDir,
+    args: input.args,
   });
 
   const child = spawn(input.command, input.args, {

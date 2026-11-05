@@ -5,12 +5,15 @@ import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddress
 import { asCloneReachError } from '@src/domain.operations/clone/asCloneReachError';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
 import { CLONE_SUBMIT_VERIFY_TIMEOUT_MS } from '@src/domain.operations/clone/constants';
+import { BOOT_CACHE_LEAD_UNANSWERED_MS } from '@src/domain.operations/clone/fleet/asBootCacheLeadDecision';
+import { holdFirstSayForBootCacheOrUnheld } from '@src/domain.operations/clone/fleet/holdFirstSayForBootCacheOrUnheld';
 import { genCloneHistoryRelink } from '@src/domain.operations/clone/genCloneHistoryRelink';
 import { getCloneReachState } from '@src/domain.operations/clone/getCloneReachState';
 import { getCloneSocketPath } from '@src/domain.operations/clone/getCloneSocketPath';
 import { getCloneSubmittedCount } from '@src/domain.operations/clone/getCloneSubmittedCount';
 import { getOneCloneByRef } from '@src/domain.operations/clone/getOneCloneByRef';
 import { getOneCloneTraceSinkToLog } from '@src/domain.operations/clone/getOneCloneTraceSinkToLog';
+import { isBrainCliClientCommand } from '@src/domain.operations/clone/isBrainCliClientCommand';
 import { isCloneSayToSelf } from '@src/domain.operations/clone/isCloneSayToSelf';
 import { asCloneSayAwaitTarget } from '@src/domain.operations/clone/socket/asCloneSayAwaitTarget';
 import { asCloneSayRecord } from '@src/domain.operations/clone/socket/asCloneSayRecord';
@@ -75,7 +78,7 @@ export const invokeCloneSay = ({ clone }: { clone: Command }): void => {
     )
     .option(
       '--await <target>',
-      `wait until the message reaches enqueue (default; a release satisfies it too, since release is downstream) or release — bounded by a ${CLONE_SUBMIT_VERIFY_TIMEOUT_MS / 1000}s poll, after which it reports the last state observed (never a hang)`,
+      `wait until the message reaches enqueue (default; a release satisfies it too, since release is downstream) or release — bounded by a ${CLONE_SUBMIT_VERIFY_TIMEOUT_MS / 1000}s poll, after which it reports the last state observed (never a hang). a fresh clone's FIRST say may first wait, up to ${BOOT_CACHE_LEAD_UNANSWERED_MS / 1000}s, while a peer of the same boot sends its first request, so the boot is written to cache once; stderr names the wait (under --output json, the clone's trace log names it instead)`,
       'enqueue',
     )
     .option(
@@ -189,6 +192,28 @@ export const invokeCloneSay = ({ clone }: { clone: Command }): void => {
             // repeats one text, so a prior tick's echo must not read as this dispatch).
             // relink the transcript, read the pure count, then probe the screen once
             genCloneHistoryRelink({ repoPath, clone: cloneFound });
+
+            // a cold fleet writes the boot once: a clone's first say waits, bounded, while
+            //   another clone of the same boot has a first request in flight. the wait sits
+            //   before the baseline, so the baseline reads the screen the dispatch will meet.
+            //   a gate fault prints its cause and lets the say go unheld. under `--output json`
+            //   stderr is a machine channel, so the hold lines go to the durable trace log.
+            //   a client command (`/model …`) sends no request, so it neither claims nor waits
+            if (!isBrainCliClientCommand({ message }))
+              await holdFirstSayForBootCacheOrUnheld(
+                { repoPath, clone: cloneFound },
+                {
+                  log: {
+                    // the trace sink writes a line as given, so each hold line ends its own row
+                    error:
+                      mode === 'json'
+                        ? (line) =>
+                            getOneCloneTraceSinkToLog({ repoPath })(`${line}\n`)
+                        : (line) => console.error(line),
+                  },
+                },
+              );
+
             const baselineTranscriptCount = getCloneSubmittedCount({
               clone: cloneFound,
               message,
