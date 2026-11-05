@@ -1,6 +1,8 @@
 # inventory.of=fulcrums
 
-> best-guessed forks of the `1.vision` stone. one entry per fulcrum, `case=F$n-$slug`. axis = `case` (occurrences, declared as they arise).
+> best-guessed forks of the route. F1–F11 from the `1.vision` stone; F12–F18 from the
+> `3.3.1.blueprint.product` stone's open questions (Q1–Q7, in order). one entry per fulcrum,
+> `case=F$n-$slug`. axis = `case` (occurrences, declared as they arise).
 
 `risk` = what ships if the best guess is wrong. **high**: a behavior harm reaches a clone or an extant repo · **medium**: a costly rework, no user harm · **low**: a clean swap. each entry names the harm behind its grade. **low (bar)**: graded on the director's bar for a vision fulcrum — risky only if it touches a credential or a prod write (ca-2675884743); a behavior harm under that bar is owed a blueprint test, never a halt.
 
@@ -17,5 +19,12 @@
 | [F9](./inventory.of=fulcrums.case=F9-the-mod-boot-yml-is-read-before-the-roles.md) | the mod's boot.yml sections are read before the role's | clean | medium | open | 80% |
 | [F10](./inventory.of=fulcrums.case=F10-a-not-a-role-hook-needs-is-refused-at-render.md) | a `not` of a skill a role hook invokes is refused at render | clean | low | open | 75% |
 | [F11](./inventory.of=fulcrums.case=F11-same-slug-roles-boot-apart-this-included.md) | same-slug roles boot apart, a `.this` role included; a bare slug carries every repo; hashes stay | dirty | low (bar) | ruled, taken (a1 S5; b1, c1 director); `.this`-override repos owed a research count + a test; ships on the commander's release review | 75% |
+| [F12](./inventory.of=fulcrums.case=F12-a-mod-uses-its-roles-boot-yml-mode.md) | a mod uses its role's boot.yml mode (Q1) | clean | low | ruled, taken (director) | 85% |
+| [F13](./inventory.of=fulcrums.case=F13-one-sync-writes-the-modded-view-on-every-render.md) | one sync writes the modded view, on every render path (Q2) | clean | low | ruled, taken (director) | 85% |
+| [F14](./inventory.of=fulcrums.case=F14-a-stale-view-fails-the-boot-and-names-rhx-init.md) | a stale modded view fails the boot and names `rhx init` (Q3) | clean | low | ruled, taken (director) | 80% |
+| [F15](./inventory.of=fulcrums.case=F15-one-release-then-the-nheuron-move.md) | one release, then the nheuron move (Q4) | clean | low | ruled, taken (director) | 85% |
+| [F16](./inventory.of=fulcrums.case=F16-the-not-refusal-reads-the-two-skill-file-forms.md) | the `not` refusal reads the two hook forms that name a skill file (Q5) | clean | low | ruled, taken (director) | 85% |
+| [F17](./inventory.of=fulcrums.case=F17-delete-the-per-slug-dedupe.md) | delete `asRoleRefsFirstSeenPerRole` (Q6) | clean | low | ruled, taken (director) | 95% |
+| [F18](./inventory.of=fulcrums.case=F18-a-mod-of-a-this-role-is-refused.md) | a mod of a `.this` role is refused (Q7) | clean | low | ruled, taken (director) | 90% |
 
-gaps: none known — each best-guess in the yield maps to a row above.
+gaps: none known — each best-guess in the vision and blueprint yields maps to a row above.
