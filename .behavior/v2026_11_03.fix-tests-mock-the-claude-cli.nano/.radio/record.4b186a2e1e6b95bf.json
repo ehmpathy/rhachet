@@ -1,0 +1,19 @@
+{
+  "key": "4b186a2e1e6b95bf",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-brains-anthropic"
+  },
+  "exid": null,
+  "title": "rhachet-brains-anthropic lets a caller name the claude executable",
+  "description": "# 🌙 dream: rhachet-brains-anthropic lets a caller name the claude executable\n\nkind = reseed · owner = rhachet-brains-anthropic · caught 2026-11-02\n\n## .the cue that fired\n\nthe director ruled Q2 of `v2026_11_01.fix-tests-mock-the-claude-cli`: the sdk suites take a mocked\nrepl inside rhachet now, and the exec-path change in brains-anthropic is a later dispatch.\n\n## .the gap, precisely\n\n`rhachet-brains-anthropic@0.4.3` `dist/domain.operations/repls/genBrainRepl.js:182-194` calls the\nagent sdk's `query()` with no `pathToClaudeCodeExecutable`, so the sdk always spawns its bundled\ncli. a PATH mock of claude cannot reach that path, and rhachet must mock one layer higher (the\n`BrainRepl`), which skips the supplier's own code in every sdk pass-through suite.\n\n## .the shape of the fix\n\n`genBrainRepl` accepts an optional executable path (input, or an env var such as\n`RHACHET_CLAUDE_BIN`) and forwards it as `pathToClaudeCodeExecutable`. rhachet's sdk suites can then\nrun the real supplier against the mock claude cli, and the mocked repl may retire.\n\n## .why it is not done in this round\n\nanother repo's code, and the director scoped it out of this route.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 3,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}

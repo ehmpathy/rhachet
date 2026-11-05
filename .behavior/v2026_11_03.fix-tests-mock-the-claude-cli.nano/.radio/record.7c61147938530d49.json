@@ -1,0 +1,19 @@
+{
+  "key": "7c61147938530d49",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "a byhand skill re-measures the real claude tui",
+  "description": "# 🌙 dream: a byhand skill re-measures the real claude tui\n\nkind = followup · owner = rhachet · caught 2026-11-01\n\n## .the cue that fired\n\n`v2026_11_01.fix-tests-mock-the-claude-cli` keeps the realbrain clamps in one shared smoketest\nsession, but moves the research half of `clone.screen-dogfood.realbrain.acceptance` — its emit of\nmeasured screen grids to a research artifact — out of the jest tiers. the stub's `modal`, `busy`,\n`bufferedhold` modes imitate those grids, and with the emit gone, no run re-measures the real tui\nwhen a claude-code bump may have moved it. (the stub's `busy` mode already drifted once: it holds a\nqueued message out of the transcript, which `clone.transcript-lag` measured false.)\n\n## .the gap, precisely\n\nno on-demand way to ask \"how does the real claude tui draw a modal, a queue hint, its input box,\ntoday?\" — the knowledge the stub modes imitate goes stale with each pin bump, and only a red\nsmoketest (which covers reach, not render) would hint at it.\n\n## .the shape of the fix\n\na skill under `.agent/repo=.this/role=any/skills/`, in the shape of `claude.cli.secstore.trial.sh`\n(`howto.entool-a-measurement-as-a-skill`): install a pinned claude via `claude.cli.probe`, boot it\nunder a pty on haiku, drive the probe prompts the retired suites drove, and print the measured\nscreen shape (rows, markers, queue hint) beside what each stub mode draws.\n\n## .why it is not done in this round\n\nthe wish asks to move tests onto a mock, not to build new tools. the measurement skill is a new\ncapability with its own contract, and the retirement does not depend on it.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 1,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}
