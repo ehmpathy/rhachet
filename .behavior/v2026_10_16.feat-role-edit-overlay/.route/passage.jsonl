@@ -44,3 +44,5 @@
 {"stone":"2.1.criteria.blackbox","status":"passed"}
 {"stone":"3.1.research.internal.this-overrides","status":"passed"}
 {"stone":"3.3.1.blueprint.product","status":"blocked"}
+{"stone":"3.3.1.blueprint.product","status":"passed"}
+{"stone":"5.1.execution.from_vision","status":"blocked"}
