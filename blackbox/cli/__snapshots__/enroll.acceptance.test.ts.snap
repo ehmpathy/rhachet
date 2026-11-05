@@ -885,6 +885,8 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   ]
 }
 
+[args] enroll,claude,--system-prompt-file=./prompt.md
+
 "
 `;
 

@@ -177,7 +177,9 @@ for T in "${TRANSCRIPTS[@]}"; do
     | to_entries[]
     | "\(.key + 1)\t\(.value.input_tokens // 0)\t\(.value.cache_creation_input_tokens // 0)\t\(.value.cache_read_input_tokens // 0)"
   ' "$T" 2>&1); then
-    fail kind=malfunction what="a transcript could not be parsed as json lines, $T" detail="$ROWS" hint="a transcript in mid-write may hold a partial line; re-run once the clone is idle"
+    # some jq builds prefix their own name to the fault ("jq: parse error"), some do not; drop it,
+    #   so the detail reads one way on every host
+    fail kind=malfunction what="a transcript could not be parsed as json lines, $T" detail="${ROWS#jq: }" hint="a transcript in mid-write may hold a partial line; re-run once the clone is idle"
   fi
 
   echo "   ├─ transcript = $(basename "$T")"
