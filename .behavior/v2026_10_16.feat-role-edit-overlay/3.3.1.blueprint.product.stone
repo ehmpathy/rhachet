@@ -1,0 +1,38 @@
+propose a blueprint for how we will implement the wish
+- in .behavior/v2026_10_16.feat-role-edit-overlay/0.wish.md
+- with .behavior/v2026_10_16.feat-role-edit-overlay/1.vision.yield.md
+- with .behavior/v2026_10_16.feat-role-edit-overlay/2.1.criteria.blackbox.yield.md
+- with .behavior/v2026_10_16.feat-role-edit-overlay/3.1.research.internal.this-overrides.yield.md
+- honor every ruled fulcrum in .behavior/v2026_10_16.feat-role-edit-overlay/.fulcrums/inventory.of=fulcrums._.md
+
+.why = blueprint the code changes needed to deliver the product. the blueprint is the commander review.
+
+follow the patterns already present in this repo.
+
+---
+
+## summary
+state what will be built.
+
+## filediff tree
+a treestruct of filediffs. legend: [+] create · [~] update · [-] delete
+
+## codepath tree
+a treestruct of codepaths. legend: [+] create · [~] update · [○] retain · [-] delete · [←] reuse · [→] eject
+
+## test coverage
+mandatory, equal weight to implementation. coverage by layer (transformers unit; communicators, orchestrators integration; contracts integration + acceptance with snapshots), by case (positive, negative, happy, edge), and a test tree with the same legend.
+
+the ruled fulcrums owe these clamps, each named in the test tree:
+- F8: a stale link set, or a shadow skill without its peers, fails loud at boot or re-materialize
+- F11: a repo that relied on a .this override boots both roles after a1, per the 3.1 count; the change ships only on the commander release review
+
+## open questions for the commander
+the blueprint is the commander review. NEVER best-guess an open blueprint question. list each as:
+- the question
+- the options, stated fairly
+- your lean, and why
+
+---
+
+emit into .behavior/v2026_10_16.feat-role-edit-overlay/3.3.1.blueprint.product.yield.md
