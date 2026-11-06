@@ -2,11 +2,13 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
+import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readFileSync,
   readlinkSync,
   rmSync,
@@ -66,6 +68,16 @@ const GITIGNORE_ALLOWLIST = [
 ].join('\n');
 
 describe('setRepoActorBrainDir', () => {
+  // a temp home with a grove: the layout reads HOME for the grove arrow, so no case hangs on
+  //   whether the host has a ~/.claude/settings.json (a groveless box drops the arrow)
+  const home = withTempHome({ name: 'setRepoActorBrainDir' });
+  beforeAll(() => {
+    home.setup();
+    mkdirSync(join(home.path, '.claude'), { recursive: true });
+    writeFileSync(join(home.path, '.claude', 'settings.json'), '{}\n');
+  });
+  afterAll(() => home.teardown());
+
   given('[case1] a repo with two linked roles and no <repo>/.claude', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genRepoWithRoles({ slug: 'sync-repo-actor-brain-dir' });

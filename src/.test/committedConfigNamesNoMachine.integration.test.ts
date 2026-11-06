@@ -4,7 +4,6 @@ import { MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { spawnSync } from 'node:child_process';
-import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { getAllMachineNamesInText } from './infra/getAllMachineNamesInText';
 import { getThisMachine } from './infra/getThisMachine';
@@ -28,25 +27,45 @@ const HINT =
   'a file: re-render with the branch build — `npm run build && npx rhx init --hooks` — and upgrade the global rhx. a link: `git rm --cached <path>`; the brain dir allowlist keeps it out';
 
 /**
- * .what = every path git tracks in the repo actor brain dir, repo-relative
- * .why = the scan must reach each committed file and link, not a list kept by hand
+ * .what = run one git command at the repo root; returns its stdout
+ * .why = the scan reads git's own record, so a git fault must fail loud
  */
-const getAllTrackedPathsInBrainDir = (): string[] => {
-  const result = spawnSync(
-    'git',
-    ['ls-files', '--', REPO_ACTOR_BRAIN_DIR_REL],
-    { cwd: REPO_ROOT },
-  );
+const runGit = (input: { args: string[] }): string => {
+  const result = spawnSync('git', input.args, { cwd: REPO_ROOT });
   if (result.status !== 0)
-    throw new MalfunctionError('git ls-files failed', {
+    throw new MalfunctionError('git failed', {
+      args: input.args,
       status: result.status,
       stderr: result.stderr?.toString() ?? null,
     });
-  return result.stdout
-    .toString()
-    .split('\n')
-    .filter((path) => path !== '');
+  return result.stdout.toString();
 };
+
+/**
+ * .what = every entry git tracks in the repo actor brain dir: its path, whether it is a link,
+ *         and its committed bytes (a link's bytes are its target)
+ * .why = the scan grades what git holds, never the worktree: a box may lack a tracked file on
+ *        disk (a groveless box drops the `settings.json` arrow), and the bytes that ship are
+ *        the index's either way
+ */
+const getAllTrackedEntriesInBrainDir = (): {
+  path: string;
+  isLink: boolean;
+  content: string;
+}[] =>
+  runGit({ args: ['ls-files', '-s', '--', REPO_ACTOR_BRAIN_DIR_REL] })
+    .split('\n')
+    .filter((line) => line !== '')
+    .map((line) => {
+      // each line reads `<mode> <blob> <stage>\t<path>`
+      const [meta, path] = line.split('\t') as [string, string];
+      const [mode, blob] = meta.split(' ') as [string, string];
+      return {
+        path,
+        isLink: mode === '120000',
+        content: runGit({ args: ['cat-file', 'blob', blob] }),
+      };
+    });
 
 /**
  * .what = every span of a text that names this machine or this checkout
@@ -67,18 +86,16 @@ describe('committed config names no machine', () => {
   given('[case1] each tracked file in the repo actor brain dir', () => {
     when('[t0] each file content is scanned', () => {
       then('no file names a home, user, host, or checkout', () => {
-        const files = getAllTrackedPathsInBrainDir().filter(
-          (path) => !lstatSync(join(REPO_ROOT, path)).isSymbolicLink(),
+        const files = getAllTrackedEntriesInBrainDir().filter(
+          (entry) => !entry.isLink,
         );
         const filesWithMachineName = files
-          .map((path) => ({
-            path,
-            found: getAllNamesInText({
-              text: readFileSync(join(REPO_ROOT, path), 'utf-8'),
-            }),
+          .map((entry) => ({
+            path: entry.path,
+            found: getAllNamesInText({ text: entry.content }),
           }))
           .filter((file) => file.found.length > 0);
-        expect(files).toContain(
+        expect(files.map((entry) => entry.path)).toContain(
           `${REPO_ACTOR_BRAIN_DIR_REL}/settings.of.repo.json`,
         );
         expect({ filesWithMachineName, hint: HINT }).toEqual({
@@ -92,15 +109,13 @@ describe('committed config names no machine', () => {
   given('[case2] each tracked symlink in the repo actor brain dir', () => {
     when('[t0] each link target is scanned', () => {
       then('no target names a home, user, host, or checkout', () => {
-        const links = getAllTrackedPathsInBrainDir().filter((path) =>
-          lstatSync(join(REPO_ROOT, path)).isSymbolicLink(),
+        const links = getAllTrackedEntriesInBrainDir().filter(
+          (entry) => entry.isLink,
         );
         const linksWithMachineName = links
-          .map((path) => ({
-            path,
-            found: getAllNamesInText({
-              text: readlinkSync(join(REPO_ROOT, path)),
-            }),
+          .map((entry) => ({
+            path: entry.path,
+            found: getAllNamesInText({ text: entry.content }),
           }))
           .filter((link) => link.found.length > 0);
         expect(links.length).toBeGreaterThan(0);
