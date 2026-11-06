@@ -19,12 +19,15 @@ import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
  *
  * .note = the hooks come back as two maps, keyed by `event|author|command` and valued by the
  *   whole hook body (matcher included); the caller tallies them in its own report vocabulary
+ * .note = the `claudeMdExcludes` come back before and after too, so a report can name each
+ *   entry the derivation dropped — a per-machine home path above all
  */
 export const setActorSettingsDerived = async (input: {
   actor: ActorOndisk;
   repoPath: string;
 }): Promise<{
   hooks: { before: Map<string, string>; after: Map<string, string> };
+  excludes: { before: string[]; after: string[] };
 }> => {
   const brainDir = getBrainOndiskDir({
     actorDir: getActorOndiskDir({
@@ -33,6 +36,7 @@ export const setActorSettingsDerived = async (input: {
     }),
   });
   const before = await getAllHooksByKeyOfBrainDir({ brainDir });
+  const excludesBefore = await getAllClaudeMdExcludesOfBrainDir({ brainDir });
   await setBrainDirSettingsLayout({
     repoPath: input.repoPath,
     brainDir,
@@ -47,7 +51,27 @@ export const setActorSettingsDerived = async (input: {
     repoPath: input.repoPath,
   });
   const after = await getAllHooksByKeyOfBrainDir({ brainDir });
-  return { hooks: { before, after } };
+  const excludesAfter = await getAllClaudeMdExcludesOfBrainDir({ brainDir });
+  return {
+    hooks: { before, after },
+    excludes: { before: excludesBefore, after: excludesAfter },
+  };
+};
+
+/**
+ * .what = the `claudeMdExcludes` of a brain dir's settings.of.repo.json, or [] where absent
+ */
+const getAllClaudeMdExcludesOfBrainDir = async (input: {
+  brainDir: string;
+}): Promise<string[]> => {
+  const settings = await readClaudeCodeSettings({
+    from: dirname(input.brainDir),
+  });
+  const excludes: unknown = settings.claudeMdExcludes;
+  if (!Array.isArray(excludes)) return [];
+  return excludes.filter(
+    (pattern): pattern is string => typeof pattern === 'string',
+  );
 };
 
 /**

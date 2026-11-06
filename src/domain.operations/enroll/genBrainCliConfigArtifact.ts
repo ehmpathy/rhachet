@@ -8,12 +8,12 @@ import {
   readClaudeCodeSettings,
   writeClaudeCodeSettings,
 } from '@src/domain.operations/brains/claudeCodeSettings';
-import { getHomeDir } from '@src/infra/getHomeDir';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
 import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
+import { asClaudeMdExcludesPortable } from './asClaudeMdExcludesPortable';
 import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
@@ -31,8 +31,11 @@ import { getSettingsForRoles } from './getSettingsForRoles';
  *   never does
  * .note = the repo actor is the source itself: its hooks are never narrowed (a narrow would
  *   drop any hook with no author), only its claudeMdExcludes are set
- * .note = the excludes never name the actor's own doors — for the repo actor, those are its
- *   own boot, so an exclude there would hide the clone's corpus
+ * .note = the excludes never hide the actor's own boot: a clone reads its door as user memory,
+ *   at the real `brain/.claude` path, which no entry matches. the home glob does match the
+ *   repo actor's link path `<repo>/.claude/CLAUDE.md`, but that path only loads as project
+ *   memory, a source no clone loads (`--setting-sources user`, pinned in
+ *   `asBrainCliSpawnArgs.test.ts`)
  * .note = the read of the source and the write of the target hold both files' mutexes, the
  *   source's first. a hook sync (the shield) or a layout findsert on the same file waits its
  *   turn, so a whole-file write here never drops a hook another `rhx` wrote between the read
@@ -124,20 +127,19 @@ const setActorSettingsRepoWithinLock = async (input: {
     settings: settingsNarrowed,
   });
 
-  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
-  //   the repo actor's doors have two paths — its real dir, and `<repo>/.claude`, a
-  //   symlink to it — so neither path may be excluded for it
-  const ownDirs = isRepoActor
-    ? [actorBrainDir, join(repoPath, '.claude')]
-    : [actorBrainDir];
-  const claudeMdExcludes = asClaudeMdExcludesOutsideDirs({
-    excludes: getClaudeMdExcludesList({
-      repoPath,
-      repoActorBrainDir,
-      home: getHomeDir(),
-    }),
-    dirs: ownDirs,
-  });
+  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12)
+  const excludesAll = getClaudeMdExcludesList({ repoPath, repoActorBrainDir });
+
+  // the repo actor's file is committed, so it carries only the portable entries — the globs —
+  //   by construction: every absolute entry names this checkout, and its doors besides. the
+  //   home glob still matches the link path `<repo>/.claude/CLAUDE.md`, harmless since a clone
+  //   reads its boot by the real path. any other actor keeps each entry outside its own dir
+  const claudeMdExcludes = isRepoActor
+    ? asClaudeMdExcludesPortable({ excludes: excludesAll })
+    : asClaudeMdExcludesOutsideDirs({
+        excludes: excludesAll,
+        dirs: [actorBrainDir],
+      });
 
   // write the actor's settings.of.repo.json
   await writeClaudeCodeSettings({

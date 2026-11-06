@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -686,4 +687,170 @@ module.exports = { getRoleRegistry };
       });
     });
   });
+
+  given(
+    '[case9] a repo actor whose committed file names two homes in claudeMdExcludes',
+    () => {
+      // the repo actor's settings.of.repo.json is committed; a prior release wrote one absolute
+      //   home path per machine that enrolled. `init --hooks` re-derives the repo actor's file
+      //   wherever its actor.json sits on disk, so that pass must clean the per-machine entries
+      const repoActorDir = '.agent/.actors/actor.via.repo=ambient';
+      const repo = useBeforeAll(async () => {
+        const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: r.path,
+        });
+
+        // the manifest a bare enroll leaves for the repo actor
+        await fs.writeFile(
+          path.join(r.path, repoActorDir, 'actor.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            brain: 'claude',
+            roles: ['tester'],
+            rolesDelta: null,
+          }) + '\n',
+          'utf-8',
+        );
+
+        // the committed file, as two machines left it
+        const configPath = path.join(
+          r.path,
+          repoActorDir,
+          'brain/.claude/settings.of.repo.json',
+        );
+        const configPrior = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+        await fs.writeFile(
+          configPath,
+          JSON.stringify(
+            {
+              ...configPrior,
+              claudeMdExcludes: [
+                '/home/camper/.claude/CLAUDE.md',
+                '/home/fixturehuman/.claude/CLAUDE.md',
+                '**/CLAUDE.local.md',
+              ],
+            },
+            null,
+            2,
+          ) + '\n',
+          'utf-8',
+        );
+
+        // the grove link, as a prior release left it: tracked at HEAD, aimed at one machine
+        const groveRel = `${repoActorDir}/brain/.claude/settings.of.grove.json`;
+        await fs.rm(path.join(r.path, groveRel), { force: true });
+        await fs.symlink(
+          '/home/otherhuman/.claude/settings.json',
+          path.join(r.path, groveRel),
+        );
+        execSync(`git add -f ${groveRel}`, { cwd: r.path, stdio: 'ignore' });
+        execSync('git commit -m "seed" --quiet', {
+          cwd: r.path,
+          stdio: 'ignore',
+        });
+
+        const resultFirst = invokeWithoutGrove({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+        });
+        const contentFirst = await fs.readFile(configPath, 'utf-8');
+        const resultSecond = invokeWithoutGrove({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+        });
+        const contentSecond = await fs.readFile(configPath, 'utf-8');
+        const groveTracked = execSync(`git ls-files -- ${groveRel}`, {
+          cwd: r.path,
+        }).toString();
+        return {
+          resultFirst,
+          resultSecond,
+          contentFirst,
+          contentSecond,
+          groveRel,
+          groveTracked,
+        };
+      });
+
+      when('[t0] init --hooks runs', () => {
+        then('exits with status 0', () => {
+          expect(repo.resultFirst.status).toEqual(0);
+        });
+
+        then(
+          'claudeMdExcludes holds the portable globs alone — no home path',
+          () => {
+            const config = JSON.parse(repo.contentFirst);
+            expect(config.claudeMdExcludes).toEqual([
+              '**/!(brain)/.claude/CLAUDE.md',
+              '**/CLAUDE.local.md',
+            ]);
+            expect(repo.contentFirst).not.toContain('/home/');
+          },
+        );
+
+        then('stdout names each exclude it dropped, beneath the actor', () => {
+          expect(repo.resultFirst.stdout).toContain(
+            'claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md',
+          );
+          expect(repo.resultFirst.stdout).toContain(
+            'claudeMdExcludes dropped /home/fixturehuman/.claude/CLAUDE.md',
+          );
+        });
+
+        then(
+          'stdout names the grove link it untracked, with the teammate cure',
+          () => {
+            expect(repo.resultFirst.stdout).toContain(
+              `${repo.groveRel} — names this machine; kept on disk, commit its deletion`,
+            );
+            expect(repo.resultFirst.stdout).toContain(
+              `git checkout -- ${repo.groveRel}`,
+            );
+          },
+        );
+
+        then('the grove link leaves the index', () => {
+          expect(repo.groveTracked).toEqual('');
+        });
+
+        then('the two trees this case changes match snapshot, each whole', () => {
+          // .note = each tree is cut from its header to the blank line that closes it, so a
+          //   group is never cut mid-branch; the role list above them varies with the fixture
+          const lines = repo.resultFirst.stdout.split('\n');
+          const asTreeFrom = (header: string): string[] => {
+            const start = lines.findIndex((line) => line.startsWith(header));
+            if (start === -1) return [];
+            const end = lines.findIndex(
+              (line, index) => index > start && line.trim() === '',
+            );
+            return lines.slice(start, end === -1 ? lines.length : end);
+          };
+          const brainTree = asTreeFrom('🧠 brain://repo=ambient');
+          const actorsTree = asTreeFrom('🧢 apply hooks to enrolled actors');
+          expect(brainTree.length).toBeGreaterThan(0);
+          expect(actorsTree.length).toBeGreaterThan(0);
+          expect(
+            asSnapshotSafe([...brainTree, '', ...actorsTree].join('\n')),
+          ).toMatchSnapshot();
+        });
+      });
+
+      when('[t1] init --hooks runs again', () => {
+        then('the committed file is byte-identical — idempotent', () => {
+          expect(repo.resultSecond.status).toEqual(0);
+          expect(repo.contentSecond).toEqual(repo.contentFirst);
+        });
+
+        then('stdout names no dropped exclude and no untrack', () => {
+          expect(repo.resultSecond.stdout).not.toContain(
+            'claudeMdExcludes dropped',
+          );
+          expect(repo.resultSecond.stdout).not.toContain('git checkout --');
+        });
+      });
+    },
+  );
 });

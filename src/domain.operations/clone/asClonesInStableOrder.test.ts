@@ -23,4 +23,23 @@ describe('asClonesInStableOrder', () => {
       });
     });
   });
+
+  given(
+    '[case2] one clone stamped on a whole second, one later in that second',
+    () => {
+      // `now()` drops a zero millisecond part, so the earlier stamp reads `…:10Z`
+      const clones = [
+        { serial: 'a', spawnedAt: asIsoTimeStamp('2026-10-04T00:00:10.500Z') },
+        { serial: 'b', spawnedAt: asIsoTimeStamp('2026-10-04T00:00:10Z') },
+      ];
+
+      when('[t0] ordered', () => {
+        const ordered = asClonesInStableOrder({ clones });
+
+        then('the whole-second stamp leads, as the earlier instant', () => {
+          expect(ordered.map((clone) => clone.serial)).toEqual(['b', 'a']);
+        });
+      });
+    },
+  );
 });

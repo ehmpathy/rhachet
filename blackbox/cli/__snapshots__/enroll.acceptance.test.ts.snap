@@ -249,7 +249,7 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -304,7 +304,7 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }
@@ -381,6 +381,143 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
 "
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor file that names two homes in claudeMdExcludes when: [t0] a bare enroll runs then: stderr matches snapshot 1`] = `
+"
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor file that names two homes in claudeMdExcludes when: [t0] a bare enroll runs then: the cleaned repo actor file matches snapshot 1`] = `
+"{
+  "permissions": {
+    "allow": "<some allow entries>",
+    "deny": [
+      "Bash(bash:*)",
+      "Bash(cd:*)",
+      "Bash(find:*)",
+      "Bash(gh api --method DELETE:*)",
+      "Bash(gh api --method PATCH:*)",
+      "Bash(gh api --method POST:*)",
+      "Bash(gh api --method PUT:*)",
+      "Bash(gh api -X DELETE:*)",
+      "Bash(gh api -X PATCH:*)",
+      "Bash(gh api -X POST:*)",
+      "Bash(gh api -X PUT:*)",
+      "Bash(gh gist create:*)",
+      "Bash(gh gist delete:*)",
+      "Bash(gh gist edit:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue reopen:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh label delete:*)",
+      "Bash(gh label edit:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr reopen:*)",
+      "Bash(gh pr review:*)",
+      "Bash(gh project create:*)",
+      "Bash(gh project delete:*)",
+      "Bash(gh project edit:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh release delete:*)",
+      "Bash(gh release edit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh repo fork:*)",
+      "Bash(gh run cancel:*)",
+      "Bash(gh run rerun:*)",
+      "Bash(gh workflow disable:*)",
+      "Bash(gh workflow enable:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(git add --all:*)",
+      "Bash(git add -A:*)",
+      "Bash(git add .)",
+      "Bash(git branch -D:*)",
+      "Bash(git branch -d:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git reflog delete:*)",
+      "Bash(git reflog expire:*)",
+      "Bash(git release:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote remove:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git stash:*)",
+      "Bash(git tag -d:*)",
+      "Bash(grep:*)",
+      "Bash(ln:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(npx biome:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx rhachet run --skill git.commit.bind -- del:*)",
+      "Bash(npx rhachet run --skill git.commit.bind -- set:*)",
+      "Bash(npx rhachet run --skill git.commit.bind del:*)",
+      "Bash(npx rhachet run --skill git.commit.bind set:*)",
+      "Bash(npx rhachet run --skill git.commit.sponsor -- del:*)",
+      "Bash(npx rhachet run --skill git.commit.sponsor -- set:*)",
+      "Bash(npx rhachet run --skill git.commit.sponsor del:*)",
+      "Bash(npx rhachet run --skill git.commit.sponsor set:*)",
+      "Bash(npx rhachet run --skill git.commit.uses -- allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses -- set:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --global allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --org * allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses --org * del:*)",
+      "Bash(npx rhachet run --skill git.commit.uses allow:*)",
+      "Bash(npx rhachet run --skill git.commit.uses set:*)",
+      "Bash(rhx git.commit.bind -- del:*)",
+      "Bash(rhx git.commit.bind -- set:*)",
+      "Bash(rhx git.commit.bind del:*)",
+      "Bash(rhx git.commit.bind set:*)",
+      "Bash(rhx git.commit.sponsor -- del:*)",
+      "Bash(rhx git.commit.sponsor -- set:*)",
+      "Bash(rhx git.commit.sponsor del:*)",
+      "Bash(rhx git.commit.sponsor set:*)",
+      "Bash(rhx git.commit.uses -- allow:*)",
+      "Bash(rhx git.commit.uses -- set:*)",
+      "Bash(rhx git.commit.uses --global allow:*)",
+      "Bash(rhx git.commit.uses --org * allow:*)",
+      "Bash(rhx git.commit.uses --org * del:*)",
+      "Bash(rhx git.commit.uses allow:*)",
+      "Bash(rhx git.commit.uses set:*)",
+      "Bash(sed:*)",
+      "Bash(tee:*)",
+      "Edit(.branch/.bind/*)",
+      "Edit(.meter/*)",
+      "EnterPlanMode",
+      "Read(.quarantine/*)"
+    ],
+    "ask": [
+      "Bash(chmod:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node -e \\"import('rhachet-roles-bhrain/cli/route').then(m => m.routeStatusLine())\\"",
+    "padding": 0
+  },
+  "claudeMdExcludes": [
+    "**/!(brain)/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md"
+  ]
+}"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
 "{
   "hooks": {
@@ -402,7 +539,7 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -448,7 +585,7 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }
@@ -486,7 +623,7 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -526,7 +663,7 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -566,7 +703,7 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -606,7 +743,7 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
@@ -636,7 +773,7 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"

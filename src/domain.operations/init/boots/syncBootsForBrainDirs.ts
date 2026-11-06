@@ -25,6 +25,8 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
  *         moved and dropped. it is null on a repo actor failure, where no link was made
  * .note = `settings` names what the repo actor's settings layout findsert did; null on a
  *         repo actor failure
+ * .note = `untracked` names each repo actor brain dir path this sync dropped from git's
+ *         index; empty in the steady state and on a repo actor failure
  * .note = `symlinkPrior` is what an earlier layout step of this same run did to the link
  *         (`setRepoActorBrainDirLayout`, before the role inits). this sync then finds the
  *         link in place, so the earlier effect is the one the report names
@@ -37,6 +39,7 @@ export const syncBootsForBrainDirs = async (
   failures: BrainDirBootFailure[];
   symlink: BrainDirSyncSymlink | null;
   settings: ReturnType<typeof asRepoActorBrainDirOutcome>['settings'];
+  untracked: string[];
 }> => {
   const refsLinked = getAllLinkedRoleRefs({}, context);
 
@@ -79,6 +82,7 @@ export const syncBootsForBrainDirs = async (
       now: repoActorOutcome.symlink,
     }),
     settings: repoActorOutcome.settings,
+    untracked: repoActorOutcome.untracked,
   };
 };
 
