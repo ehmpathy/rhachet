@@ -479,6 +479,7 @@ describe('unlockKeyrackKeys.integration', () => {
 
         // verify TTL is capped to 5 minutes (not 1 hour), from the unlock itself
         const fiveMinMs = 5 * 60 * 1000;
+        const oneHourMs = 60 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
