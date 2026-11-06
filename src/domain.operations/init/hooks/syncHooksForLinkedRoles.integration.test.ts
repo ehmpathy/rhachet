@@ -297,7 +297,7 @@ describe('syncHooksForLinkedRoles (error paths)', () => {
           const actorAt = lines.indexOf('🧢 apply hooks to enrolled actors...');
           expect(lines[actorAt + 1]).toContain('└─ ✗ hash=051970ec: ');
           expect(lines[actorAt + 2]).toEqual(
-            '      └─ hint: rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
+            '      └─ hint = rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
           );
         });
       });

@@ -1,6 +1,7 @@
 import { mkdirSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
+import { setProcessEnvVar } from './setProcessEnvVar';
 
 /**
  * .what = provides isolated HOME directory for tests
@@ -32,8 +33,8 @@ export const withTempHome = (input: {
     },
 
     teardown: () => {
-      // restore original HOME
-      process.env.HOME = originalHome;
+      // restore original HOME, or unset it if it was unset
+      setProcessEnvVar({ name: 'HOME', value: originalHome });
       // clean up temp home
       rmSync(tempHome, { recursive: true, force: true });
     },

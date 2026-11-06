@@ -55,3 +55,14 @@ exports[`asBrainDirSyncReportLines given: [case5] an AGENTS.md reset, with no ot
   "      └─ reset — hand edits dropped; rhachet owns this file",
 ]
 `;
+
+exports[`asBrainDirSyncReportLines given: [case6] a sync that dropped a machine-named link from git index when: [t0] the lines are rendered, with no other change then: the untrack is never silent — it lands as a staged deletion 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ untracked",
+  "   │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json — names this machine; kept on disk, commit its deletion",
+  "   │     └─ cure — a teammate whose pull git refuses runs \`git checkout -- .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json\`, then pulls",
+  "   └─ boot.md",
+  "      └─ upgraded — 2 roles",
+]
+`;

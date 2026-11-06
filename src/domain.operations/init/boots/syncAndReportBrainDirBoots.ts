@@ -72,7 +72,7 @@ export const syncAndReportBrainDirBoots = async (
     console.log('');
   }
 
-  const { renders, failures, symlink } = await syncBootsForBrainDirs(
+  const { renders, failures, symlink, untracked } = await syncBootsForBrainDirs(
     { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
     context,
   );
@@ -94,6 +94,7 @@ export const syncAndReportBrainDirBoots = async (
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
+      untracked: render.scope.kind === 'repo' ? untracked : [],
       repoActorBrainDirRel,
     });
     if (lines.length === 0) continue;

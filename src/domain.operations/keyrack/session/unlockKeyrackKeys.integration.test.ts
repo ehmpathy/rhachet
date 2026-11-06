@@ -479,7 +479,6 @@ describe('unlockKeyrackKeys.integration', () => {
 
         // verify TTL is capped to 5 minutes (not 1 hour), from the unlock itself
         const fiveMinMs = 5 * 60 * 1000;
-        const oneHourMs = 60 * 60 * 1000;
         expect(key.expiresAt).toBeDefined();
         const expiresAtMs = key.expiresAt
           ? new Date(key.expiresAt).getTime()
@@ -1218,6 +1217,8 @@ describe('unlockKeyrackKeys.integration', () => {
      */
     when('[t2] the mech reports no life of its own', () => {
       then('the requested duration stands, unclamped', async () => {
+        // bracket the call, as in [case1]: a clock read after the call alone drifts under load
+        const askedAtMs = Date.now();
         const result = await unlockKeyrackKeys(
           {
             owner: 'ownerTtl',
@@ -1230,12 +1231,15 @@ describe('unlockKeyrackKeys.integration', () => {
             selfLife: null,
           }),
         );
+        const answeredAtMs = Date.now();
 
         expect(result.unlocked.length).toBe(1);
-        const expiresIn =
-          new Date(result.unlocked[0]!.expiresAt!).getTime() - Date.now();
-        expect(expiresIn).toBeGreaterThan(9 * 60 * 60 * 1000 - 5000);
-        expect(expiresIn).toBeLessThanOrEqual(9 * 60 * 60 * 1000);
+        const nineHoursMs = 9 * 60 * 60 * 1000;
+        const expiresAtMs = new Date(result.unlocked[0]!.expiresAt!).getTime();
+        expect(expiresAtMs).toBeGreaterThanOrEqual(
+          askedAtMs + nineHoursMs - 1000,
+        );
+        expect(expiresAtMs).toBeLessThanOrEqual(answeredAtMs + nineHoursMs);
       });
     });
   });

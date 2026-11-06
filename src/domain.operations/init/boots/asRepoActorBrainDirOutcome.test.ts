@@ -49,10 +49,17 @@ describe('asRepoActorBrainDirOutcome', () => {
                   symlink,
                   settings,
                   enrollConfigs: { deleted: [], kept: [] },
+                  untracked: ['brain/.claude/settings.of.grove.json'],
                 },
               },
             }),
-          ).toEqual({ render, symlink, settings, failure: null });
+          ).toEqual({
+            render,
+            symlink,
+            settings,
+            untracked: ['brain/.claude/settings.of.grove.json'],
+            failure: null,
+          });
         },
       );
     });
@@ -70,6 +77,7 @@ describe('asRepoActorBrainDirOutcome', () => {
           render: null,
           symlink: null,
           settings: null,
+          untracked: [],
           failure: { scope: { kind: 'repo' }, cause },
         });
       });
