@@ -10,7 +10,10 @@ import { dirname, join } from 'node:path';
  *   dependency bump that reverts either goes red here; this reads the installed code
  *
  * .note = rhachet selects this brain but never calls it. the real-call contract test belongs to
- *   `rhachet-brains-openrouter`, the package that makes the call (wisher, 2026-10-07)
+ *   `rhachet-brains-openrouter`, the package that makes the call (wisher, 2026-10-07): there,
+ *   `src/domain.operations/atom/genBrainAtom.integration.test.ts` makes the real call, and
+ *   `genBrainAtom.credentials.integration.test.ts` beside it proves the credential supply,
+ *   with a fail-fast `ConstraintError` where `OPENROUTER_API_KEY` is absent
  */
 describe('installed dependencies — the default peer reviewer brain', () => {
   const asPackageDir = (input: { name: string }): string =>
