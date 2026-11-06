@@ -82,6 +82,29 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 "
 `;
 
+exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.0] claude -p under the enrolled actor settings, the human home holds a CLAUDE.md then: the written excludes and the home-sentinel verdicts match snapshot 1`] = `
+"{
+  "claudeMdExcludes": [
+    "/TMP_TEST_DIR/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.claude/CLAUDE.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "/TMP_TEST_DIR/.claude/rules/**",
+    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+  ],
+  "baseline": {
+    "status": 0,
+    "sawHome": true
+  },
+  "actual": {
+    "status": 0,
+    "sawHome": false
+  }
+}"
+`;
+
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: an absent credential is no refusal — enroll spawns the brain (D13) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.2] an unattended enroll of sander under a HOME with no credential then: stderr names the shared login path and both fixes 1`] = `"ℹ no claude login at $HOME/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY"`;

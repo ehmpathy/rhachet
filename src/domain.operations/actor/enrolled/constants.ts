@@ -46,6 +46,14 @@ export const REPO_ACTOR_DIR_NAME = asActorOndiskDirName({
 });
 
 /**
+ * .what = the name of the dir, within every actor dir, that holds its brain dir (`brain/.claude`)
+ * .why = every actor door sits under it, so the home `CLAUDE.md` exclude glob spares any
+ *        `.claude/CLAUDE.md` whose parent bears this name. one literal keeps the layout and the
+ *        glob in agreement: a rename here moves both, never one
+ */
+export const ACTOR_BRAIN_DIR_NAME = 'brain';
+
+/**
  * .what = the name the repo actor dir held before `actor.via.repo=ambient`
  * .why = an extant repo still holds a dir under this name; init migrates it to
  *        `REPO_ACTOR_DIR_NAME`, and the gitignore writers drop its negation

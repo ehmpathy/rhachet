@@ -30,6 +30,8 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
  *         moved and dropped. it is null on a repo actor failure, where no link was made
  * .note = `settings` names what the repo actor's settings layout findsert did; null on a
  *         repo actor failure
+ * .note = `untracked` names each repo actor brain dir path this sync dropped from git's
+ *         index; empty in the steady state and on a repo actor failure
  * .note = `modsChanged` names each role whose modded view this sync rewrote, so the caller
  *         can tell the author that live clones keep their prior boot (usecase 8)
  * .note = `modsReverted` names each role whose mod is gone, now returned to its published form
@@ -47,6 +49,7 @@ export const syncBootsForBrainDirs = async (
   failures: BrainDirBootFailure[];
   symlink: BrainDirSyncSymlink | null;
   settings: ReturnType<typeof asRepoActorBrainDirOutcome>['settings'];
+  untracked: string[];
   modsChanged: string[];
   modsReverted: string[];
   modsUnplaced: Array<{ role: string; error: Error }>;
@@ -142,6 +145,7 @@ export const syncBootsForBrainDirs = async (
       now: repoActorOutcome.symlink,
     }),
     settings: repoActorOutcome.settings,
+    untracked: repoActorOutcome.untracked,
     modsChanged,
     modsReverted,
     modsUnplaced,

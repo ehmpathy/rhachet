@@ -3,6 +3,11 @@ import { given, then, when } from 'test-fns';
 
 import { asEnrolledActorsHookSyncLines } from './asEnrolledActorsHookSyncLines';
 
+/**
+ * .what = the why tail every dropped-exclude row carries
+ */
+const DROP_TAIL = ' — an absolute path; the excludes keep only portable globs';
+
 describe('asEnrolledActorsHookSyncLines', () => {
   given('[case1] no actor enrolled', () => {
     when('[t0] the block is rendered', () => {
@@ -19,6 +24,7 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=9c1e0000',
             outcome: { changes: '+2, ~1, -1' },
+            excludesDropped: [],
             hint: null,
           },
         ],
@@ -42,6 +48,7 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=deadbeef',
             outcome: { error: new ConstraintError('settings unreadable') },
+            excludesDropped: [],
             hint: 'fix the json in settings.of.repo.json, then rerun `rhx init --hooks`',
           },
         ],
@@ -51,7 +58,7 @@ describe('asEnrolledActorsHookSyncLines', () => {
         () => {
           expect(lines[1]).toMatch(/^ {3}└─ ✗ hash=deadbeef: /);
           expect(lines[2]).toEqual(
-            '      └─ hint: fix the json in settings.of.repo.json, then rerun `rhx init --hooks`',
+            '      └─ hint = fix the json in settings.of.repo.json, then rerun `rhx init --hooks`',
           );
         },
       );
@@ -68,11 +75,13 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'repo=ambient',
             outcome: { changes: '' },
+            excludesDropped: [],
             hint: null,
           },
           {
             actorExid: 'hash=deadbeef',
             outcome: { changes: '+3' },
+            excludesDropped: [],
             hint: null,
           },
         ],
@@ -97,18 +106,20 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=aaaa1111',
             outcome: { error: new ConstraintError('settings unreadable') },
+            excludesDropped: [],
             hint: 'rerun `rhx init --hooks`',
           },
           {
             actorExid: 'hash=bbbb2222',
             outcome: { changes: '~1' },
+            excludesDropped: [],
             hint: null,
           },
         ],
       });
       then('the stem of a non-last actor carries its vertical bar', () => {
         expect(lines.slice(2)).toEqual([
-          '   │  └─ hint: rerun `rhx init --hooks`',
+          '   │  └─ hint = rerun `rhx init --hooks`',
           '   └─ hash=bbbb2222: ~1',
         ]);
       });
@@ -117,4 +128,78 @@ describe('asEnrolledActorsHookSyncLines', () => {
       });
     });
   });
+
+  given(
+    '[case6] the repo actor, whose derivation dropped two per-machine excludes',
+    () => {
+      when('[t0] the block is rendered', () => {
+        const lines = asEnrolledActorsHookSyncLines({
+          actors: [
+            {
+              actorExid: 'repo=ambient',
+              outcome: { changes: '' },
+              excludesDropped: [
+                '/home/camper/.claude/CLAUDE.md',
+                '/home/fixturehuman/.claude/CLAUDE.md',
+              ],
+              hint: null,
+            },
+          ],
+        });
+        then('each dropped exclude hangs beneath the actor row', () => {
+          expect(lines).toEqual([
+            '🧢 apply hooks to enrolled actors...',
+            '   └─ repo=ambient',
+            `      ├─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md${DROP_TAIL}`,
+            `      └─ claudeMdExcludes dropped /home/fixturehuman/.claude/CLAUDE.md${DROP_TAIL}`,
+          ]);
+        });
+        then('the block matches snapshot', () => {
+          expect(lines.join('\n')).toMatchSnapshot();
+        });
+      });
+    },
+  );
+
+  given(
+    '[case7] a hash actor beside the repo actor, each with a dropped exclude',
+    () => {
+      when('[t0] the block is rendered', () => {
+        // every dropped entry is named, whatever it names: a home literal a prior release
+        //   wrote, or an absolute door of a checkout since moved (F2: a drop is never silent)
+        const lines = asEnrolledActorsHookSyncLines({
+          actors: [
+            {
+              actorExid: 'repo=ambient',
+              outcome: { changes: '' },
+              excludesDropped: ['/home/camper/.claude/CLAUDE.md'],
+              hint: null,
+            },
+            {
+              actorExid: 'hash=9c1e0000',
+              outcome: { changes: '~1' },
+              excludesDropped: [
+                '/home/camper/.claude/CLAUDE.md',
+                '/home/camper/git/repo-moved/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md',
+              ],
+              hint: null,
+            },
+          ],
+        });
+        then('each actor carries its own dropped rows, the stem kept', () => {
+          expect(lines).toEqual([
+            '🧢 apply hooks to enrolled actors...',
+            '   ├─ repo=ambient',
+            `   │  └─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md${DROP_TAIL}`,
+            '   └─ hash=9c1e0000: ~1',
+            `      ├─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md${DROP_TAIL}`,
+            `      └─ claudeMdExcludes dropped /home/camper/git/repo-moved/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md${DROP_TAIL}`,
+          ]);
+        });
+        then('the block matches snapshot', () => {
+          expect(lines.join('\n')).toMatchSnapshot();
+        });
+      });
+    },
+  );
 });
