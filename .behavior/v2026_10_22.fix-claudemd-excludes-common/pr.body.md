@@ -28,15 +28,15 @@ a box on an older `rhx` re-adds its own home path on enroll until it upgrades; t
 
 | test | old | new | why |
 |---|---|---|---|
-| `invokeInit.integration.test.ts` | `.not.toContain('"permissions"')` | `.toContain(...)` | the bumped `rhachet-roles-ehmpathy@1.39.9` writes `settings.of.repo.json` by name (F4) |
 | `setRepoActorBrainDir`, `upgrade.default-actor-migration.journey` | `!/settings.of.grove.json` in the brain-dir allowlist | absent | the grove link leaves git (F5) |
 | `asEnrolledActorsHookSyncLines`, `syncHooksForLinkedRoles` | `hint: …` | `hint = …` | `rule.forbid.colons-in-stdout` on a rewritten line (F14) |
 | `defaultPeerReviewerBrain` | `DEFAULT_REVIEW_BRAIN` | `BRAIN_DEFAULT_OF_REVIEW` | renamed in `rhachet-roles-bhrain@0.42.1`; same value, same two asserts |
 
 ## calls held for you
 
-- F4 — the worktree's role bumps ride in this pr, in their own commit (the `invokeInit` flip and
-  the `defaultPeerReviewerBrain` rename follow from them)
+- F4 — the `rhachet-roles-ehmpathy@1.39.9` bump rides in this pr, in its own commit (the
+  `defaultPeerReviewerBrain` rename and the architect snapshot rows — 53 briefs, no hooks — follow
+  from it)
 - F5 — the tracked grove link leaves git, which drops `!/settings.of.grove.json` from the locked
   allowlist; the teammate cure above is the cost
 - F6 — a box with no grove: keep an arrow to an absent file, or untrack `settings.json`, or neither
@@ -56,3 +56,5 @@ a box on an older `rhx` re-adds its own home path on enroll until it upgrades; t
 - the 6 interactive-clone asserts in `brain-dir-boot.journey` run with no gate on the brain's
   reach, so an unreachable brain reads as a failed boot assert. owed a fail-fast gate; caught as
   `.dream/v2026_11_06.fix.gate-live-brain-asserts-in-brain-dir-boot-journey.md`
+- the ci `ANTHROPIC_API_KEY` returns `Credit balance too low` (11 screens on run 42178071123,
+  across the `brain-dir-boot` shard and the realbrain job); those reds are the key, not this diff
