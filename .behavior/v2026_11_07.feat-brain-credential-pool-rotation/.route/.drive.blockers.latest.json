@@ -1,6 +1,6 @@
 {
   "count": 0,
-  "stone": "1.vision",
+  "stone": null,
   "brain": {
     "slug": "claude-opus-5-5[1m]",
     "effort": null,
