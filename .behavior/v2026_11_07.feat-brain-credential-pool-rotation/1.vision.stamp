@@ -1,0 +1,79 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 1.vision
+   ├─ passage = blocked
+   ├─ reason = blockers exceed threshold (2 > 0); wait for human approval
+   └─ guard
+      ├─ artifacts
+      ├─ reviews
+      │   ├─ r1: dimensional-decomposition (l1, 1/3)
+      │   │   ├─ rejected 183.2s
+      │   │   ├─ 1 blocker 🔴
+      │   │   ├─ 4 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i001.0eab1279f0d1c72d9d.r001._.given.by_peer.dimensional-decomposition.md
+      │   │   └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i001.0eab1279f0d1c72d9d.r001._.taken.by_self.dimensional-decomposition.md
+      │   └─ r2: experience-coverage (l1, 1/3)
+      │       ├─ rejected 193.1s
+      │       ├─ 1 blocker 🔴
+      │       ├─ 3 nitpicks 🟠
+      │       ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i001.0eab1279f0d1c72d9d.r002._.given.by_peer.experience-coverage.md
+      │       └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i001.0eab1279f0d1c72d9d.r002._.taken.by_self.experience-coverage.md
+      └─ judges
+          ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+          │   ├─ finished 14.4s ✗
+          │   └─ reason: blockers exceed threshold (2 > 0)
+          └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+              ├─ finished 12.0s ✗
+              └─ reason: wait for human approval
+
+────────────────────────────────────────────────────────────────
+
+🪶 judge 1
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │
+   │  │  passed: false
+   │  │  reason: blockers exceed threshold (2 > 0)
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │     └─ ✋ blocked by constraints
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
+
+🪶 judge 2
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │
+   │  │  passed: false
+   │  │  reason: wait for human approval
+   │  │
+   │  │  ✋ halted, human approval required
+   │  │     ├─ please ask your human to
+   │  │     │  └─ rhx route.stone.set --stone 1.vision --as approved
+   │  │     │
+   │  │     └─ after human approves, run
+   │  │        └─ rhx route.stone.set --stone 1.vision --as passed
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │     └─ ✋ blocked by constraints
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋
