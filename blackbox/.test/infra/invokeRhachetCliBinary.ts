@@ -273,11 +273,16 @@ export const asKeyrackStatusSnapshotSafe = (input: {
  *   enroll is top-level whatever depth it inherits. what still bites there is the
  *   detached-host pair: a runner that carries `RHACHET_CLONE_HOST_DETACHED` and
  *   `RHACHET_CLONE_DEPTH_MINTED` makes the enroll replay that depth, tty or not
+ *
+ * .note = `CLAUDE_CONFIG_DIR` is the runner clone's own brain dir, so it is clone identity
+ *   too. a role init that sees it prints a note on that dir, so a suite run inside a clone
+ *   snapshots a row that ci never prints (measured 2026-11-08, `init.incremental`)
  */
 export const asEnvWithoutCloneIdentity = (
   env: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv => {
   const {
+    CLAUDE_CONFIG_DIR: _claudeConfigDir,
     RHACHET_CLONE_SERIAL: _serial,
     RHACHET_CLONE_SOCKET: _socket,
     RHACHET_CLONE_DEPTH: _depth,
