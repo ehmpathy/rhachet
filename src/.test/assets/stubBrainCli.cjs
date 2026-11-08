@@ -167,14 +167,18 @@ if (printPrompt !== null) {
 // overrides the pre-check and lands), `modal` an option menu that holds focus (a say is
 // `withheld`/modal-holds-focus with NO force path — V3, case=6), `busy` a brain mid-turn
 // that holds the message above the input line (a say lands `enqueued`), `nobox` a screen
-// with no box band at all (a say is `withheld`/focus-unrecognized, also no force path)
+// with no box band at all (a say is `withheld`/focus-unrecognized, also no force path),
+// `labeled` a clear box whose top rule carries the agent name (a say lands `released`)
 const stubMode = process.env.RHACHET_STUB_MODE || 'default';
 
 // a minimal recognized input box — a real brain-cli draws an `❯`-fenced band between two
 // full-width rules, and the dequeue pre-check gates the write on that shape
 // (computeCloneInputState). the `Try "..."` placeholder reads as a `clear` region
 const rule = '─'.repeat(40);
-const renderClearBox = () => `${rule}\n❯ Try "a message"\n${rule}\n`;
+// `labeled` draws the agent name into the box's top rule, the shape claude code renders for a
+//   clone enrolled with an agent name (ehmpathy/rhachet#655)
+const ruleTop = stubMode === 'labeled' ? `${'─'.repeat(30)} mechanic ─` : rule;
+const renderClearBox = () => `${ruleTop}\n❯ Try "a message"\n${rule}\n`;
 
 /**
  * .what = park the cursor inside the box just drawn, at the start of its `❯` row; and the
@@ -211,6 +215,10 @@ const renderInitialScreen = () => {
   if (stubMode === 'modal')
     return `❯ 1. Yes\n  2. No\nDo you want to proceed?\n${renderClearBox()}`;
   if (stubMode === 'nobox') return `a screen with no input band\n`;
+  // `labeled` sets a plain rule higher on screen, so a reader blind to the labeled top rule
+  //   pairs the plain rule with the box's bottom rule and reads the transcript as the box
+  if (stubMode === 'labeled')
+    return `${rule}\n● a prior turn\n${renderParkedBox()}`;
   return renderParkedBox();
 };
 process.stdout.write(renderInitialScreen());

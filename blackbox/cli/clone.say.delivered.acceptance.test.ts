@@ -20,6 +20,74 @@ import { join } from 'node:path';
  *   describe name is kept, so each snapshot key is the one it held before the split
  */
 describe('rhx clone reach (acceptance)', () => {
+  given('[case17] a clone whose box top rule carries its agent name (#655)', () => {
+    // RHACHET_STUB_MODE=labeled → the stub draws `──…── mechanic ─` as the box's top rule,
+    //   beneath a plain rule higher on screen. a reader blind to the labeled rule pairs the
+    //   plain rule with the box's bottom rule, reads the transcript as the box, and withholds
+    //   the say as `input-region-dirty` — the second face ehmpathy/rhachet#655 measured
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-labeled' });
+      const configDir = genTempDir({ slug: 'clone-labeled-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'labeled',
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeled' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] a buffer read of the clone', () => {
+      // async, never sync — the live pty must drain while the read runs
+      //   (rule.forbid.sync-invoke-while-a-pty-is-live)
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeled', '--what', 'buffer'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and shows the box, never the transcript above it', () => {
+        expect(read.status).toEqual(0);
+        expect(read.stdout).not.toContain('a prior turn');
+      });
+    });
+
+    when('[t1] a say to the clone', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeled',
+            '--what',
+            'poke labeled-x9',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and lands — the labeled rule reads as the box top', () => {
+        expect(said.status).toEqual(0);
+        const parsed = JSON.parse(said.stdout) as {
+          verdict: string;
+          delivered: boolean;
+        };
+        expect(parsed.verdict).toEqual('released');
+        expect(parsed.delivered).toEqual(true);
+      });
+    });
+  });
+
   given('[case15] an idle clone asked for the STRONGEST await target', () => {
     // the `--await` happy path at CLI grain. every other reference to the flag in this suite
     // passes a BAD value (case1 t3/t4, the guard), and case11 exercises the DEFAULT target

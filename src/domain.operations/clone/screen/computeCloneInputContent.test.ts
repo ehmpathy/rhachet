@@ -1,3 +1,5 @@
+import { genSampleCloneScreenRuleLabeled } from '@src/.test/assets/genSampleCloneScreenRuleLabeled';
+
 import { computeCloneInputContent } from './computeCloneInputContent';
 import { computeCloneInputState } from './computeCloneInputState';
 import type { CloneScreenLive } from './genCloneScreenFeed';
@@ -108,7 +110,7 @@ describe('computeCloneInputContent — the buffer surface', () => {
 describe('computeCloneInputContent — a box whose top rule carries the agent name (#655)', () => {
   // claude code draws the agent name into the box's top rule (`──── mechanic ─`). the buffer read
   // shares `getInputBand` with the classifier, so `clone get --what buffer` must show the box row
-  const LABELED_RULE = `${'─'.repeat(30)} mechanic ─`;
+  const LABELED_RULE = genSampleCloneScreenRuleLabeled();
 
   test('a labeled box at the foot → the box rows, chrome stripped', () => {
     const content = readContent({

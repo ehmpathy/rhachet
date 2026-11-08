@@ -1,0 +1,19 @@
+{
+  "key": "a949af933e0f9ff1",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "declapract-typescript-ehmpathy"
+  },
+  "exid": null,
+  "title": "fix(husky): lock and scan failhides in the timestamps and secrets hooks",
+  "description": "found by the peer review of ehmpathy/rhachet beav/fix-clone-say-labeled-rule (the boot's declapract upgrade stamped these files). each is in practices/husky/best-practice/.\n\n1. check.timestamps.lock.sh: an empty index read passes. after git rm --cached .husky/check.timestamps.sh the file stays on disk (hash-object still matches) and git ls-files -s prints naught, so the [ -z INDEX ] test short-circuits to a pass. fix: halt when the index read is empty.\n2. check.timestamps.lock.sh: the TIMESTAMPS_LOCK_DISK git hash-object read is unguarded, so a git fault reads as a hook edit (ConstraintError) or aborts with git's code. fix: append || timestamps_lock_malfunction, as the index read already does.\n3. check.timestamps.sh and check.secrets.sh: the scan pipelines end in head/cut with no pipefail, so a sed/grep fault (exit 2) reads as clean and the commit passes. fix: set -o pipefail, or check the grep status.\n4. check.secrets.sh: the openai shape sk-(proj-)? matches an sk-ant- key before the anthropic shape, so an anthropic key is named openai-style. fix: order anthropic first, or exclude ant- in the openai pattern.\n5. check.secrets.sh: no test of the shape matcher or its two halt messages. add fixture tests beside demo-repo-with-edited-timestamp-hook.\n6. check.timestamps.sh header: drop the rhetorical tail (one dir today, every dir tomorrow); the directive above it already states the guard.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": null,
+  "heldSeq": 1,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "789"
+}

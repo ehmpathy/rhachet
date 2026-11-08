@@ -1,3 +1,5 @@
+import { genSampleCloneScreenRuleLabeled } from '@src/.test/assets/genSampleCloneScreenRuleLabeled';
+
 import { computeCloneInputState, isRuleRow } from './computeCloneInputState';
 import type { CloneScreenLive } from './genCloneScreenFeed';
 
@@ -900,7 +902,7 @@ describe('computeCloneInputState — any bright box content refuses, whoever wro
 // a bare-`─` predicate saw one rule, not two. so the band was either absent (`unrecognized`, every
 // say withheld) or paired a plain rule higher up with the bottom rule, and the transcript read as
 // the box (`input-region-dirty`, with a hint that offers `--force` over the real box)
-const LABELED_RULE = `${'─'.repeat(30)} mechanic ─`;
+const LABELED_RULE = genSampleCloneScreenRuleLabeled();
 
 const RULE_ROW_CASES: { description: string; row: string; isRule: boolean }[] =
   [
