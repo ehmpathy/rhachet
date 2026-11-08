@@ -71,11 +71,15 @@ export interface CloneInputState {
  *   must stop at the nearest boundary above — a blank row OR another rule. a walk that stopped
  *   only at a blank row would run into a prior box's chrome on any screen where the queue abuts
  *   the rule above it (measured against the stub's `busy` screen, which renders exactly that)
+ * .note = a rule may carry ONE label: claude code draws the agent name into the box's top rule,
+ *   `────────────────────────────── mechanic ─` (measured 2026-10-24, #655). a bare-`─` match saw
+ *   one rule, not two, so the band was absent (`unrecognized`) or paired a plain rule higher up
+ *   and read the transcript as the box (`input-region-dirty`). the half-width guard rides on the
+ *   LEAD run, so a short divider (`── note ──`) and a prose row with a `─` stay no rule. a label
+ *   that holds a `─` reads no rule — the fail-closed direction
  */
-export const isRuleRow = (line: string): boolean => {
-  const trimmed = line.trim();
-  return /^─+$/.test(trimmed) && trimmed.length >= 20;
-};
+const RULE_ROW = /^─{20,}(?:\s+[^─\s][^─]*\s+─+)?$/;
+export const isRuleRow = (line: string): boolean => RULE_ROW.test(line.trim());
 
 /**
  * .what = one row of a numbered option list — `❯ 1. Review the diff`, or `  2. Run the tests`

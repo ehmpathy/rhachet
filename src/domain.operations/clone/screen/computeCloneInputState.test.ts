@@ -1,4 +1,4 @@
-import { computeCloneInputState } from './computeCloneInputState';
+import { computeCloneInputState, isRuleRow } from './computeCloneInputState';
 import type { CloneScreenLive } from './genCloneScreenFeed';
 
 /**
@@ -887,5 +887,176 @@ describe('computeCloneInputState — any bright box content refuses, whoever wro
       message: 'SENTINEL-foreign',
     });
     expect(state.input).toEqual('dirty');
+  });
+});
+
+// 🔴 #655 — claude code draws the agent name INTO the box's top rule. measured 2026-10-24 against
+// @:b7b35743 (agent name `mechanic`), the foot rows read:
+//
+//   ────────────────────────────── mechanic ─
+//   ❯
+//   ─────────────────────────────────────────
+//
+// a bare-`─` predicate saw one rule, not two. so the band was either absent (`unrecognized`, every
+// say withheld) or paired a plain rule higher up with the bottom rule, and the transcript read as
+// the box (`input-region-dirty`, with a hint that offers `--force` over the real box)
+const LABELED_RULE = `${'─'.repeat(30)} mechanic ─`;
+
+const RULE_ROW_CASES: { description: string; row: string; isRule: boolean }[] =
+  [
+    { description: 'a plain full-width rule', row: RULE, isRule: true },
+    {
+      description: 'the measured labeled rule (#655)',
+      row: LABELED_RULE,
+      isRule: true,
+    },
+    {
+      description: 'a labeled rule with a wider label pad',
+      row: `${'─'.repeat(30)}   mechanic   ──`,
+      isRule: true,
+    },
+    {
+      description: 'a labeled rule whose label holds spaces',
+      row: `${'─'.repeat(30)} surf school ─`,
+      isRule: true,
+    },
+    {
+      description: 'a labeled rule with indent around it',
+      row: `  ${LABELED_RULE}  `,
+      isRule: true,
+    },
+    {
+      description: 'a short labeled divider is no rule',
+      row: '── note ──',
+      isRule: false,
+    },
+    {
+      description: 'a short plain divider is no rule',
+      row: '─'.repeat(10),
+      isRule: false,
+    },
+    {
+      description: 'a prose row that holds a `─` is no rule',
+      row: '● a reply that says ── here',
+      isRule: false,
+    },
+    {
+      description: 'a label with a `─` inside it is no rule (fail closed)',
+      row: `${'─'.repeat(30)} a ─ b ─`,
+      isRule: false,
+    },
+    {
+      description: 'a label with no `─` tail is no rule',
+      row: `${'─'.repeat(30)} mechanic`,
+      isRule: false,
+    },
+    { description: 'a blank row is no rule', row: '   ', isRule: false },
+  ];
+
+describe('isRuleRow — a labeled rule is a rule (#655)', () => {
+  RULE_ROW_CASES.map((thisCase) =>
+    test(thisCase.description, () => {
+      expect(isRuleRow(thisCase.row)).toEqual(thisCase.isRule);
+    }),
+  );
+});
+
+describe('computeCloneInputState — a box whose top rule carries the agent name (#655)', () => {
+  test('[case1] the captured foot rows → focus input, region clear', () => {
+    // red on the bare-`─` predicate: one rule seen, no band, `unrecognized`
+    const state = computeCloneInputState({
+      screen: asScreen(['● prior turn output', LABELED_RULE, '❯', RULE]),
+      message: 'never-on-screen',
+    });
+    expect(state).toEqual({
+      focus: 'input',
+      input: 'clear',
+      countInInput: 0,
+      countOnScreen: 0,
+      queued: false,
+    });
+  });
+
+  test('[case2a] one plain rule above the transcript, then the labeled box → clear', () => {
+    // the shape #655's 2026-10-25 capture fits: the labeled rule sat as the LAST row of the box the
+    // old locator found, which held the transcript. red on the bare-`─` predicate: `dirty`
+    const state = computeCloneInputState({
+      screen: asScreen([
+        RULE,
+        '● Ran 1 shell command',
+        '✻ Baked for 8m 14s',
+        LABELED_RULE,
+        '❯',
+        RULE,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('input');
+    expect(state.input).toEqual('clear');
+  });
+
+  test('[case2b] the transcript between two plain rules, then the labeled box → clear', () => {
+    // the shape #655 prescribes. red on the bare-`─` predicate: the box read `[labeled, ❯]`, dirty
+    const state = computeCloneInputState({
+      screen: asScreen([
+        RULE,
+        '● Ran 1 shell command',
+        RULE,
+        LABELED_RULE,
+        '❯',
+        RULE,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('input');
+    expect(state.input).toEqual('clear');
+  });
+
+  test('a human mid-type in a labeled box still reads dirty — the guard holds', () => {
+    // the cure must find the RIGHT box, never widen `clear`: human work inside it still refuses
+    const state = computeCloneInputState({
+      screen: asScreen([RULE, '● prior output', LABELED_RULE, '❯ party', RULE]),
+      message: 'PARTY-PROBE-1',
+    });
+    expect(state.focus).toEqual('input');
+    expect(state.input).toEqual('dirty');
+  });
+
+  test('our message in a labeled box counts in the box — `buffered` stays reachable', () => {
+    const state = computeCloneInputState({
+      screen: asScreen([LABELED_RULE, '❯ LABELED-mu09', RULE]),
+      message: 'LABELED-mu09',
+    });
+    expect(state.countInInput).toEqual(1);
+    expect(state.input).toEqual('dirty');
+  });
+
+  test('[safety] an option menu above a labeled box still reads modal', () => {
+    const state = computeCloneInputState({
+      screen: asScreen([
+        '❯ 1. Yes',
+        '  2. No',
+        'Do you want to proceed?',
+        LABELED_RULE,
+        '❯',
+        RULE,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('modal');
+  });
+
+  test('[safety] a menu footer below a labeled box still reads modal', () => {
+    const state = computeCloneInputState({
+      screen: asScreen([
+        LABELED_RULE,
+        '❯ 1. first',
+        '  2. second',
+        RULE,
+        '↑/↓ to navigate',
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('modal');
   });
 });
