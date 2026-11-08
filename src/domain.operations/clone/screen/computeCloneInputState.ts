@@ -62,8 +62,12 @@ export interface CloneInputState {
   queued: boolean;
 }
 
+// a lead run of ≥20 `─`, then at most one label and a `─` tail (see `isRuleRow`)
+const RULE_ROW = /^─{20,}(?:\s+[^─\s][^─]*\s+─+)?$/;
+
 /**
- * .what = a full-width horizontal rule — the brain draws the input box as a band between a pair
+ * .what = a full-width horizontal rule, bare or with one label — the brain draws the input box
+ *   as a band between a pair
  * .why = the box locator rests on the two `─` rules that fence the `❯` row at the viewport foot
  *   (the measured structure, real haiku v2.1.87). half-width guards against a short divider
  * .note = EXPORTED because a rule is a REGION BOUNDARY, and the queue walk in
@@ -78,7 +82,6 @@ export interface CloneInputState {
  *   LEAD run, so a short divider (`── note ──`) and a prose row with a `─` stay no rule. a label
  *   that holds a `─` reads no rule — the fail-closed direction
  */
-const RULE_ROW = /^─{20,}(?:\s+[^─\s][^─]*\s+─+)?$/;
 export const isRuleRow = (line: string): boolean => RULE_ROW.test(line.trim());
 
 /**

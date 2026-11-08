@@ -105,6 +105,39 @@ describe('computeCloneInputContent — the buffer surface', () => {
   });
 });
 
+describe('computeCloneInputContent — a box whose top rule carries the agent name (#655)', () => {
+  // claude code draws the agent name into the box's top rule (`──── mechanic ─`). the buffer read
+  // shares `getInputBand` with the classifier, so `clone get --what buffer` must show the box row
+  const LABELED_RULE = `${'─'.repeat(30)} mechanic ─`;
+
+  test('a labeled box at the foot → the box rows, chrome stripped', () => {
+    const content = readContent({
+      screen: asScreen({
+        lines: ['● prior turn output', LABELED_RULE, '❯ party', RULE],
+      }),
+    });
+    expect(content.buffer).toEqual(['party']);
+  });
+
+  test('a labeled box beneath a plain rule → the box rows, never the transcript', () => {
+    // the bare-`─` read paired the plain rule above with the bottom rule, and handed back the
+    // transcript between them as the human's own input
+    const content = readContent({
+      screen: asScreen({
+        lines: [
+          RULE,
+          '● Ran 1 shell command',
+          '✻ Baked for 8m 14s',
+          LABELED_RULE,
+          '❯ party',
+          RULE,
+        ],
+      }),
+    });
+    expect(content.buffer).toEqual(['party']);
+  });
+});
+
 describe('computeCloneInputContent — the queue surface', () => {
   // the MEASURED queue screen, 2026-09-18, live claude v2.1.87 (debug.2026-09-18.log rows 16-21):
   // the queued message renders `❯ <text>` ABOVE the band's top rule, bounded above by a blank
