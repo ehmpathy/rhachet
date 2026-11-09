@@ -1,0 +1,19 @@
+{
+  "key": "dbefa02880c0bc4b",
+  "kind": "update",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": "736",
+  "title": "fix(clone): the focus-unrecognized hint names every measured cause and only prescribes a teardown where it cures",
+  "description": "follow-up to ehmpathy/rhachet#655 (fulcrum F1 of .behavior/v2026_11_08.fix-clone-say-labeled-rule, ruled out of that nano fix by the wisher).\n\nthe focus-unrecognized hint in src/domain.operations/clone/socket/computeCloneSayReport.ts claims both measured causes are permanent and prescribes a teardown of the clone. #655 proved a third cause: a box rule shape the classifier does not recognize, which a teardown does not cure.\n\na second copy of the same claim lives on the clone get path, in src/domain.operations/clone/cli/asCloneInputSurfaceText.ts:64 (fix: read the screen with --debug; the measured causes are permanent, so re-enroll the clone). both copies change together.\n\nthe copy should: drop the claim of permanence; name the read (clone get --debug); list the measured causes (a 0x0 geometry, a detached host, an unrecognized box rule shape); and say a teardown clears only the first two. the target timeline is in 1.vision.experience.case=3.box-still-unfound.md of that route.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "upsert",
+  "heldSeq": 4,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "736"
+}

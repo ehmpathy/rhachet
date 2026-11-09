@@ -1,3 +1,5 @@
+import { genSampleCloneScreenRuleLabeled } from '@src/.test/assets/genSampleCloneScreenRuleLabeled';
+
 import { computeCloneInputContent } from './computeCloneInputContent';
 import { computeCloneInputState } from './computeCloneInputState';
 import type { CloneScreenLive } from './genCloneScreenFeed';
@@ -102,6 +104,92 @@ describe('computeCloneInputContent — the buffer surface', () => {
     });
     expect(content.buffer).toEqual([]);
     expect(content.queue).toEqual([]);
+  });
+});
+
+describe('computeCloneInputContent — a box whose top rule carries the agent name (#655)', () => {
+  // claude code draws the agent name into the box's top rule (`──── mechanic ─`). the buffer read
+  // shares `getInputBand` with the classifier, so `clone get --what buffer` must show the box row
+  const LABELED_RULE = genSampleCloneScreenRuleLabeled();
+
+  test('a labeled box at the foot → the box rows, chrome stripped', () => {
+    const content = readContent({
+      screen: asScreen({
+        lines: ['● prior turn output', LABELED_RULE, '❯ party', RULE],
+      }),
+    });
+    expect(content.buffer).toEqual(['party']);
+  });
+
+  test('a labeled box beneath a plain rule → the box rows, never the transcript', () => {
+    // the band must pair the labeled rule with the bottom rule, so the transcript above it never
+    // reads as the human's own input
+    const content = readContent({
+      screen: asScreen({
+        lines: [
+          RULE,
+          '● Ran 1 shell command',
+          '✻ Baked for 8m 14s',
+          LABELED_RULE,
+          '❯ party',
+          RULE,
+        ],
+      }),
+    });
+    expect(content.buffer).toEqual(['party']);
+  });
+
+  test('a busy driver in a labeled box → the queue above the band, the dim hint in the box', () => {
+    // the common foreman case: a mid-turn driver holds a queued message above the labeled box
+    const screen = asScreen({
+      lines: [
+        '● turn in flight',
+        '',
+        '  ❯ QUEUED-labeled',
+        LABELED_RULE,
+        '❯ Press up to edit queued messages',
+        RULE,
+      ],
+      dim: [4],
+    });
+    expect(computeCloneInputState({ screen, message: '' }).queued).toEqual(
+      true,
+    );
+    const content = readContent({ screen });
+    expect(content.queue).toEqual(['QUEUED-labeled']);
+    expect(content.buffer).toEqual(['Press up to edit queued messages']);
+  });
+
+  test('a queue that abuts a labeled rule above it → the walk stops at that rule', () => {
+    // the walk's second boundary is a rule; a labeled one must fence it too, or the walk runs
+    //   up into the prior box's chrome
+    const screen = asScreen({
+      lines: [
+        '● turn in flight',
+        LABELED_RULE,
+        '  ❯ QUEUED-labeled',
+        LABELED_RULE,
+        '❯ Press up to edit queued messages',
+        RULE,
+      ],
+      dim: [4],
+    });
+    expect(computeCloneInputState({ screen, message: '' }).queued).toEqual(
+      true,
+    );
+    const content = readContent({ screen });
+    expect(content.queue).toEqual(['QUEUED-labeled']);
+  });
+
+  test('[case4] an unparsed box rule beneath plain rules → the buffer shows that rule row, so the misread is visible', () => {
+    // pins the deferred residual (#737): the foreman reads the misplaced band through `--what buffer`
+    const ROW_UNPARSED = `${'─'.repeat(30)} a ─ b ─`;
+    const content = readContent({
+      screen: asScreen({
+        lines: [RULE, '● Ran 1 shell command', RULE, ROW_UNPARSED, '❯', RULE],
+      }),
+    });
+    expect(content.buffer).toContain(ROW_UNPARSED);
   });
 });
 

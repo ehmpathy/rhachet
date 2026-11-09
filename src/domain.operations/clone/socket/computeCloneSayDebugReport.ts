@@ -164,7 +164,8 @@ const asReplyLine = (reply: CloneGetReply): string =>
  *   edge marker — the full grid, then the BRIGHT-ONLY grid beside it
  * .why = this is the literal ask: the exact snapshot the emulator handed the classifier.
  *   row indices matter because the classifier's band math is index-relative (the input
- *   band is between the last two full-width rules, and the viewport starts at
+ *   band closes on the last bare rule and opens on the nearest rule above it, bare or
+ *   labeled, and the viewport starts at
  *   `lines.length - rows`), so a reader must see which index each row sits at to check
  *   the band the classifier picked. `│` marks the row end so a blank tail is legible
  *

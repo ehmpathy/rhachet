@@ -6,8 +6,9 @@ import { CLONE_SUBMIT_RESEND_MAX } from './constants';
 
 /**
  * .what = a rendered screen whose input box holds the given rows
- * .why = the classifier locates the box as the `❯` band between the last full-width rule
- *   pair, so a fixture must draw that shape (the measured haiku structure)
+ * .why = the classifier locates the box as the `❯` band that closes on the last bare rule and
+ *   opens on the nearest rule above it, so a fixture must draw that shape (the measured haiku
+ *   structure)
  */
 const genScreen = (input: { boxRows: string[] }): CloneScreenRead => {
   const rule = '─'.repeat(40);

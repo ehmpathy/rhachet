@@ -167,14 +167,40 @@ if (printPrompt !== null) {
 // overrides the pre-check and lands), `modal` an option menu that holds focus (a say is
 // `withheld`/modal-holds-focus with NO force path — V3, case=6), `busy` a brain mid-turn
 // that holds the message above the input line (a say lands `enqueued`), `nobox` a screen
-// with no box band at all (a say is `withheld`/focus-unrecognized, also no force path)
+// with no box band at all (a say is `withheld`/focus-unrecognized, also no force path),
+// `labeled` a clear box whose top rule carries the agent name beneath a plain rule, and
+// `labeledfoot` the same box with no rule above it (each say lands `released`), `labeleddirty`
+// a labeled box that holds a human's draft (a say is `withheld`), and `labeledbusy` a busy
+// brain behind a labeled box (a say lands `enqueued`), `labeledmodal` a menu above a labeled box
+// (a say is `withheld` / modal-holds-focus), and `unparsed` a box rule the predicate
+// cannot parse beneath a plain rule (a say is `withheld`, the residual of #737)
 const stubMode = process.env.RHACHET_STUB_MODE || 'default';
+const isModeDirty = ['dirty', 'labeleddirty', 'unparsed'].includes(stubMode);
+const isModeBusy = stubMode === 'busy' || stubMode === 'labeledbusy';
 
 // a minimal recognized input box — a real brain-cli draws an `❯`-fenced band between two
 // full-width rules, and the dequeue pre-check gates the write on that shape
 // (computeCloneInputState). the `Try "..."` placeholder reads as a `clear` region
 const rule = '─'.repeat(40);
-const renderClearBox = () => `${rule}\n❯ Try "a message"\n${rule}\n`;
+// `labeled` draws the agent name into the box's top rule, the shape claude code renders for a
+//   clone enrolled with an agent name (ehmpathy/rhachet#655)
+//   (`labeledfoot` draws the same rule with no plain rule above — the box at the screen foot)
+// .note = the test hands the row in via `RHACHET_STUB_RULE_TOP`, built by
+//   `genSampleCloneScreenRuleLabeled.ts`, so the stub and the unit fixture draw one geometry
+const isLabeled = [
+  'labeled',
+  'labeledfoot',
+  'labeleddirty',
+  'labeledbusy',
+  'labeledmodal',
+].includes(stubMode);
+const ruleTopLabeled = process.env.RHACHET_STUB_RULE_TOP;
+if (isLabeled && !ruleTopLabeled)
+  throw new Error(
+    `stubBrainCli: mode '${stubMode}' needs RHACHET_STUB_RULE_TOP (see genSampleCloneScreenRuleLabeled)`,
+  );
+const ruleTop = isLabeled ? ruleTopLabeled : rule;
+const renderClearBox = () => `${ruleTop}\n❯ Try "a message"\n${rule}\n`;
 
 /**
  * .what = park the cursor inside the box just drawn, at the start of its `❯` row; and the
@@ -208,9 +234,24 @@ const renderParkedBox = () => `${renderClearBox()}${PARK_IN_BOX}`;
 const renderInitialScreen = () => {
   if (stubMode === 'dirty')
     return `${rule}\n❯ HUMAN-DRAFT-half-typed-and-uncommitted\n${rule}\n`;
-  if (stubMode === 'modal')
+  // `labeledmodal` draws the same menu above a labeled box: the widened predicate must leave a
+  //   real modal read as `modal`
+  if (stubMode === 'modal' || stubMode === 'labeledmodal')
     return `❯ 1. Yes\n  2. No\nDo you want to proceed?\n${renderClearBox()}`;
   if (stubMode === 'nobox') return `a screen with no input band\n`;
+  // `labeled` sets a plain rule higher on screen, so a reader blind to the labeled top rule
+  //   pairs the plain rule with the box's bottom rule and reads the transcript as the box
+  if (stubMode === 'labeled' || stubMode === 'labeledbusy')
+    return `${rule}\n● a prior turn\n${renderParkedBox()}`;
+  // `labeleddirty` holds a human's draft in a labeled box beneath a plain rule — the guard the
+  //   widened predicate must keep: the band finds the box, and so finds the human's row
+  if (stubMode === 'labeleddirty')
+    return `${rule}\n● a prior turn\n${ruleTop}\n❯ HUMAN-DRAFT-half-typed-and-uncommitted\n${rule}\n`;
+  // `unparsed` draws a box top rule the predicate cannot parse (a `─` inside its label) beneath a
+  //   plain rule: the band pairs the plain rule with the box bottom and reads the transcript as
+  //   the box — the residual false `input-region-dirty` (ehmpathy/rhachet#737)
+  if (stubMode === 'unparsed')
+    return `${rule}\n● a prior turn\n${'─'.repeat(30)} a ─ b ─\n❯ Try "a message"\n${rule}\n`;
   return renderParkedBox();
 };
 process.stdout.write(renderInitialScreen());
@@ -246,7 +287,7 @@ const handleOne = (raw) => {
   // NEITHER the transcript NOR a reply. so no `released` (the transcript never rises) and
   // the box stays `clear` — the `enqueued` shape (focus input, region clear, screen count
   // rose). a genuinely busy brain holds the message with no transcript write, exactly this
-  if (stubMode === 'busy') {
+  if (isModeBusy) {
     process.stdout.write(`${LEAVE_BOX}❯ ${message}\n${renderParkedBox()}`);
     return;
   }
@@ -272,8 +313,8 @@ const handleOne = (raw) => {
   //   has no box to step out of; only a parked box does
   const pokeMatch = /^poke\s+(.+)$/.exec(message);
   const reply = pokeMatch ? `ack:${pokeMatch[1]}` : `got:${message}`;
-  const leave = stubMode === 'dirty' ? '' : LEAVE_BOX;
-  const after = stubMode === 'dirty' ? '' : renderParkedBox();
+  const leave = isModeDirty ? '' : LEAVE_BOX;
+  const after = isModeDirty ? '' : renderParkedBox();
   process.stdout.write(`${leave}${reply}\n${after}`);
   appendAssistant(reply);
 };
